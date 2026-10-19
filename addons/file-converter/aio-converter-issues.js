@@ -28,10 +28,13 @@
       for (const file of (Array.isArray(report?.files) ? report.files : [])) {
         const owner = snapshot.allFiles.find(f => String(f.id) === String(file.fileId));
         for (const target of (Array.isArray(file.targets) ? file.targets : [])) {
-          if (target.state !== 'error') continue;
+          if (target.state !== 'error' && target.state !== 'skipped') continue;
           rows.push({source: owner?.file?.name || owner?.name || 'Исходный файл',
             target: limitText(target.format, 12).toUpperCase(),
-            kind: 'Ошибка конвертации', reason: target.error || 'Движок не завершил преобразование.'});
+            kind: target.state === 'skipped' ? 'Направление пропущено Guard' : 'Ошибка конвертации',
+            reason: target.error || (target.state === 'skipped'
+              ? 'После подтверждения native-типа LibreOffice не имеет такого экспорта.'
+              : 'Движок не завершил преобразование.')});
         }
       }
       if (!report) for (const file of (batchOutcome(snapshot)?.files || [])) {
@@ -47,12 +50,21 @@
     const candidates = selected.length ? selected : snapshot.formats.filter(f => !f.enabled);
     for (const fmt of candidates) {
       const ids = Array.isArray(fmt.compatibleFileIds) ? fmt.compatibleFileIds.map(String) : [];
+      const undetermined = Array.isArray(fmt.undeterminedFileIds) ? fmt.undeterminedFileIds.map(String) : [];
+      const incompatible = Array.isArray(fmt.incompatibleFileIds) ? fmt.incompatibleFileIds.map(String) : [];
       const compatible = [];
       for (const file of snapshot.files) {
-        if (ids.includes(String(file.id)) && fmt.enabled) {
+        const id = String(file.id);
+        if (ids.includes(id) && fmt.enabled) {
           compatible.push(file.name);
-        } else rows.push({source: file.name, target: fmt.label || fmt.id,
-          kind: 'Формат недоступен', reason: fmt.incompatibleReasons?.[file.id] || 'Маршрут не подтверждён конвертером для этого файла.'});
+        } else if (incompatible.includes(id)) {
+          rows.push({source: file.name, target: fmt.label || fmt.id,
+            kind: 'Нет зарегистрированного маршрута',
+            reason: 'Для расширения исходника реестр LibreOffice не показывает экспорт в этот формат. '
+              + 'Это предварительная подсказка, а не проверка содержимого.'});
+        } else if (undetermined.includes(id)) {
+          // Unknown models are deliberately not reported as unsupported.
+        }
       }
       const risk = fmt.help?.[2]?.text || '';
       if (compatible.length && riskPattern.test(risk)) rows.push({source: compatible.join(', '),
