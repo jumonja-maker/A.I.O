@@ -13,7 +13,8 @@ def download_filter(url: str, name: str, port: int) -> str | None:
         parsed = urlsplit(url)
         if (parsed.scheme != 'http' or parsed.hostname != '127.0.0.1' or parsed.port != port
                 or parsed.username is not None or parsed.password is not None
-                or parsed.path != '/api/converter/result' or parsed.fragment):
+                or parsed.path not in ('/api/converter/result', '/api/converter-guard/result')
+                or parsed.fragment):
             return None
     except ValueError:
         return None
