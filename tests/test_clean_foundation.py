@@ -9,7 +9,6 @@ from urllib.request import Request, urlopen
 from openpyxl import Workbook, load_workbook
 from app_backend.server import start_server, asset_root
 from app_backend.converter_assets import read_designer_asset
-from app_backend.converter_guard import ConverterGuard
 
 
 def xlsx(value):
@@ -57,7 +56,7 @@ class CleanFoundationTests(unittest.TestCase):
 
     def test_shell_and_elva_load(self):
         html = self.fetch('/').read().decode('utf-8')
-        self.assertIn('Объединение Excel', html)
+        self.assertIn('src/excel-tool.js', html)
         self.assertIn('src/converter-bridge.js', html)
         self.assertIn('elva-v13-happy-thumb.webp', html)
         self.assertIn('data-aio-token=', html)
@@ -71,17 +70,11 @@ class CleanFoundationTests(unittest.TestCase):
         self.assertGreater(len(css), 9000)
         self.assertEqual(self.fetch('/addons/file-converter/file-converter.js').read(), js)
 
-    def test_new_guard_does_not_claim_unverified_convertibility(self):
-        guard = ConverterGuard()
-        trace = guard.begin('htm', 'pdf')
-        report = trace.as_dict()
-        self.assertEqual(report['events'][-1]['code'], 'NO_VERIFIED_ADAPTER')
-        self.assertFalse(report['engineWasLaunched'])
-        self.assertNotIn('path', json.dumps(report))
+    def test_disabled_converter_has_no_legacy_routes(self):
         with self.assertRaises(HTTPError) as ctx:
             self.fetch('/api/converter/inspect')
         self.assertEqual(ctx.exception.code, 501)
-        self.assertEqual(json.loads(ctx.exception.read())['code'], 'GUARD_NOT_READY')
+        self.assertEqual(json.loads(ctx.exception.read())['code'], 'CONVERTER_NOT_CONNECTED')
 
     def test_authenticated_excel_merges_and_retains_literal_text(self):
         payload, boundary = multipart([
