@@ -37,7 +37,7 @@ class BrandRestorationTests(unittest.TestCase):
                 self.assertEqual(data[25],6)  # PNG truecolour + alpha
 
     def test_every_manifest_resource_matches_the_committed_bytes(self):
-        provenance=json.loads((BRAND/'BRAND_PROVENANCE.json').read_text())
+        provenance=json.loads((BRAND/'BRAND_PROVENANCE.json').read_text(encoding='utf-8'))
         self.assertFalse(provenance['artworkModified'])
         self.assertFalse(provenance['thumbnailUpscaled'])
         for name,metadata in provenance['derivatives'].items():
@@ -62,13 +62,13 @@ class BrandRestorationTests(unittest.TestCase):
         self.assertEqual(sizes,[16,20,24,32,48,64,128,256])
 
     def test_header_density_candidates_have_sufficient_pixels(self):
-        html=(ROOT/'index.html').read_text()
+        html=(ROOT/'index.html').read_text(encoding='utf-8')
         for size,density in ((64,1),(128,2),(256,4),(512,8)):
             self.assertIn(f'elva-v13-happy-{size}.png {size}w',html)
             self.assertEqual(png_size((BRAND/f'elva-v13-happy-{size}.png').read_bytes()),(size,size))
             self.assertGreaterEqual(size,58*density)
         self.assertNotIn('elva-v13-happy-thumb.webp',html)
-        self.assertNotIn('elva-v13-happy-thumb.webp',(ROOT/'src/branding.js').read_text())
+        self.assertNotIn('elva-v13-happy-thumb.webp',(ROOT/'src/branding.js').read_text(encoding='utf-8'))
 
     def test_spec_bundles_icon_and_approved_sources_and_sets_exe_resource(self):
         calls={}
@@ -87,7 +87,7 @@ class BrandRestorationTests(unittest.TestCase):
             for name in ('soffice.exe','soffice.bin'):(payload/'program'/name).touch()
             (payload/'LICENSE').write_text('fixture')
             with patch.dict(os.environ,{'AIO_LIBREOFFICE_ROOT':str(payload)}):
-                exec(compile((ROOT/'AllInOne.spec').read_text(),'AllInOne.spec','exec'),namespace)
+                exec(compile((ROOT/'AllInOne.spec').read_text(encoding='utf-8'),'AllInOne.spec','exec'),namespace)
         self.assertEqual(Path(calls['icon']),BRAND/'icons/aio.ico')
         bundled={Path(source).relative_to(ROOT).as_posix() for source,_ in calls['datas']}
         self.assertTrue({'assets/brand/icons/aio.ico','assets/brand/elva-v13-happy-source.png',
@@ -95,7 +95,7 @@ class BrandRestorationTests(unittest.TestCase):
 
     def test_both_installers_reference_the_packaged_icon(self):
         for name in ('AIO-Clean-QA.iss','AIO-LibreOffice-Direct-QA.iss'):
-            text=(ROOT/'installer/windows'/name).read_text()
+            text=(ROOT/'installer/windows'/name).read_text(encoding='utf-8')
             self.assertIn('SetupIconFile=..\\..\\assets\\brand\\icons\\aio.ico',text)
             self.assertIn('UninstallDisplayIcon={app}\\_internal\\assets\\brand\\icons\\aio.ico',text)
             self.assertEqual(text.count('IconFilename: "{app}\\_internal\\assets\\brand\\icons\\aio.ico"'),2)
