@@ -55,15 +55,13 @@ def _check_zip(data: bytes, name: str) -> None:
 
 def _read_simple_table(data: bytes, name: str):
     _check_zip(data, name)
-    # Apply the same semantic OOXML safety check as the general converter.
-    # The lightweight ZIP scanner alone cannot recognize encoded external
-    # relationships or DTDs inside secondary workbook XML parts.
-    from .converter_universal import validate_source
-    from .converter_docx import ConverterError
+    # Excel has its own OPC safety checks and NEVER imports converter routes.
+    # This preserves the workbook merge's safety independently of Guard.
+    from .xlsx_integrity import verify_excel_package
     try:
-        validate_source(name, data)
-    except ConverterError as exc:
-        raise MergeError(str(exc)) from exc
+        verify_excel_package(data)
+    except ValueError as exc:
+        raise MergeError(f'«{name}»: {exc}') from exc
     try:
         wb = load_workbook(BytesIO(data), read_only=False, data_only=False, keep_links=False)
     except (OSError, ValueError, TypeError, KeyError, InvalidFileException, BadZipFile) as exc:
