@@ -40,7 +40,9 @@
     anchor.id = 'aio-libreoffice-link';
     anchor.className = 'aio-libreoffice-link';
     anchor.href = OFFICIAL_URL;
-    anchor.target = '_blank';
+    // Qt intercepts same-frame external link navigation and launches the OS
+    // browser; a new WebEngine popup would otherwise be discarded.
+    anchor.target = window.AllInOneNativeShell === true ? '_self' : '_blank';
     anchor.rel = 'noopener noreferrer external';
     anchor.referrerPolicy = 'no-referrer';
     anchor.title = 'Открыть официальный сайт LibreOffice';
