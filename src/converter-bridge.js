@@ -103,6 +103,10 @@
   function makePlan(inputs, formats, inspection) {
     const byFormat = new Map((inspection.formats || []).map(f => [f.id, f]));
     return inputs.map(file => {
+      // Small explicit choices remain true native attempts, even when an
+      // extension was renamed. Broad "select all" uses registry hints to
+      // avoid unrelated fan-out; the native backend is never hard-vetoed.
+      if (formats.length <= 4) return {fileId:String(file.id), formats:[...formats]};
       let options = formats.filter(format => {
         const info = byFormat.get(format);
         return !info || !Array.isArray(info.incompatibleFileIds) ||
