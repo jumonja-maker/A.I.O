@@ -1,0 +1,64 @@
+{
+  "sourceRepository": "jumonja-maker/All-in-One-",
+  "sourceCommit": "7856c110b0898c578530bc0c72ae5e065b4f2cfd",
+  "originals": {
+    "aio-new-brand-source.png": {
+      "sha256": "34b6491b56bae5f5eb7c014e0bcd7ede3151c0daff11d6732904ed225a5e0f37",
+      "gitBlob": "4288071be3e10f33227aacd1f495f1d0d5f03783",
+      "size": [
+        1254,
+        1254
+      ]
+    },
+    "elva-v13-happy-source.png": {
+      "sha256": "87e2b8dc069bee52ec796ea03d31e618789b64ffeb9c8a66ea50f09f49db42c5",
+      "gitBlob": "6eb9e3b15bf369d298af0b98a64db152bf59618a",
+      "size": [
+        1254,
+        1254
+      ]
+    }
+  },
+  "derivatives": {
+    "icons/aio.ico": {
+      "sha256": "576de4f43c9c575a0ee3ebad4642b160c0996b5e92798719e0da1e440eed571f",
+      "bytes": 86796
+    },
+    "icons/aio-64.png": {
+      "sha256": "537c198d96a562c88f383f2712ac371804e01efb7e259711fe4ffb0566db020b",
+      "bytes": 5513
+    },
+    "icons/aio-256.png": {
+      "sha256": "d31e97f4e2719d033f112ddf6f115efc062ba202bd20cef95b59a0adc5b7bc11",
+      "bytes": 55337
+    },
+    "elva-v13-happy-64.png": {
+      "sha256": "087e4b13be3e4d0868b410aac8a7cbd847dcecdd1dac6ce48a43003736c07581",
+      "bytes": 7652
+    },
+    "elva-v13-happy-128.png": {
+      "sha256": "f2f2646183ad6c85889201cd78c5d2ff8c7c61df1e2176b49320cfe41bd8b808",
+      "bytes": 23807
+    },
+    "elva-v13-happy-256.png": {
+      "sha256": "3097fe90e797927e57b07ecf25de8d2781894dcb507e5bf61ea61a84f0bc4314",
+      "bytes": 75980
+    },
+    "elva-v13-happy-512.png": {
+      "sha256": "0f53225b10e0efafd0d8be736eca674b9fc5f7d09ff7457ae4150c359c5d9a6c",
+      "bytes": 247859
+    }
+  },
+  "icoSizes": [
+    16,
+    20,
+    24,
+    32,
+    48,
+    64,
+    128,
+    256
+  ],
+  "artworkModified": false,
+  "thumbnailUpscaled": false
+}

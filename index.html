@@ -7,7 +7,7 @@
   <title>All in One помощник — UI v1.2</title>
   <link rel="stylesheet" href="src/styles.css">
   <link rel="stylesheet" href="src/aio-elva-v13-happy.css">
-  <link rel="icon" id="app-favicon" type="image/webp" href="assets/brand/elva-v13-happy-thumb.webp">
+  <link rel="icon" id="app-favicon" type="image/png" sizes="64x64" href="assets/brand/icons/aio-64.png">
   <script src="src/registry.js" defer></script>
   <script src="src/excel-tool.js" defer></script>
   <script src="src/bridge.js" defer></script>
@@ -41,7 +41,10 @@
     <header class="app-header">
       <div class="aio-v13-brand">
         <span class="aio-v13-elva-badge" aria-hidden="true">
-          <img src="assets/brand/elva-v13-happy-thumb.webp" alt="" width="58" height="58" decoding="async">
+          <img src="assets/brand/elva-v13-happy-64.png"
+               srcset="assets/brand/elva-v13-happy-64.png 64w, assets/brand/elva-v13-happy-128.png 128w, assets/brand/elva-v13-happy-256.png 256w, assets/brand/elva-v13-happy-512.png 512w"
+               sizes="(max-width: 610px) 48px, (max-width: 850px) 52px, 58px"
+               alt="" width="58" height="58" decoding="async">
         </span>
         <span class="app-name">A.I.O</span>
       </div>

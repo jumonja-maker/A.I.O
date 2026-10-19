@@ -18,6 +18,14 @@ from .server import start_server, asset_root
 from .downloads import download_filter
 
 
+def application_icon():
+    root = asset_root() / 'assets' / 'brand'
+    icon = QIcon(str(root / 'icons' / 'aio.ico'))
+    if icon.isNull():
+        icon = QIcon(str(root / 'icons' / 'aio-256.png'))
+    return icon
+
+
 class OnlyLocalRequests(QWebEngineUrlRequestInterceptor):
     """No document or third-party network fetches inside WebEngine."""
     def __init__(self, port, parent=None):
@@ -54,8 +62,7 @@ class MainWindow(QMainWindow):
         self._downloads = []
         self._server = server
         self.setWindowTitle('A.I.O — All in One помощник')
-        icon = asset_root() / 'assets' / 'brand' / 'elva-v13-happy-thumb.webp'
-        self.setWindowIcon(QIcon(str(icon)))
+        self.setWindowIcon(application_icon())
         self.resize(1280, 800)
         self.setMinimumSize(900, 650)
 
@@ -153,6 +160,7 @@ class MainWindow(QMainWindow):
 def launch_desktop():
     app = QApplication.instance() or QApplication(sys.argv)
     app.setApplicationName('A.I.O')
+    app.setWindowIcon(application_icon())
     server, _token = start_server()
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
