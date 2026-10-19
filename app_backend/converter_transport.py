@@ -6,7 +6,6 @@ from dataclasses import dataclass, field
 import json
 from pathlib import Path
 import secrets
-import socket
 import tempfile
 import threading
 from zipfile import ZipFile, ZIP_STORED
@@ -62,11 +61,8 @@ class ConverterTransport:
             request = self.active.get(identity)
             if request:
                 request.cancel.set()
-                if not request.total:
-                    try:
-                        request.connection.shutdown(socket.SHUT_RD)
-                    except OSError:
-                        pass
+                # Polling wakes stalled uploads on cancellation without
+                # shutting down their response socket (WinError 10053).
             return bool(request)
 
     def progress(self, identity):
@@ -197,10 +193,6 @@ class ConverterTransport:
             tickets = list(self.results)
         for request in active:
             request.cancel.set()
-            try:
-                request.connection.shutdown(socket.SHUT_RDWR)
-            except OSError:
-                pass
         for request in active:
             request.done.wait(3)
         for ticket in tickets:
