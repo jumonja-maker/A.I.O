@@ -11,7 +11,7 @@ permissions:
 
 concurrency:
   group: aio-clean-one-pinned-windows-build
-  cancel-in-progress: ${{ github.event.pull_request.number == 3 && github.event.label.name == 'aio-clean-build-approved-once' }}
+  cancel-in-progress: false
 
 jobs:
   build-candidate:
