@@ -85,6 +85,27 @@ class LibreOfficeDirectTests(unittest.TestCase):
                 lo.convert('demo.txt', b'Hello', 'pdf', executable=Path(__file__))
             self.assertEqual(error.exception.code, 'INVALID_OUTPUT')
 
+    def test_live_writer_calc_pdf_with_local_engine(self):
+        """True LO CLI smoke, required when AIO_LO_QA_MUST_HAVE_ENGINE=1."""
+        import os
+        from openpyxl import Workbook
+        binary = lo.engine_binary()
+        if binary is None:
+            if os.environ.get('AIO_LO_QA_MUST_HAVE_ENGINE') == '1':
+                self.fail('QA requires an installed complete LibreOffice engine.')
+            self.skipTest('LibreOffice binary not installed on this host.')
+        writer = lo.convert('smoke.txt', b'A.I.O LibreOffice direct engine smoke', 'pdf')
+        self.assertTrue(writer.startswith(b'%PDF-'))
+        table = Workbook()
+        table.active.append(['Name','Qty'])
+        table.active.append(['Sample',3])
+        buffer = io.BytesIO()
+        table.save(buffer)
+        table.close()
+        calc = lo.convert('spreadsheet.xlsx',buffer.getvalue(),'pdf')
+        self.assertTrue(calc.startswith(b'%PDF-'))
+        self.assertGreater(len(calc), 500)
+
     def test_loopback_real_converter_api(self):
         server, token = start_server()
         thread = threading.Thread(target=server.serve_forever, daemon=True)
