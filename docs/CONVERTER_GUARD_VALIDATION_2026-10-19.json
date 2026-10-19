@@ -3,7 +3,7 @@
   "baseBranch": "migration/ui-excel-clean-foundation-20261019",
   "python": {
     "status": "PASS",
-    "tests": 55,
+    "tests": 56,
     "failures": 0,
     "errors": 0,
     "skipped": 0,
@@ -51,7 +51,8 @@
       "save cancel and retry",
       "green checks cleared after confirmed save",
       "repeat without app restart",
-      "input edit releases old output"
+      "input edit releases old output",
+      "missing LibreOffice reason shown without starting engine"
     ]
   },
   "notRun": [
@@ -73,5 +74,15 @@
     "brand assets",
     "old repository",
     "ADVANCE"
-  ]
+  ],
+  "githubSourceCI": {
+    "status": "NO_EXECUTED_STEPS",
+    "reportedConclusion": "failure",
+    "runId": 39288544594,
+    "jobId": 118182848829,
+    "executedSteps": 0,
+    "jobLog": "UNAVAILABLE_404",
+    "reason": "NOT_DETERMINED",
+    "scope": "Not counted as passed CI; local tests are recorded independently"
+  }
 }

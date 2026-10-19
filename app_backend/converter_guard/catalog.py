@@ -40,5 +40,6 @@ def inspect_files(files: list[dict], available: bool) -> dict:
         'help': [{'title': 'Движок', 'text': 'Документ целиком обрабатывает LibreOffice.'},
                  {'title': 'Качество', 'text': 'Сжатие изображений без потерь, без снижения разрешения.'},
                  {'title': 'Ограничения', 'text': 'PDF сохраняет представление документа. Редактируемость, макросы и интерактивные функции исходного формата не переносятся.'}]
-    }], 'message': ('Готово к экспорту в PDF через LibreOffice.' if available else
-                   'LibreOffice не найден. Укажите AIO_LIBREOFFICE или установите LibreOffice.')}
+    }], 'message': ('LibreOffice не найден. Укажите AIO_LIBREOFFICE или установите LibreOffice.' if not available else
+                   'Готово к экспорту в PDF через LibreOffice.' if compatible else
+                   'Выбранные типы файлов пока не подключены к Guard. В первой версии доступны документы Writer, Calc и Impress → PDF.')}

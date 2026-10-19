@@ -40,6 +40,15 @@ await until(()=>document.querySelector('[data-cv-picker]'),'Converter did not mo
 const picker=document.querySelector('[data-cv-picker]');
 Object.defineProperty(picker,'files',{configurable:true,value:[new File(['bad!'],'broken.docx'),new File(['good'],'report.docx'),new File(['good'],'table.xlsx')]});
 picker.dispatchEvent(new window.Event('change'));
+if(process.env.AIO_UI_EXPECT_UNAVAILABLE==='1') {
+  await until(()=>document.querySelector('[data-cv-status]').textContent.includes('LibreOffice не найден'),'Missing-engine reason not displayed');
+  assert.equal(document.querySelector('.aio-cv__format-main').disabled,true);
+  assert.equal(document.querySelector('[data-cv-run]').disabled,true);
+  const status=await (await apiFetch('/api/converter/status',{headers:{'X-AIO-Token':document.body.dataset.aioToken}})).json();
+  assert.equal(status.storage.jobs,0);
+  console.log(JSON.stringify({status:'PASS',missingEngineReasonVisible:true,scope:'DOM/HTTP'}));
+  process.exit(0);
+}
 await until(()=>document.querySelector('.aio-cv__format-main')&&!document.querySelector('.aio-cv__format-main').disabled,'No PDF capability');
 document.querySelector('.aio-cv__format-main').click();
 const run=document.querySelector('[data-cv-run]'); assert.equal(run.disabled,false);run.click();

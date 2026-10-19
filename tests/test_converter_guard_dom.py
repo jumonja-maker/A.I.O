@@ -20,3 +20,12 @@ class GuardDOMAcceptance(unittest.TestCase):
             env=env,capture_output=True,text=True,timeout=30)
         self.assertEqual(result.returncode,0,result.stdout+'\n'+result.stderr)
         print(result.stdout.strip())
+
+    def test_missing_engine_is_explained_in_existing_status_area(self):
+        self.guard.adapter.available = False
+        env = dict(os.environ, AIO_TEST_SERVER=self.base, AIO_UI_EXPECT_UNAVAILABLE='1')
+        result = subprocess.run(['node',str(Path(__file__).with_name('guard_ui_dom_smoke.mjs'))],
+            env=env,capture_output=True,text=True,timeout=30)
+        self.assertEqual(result.returncode,0,result.stdout+'\n'+result.stderr)
+        self.assertEqual(self.guard.adapter.calls,[])
+        print(result.stdout.strip())

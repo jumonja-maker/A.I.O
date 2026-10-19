@@ -90,6 +90,12 @@ def read_designer_asset(root: str, name: str) -> bytes:
         if raw.count(old) != 1:
             raise ValueError('Unexpected converter format-change boundary')
         raw = raw.replace(old, b'adapter.resetProgress?.();' + old)
+        old = (b"status = 'idle'; statusMessage='';\n"
+               b"        const first = analysis.formats.find(f => f.enabled);")
+        if raw.count(old) != 1:
+            raise ValueError('Unexpected converter inspection status boundary')
+        raw = raw.replace(old, (b"status = 'idle'; statusMessage=analysis.formats.some(f=>f.enabled)?'':analysis.message;\n"
+                                b"        const first = analysis.formats.find(f => f.enabled);"))
         # Advanced and the historical conversion backend intentionally stay
         # in the archived repository. The native Guard is connected only through
         # the frontend adapter; no conversion code is materialized here.
