@@ -1,0 +1,228 @@
+/* A.I.O converter: static geometry / single-axis scrolling.
+   Content changes may scroll inside a viewport but must not resize sibling UI.
+   Loaded LAST to supersede conflicting Designer/QA responsive overrides.
+   Scoped to converter only; Excel screens retain their own layout. */
+.workspace .aio-cv__columns {
+  align-items: stretch;
+  min-width: 0;
+  min-height: 0;
+}
+.workspace .aio-cv__pane {
+  box-sizing: border-box;
+  /* Identical height in document/image/spreadsheet tabs and for 0..100 files. */
+  height: clamp(420px, calc(100vh - 315px), 650px) !important;
+  min-height: 0 !important;
+  max-height: clamp(420px, calc(100vh - 315px), 650px) !important;
+  overflow: hidden !important;
+  display: flex;
+  flex-direction: column;
+}
+.workspace .aio-cv__pane-head {
+  flex: 0 0 44px;
+  min-height: 44px;
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+.workspace .aio-cv__pane-title { flex: 0 1 auto; min-width: 0; white-space: nowrap; }
+.workspace .aio-cv__pane--left .aio-cv-filter__actions {
+  flex: 0 0 auto;
+  flex-wrap: nowrap !important;
+}
+.workspace .aio-cv__categories {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  box-sizing: border-box;
+  width: 100%;
+  height: 43px;
+  min-height: 43px;
+  flex: 0 0 43px;
+  gap: 6px;
+  margin: 0;
+  padding: 0 0 1px;
+  overflow: hidden !important; /* no second short scrollbar on category strip */
+  scrollbar-width: none;
+}
+.workspace .aio-cv__categories::-webkit-scrollbar { display: none; }
+.workspace .aio-cv__category {
+  box-sizing: border-box;
+  min-width: 0 !important;
+  width: 100%;
+  max-width: 100%;
+  height: 40px;
+  min-height: 40px;
+  padding: 7px 5px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.workspace .aio-cv__formats {
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  height: auto !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  /* Chromium's scrollbar-width:thin disables our ::-webkit-scrollbar theme. */
+  scrollbar-width: auto;
+  padding-right: 5px;
+}
+.workspace .aio-cv__format {
+  box-sizing: border-box;
+  flex: 0 0 64px;
+  height: 64px;
+  min-height: 64px;
+  max-height: 64px;
+  overflow: hidden;
+}
+.workspace .aio-cv__format-main { min-width: 0; overflow: hidden; }
+.workspace .aio-cv__format-words { min-width: 0; overflow: hidden; }
+.workspace .aio-cv__format-words small {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.workspace .aio-cv__format-icon { flex-shrink: 0; }
+.workspace .aio-cv__help-btn { flex-shrink: 0; }
+.workspace .aio-cv__pane--right [data-cv-options]:not([hidden]) {
+  box-sizing: border-box;
+  height: 86px;
+  min-height: 86px;
+  max-height: 86px;
+  overflow-y: hidden; /* options cannot introduce a third scrollbar */
+  flex: 0 0 86px;
+}
+.workspace .aio-cv__footer {
+  box-sizing: border-box;
+  flex: 0 0 176px !important;
+  height: 176px !important;
+  min-height: 176px !important;
+  max-height: 176px !important;
+  display: grid;
+  grid-template-rows: 62px 48px 48px;
+  align-content: end;
+  gap: 7px;
+  margin-top: 0 !important;
+  overflow: hidden;
+}
+.workspace .aio-cv__footer .aio-cv__summary {
+  box-sizing: border-box;
+  grid-row: 1;
+  height: 62px;
+  min-height: 62px;
+  max-height: 62px;
+  /* Important details remain in the DOM/accessible title; do not create
+     a second tiny vertical scrollbar under the actual format list. */
+  overflow-y: hidden;
+  overflow-x: hidden;
+  overflow-wrap: anywhere;
+}
+.workspace .aio-cv__footer .aio-cv__status {
+  grid-row: 2;
+  min-height: 48px;
+  max-height: 48px;
+  height: 48px;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  overflow-y: hidden;
+  overflow-wrap: anywhere;
+}
+.workspace .aio-cv__footer [data-cv-run],
+.workspace .aio-cv__footer [data-cv-save] {
+  box-sizing: border-box;
+  grid-row: 3;
+  width: 100%;
+  min-width: 0;
+  height: 48px !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
+  margin: 0;
+}
+.workspace .aio-cv__pane--left [data-cv-file-area] {
+  flex: 1 1 0;
+  min-height: 0 !important;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.workspace .aio-cv__pane--left .aio-cv__file-list {
+  min-height: 0;
+  max-height: none !important;
+}
+.workspace .aio-cv__pane--left [data-cv-left-status] {
+  box-sizing: border-box;
+  flex: 0 0 34px;
+  min-height: 34px;
+  max-height: 34px;
+  overflow: hidden;
+}
+/* Small screens may scroll the main workspace, but switching tabs may
+   NEVER recalculate panel height or push the action button. */
+@media (max-width: 1070px) {
+  .workspace .aio-cv__pane {
+    height: clamp(410px, calc(100vh - 315px), 650px) !important;
+    max-height: clamp(410px, calc(100vh - 315px), 650px) !important;
+  }
+  .workspace .aio-cv__pane-head {
+    gap: 6px;
+  }
+}
+@media (max-width: 610px) {
+  .workspace .aio-cv__pane-title { font-size: 15px; }
+  .workspace .aio-cv__category { font-size: 12px; padding-inline: 2px; }
+}
+/* Keep forced-colors outlines accessible and ensure both themes use their
+   existing CSS variables; no hard-coded background/text colors here. */
+
+/* The page title + file count + action footer keep their original boxes on
+   category switches.  Only list viewports have scrollbars.  Keep keyboard
+   access to the list elements (native focus and wheel navigation). */
+.workspace .aio-cv__footer .aio-cv__summary,
+.workspace .aio-cv__footer .aio-cv__status {
+  scrollbar-width: none;
+}
+.workspace .aio-cv__footer .aio-cv__summary::-webkit-scrollbar,
+.workspace .aio-cv__footer .aio-cv__status::-webkit-scrollbar {
+  display: none;
+}
+
+/* V13 MAIN: reuse the application's native Chromium scrollbar tokens here.
+   'thin' disables pseudo-element colors on modern Qt WebEngine/Chromium. */
+.workspace .aio-cv__formats,
+.workspace .aio-cv__pane--left [data-cv-file-area] {
+  scrollbar-width: auto;
+  scrollbar-color: auto;
+}
+.workspace .aio-cv__formats::-webkit-scrollbar,
+.workspace .aio-cv__pane--left [data-cv-file-area]::-webkit-scrollbar {
+  width: var(--scrollbar-size, 12px);
+  height: var(--scrollbar-size, 12px);
+}
+.workspace .aio-cv__formats::-webkit-scrollbar-track,
+.workspace .aio-cv__pane--left [data-cv-file-area]::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: 999px;
+}
+.workspace .aio-cv__formats::-webkit-scrollbar-thumb,
+.workspace .aio-cv__pane--left [data-cv-file-area]::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  background-clip: padding-box;
+  border: 3px solid var(--scrollbar-track);
+  border-radius: 999px;
+  min-height: 32px;
+}
+.workspace .aio-cv__formats::-webkit-scrollbar-thumb:hover,
+.workspace .aio-cv__pane--left [data-cv-file-area]::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+}
+.workspace .aio-cv__formats::-webkit-scrollbar-thumb:active,
+.workspace .aio-cv__pane--left [data-cv-file-area]::-webkit-scrollbar-thumb:active {
+  background-color: var(--scrollbar-thumb-active);
+}
+.workspace .aio-cv__formats::-webkit-scrollbar-button,
+.workspace .aio-cv__pane--left [data-cv-file-area]::-webkit-scrollbar-button {
+  display: none;
+}

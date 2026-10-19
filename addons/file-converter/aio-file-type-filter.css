@@ -1,0 +1,34 @@
+/* UI 11 owner-approved file type filter: scoped presentation only. */
+.aio-cv__pane--left .aio-cv__pane-head .aio-cv-filter__actions {
+  display:flex; align-items:center; gap:7px; margin-left:auto; min-width:0;
+}
+.aio-cv-filter__trigger {
+  display:inline-flex; align-items:center; justify-content:center; gap:7px;
+  min-height:38px; white-space:nowrap; padding:8px 11px;
+}
+.aio-cv-filter__trigger svg {width:15px;height:15px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+.aio-cv-filter__trigger[aria-expanded="true"],
+.aio-cv-filter__trigger[data-active="true"] {background:var(--selected);border-color:var(--accent);color:var(--accent);}
+.aio-cv-filter__popover {width:min(302px,calc(100vw - 28px))!important;padding:14px 15px;}
+.aio-cv-filter__title {font-size:14px;font-weight:700;line-height:1.35;margin:0 0 4px;}
+.aio-cv-filter__description {font-size:12px;line-height:1.45;color:var(--muted);margin:0 0 11px;}
+.aio-cv-filter__choices {display:flex;flex-direction:column;gap:5px;max-height:min(205px,30vh);overflow-y:auto;}
+.aio-cv-filter__choice {
+  display:flex;align-items:center;gap:10px;min-height:38px;padding:7px 10px;
+  width:100%;text-align:left;border:1px solid transparent;background:transparent;
+  color:var(--text);border-radius:var(--radius-control);font-size:13px;
+}
+.aio-cv-filter__choice:hover {background:var(--nav-hover);}
+.aio-cv-filter__choice[aria-checked="true"] {border-color:var(--secondary-border);background:var(--selected);font-weight:650;}
+.aio-cv-filter__choice-dot {display:grid;place-items:center;width:16px;height:16px;border-radius:50%;border:1.5px solid var(--muted);flex:none;}
+.aio-cv-filter__choice[aria-checked="true"] .aio-cv-filter__choice-dot {border-color:var(--accent);}
+.aio-cv-filter__choice[aria-checked="true"] .aio-cv-filter__choice-dot::after {content:"";width:8px;height:8px;background:var(--accent);border-radius:50%;}
+.aio-cv-filter__choice-label {min-width:0;flex:1;}
+.aio-cv-filter__choice-count {font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;}
+.aio-cv-filter__foot {padding-top:10px;margin-top:10px;border-top:1px solid var(--line);color:var(--muted);font-size:11px;line-height:1.45;}
+.aio-cv-filter__empty {border:1px dashed var(--line);padding:17px 8px;color:var(--muted);text-align:center;border-radius:8px;font-size:12px;}
+@media(max-width:520px){
+  .aio-cv__pane--left .aio-cv__pane-head .aio-cv-filter__actions {gap:5px;flex-wrap:wrap;justify-content:flex-end;}
+  .aio-cv-filter__trigger{padding:7px 9px;font-size:12px}
+}
+@media(prefers-reduced-motion:reduce){.aio-cv-filter__popover{animation:none!important;translate:none!important}}
