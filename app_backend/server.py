@@ -1,7 +1,7 @@
 """Minimal authenticated loopback host for A.I.O UI and independent Excel merge.
 
 No legacy converter imports, route catalogues, Advanced hooks or fallback
-conversion engines. The converter is not wired until its new architecture is supplied.
+conversion engines. LibreOffice receives original inputs through a disk-streaming transport.
 """
 from __future__ import annotations
 
@@ -9,6 +9,9 @@ from email import policy
 from email.parser import BytesParser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
+import io
+import select
+import zipfile
 import mimetypes
 import re
 import secrets
@@ -19,6 +22,36 @@ from urllib.parse import urlsplit, parse_qs
 
 from .converter_assets import read_designer_asset
 from .excel import merge_xlsx, MergeError, MAX_TOTAL_BYTES, MAX_FILE_BYTES
+from .libreoffice_engine import LibreOfficeError, inspect_metadata
+from .libreoffice_catalog import EXTENSION
+from .converter_transport import ConverterTransport
+from .converter_upload_stream import MultipartUpload, content_length
+from urllib.parse import quote
+
+
+class CancellableSocketUpload:
+    """Read only available TCP bytes, without any elapsed-time policy.
+
+    The request headers use an unbuffered rfile, so there are no prefetched
+    body bytes bypassed by recv(). Cancellation wakes within 0.1 seconds on
+    Linux and Windows without shutting down the socket write half.
+    """
+    def __init__(self, connection, cancel):
+        self.connection = connection
+        self.cancel = cancel
+
+    def read(self, size):
+        while not self.cancel.is_set():
+            readable, _, _ = select.select([self.connection], [], [], 0.1)
+            if readable:
+                try:
+                    return self.connection.recv(size)
+                except OSError:
+                    if self.cancel.is_set():
+                        raise LibreOfficeError('Загрузка отменена.', 'CANCELLED')
+                    raise
+        raise LibreOfficeError('Загрузка отменена.', 'CANCELLED')
+
 
 ROOT = Path(__file__).resolve().parent.parent
 MAX_UPLOAD = MAX_TOTAL_BYTES + 2 * 1024 * 1024
@@ -40,8 +73,14 @@ class LocalServer(ThreadingHTTPServer):
     def __init__(self, address, handler):
         super().__init__(address, handler)
         self.merge_gate = threading.BoundedSemaphore(1)
+        self.converter_gate = threading.BoundedSemaphore(1)
+        self.converter = ConverterTransport()
         self.progress = {}
         self.progress_lock = threading.Lock()
+
+    def server_close(self):
+        self.converter.close()
+        super().server_close()
 
 
 def start_server(port: int = 0):
@@ -49,6 +88,10 @@ def start_server(port: int = 0):
     root = asset_root().resolve()
 
     class Handler(BaseHTTPRequestHandler):
+        # Use an unbuffered socket reader: buffered rfile.read(64 KiB) can wait
+        # forever for a stalled client and cannot be interrupted reliably by
+        # shutdown(SHUT_RD) on Windows. Readiness polling below permits cancel.
+        rbufsize = 0
         server_version = 'AIO-Clean/0.1'
         sys_version = ''
 
@@ -66,9 +109,24 @@ def start_server(port: int = 0):
                 "font-src 'self'; base-uri 'none'; form-action 'none'")
             self.end_headers()
 
+        def _read_exact(self, size):
+            # SocketIO.read() may return fewer bytes than requested, unlike the
+            # previously buffered reader. Keep Excel and JSON framing exact.
+            output = io.BytesIO()
+            while size:
+                data = self.rfile.read(min(64 * 1024, size))
+                if not data:
+                    raise ValueError('Загрузка HTTP прервана.')
+                output.write(data)
+                size -= len(data)
+            return output.getvalue()
+
         def _send(self, code, payload, content_type='application/octet-stream'):
-            self._headers(code, content_type, len(payload))
-            self.wfile.write(payload)
+            try:
+                self._headers(code, content_type, len(payload))
+                self.wfile.write(payload)
+            except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+                pass  # The caller closed its own upload/download.
 
         def _json(self, code, value):
             data = json.dumps(value, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
@@ -140,8 +198,42 @@ def start_server(port: int = 0):
                 return self._json(200, {'available':False,
                     'message':'Проверка обновлений для нового репозитория пока не настроена.'})
             if path.startswith('/api/converter'):
-                return self._json(501, {'code':'CONVERTER_NOT_CONNECTED',
-                    'error':'Конвертер пока не подключён.'})
+                if not self._converter_origin():
+                    return self._json(403, {'error': 'Нет доступа.'})
+                query = parse_qs(urlsplit(self.path).query, keep_blank_values=True)
+                if path == '/api/converter/result':
+                    tickets = query.get('ticket', [])
+                    if (len(tickets) != 1 or set(query) - {'ticket', 'aioSave'} or
+                            not re.fullmatch(r'[A-Za-z0-9_-]{32,128}', tickets[0])):
+                        return self._json(400, {'code': 'INVALID_TICKET', 'error': 'Некорректный адрес результата.'})
+                    try:
+                        with self.server.converter.lease(tickets[0]) as result:
+                            size = result.path.stat().st_size
+                            self.send_response(200)
+                            self.send_header('Content-Type', result.mime)
+                            self.send_header('Content-Length', str(size))
+                            self.send_header('Cache-Control', 'no-store')
+                            self.send_header('X-Content-Type-Options', 'nosniff')
+                            self.send_header('Content-Disposition',
+                                "attachment; filename=result" + result.path.suffix +
+                                "; filename*=UTF-8''" + quote(result.name))
+                            self.end_headers()
+                            with result.path.open('rb') as stream:
+                                while chunk := stream.read(64 * 1024):
+                                    self.wfile.write(chunk)
+                        return
+                    except LibreOfficeError as exc:
+                        return self._json(404, {'code': exc.code, 'error': str(exc)})
+                    except (BrokenPipeError, ConnectionResetError):
+                        return
+                if path == '/api/converter/progress':
+                    if not self._authorized():
+                        return self._json(403, {'error': 'Нет доступа.'})
+                    identity = query.get('request', [''])[0]
+                    value = self.server.converter.progress(identity)
+                    return self._json(200, value or {'files': [], 'completed': 0, 'total': 0, 'percent': None})
+                return self._json(404, {'code':'UNKNOWN_CONVERTER_ENDPOINT',
+                    'error':'Неизвестная операция конвертера.'})
             return self._static(path)
 
         def _read_multipart(self):
@@ -151,7 +243,7 @@ def start_server(port: int = 0):
             content_type = self.headers.get('Content-Type', '')
             if not content_type.lower().startswith('multipart/form-data;'):
                 raise MergeError('Требуется загрузка файлов Excel.')
-            body = self.rfile.read(int(length))
+            body = self._read_exact(int(length))
             if len(body) != int(length):
                 raise MergeError('Загрузка Excel была прервана.')
             mime = (b'MIME-Version: 1.0\r\nContent-Type: ' +
@@ -179,15 +271,95 @@ def start_server(port: int = 0):
                 raise MergeError('Выберите от 2 до 100 XLSX общим размером до 50 МБ.')
             return files
 
+
+        def _converter_origin(self):
+            origin = f'http://127.0.0.1:{self.server.server_port}'
+            return (self.headers.get('Host') == origin.removeprefix('http://') and
+                    self.headers.get('Origin', origin) == origin)
+
+        def _read_converter_json(self):
+            if self.headers.get('Content-Type', '').split(';')[0] != 'application/json':
+                raise LibreOfficeError('Нужен JSON-запрос.', 'INVALID_REQUEST')
+            value = json.loads(self._read_exact(content_length(self.headers)))
+            if not isinstance(value, dict):
+                raise LibreOfficeError('Некорректные параметры.', 'INVALID_REQUEST')
+            return value
+
+        def _convert_request(self, path):
+            if not self._converter_origin():
+                return self._json(403, {'error': 'Нет доступа.'})
+            request = None
+            retained = False
+            acquired = False
+            try:
+                if path.endswith('/inspect'):
+                    metadata = self._read_converter_json()
+                    return self._json(200, inspect_metadata(metadata.get('files')))
+                if path.endswith('/release'):
+                    value = self._read_converter_json()
+                    released = self.server.converter.release(value.get('ticket'))
+                    return self._json(200, {'ok': released})
+                if path.endswith('/cancel'):
+                    value = self._read_converter_json()
+                    cancelled = self.server.converter.cancel(value.get('requestId'))
+                    return self._json(200, {'ok': True, 'cancelled': cancelled})
+                if not self.server.converter_gate.acquire(blocking=False):
+                    return self._json(409, {'code': 'ENGINE_BUSY', 'error': 'Уже выполняется другое задание.'})
+                acquired = True
+                identity = parse_qs(urlsplit(self.path).query).get('request', [secrets.token_hex(16)])[0]
+                if not JOB_PATTERN.fullmatch(identity):
+                    raise LibreOfficeError('Некорректный идентификатор задания.', 'INVALID_REQUEST')
+                request = self.server.converter.begin(identity, self.connection)
+                files, fields = MultipartUpload(
+                    CancellableSocketUpload(self.connection, request.cancel),
+                    content_length(self.headers),
+                    self.headers.get('Content-Type', ''),
+                    request.cancel).read(request.root / 'inputs')
+                try:
+                    ids = json.loads(fields['ids'])
+                    formats = json.loads(fields['formats']) if 'formats' in fields else [fields.get('format')]
+                except (KeyError, ValueError):
+                    raise LibreOfficeError('Некорректные параметры задания.', 'INVALID_REQUEST')
+                if (not isinstance(ids, list) or len(ids) != len(files) or
+                        any(not isinstance(x, str) or not x for x in ids) or len(set(ids)) != len(ids)):
+                    raise LibreOfficeError('Некорректные идентификаторы файлов.', 'INVALID_IDS')
+                if (not isinstance(formats, list) or not formats or
+                        any(not isinstance(x, str) or not EXTENSION.fullmatch(x) for x in formats) or
+                        len(set(formats)) != len(formats)):
+                    raise LibreOfficeError('Некорректные расширения результата.', 'INVALID_FORMATS')
+                outcome = self.server.converter.execute(request, files, ids, formats)
+                retained = True
+                return self._json(200, outcome)
+            except LibreOfficeError as exc:
+                data = {'code': exc.code, 'error': str(exc)}
+                if getattr(exc, 'batch_report', None):
+                    data['batchReport'] = exc.batch_report
+                return self._json(422, data)
+            except (UnicodeError, ValueError, TypeError):
+                return self._json(400, {'code': 'INVALID_REQUEST', 'error': 'Некорректный запрос конвертации.'})
+            except (BrokenPipeError, ConnectionResetError):
+                return
+            except OSError:
+                return self._json(507, {'code': 'STORAGE_ERROR',
+                    'error': 'Не удалось прочитать или записать файл. Проверьте свободное место и права доступа.'})
+            finally:
+                if request is not None:
+                    self.server.converter.finish(request, retained)
+                if acquired:
+                    self.server.converter_gate.release()
+
         def do_POST(self):
             path = urlsplit(self.path).path
             if not self._authorized():
                 return self._json(403, {'error':'Нет доступа.'})
             if path == '/api/icon-theme':
                 return self._json(200, {'ok':True})
+            if path in ('/api/converter/inspect', '/api/converter/convert',
+                        '/api/converter/release', '/api/converter/cancel'):
+                return self._convert_request(path)
             if path.startswith('/api/converter'):
-                return self._json(501, {'code':'CONVERTER_NOT_CONNECTED',
-                    'error':'Конвертер пока не подключён.'})
+                return self._json(404, {'code':'UNKNOWN_CONVERTER_ENDPOINT',
+                    'error':'Неизвестная операция конвертера.'})
             if path != '/api/merge':
                 return self._json(404, {'error':'Неизвестная операция.'})
             job = self.headers.get('X-AIO-Job','')

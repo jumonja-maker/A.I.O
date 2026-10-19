@@ -88,8 +88,7 @@
             '.gif': ['Изображение GIF', 'image/gif'],
             '.zip': ['Архив ZIP', 'application/zip']
           };
-          if (!choices[ext]) fail('Неизвестное расширение результата.');
-          const [description, mime] = choices[ext];
+          const [description, mime] = choices[ext] || [String(result.name), 'application/octet-stream'];
           const type = {description, accept: {[mime]: [ext]}};
           const handle = await window.showSaveFilePicker({
             suggestedName: result.name, types: [type]
@@ -132,13 +131,8 @@
         ? new Promise((resolve, reject) => {
             const sourceUrl = new URL(url, window.location.href).href;
             function cleanup() {
-              clearTimeout(timeout);
               window.removeEventListener('aio-native-save-result', onResult);
             }
-            const timeout = setTimeout(() => {
-              cleanup();
-              reject(new Error('Не удалось подтвердить сохранение файла.'));
-            }, 300_000);
             function onResult(event) {
               const detail = event.detail || {};
               if (detail.sourceUrl !== sourceUrl ||

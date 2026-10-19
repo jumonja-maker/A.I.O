@@ -1,10 +1,12 @@
 # -*- mode: python ; coding: utf-8 -*-
-"""Clean A.I.O shell + Excel, no legacy converter, no LibreOffice bundle yet.
+"""A.I.O UI + Excel + direct LibreOffice QA (no Converter Guard).
 
-Build: python -m PyInstaller --noconfirm --clean AllInOne.spec
-Do NOT market this as a finished conversion-capable release.
+Windows distributable requires a complete verified LibreOffice directory.
+All source and profile safety checks belong to the app, not Guard.
 """
 from pathlib import Path
+import os
+import sys
 
 root = Path(SPECPATH)
 assets = []
@@ -28,6 +30,22 @@ a = Analysis(
               'app_backend.aio_converter_upgrade'],
     noarchive=False,
 )
+# A private complete, unmodified LibreOffice tree is bundled for Windows QA.
+# Do not produce a misleading converter-ready setup without the actual engine.
+if sys.platform == 'win32':
+    configured = os.environ.get('AIO_LIBREOFFICE_ROOT')
+    if not configured:
+        raise RuntimeError('AIO_LIBREOFFICE_ROOT is required for Windows LO builds.')
+    lo_root = Path(configured).resolve(strict=True)
+    for item in ('program/soffice.exe', 'program/soffice.bin'):
+        if not (lo_root / item).is_file():
+            raise RuntimeError('Missing complete LibreOffice payload: ' + item)
+    if not (lo_root / 'share').is_dir():
+        raise RuntimeError('Missing LibreOffice share directory')
+    if not any(lo_root.rglob('LICENSE*')):
+        raise RuntimeError('LibreOffice license text missing')
+    a.datas += Tree(str(lo_root), prefix='libreoffice', typecode='DATA')
+
 pyz = PYZ(a.pure)
 exe = EXE(
     pyz, a.scripts, [],

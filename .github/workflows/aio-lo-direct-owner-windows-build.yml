@@ -1,0 +1,266 @@
+name: "A.I.O direct LibreOffice Windows QA (NO Guard)"
+
+# workflow_dispatch must exist on the default branch before the job is runnable.
+# This trusted workflow is separate from all LO-DIRECT application source changes.
+on:
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aio-lo-native-ui-pinned-windows-build
+  cancel-in-progress: false
+
+jobs:
+  build-candidate:
+    if: >-
+      github.repository == 'jumonja-maker/A.I.O' &&
+      github.actor == 'jumonja-maker' &&
+      github.event.action == 'labeled' &&
+      github.event.label.name == 'aio-lo-direct-build-approved-once' &&
+      github.event.pull_request.number == 3 &&
+      github.event.pull_request.user.login == 'jumonja-maker' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'feature/libreoffice-direct-and-ui-geometry-20261019' &&
+      github.event.pull_request.base.ref == 'migration/ui-excel-clean-foundation-20261019'
+    runs-on: [self-hosted, Windows, X64, local-d-manual]
+    timeout-minutes: 110
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PIP_NO_INDEX: '1'
+      PIP_DISABLE_PIP_VERSION_CHECK: '1'
+      PIP_NO_INPUT: '1'
+      AIO_BUNDLE_PROFILE: lean
+      AIO_LO_QA_BUILD: '0'
+      QT_QPA_PLATFORM: offscreen
+    defaults:
+      run:
+        shell: powershell
+
+    steps:
+      - name: Verify trusted Windows host before checkout
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-StrictMode -Version Latest
+          if ($env:RUNNER_NAME -cne 'NIKITA' -or $env:RUNNER_OS -cne 'Windows' -or
+              $env:USERNAME -ine 'aio-runner') {
+            throw 'Only the restricted NIKITA Windows account aio-runner is allowed.'
+          }
+          $principal = New-Object Security.Principal.WindowsPrincipal(
+            [Security.Principal.WindowsIdentity]::GetCurrent())
+          if ($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+            throw 'Elevated builds are forbidden.'
+          }
+          foreach ($key in @('GITHUB_WORKSPACE', 'RUNNER_TEMP', 'TEMP', 'TMP')) {
+            $dir = [Environment]::GetEnvironmentVariable($key)
+            if ([string]::IsNullOrWhiteSpace($dir) -or
+                -not [IO.Path]::GetFullPath($dir).StartsWith('D:\', [StringComparison]::OrdinalIgnoreCase)) {
+              throw ("Expected {0} on the D: work drive" -f $key)
+            }
+          }
+          foreach ($rule in @(@('C',10), @('D',30))) {
+            $disk = Get-PSDrive -PSProvider FileSystem -Name $rule[0]
+            if ($disk.Free -lt ([double]$rule[1] * 1GB)) {
+              throw ("Not enough free space on drive {0}" -f $rule[0])
+            }
+          }
+          $source = Join-Path $env:GITHUB_WORKSPACE 'lo-direct-pinned-source-${{ github.run_id }}'
+          if (Test-Path -LiteralPath $source) {
+            throw 'Source checkout destination already exists; refusing overwrite.'
+          }
+          Write-Host 'RUNNER_PREFLIGHT=PASS: no app code run, no downloads or installs.'
+
+      - name: Checkout immutable reviewed LO-DIRECT snapshot
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: jumonja-maker/A.I.O
+          ref: 749d6c16ae1b8af91a1885189e8c0495fdbffc10
+          path: lo-direct-pinned-source-${{ github.run_id }}
+          fetch-depth: 1
+          persist-credentials: false
+          clean: true
+
+      - name: Verify immutable SHA and offline preinstalled build dependencies
+        working-directory: lo-direct-pinned-source-${{ github.run_id }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-StrictMode -Version Latest
+          $expected = '749d6c16ae1b8af91a1885189e8c0495fdbffc10'
+          # Git is not in the restricted NIKITA PATH. The pinned checkout uses
+          # GitHub's authenticated ZIP fallback, and checks every extracted file.
+          $expectedTree = '0cce9a43fe8a5a0c2c2b8672a08ec4b7afdfc52e'
+          $python = 'D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\Scripts\python.exe'
+          $marker = 'D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\.00aio-test-only-venv.txt'
+          if (-not (Test-Path -LiteralPath $python -PathType Leaf) -or
+              -not (Test-Path -LiteralPath $marker -PathType Leaf) -or
+              (Get-Content -LiteralPath $marker -Raw).Trim() -cne
+                '00AIO NIKITA ISOLATED DOCX PDF QA PY311 QT6103') {
+            throw 'Approved existing restricted Python build environment missing.'
+          }
+          & $python -c 'import sys; assert sys.version_info[:2] == (3, 11)'
+          if ($LASTEXITCODE -ne 0) { throw 'Approved Python 3.11 cannot run.' }
+          # Git tree SHA-1, computed with stdlib only. No Git, network, or
+          # application imports. Pinned LO-DIRECT tree has only 100644 file modes.
+          $treeVerifier = @'
+          import hashlib
+          from pathlib import Path
+          import sys
+          def tree_digest(folder):
+              entries = []
+              for child in folder.iterdir():
+                  if child.name == ".git":
+                      continue
+                  name = child.name.encode("utf-8")
+                  if child.is_symlink():
+                      raise ValueError("Symlink in pinned source")
+                  if child.is_dir():
+                      mode, oid, sort_key = b"40000", tree_digest(child), name + b"/"
+                  elif child.is_file():
+                      content = child.read_bytes()
+                      oid = hashlib.sha1(b"blob " + str(len(content)).encode() + bytes((0,)) + content).digest()
+                      mode, sort_key = b"100644", name
+                  else:
+                      raise ValueError("Unexpected filesystem item")
+                  entries.append((sort_key, mode + b" " + name + bytes((0,)) + oid))
+              payload = b"".join(part for _, part in sorted(entries, key=lambda item: item[0]))
+              return hashlib.sha1(b"tree " + str(len(payload)).encode() + bytes((0,)) + payload).digest()
+          actual = tree_digest(Path.cwd()).hex()
+          if actual != sys.argv[1]:
+              raise SystemExit("REJECT: checkout does not match pinned LO-DIRECT tree SHA")
+          print("PINNED_TREE_SHA1=" + actual)
+          '@
+          # PowerShell 5.1 strips quotes from multiline Python passed via
+          # -c in native argument mode (see failed run 38791098953).
+          # Write only this trusted inline verifier to isolated RUNNER_TEMP.
+          $verifierPath = Join-Path $env:RUNNER_TEMP ('aio-clean-tree-verifier-' + $env:GITHUB_RUN_ID + '.py')
+          if (Test-Path -LiteralPath $verifierPath) {
+            throw 'Verifier staging path already exists; refusing overwrite.'
+          }
+          try {
+            [IO.File]::WriteAllText($verifierPath, $treeVerifier,
+              [System.Text.UTF8Encoding]::new($false))
+            & $python $verifierPath $expectedTree
+            if ($LASTEXITCODE -ne 0) {
+              throw 'Pinned LO-DIRECT source tree verification failed. Build is forbidden.'
+            }
+          } finally {
+            if (Test-Path -LiteralPath $verifierPath) {
+              Remove-Item -LiteralPath $verifierPath -Force
+            }
+          }
+          & $python -c 'import openpyxl, PyInstaller, PySide6.QtWebEngineWidgets'
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Missing preinstalled Python build dependency; installing packages is forbidden.'
+          }
+          $root = $null
+          foreach ($candidate in @('D:\LBR\LibreOffice','D:\LBR',
+              'D:\AIO-Lab\LibreOffice','C:\Program Files\LibreOffice')) {
+            if ((Test-Path -LiteralPath (Join-Path $candidate 'program\soffice.exe') -PathType Leaf) -and
+                (Test-Path -LiteralPath (Join-Path $candidate 'program\soffice.bin') -PathType Leaf) -and
+                (Test-Path -LiteralPath (Join-Path $candidate 'share') -PathType Container)) {
+              $lic = @(Get-ChildItem -LiteralPath $candidate -Filter 'LICENSE*' -File -Recurse -ErrorAction Stop)
+              if ($lic.Count -ge 1) { $root=$candidate; break }
+            }
+          }
+          if (-not $root) { throw 'Complete licensed LibreOffice installation is required.' }
+          ('AIO_LIBREOFFICE_ROOT='+$root) |
+            Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host ('LO_READY='+$root)
+          $innoRoot = 'D:\AIO-Lab\AIO-QA-Env\inno-673-portable\compiler'
+          if (-not (Test-Path -LiteralPath $innoRoot -PathType Container)) {
+            throw 'Approved portable Inno Setup compiler directory missing.'
+          }
+          $iscc = @(Get-ChildItem -LiteralPath $innoRoot -Filter 'ISCC.exe' -File -Recurse)
+          if ($iscc.Count -ne 1) { throw 'Expected exactly one approved Inno Setup compiler.' }
+          ('AIO_APPROVED_ISCC=' + $iscc[0].FullName) |
+            Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host ('APPROVED_LO-DIRECT_SHA=' + $expected)
+          Write-Host ('APPROVED_LO-DIRECT_TREE_SHA=' + $expectedTree)
+          Write-Host 'OFFLINE_DEPENDENCIES=PASS; no pip or network download.'
+
+      - name: Run Excel regression and create LO-DIRECT Windows EXE, portable ZIP and installer
+        id: package
+        working-directory: lo-direct-pinned-source-${{ github.run_id }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-StrictMode -Version Latest
+          $python = 'D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\Scripts\python.exe'
+          & $python -m unittest discover -s tests -p test_excel.py -v
+          if ($LASTEXITCODE -ne 0) { throw 'Excel suite failed; no package.' }
+          & $python -m unittest discover -s tests -p test_clean_foundation.py -v
+          if ($LASTEXITCODE -ne 0) { throw 'New shell/Excel integration failed; no package.' }
+          $env:AIO_LO_QA_MUST_HAVE_ENGINE='1'
+          & $python -m unittest discover -s tests -p test_libreoffice_direct.py -v
+          if ($LASTEXITCODE -ne 0) { throw 'Direct LibreOffice tests or real Writer/Calc smoke failed.' }
+          & $python -m unittest discover -s tests -p test_converter_native_stream.py -v
+          if ($LASTEXITCODE -ne 0) { throw 'Native streaming/ownership regressions failed; no package.' }
+          & $python -m compileall -q app_backend launcher.py
+          if ($LASTEXITCODE -ne 0) { throw 'Python source compilation failed; no package.' }
+          Write-Host 'EXCEL_AND_LIBREOFFICE_NATIVE_STREAM_TESTS_PASS'
+          $env:PYINSTALLER_CONFIG_DIR=Join-Path $env:RUNNER_TEMP ('aio-clean-pyinst-' + $env:GITHUB_RUN_ID)
+          New-Item -ItemType Directory -Path $env:PYINSTALLER_CONFIG_DIR -Force | Out-Null
+          & $python -m PyInstaller --noconfirm --clean AllInOne.spec
+          if ($LASTEXITCODE -ne 0) { throw 'PyInstaller failed.' }
+          $exe = 'dist\A.I.O\A.I.O.exe'
+          if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) {
+            throw 'Expected A.I.O GUI executable missing.'
+          }
+          foreach ($check in @('dist\A.I.O\_internal\libreoffice\program\soffice.exe',
+                               'dist\A.I.O\_internal\libreoffice\program\soffice.bin')) {
+            if (-not (Test-Path -LiteralPath $check -PathType Leaf)) {
+              throw ('Missing bundled LibreOffice file: '+$check)
+            }
+          }
+          if (-not (Test-Path -LiteralPath 'dist\A.I.O\_internal\libreoffice\share' -PathType Container)) {
+            throw 'Packaged LibreOffice share directory missing'
+          }
+          $portable = 'build\installer\AIO-LibreOffice-Direct-x64-PORTABLE.zip'
+          New-Item -ItemType Directory -Path 'build\installer' -Force | Out-Null
+          Compress-Archive -LiteralPath 'dist\A.I.O' -DestinationPath $portable -CompressionLevel Optimal
+          if (-not (Test-Path -LiteralPath $portable -PathType Leaf)) { throw 'ZIP missing.' }
+          & $env:AIO_APPROVED_ISCC 'installer\windows\AIO-LibreOffice-Direct-QA.iss'
+          if ($LASTEXITCODE -ne 0) { throw 'Inno Setup compile failed.' }
+          $setup = 'build\installer\AIO-LibreOffice-Direct-QA-win-x64.exe'
+          if (-not (Test-Path -LiteralPath $setup -PathType Leaf)) {
+            throw 'QA installer missing.'
+          }
+          @($setup,$portable) | ForEach-Object {
+            $sha = (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash.ToLowerInvariant()
+            $sha + '  ' + [IO.Path]::GetFileName($_)
+          } | Set-Content -LiteralPath 'build\installer\SHA256SUMS.txt' -Encoding ascii
+          @('SOURCE=749d6c16ae1b8af91a1885189e8c0495fdbffc10',
+            'GUARD=ABSENT', 'LIBREOFFICE=BUNDLED',
+            'ADVANCED=ABSENT', 'DIRECT_LO_QA=TRUE', 'NATIVE_UI_PATCH_4=INCLUDED',
+            'INSTALLED=NO;RELEASED=NO;MERGED=NO') |
+            Set-Content -LiteralPath 'build\installer\BUILD-STATUS.txt' -Encoding UTF8
+          Write-Host 'LO-DIRECT_EXCEL_UI_QA_PACKAGES_CREATED_NO_INSTALL'
+
+      - name: Deliver only a private build artifact
+        id: upload
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: AIO-LO-DIRECT-WINDOWS-${{ github.run_id }}
+          path: |
+            lo-direct-pinned-source-${{ github.run_id }}/build/installer/AIO-LibreOffice-Direct-QA-win-x64.exe
+            lo-direct-pinned-source-${{ github.run_id }}/build/installer/AIO-LibreOffice-Direct-x64-PORTABLE.zip
+            lo-direct-pinned-source-${{ github.run_id }}/build/installer/SHA256SUMS.txt
+            lo-direct-pinned-source-${{ github.run_id }}/build/installer/BUILD-STATUS.txt
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Report separate build success and artifact delivery
+        if: always()
+        run: |
+          Write-Host 'PINNED_SOURCE=749d6c16ae1b8af91a1885189e8c0495fdbffc10'
+          Write-Host 'PACKAGE_STEP=${{ steps.package.outcome }}'
+          Write-Host 'PRIVATE_UPLOAD=${{ steps.upload.outcome }}'
+          Write-Host 'NOT_INSTALLED;NO_RELEASE;NO_GUARD;LIBREOFFICE_DIRECT_QA_ONLY'
+          if ('${{ steps.package.outcome }}' -ne 'success') {
+            throw 'Windows package failed. See job log.'
+          }
+          if ('${{ steps.upload.outcome }}' -ne 'success') {
+            Write-Warning 'Package may be present on isolated D: run workspace but cannot be downloaded via GitHub quota.'
+          }

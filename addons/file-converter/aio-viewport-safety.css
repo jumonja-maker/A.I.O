@@ -1,0 +1,43 @@
+/* Converter viewport safety: the owner must always be able to reach the action footer.
+   Historical fixed-height geometry remains stable, but may extend beyond the
+   available Qt/Windows work area at smaller heights and display scaling. */
+.app-shell {
+  min-height: 0 !important;
+  display: flex;
+  flex-direction: column;
+}
+.app-layout {
+  min-height: 0 !important;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+.workspace {
+  min-height: 0 !important;
+  min-width: 0;
+  height: 100%;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
+  /* Keep last buttons visible after scrolling to the bottom of the panel. */
+  padding-bottom: max(36px, env(safe-area-inset-bottom, 0px)) !important;
+}
+.workspace .aio-mounted-tool {
+  min-height: 0;
+  overflow: visible;
+}
+.workspace .aio-cv__columns {
+  min-height: 0;
+  overflow: visible;
+}
+.workspace .aio-cv__pane {
+  /* Never allow the fixed internal pane to be taller than the scrollable outer
+     workspace without leaving scroll access to its bottom edge. */
+  overflow: hidden;
+}
+@media (max-height: 760px) {
+  .workspace {
+    padding-top: 18px !important;
+    padding-bottom: 48px !important;
+  }
+}

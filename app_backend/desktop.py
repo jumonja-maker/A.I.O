@@ -15,6 +15,7 @@ from PySide6.QtWebEngineCore import (
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
 from .server import start_server, asset_root
+from .downloads import download_filter
 
 
 class OnlyLocalRequests(QWebEngineUrlRequestInterceptor):
@@ -73,6 +74,9 @@ class MainWindow(QMainWindow):
 
         self.view = QWebEngineView(self)
         self.page = AppPage(self.profile, self.view, port)
+        # Page destruction releases its engine adapter before QObject children;
+        # owning the profile here keeps it alive until the page is finished.
+        self.profile.setParent(self.page)
         self.view.setPage(self.page)
         self.setCentralWidget(self.view)
         self.view.load(QUrl(f'http://127.0.0.1:{port}/'))
@@ -87,21 +91,22 @@ class MainWindow(QMainWindow):
     def on_download(self, item):
         url = item.url().toString()
         name = item.downloadFileName() or 'Объединённая_таблица.xlsx'
-        # The clean shell only supports Excel output. Do not permit external
-        # file downloads or old converter ticket URLs.
-        if not name.lower().endswith('.xlsx') or not url.startswith(
-                ('blob:http://127.0.0.1:', 'http://127.0.0.1:')):
+        # Native Save supports only outputs produced by the independent
+        # Excel/LibreOffice workflow. Never accept remote download URLs.
+        extension = Path(name).suffix.lower().lstrip('.')
+        dialog_filter = download_filter(url, name, self._server.server_port)
+        if not dialog_filter:
             item.cancel()
             self._notify_download('failed', name, url)
             return
-        destination, _ = QFileDialog.getSaveFileName(self, 'Сохранить Excel',
-            name, 'Excel (*.xlsx)')
+        destination, _ = QFileDialog.getSaveFileName(
+            self, 'Сохранить результат', name, dialog_filter)
         if not destination:
             item.cancel()
             self._notify_download('cancelled', name, url)
             return
         path = Path(destination)
-        if path.suffix.lower() != '.xlsx':
+        if path.suffix.lower() != '.' + extension:
             self._notify_download('cancelled', name, url)
             item.cancel()
             return
@@ -126,7 +131,7 @@ class MainWindow(QMainWindow):
         if state == QWebEngineDownloadRequest.DownloadState.DownloadInProgress:
             return
         if state == QWebEngineDownloadRequest.DownloadState.DownloadCompleted:
-            if path.exists() and path.is_file() and path.stat().st_size > 0:
+            if path.exists() and path.is_file():
                 self._notify_download('completed', path.name, source_url)
             else:
                 self._notify_download('failed', path.name, source_url)

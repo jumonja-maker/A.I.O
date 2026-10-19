@@ -23,7 +23,8 @@
     const rows = [];
     const selected = snapshot.formats.filter(f => snapshot.selectedFormats.includes(f.id));
     if (after) {
-      const report = snapshot.result?.targetReport || snapshot.retryResult?.targetReport;
+      const report = snapshot.result?.targetReport || snapshot.retryResult?.targetReport ||
+        (snapshot.failedBatchReport?.files?.some(f=>Array.isArray(f.targets)) ? snapshot.failedBatchReport : null);
       for (const file of (Array.isArray(report?.files) ? report.files : [])) {
         const owner = snapshot.allFiles.find(f => String(f.id) === String(file.fileId));
         for (const target of (Array.isArray(file.targets) ? file.targets : [])) {
@@ -324,7 +325,7 @@
         const hidden = !value.files.length || (!after && rows.length === 0);
         slot.classList.toggle('aio-cv-issues-empty', hidden);
         if (hidden) close();
-        button.textContent = after ? (rows.length ? 'Ошибки (' + rows.length + ')' : 'Проверка результата') :
+        button.textContent = after ? (rows.length ? 'Ошибки (' + rows.length + ')' : 'Результат') :
           rows.length ? 'Проблемы (' + rows.length + ')' : 'Риски конвертации';
         button.title = button.textContent;
         heading.textContent = after ? 'После конвертации' : 'Перед конвертацией';

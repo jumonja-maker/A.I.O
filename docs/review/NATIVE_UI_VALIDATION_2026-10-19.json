@@ -1,0 +1,30 @@
+{
+  "status": "PASS",
+  "base": "00444c5f57cd367051f53c330006f34e80643a72",
+  "python": {
+    "tests": 46,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "seconds": 12.588,
+    "includesDOMHTTP": true
+  },
+  "javascriptParse": "PASS",
+  "compileall": "PASS",
+  "gitDiffCheck": "PASS",
+  "nativeInputCount": 21,
+  "nativeCases": 11,
+  "nativeLargeBatchBytes": 56293692,
+  "qtScenarios": 9,
+  "qtNativeDownload": true,
+  "qtDialogDestinationControlled": true,
+  "notRun": [
+    "Windows Job Object",
+    "Windows installed GUI",
+    "Windows interactive save dialog",
+    "installer/build",
+    "NIKITA",
+    "full user document corpus"
+  ],
+  "sourceCI": "not confirmed; track in PR separately"
+}
