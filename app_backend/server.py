@@ -1,7 +1,7 @@
 """Minimal authenticated loopback host for A.I.O UI and independent Excel merge.
 
 No legacy converter imports, route catalogues, Advanced hooks or fallback
-conversion engines. The converter is not wired until its new architecture is supplied.
+conversion engines. LibreOffice receives original inputs through a disk-streaming transport.
 """
 from __future__ import annotations
 
@@ -21,12 +21,12 @@ from urllib.parse import urlsplit, parse_qs
 
 from .converter_assets import read_designer_asset
 from .excel import merge_xlsx, MergeError, MAX_TOTAL_BYTES, MAX_FILE_BYTES
-from .libreoffice_engine import (
-    LibreOfficeError, MAX_SOURCE as LO_MAX_SOURCE, MAX_BATCH as LO_MAX_BATCH,
-    MAX_FILES as LO_MAX_FILES, MAX_RESULT as LO_MAX_RESULT,
-    inspect as inspect_libreoffice, convert as run_libreoffice,
-    OUTPUT_META, source_format, compatible,
-)
+from .libreoffice_engine import LibreOfficeError, inspect_metadata
+from .libreoffice_catalog import EXTENSION
+from .converter_transport import ConverterTransport
+from .converter_upload_stream import MultipartUpload, content_length
+from urllib.parse import quote
+
 
 ROOT = Path(__file__).resolve().parent.parent
 MAX_UPLOAD = MAX_TOTAL_BYTES + 2 * 1024 * 1024
@@ -49,8 +49,13 @@ class LocalServer(ThreadingHTTPServer):
         super().__init__(address, handler)
         self.merge_gate = threading.BoundedSemaphore(1)
         self.converter_gate = threading.BoundedSemaphore(1)
+        self.converter = ConverterTransport()
         self.progress = {}
         self.progress_lock = threading.Lock()
+
+    def server_close(self):
+        self.converter.close()
+        super().server_close()
 
 
 def start_server(port: int = 0):
@@ -76,8 +81,11 @@ def start_server(port: int = 0):
             self.end_headers()
 
         def _send(self, code, payload, content_type='application/octet-stream'):
-            self._headers(code, content_type, len(payload))
-            self.wfile.write(payload)
+            try:
+                self._headers(code, content_type, len(payload))
+                self.wfile.write(payload)
+            except (BrokenPipeError, ConnectionResetError):
+                pass  # The caller closed its own upload/download.
 
         def _json(self, code, value):
             data = json.dumps(value, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
@@ -149,6 +157,40 @@ def start_server(port: int = 0):
                 return self._json(200, {'available':False,
                     'message':'Проверка обновлений для нового репозитория пока не настроена.'})
             if path.startswith('/api/converter'):
+                if not self._converter_origin():
+                    return self._json(403, {'error': 'Нет доступа.'})
+                query = parse_qs(urlsplit(self.path).query, keep_blank_values=True)
+                if path == '/api/converter/result':
+                    tickets = query.get('ticket', [])
+                    if (len(tickets) != 1 or set(query) - {'ticket', 'aioSave'} or
+                            not re.fullmatch(r'[A-Za-z0-9_-]{32,128}', tickets[0])):
+                        return self._json(400, {'code': 'INVALID_TICKET', 'error': 'Некорректный адрес результата.'})
+                    try:
+                        with self.server.converter.lease(tickets[0]) as result:
+                            size = result.path.stat().st_size
+                            self.send_response(200)
+                            self.send_header('Content-Type', result.mime)
+                            self.send_header('Content-Length', str(size))
+                            self.send_header('Cache-Control', 'no-store')
+                            self.send_header('X-Content-Type-Options', 'nosniff')
+                            self.send_header('Content-Disposition',
+                                "attachment; filename=result" + result.path.suffix +
+                                "; filename*=UTF-8''" + quote(result.name))
+                            self.end_headers()
+                            with result.path.open('rb') as stream:
+                                while chunk := stream.read(64 * 1024):
+                                    self.wfile.write(chunk)
+                        return
+                    except LibreOfficeError as exc:
+                        return self._json(404, {'code': exc.code, 'error': str(exc)})
+                    except (BrokenPipeError, ConnectionResetError):
+                        return
+                if path == '/api/converter/progress':
+                    if not self._authorized():
+                        return self._json(403, {'error': 'Нет доступа.'})
+                    identity = query.get('request', [''])[0]
+                    value = self.server.converter.progress(identity)
+                    return self._json(200, value or {'files': [], 'completed': 0, 'total': 0, 'percent': None})
                 return self._json(404, {'code':'UNKNOWN_CONVERTER_ENDPOINT',
                     'error':'Неизвестная операция конвертера.'})
             return self._static(path)
@@ -189,108 +231,78 @@ def start_server(port: int = 0):
             return files
 
 
-        def _read_converter_form(self):
-            """Strict 50MB multipart transport; never interpret uploads as filesystem paths."""
-            length = self.headers.get('Content-Length', '')
-            if not length.isdecimal() or not 0 < int(length) <= LO_MAX_BATCH + 1024 * 1024:
-                raise LibreOfficeError('Слишком большой запрос конвертации.', 'REQUEST_TOO_LARGE')
-            content_type = self.headers.get('Content-Type', '')
-            if not content_type.lower().startswith('multipart/form-data;'):
-                raise LibreOfficeError('Нужна форма с файлами.', 'INVALID_REQUEST')
-            raw = self.rfile.read(int(length))
-            if len(raw) != int(length):
-                raise LibreOfficeError('Загрузка файла прервана.', 'UPLOAD_INCOMPLETE')
-            wrapped = (b'MIME-Version: 1.0\r\nContent-Type: ' +
-                       content_type.encode('ascii', 'strict') + b'\r\n\r\n' + raw)
-            msg = BytesParser(policy=policy.default).parsebytes(wrapped)
-            if not msg.is_multipart() or msg.defects:
-                raise LibreOfficeError('Некорректная форма загрузки.', 'INVALID_REQUEST')
-            files = []
-            fields = {}
-            for part in msg.iter_parts():
-                if part.get_content_disposition() != 'form-data':
-                    raise LibreOfficeError('Некорректное поле.', 'INVALID_REQUEST')
-                key = part.get_param('name', header='content-disposition')
-                if key == 'files':
-                    name = part.get_filename()
-                    source_format(name)
-                    blob = part.get_payload(decode=True)
-                    if not isinstance(blob, bytes) or not 0 < len(blob) <= LO_MAX_SOURCE:
-                        raise LibreOfficeError('Файл пустой или превышает 20 МБ.', 'INPUT_TOO_LARGE')
-                    files.append((name, blob))
-                    if len(files) > LO_MAX_FILES:
-                        raise LibreOfficeError('Выбрано более 100 файлов.', 'TOO_MANY_FILES')
-                elif key in ('ids', 'format', 'formats') and key not in fields:
-                    value = part.get_payload(decode=True)
-                    if type(value) is not bytes or len(value) > 4000:
-                        raise LibreOfficeError('Некорректные параметры.', 'INVALID_REQUEST')
-                    fields[key] = value.decode('utf-8', 'strict')
-                else:
-                    raise LibreOfficeError('Неподдерживаемое поле запроса.', 'INVALID_REQUEST')
-            if not files or sum(len(blob) for _, blob in files) > LO_MAX_BATCH:
-                raise LibreOfficeError('Допустимо 1–100 файлов общим размером до 50 МБ.',
-                                       'INVALID_BATCH')
-            try:
-                ids = json.loads(fields['ids'])
-            except (KeyError, ValueError):
-                raise LibreOfficeError('Отсутствуют идентификаторы файлов.', 'INVALID_IDS')
-            if (not isinstance(ids, list) or len(ids) != len(files) or
-                any(not isinstance(x, str) or not 1 <= len(x) <= 128 for x in ids) or
-                len(set(ids)) != len(ids)):
-                raise LibreOfficeError('Недопустимые идентификаторы файлов.', 'INVALID_IDS')
-            return files, ids, fields
+        def _converter_origin(self):
+            origin = f'http://127.0.0.1:{self.server.server_port}'
+            return (self.headers.get('Host') == origin.removeprefix('http://') and
+                    self.headers.get('Origin', origin) == origin)
+
+        def _read_converter_json(self):
+            if self.headers.get('Content-Type', '').split(';')[0] != 'application/json':
+                raise LibreOfficeError('Нужен JSON-запрос.', 'INVALID_REQUEST')
+            value = json.loads(self.rfile.read(content_length(self.headers)))
+            if not isinstance(value, dict):
+                raise LibreOfficeError('Некорректные параметры.', 'INVALID_REQUEST')
+            return value
 
         def _convert_request(self, path):
-            if not self.server.converter_gate.acquire(blocking=False):
-                return self._json(409, {'code':'ENGINE_BUSY',
-                    'error':'LibreOffice уже выполняет другое задание.'})
+            if not self._converter_origin():
+                return self._json(403, {'error': 'Нет доступа.'})
+            request = None
+            retained = False
+            acquired = False
             try:
-                files, ids, fields = self._read_converter_form()
                 if path.endswith('/inspect'):
-                    return self._json(200, inspect_libreoffice(files, ids))
-                if 'formats' in fields:
-                    try:
-                        formats = json.loads(fields['formats'])
-                    except ValueError:
-                        raise LibreOfficeError('Некорректный список форматов.', 'INVALID_FORMATS')
-                else:
-                    formats = [fields.get('format')]
-                if (not isinstance(formats, list) or not 1 <= len(formats) <= 12 or
-                    any(not isinstance(fmt, str) or fmt not in OUTPUT_META for fmt in formats) or
-                    len(set(formats)) != len(formats)):
-                    raise LibreOfficeError('Некорректный выбор выходных форматов.', 'INVALID_FORMATS')
-                if not all(compatible(source_format(name), fmt)
-                           for name, _ in files for fmt in formats):
-                    raise LibreOfficeError('Выбрано неподдерживаемое направление LibreOffice.',
-                                           'UNSUPPORTED_DIRECTION')
-                outputs = []
-                total = 0
-                for i, (name, blob) in enumerate(files):
-                    for fmt in formats:
-                        result = run_libreoffice(name, blob, fmt)
-                        total += len(result)
-                        if total > LO_MAX_RESULT:
-                            raise LibreOfficeError('Результат превышает 100 МБ.', 'RESULT_TOO_LARGE')
-                        clean = re.sub(r'[^a-zA-Z0-9а-яА-ЯёЁ._ -]', '_', Path(name).stem)[:80] or 'file'
-                        outputs.append((f'{i + 1:03d}_{clean}.{fmt}', fmt, result))
-                if len(outputs) == 1:
-                    _, fmt, blob = outputs[0]
-                    return self._send(200, blob, OUTPUT_META[fmt][2])
-                out = io.BytesIO()
-                with zipfile.ZipFile(out, 'w', compression=zipfile.ZIP_DEFLATED,
-                                     compresslevel=6) as archive:
-                    for filename, _fmt, blob in outputs:
-                        archive.writestr(filename, blob)
-                if out.tell() > LO_MAX_RESULT:
-                    raise LibreOfficeError('Архив превышает 100 МБ.', 'RESULT_TOO_LARGE')
-                return self._send(200, out.getvalue(), 'application/zip')
+                    metadata = self._read_converter_json()
+                    return self._json(200, inspect_metadata(metadata.get('files')))
+                if path.endswith('/release'):
+                    value = self._read_converter_json()
+                    released = self.server.converter.release(value.get('ticket'))
+                    return self._json(200, {'ok': released})
+                if path.endswith('/cancel'):
+                    value = self._read_converter_json()
+                    cancelled = self.server.converter.cancel(value.get('requestId'))
+                    return self._json(200, {'ok': True, 'cancelled': cancelled})
+                if not self.server.converter_gate.acquire(blocking=False):
+                    return self._json(409, {'code': 'ENGINE_BUSY', 'error': 'Уже выполняется другое задание.'})
+                acquired = True
+                identity = parse_qs(urlsplit(self.path).query).get('request', [secrets.token_hex(16)])[0]
+                if not JOB_PATTERN.fullmatch(identity):
+                    raise LibreOfficeError('Некорректный идентификатор задания.', 'INVALID_REQUEST')
+                request = self.server.converter.begin(identity, self.connection)
+                files, fields = MultipartUpload(self.rfile, content_length(self.headers),
+                    self.headers.get('Content-Type', ''), request.cancel).read(request.root / 'inputs')
+                try:
+                    ids = json.loads(fields['ids'])
+                    formats = json.loads(fields['formats']) if 'formats' in fields else [fields.get('format')]
+                except (KeyError, ValueError):
+                    raise LibreOfficeError('Некорректные параметры задания.', 'INVALID_REQUEST')
+                if (not isinstance(ids, list) or len(ids) != len(files) or
+                        any(not isinstance(x, str) or not x for x in ids) or len(set(ids)) != len(ids)):
+                    raise LibreOfficeError('Некорректные идентификаторы файлов.', 'INVALID_IDS')
+                if (not isinstance(formats, list) or not formats or
+                        any(not isinstance(x, str) or not EXTENSION.fullmatch(x) for x in formats) or
+                        len(set(formats)) != len(formats)):
+                    raise LibreOfficeError('Некорректные расширения результата.', 'INVALID_FORMATS')
+                outcome = self.server.converter.execute(request, files, ids, formats)
+                retained = True
+                return self._json(200, outcome)
             except LibreOfficeError as exc:
-                return self._json(422, {'code': exc.code, 'error':str(exc)})
-            except (UnicodeError, ValueError) as exc:
-                return self._json(400, {'code':'INVALID_REQUEST',
-                    'error':'Некорректный запрос конвертации.'})
+                data = {'code': exc.code, 'error': str(exc)}
+                if getattr(exc, 'batch_report', None):
+                    data['batchReport'] = exc.batch_report
+                return self._json(422, data)
+            except (UnicodeError, ValueError, TypeError):
+                return self._json(400, {'code': 'INVALID_REQUEST', 'error': 'Некорректный запрос конвертации.'})
+            except (BrokenPipeError, ConnectionResetError):
+                return
+            except OSError:
+                return self._json(507, {'code': 'STORAGE_ERROR',
+                    'error': 'Не удалось прочитать или записать файл. Проверьте свободное место и права доступа.'})
             finally:
-                self.server.converter_gate.release()
+                if request is not None:
+                    self.server.converter.finish(request, retained)
+                if acquired:
+                    self.server.converter_gate.release()
 
         def do_POST(self):
             path = urlsplit(self.path).path
@@ -298,7 +310,8 @@ def start_server(port: int = 0):
                 return self._json(403, {'error':'Нет доступа.'})
             if path == '/api/icon-theme':
                 return self._json(200, {'ok':True})
-            if path in ('/api/converter/inspect', '/api/converter/convert'):
+            if path in ('/api/converter/inspect', '/api/converter/convert',
+                        '/api/converter/release', '/api/converter/cancel'):
                 return self._convert_request(path)
             if path.startswith('/api/converter'):
                 return self._json(404, {'code':'UNKNOWN_CONVERTER_ENDPOINT',

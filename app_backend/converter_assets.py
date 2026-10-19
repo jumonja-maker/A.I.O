@@ -76,6 +76,8 @@ def read_designer_asset(root: str, name: str) -> bytes:
         raw = apply_selection_design(raw)
         from .converter_diagnostics_ui_patch import apply_diagnostics_ui
         raw = apply_diagnostics_ui(raw)
+        from .converter_native_ui_patch import apply_native_ui
+        raw = apply_native_ui(raw)
         # Advanced and the historical conversion backend intentionally stay
         # in the archived repository. Only approved visual UI transformations
         # are materialized here; Guard will be implemented independently.

@@ -1,0 +1,939 @@
+{
+  "scope": "Linux Qt WebEngine; controlled save destination; Windows NOT_RUN",
+  "scenarios": [
+    {
+      "label": "empty",
+      "metrics": {
+        "shell": {
+          "x": 40,
+          "y": 26,
+          "width": 1360,
+          "height": 820,
+          "right": 1400,
+          "bottom": 846
+        },
+        "left": {
+          "x": 323,
+          "y": 210.140625,
+          "width": 441.171875,
+          "height": 598.859375,
+          "right": 764.171875,
+          "bottom": 809
+        },
+        "right": {
+          "x": 778.171875,
+          "y": 210.140625,
+          "width": 584.828125,
+          "height": 598.859375,
+          "right": 1363,
+          "bottom": 809
+        },
+        "search": {
+          "x": 340,
+          "y": 283.140625,
+          "width": 407.171875,
+          "height": 40,
+          "right": 747.171875,
+          "bottom": 323.140625
+        },
+        "first": null,
+        "run": {
+          "x": 795.171875,
+          "y": 744,
+          "width": 550.828125,
+          "height": 48,
+          "right": 1346,
+          "bottom": 792
+        },
+        "title": {
+          "x": 795.171875,
+          "y": 238.734375,
+          "width": 422.0625,
+          "height": 20.796875,
+          "right": 1217.234375,
+          "bottom": 259.53125
+        },
+        "issues": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0,
+          "right": 0,
+          "bottom": 0
+        },
+        "selectAll": {
+          "x": 1225.234375,
+          "y": 233.140625,
+          "width": 120.765625,
+          "height": 32,
+          "right": 1346,
+          "bottom": 265.140625
+        },
+        "categories": {
+          "x": 795.171875,
+          "y": 283.140625,
+          "width": 550.828125,
+          "height": 43,
+          "right": 1346,
+          "bottom": 326.140625
+        },
+        "searchVisible": true,
+        "tabs": [
+          "Документы",
+          "Изображения",
+          "Таблицы",
+          "Другие"
+        ],
+        "fileCount": "(0)",
+        "filterLabel": {
+          "text": "Фильтр",
+          "client": 59,
+          "scroll": 59
+        },
+        "issueLabel": null,
+        "scrollbars": [
+          "auto",
+          "auto"
+        ]
+      }
+    },
+    {
+      "label": "one-file",
+      "metrics": {
+        "shell": {
+          "x": 40,
+          "y": 26,
+          "width": 1360,
+          "height": 820,
+          "right": 1400,
+          "bottom": 846
+        },
+        "left": {
+          "x": 323,
+          "y": 210.140625,
+          "width": 441.171875,
+          "height": 598.859375,
+          "right": 764.171875,
+          "bottom": 809
+        },
+        "right": {
+          "x": 778.171875,
+          "y": 210.140625,
+          "width": 584.828125,
+          "height": 598.859375,
+          "right": 1363,
+          "bottom": 809
+        },
+        "search": {
+          "x": 340,
+          "y": 283.140625,
+          "width": 407.171875,
+          "height": 40,
+          "right": 747.171875,
+          "bottom": 323.140625
+        },
+        "first": {
+          "x": 340,
+          "y": 336.140625,
+          "width": 391.171875,
+          "height": 70,
+          "right": 731.171875,
+          "bottom": 406.140625
+        },
+        "run": {
+          "x": 795.171875,
+          "y": 744,
+          "width": 550.828125,
+          "height": 48,
+          "right": 1346,
+          "bottom": 792
+        },
+        "title": {
+          "x": 795.171875,
+          "y": 238.734375,
+          "width": 422.0625,
+          "height": 20.796875,
+          "right": 1217.234375,
+          "bottom": 259.53125
+        },
+        "issues": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0,
+          "right": 0,
+          "bottom": 0
+        },
+        "selectAll": {
+          "x": 1225.234375,
+          "y": 233.140625,
+          "width": 120.765625,
+          "height": 32,
+          "right": 1346,
+          "bottom": 265.140625
+        },
+        "categories": {
+          "x": 795.171875,
+          "y": 283.140625,
+          "width": 550.828125,
+          "height": 43,
+          "right": 1346,
+          "bottom": 326.140625
+        },
+        "searchVisible": true,
+        "tabs": [
+          "Документы",
+          "Изображения",
+          "Таблицы",
+          "Другие"
+        ],
+        "fileCount": "(1)",
+        "filterLabel": {
+          "text": "Фильтр",
+          "client": 59,
+          "scroll": 59
+        },
+        "issueLabel": null,
+        "scrollbars": [
+          "auto",
+          "auto"
+        ]
+      }
+    },
+    {
+      "label": "three-files",
+      "metrics": {
+        "shell": {
+          "x": 40,
+          "y": 26,
+          "width": 1360,
+          "height": 820,
+          "right": 1400,
+          "bottom": 846
+        },
+        "left": {
+          "x": 323,
+          "y": 210.140625,
+          "width": 441.171875,
+          "height": 598.859375,
+          "right": 764.171875,
+          "bottom": 809
+        },
+        "right": {
+          "x": 778.171875,
+          "y": 210.140625,
+          "width": 584.828125,
+          "height": 598.859375,
+          "right": 1363,
+          "bottom": 809
+        },
+        "search": {
+          "x": 340,
+          "y": 283.140625,
+          "width": 407.171875,
+          "height": 40,
+          "right": 747.171875,
+          "bottom": 323.140625
+        },
+        "first": {
+          "x": 340,
+          "y": 336.140625,
+          "width": 391.171875,
+          "height": 70,
+          "right": 731.171875,
+          "bottom": 406.140625
+        },
+        "run": {
+          "x": 795.171875,
+          "y": 744,
+          "width": 550.828125,
+          "height": 48,
+          "right": 1346,
+          "bottom": 792
+        },
+        "title": {
+          "x": 795.171875,
+          "y": 238.734375,
+          "width": 422.0625,
+          "height": 20.796875,
+          "right": 1217.234375,
+          "bottom": 259.53125
+        },
+        "issues": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0,
+          "right": 0,
+          "bottom": 0
+        },
+        "selectAll": {
+          "x": 1225.234375,
+          "y": 233.140625,
+          "width": 120.765625,
+          "height": 32,
+          "right": 1346,
+          "bottom": 265.140625
+        },
+        "categories": {
+          "x": 795.171875,
+          "y": 283.140625,
+          "width": 550.828125,
+          "height": 43,
+          "right": 1346,
+          "bottom": 326.140625
+        },
+        "searchVisible": true,
+        "tabs": [
+          "Документы",
+          "Изображения",
+          "Таблицы",
+          "Другие"
+        ],
+        "fileCount": "(3)",
+        "filterLabel": {
+          "text": "Фильтр",
+          "client": 59,
+          "scroll": 59
+        },
+        "issueLabel": null,
+        "scrollbars": [
+          "auto",
+          "auto"
+        ]
+      }
+    },
+    {
+      "label": "filter-open",
+      "metrics": {
+        "shell": {
+          "x": 40,
+          "y": 26,
+          "width": 1360,
+          "height": 820,
+          "right": 1400,
+          "bottom": 846
+        },
+        "left": {
+          "x": 323,
+          "y": 210.140625,
+          "width": 441.171875,
+          "height": 598.859375,
+          "right": 764.171875,
+          "bottom": 809
+        },
+        "right": {
+          "x": 778.171875,
+          "y": 210.140625,
+          "width": 584.828125,
+          "height": 598.859375,
+          "right": 1363,
+          "bottom": 809
+        },
+        "search": {
+          "x": 340,
+          "y": 283.140625,
+          "width": 407.171875,
+          "height": 40,
+          "right": 747.171875,
+          "bottom": 323.140625
+        },
+        "first": {
+          "x": 340,
+          "y": 336.140625,
+          "width": 391.171875,
+          "height": 70,
+          "right": 731.171875,
+          "bottom": 406.140625
+        },
+        "run": {
+          "x": 795.171875,
+          "y": 744,
+          "width": 550.828125,
+          "height": 48,
+          "right": 1346,
+          "bottom": 792
+        },
+        "title": {
+          "x": 795.171875,
+          "y": 238.734375,
+          "width": 422.0625,
+          "height": 20.796875,
+          "right": 1217.234375,
+          "bottom": 259.53125
+        },
+        "issues": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0,
+          "right": 0,
+          "bottom": 0
+        },
+        "selectAll": {
+          "x": 1225.234375,
+          "y": 233.140625,
+          "width": 120.765625,
+          "height": 32,
+          "right": 1346,
+          "bottom": 265.140625
+        },
+        "categories": {
+          "x": 795.171875,
+          "y": 283.140625,
+          "width": 550.828125,
+          "height": 43,
+          "right": 1346,
+          "bottom": 326.140625
+        },
+        "searchVisible": true,
+        "tabs": [
+          "Документы",
+          "Изображения",
+          "Таблицы",
+          "Другие"
+        ],
+        "fileCount": "(3)",
+        "filterLabel": {
+          "text": "Фильтр",
+          "client": 59,
+          "scroll": 59
+        },
+        "issueLabel": null,
+        "scrollbars": [
+          "auto",
+          "auto"
+        ]
+      }
+    },
+    {
+      "label": "zoom-1-0",
+      "metrics": {
+        "shell": {
+          "x": 40,
+          "y": 26,
+          "width": 1360,
+          "height": 820,
+          "right": 1400,
+          "bottom": 846
+        },
+        "left": {
+          "x": 323,
+          "y": 210.140625,
+          "width": 441.171875,
+          "height": 598.859375,
+          "right": 764.171875,
+          "bottom": 809
+        },
+        "right": {
+          "x": 778.171875,
+          "y": 210.140625,
+          "width": 584.828125,
+          "height": 598.859375,
+          "right": 1363,
+          "bottom": 809
+        },
+        "search": {
+          "x": 340,
+          "y": 283.140625,
+          "width": 407.171875,
+          "height": 40,
+          "right": 747.171875,
+          "bottom": 323.140625
+        },
+        "first": {
+          "x": 340,
+          "y": 336.140625,
+          "width": 391.171875,
+          "height": 70,
+          "right": 731.171875,
+          "bottom": 406.140625
+        },
+        "run": {
+          "x": 795.171875,
+          "y": 744,
+          "width": 550.828125,
+          "height": 48,
+          "right": 1346,
+          "bottom": 792
+        },
+        "title": {
+          "x": 795.171875,
+          "y": 238.734375,
+          "width": 422.0625,
+          "height": 20.796875,
+          "right": 1217.234375,
+          "bottom": 259.53125
+        },
+        "issues": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0,
+          "right": 0,
+          "bottom": 0
+        },
+        "selectAll": {
+          "x": 1225.234375,
+          "y": 233.140625,
+          "width": 120.765625,
+          "height": 32,
+          "right": 1346,
+          "bottom": 265.140625
+        },
+        "categories": {
+          "x": 795.171875,
+          "y": 283.140625,
+          "width": 550.828125,
+          "height": 43,
+          "right": 1346,
+          "bottom": 326.140625
+        },
+        "searchVisible": true,
+        "tabs": [
+          "Документы",
+          "Изображения",
+          "Таблицы",
+          "Другие"
+        ],
+        "fileCount": "(3)",
+        "filterLabel": {
+          "text": "Фильтр",
+          "client": 59,
+          "scroll": 59
+        },
+        "issueLabel": null,
+        "scrollbars": [
+          "auto",
+          "auto"
+        ]
+      }
+    },
+    {
+      "label": "zoom-1-5",
+      "metrics": {
+        "shell": {
+          "x": 20,
+          "y": 19.197917938232422,
+          "width": 920,
+          "height": 614.6666870117188,
+          "right": 940,
+          "bottom": 633.8646049499512
+        },
+        "left": {
+          "x": 302.66668701171875,
+          "y": 221.15625,
+          "width": 600.6666870117188,
+          "height": 520,
+          "right": 903.3333740234375,
+          "bottom": 741.15625
+        },
+        "right": {
+          "x": 302.66668701171875,
+          "y": 755.15625,
+          "width": 600.6666870117188,
+          "height": 520,
+          "right": 903.3333740234375,
+          "bottom": 1275.15625
+        },
+        "search": {
+          "x": 319.3333435058594,
+          "y": 293.82293701171875,
+          "width": 567.3333740234375,
+          "height": 40,
+          "right": 886.6667175292969,
+          "bottom": 333.82293701171875
+        },
+        "first": {
+          "x": 319.3333435058594,
+          "y": 346.82293701171875,
+          "width": 551.3333740234375,
+          "height": 70,
+          "right": 870.6667175292969,
+          "bottom": 416.82293701171875
+        },
+        "run": {
+          "x": 319.3333435058594,
+          "y": 1210.4896240234375,
+          "width": 567.3333740234375,
+          "height": 48,
+          "right": 886.6667175292969,
+          "bottom": 1258.4896240234375
+        },
+        "title": {
+          "x": 319.3333435058594,
+          "y": 783.4271240234375,
+          "width": 439.2395935058594,
+          "height": 20.791667938232422,
+          "right": 758.5729370117188,
+          "bottom": 804.2187919616699
+        },
+        "issues": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0,
+          "right": 0,
+          "bottom": 0
+        },
+        "selectAll": {
+          "x": 766.5729370117188,
+          "y": 777.8229370117188,
+          "width": 120.09375,
+          "height": 32,
+          "right": 886.6666870117188,
+          "bottom": 809.8229370117188
+        },
+        "categories": {
+          "x": 319.3333435058594,
+          "y": 827.8229370117188,
+          "width": 567.3333740234375,
+          "height": 43,
+          "right": 886.6667175292969,
+          "bottom": 870.8229370117188
+        },
+        "searchVisible": true,
+        "tabs": [
+          "Документы",
+          "Изображения",
+          "Таблицы",
+          "Другие"
+        ],
+        "fileCount": "(3)",
+        "filterLabel": {
+          "text": "Фильтр",
+          "client": 59,
+          "scroll": 59
+        },
+        "issueLabel": null,
+        "scrollbars": [
+          "auto",
+          "auto"
+        ]
+      }
+    },
+    {
+      "label": "narrow-window",
+      "metrics": {
+        "shell": {
+          "x": 20,
+          "y": 23.1875,
+          "width": 1120,
+          "height": 748,
+          "right": 1140,
+          "bottom": 771.1875
+        },
+        "left": {
+          "x": 303,
+          "y": 202.34375,
+          "width": 337.96875,
+          "height": 531.84375,
+          "right": 640.96875,
+          "bottom": 734.1875
+        },
+        "right": {
+          "x": 654.96875,
+          "y": 202.34375,
+          "width": 448.03125,
+          "height": 531.84375,
+          "right": 1103,
+          "bottom": 734.1875
+        },
+        "search": {
+          "x": 320,
+          "y": 311.34375,
+          "width": 303.96875,
+          "height": 40,
+          "right": 623.96875,
+          "bottom": 351.34375
+        },
+        "first": {
+          "x": 320,
+          "y": 364.34375,
+          "width": 287.96875,
+          "height": 70,
+          "right": 607.96875,
+          "bottom": 434.34375
+        },
+        "run": {
+          "x": 671.96875,
+          "y": 669.1875,
+          "width": 414.03125,
+          "height": 48,
+          "right": 1086,
+          "bottom": 717.1875
+        },
+        "title": {
+          "x": 671.96875,
+          "y": 232.296875,
+          "width": 285.265625,
+          "height": 18.09375,
+          "right": 957.234375,
+          "bottom": 250.390625
+        },
+        "issues": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0,
+          "right": 0,
+          "bottom": 0
+        },
+        "selectAll": {
+          "x": 965.234375,
+          "y": 225.34375,
+          "width": 120.765625,
+          "height": 32,
+          "right": 1086,
+          "bottom": 257.34375
+        },
+        "categories": {
+          "x": 671.96875,
+          "y": 275.34375,
+          "width": 414.03125,
+          "height": 43,
+          "right": 1086,
+          "bottom": 318.34375
+        },
+        "searchVisible": true,
+        "tabs": [
+          "Документы",
+          "Изображения",
+          "Таблицы",
+          "Другие"
+        ],
+        "fileCount": "(3)",
+        "filterLabel": {
+          "text": "Фильтр",
+          "client": 59,
+          "scroll": 59
+        },
+        "issueLabel": null,
+        "scrollbars": [
+          "auto",
+          "auto"
+        ]
+      }
+    },
+    {
+      "label": "native-ready",
+      "metrics": {
+        "shell": {
+          "x": 40,
+          "y": 26,
+          "width": 1360,
+          "height": 820,
+          "right": 1400,
+          "bottom": 846
+        },
+        "left": {
+          "x": 323,
+          "y": 210.140625,
+          "width": 441.171875,
+          "height": 598.859375,
+          "right": 764.171875,
+          "bottom": 809
+        },
+        "right": {
+          "x": 778.171875,
+          "y": 210.140625,
+          "width": 584.828125,
+          "height": 598.859375,
+          "right": 1363,
+          "bottom": 809
+        },
+        "search": {
+          "x": 340,
+          "y": 283.140625,
+          "width": 407.171875,
+          "height": 40,
+          "right": 747.171875,
+          "bottom": 323.140625
+        },
+        "first": {
+          "x": 340,
+          "y": 336.140625,
+          "width": 391.171875,
+          "height": 70,
+          "right": 731.171875,
+          "bottom": 406.140625
+        },
+        "run": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0,
+          "right": 0,
+          "bottom": 0
+        },
+        "title": {
+          "x": 795.171875,
+          "y": 238.734375,
+          "width": 282.0625,
+          "height": 20.796875,
+          "right": 1077.234375,
+          "bottom": 259.53125
+        },
+        "issues": {
+          "x": 1085.234375,
+          "y": 232.140625,
+          "width": 132,
+          "height": 34,
+          "right": 1217.234375,
+          "bottom": 266.140625
+        },
+        "selectAll": {
+          "x": 1225.234375,
+          "y": 233.140625,
+          "width": 120.765625,
+          "height": 32,
+          "right": 1346,
+          "bottom": 265.140625
+        },
+        "categories": {
+          "x": 795.171875,
+          "y": 283.140625,
+          "width": 550.828125,
+          "height": 43,
+          "right": 1346,
+          "bottom": 326.140625
+        },
+        "searchVisible": true,
+        "tabs": [
+          "Документы",
+          "Изображения",
+          "Таблицы",
+          "Другие"
+        ],
+        "fileCount": "(1)",
+        "filterLabel": {
+          "text": "Фильтр",
+          "client": 59,
+          "scroll": 59
+        },
+        "issueLabel": {
+          "text": "Результат",
+          "client": 130,
+          "scroll": 130
+        },
+        "scrollbars": [
+          "auto",
+          "auto"
+        ]
+      }
+    },
+    {
+      "label": "native-saved",
+      "metrics": {
+        "shell": {
+          "x": 40,
+          "y": 26,
+          "width": 1360,
+          "height": 820,
+          "right": 1400,
+          "bottom": 846
+        },
+        "left": {
+          "x": 323,
+          "y": 210.140625,
+          "width": 441.171875,
+          "height": 598.859375,
+          "right": 764.171875,
+          "bottom": 809
+        },
+        "right": {
+          "x": 778.171875,
+          "y": 210.140625,
+          "width": 584.828125,
+          "height": 598.859375,
+          "right": 1363,
+          "bottom": 809
+        },
+        "search": {
+          "x": 340,
+          "y": 283.140625,
+          "width": 407.171875,
+          "height": 40,
+          "right": 747.171875,
+          "bottom": 323.140625
+        },
+        "first": {
+          "x": 340,
+          "y": 336.140625,
+          "width": 391.171875,
+          "height": 70,
+          "right": 731.171875,
+          "bottom": 406.140625
+        },
+        "run": {
+          "x": 795.171875,
+          "y": 744,
+          "width": 550.828125,
+          "height": 48,
+          "right": 1346,
+          "bottom": 792
+        },
+        "title": {
+          "x": 795.171875,
+          "y": 238.734375,
+          "width": 282.0625,
+          "height": 20.796875,
+          "right": 1077.234375,
+          "bottom": 259.53125
+        },
+        "issues": {
+          "x": 1085.234375,
+          "y": 232.140625,
+          "width": 132,
+          "height": 34,
+          "right": 1217.234375,
+          "bottom": 266.140625
+        },
+        "selectAll": {
+          "x": 1225.234375,
+          "y": 233.140625,
+          "width": 120.765625,
+          "height": 32,
+          "right": 1346,
+          "bottom": 265.140625
+        },
+        "categories": {
+          "x": 795.171875,
+          "y": 283.140625,
+          "width": 550.828125,
+          "height": 43,
+          "right": 1346,
+          "bottom": 326.140625
+        },
+        "searchVisible": true,
+        "tabs": [
+          "Документы",
+          "Изображения",
+          "Таблицы",
+          "Другие"
+        ],
+        "fileCount": "(1)",
+        "filterLabel": {
+          "text": "Фильтр",
+          "client": 59,
+          "scroll": 59
+        },
+        "issueLabel": {
+          "text": "Результат",
+          "client": 130,
+          "scroll": 130
+        },
+        "scrollbars": [
+          "auto",
+          "auto"
+        ]
+      }
+    }
+  ],
+  "nativeDownload": {
+    "saved": true,
+    "bytes": 7251,
+    "actualDialogInteraction": false
+  },
+  "status": "PASS"
+}
