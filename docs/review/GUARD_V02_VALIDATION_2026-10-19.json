@@ -1,0 +1,59 @@
+{
+  "baseCommit": "af1065687ff2ac25c57037f03106c7bc1dc7392b",
+  "status": "PASS",
+  "scope": "Linux/source; optional Guard module remains disconnected from the AIO app",
+  "python": {
+    "tests": 103,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "includes": [
+      "Guard core",
+      "real loopback HTTP",
+      "controlled POSIX process descendants/timeouts/quotas",
+      "existing direct LO",
+      "DOM/HTTP with simulated save ACK",
+      "Excel",
+      "shell"
+    ]
+  },
+  "native": {
+    "guardAttempts": 30,
+    "successful": 28,
+    "expectedCorruptInputFailures": 1,
+    "explicitFileCancellations": 1,
+    "cases": 9,
+    "largeBatchBytes": 56293692,
+    "pythonTracedPeakLargeBatchBytes": 286322,
+    "nativeHTTP": "PASS: BMP → native PDF → HTTP stream → file → save acknowledgment → release",
+    "pdfBaseline": {
+      "pages": 2,
+      "textEqual": true,
+      "encodedImagesEqual": true,
+      "renderedPixelComparison": "PASS: both pages, 72 DPI, identical pixels"
+    }
+  },
+  "qualifiedRuntimeBlobs": {
+    "app_backend/converter_guard/__init__.py": "606177406386fa11a68c4a363dce8a69541953fc",
+    "app_backend/converter_guard/adapter.py": "218f2f9f12a4b5f547a7e37d9a1328c1405f2b9c",
+    "app_backend/converter_guard/core.py": "6105f5ebd9fe4d9d1719914c14d42d42e3da9204",
+    "app_backend/converter_guard/errors.py": "659237b02c6e4407c045802ac2a66c3ac5c0d523",
+    "app_backend/converter_guard/http_api.py": "b06f0d3f4d3d89549d0657116bab08209095c24c",
+    "app_backend/converter_guard/policy.py": "98f366abcd0379b5010d6384ad621866146b9718"
+  },
+  "notRun": [
+    "Windows Job Object",
+    "NIKITA",
+    "installed EXE/installer",
+    "actual AIO-to-Guard GUI integration",
+    "full user corpus",
+    "all possible native format pairs"
+  ],
+  "sourceCI": "Existing workflow does not include the full Guard suite; result pending publication. No workflow changed.",
+  "commands": [
+    "python -m unittest discover -s tests -v (AIO_DOM_MODULE and real LO enabled)",
+    "python tools/qa/guard_v02_native_acceptance.py --work NEW_DIRECTORY (existing synthetic large DOCX reused)",
+    "python -m compileall -q app_backend tools/qa",
+    "node --check src/converter-bridge.js"
+  ]
+}
