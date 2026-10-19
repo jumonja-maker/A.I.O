@@ -15,6 +15,7 @@ from PySide6.QtWebEngineCore import (
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
 from .server import start_server, asset_root
+from .libreoffice_engine import OUTPUT_META
 
 
 class OnlyLocalRequests(QWebEngineUrlRequestInterceptor):
@@ -87,21 +88,24 @@ class MainWindow(QMainWindow):
     def on_download(self, item):
         url = item.url().toString()
         name = item.downloadFileName() or 'Объединённая_таблица.xlsx'
-        # The clean shell only supports Excel output. Do not permit external
-        # file downloads or old converter ticket URLs.
-        if not name.lower().endswith('.xlsx') or not url.startswith(
-                ('blob:http://127.0.0.1:', 'http://127.0.0.1:')):
+        # Native Save supports only outputs produced by the independent
+        # Excel/LibreOffice workflow. Never accept remote download URLs.
+        extension = Path(name).suffix.lower().lstrip('.')
+        allowed = frozenset(OUTPUT_META) | {'zip'}
+        if (extension not in allowed or not url.startswith(
+                ('blob:http://127.0.0.1:', 'http://127.0.0.1:'))):
             item.cancel()
             self._notify_download('failed', name, url)
             return
-        destination, _ = QFileDialog.getSaveFileName(self, 'Сохранить Excel',
-            name, 'Excel (*.xlsx)')
+        destination, _ = QFileDialog.getSaveFileName(
+            self, 'Сохранить результат', name,
+            extension.upper() + ' (*.' + extension + ')')
         if not destination:
             item.cancel()
             self._notify_download('cancelled', name, url)
             return
         path = Path(destination)
-        if path.suffix.lower() != '.xlsx':
+        if path.suffix.lower() != '.' + extension:
             self._notify_download('cancelled', name, url)
             item.cancel()
             return
