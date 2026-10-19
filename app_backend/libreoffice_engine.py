@@ -104,7 +104,7 @@ def inspect(files, ids):
 
 def convert_path(source: Path, target: str, workspace: Path, *,
                  executable: Path | None = None, cancel=None, on_started=lambda: None,
-                 convert_spec: str | None = None) -> list[Path]:
+                 convert_spec: str | None = None, stdout=None) -> list[Path]:
     source_format(source.name)
     if not isinstance(target, str) or not EXTENSION.fullmatch(target):
         raise LibreOfficeError('Некорректное расширение результата.', 'INVALID_FORMAT')
@@ -123,7 +123,8 @@ def convert_path(source: Path, target: str, workspace: Path, *,
                '--convert-to', convert_spec or target,
                '--outdir', str(output.resolve()), str(source.resolve())]
     try:
-        with ProcessTree(command, cwd=workspace, on_started=on_started) as tree:
+        capture = {} if stdout is None else {'stdout': stdout}
+        with ProcessTree(command, cwd=workspace, on_started=on_started, **capture) as tree:
             while tree.process.poll() is None:
                 if cancel.wait(0.1):
                     raise LibreOfficeError('Конвертация отменена.', 'CANCELLED')
