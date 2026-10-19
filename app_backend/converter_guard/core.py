@@ -88,6 +88,7 @@ class _Artifact:
     def metadata(self):
         return {'fileId': self.file_id, 'format': self.format, 'name': self.name,
                 'archiveName': self.archive_name, 'size': self.size, 'saved': self.saved,
+                'ticket': self.ticket,
                 'mime': mime_for(self.path.suffix.lower().lstrip('.')),
                 'downloadUrl': '/api/converter-guard/result?ticket=' + self.ticket}
 
@@ -472,8 +473,31 @@ class ConverterGuard:
                 self._record(job, 'worker_finished', code=job.state)
             self._cleanup(job)
 
+    @staticmethod
+    def _counts(job):
+        # One pass, shared by live status and the downloadable report. Route
+        # skips are neither successes nor process errors; attempts may fail.
+        counts = dict.fromkeys(('total', 'completed', 'attempted', 'succeeded',
+                                'failed', 'cancelled', 'filtered', 'pending'), 0)
+        for item in job.files:
+            for task in item.targets:
+                counts['total'] += 1
+                counts['attempted'] += bool(task.lo_started)
+                counts['completed'] += task.state in DONE
+                if task.state in SUCCESS:
+                    counts['succeeded'] += 1
+                elif task.state == 'error':
+                    counts['failed'] += 1
+                elif task.state == 'cancelled':
+                    counts['cancelled'] += 1
+                elif task.state == 'skipped':
+                    counts['filtered'] += 1
+                else:
+                    counts['pending'] += 1
+        return counts
+
     def _report(self, job):
-        return {'schemaVersion': 3, 'files': [
+        return {'schemaVersion': 3, **self._counts(job), 'files': [
             {'fileId': f.id, 'name': f.name, 'warnings': (
                 ['SOURCE_NAME_NORMALIZED'] if f.name_normalized else []),
              'targets': [{'format': t.format, 'state': t.state, 'code': t.code,
@@ -486,8 +510,10 @@ class ConverterGuard:
         with self._lock:
             if not job.artifacts:
                 return
-            job.result = ({**job.artifacts[0].metadata()} if len(job.artifacts) == 1 else
-                          {'name': 'AIO_Results.zip', 'mime': 'application/zip'})
+            # Until an archive is actually ready, keep a real, downloadable
+            # artifact as fallback. A ZIP name without a ticket loses the save
+            # path when packaging is cancelled, out of quota or out of space.
+            job.result = {**job.artifacts[0].metadata()}
             job.result['jobId'] = job.id
             self._record(job, 'results_available')
             # A single successful artifact needs no duplicate archive at all.
@@ -561,18 +587,15 @@ class ConverterGuard:
                          'nativeRoute': copy.deepcopy(item.native_route),
                          'targets': targets, 'warnings': (
                              ['SOURCE_NAME_NORMALIZED'] if item.name_normalized else [])})
-        total = sum(len(f.targets) for f in job.files)
-        completed = sum(t.state in DONE for f in job.files for t in f.targets)
+        counts = self._counts(job)
         result = copy.deepcopy(job.result)
         if result is not None:
             result['outputs'] = [a.metadata() for a in job.artifacts]
         finished = not job.running and job.state in TERMINAL
         return {'schemaVersion': 3, 'jobId': job.id, 'revision': job.revision,
                 'state': job.state, 'finished': finished,
-                'files': rows, 'completed': completed, 'total': total,
-                'attempted': sum(t.lo_started for f in job.files for t in f.targets),
-                'filtered': sum(t.state == 'skipped' for f in job.files for t in f.targets),
-                'percent': completed * 100 / total, 'result': result,
+                'files': rows, **counts,
+                'percent': counts['completed'] * 100 / counts['total'], 'result': result,
                 'trace': job.trace.snapshot() if include_trace else None,
                 'packagingError': job.packaging_error}
 

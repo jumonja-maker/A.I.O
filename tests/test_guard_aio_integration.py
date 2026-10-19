@@ -120,7 +120,7 @@ class AioGuardIntegrationContracts(unittest.TestCase):
         server=(ROOT/'app_backend/server.py').read_text(encoding='utf-8')
         self.assertIn("prefix = '/api/converter-guard'",js)
         self.assertIn("'skipped'",js)
-        self.assertIn("makePlan(info, formats, inspection)",js)
+        self.assertIn("makePlan(info, formats)",js)
         self.assertIn("'/saved'",js)
         self.assertIn("target.state === 'skipped'",ui)
         self.assertIn('self.server.guard_api.get(self, path)',server)

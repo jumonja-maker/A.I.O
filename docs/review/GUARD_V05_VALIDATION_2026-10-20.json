@@ -1,0 +1,59 @@
+{
+  "date": "2026-10-20",
+  "baseCommit": "44dad52906dea5e0ee832e4f6b7b333bb3d8785e",
+  "baseTree": "8a580c785afaadaad320a0969d75414dc66b4ceb",
+  "qualification": {
+    "platform": "Linux-6.18.55-x86_64-with-glibc2.39",
+    "python": "3.12.14",
+    "node": "v24.19.0",
+    "unitIntegrationDOM": {
+      "status": "PASS",
+      "tests": 167,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "vmScenarios": 7,
+      "nativeBoundaryInDOM": "synthetic",
+      "nativeSaveAcknowledgementInDOM": "stub"
+    },
+    "native": "PASS; see GUARD_V05_NATIVE_2026-10-20.json",
+    "windowsNIKITA": "NOT_RUN",
+    "qtNativeSave": "NOT_RUN",
+    "exeSetup": "NOT_RUN",
+    "qualityScannerAdded": false
+  },
+  "runtimeGitBlobs": {
+    "app_backend/converter_guard/__init__.py": "f17b2ce7b956d64f187d8409a43f3161090e224c",
+    "app_backend/converter_guard/adapter.py": "b48008079441c563417c6f8ed03ef127321544d9",
+    "app_backend/converter_guard/core.py": "ced0ddbb39f005bd9304a24b07e7bfee2cf620b7",
+    "app_backend/converter_guard/http_api.py": "481e278164f5112ffaa1909f337cbf70b3387efd",
+    "app_backend/converter_native_ui_patch.py": "7e8734b3c53d5542f6f2c06b67b986a5a05fe05c",
+    "src/converter-bridge.js": "bb2273cb51c101b51a8a1cb53b7b2320d4596286",
+    "addons/file-converter/aio-file-progress.js": "539656063735a6dddfe5595d4a716cd3d2c98423",
+    "addons/file-converter/aio-converter-issues.js": "7e08a01199a755c473016e94dd9168a4217415fe"
+  },
+  "resources": {
+    "scope": "Linux Python metadata-only microbenchmark; no LO launch; no user input read",
+    "files": 100,
+    "targetsPerFile": 87,
+    "requestedPairs": 8700,
+    "fullSnapshotBytes": 1432507,
+    "fullStatusAndJSONMeanMs": 108.288,
+    "unchangedRevisionMeanMs": 0.004,
+    "fullStatusTracemallocPeakBytes": 5874920,
+    "unchangedTracemallocPeakBytes": 400,
+    "traceLimit": 512,
+    "conversionSizeLimitBytes": null,
+    "metadataOnly": true,
+    "nativeLaunches": 0
+  },
+  "commands": [
+    "python -m unittest discover -s tests -v",
+    "python tools/qa/guard_v05_native_acceptance.py --fixtures SYNTHETIC_FIXTURES --work NEW_EMPTY_DIRECTORY"
+  ],
+  "notes": [
+    "No owner workflow or installer changed. Inherited NIKITA workflow pins older aecca38, not v0.5.",
+    "Native QA initially assumed Writer lacks PNG export; the real installed registry supports it. QA now verifies actual exclusions with independent direct attempts.",
+    "Large plans still have O(files * formats) task metadata; ETag avoids snapshots only when the revision is unchanged."
+  ]
+}

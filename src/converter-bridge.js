@@ -1,4 +1,4 @@
-/* A.I.O + native Converter Guard v0.4 integration (QA branch only).
+/* A.I.O + native Converter Guard v0.5 integration (QA branch only).
    Preserve the existing designer, Excel save bridge and independent LO engine. */
 (() => {
   'use strict';
@@ -21,11 +21,7 @@
     id: String(f.id || ''), name: String(f.file?.name || f.name || ''),
     size: f.file?.size ?? f.size
   }));
-  async function api(path, body, method = 'POST') {
-    const response = await fetch(prefix + path, {
-      method, headers: {...headers, ...(method === 'POST' ? {'Content-Type':'application/json'} : {})},
-      ...(method === 'POST' ? {body: JSON.stringify(body)} : {}), cache: 'no-store'
-    });
+  async function payloadOf(response) {
     const payload = await response.json();
     if (!response.ok) {
       const e = errorOf(payload.error || 'Операция Converter Guard не выполнена.', payload.code);
@@ -34,8 +30,25 @@
     }
     return payload;
   }
-  const check = operation => {
-    if (operation.cancelled || operation.generation !== generation)
+  async function api(path, body, method = 'POST', signal) {
+    const response = await fetch(prefix + path, {
+      method, headers: {...headers, ...(method === 'POST' ? {'Content-Type':'application/json'} : {})},
+      ...(method === 'POST' ? {body: JSON.stringify(body)} : {}), cache: 'no-store', signal
+    });
+    return payloadOf(response);
+  }
+  async function poll(operation) {
+    const response = await fetch(prefix + '/jobs?job=' + encodeURIComponent(operation.jobId), {
+      headers:{...headers, ...(operation.etag ? {'If-None-Match':operation.etag} : {})},
+      cache:'no-store'
+    });
+    if (response.status === 304) return null; // no JSON, paint or issues rerender
+    const state = await payloadOf(response);
+    operation.etag = response.headers.get('ETag');
+    return state;
+  }
+  const check = (operation, allowCancelled = false) => {
+    if ((!allowCancelled && operation.cancelled) || operation.generation !== generation)
       throw errorOf('Задание отменено.', 'CANCELLED');
   };
   async function releaseJob(id) {
@@ -60,61 +73,30 @@
     progress?.dispose();
     progress = null;
   }
-  // Guard's 'skipped' is a recorded, deliberately unattempted conversion,
-  // NOT a success. Display why it was excluded in the problems panel.
-  const visibleTarget = t => t.state === 'skipped'
-    ? {...t, state: 'error', error: t.error || 'Направление недоступно для этого типа документа.'}
-    : t;
-  function update(report, op, onProgress, finished = false) {
+  function update(report, op, onProgress) {
     if (!report || op.generation !== generation) return;
-    for (const row of report.files || []) {
-      const targets = (row.targets || []).map(visibleTarget);
+    progress?.finishTargets({runId:op.id, files:(report.files || []).map(row => {
+      const targets = row.targets || [];
       const failed = targets.some(t => t.state === 'error');
-      const ready = targets.some(t => t.state === 'ready' || t.state === 'saved');
+      const successes = targets.filter(t => t.state === 'ready' || t.state === 'saved').length;
       const running = targets.some(t => t.state === 'converting');
       const queued = targets.some(t => t.state === 'queued');
       const cancelled = targets.some(t => t.state === 'cancelled');
       const state = running ? 'converting' : queued ? 'queued' :
-        failed ? (ready ? 'partial' : 'error') : cancelled ? 'cancelled' : 'ready';
-      // A.I.O progress widget expects its existing state vocabulary.
-      progress?.update({runId:op.id, fileId:row.fileId,
-        state:state === 'partial' ? 'error' : state,
-        percent:null, error:targets.find(t => t.error)?.error || ''});
-    }
-    if (finished) {
-      progress?.finishTargets({runId:op.id, files:(report.files || []).map(row => {
-        const targets = (row.targets || []).map(visibleTarget);
-        const successes = targets.filter(t => t.state === 'ready' || t.state === 'saved').length;
-        const errors = targets.filter(t => t.state === 'error' || t.state === 'cancelled').length;
-        return {fileId:row.fileId, targets,
-          state: errors ? (successes ? 'partial' : 'error') : 'ready',
-          succeeded:successes, total:targets.length,
-          error:targets.find(t => t.error)?.error || ''};
-      })});
-    }
+        failed || cancelled ? (successes ? 'partial' : cancelled && !failed ? 'cancelled' : 'error') : 'ready';
+      return {fileId:row.fileId, targets, state, succeeded:successes, total:targets.length,
+        error:targets.find(t => t.state === 'error')?.error || ''};
+    })});
     onProgress?.({percent:report.percent ?? null,
       message:'Обработано: ' + (report.completed ?? 0) + ' из ' + (report.total ?? 0)
         + '. Запусков LibreOffice: ' + (report.attempted ?? 0)
         + ', пропущено Guard: ' + (report.filtered ?? 0) + '.'});
   }
 
-  // A route hint comes only from the installed LibreOffice registry. It must
-  // not veto all of a source's explicit options: an extension may be renamed.
-  function makePlan(inputs, formats, inspection) {
-    const byFormat = new Map((inspection.formats || []).map(f => [f.id, f]));
-    return inputs.map(file => {
-      // Small explicit choices remain true native attempts, even when an
-      // extension was renamed. Broad "select all" uses registry hints to
-      // avoid unrelated fan-out; the native backend is never hard-vetoed.
-      if (formats.length <= 4) return {fileId:String(file.id), formats:[...formats]};
-      let options = formats.filter(format => {
-        const info = byFormat.get(format);
-        return !info || !Array.isArray(info.incompatibleFileIds) ||
-          !info.incompatibleFileIds.includes(String(file.id));
-      });
-      if (!options.length) options = [formats[0]]; // user-selected native fallback
-      return {fileId:String(file.id), formats:options};
-    });
+  // Preserve the entire choice and its order. Only Guard's confirmed native
+  // model may skip a route; filename hints never remove selected work here.
+  function makePlan(inputs, formats) {
+    return inputs.map(file => ({fileId:String(file.id), formats:[...formats]}));
   }
 
   async function run({files, formatIds, formatId, onProgress} = {}) {
@@ -138,12 +120,10 @@
       for (const id of [...retained.keys()]) await releaseJob(id);
       check(op);
       const info = metadata(inputs);
-      const inspection = await api('/inspect', {files:info});
-      check(op);
-      const plan = makePlan(info, formats, inspection);
+      const plan = makePlan(info, formats);
       const created = await api('/jobs', {files:info, plan});
       op.jobId = created.jobId;
-      retained.set(op.jobId, null);
+      retained.set(op.jobId, {ticket:null, saved:new Set()});
       check(op);
 
       for (const file of inputs) {
@@ -159,9 +139,12 @@
       check(op);
       await api('/start', {jobId:op.jobId});
       for (;;) {
-        check(op);
-        last = await api('/jobs?job=' + encodeURIComponent(op.jobId), undefined, 'GET');
-        update(last, op, onProgress, Boolean(last.finished));
+        // After explicit cancel, wait for Guard's real terminal state so that
+        // already completed outputs can still be offered for saving.
+        check(op, true);
+        const state = await poll(op);
+        check(op, true);
+        if (state) {last = state; update(last, op, onProgress);}
         if (last.finished) break;
         await new Promise(resolve => setTimeout(resolve, 400));
       }
@@ -172,12 +155,16 @@
         e.batchReport = last; throw e;
       }
       const result = {...last.result, progressRunId:op.id,
-        targetReport:last, directLibreOffice:true, converterGuard:true};
-      retained.set(op.jobId, result.ticket);
-      return {ok:true, result, targetReport:last, schemaVersion:3};
+        targetReport:last, packagingError:last.packagingError,
+        directLibreOffice:true, converterGuard:true};
+      retained.get(op.jobId).ticket = result.ticket;
+      return {ok:true, result, targetReport:last, schemaVersion:3,
+        message: (last.state === 'cancelled' ? 'Конвертация отменена. Готовые результаты можно сохранить. ' : '') + (last.packagingError
+          ? 'Архив не собран. Готовые файлы сохранены в Guard; при сохранении будут предложены отдельно.'
+          : '')};
     } catch (error) {
       if (!error.batchReport) error.batchReport = last;
-      if (error.batchReport) update(error.batchReport, op, onProgress, true);
+      if (error.batchReport) update(error.batchReport, op, onProgress);
       else progress?.failBatch({runId:op.id,cancelled:op.cancelled});
       if (op.cancelled) {
         const cancelled = errorOf('Конвертация отменена.', 'CANCELLED');
@@ -186,30 +173,39 @@
       }
       throw error;
     } finally {
+      // Reset during /jobs creation used to leave a late-created job behind.
+      // Failed uploads and jobs without outputs also need explicit release.
+      if (op.jobId && (op.generation !== generation || !last?.result?.downloadUrl))
+        await releaseJob(op.jobId);
       if (active === op) active = null;
     }
   }
   async function saveResult({result} = {}) {
     const jobId = result?.jobId;
-    if (!jobId || retained.get(jobId) !== result.ticket)
+    const ownership = retained.get(jobId);
+    if (!jobId || ownership?.ticket !== result.ticket)
       throw errorOf('Результат больше недоступен.', 'RESULT_NOT_FOUND');
     let saved = false;
     progress?.beginSave({runId:result.progressRunId});
     try {
-      const outcome = await bridge.saveExcel(result);
-      saved = outcome?.saved === true;
-      if (saved) {
-        await api('/saved', {jobId,ticket:result.ticket});
-        await releaseJob(jobId);
+      const copies = result.packagingError && result.outputs?.length > 1 ? result.outputs : [result];
+      for (const copy of copies) {
+        if (ownership.saved.has(copy.ticket)) continue;
+        const outcome = await bridge.saveExcel(copy);
+        if (outcome?.saved !== true) return outcome;
+        await api('/saved', {jobId,ticket:copy.ticket});
+        ownership.saved.add(copy.ticket);
       }
-      return outcome;
+      saved = true;
+      await releaseJob(jobId);
+      return {saved:true};
     } finally {
       progress?.finishSave({runId:result.progressRunId,saved});
     }
   }
   bridge.converter = Object.freeze({
     acceptedExtensions:'', directLibreOffice:true, converterGuard:true,
-    inspectFiles({files=[]}={}) {return api('/inspect',{files:metadata(files)});},
+    inspectFiles({files=[],signal}={}) {return api('/inspect',{files:metadata(files)},'POST',signal);},
     convert:run,convertMany:run,saveResult,cancel,resetProgress,
     async diagnoseFiles({files=[],phase='before',result}={}) {
       const report=result?.targetReport;

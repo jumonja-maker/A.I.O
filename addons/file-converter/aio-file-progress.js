@@ -141,7 +141,7 @@
     }
     function begin(event) {
       if (disposed || !event || typeof event.runId !== 'string' || !event.runId.length ||
-          !Array.isArray(event.fileIds) || !event.fileIds.length || event.fileIds.length > 100 ||
+          !Array.isArray(event.fileIds) || !event.fileIds.length ||
           event.fileIds.some(id=>!validId(id))) return false;
       const ids = event.fileIds.map(String);
       if (new Set(ids).size !== ids.length) return false;
@@ -167,7 +167,7 @@
     function beginSave(event) {
       const states = [...files.values()].map(data=>data.state);
       if (!current(event) || !states.some(x=>['ready','partial'].includes(x)) ||
-          states.some(x=>!['ready','partial','error','partial-saved','saved'].includes(x))) return false;
+          states.some(x=>!['ready','partial','error','cancelled','partial-saved','saved'].includes(x))) return false;
       files.forEach(data=>{if(['ready','partial','partial-saved','saved'].includes(data.state)){
         data.beforeSave=data.state;data.state='saving';
       }}); render(); return true;
@@ -180,7 +180,7 @@
     function finishSave(event) {
       const states = [...files.values()].map(data=>data.state);
       if (!current(event) || typeof event.saved !== 'boolean' || !states.includes('saving') ||
-          states.some(x=>!['saving','error'].includes(x))) return false;
+          states.some(x=>!['saving','error','cancelled'].includes(x))) return false;
       files.forEach(data=>{if(data.state==='saving')data.state=event.saved?
         (['partial','partial-saved'].includes(data.beforeSave)?'partial-saved':'saved'):data.beforeSave;});
       render(); return true;
@@ -190,15 +190,18 @@
           [...files.values()].some(x=>x.state==='saving')) return false;
       const ids=event.files.map(x=>String(x.fileId));
       if (new Set(ids).size!==files.size || ids.some(id=>!files.has(id)) ||
-          event.files.some(x=>!['queued','converting','ready','partial','error'].includes(x.state)||
+          event.files.some(x=>!['queued','converting','ready','partial','error','cancelled'].includes(x.state)||
             (x.allCopiesSaved!==undefined&&(typeof x.allCopiesSaved!=='boolean'||x.allCopiesSaved&&!['ready','partial'].includes(x.state))))) return false;
       for(const row of event.files){
         const errors=row.targets.filter(x=>x.state==='error');
         const working=row.targets.find(x=>x.state==='converting');
-        const summary='Готово '+row.succeeded+' из '+row.total;
+        const skipped=row.targets.filter(x=>x.state==='skipped').length;
+        const cancelled=row.targets.filter(x=>x.state==='cancelled').length;
+        const summary='Готово '+row.succeeded+' из '+row.total+
+          (skipped?' · пропущено Guard: '+skipped:'')+(cancelled?' · отменено: '+cancelled:'');
         const detail=errors.map(x=>x.format.toUpperCase()+': '+x.error).join('; ');
         // Completed targets (ready or error) fill full-width discrete stages.
-        const completed=row.targets.filter(x=>x.state==='ready'||x.state==='error').length;
+        const completed=row.targets.filter(x=>['ready','saved','error','cancelled','skipped'].includes(x.state)).length;
         const progress=row.total>0?Math.round(100*completed/row.total):null;
         files.set(String(row.fileId),{state:row.allCopiesSaved?(row.state==='partial'?'partial-saved':'saved'):row.state,percent:progress,
           cellSize:row.total>1?(100/row.total)+'%':'100%',

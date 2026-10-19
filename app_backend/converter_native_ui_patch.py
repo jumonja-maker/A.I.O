@@ -19,7 +19,13 @@ def apply_native_ui(raw: bytes) -> bytes:
 
     once('  const MAX_FILES = 100;\n', '')
     once('    enabled: value?.enabled === true,',
-         "    enabled: value?.enabled === true,\n    nativeDecision:value?.compatibility==='native_decision',")
+         "    enabled: value?.enabled === true || value?.nativeAttemptAvailable === true,\n"
+         "    nativeDecision:['native_decision','native_registry_hint'].includes(value?.compatibility),\n"
+         "    compatibility:value?.compatibility,\n"
+         "    selectableFileIds:Array.isArray(value?.selectableFileIds)?value.selectableFileIds.map(String):"
+         "(Array.isArray(value?.compatibleFileIds)?value.compatibleFileIds.map(String):[]),\n"
+         "    incompatibleFileIds:Array.isArray(value?.incompatibleFileIds)?value.incompatibleFileIds.map(String):[],\n"
+         "    undeterminedFileIds:Array.isArray(value?.undeterminedFileIds)?value.undeterminedFileIds.map(String):[],")
     once('＋ Добавить файлы', '+ Добавить файлы')
     once('Выберите формат результата</h2>', 'Формат результата</h2>')
     once("const ext = (name) => (String(name).split('.').pop() || '').toUpperCase().slice(0, 7);",
@@ -81,4 +87,10 @@ def apply_native_ui(raw: bytes) -> bytes:
     once('window.AIOConverterAddon = Object.freeze({register, mount, MAX_FILES});',
          'window.AIOConverterAddon = Object.freeze({register, mount});')
     once('    typeFilter.sync();\n    render();', '    typeFilter.sync();\n    render();\n    inspect();')
+    # Eligibility is supplied by Guard, separately from filename route hints.
+    # Retain the hint arrays for diagnostics; never use them to discard input.
+    for name, count in (('fmt.compatibleFileIds', 4), ('f.compatibleFileIds', 3)):
+        if source.count(name) != count:
+            raise ValueError('Native selection eligibility requires controller review: ' + name)
+        source = source.replace(name, name.replace('compatibleFileIds', 'selectableFileIds'))
     return source.encode('utf-8')
