@@ -8,18 +8,18 @@
     light: Object.freeze({
       // Legacy svg property retained for existing listeners; it points to the
       // approved raster mark so no UI consumer displays the retired SVG.
-      svg: ASSET_ROOT + 'icons/aio-light-256.png',
-      ico: ASSET_ROOT + 'icons/aio-light.ico',
-      icns: ASSET_ROOT + 'icons/aio-light.icns',
-      png: ASSET_ROOT + 'icons/aio-light-256.png'
+      svg: ASSET_ROOT + 'elva-v13-happy-thumb.webp',
+      ico: ASSET_ROOT + 'elva-v13-happy-thumb.webp',
+      icns: ASSET_ROOT + 'elva-v13-happy-thumb.webp',
+      png: ASSET_ROOT + 'elva-v13-happy-thumb.webp'
     }),
     dark: Object.freeze({
       // Legacy svg property retained for existing listeners; it points to the
       // approved raster mark so no UI consumer displays the retired SVG.
-      svg: ASSET_ROOT + 'icons/aio-dark-256.png',
-      ico: ASSET_ROOT + 'icons/aio-dark.ico',
-      icns: ASSET_ROOT + 'icons/aio-dark.icns',
-      png: ASSET_ROOT + 'icons/aio-dark-256.png'
+      svg: ASSET_ROOT + 'elva-v13-happy-thumb.webp',
+      ico: ASSET_ROOT + 'elva-v13-happy-thumb.webp',
+      icns: ASSET_ROOT + 'elva-v13-happy-thumb.webp',
+      png: ASSET_ROOT + 'elva-v13-happy-thumb.webp'
     })
   });
   function setTheme(theme) {
