@@ -1,0 +1,733 @@
+{
+  "scope": "Synthetic Linux/source HTTP + native LO; not a user corpus",
+  "engine": "LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5",
+  "cases": [
+    {
+      "label": "native-inputs",
+      "sources": [
+        {
+          "name": "writer.docx",
+          "bytes": 55836
+        },
+        {
+          "name": "calc.xlsx",
+          "bytes": 5444
+        },
+        {
+          "name": "impress.pptx",
+          "bytes": 29155
+        },
+        {
+          "name": "writer.doc",
+          "bytes": 37376
+        },
+        {
+          "name": "writer.odt",
+          "bytes": 35527
+        },
+        {
+          "name": "writer.rtf",
+          "bytes": 56139
+        },
+        {
+          "name": "calc.xls",
+          "bytes": 6144
+        },
+        {
+          "name": "calc.ods",
+          "bytes": 9654
+        },
+        {
+          "name": "impress.ppt",
+          "bytes": 650752
+        },
+        {
+          "name": "impress.odp",
+          "bytes": 20439
+        },
+        {
+          "name": "text.txt",
+          "bytes": 41
+        },
+        {
+          "name": "table.csv",
+          "bytes": 31
+        },
+        {
+          "name": "page.html",
+          "bytes": 64
+        },
+        {
+          "name": "text.unlisted",
+          "bytes": 21
+        },
+        {
+          "name": "image.bmp",
+          "bytes": 18486
+        },
+        {
+          "name": "image.png",
+          "bytes": 18564
+        },
+        {
+          "name": "image.jpg",
+          "bytes": 4321
+        },
+        {
+          "name": "image.gif",
+          "bytes": 9046
+        },
+        {
+          "name": "image.tiff",
+          "bytes": 18572
+        },
+        {
+          "name": "image.svg",
+          "bytes": 143
+        },
+        {
+          "name": "image.webp",
+          "bytes": 4592
+        }
+      ],
+      "formats": [
+        "pdf"
+      ],
+      "report": {
+        "files": [
+          {
+            "fileId": "f0",
+            "targets": [
+              {
+                "format": "pdf",
+                "state": "ready",
+                "libreOfficeStarted": true,
+                "warnings": []
+              }
+            ]
+          },
+          {
+            "fileId": "f1",
+            "targets": [
+              {
+                "format": "pdf",
+                "state": "ready",
+                "libreOfficeStarted": true,
+                "warnings": []
+              }
+            ]
+          },
+          {
+            "fileId": "f2",
+            "targets": [
+              {
+                "format": "pdf",
+                "state": "ready",
+                "libreOfficeStarted": true,
+                "warnings": []
+              }
+            ]
+          },
+          {
+            "fileId": "f3",
+            "targets": [
+              {
+                "format": "pdf",
+                "state": "ready",
+                "libreOfficeStarted": true,
+                "warnings": []
+              }
+            ]
+          },
+          {
+            "fileId": "f4",
+            "targets": [
+              {
+                "format": "pdf",
+                "state": "ready",
+                "libreOfficeStarted": true,
+                "warnings": []
+              }
+            ]
+          },
+          {
+            "fileId": "f5",
+            "targets": [
+              {
+                "format": "pdf",
+                "state": "ready",
+                "libreOfficeStarted": true,
+                "warnings": []
+              }
+            ]
+          },
+          {
+            "fileId": "f6",
+            "targets": [
+              {
+                "format": "pdf",
+                "state": "ready",
+                "libreOfficeStarted": true,
+                "warnings": []
+              }
+            ]
+          },
+          {
+            "fileId": "f7",
+            "targets": [
+              {
+                "format": "pdf",
+                "state": "ready",
+                "libreOfficeStarted": true,
+                "warnings": []
+              }
+            ]
+          },
+          {
+            "fileId": "f8",
+            "targets": [
+              {
+                "format": "pdf",
+                "state": "ready",
+                "libreOfficeStarted": true,
+                "warnings": []
+              }
+            ]
+          },
+          {
+            "fileId": "f9",
+            "targets": [
+              {
+                "format": "pdf",
+                "state": "ready",
+                "libreOfficeStarted": true,
+                "warnings": []
+              }
+            ]
+          },
+          {
+            "fileId": "f10",
+            "targets": [
+              {
+                "format": "pdf",
+                "state": "ready",
+                "libreOfficeStarted": true,
+                "warnings": []
+              }
+            ]
+          },
+          {
+            "fileId": "f11",
+            "targets": [
+              {
+                "format": "pdf",
+                "state": "ready",
+                "libreOfficeStarted": true,
+                "warnings": []
+              }
+            ]
+          },
+          {
+            "fileId": "f12",
+            "targets": [
+              {
+                "format": "pdf",
+                "state": "ready",
+                "libreOfficeStarted": true,
+                "warnings": []
+              }
+            ]
+          },
+          {
+            "fileId": "f13",
+            "targets": [
+              {
+                "format": "pdf",
+                "state": "ready",
+                "libreOfficeStarted": true,
+                "warnings": []
+              }
+            ]
+          },
+          {
+            "fileId": "f14",
+            "targets": [
+              {
+                "format": "pdf",
+                "state": "ready",
+                "libreOfficeStarted": true,
+                "warnings": []
+              }
+            ]
+          },
+          {
+            "fileId": "f15",
+            "targets": [
+              {
+                "format": "pdf",
+                "state": "ready",
+                "libreOfficeStarted": true,
+                "warnings": []
+              }
+            ]
+          },
+          {
+            "fileId": "f16",
+            "targets": [
+              {
+                "format": "pdf",
+                "state": "ready",
+                "libreOfficeStarted": true,
+                "warnings": []
+              }
+            ]
+          },
+          {
+            "fileId": "f17",
+            "targets": [
+              {
+                "format": "pdf",
+                "state": "ready",
+                "libreOfficeStarted": true,
+                "warnings": []
+              }
+            ]
+          },
+          {
+            "fileId": "f18",
+            "targets": [
+              {
+                "format": "pdf",
+                "state": "ready",
+                "libreOfficeStarted": true,
+                "warnings": []
+              }
+            ]
+          },
+          {
+            "fileId": "f19",
+            "targets": [
+              {
+                "format": "pdf",
+                "state": "ready",
+                "libreOfficeStarted": true,
+                "warnings": []
+              }
+            ]
+          },
+          {
+            "fileId": "f20",
+            "targets": [
+              {
+                "format": "pdf",
+                "state": "ready",
+                "libreOfficeStarted": true,
+                "warnings": []
+              }
+            ]
+          }
+        ],
+        "completed": 21,
+        "total": 21,
+        "percent": 100.0,
+        "succeeded": 21,
+        "failed": 0
+      },
+      "seconds": 46.03,
+      "outputBytes": 332019,
+      "outputSHA256": "522381369d25e163f075f2771efc0fe657917a717302fa89f1c626d36ea695e7"
+    },
+    {
+      "label": "over-50-mib-batch",
+      "sources": [
+        {
+          "name": "large-one.docx",
+          "bytes": 28146846
+        },
+        {
+          "name": "large-two.docx",
+          "bytes": 28146846
+        }
+      ],
+      "formats": [
+        "pdf"
+      ],
+      "report": {
+        "files": [
+          {
+            "fileId": "f0",
+            "targets": [
+              {
+                "format": "pdf",
+                "state": "ready",
+                "libreOfficeStarted": true,
+                "warnings": []
+              }
+            ]
+          },
+          {
+            "fileId": "f1",
+            "targets": [
+              {
+                "format": "pdf",
+                "state": "ready",
+                "libreOfficeStarted": true,
+                "warnings": []
+              }
+            ]
+          }
+        ],
+        "completed": 2,
+        "total": 2,
+        "percent": 100.0,
+        "succeeded": 2,
+        "failed": 0
+      },
+      "seconds": 2.009,
+      "outputBytes": 183166,
+      "outputSHA256": "d762ea911b51a17a69956a7e343ec2b5013e729c21124c9ab519aab894e0f490",
+      "pythonTracedPeakBytes": 309695
+    },
+    {
+      "label": "bmp-to-png",
+      "sources": [
+        {
+          "name": "image.bmp",
+          "bytes": 18486
+        }
+      ],
+      "formats": [
+        "png"
+      ],
+      "report": {
+        "files": [
+          {
+            "fileId": "f0",
+            "targets": [
+              {
+                "format": "png",
+                "state": "ready",
+                "libreOfficeStarted": true,
+                "warnings": []
+              }
+            ]
+          }
+        ],
+        "completed": 1,
+        "total": 1,
+        "percent": 100.0,
+        "succeeded": 1,
+        "failed": 0
+      },
+      "seconds": 0.305,
+      "outputBytes": 26821,
+      "outputSHA256": "d6168c11fe15f768628066c662da80b85cbc72d63c2dc2a506c662a7bc43f1a9",
+      "imageSize": [
+        794,
+        1123
+      ]
+    },
+    {
+      "label": "bmp-to-jpg",
+      "sources": [
+        {
+          "name": "image.bmp",
+          "bytes": 18486
+        }
+      ],
+      "formats": [
+        "jpg"
+      ],
+      "report": {
+        "files": [
+          {
+            "fileId": "f0",
+            "targets": [
+              {
+                "format": "jpg",
+                "state": "ready",
+                "libreOfficeStarted": true,
+                "warnings": []
+              }
+            ]
+          }
+        ],
+        "completed": 1,
+        "total": 1,
+        "percent": 100.0,
+        "succeeded": 1,
+        "failed": 0
+      },
+      "seconds": 0.304,
+      "outputBytes": 9377,
+      "outputSHA256": "c736ce71ef99707058449898baf9d0cf889b03989916997c0ecbfbc403731b5d",
+      "imageSize": [
+        794,
+        1123
+      ]
+    },
+    {
+      "label": "bmp-to-bmp",
+      "sources": [
+        {
+          "name": "image.bmp",
+          "bytes": 18486
+        }
+      ],
+      "formats": [
+        "bmp"
+      ],
+      "report": {
+        "files": [
+          {
+            "fileId": "f0",
+            "targets": [
+              {
+                "format": "bmp",
+                "state": "ready",
+                "libreOfficeStarted": true,
+                "warnings": []
+              }
+            ]
+          }
+        ],
+        "completed": 1,
+        "total": 1,
+        "percent": 100.0,
+        "succeeded": 1,
+        "failed": 0
+      },
+      "seconds": 0.304,
+      "outputBytes": 2677286,
+      "outputSHA256": "82f14af6c851382fc073acd9cc916dd78893ffdadcca5d4c2e62946251fd2d35",
+      "imageSize": [
+        794,
+        1123
+      ]
+    },
+    {
+      "label": "bmp-to-gif",
+      "sources": [
+        {
+          "name": "image.bmp",
+          "bytes": 18486
+        }
+      ],
+      "formats": [
+        "gif"
+      ],
+      "report": {
+        "files": [
+          {
+            "fileId": "f0",
+            "targets": [
+              {
+                "format": "gif",
+                "state": "ready",
+                "libreOfficeStarted": true,
+                "warnings": []
+              }
+            ]
+          }
+        ],
+        "completed": 1,
+        "total": 1,
+        "percent": 100.0,
+        "succeeded": 1,
+        "failed": 0
+      },
+      "seconds": 0.305,
+      "outputBytes": 12240,
+      "outputSHA256": "420f186876bcaf035774ef45b137a57ca95e26bdfceb0deb63b4688c1621a77b",
+      "imageSize": [
+        794,
+        1123
+      ]
+    },
+    {
+      "label": "bmp-to-tiff",
+      "sources": [
+        {
+          "name": "image.bmp",
+          "bytes": 18486
+        }
+      ],
+      "formats": [
+        "tiff"
+      ],
+      "report": {
+        "files": [
+          {
+            "fileId": "f0",
+            "targets": [
+              {
+                "format": "tiff",
+                "state": "ready",
+                "libreOfficeStarted": true,
+                "warnings": []
+              }
+            ]
+          }
+        ],
+        "completed": 1,
+        "total": 1,
+        "percent": 100.0,
+        "succeeded": 1,
+        "failed": 0
+      },
+      "seconds": 0.304,
+      "outputBytes": 64326,
+      "outputSHA256": "63064699c59d8556150c55bb4ecac38124771ac638eca3aca1df2851720161d4",
+      "imageSize": [
+        794,
+        1123
+      ]
+    },
+    {
+      "label": "bmp-to-svg",
+      "sources": [
+        {
+          "name": "image.bmp",
+          "bytes": 18486
+        }
+      ],
+      "formats": [
+        "svg"
+      ],
+      "report": {
+        "files": [
+          {
+            "fileId": "f0",
+            "targets": [
+              {
+                "format": "svg",
+                "state": "ready",
+                "libreOfficeStarted": true,
+                "warnings": []
+              }
+            ]
+          }
+        ],
+        "completed": 1,
+        "total": 1,
+        "percent": 100.0,
+        "succeeded": 1,
+        "failed": 0
+      },
+      "seconds": 0.304,
+      "outputBytes": 29337,
+      "outputSHA256": "a27afc2e76747a3a3528317e8128b0c8e04435682343af6c4e3a86beaaf68824"
+    },
+    {
+      "label": "bmp-to-webp",
+      "sources": [
+        {
+          "name": "image.bmp",
+          "bytes": 18486
+        }
+      ],
+      "formats": [
+        "webp"
+      ],
+      "report": {
+        "files": [
+          {
+            "fileId": "f0",
+            "targets": [
+              {
+                "format": "webp",
+                "state": "ready",
+                "libreOfficeStarted": true,
+                "warnings": []
+              }
+            ]
+          }
+        ],
+        "completed": 1,
+        "total": 1,
+        "percent": 100.0,
+        "succeeded": 1,
+        "failed": 0
+      },
+      "seconds": 0.305,
+      "outputBytes": 18972,
+      "outputSHA256": "45a8591de7a49445c210dcd2ac22974b8f2e928a9edc72a8af39ae90da672908",
+      "imageSize": [
+        794,
+        1123
+      ]
+    },
+    {
+      "label": "html-with-companions",
+      "sources": [
+        {
+          "name": "writer.docx",
+          "bytes": 55836
+        }
+      ],
+      "formats": [
+        "html"
+      ],
+      "report": {
+        "files": [
+          {
+            "fileId": "f0",
+            "targets": [
+              {
+                "format": "html",
+                "state": "ready",
+                "libreOfficeStarted": true,
+                "warnings": []
+              }
+            ]
+          }
+        ],
+        "completed": 1,
+        "total": 1,
+        "percent": 100.0,
+        "succeeded": 1,
+        "failed": 0
+      },
+      "seconds": 0.405,
+      "outputBytes": 21039,
+      "outputSHA256": "042bded95a222dfc647b3f2f74f38ea8af560b09887ee6d1df1b444ba2284d3f"
+    },
+    {
+      "label": "pdf-import-to-png",
+      "sources": [
+        {
+          "name": "writer.pdf",
+          "bytes": 25145
+        }
+      ],
+      "formats": [
+        "png"
+      ],
+      "report": {
+        "files": [
+          {
+            "fileId": "f0",
+            "targets": [
+              {
+                "format": "png",
+                "state": "ready",
+                "libreOfficeStarted": true,
+                "warnings": []
+              }
+            ]
+          }
+        ],
+        "completed": 1,
+        "total": 1,
+        "percent": 100.0,
+        "succeeded": 1,
+        "failed": 0
+      },
+      "seconds": 1.507,
+      "outputBytes": 28153,
+      "outputSHA256": "7ae0ab7d7d8cb76fc283144de2e91fe074391e05a5764419b84dd819cb776b7b"
+    }
+  ],
+  "sourcesUnchanged": true,
+  "status": "PASS"
+}

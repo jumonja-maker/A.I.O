@@ -1,124 +1,175 @@
-/* A.I.O → native LibreOffice integration without Converter Guard.
- * This file contains transport only. Neither legacy converter routes nor
- * Guard policies are imported or evaluated. No pretend output on errors.
- */
+/* Direct LibreOffice transport. Source/target and size policies belong to Guard. */
 (() => {
   'use strict';
   const bridge = window.AllInOneBridge;
   const token = document.body.dataset.aioToken;
   if (!bridge || !token) return;
-  const acceptedExtensions = '.docx,.doc,.odt,.rtf,.txt,.html,.htm,.xlsx,.xls,.ods,.csv,.pptx,.ppt,.odp';
-  const MIME = Object.freeze({
-    pdf:'application/pdf', docx:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    doc:'application/msword', odt:'application/vnd.oasis.opendocument.text',
-    rtf:'application/rtf', txt:'text/plain', html:'text/html',
-    xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    xls:'application/vnd.ms-excel', ods:'application/vnd.oasis.opendocument.spreadsheet',
-    csv:'text/csv', pptx:'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    ppt:'application/vnd.ms-powerpoint', odp:'application/vnd.oasis.opendocument.presentation'
-  });
-  function fail(message) {
-    const e = new Error(message);
-    e.userMessage = message;
-    throw e;
+  const headers = {'X-AIO-Token': token};
+  const retained = new Set();
+  let active = null, progress = null, generation = 0;
+
+  function failure(message, code) {
+    const error = new Error(message);
+    error.userMessage = message; error.code = code;
+    return error;
   }
-  function selectedFiles(input) {
-    const files = Array.from(input || []);
-    if (!files.length || files.length > 100) fail('Выберите от 1 до 100 файлов.');
-    const total = files.reduce((n, x) => n + (x.file?.size || 0), 0);
-    if (total > 50 * 1024 * 1024 ||
-        files.some(x => !x.file || !x.name || !x.id ||
-          x.file.size < 1 || x.file.size > 20 * 1024 * 1024))
-      fail('Общий размер не более 50 МБ, отдельный файл не более 20 МБ.');
-    return files;
-  }
-  function requestForm(files, formats) {
-    const payload = new FormData();
-    payload.append('ids', JSON.stringify(files.map(x => String(x.id))));
-    for (const x of files) payload.append('files', x.file, x.name);
-    if (formats?.length === 1) payload.append('format', formats[0]);
-    else if (formats?.length > 1) payload.append('formats', JSON.stringify(formats));
+  const metadata = files => Array.from(files || [], f => ({
+    id: String(f.id || ''), name: String(f.file?.name || f.name || ''),
+    size: f.file?.size ?? f.size
+  }));
+  async function json(path, body) {
+    const response = await fetch('/api/converter/' + path, {
+      headers: {...headers, ...(body === undefined ? {} : {'Content-Type': 'application/json'})},
+      ...(body === undefined ? {} : {method: 'POST', body: JSON.stringify(body)}),
+      cache: 'no-store'
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      const error = failure(payload.error || 'Не удалось выполнить задание LibreOffice.', payload.code);
+      error.batchReport = payload.batchReport;
+      throw error;
+    }
     return payload;
   }
-  async function send(operation, files, formats) {
-    let response;
+  async function release(ticket) {
     try {
-      response = await fetch('/api/converter/' + operation, {
-        method:'POST',
-        headers:{'X-AIO-Token':token},
-        body:requestForm(files, formats),
-        cache:'no-store'
-      });
-    } catch {
-      fail('Не удалось связаться с локальным движком LibreOffice.');
-    }
-    if (!response.ok) {
-      const payload = await response.json().catch(() => ({}));
-      const err = new Error(payload.error || 'Конвертация не удалась.');
-      err.userMessage = err.message;
-      err.code = payload.code || 'LIBREOFFICE_REQUEST_FAILED';
-      throw err;
-    }
-    return response;
+      const outcome = await json('release', {ticket});
+      if (outcome.ok) retained.delete(ticket);
+    } catch {}
   }
-  function outputName(files, formats) {
-    if (files.length !== 1 || formats.length !== 1)
-      return 'Конвертированные_файлы.zip';
-    const base = String(files[0].name).replace(/\.[^.]*$/, '')
-      .replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').slice(0, 100) || 'Документ';
-    return base + '.' + formats[0];
+  async function cancel() {
+    if (!active) return;
+    active.cancelled = true;
+    await json('cancel', {requestId: active.id});
   }
-  async function execute(files, formats, onProgress) {
-    const selected = selectedFiles(files);
+  function resetProgress() {
+    generation++;
+    cancel().catch(() => {});
+    for (const ticket of retained) release(ticket);
+    progress?.dispose(); progress = null;
+  }
+  function update(report, operation, onProgress, finished = false) {
+    if (operation.generation !== generation) return;
+    for (const row of report.files || []) {
+      const targets = row.targets || [];
+      const running = targets.some(t => t.state === 'running');
+      const queued = targets.some(t => t.state === 'queued');
+      const ready = targets.some(t => t.state === 'ready');
+      const failed = targets.some(t => t.state === 'error');
+      progress?.update({runId: operation.id, fileId: row.fileId,
+        state: running ? 'converting' : queued ? 'queued' : failed ? (ready ? 'partial' : 'error') : 'ready',
+        percent: null, error: targets.find(t => t.error)?.error || ''});
+    }
+    if (finished) progress?.finishTargets({runId: operation.id,
+      files: (report.files || []).map(row => ({
+        fileId: row.fileId, targets: row.targets,
+        state: row.targets.some(t=>t.state==='error') ? (row.targets.some(t=>t.state==='ready') ? 'partial' : 'error') : 'ready',
+        succeeded: row.targets.filter(t => t.state === 'ready').length,
+        total: row.targets.length,
+        error: row.targets.find(t => t.error)?.error || ''
+      }))});
+    onProgress?.({percent: report.percent,
+      message: report.total ? 'Обработано преобразований: ' + report.completed + ' из ' + report.total + '.' :
+        'Передаём файлы LibreOffice…'});
+  }
+  async function run({files, formatIds, formatId, onProgress} = {}) {
+    if (active) throw failure('Уже выполняется конвертация.', 'CLIENT_BUSY');
+    const inputs = Array.from(files || []);
+    const formats = formatIds || [formatId];
+    if (!inputs.length || inputs.some(f => !f.file || !f.id))
+      throw failure('Выберите исходные файлы.', 'INPUT_MISSING');
     if (!Array.isArray(formats) || !formats.length ||
-        new Set(formats).size !== formats.length ||
-        formats.some(x => !Object.hasOwn(MIME, x)))
-      fail('Некорректный выбор форматов.');
-    onProgress?.({message:'LibreOffice преобразует выбранные файлы…'});
-    const response = await send('convert', selected, formats);
-    const expectedMime = selected.length * formats.length > 1 ?
-      'application/zip' : MIME[formats[0]];
-    const actualMime = (response.headers.get('Content-Type') || '')
-      .split(';')[0].trim().toLowerCase();
-    if (actualMime !== expectedMime) fail('LibreOffice вернул неожиданный формат результата.');
-    const blob = await response.blob();
-    if (!blob.size) fail('LibreOffice не создал готовый файл.');
-    onProgress?.({message:'Результат готов к сохранению.'});
-    return {ok:true, result:{blob, name:outputName(selected,formats)},
-      message:'LibreOffice завершил конвертацию.'};
+        formats.some(f => typeof f !== 'string' || !/^[a-z0-9][a-z0-9_-]*$/.test(f)))
+      throw failure('Выберите формат результата.', 'INVALID_FORMAT');
+    const operation = {id: Array.from(crypto.getRandomValues(new Uint8Array(16)),
+      b => b.toString(16).padStart(2, '0')).join(''), generation,
+      cancelled: false, done: false, timer: null};
+    active = operation;
+    progress?.dispose();
+    const root = document.querySelector('.aio-cv');
+    progress = root && window.AIOFileProgress ? window.AIOFileProgress.attach(root) : null;
+    progress?.begin({runId: operation.id, fileIds: inputs.map(f => String(f.id))});
+    async function poll() {
+      if (operation.done || operation.generation !== generation) return;
+      try {
+        const report = await json('progress?request=' + operation.id);
+        if (!operation.done) update(report, operation, onProgress);
+      } catch {}
+      if (!operation.done && operation.generation === generation)
+        operation.timer = setTimeout(poll, 400);
+    }
+    try {
+      for (const ticket of [...retained]) await release(ticket);
+      const payload = new FormData();
+      payload.append('ids', JSON.stringify(inputs.map(f => String(f.id))));
+      for (const file of inputs) payload.append('files', file.file, file.file.name || file.name);
+      payload.append('formats', JSON.stringify(formats));
+      onProgress?.({percent: null, message: 'Передаём файлы LibreOffice…'});
+      const pending = fetch('/api/converter/convert?request=' + operation.id, {
+        method: 'POST', headers, body: payload
+      });
+      operation.timer = setTimeout(poll, 100);
+      const response = await pending;
+      const outcome = await response.json();
+      if (operation.generation !== generation) {
+        if (outcome.result?.ticket) await release(outcome.result.ticket);
+        throw failure('Задание закрыто.', 'CANCELLED');
+      }
+      if (!response.ok) {
+        if (outcome.batchReport) update(outcome.batchReport, operation, onProgress, true);
+        const error = failure(outcome.error || 'LibreOffice не создал результат.', outcome.code);
+        error.batchReport = outcome.batchReport; throw error;
+      }
+      if (outcome.ok !== true || !outcome.result?.downloadUrl || !outcome.result?.ticket)
+        throw failure('Не получен готовый результат LibreOffice.', 'INVALID_RESULT');
+      retained.add(outcome.result.ticket);
+      outcome.result.progressRunId = operation.id;
+      outcome.result.directLibreOffice = true;
+      update(outcome.result.targetReport, operation, onProgress, true);
+      return outcome;
+    } catch (error) {
+      if (!error.batchReport) progress?.failBatch({runId: operation.id, cancelled: operation.cancelled});
+      if (operation.cancelled) {
+        const cancelled = failure('Конвертация отменена.', 'CANCELLED');
+        cancelled.batchReport = error.batchReport;
+        throw cancelled;
+      }
+      throw error;
+    } finally {
+      operation.done = true; clearTimeout(operation.timer);
+      if (active === operation) active = null;
+    }
+  }
+  async function saveResult({result} = {}) {
+    if (!result?.ticket || !retained.has(result.ticket))
+      throw failure('Результат больше недоступен. Повторите конвертацию.', 'RESULT_NOT_FOUND');
+    let saved = false;
+    progress?.beginSave({runId: result.progressRunId});
+    try {
+      const outcome = await bridge.saveExcel(result);
+      saved = outcome?.saved === true;
+      if (saved) await release(result.ticket);
+      return outcome;
+    } finally {
+      progress?.finishSave({runId: result.progressRunId, saved});
+    }
   }
   bridge.converter = Object.freeze({
-    acceptedExtensions,
-    resetProgress(){},
-    async inspectFiles({files} = {}) {
-      const chosen = selectedFiles(files);
-      const response = await send('inspect',chosen,null);
-      const data = await response.json();
-      if (!Array.isArray(data.files) || !Array.isArray(data.formats) ||
-          data.files.length !== chosen.length ||
-          data.files.some((x,i) => String(x.id) !== String(chosen[i].id)))
-        fail('Неверный ответ LibreOffice при проверке файлов.');
-      return data;
-    },
-    async convert({files,formatId,onProgress}) {
-      return execute(files,[formatId],onProgress);
-    },
-    async convertMany({files,formatIds,onProgress}) {
-      return execute(files,formatIds,onProgress);
-    },
-    async retryFailed({result,files,onProgress}) {
-      const formats = result?.formatIds || [];
-      if (!formats.length) fail('Нет результатов для повторной конвертации.');
-      return execute(files, formats,onProgress);
-    },
-    async saveResult({result}) {
-      if (!result?.blob || !result.name) fail('Результат не готов к сохранению.');
-      const saved = await bridge.saveExcel(result);
-      return {saved: saved?.saved === true, cancelled: saved?.cancelled === true};
-    },
-    async diagnoseFiles() {
-      return {status:'unavailable', issues:[],
-        message:'Сравнение до и после будет добавлено отдельно после передачи модуля Guard.'};
+    acceptedExtensions: '', directLibreOffice: true,
+    inspectFiles({files = []} = {}) { return json('inspect', {files: metadata(files)}); },
+    convert: run, convertMany: run, saveResult, cancel, resetProgress,
+    async diagnoseFiles({files = [], phase = 'before', result} = {}) {
+      const report = result?.targetReport;
+      return {phase, files: metadata(files).map(file => ({...file, complete: false,
+        facts: [], fonts: [], findings: [{level: 'not_checked', formats: [],
+          message: 'Содержимое и оформление автоматически не сравнивались.', advice: ''}]})),
+        result: {checks: [{state: 'not_checked',
+          message: 'Готовый файл создан LibreOffice. Сохранность всех элементов автоматически не проверялась.'}]},
+        scope: ['Проверка доступности направления выполняется самим LibreOffice.',
+          ...(report ? report.files.flatMap(row => row.targets.map(target =>
+            target.format.toUpperCase() + ': ' + (target.error || 'Результат создан') +
+            ' · LibreOffice: ' + (target.libreOfficeStarted ? 'запускался' : 'не запускался') +
+            (target.warnings?.includes('SOURCE_NAME_NORMALIZED') ? ' · Имя временной копии изменено из-за ограничений ОС.' : ''))) : [])]};
     }
   });
 })();

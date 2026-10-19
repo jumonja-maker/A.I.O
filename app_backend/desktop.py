@@ -15,7 +15,7 @@ from PySide6.QtWebEngineCore import (
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
 from .server import start_server, asset_root
-from .libreoffice_engine import OUTPUT_META
+from .downloads import download_filter
 
 
 class OnlyLocalRequests(QWebEngineUrlRequestInterceptor):
@@ -74,6 +74,9 @@ class MainWindow(QMainWindow):
 
         self.view = QWebEngineView(self)
         self.page = AppPage(self.profile, self.view, port)
+        # Page destruction releases its engine adapter before QObject children;
+        # owning the profile here keeps it alive until the page is finished.
+        self.profile.setParent(self.page)
         self.view.setPage(self.page)
         self.setCentralWidget(self.view)
         self.view.load(QUrl(f'http://127.0.0.1:{port}/'))
@@ -91,15 +94,13 @@ class MainWindow(QMainWindow):
         # Native Save supports only outputs produced by the independent
         # Excel/LibreOffice workflow. Never accept remote download URLs.
         extension = Path(name).suffix.lower().lstrip('.')
-        allowed = frozenset(OUTPUT_META) | {'zip'}
-        if (extension not in allowed or not url.startswith(
-                ('blob:http://127.0.0.1:', 'http://127.0.0.1:'))):
+        dialog_filter = download_filter(url, name, self._server.server_port)
+        if not dialog_filter:
             item.cancel()
             self._notify_download('failed', name, url)
             return
         destination, _ = QFileDialog.getSaveFileName(
-            self, 'Сохранить результат', name,
-            extension.upper() + ' (*.' + extension + ')')
+            self, 'Сохранить результат', name, dialog_filter)
         if not destination:
             item.cancel()
             self._notify_download('cancelled', name, url)
@@ -130,7 +131,7 @@ class MainWindow(QMainWindow):
         if state == QWebEngineDownloadRequest.DownloadState.DownloadInProgress:
             return
         if state == QWebEngineDownloadRequest.DownloadState.DownloadCompleted:
-            if path.exists() and path.is_file() and path.stat().st_size > 0:
+            if path.exists() and path.is_file():
                 self._notify_download('completed', path.name, source_url)
             else:
                 self._notify_download('failed', path.name, source_url)
