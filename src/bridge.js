@@ -112,7 +112,7 @@
       // Other browsers: initiating a download cannot prove the user saved it.
       let url = result.downloadUrl || URL.createObjectURL(result.blob);
       if (result.downloadUrl &&
-          !/^\/api\/converter\/result\?ticket=[A-Za-z0-9_-]{32,128}$/.test(url))
+          !/^\/api\/converter(?:-guard)?\/result\?ticket=[A-Za-z0-9_-]{32,128}$/.test(url))
         fail('Недопустимый путь сохранения результата.');
       // A retained ticket may be saved again after a cancel/timeout. Give
       // EACH attempt a distinct URL; even the same result cannot consume a
