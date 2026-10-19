@@ -70,11 +70,13 @@ class CleanFoundationTests(unittest.TestCase):
         self.assertGreater(len(css), 9000)
         self.assertEqual(self.fetch('/addons/file-converter/file-converter.js').read(), js)
 
-    def test_disabled_converter_has_no_legacy_routes(self):
+    def test_guard_boundary_is_authenticated_and_reports_coverage(self):
         with self.assertRaises(HTTPError) as ctx:
-            self.fetch('/api/converter/inspect')
-        self.assertEqual(ctx.exception.code, 501)
-        self.assertEqual(json.loads(ctx.exception.read())['code'], 'CONVERTER_NOT_CONNECTED')
+            self.fetch('/api/converter/status')
+        self.assertEqual(ctx.exception.code, 403)
+        result = json.loads(self.fetch('/api/converter/status', token=self.token).read())
+        self.assertEqual(result['outputs'], ['pdf'])
+        self.assertEqual(result['storage']['jobs'], 0)
 
     def test_authenticated_excel_merges_and_retains_literal_text(self):
         payload, boundary = multipart([

@@ -76,7 +76,21 @@ def read_designer_asset(root: str, name: str) -> bytes:
         raw = apply_selection_design(raw)
         from .converter_diagnostics_ui_patch import apply_diagnostics_ui
         raw = apply_diagnostics_ui(raw)
+        # Dispose Guard observers/results when destroying the mounted view.
+        old = b'alive=false;inspectionToken++;closePopover();'
+        if raw.count(old) != 1:
+            raise ValueError('Unexpected converter disposal boundary')
+        raw = raw.replace(old, b'alive=false;inspectionToken++;adapter.resetProgress?.();closePopover();')
+        old = b'async function inspect() {'
+        if raw.count(old) != 1:
+            raise ValueError('Unexpected converter input-change boundary')
+        raw = raw.replace(old, old + b'\n      adapter.resetProgress?.();')
+        old = (b"formatValues={};currentResult=null;retryResult=null;status='idle';"
+               b"statusMessage='';renderFormats();renderOptions();renderSummary();")
+        if raw.count(old) != 1:
+            raise ValueError('Unexpected converter format-change boundary')
+        raw = raw.replace(old, b'adapter.resetProgress?.();' + old)
         # Advanced and the historical conversion backend intentionally stay
-        # in the archived repository. Only approved visual UI transformations
-        # are materialized here; Guard will be implemented independently.
+        # in the archived repository. The native Guard is connected only through
+        # the frontend adapter; no conversion code is materialized here.
     return raw

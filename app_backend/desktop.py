@@ -15,6 +15,7 @@ from PySide6.QtWebEngineCore import (
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
 from .server import start_server, asset_root
+from .downloads import download_filter
 
 
 class OnlyLocalRequests(QWebEngineUrlRequestInterceptor):
@@ -52,6 +53,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self._downloads = []
         self._server = server
+        self._port = port
         self.setWindowTitle('A.I.O — All in One помощник')
         icon = asset_root() / 'assets' / 'brand' / 'elva-v13-happy-thumb.webp'
         self.setWindowIcon(QIcon(str(icon)))
@@ -87,21 +89,18 @@ class MainWindow(QMainWindow):
     def on_download(self, item):
         url = item.url().toString()
         name = item.downloadFileName() or 'Объединённая_таблица.xlsx'
-        # The clean shell only supports Excel output. Do not permit external
-        # file downloads or old converter ticket URLs.
-        if not name.lower().endswith('.xlsx') or not url.startswith(
-                ('blob:http://127.0.0.1:', 'http://127.0.0.1:')):
+        kind = download_filter(url, name, self._port)
+        if kind is None:
             item.cancel()
             self._notify_download('failed', name, url)
             return
-        destination, _ = QFileDialog.getSaveFileName(self, 'Сохранить Excel',
-            name, 'Excel (*.xlsx)')
+        destination, _ = QFileDialog.getSaveFileName(self, 'Сохранить результат', name, kind)
         if not destination:
             item.cancel()
             self._notify_download('cancelled', name, url)
             return
         path = Path(destination)
-        if path.suffix.lower() != '.xlsx':
+        if path.suffix.lower() != Path(name).suffix.lower():
             self._notify_download('cancelled', name, url)
             item.cancel()
             return

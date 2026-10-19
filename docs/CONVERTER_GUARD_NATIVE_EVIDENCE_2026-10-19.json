@@ -1,0 +1,722 @@
+{
+  "scope": "Synthetic Linux/source qualification; not Windows, installer or full visual corpus acceptance.",
+  "libreOfficeVersion": "LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5",
+  "elapsedConversionSeconds": 34.994,
+  "files": [
+    {
+      "fileId": "empty_first",
+      "name": "empty.docx",
+      "state": "error",
+      "code": "INPUT_EMPTY",
+      "error": "Исходный файл пуст.",
+      "libreOfficeStarted": false,
+      "format": "pdf",
+      "percent": null
+    },
+    {
+      "fileId": "docx",
+      "name": "writer.docx",
+      "state": "ready",
+      "code": null,
+      "error": null,
+      "libreOfficeStarted": true,
+      "format": "pdf",
+      "percent": 100
+    },
+    {
+      "fileId": "xlsx",
+      "name": "calc.xlsx",
+      "state": "ready",
+      "code": null,
+      "error": null,
+      "libreOfficeStarted": true,
+      "format": "pdf",
+      "percent": 100
+    },
+    {
+      "fileId": "pptx",
+      "name": "impress.pptx",
+      "state": "ready",
+      "code": null,
+      "error": null,
+      "libreOfficeStarted": true,
+      "format": "pdf",
+      "percent": 100
+    },
+    {
+      "fileId": "odt",
+      "name": "writer.odt",
+      "state": "ready",
+      "code": null,
+      "error": null,
+      "libreOfficeStarted": true,
+      "format": "pdf",
+      "percent": 100
+    },
+    {
+      "fileId": "doc",
+      "name": "writer.doc",
+      "state": "ready",
+      "code": null,
+      "error": null,
+      "libreOfficeStarted": true,
+      "format": "pdf",
+      "percent": 100
+    },
+    {
+      "fileId": "rtf",
+      "name": "writer.rtf",
+      "state": "ready",
+      "code": null,
+      "error": null,
+      "libreOfficeStarted": true,
+      "format": "pdf",
+      "percent": 100
+    },
+    {
+      "fileId": "ods",
+      "name": "calc.ods",
+      "state": "ready",
+      "code": null,
+      "error": null,
+      "libreOfficeStarted": true,
+      "format": "pdf",
+      "percent": 100
+    },
+    {
+      "fileId": "xls",
+      "name": "calc.xls",
+      "state": "ready",
+      "code": null,
+      "error": null,
+      "libreOfficeStarted": true,
+      "format": "pdf",
+      "percent": 100
+    },
+    {
+      "fileId": "odp",
+      "name": "impress.odp",
+      "state": "ready",
+      "code": null,
+      "error": null,
+      "libreOfficeStarted": true,
+      "format": "pdf",
+      "percent": 100
+    },
+    {
+      "fileId": "ppt",
+      "name": "impress.ppt",
+      "state": "ready",
+      "code": null,
+      "error": null,
+      "libreOfficeStarted": true,
+      "format": "pdf",
+      "percent": 100
+    },
+    {
+      "fileId": "large_docx",
+      "name": "large.docx",
+      "state": "ready",
+      "code": null,
+      "error": null,
+      "libreOfficeStarted": true,
+      "format": "pdf",
+      "percent": 100
+    }
+  ],
+  "pdfFacts": {
+    "docx": {
+      "pages": 2,
+      "markers": {
+        "GUARD_BEGIN_7402": true,
+        "GUARD_END_7402": true,
+        "CELL_A_7402": true,
+        "FOOTNOTE_GUARD_7402": true,
+        "x=7": true
+      },
+      "size": 81912,
+      "embeddedImagePixelsExact": true,
+      "imageSize": [
+        128,
+        128
+      ],
+      "sourcePixelSHA256": "ad336db4b48c079287d0b24541d493627966142e7b2a8185a74839464c8befd3"
+    },
+    "xlsx": {
+      "pages": 2,
+      "markers": {
+        "SHEET_A_7402": true,
+        "SHEET_B_7402": true,
+        "00125": true
+      },
+      "size": 13239
+    },
+    "pptx": {
+      "pages": 2,
+      "markers": {
+        "SLIDE_A_7402": true,
+        "SLIDE_B_7402": true
+      },
+      "size": 11658
+    },
+    "odt": {
+      "pages": 2,
+      "markers": {
+        "GUARD_BEGIN_7402": true,
+        "GUARD_END_7402": true,
+        "CELL_A_7402": true
+      },
+      "size": 81912
+    },
+    "doc": {
+      "pages": 2,
+      "markers": {
+        "GUARD_BEGIN_7402": true,
+        "GUARD_END_7402": true,
+        "CELL_A_7402": true
+      },
+      "size": 75810
+    },
+    "rtf": {
+      "pages": 2,
+      "markers": {
+        "GUARD_BEGIN_7402": true,
+        "GUARD_END_7402": true,
+        "CELL_A_7402": true
+      },
+      "size": 81628
+    },
+    "ods": {
+      "pages": 2,
+      "markers": {
+        "SHEET_A_7402": true,
+        "SHEET_B_7402": true,
+        "00125": true
+      },
+      "size": 13242
+    },
+    "xls": {
+      "pages": 2,
+      "markers": {
+        "SHEET_A_7402": true,
+        "SHEET_B_7402": true,
+        "00125": true
+      },
+      "size": 13238
+    },
+    "odp": {
+      "pages": 2,
+      "markers": {
+        "SLIDE_A_7402": true,
+        "SLIDE_B_7402": true
+      },
+      "size": 11658
+    },
+    "ppt": {
+      "pages": 2,
+      "markers": {
+        "SLIDE_A_7402": true,
+        "SLIDE_B_7402": true
+      },
+      "size": 11660
+    },
+    "large_docx": {
+      "pages": 1,
+      "markers": {
+        "LARGE_BEGIN_7403": true,
+        "LARGE_END_7403": true
+      },
+      "size": 23053061,
+      "embeddedImagePixelsExact": true,
+      "imageSize": [
+        3200,
+        2400
+      ],
+      "sourcePixelSHA256": "1cc8cf68467ca955bd7426cb318c8191bb76193266b687626dce23830dd3219a"
+    }
+  },
+  "sourcesUnchanged": true,
+  "inputs": {
+    "docx": {
+      "sha256": "aa8d9b1e21c5dd8eb1e9ea8c6700e3f9e7805dfaaf349839251219377b5aa69b",
+      "size": 87097
+    },
+    "xlsx": {
+      "sha256": "2ad16030b851bdc941de26123853b473e576d304a36e39f939e34ee61f987af7",
+      "size": 5454
+    },
+    "pptx": {
+      "sha256": "218f6ad7154a2efc46b7f3a7d69a1da061fbcfe13d2bb5d80a27f1258e35f4b0",
+      "size": 29155
+    },
+    "odt": {
+      "sha256": "3f4b3e0227a4a249d8cdae3e2d54877f96b13e56584c626300c0cc3b50ca5a33",
+      "size": 73338
+    },
+    "doc": {
+      "sha256": "1d9ac7bba0fb011cc9c1514752aee9870e25f727acaf3bfb19cc1bf962ba89e4",
+      "size": 72192
+    },
+    "rtf": {
+      "sha256": "b94a90a2497d355cb2150ab670928859eadb58db8dfcc5ef8b491a089202da40",
+      "size": 125913
+    },
+    "ods": {
+      "sha256": "324f6e4818054f2c0304533725181694386baf1bdf2ed5bad29e0cda6e82f4eb",
+      "size": 9677
+    },
+    "xls": {
+      "sha256": "d491e3973bad8818e9e1d5b34b746e194168fa9948baea2485f2ee1b3346b8fe",
+      "size": 6144
+    },
+    "odp": {
+      "sha256": "f0bb988079d98e191445e4688cc9317debb41eede7e6f0f6dbada3cd9f13c410",
+      "size": 20431
+    },
+    "ppt": {
+      "sha256": "d021049a833e73655de7cb01057f40aacceca9e4684e139c1b3a0d793e3a64ba",
+      "size": 650752
+    },
+    "large_docx": {
+      "sha256": "7c036039ebf3ce2ffd8a8214329d7535b59ae4801ff0418a0d52584e80c5f757",
+      "size": 23103397
+    }
+  },
+  "directControl": {
+    "pages": 2,
+    "markers": {
+      "GUARD_BEGIN_7402": true,
+      "GUARD_END_7402": true,
+      "FOOTNOTE_GUARD_7402": true,
+      "x=7": true
+    },
+    "size": 81912,
+    "embeddedImagePixelsExact": true,
+    "imageSize": [
+      128,
+      128
+    ],
+    "sourcePixelSHA256": "ad336db4b48c079287d0b24541d493627966142e7b2a8185a74839464c8befd3"
+  },
+  "trace": {
+    "events": [
+      {
+        "sequence": 1,
+        "elapsedMs": 0,
+        "stage": "job_created",
+        "fileId": null,
+        "code": null,
+        "libreOfficeStarted": false
+      },
+      {
+        "sequence": 2,
+        "elapsedMs": 0,
+        "stage": "input_stored",
+        "fileId": "empty_first",
+        "code": null,
+        "libreOfficeStarted": false
+      },
+      {
+        "sequence": 3,
+        "elapsedMs": 1,
+        "stage": "input_stored",
+        "fileId": "docx",
+        "code": null,
+        "libreOfficeStarted": false
+      },
+      {
+        "sequence": 4,
+        "elapsedMs": 1,
+        "stage": "input_stored",
+        "fileId": "xlsx",
+        "code": null,
+        "libreOfficeStarted": false
+      },
+      {
+        "sequence": 5,
+        "elapsedMs": 1,
+        "stage": "input_stored",
+        "fileId": "pptx",
+        "code": null,
+        "libreOfficeStarted": false
+      },
+      {
+        "sequence": 6,
+        "elapsedMs": 1,
+        "stage": "input_stored",
+        "fileId": "odt",
+        "code": null,
+        "libreOfficeStarted": false
+      },
+      {
+        "sequence": 7,
+        "elapsedMs": 1,
+        "stage": "input_stored",
+        "fileId": "doc",
+        "code": null,
+        "libreOfficeStarted": false
+      },
+      {
+        "sequence": 8,
+        "elapsedMs": 1,
+        "stage": "input_stored",
+        "fileId": "rtf",
+        "code": null,
+        "libreOfficeStarted": false
+      },
+      {
+        "sequence": 9,
+        "elapsedMs": 2,
+        "stage": "input_stored",
+        "fileId": "ods",
+        "code": null,
+        "libreOfficeStarted": false
+      },
+      {
+        "sequence": 10,
+        "elapsedMs": 2,
+        "stage": "input_stored",
+        "fileId": "xls",
+        "code": null,
+        "libreOfficeStarted": false
+      },
+      {
+        "sequence": 11,
+        "elapsedMs": 2,
+        "stage": "input_stored",
+        "fileId": "odp",
+        "code": null,
+        "libreOfficeStarted": false
+      },
+      {
+        "sequence": 12,
+        "elapsedMs": 2,
+        "stage": "input_stored",
+        "fileId": "ppt",
+        "code": null,
+        "libreOfficeStarted": false
+      },
+      {
+        "sequence": 13,
+        "elapsedMs": 7,
+        "stage": "input_stored",
+        "fileId": "large_docx",
+        "code": null,
+        "libreOfficeStarted": false
+      },
+      {
+        "sequence": 14,
+        "elapsedMs": 7,
+        "stage": "job_queued",
+        "fileId": null,
+        "code": null,
+        "libreOfficeStarted": false
+      },
+      {
+        "sequence": 15,
+        "elapsedMs": 8,
+        "stage": "route_selected",
+        "fileId": "empty_first",
+        "code": null,
+        "libreOfficeStarted": false
+      },
+      {
+        "sequence": 16,
+        "elapsedMs": 8,
+        "stage": "input",
+        "fileId": "empty_first",
+        "code": "INPUT_EMPTY",
+        "libreOfficeStarted": false
+      },
+      {
+        "sequence": 17,
+        "elapsedMs": 8,
+        "stage": "route_selected",
+        "fileId": "docx",
+        "code": null,
+        "libreOfficeStarted": false
+      },
+      {
+        "sequence": 18,
+        "elapsedMs": 9,
+        "stage": "engine_started",
+        "fileId": "docx",
+        "code": null,
+        "libreOfficeStarted": true
+      },
+      {
+        "sequence": 19,
+        "elapsedMs": 510,
+        "stage": "result_ready",
+        "fileId": "docx",
+        "code": null,
+        "libreOfficeStarted": true
+      },
+      {
+        "sequence": 20,
+        "elapsedMs": 512,
+        "stage": "route_selected",
+        "fileId": "xlsx",
+        "code": null,
+        "libreOfficeStarted": false
+      },
+      {
+        "sequence": 21,
+        "elapsedMs": 513,
+        "stage": "engine_started",
+        "fileId": "xlsx",
+        "code": null,
+        "libreOfficeStarted": true
+      },
+      {
+        "sequence": 22,
+        "elapsedMs": 11147,
+        "stage": "result_ready",
+        "fileId": "xlsx",
+        "code": null,
+        "libreOfficeStarted": true
+      },
+      {
+        "sequence": 23,
+        "elapsedMs": 11149,
+        "stage": "route_selected",
+        "fileId": "pptx",
+        "code": null,
+        "libreOfficeStarted": false
+      },
+      {
+        "sequence": 24,
+        "elapsedMs": 11151,
+        "stage": "engine_started",
+        "fileId": "pptx",
+        "code": null,
+        "libreOfficeStarted": true
+      },
+      {
+        "sequence": 25,
+        "elapsedMs": 11753,
+        "stage": "result_ready",
+        "fileId": "pptx",
+        "code": null,
+        "libreOfficeStarted": true
+      },
+      {
+        "sequence": 26,
+        "elapsedMs": 11754,
+        "stage": "route_selected",
+        "fileId": "odt",
+        "code": null,
+        "libreOfficeStarted": false
+      },
+      {
+        "sequence": 27,
+        "elapsedMs": 11755,
+        "stage": "engine_started",
+        "fileId": "odt",
+        "code": null,
+        "libreOfficeStarted": true
+      },
+      {
+        "sequence": 28,
+        "elapsedMs": 12156,
+        "stage": "result_ready",
+        "fileId": "odt",
+        "code": null,
+        "libreOfficeStarted": true
+      },
+      {
+        "sequence": 29,
+        "elapsedMs": 12158,
+        "stage": "route_selected",
+        "fileId": "doc",
+        "code": null,
+        "libreOfficeStarted": false
+      },
+      {
+        "sequence": 30,
+        "elapsedMs": 12158,
+        "stage": "engine_started",
+        "fileId": "doc",
+        "code": null,
+        "libreOfficeStarted": true
+      },
+      {
+        "sequence": 31,
+        "elapsedMs": 12560,
+        "stage": "result_ready",
+        "fileId": "doc",
+        "code": null,
+        "libreOfficeStarted": true
+      },
+      {
+        "sequence": 32,
+        "elapsedMs": 12561,
+        "stage": "route_selected",
+        "fileId": "rtf",
+        "code": null,
+        "libreOfficeStarted": false
+      },
+      {
+        "sequence": 33,
+        "elapsedMs": 12579,
+        "stage": "engine_started",
+        "fileId": "rtf",
+        "code": null,
+        "libreOfficeStarted": true
+      },
+      {
+        "sequence": 34,
+        "elapsedMs": 12980,
+        "stage": "result_ready",
+        "fileId": "rtf",
+        "code": null,
+        "libreOfficeStarted": true
+      },
+      {
+        "sequence": 35,
+        "elapsedMs": 12982,
+        "stage": "route_selected",
+        "fileId": "ods",
+        "code": null,
+        "libreOfficeStarted": false
+      },
+      {
+        "sequence": 36,
+        "elapsedMs": 12983,
+        "stage": "engine_started",
+        "fileId": "ods",
+        "code": null,
+        "libreOfficeStarted": true
+      },
+      {
+        "sequence": 37,
+        "elapsedMs": 22907,
+        "stage": "result_ready",
+        "fileId": "ods",
+        "code": null,
+        "libreOfficeStarted": true
+      },
+      {
+        "sequence": 38,
+        "elapsedMs": 22908,
+        "stage": "route_selected",
+        "fileId": "xls",
+        "code": null,
+        "libreOfficeStarted": false
+      },
+      {
+        "sequence": 39,
+        "elapsedMs": 22909,
+        "stage": "engine_started",
+        "fileId": "xls",
+        "code": null,
+        "libreOfficeStarted": true
+      },
+      {
+        "sequence": 40,
+        "elapsedMs": 32840,
+        "stage": "result_ready",
+        "fileId": "xls",
+        "code": null,
+        "libreOfficeStarted": true
+      },
+      {
+        "sequence": 41,
+        "elapsedMs": 32841,
+        "stage": "route_selected",
+        "fileId": "odp",
+        "code": null,
+        "libreOfficeStarted": false
+      },
+      {
+        "sequence": 42,
+        "elapsedMs": 32842,
+        "stage": "engine_started",
+        "fileId": "odp",
+        "code": null,
+        "libreOfficeStarted": true
+      },
+      {
+        "sequence": 43,
+        "elapsedMs": 33345,
+        "stage": "result_ready",
+        "fileId": "odp",
+        "code": null,
+        "libreOfficeStarted": true
+      },
+      {
+        "sequence": 44,
+        "elapsedMs": 33347,
+        "stage": "route_selected",
+        "fileId": "ppt",
+        "code": null,
+        "libreOfficeStarted": false
+      },
+      {
+        "sequence": 45,
+        "elapsedMs": 33349,
+        "stage": "engine_started",
+        "fileId": "ppt",
+        "code": null,
+        "libreOfficeStarted": true
+      },
+      {
+        "sequence": 46,
+        "elapsedMs": 33750,
+        "stage": "result_ready",
+        "fileId": "ppt",
+        "code": null,
+        "libreOfficeStarted": true
+      },
+      {
+        "sequence": 47,
+        "elapsedMs": 33753,
+        "stage": "route_selected",
+        "fileId": "large_docx",
+        "code": null,
+        "libreOfficeStarted": false
+      },
+      {
+        "sequence": 48,
+        "elapsedMs": 33754,
+        "stage": "engine_started",
+        "fileId": "large_docx",
+        "code": null,
+        "libreOfficeStarted": true
+      },
+      {
+        "sequence": 49,
+        "elapsedMs": 34957,
+        "stage": "result_ready",
+        "fileId": "large_docx",
+        "code": null,
+        "libreOfficeStarted": true
+      },
+      {
+        "sequence": 50,
+        "elapsedMs": 34979,
+        "stage": "job_finished",
+        "fileId": null,
+        "code": "partial",
+        "libreOfficeStarted": true
+      }
+    ],
+    "droppedEvents": 0
+  },
+  "storageAfterClose": {
+    "jobs": 0,
+    "reservedBytes": 0,
+    "running": 0
+  },
+  "representativeVisualInspection": {
+    "engine": "Poppler",
+    "status": "PASS",
+    "pages": [
+      "docx 1-2",
+      "xlsx 1-2",
+      "pptx 1-2",
+      "large_docx 1"
+    ],
+    "scope": "Synthetic examples, not full visual fidelity certification"
+  }
+}

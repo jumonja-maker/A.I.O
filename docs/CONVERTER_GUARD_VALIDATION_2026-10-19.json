@@ -1,0 +1,77 @@
+{
+  "baseCommit": "74adcde69c5430e29fcccf9aa9eaa8efad7b9cd0",
+  "baseBranch": "migration/ui-excel-clean-foundation-20261019",
+  "python": {
+    "status": "PASS",
+    "tests": 55,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "includesDOMHTTPAcceptance": true
+  },
+  "node": {
+    "status": "PASS",
+    "tests": 10,
+    "failures": 0,
+    "skipped": 0
+  },
+  "native": {
+    "status": "PASS",
+    "successfulDocuments": 11,
+    "inputExtensions": [
+      "docx",
+      "doc",
+      "odt",
+      "rtf",
+      "xlsx",
+      "xls",
+      "ods",
+      "pptx",
+      "ppt",
+      "odp"
+    ],
+    "additionalLargeDOCXBytes": 23103397,
+    "failedEmptyFirstDoesNotStopBatch": true,
+    "sourceHashesUnchanged": true,
+    "ommlFormulaAndFootnotePresent": true,
+    "embeddedImagePixelsExact": true,
+    "storageAfterClose": {
+      "jobs": 0,
+      "reservedBytes": 0,
+      "running": 0
+    },
+    "version": "LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5",
+    "scope": "Synthetic source/Linux qualification; not all user documents or Windows acceptance"
+  },
+  "ui": {
+    "status": "PASS",
+    "scope": "DOM plus real HTTP and fake LO worker; simulated save acknowledgment, not actual Qt dialog",
+    "cases": [
+      "partial batch",
+      "save cancel and retry",
+      "green checks cleared after confirmed save",
+      "repeat without app restart",
+      "input edit releases old output"
+    ]
+  },
+  "notRun": [
+    "Windows Job Object acceptance",
+    "native Qt save dialog",
+    "installed Windows GUI",
+    "build and packaging",
+    "NIKITA",
+    "full user-document corpus"
+  ],
+  "unchanged": [
+    "main",
+    "migration branch",
+    "Excel engine",
+    "XLSX integrity validator",
+    "requirements",
+    "workflows",
+    "installer",
+    "brand assets",
+    "old repository",
+    "ADVANCE"
+  ]
+}
