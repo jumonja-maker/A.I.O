@@ -1,0 +1,52 @@
+/* AIO 00: scoped QA stability correction, not a redesign by 11.
+   Keep action size and horizontal text flow stable while status changes. */
+.aio-cv__pane { min-width: 0; }
+.aio-cv__formats { scrollbar-gutter: stable; }
+.aio-cv__options { box-sizing: border-box; }
+/* The inactive settings placeholder is removed at source, not merely hidden
+   with CSS. A real choice list removes [hidden] when options are available. */
+.aio-cv__pane--right [data-cv-options][hidden] {
+  display: none !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
+.aio-cv__footer { min-width: 0; }
+.aio-cv__status { min-height: 28px; box-sizing: border-box; overflow-wrap: anywhere; }
+.aio-cv__footer [data-cv-run],
+.aio-cv__footer [data-cv-save] {
+  display: block; box-sizing: border-box;
+  height: 48px; min-height: 48px; width: 100%; min-width: 0;
+  padding: 0 12px; line-height: 1.2;
+  font-size: 14px; white-space: nowrap; text-align: center;
+}
+.aio-cv__footer [data-cv-run][hidden],
+.aio-cv__footer [data-cv-save][hidden] { display: none; }
+
+/* Do NOT put the stable vertical geometry behind a viewport-width media
+   query. At Windows/Qt zoom 150%, 1160 physical pixels become ~774 CSS px,
+   previously disabling this rule and shrinking the entire AIO shell by 64px
+   when switching from five image cards to four table cards. The right panel
+   owns the baseline on both two-column and stacked responsive layouts. */
+.aio-cv__pane--right {
+  min-height: 630px;
+  box-sizing: border-box;
+}
+.aio-cv__pane--right .aio-cv__formats {
+  min-height: 316px;
+}
+
+/* One outer AIO shell size for Excel and Converter.  The converter's
+   taller content scrolls inside .workspace instead of stretching the shell. */
+.app-shell {
+  height: min(820px, calc(100vh - 52px));
+  min-height: 0;
+}
+.app-layout, .workspace { min-height: 0; }
+@media (max-width: 850px) {
+  .app-shell { height: calc(100vh - 16px); }
+}
+@media (max-width: 610px) {
+  .app-shell { height: 100vh; }
+}

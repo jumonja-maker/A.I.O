@@ -1,0 +1,67 @@
+/* Round multi-selection controls replace the two order arrows. */
+.aio-cv .aio-cv__select-file {
+  display:inline-grid;place-items:center;flex:0 0 32px;
+  width:32px;height:32px;min-height:32px;padding:0;margin:0 3px;
+  border:0;border-radius:8px;background:transparent;color:var(--accent);
+}
+.aio-cv .aio-cv__select-file > span {
+  display:grid;place-items:center;width:20px;height:20px;
+  border:1.8px solid var(--muted);border-radius:50%;background:var(--input-bg);
+  transition:background-color .15s,border-color .15s;
+}
+.aio-cv .aio-cv__select-file[aria-checked="true"] > span {
+  border-color:var(--accent);background:var(--accent);
+}
+.aio-cv .aio-cv__select-file[aria-checked="true"] > span::after {
+  content:none;
+}
+.aio-cv .aio-cv__select-file:hover:enabled {background:var(--quiet-hover)}
+.aio-cv .aio-cv__select-file:disabled {cursor:not-allowed}
+.aio-cv .aio-cv__file[data-selected="false"] .aio-cv__thumb {background:var(--status-bg);color:var(--muted)}
+.workspace .aio-cv__pane--left [data-cv-left-status][hidden] {display:none!important}
+.aio-cv .aio-fp-paint-content .aio-cv__select-file > span {border-color:#fff;background:transparent}
+.aio-cv .aio-fp-paint-content .aio-cv__select-file[aria-checked="true"] > span {background:rgba(255,255,255,.22)}
+@media(prefers-reduced-motion:reduce){.aio-cv .aio-cv__select-file > span{transition:none}}
+@media(forced-colors:active){.aio-cv .aio-cv__select-file[aria-checked="true"] > span{background:Highlight;border-color:Highlight}}
+
+/* Compact filter: title, select-all pill and a longer list. */
+.aio-cv-filter__trigger{flex:0 0 104px;width:104px;min-width:104px;max-width:104px}
+.aio-cv-filter__trigger [data-filter-label]{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.aio-cv-filter__popover{display:flex;flex-direction:column;gap:10px;max-height:min(480px,calc(100dvh - 28px));padding:12px 14px}
+.aio-cv-filter__popover.aio-cv-flyout--float{animation:none;translate:none}
+.aio-cv-filter__header{display:flex;align-items:center;justify-content:space-between;gap:8px;flex:0 0 auto}
+.aio-cv-filter__header .aio-cv-filter__title{margin:0;font-size:14px;white-space:nowrap}
+.aio-cv-filter__all{font:600 11px/1.25 var(--font);color:var(--secondary-text);background:var(--input-bg);border:1px solid var(--secondary-border);border-radius:7px;padding:7px 9px;min-height:30px;white-space:nowrap}
+.aio-cv-filter__all:hover:enabled{background:var(--selected);border-color:var(--accent)}
+.aio-cv-filter__choices{min-height:0;max-height:min(365px,calc(100dvh - 113px));overflow-y:auto;overscroll-behavior:contain;padding-right:2px}
+.aio-cv-filter__choice{min-height:40px;padding:3px 5px 3px 8px;gap:7px;flex:0 0 auto}
+.aio-cv-filter__choice[data-active="true"]{border-color:var(--secondary-border);background:var(--selected);font-weight:650}
+.aio-cv-filter__choice-main{display:flex;align-items:center;gap:9px;min-width:0;flex:1;min-height:32px;border:0;padding:0;background:transparent;color:inherit;text-align:left;font:inherit;border-radius:5px}
+.aio-cv-filter__choice-main .aio-cv-filter__choice-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.aio-cv-filter__choice-count{flex:0 0 auto;min-width:18px;margin-right:3px;text-align:right}
+.aio-cv-filter__select{display:grid;place-items:center;width:30px;min-width:30px;height:32px;border:0;padding:0;border-radius:6px;background:transparent;color:var(--accent)}
+.aio-cv-filter__select>span{display:block;width:18px;height:18px;border:1.6px solid var(--muted);border-radius:50%;background:transparent}
+.aio-cv-filter__select[aria-checked="true"]>span{border-color:var(--accent);background:var(--accent)}
+.aio-cv-filter__select[aria-checked="mixed"]>span{border:2px dashed var(--accent)}
+.aio-cv-filter__select:hover:enabled{background:var(--nav-hover)}
+.aio-cv-filter__select:focus-visible,.aio-cv-filter__all:focus-visible,.aio-cv-filter__choice-main:focus-visible{outline:2px solid var(--accent);outline-offset:2px;box-shadow:none}
+@media(forced-colors:active){.aio-cv-filter__select[aria-checked="true"]>span{background:Highlight;border-color:Highlight}}
+
+/* The requested action shares one fixed header row with the format title. */
+.aio-cv__format-head{display:flex;align-items:center;gap:10px;min-width:0;flex:0 0 44px;min-height:44px;height:44px}
+.workspace .aio-cv__format-head .aio-cv__pane-title{flex:1;white-space:normal}
+.aio-cv__select-all-formats{flex:0 0 auto;min-height:32px;padding:6px 10px;font-size:12px;white-space:nowrap}
+.aio-cv__select-all-formats[aria-pressed="true"]{background:var(--selected);border-color:var(--accent)}
+
+/* AIO-UI-001: in-line diagnostics directly before Select All, never a
+   separate row. Narrow windows may reduce its width, not shrink the list. */
+.aio-cv .aio-cv__format-head .aio-cv-issues-slot {
+  flex:0 1 132px; width:132px; min-width:0; max-width:132px;
+  height:34px; margin:0; align-self:center;
+}
+.aio-cv .aio-cv__format-head .aio-cv-issues-button {
+  max-width:100%; padding:0 7px; font-size:11px; white-space:nowrap;
+}
+.aio-cv .aio-cv__format-head .aio-cv-issues-slot.aio-cv-issues-empty {
+  display:none!important;
+}
