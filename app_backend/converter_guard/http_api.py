@@ -4,6 +4,7 @@ from dataclasses import asdict
 import json
 import re
 import secrets
+import select
 import socket
 import threading
 from urllib.parse import parse_qs, quote, urlsplit
@@ -13,6 +14,29 @@ from .core import CHUNK
 from .errors import GuardError
 
 PREFIX = '/api/converter-guard'
+
+
+class _CancelableInput:
+    """Windows-safe short socket reads; wake on Guard cancellation.
+
+    AIO's BaseHTTPRequestHandler has rbufsize=0, so this socket has no
+    prefetched HTTP body bytes. No size or elapsed-time conversion limit is
+    imposed by this reader.
+    """
+    def __init__(self, connection, cancel):
+        self.connection, self.cancel = connection, cancel
+
+    def read(self, size):
+        while not self.cancel.is_set():
+            ready, _, _ = select.select([self.connection], [], [], 0.1)
+            if ready:
+                try:
+                    return self.connection.recv(size)
+                except OSError:
+                    if self.cancel.is_set():
+                        raise GuardError('CANCELLED', 'Загрузка отменена.', stage='upload')
+                    raise
+        raise GuardError('CANCELLED', 'Загрузка отменена.', stage='upload')
 
 
 class GuardAPI:
@@ -153,10 +177,12 @@ class GuardAPI:
                 length = self._length(handler)
                 if handler.headers.get('Content-Type', '').split(';')[0].strip() != 'application/octet-stream':
                     raise GuardError('REQUEST_TYPE', 'Требуется поток файла.')
+                cancelled = threading.Event()
                 with self._transfer(handler):
                     self.guard.upload(self._identity(self._query(handler, 'job')),
-                        self._query(handler, 'file'), handler.rfile, length,
-                        interrupt=lambda: self._shutdown(handler.connection, socket.SHUT_RD))
+                        self._query(handler, 'file'),
+                        _CancelableInput(handler.connection, cancelled), length,
+                        interrupt=cancelled.set)
                 return self._json(handler,200, {'ok': True})
             # Track metadata reads too: close() must unblock a stalled JSON body.
             with self._transfer(handler):
