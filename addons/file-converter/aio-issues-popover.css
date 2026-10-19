@@ -1,0 +1,57 @@
+/* A fixed two-phase slot; the report is a body portal outside clipped panes. */
+.aio-cv__pane--right .aio-cv-issues-slot {
+  position: relative; flex: 0 1 132px; width: 132px; min-width: 0;
+  height: 34px; margin-left: 0; z-index: 30;
+}
+.aio-cv__pane--right .aio-cv-issues-slot.aio-cv-issues-empty {
+  display: none !important; /* zero prior issues must not reserve space */
+}
+.aio-cv__pane--right .aio-cv-issues-button {
+  box-sizing: border-box; width: 100%; height: 34px; padding: 0 9px;
+  border: 1px solid var(--line); border-radius: 9px;
+  background: var(--status-bg); color: var(--text); font: inherit;
+  font-size: 12px; font-weight: 600; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; cursor: pointer;
+}
+.aio-cv-issues-popover {
+  box-sizing: border-box; position: fixed; z-index: 2100;
+  padding: 12px; overflow: auto; overscroll-behavior: contain;
+  border: 1px solid var(--line); border-radius: 13px;
+  background: var(--surface, var(--status-bg)); color: var(--text);
+  box-shadow: 0 13px 34px rgb(0 0 0 / .2); font-size: 12px;
+  animation: aio-issues-enter 150ms ease-out;
+  scrollbar-width: thin; scrollbar-color: var(--line) transparent;
+}
+.aio-cv-issues-popover[hidden], .aio-cv-issues-popover [hidden],
+.aio-cv-issues-slot[hidden] { display: none !important; }
+.aio-cv-issues-top { display: flex; gap: 12px; align-items: center; justify-content: space-between; }
+.aio-cv-issues-heading { font-size: 13px; }
+.aio-cv-issues-popover button {
+  background: var(--status-bg); border: 1px solid var(--line);
+  border-radius: 7px; padding: 6px 9px; color: inherit; font: inherit; cursor: pointer;
+}
+.aio-cv-issues-popover button:hover, .aio-cv-issues-button:hover { border-color: var(--accent, currentColor); }
+.aio-cv-issues-popover button:focus-visible, .aio-cv-issues-button:focus-visible,
+.aio-cv-issues-popover summary:focus-visible { outline: 2px solid var(--accent, currentColor); outline-offset: 2px; }
+.aio-cv-issues-popover button:disabled { opacity: .55; cursor: default; }
+.aio-cv-issues-note, .aio-cv-issues-kind, .aio-cv-issues-advice, .aio-cv-issues-scope { color: var(--muted); }
+.aio-cv-issues-item { border-top: 1px solid var(--line); padding: 9px 0; overflow-wrap: anywhere; }
+.aio-cv-issues-item strong { display: block; }
+.aio-cv-issues-kind { display: block; margin-top: 3px; font-size: 11px; }
+.aio-cv-issues-item p { margin: 4px 0 0; }
+.aio-cv-issues-more { width: 100%; margin-top: 8px; }
+.aio-cv-issues-details { margin-top: 8px; }
+.aio-cv-issues-file, .aio-cv-issues-output, .aio-cv-issues-scope { border-top: 1px solid var(--line); padding: 10px 0; }
+.aio-cv-issues-file summary, .aio-cv-issues-scope summary { cursor: pointer; overflow-wrap: anywhere; }
+.aio-cv-issues-facts { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; }
+.aio-cv-issues-facts dt, .aio-cv-issues-facts dd { margin: 0; }
+.aio-cv-issues-facts dd { font-variant-numeric: tabular-nums; }
+.aio-cv-issues-popover::-webkit-scrollbar { width: 6px; height: 6px; }
+.aio-cv-issues-popover::-webkit-scrollbar-thumb { background: var(--line); border-radius: 8px; }
+.aio-cv-issues-popover::-webkit-scrollbar-track { background: transparent; }
+@keyframes aio-issues-enter { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 680px) {
+  .aio-cv__pane--right .aio-cv-issues-slot { flex: 0 1 220px; width: min(220px, 58%); min-width: 0; }
+  .aio-cv__pane--right .aio-cv__pane-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+}
+@media (prefers-reduced-motion: reduce) { .aio-cv-issues-popover { animation: none; } }

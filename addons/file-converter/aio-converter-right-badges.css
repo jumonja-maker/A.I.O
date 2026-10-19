@@ -1,0 +1,17 @@
+/* UI 11 approved "С меткой": no changes to ? button/help animation. */
+.aio-cv__pane--right { display:flex; flex-direction:column; min-height:0; }
+.aio-cv__pane--right .aio-cv__formats {
+  flex:1 1 auto; max-height:none; min-height:210px; overflow-y:auto;
+  overscroll-behavior:contain; scrollbar-gutter:stable;
+}
+.aio-cv__pane--right .aio-cv__footer {margin-top:0;}
+.aio-cv__pane--right .aio-cv__format[data-available="false"] {
+  background:var(--status-bg);border-color:var(--line);
+}
+.aio-cv__pane--right .aio-cv__format[data-available="false"] .aio-cv__format-words {opacity:.74;}
+.aio-cv__pane--right .aio-cv__availability {
+  display:inline-flex;align-self:center;justify-content:center;align-items:center;
+  color:var(--muted);background:var(--status-bg);border:1px solid var(--line);
+  border-radius:7px;padding:5px 8px;margin-right:3px;font-size:11px;white-space:nowrap;
+}
+@media(max-width:520px){.aio-cv__pane--right .aio-cv__availability{font-size:10px;padding:5px 6px}}

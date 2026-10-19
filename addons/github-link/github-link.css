@@ -1,0 +1,59 @@
+/* AIO GitHub Link Addon v1.3. Only a quiet, secondary header action.
+   App colors, body, navigation, tools, and spacing tokens are untouched. */
+:root {
+  --aio-gh-hover: rgba(18, 35, 58, 0.065);
+  --aio-gh-pressed: rgba(18, 35, 58, 0.12);
+  --aio-gh-tooltip: var(--text, #12233c);
+}
+:root[data-theme="dark"] {
+  --aio-gh-hover: rgba(255, 255, 255, 0.085);
+  --aio-gh-pressed: rgba(255, 255, 255, 0.14);
+}
+.app-header > .aio-github-link {
+  box-sizing: border-box;
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  flex: 0 0 42px;
+  margin-left: auto;
+  border-radius: var(--radius-control, 9px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  text-decoration: none;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+  user-select: none;
+  -webkit-app-region: no-drag; /* Windows/Electron if header is draggable */
+}
+.app-header > .aio-github-link:hover {
+  background: var(--aio-gh-hover);
+}
+.app-header > .aio-github-link:active {
+  background: var(--aio-gh-pressed);
+}
+.app-header > .aio-github-link:focus-visible {
+  outline: none;
+  box-shadow: var(--focus, 0 0 0 3px #8ebafd);
+}
+.app-header .aio-github-link .aio-gh-mark {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  display: block;
+  pointer-events: none;
+}
+.app-header .aio-github-link .aio-gh-mark-dark { display: none; }
+:root[data-theme="dark"] .app-header .aio-github-link .aio-gh-mark-light { display: none; }
+:root[data-theme="dark"] .app-header .aio-github-link .aio-gh-mark-dark { display: block; }
+/* Support saved theme until the primary app initializes on next paint. */
+.app-header > .app-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 440px) {
+  .app-header > .aio-github-link { width: 38px; height: 38px; min-width: 38px; flex-basis: 38px; }
+}
+@media (forced-colors: active) {
+  .app-header > .aio-github-link:focus-visible { outline: 2px solid Highlight; outline-offset: 2px; box-shadow: none; }
+  .app-header > .aio-github-link:hover { border-color: ButtonText; }
+}

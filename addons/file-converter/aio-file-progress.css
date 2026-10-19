@@ -1,0 +1,82 @@
+/* A.I.O / Designer 11: additive per-file conversion progress, v1.0.
+   Scope: converter cards only. No shell, format, Excel or engine overrides. */
+.aio-cv .aio-cv__file.aio-fp-row {
+  --aio-fp-ink: #138e59;
+  --aio-fp-on-ink: #ffffff;
+  --aio-fp-progress: 0%;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+.aio-cv .aio-fp-label {
+  color: var(--muted, #667899);
+  font-size: 11px;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+}
+.aio-cv .aio-fp-check {
+  color: var(--aio-fp-ink);
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 21px;
+  width: 21px;
+  margin-right: 5px;
+  font-size: 23px;
+  line-height: 1;
+  font-weight: 700;
+}
+.aio-cv :is(.aio-fp-label, .aio-fp-check, .aio-fp-paint)[hidden] {
+  display: none !important;
+}
+.aio-cv .aio-fp-paint {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: var(--aio-fp-ink);
+  clip-path: inset(0 calc(100% - var(--aio-fp-progress)) 0 0);
+  pointer-events: none;
+}
+/* A single continuous green fill. Progress still follows confirmed targets;
+   the former repeating vertical cell dividers made file cards look striped. */
+.aio-cv .aio-fp-paint-content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--aio-fp-gap, 8px);
+  padding: var(--aio-fp-padding, 7px);
+  color: var(--aio-fp-on-ink);
+}
+.aio-cv .aio-fp-paint-content :is(
+  .aio-cv__grip, .aio-cv__file-name, .aio-cv__file-meta,
+  .aio-cv__file-note, .aio-cv__icon-btn, .aio-fp-label
+) {
+  color: var(--aio-fp-on-ink) !important;
+}
+.aio-cv .aio-fp-paint-content .aio-cv__thumb {
+  background: transparent;
+  color: var(--aio-fp-on-ink);
+  border-color: color-mix(in srgb, var(--aio-fp-on-ink) 40%, transparent);
+}
+.aio-cv .aio-cv__file[data-aio-fp-state="converting"] .aio-fp-label {
+  font-weight: 600;
+}
+/* Unknown duration has no honest percentage: show an unmoving soft
+   busy tint. Once a target really completes, the green clip-path overlay
+   covers the corresponding portion of the entire file card. */
+.aio-cv .aio-cv__file[data-aio-fp-state="converting"] {
+  background-color: color-mix(in srgb, var(--aio-fp-ink) 9%, var(--surface, transparent));
+}
+.aio-cv .aio-fp-paint-content .aio-fp-check { color: var(--aio-fp-on-ink); }
+.aio-cv .aio-cv__file[data-aio-fp-state="error"] .aio-fp-label {
+  color: var(--danger, #d23b48);
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+/* Partial success stays distinct from the full-success green check. */
+.aio-cv .aio-cv__file:is([data-aio-fp-state="partial"],[data-aio-fp-state="partial-saved"]) .aio-fp-label {
+  color: var(--warning, #986800);
+}
+.aio-cv .aio-fp-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }

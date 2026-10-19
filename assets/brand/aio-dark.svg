@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="All in One помощник — фирменный знак">
+  <rect x="4" y="4" width="120" height="120" rx="29" fill="#23303F"/>
+  <rect x="4.8" y="4.8" width="118.4" height="118.4" rx="28.2" fill="none" stroke="#536173" stroke-width="1.6"/>
+  <!-- Три входных потока сливаются в один узел; все формы крупные для 16 px -->
+  <path fill="#F2F7FA" d="M27 26h21c5 0 7 2 10 5l19 21-12 11-21-24H27a7 7 0 0 1 0-13Z"/>
+  <path fill="#F2F7FA" d="M27 58h37v13H27a6.5 6.5 0 0 1 0-13Z"/>
+  <path fill="#F2F7FA" d="M27 102h21c5 0 7-2 10-5l19-21-12-11-21 24H27a7 7 0 0 0 0 13Z"/>
+  <!-- Единый конечный блок: заметная фирменная зелёная вертикаль -->
+  <rect x="72" y="42" width="29" height="44" rx="9" fill="#55D9AD"/>
+</svg>
