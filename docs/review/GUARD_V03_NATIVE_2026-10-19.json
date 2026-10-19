@@ -1,0 +1,61 @@
+{
+  "scope": "Linux/source, synthetic, real LibreOffice + loopback HTTP; Windows NOT_RUN",
+  "engine": "LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5",
+  "fullPolls": 20,
+  "unchangedPolls": 594,
+  "individualPlan": {
+    "requestedPairs": 5,
+    "nativeCalls": 5,
+    "allOutputsReady": true,
+    "archiveOutputs": 5,
+    "writerPDFMarkersPreserved": true
+  },
+  "retry": {
+    "nativeFailureTarget": "aio_unsupported_qa",
+    "retryPlanContainsOnlyFailedPair": true,
+    "retryPlanStartsNoWork": true,
+    "explicitCorrectedTarget": "txt",
+    "correctionNativeCalls": 1,
+    "previousPDFsStillAvailableAndUnchanged": true,
+    "automaticReconversionOfSuccessfulPairs": 0
+  },
+  "status": "PASS",
+  "nativeCalls": [
+    [
+      "writer.docx",
+      "pdf"
+    ],
+    [
+      "writer.docx",
+      "odt"
+    ],
+    [
+      "image.bmp",
+      "png"
+    ],
+    [
+      "calc.xlsx",
+      "xlsx"
+    ],
+    [
+      "calc.xlsx",
+      "csv"
+    ],
+    [
+      "writer.docx",
+      "pdf"
+    ],
+    [
+      "writer.docx",
+      "aio_unsupported_qa"
+    ],
+    [
+      "writer.docx",
+      "txt"
+    ]
+  ],
+  "sourceBytesUnchangedAtEveryNativeLaunch": true,
+  "ownedJobsAfterRelease": 0,
+  "reservedBytesAfterRelease": 0,
+  "seconds": 25.177
+}

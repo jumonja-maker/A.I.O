@@ -20,7 +20,7 @@ import zipfile
 from ..libreoffice_catalog import mime_for
 from .adapter import LibreOfficeAdapter
 from .errors import GuardError
-from .policy import GuardLimits, validate_files, validate_formats
+from .policy import GuardLimits, validate_files, validate_plan
 
 CHUNK = 64 * 1024
 SUCCESS = {'ready', 'saved'}
@@ -96,6 +96,7 @@ class _Job:
     root: Path
     files: list
     reserved: int
+    revision: int = 0
     files_by_id: dict = field(default_factory=dict)
     state: str = 'uploading'
     cancel: threading.Event = field(default_factory=threading.Event)
@@ -151,6 +152,11 @@ class ConverterGuard:
     def capabilities(self, files):
         return self.adapter.capabilities([] if files == [] else validate_files(files, self.limits))
 
+    @staticmethod
+    def _record(job, stage, **details):
+        job.trace.add(stage, **details)
+        job.revision += 1
+
     def _get(self, identity):
         job = self._jobs.get(identity)
         if job is None or job.released:
@@ -182,9 +188,9 @@ class ConverterGuard:
         self._reserved -= amount
         job.reserved -= amount
 
-    def create(self, files, formats=None):
+    def create(self, files, formats=None, *, plan=None):
         rows = validate_files(files, self.limits)
-        targets = validate_formats(formats)
+        planned = validate_plan(rows, formats, plan)
         self._prune()
         size = sum(row['size'] for row in rows)
         with self._lock:
@@ -201,16 +207,18 @@ class ConverterGuard:
                 raise GuardError('STORAGE_UNAVAILABLE', 'Не удалось создать временное хранилище.',
                                  stage='storage', status=507) from error
             files = []
+            task_index = 0
             for index, row in enumerate(rows):
                 name, normalized = _source_name(row['name'])
-                tasks = [_Task(target, index * len(targets) + offset)
-                         for offset, target in enumerate(targets)]
+                tasks = [_Task(target, task_index + offset)
+                         for offset, target in enumerate(planned[row['id']])]
+                task_index += len(tasks)
                 files.append(_File(**row, source=root / 'input' / str(index) / name,
                                    targets=tasks, name_normalized=normalized))
             identity = secrets.token_hex(16)
             job = _Job(identity, root, files, size)
             job.files_by_id = {item.id: item for item in files}
-            job.trace.add('job_created')
+            self._record(job, 'job_created')
             self._jobs[identity] = job
             self._reserved += size
             return self._snapshot(job)
@@ -247,9 +255,9 @@ class ConverterGuard:
                     raise GuardError('CANCELLED', 'Загрузка отменена.', stage='upload')
                 part.replace(item.source)
                 item.state = 'queued'
-                job.trace.add('input_stored', file_id=item.id)
+                self._record(job, 'input_stored', file_id=item.id)
                 if item.name_normalized:
-                    job.trace.add('input_name_adjusted', file_id=item.id, code='SOURCE_NAME_NORMALIZED')
+                    self._record(job, 'input_name_adjusted', file_id=item.id, code='SOURCE_NAME_NORMALIZED')
         except OSError as error:
             if job.cancel.is_set() or item.cancel.is_set():
                 raise GuardError('CANCELLED', 'Загрузка отменена.', stage='upload') from error
@@ -273,14 +281,14 @@ class ConverterGuard:
                     f.uploading or f.state not in {'queued', 'cancelled'} for f in job.files):
                 raise GuardError('JOB_STATE', 'Дождитесь загрузки всех файлов.', status=409)
             job.state, job.running = 'queued', True
-            job.trace.add('job_queued')
+            self._record(job, 'job_queued')
             job.future = self._executor.submit(self._run, job)
             return self._snapshot(job)
 
     def _fail(self, job, item, task, error):
         task.state = 'cancelled' if error.code == 'CANCELLED' else 'error'
         task.code, task.error, task.stage = error.code, error.message, error.stage
-        job.trace.add(error.stage, file_id=item.id, target=task.format,
+        self._record(job, error.stage, file_id=item.id, target=task.format,
                       code=error.code, lo_started=task.lo_started)
 
     def _output_budget(self):
@@ -316,7 +324,7 @@ class ConverterGuard:
             job.artifacts.extend(artifacts)
             task.artifacts = artifacts
             task.state = 'ready'
-            job.trace.add('result_ready', file_id=item.id, target=task.format,
+            self._record(job, 'result_ready', file_id=item.id, target=task.format,
                           lo_started=task.lo_started)
 
     def _remove_work(self, job, path):
@@ -334,7 +342,7 @@ class ConverterGuard:
             with self._lock:
                 self._reserved += residue
                 job.reserved += residue
-                job.trace.add('cleanup_deferred', code='WORK_CLEANUP_RETRY')
+                self._record(job, 'cleanup_deferred', code='WORK_CLEANUP_RETRY')
 
     def _drop_source(self, job, item):
         try:
@@ -343,7 +351,7 @@ class ConverterGuard:
             pass
         except OSError:
             with self._lock:
-                job.trace.add('cleanup_deferred', file_id=item.id, code='INPUT_CLEANUP_RETRY')
+                self._record(job, 'cleanup_deferred', file_id=item.id, code='INPUT_CLEANUP_RETRY')
             return
         with self._lock:
             self._unreserve(job, item.size)
@@ -369,6 +377,7 @@ class ConverterGuard:
         try:
             with self._lock:
                 job.state = 'running'
+                self._record(job, 'job_started')
             for item in job.files:
                 for task in item.targets:
                     workspace = job.root / 'work' / str(task.index)
@@ -378,12 +387,12 @@ class ConverterGuard:
                                 self._fail(job, item, task, GuardError('CANCELLED', 'Конвертация отменена.'))
                             continue
                         item.state, task.state = 'converting', 'converting'
-                        job.trace.add('route_selected', file_id=item.id, target=task.format)
+                        self._record(job, 'route_selected', file_id=item.id, target=task.format)
                     try:
                         def started():
                             with self._lock:
                                 task.lo_started = True
-                                job.trace.add('engine_started', file_id=item.id,
+                                self._record(job, 'engine_started', file_id=item.id,
                                               target=task.format, lo_started=True)
 
                         paths = self.adapter.convert(item.source, task.format, workspace,
@@ -407,18 +416,20 @@ class ConverterGuard:
                 with self._lock:
                     item.state = 'done'
                     item.state = self._file_state(item)
+                    self._record(job, 'input_finished', file_id=item.id)
                 # Keep original bytes across all targets; drop only the temp
                 # input after its last target. Original user files are untouched.
                 self._drop_source(job, item)
             with self._lock:
                 job.state = 'packaging'
+                self._record(job, 'packaging_started')
             self._make_result(job)
             with self._lock:
                 tasks = [t for f in job.files for t in f.targets]
                 successes = sum(t.state in SUCCESS for t in tasks)
                 job.state = ('cancelled' if job.cancel.is_set() or all(t.state == 'cancelled' for t in tasks) else
                     'ready' if successes == len(tasks) else 'partial' if successes else 'failed')
-                job.trace.add('job_finished', code=job.state,
+                self._record(job, 'job_finished', code=job.state,
                               lo_started=any(t.lo_started for t in tasks))
         except Exception:
             with self._lock:
@@ -430,11 +441,12 @@ class ConverterGuard:
                 job.state = 'failed'
                 if job.artifacts and job.result is None:
                     job.result = {**job.artifacts[0].metadata(), 'jobId': job.id}
-                job.trace.add('job_failed', code='GUARD_INTERNAL')
+                self._record(job, 'job_failed', code='GUARD_INTERNAL')
         finally:
             with self._lock:
                 job.running = False
                 job.touched = time.monotonic()
+                self._record(job, 'worker_finished', code=job.state)
             self._cleanup(job)
 
     def _report(self, job):
@@ -453,6 +465,7 @@ class ConverterGuard:
             job.result = ({**job.artifacts[0].metadata()} if len(job.artifacts) == 1 else
                           {'name': 'AIO_Results.zip', 'mime': 'application/zip'})
             job.result['jobId'] = job.id
+            self._record(job, 'results_available')
             # A single successful artifact needs no duplicate archive at all.
             if len(job.artifacts) == 1 and all(t.state in SUCCESS for f in job.files for t in f.targets):
                 return
@@ -461,11 +474,13 @@ class ConverterGuard:
                       + len(report) + 4096)
             if job.cancel.is_set():
                 job.packaging_error = 'BUNDLE_CANCELLED'
+                self._record(job, 'bundle', code=job.packaging_error)
                 return
             try:
                 self._reserve(job, budget)
             except GuardError:
                 job.packaging_error = 'BUNDLE_QUOTA'
+                self._record(job, 'bundle', code=job.packaging_error)
                 return
         bundle, retained = job.root / 'results.zip', False
         try:
@@ -492,18 +507,19 @@ class ConverterGuard:
                 job.bundle = artifact
                 self._tickets[artifact.ticket] = artifact
                 job.result = {**artifact.metadata(), 'jobId': job.id}
+                self._record(job, 'bundle_ready')
                 retained = True
         except (OSError, GuardError, ValueError, RuntimeError) as error:
             with self._lock:
                 job.packaging_error = error.code if isinstance(error, GuardError) else 'BUNDLE_STORAGE_FAILED'
-                job.trace.add('bundle', code=job.packaging_error)
+                self._record(job, 'bundle', code=job.packaging_error)
         finally:
             if not retained:
                 try:
                     bundle.unlink(missing_ok=True)
                 except OSError:
                     with self._lock:
-                        job.trace.add('cleanup_deferred', code='BUNDLE_CLEANUP_RETRY')
+                        self._record(job, 'cleanup_deferred', code='BUNDLE_CLEANUP_RETRY')
                 else:
                     with self._lock:
                         self._unreserve(job, budget)
@@ -525,16 +541,40 @@ class ConverterGuard:
         if result is not None:
             result['outputs'] = [a.metadata() for a in job.artifacts]
         finished = not job.running and job.state in TERMINAL
-        return {'schemaVersion': 2, 'jobId': job.id, 'state': job.state, 'finished': finished,
+        return {'schemaVersion': 2, 'jobId': job.id, 'revision': job.revision,
+                'state': job.state, 'finished': finished,
                 'files': rows, 'completed': completed, 'total': total,
                 'percent': completed * 100 / total, 'result': result,
                 'trace': job.trace.snapshot() if include_trace else None,
                 'packagingError': job.packaging_error}
 
-    def status(self, job_id, *, include_trace=False):
+    def status(self, job_id, *, include_trace=False, since_revision=None):
+        if since_revision is not None and (type(since_revision) is not int or since_revision < 0):
+            raise GuardError('STATUS_REVISION', 'Некорректная версия состояния.')
         self._prune()
         with self._lock:
-            return self._snapshot(self._get(job_id), include_trace)
+            job = self._get(job_id)
+            if not include_trace and since_revision == job.revision:
+                return {'jobId': job.id, 'revision': job.revision, 'unchanged': True}
+            return self._snapshot(job, include_trace)
+
+    def retry_plan(self, job_id, *, include_cancelled=False):
+        """Metadata only. Reupload failed sources explicitly; keep prior outputs."""
+        if type(include_cancelled) is not bool:
+            raise GuardError('RETRY_PLAN', 'Некорректный режим повторной попытки.')
+        with self._lock:
+            job = self._get(job_id)
+            if job.running or job.state not in TERMINAL:
+                raise GuardError('JOB_STATE', 'Дождитесь завершения задания.', status=409)
+            retry_states = {'error', 'cancelled'} if include_cancelled else {'error'}
+            files, plan = [], []
+            for item in job.files:
+                formats = [t.format for t in item.targets if t.state in retry_states]
+                if formats:
+                    files.append({'id': item.id, 'name': item.name, 'size': item.size})
+                    plan.append({'fileId': item.id, 'formats': formats})
+            return {'sourceJobId': job.id, 'files': files, 'plan': plan,
+                    'requiresUpload': bool(files), 'retainedOutputs': len(job.artifacts)}
 
     def _cancel_queued(self, job):
         if job.state == 'queued' and job.future is not None and job.future.cancel():
@@ -567,7 +607,7 @@ class ConverterGuard:
         with self._lock:
             job = self._get(job_id)
             callbacks = self._stop(job)
-            job.trace.add('cancel_requested')
+            self._record(job, 'cancel_requested')
             snapshot = self._snapshot(job)
         self._interrupt(callbacks)
         return snapshot
@@ -588,7 +628,7 @@ class ConverterGuard:
             if item.state in {'awaiting_upload', 'queued'}:
                 item.state = 'cancelled'
             callbacks = [item.interrupt] if item.interrupt is not None else []
-            job.trace.add('file_cancel_requested', file_id=item.id)
+            self._record(job, 'file_cancel_requested', file_id=item.id)
             snapshot = self._snapshot(job)
         self._interrupt(callbacks)
         return snapshot
@@ -627,7 +667,7 @@ class ConverterGuard:
                         task.state = 'saved'
                 if item.state in SUCCESS | {'partial'}:
                     item.state = self._file_state(item)
-            job.trace.add('save_confirmed', file_id=artifact.file_id, target=artifact.format)
+            self._record(job, 'save_confirmed', file_id=artifact.file_id, target=artifact.format)
             return self._snapshot(job)
 
     def release(self, job_id):
@@ -653,7 +693,7 @@ class ConverterGuard:
         except OSError:
             with self._lock:
                 job.cleaning = False
-                job.trace.add('cleanup_deferred', code='CLEANUP_RETRY')
+                self._record(job, 'cleanup_deferred', code='CLEANUP_RETRY')
             return
         with self._lock:
             for artifact in job.artifacts + ([job.bundle] if job.bundle else []):
