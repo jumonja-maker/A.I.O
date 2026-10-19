@@ -126,8 +126,16 @@ class GuardAPI:
                     'limits': asdict(self.guard.limits), 'storage': self.guard.storage_stats()})
             if path == PREFIX + '/jobs':
                 trace = parse_qs(urlsplit(handler.path).query).get('trace') == ['1']
-                return self._json(handler,200, self.guard.status(
-                    self._identity(self._query(handler, 'job')), include_trace=trace))
+                identity = self._identity(self._query(handler, 'job'))
+                match = re.fullmatch(r'"([0-9a-f]{32}):([0-9]{1,20})"',
+                                     handler.headers.get('If-None-Match', ''))
+                since = int(match[2]) if match and match[1] == identity else None
+                state = self.guard.status(identity, include_trace=trace, since_revision=since)
+                return self._status_reply(handler, state)
+            if path == PREFIX + '/retry-plan':
+                cancelled = parse_qs(urlsplit(handler.path).query).get('includeCancelled') == ['1']
+                return self._json(handler,200, self.guard.retry_plan(
+                    self._identity(self._query(handler, 'job')), include_cancelled=cancelled))
             raise GuardError('API_NOT_FOUND', 'Неизвестная операция Guard.', status=404)
         except GuardError as error:
             return self._json(handler,error.status, error.as_dict())
@@ -155,10 +163,14 @@ class GuardAPI:
             if path == PREFIX + '/jobs':
                 if body.get('options'):
                     raise GuardError('OPTIONS_NOT_CONNECTED', 'Параметры экспорта пока не подключены.')
-                if 'formats' in body and 'formatId' in body:
-                    raise GuardError('OUTPUT_FORMAT', 'Укажите formats или formatId.')
-                formats = body.get('formats', [body.get('formatId', 'pdf')])
-                return self._json(handler,201, self.guard.create(body.get('files'), formats))
+                if sum(key in body for key in ('formats', 'formatId', 'plan')) > 1:
+                    raise GuardError('OUTPUT_FORMAT', 'Укажите только один способ выбора форматов.')
+                if 'plan' in body and body['plan'] is None:
+                    raise GuardError('CONVERSION_PLAN', 'Индивидуальный plan должен быть списком.')
+                formats = (None if 'plan' in body else
+                           body.get('formats', [body.get('formatId', 'pdf')]))
+                return self._json(handler,201, self.guard.create(
+                    body.get('files'), formats, plan=body.get('plan')))
             identity = self._identity(body.get('jobId'))
             if path == PREFIX + '/start':
                 return self._json(handler,202, self.guard.start(identity))
@@ -193,3 +205,23 @@ class GuardAPI:
             handler.end_headers()
             while block := stream.read(CHUNK):
                 handler.wfile.write(block)
+
+    @staticmethod
+    def _status_reply(handler, state):
+        """Unchanged polls bypass both snapshot construction and JSON encoding."""
+        unchanged = state.get('unchanged', False)
+        data = b'' if unchanged else json.dumps(state, ensure_ascii=False).encode('utf-8')
+        try:
+            handler.send_response(304 if unchanged else 200)
+            handler.send_header('ETag', '"' + state['jobId'] + ':' + str(state['revision']) + '"')
+            handler.send_header('Cache-Control', 'no-store')
+            handler.send_header('X-Content-Type-Options', 'nosniff')
+            handler.send_header('Referrer-Policy', 'no-referrer')
+            if not unchanged:
+                handler.send_header('Content-Type', 'application/json; charset=utf-8')
+                handler.send_header('Content-Length', str(len(data)))
+            handler.end_headers()
+            if data:
+                handler.wfile.write(data)
+        except OSError:
+            pass

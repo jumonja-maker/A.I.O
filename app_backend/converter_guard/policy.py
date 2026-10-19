@@ -81,3 +81,27 @@ def validate_formats(formats):
             seen.add(value)
             result.append(value)
     return result
+
+
+def validate_plan(files, formats, plan):
+    """One explicit target list per source; never infer type compatibility."""
+    if plan is None:
+        targets = validate_formats(formats)
+        return {item['id']: targets for item in files}
+    if formats is not None or not isinstance(plan, list):
+        raise GuardError('CONVERSION_PLAN', 'Укажите общий список formats или индивидуальный plan.',
+                         stage='plan')
+    expected = {item['id'] for item in files}
+    result = {}
+    for entry in plan:
+        if not isinstance(entry, dict):
+            raise GuardError('CONVERSION_PLAN', 'Некорректное описание плана.', stage='plan')
+        identity = entry.get('fileId')
+        if (not isinstance(identity, str) or identity not in expected or identity in result):
+            raise GuardError('CONVERSION_PLAN', 'План содержит неизвестный или повторный файл.',
+                             stage='plan')
+        result[identity] = validate_formats(entry.get('formats', []))
+    if set(result) != expected:
+        raise GuardError('CONVERSION_PLAN', 'Для каждого исходника нужны выбранные форматы.',
+                         stage='plan')
+    return result
