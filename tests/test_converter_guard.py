@@ -27,10 +27,12 @@ class FakeAdapter:
 
     def __init__(self):
         self.calls = []
+        self.names = []
         self.entered = threading.Event()
 
     def export_pdf(self, source, output, profile, *, cancel, timeout, on_started, output_limit):
         on_started()
+        self.names.append(source.name)
         with source.open('rb') as stream:
             marker = stream.read(4)
             stream.seek(0)
@@ -105,9 +107,18 @@ class GuardLifecycleTests(unittest.TestCase):
         self.guard.start(id)
         state = wait_finished(self.guard, id)
         self.assertEqual(state['state'], 'ready')
-        self.assertEqual(self.adapter.calls[0], ('.docx', len(content), hashlib.sha256(content).hexdigest()))
+        self.assertEqual(self.adapter.calls[0], ('.DOCX', len(content), hashlib.sha256(content).hexdigest()))
         self.assertNotIn(self.temp.name, json.dumps(state['trace']))
         self.assertNotIn('Формулы', json.dumps(state['trace'], ensure_ascii=False))
+
+    def test_original_basename_at_filesystem_limit_is_preserved(self):
+        name = 'n'*250+'.docx'
+        id = self.prepare([(name,b'good')])
+        self.guard.start(id)
+        state = wait_finished(self.guard,id)
+        self.assertEqual(state['state'],'ready')
+        self.assertEqual(self.adapter.names,[name])
+        self.assertEqual(state['files'][0]['warnings'],[])
 
     def test_unknown_route_is_explicit_and_other_files_continue(self):
         id = self.prepare([('future.html', b'good'), ('valid.odt', b'good')])
@@ -131,6 +142,18 @@ class GuardLifecycleTests(unittest.TestCase):
         self.assertEqual(state['state'], 'ready')
         self.assertEqual(len(state['result']['outputs']), 24)
         self.assertEqual(self.guard.storage_stats()['jobs'], 1)
+
+    def test_long_unicode_display_names_do_not_gate_conversion(self):
+        id = self.prepare([('я'*140+'.docx', b'good'), ('я'*139+'ю.docx', b'good')])
+        self.guard.start(id)
+        state = wait_finished(self.guard,id)
+        self.assertEqual(state['state'],'ready')
+        with self.guard.open_result(state['result']['downloadUrl'].split('ticket=')[1]) as (stream,_,_):
+            with zipfile.ZipFile(stream) as archive:
+                names=archive.namelist()
+                self.assertEqual(len(set(names)),2)
+                self.assertTrue(all(len(name.encode('utf-8'))<=240 for name in names))
+                self.assertTrue(all(archive.read(name)==PDF for name in names))
 
     def test_release_waits_for_download_lease_then_removes_files(self):
         id = self.prepare([('one.docx', b'good')])

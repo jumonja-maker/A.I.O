@@ -10,6 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 import math
+import os
 from pathlib import Path
 import re
 import secrets
@@ -76,6 +77,7 @@ class _File:
     uploading: bool = False
     output: Path | None = None
     ticket: str | None = None
+    name_normalized: bool = False
 
 
 @dataclass
@@ -108,10 +110,14 @@ def validate_files(files, limits: GuardLimits) -> list[dict]:
         id, name, size = file.get('id'), file.get('name'), file.get('size')
         if not isinstance(id, str) or not IDENTIFIER.fullmatch(id) or id in ids:
             raise GuardError('INPUT_ID', 'Идентификаторы файлов должны быть уникальными.')
-        if (not isinstance(name, str) or not name.strip() or len(name.encode('utf-8')) > 240
+        if (not isinstance(name, str) or not name.strip() or len(name) > 255
                 or any(ord(c) < 32 for c in name) or '/' in name or '\\' in name
                 or name in ('.', '..')):
             raise GuardError('INPUT_NAME', 'Недопустимое имя файла.')
+        try:
+            name.encode('utf-8')
+        except UnicodeError as exc:
+            raise GuardError('INPUT_NAME', 'Недопустимая кодировка имени файла.') from exc
         if type(size) is not int or not 0 <= size <= limits.max_file_bytes:
             raise GuardError('INPUT_SIZE', 'Размер файла превышает настроенный лимит Guard.')
         ids.add(id)
@@ -170,10 +176,18 @@ class ConverterGuard:
             id = secrets.token_hex(16)
             items = []
             for index, row in enumerate(rows):
-                # Names and client IDs never choose a physical path.
+                # Preserve the basename for LibreOffice FILENAME fields, inside
+                # a private numeric directory. Unsupported filesystem names
+                # use an explicit alias instead of rejecting the conversion.
                 suffix = Path(row['name']).suffix.lower()
                 suffix = suffix if re.fullmatch(r'\.[a-z0-9]{1,12}', suffix) else '.bin'
-                items.append(_File(**row, source=root / 'input' / str(index) / ('source' + suffix)))
+                name = row['name']
+                normalized = ((os.name != 'nt' and len(os.fsencode(name)) > 255) or
+                    (os.name == 'nt' and (bool(re.search(r'[<>:"|?*]', name)) or
+                     name.endswith((' ', '.')) or bool(re.fullmatch(
+                         r'CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9]', name.split('.')[0], re.I)))))
+                items.append(_File(**row, source=root / 'input' / str(index) /
+                    ('source' + suffix if normalized else name), name_normalized=normalized))
             job = _Job(id, root, items, size)
             job.trace.add('job_created', lo_started=False)
             self._jobs[id] = job
@@ -192,9 +206,11 @@ class ConverterGuard:
                 raise GuardError('UPLOAD_LENGTH', 'Размер загрузки не совпадает с размером файла.')
             job.io += 1
             item.uploading = True
-        part = item.source.with_suffix(item.source.suffix + '.part')
+        # Keep the staging name outside the source's directory: appending
+        # '.part' to a valid 255-byte basename would make that name invalid.
+        part = item.source.parent.parent / (item.source.parent.name + '.part')
         try:
-            part.parent.mkdir(parents=True, exist_ok=True)
+            item.source.parent.mkdir(parents=True, exist_ok=True)
             with part.open('xb') as output:
                 remaining = length
                 while remaining:
@@ -211,6 +227,9 @@ class ConverterGuard:
                 part.replace(item.source)
                 item.state = 'queued'
                 job.trace.add('input_stored', file_id=item.id, lo_started=False)
+                if item.name_normalized:
+                    job.trace.add('input_name_adjusted', file_id=item.id,
+                                  code='SOURCE_NAME_NORMALIZED', lo_started=False)
         except OSError as exc:
             raise GuardError('INPUT_STORAGE_FAILED', 'Не удалось сохранить загружаемый файл.', stage='upload', status=507) from exc
         finally:
@@ -338,8 +357,13 @@ class ConverterGuard:
                 try:
                     with zipfile.ZipFile(bundle, 'x', compression=zipfile.ZIP_STORED, allowZip64=True) as archive:
                         for index, item in enumerate(ready):
+                            # A display name must not gate conversion. Bound only
+                            # ZIP entry names for portable extraction; the prefix
+                            # keeps two truncated names distinct.
+                            stem = re.sub(r'[<>:"|?*]', '_', Path(item.name).stem)
+                            stem = stem.encode('utf-8')[:232].decode('utf-8', errors='ignore')
                             with item.output.open('rb') as source, archive.open(
-                                    f'{index+1:03d}-' + Path(item.name).stem + '.pdf', 'w') as target:
+                                    f'{index+1:03d}-' + stem + '.pdf', 'w') as target:
                                 while block := source.read(CHUNK):
                                     if job.cancel.is_set():
                                         raise GuardError('BUNDLE_CANCELLED', 'Упаковка отменена.')
@@ -369,6 +393,7 @@ class ConverterGuard:
     def _snapshot(self, job, include_trace=True):
         rows = [{'fileId': f.id, 'name': f.name, 'state': f.state,
                  'code': f.code, 'error': f.error, 'libreOfficeStarted': f.lo_started,
+                 'warnings': ['SOURCE_NAME_NORMALIZED'] if f.name_normalized else [],
                  'format': 'pdf', 'percent': 100 if f.state == 'ready' else None}
                 for f in job.files]
         completed = sum(f.state in {'ready', 'error', 'cancelled'} for f in job.files)

@@ -52,7 +52,7 @@ class GuardAPI:
     @staticmethod
     def _json_body(handler):
         length = handler.headers.get('Content-Length', '')
-        if not length.isdecimal() or not 0 < int(length) <= 64 * 1024:
+        if not length.isdecimal() or not 0 < int(length) <= 256 * 1024:
             raise GuardError('REQUEST_SIZE', 'Неверный размер запроса Guard.')
         if handler.headers.get('Content-Type', '').split(';')[0].strip() != 'application/json':
             raise GuardError('REQUEST_TYPE', 'Требуется JSON-запрос.')

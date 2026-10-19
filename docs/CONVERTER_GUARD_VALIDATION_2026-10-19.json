@@ -3,7 +3,7 @@
   "baseBranch": "migration/ui-excel-clean-foundation-20261019",
   "python": {
     "status": "PASS",
-    "tests": 56,
+    "tests": 58,
     "failures": 0,
     "errors": 0,
     "skipped": 0,
@@ -41,7 +41,8 @@
       "running": 0
     },
     "version": "LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5",
-    "scope": "Synthetic source/Linux qualification; not all user documents or Windows acceptance"
+    "scope": "Synthetic source/Linux qualification; not all user documents or Windows acceptance",
+    "filenameFieldPreserved": true
   },
   "ui": {
     "status": "PASS",
@@ -52,7 +53,9 @@
       "green checks cleared after confirmed save",
       "repeat without app restart",
       "input edit releases old output",
-      "missing LibreOffice reason shown without starting engine"
+      "missing LibreOffice reason shown without starting engine",
+      "long Unicode filenames accepted",
+      "source basename preserved for FILENAME fields"
     ]
   },
   "notRun": [

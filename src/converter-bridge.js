@@ -116,9 +116,11 @@
         error.batchReport = report; throw error;
       }
       const result = {...state.result, targetReport: report, guardTrace: state.trace, progressRunId: created.jobId};
-      return {ok: true, result, message: report.failed ?
+      const nameWarning = state.files.some(f=>f.warnings?.includes('SOURCE_NAME_NORMALIZED')) ?
+        ' Имя временной копии пришлось изменить для этой ОС. Поля имени файла могут отличаться; подробности в журнале.' : '';
+      return {ok: true, result, message: (report.failed ?
         'Готово: ' + report.succeeded + '. Не преобразовано: ' + report.failed + '. Подробности в «Проблемы».' :
-        'PDF создан LibreOffice. Можно сохранить результат.'};
+        'PDF создан LibreOffice. Можно сохранить результат.') + nameWarning};
     } catch (error) {
       if (operation.id) await release(operation.id);
       const cancelled = operation.cancelled || error.name === 'AbortError' || error.code === 'CANCELLED';

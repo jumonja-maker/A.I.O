@@ -57,6 +57,12 @@ def docx_fixture(path, image):
     document = Document()
     document.add_heading('GUARD_BEGIN_7402', level=1)
     document.add_paragraph('Проверка исходного документа. Кириллица, таблица, формула и сноска.')
+    paragraph = document.add_paragraph('FILE_NAME_GUARD_7402 ')
+    field = OxmlElement('w:fldSimple')
+    field.set('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}instr', ' FILENAME ')
+    run, text = OxmlElement('w:r'), OxmlElement('w:t')
+    text.text = path.name
+    run.append(text); field.append(run); paragraph._p.append(field)
     paragraph = document.add_paragraph('MATH_GUARD_7402 ')
     math = OxmlElement('m:oMath')
     run, text = OxmlElement('m:r'), OxmlElement('m:t')
@@ -194,7 +200,7 @@ def main():
             markers = (['LARGE_BEGIN_7403','LARGE_END_7403'] if key=='large_docx' else
                 ['SHEET_A_7402','SHEET_B_7402','00125'] if family=='calc' else
                 ['SLIDE_A_7402','SLIDE_B_7402'] if family=='impress' else ['GUARD_BEGIN_7402','GUARD_END_7402','CELL_A_7402'])
-            if key=='docx': markers += ['FOOTNOTE_GUARD_7402','x=7']
+            if key=='docx': markers += ['FOOTNOTE_GUARD_7402','x=7','FILE_NAME_GUARD_7402writer.docx']
             facts[key] = pdf_facts(destination,markers,large_image if key=='large_docx' else image if key=='docx' else None)
         evidence['pdfFacts'] = facts
         evidence['sourcesUnchanged'] = all(before[key]['sha256']==digest(path) for key,path in fixtures.items())
@@ -203,7 +209,7 @@ def main():
         direct = direct_export(executable, fixtures['docx'], root/'direct-control', 'pdf',
             'writer_pdf_Export:{"UseLosslessCompression":{"type":"boolean","value":"true"},"ReduceImageResolution":{"type":"boolean","value":"false"}}',
             root/'direct-control-profile')
-        evidence['directControl'] = pdf_facts(direct,['GUARD_BEGIN_7402','GUARD_END_7402','FOOTNOTE_GUARD_7402','x=7'],image)
+        evidence['directControl'] = pdf_facts(direct,['GUARD_BEGIN_7402','GUARD_END_7402','FOOTNOTE_GUARD_7402','x=7','FILE_NAME_GUARD_7402writer.docx'],image)
         assert evidence['directControl']['pages']==facts['docx']['pages']
         evidence['trace'] = state['trace']
         guard.release(job)

@@ -38,7 +38,7 @@ const converterNav=[...document.querySelectorAll('.nav-item')].find(n=>n.textCon
 assert.ok(converterNav,'Converter navigation exists');converterNav.click();
 await until(()=>document.querySelector('[data-cv-picker]'),'Converter did not mount');
 const picker=document.querySelector('[data-cv-picker]');
-Object.defineProperty(picker,'files',{configurable:true,value:[new File(['bad!'],'broken.docx'),new File(['good'],'report.docx'),new File(['good'],'table.xlsx')]});
+Object.defineProperty(picker,'files',{configurable:true,value:[new File(['bad!'],'broken.docx'),new File(['good'],'Отчёт_'+ 'я'.repeat(140)+'.docx'),new File(['good'],'table.xlsx')]});
 picker.dispatchEvent(new window.Event('change'));
 if(process.env.AIO_UI_EXPECT_UNAVAILABLE==='1') {
   await until(()=>document.querySelector('[data-cv-status]').textContent.includes('LibreOffice не найден'),'Missing-engine reason not displayed');

@@ -1,7 +1,7 @@
 {
   "scope": "Synthetic Linux/source qualification; not Windows, installer or full visual corpus acceptance.",
   "libreOfficeVersion": "LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5",
-  "elapsedConversionSeconds": 34.994,
+  "elapsedConversionSeconds": 35.296,
   "files": [
     {
       "fileId": "empty_first",
@@ -10,6 +10,7 @@
       "code": "INPUT_EMPTY",
       "error": "Исходный файл пуст.",
       "libreOfficeStarted": false,
+      "warnings": [],
       "format": "pdf",
       "percent": null
     },
@@ -20,6 +21,7 @@
       "code": null,
       "error": null,
       "libreOfficeStarted": true,
+      "warnings": [],
       "format": "pdf",
       "percent": 100
     },
@@ -30,6 +32,7 @@
       "code": null,
       "error": null,
       "libreOfficeStarted": true,
+      "warnings": [],
       "format": "pdf",
       "percent": 100
     },
@@ -40,6 +43,7 @@
       "code": null,
       "error": null,
       "libreOfficeStarted": true,
+      "warnings": [],
       "format": "pdf",
       "percent": 100
     },
@@ -50,6 +54,7 @@
       "code": null,
       "error": null,
       "libreOfficeStarted": true,
+      "warnings": [],
       "format": "pdf",
       "percent": 100
     },
@@ -60,6 +65,7 @@
       "code": null,
       "error": null,
       "libreOfficeStarted": true,
+      "warnings": [],
       "format": "pdf",
       "percent": 100
     },
@@ -70,6 +76,7 @@
       "code": null,
       "error": null,
       "libreOfficeStarted": true,
+      "warnings": [],
       "format": "pdf",
       "percent": 100
     },
@@ -80,6 +87,7 @@
       "code": null,
       "error": null,
       "libreOfficeStarted": true,
+      "warnings": [],
       "format": "pdf",
       "percent": 100
     },
@@ -90,6 +98,7 @@
       "code": null,
       "error": null,
       "libreOfficeStarted": true,
+      "warnings": [],
       "format": "pdf",
       "percent": 100
     },
@@ -100,6 +109,7 @@
       "code": null,
       "error": null,
       "libreOfficeStarted": true,
+      "warnings": [],
       "format": "pdf",
       "percent": 100
     },
@@ -110,6 +120,7 @@
       "code": null,
       "error": null,
       "libreOfficeStarted": true,
+      "warnings": [],
       "format": "pdf",
       "percent": 100
     },
@@ -120,6 +131,7 @@
       "code": null,
       "error": null,
       "libreOfficeStarted": true,
+      "warnings": [],
       "format": "pdf",
       "percent": 100
     }
@@ -132,9 +144,10 @@
         "GUARD_END_7402": true,
         "CELL_A_7402": true,
         "FOOTNOTE_GUARD_7402": true,
-        "x=7": true
+        "x=7": true,
+        "FILE_NAME_GUARD_7402writer.docx": true
       },
-      "size": 81912,
+      "size": 82729,
       "embeddedImagePixelsExact": true,
       "imageSize": [
         128,
@@ -166,7 +179,7 @@
         "GUARD_END_7402": true,
         "CELL_A_7402": true
       },
-      "size": 81912
+      "size": 82533
     },
     "doc": {
       "pages": 2,
@@ -175,7 +188,7 @@
         "GUARD_END_7402": true,
         "CELL_A_7402": true
       },
-      "size": 75810
+      "size": 76524
     },
     "rtf": {
       "pages": 2,
@@ -184,7 +197,7 @@
         "GUARD_END_7402": true,
         "CELL_A_7402": true
       },
-      "size": 81628
+      "size": 82183
     },
     "ods": {
       "pages": 2,
@@ -238,47 +251,47 @@
   "sourcesUnchanged": true,
   "inputs": {
     "docx": {
-      "sha256": "aa8d9b1e21c5dd8eb1e9ea8c6700e3f9e7805dfaaf349839251219377b5aa69b",
-      "size": 87097
+      "sha256": "0fa113201e95b999b09f6b8dab1230fc7869d264b5915d8981dfe9746f578319",
+      "size": 87144
     },
     "xlsx": {
-      "sha256": "2ad16030b851bdc941de26123853b473e576d304a36e39f939e34ee61f987af7",
-      "size": 5454
+      "sha256": "1014034e1b6cc9fb7db94935d74fc12b2f8e79ebc7abdc4ffbb04e92c76cb05e",
+      "size": 5455
     },
     "pptx": {
-      "sha256": "218f6ad7154a2efc46b7f3a7d69a1da061fbcfe13d2bb5d80a27f1258e35f4b0",
+      "sha256": "d92a943aaab5067bc311ab650b44eb5e896c174db859bbf1aa088bc84315f771",
       "size": 29155
     },
     "odt": {
-      "sha256": "3f4b3e0227a4a249d8cdae3e2d54877f96b13e56584c626300c0cc3b50ca5a33",
-      "size": 73338
+      "sha256": "d6d7b4bd48a0dbf19fc5815ccc00426adb9fdd5c309bc1c1b48dabc638f7463c",
+      "size": 73938
     },
     "doc": {
-      "sha256": "1d9ac7bba0fb011cc9c1514752aee9870e25f727acaf3bfb19cc1bf962ba89e4",
+      "sha256": "12ce8877dc700ea025d98138d791e7f2ef3ee229ec8c18be11c83996299be20d",
       "size": 72192
     },
     "rtf": {
-      "sha256": "b94a90a2497d355cb2150ab670928859eadb58db8dfcc5ef8b491a089202da40",
-      "size": 125913
+      "sha256": "ed8138d2e3090f2c4ebd680996919623968f5ec11e0fc08f368c8cd1e34dbe4c",
+      "size": 126178
     },
     "ods": {
-      "sha256": "324f6e4818054f2c0304533725181694386baf1bdf2ed5bad29e0cda6e82f4eb",
-      "size": 9677
+      "sha256": "336972848deab7264e07cce9c352e60bc0376a411f1e2585c937945244bdc9b3",
+      "size": 9678
     },
     "xls": {
-      "sha256": "d491e3973bad8818e9e1d5b34b746e194168fa9948baea2485f2ee1b3346b8fe",
+      "sha256": "2a58ef7c67b653035cdaa0d64a76852af99af89b3c395fa8c7e900b0b22de339",
       "size": 6144
     },
     "odp": {
-      "sha256": "f0bb988079d98e191445e4688cc9317debb41eede7e6f0f6dbada3cd9f13c410",
-      "size": 20431
+      "sha256": "c767191755b71237990bccff7054764a844ce8ea34ba3bd958c8f6cf0b547711",
+      "size": 20445
     },
     "ppt": {
       "sha256": "d021049a833e73655de7cb01057f40aacceca9e4684e139c1b3a0d793e3a64ba",
       "size": 650752
     },
     "large_docx": {
-      "sha256": "7c036039ebf3ce2ffd8a8214329d7535b59ae4801ff0418a0d52584e80c5f757",
+      "sha256": "d6a474f6df1c3d2888c1c854eeca1702f9ac64fd376ba5f16f0682bec7966e38",
       "size": 23103397
     }
   },
@@ -288,9 +301,10 @@
       "GUARD_BEGIN_7402": true,
       "GUARD_END_7402": true,
       "FOOTNOTE_GUARD_7402": true,
-      "x=7": true
+      "x=7": true,
+      "FILE_NAME_GUARD_7402writer.docx": true
     },
-    "size": 81912,
+    "size": 82729,
     "embeddedImagePixelsExact": true,
     "imageSize": [
       128,
@@ -366,7 +380,7 @@
       },
       {
         "sequence": 9,
-        "elapsedMs": 2,
+        "elapsedMs": 1,
         "stage": "input_stored",
         "fileId": "ods",
         "code": null,
@@ -374,7 +388,7 @@
       },
       {
         "sequence": 10,
-        "elapsedMs": 2,
+        "elapsedMs": 1,
         "stage": "input_stored",
         "fileId": "xls",
         "code": null,
@@ -446,7 +460,7 @@
       },
       {
         "sequence": 19,
-        "elapsedMs": 510,
+        "elapsedMs": 410,
         "stage": "result_ready",
         "fileId": "docx",
         "code": null,
@@ -454,7 +468,7 @@
       },
       {
         "sequence": 20,
-        "elapsedMs": 512,
+        "elapsedMs": 412,
         "stage": "route_selected",
         "fileId": "xlsx",
         "code": null,
@@ -462,7 +476,7 @@
       },
       {
         "sequence": 21,
-        "elapsedMs": 513,
+        "elapsedMs": 413,
         "stage": "engine_started",
         "fileId": "xlsx",
         "code": null,
@@ -470,7 +484,7 @@
       },
       {
         "sequence": 22,
-        "elapsedMs": 11147,
+        "elapsedMs": 10536,
         "stage": "result_ready",
         "fileId": "xlsx",
         "code": null,
@@ -478,7 +492,7 @@
       },
       {
         "sequence": 23,
-        "elapsedMs": 11149,
+        "elapsedMs": 10538,
         "stage": "route_selected",
         "fileId": "pptx",
         "code": null,
@@ -486,7 +500,7 @@
       },
       {
         "sequence": 24,
-        "elapsedMs": 11151,
+        "elapsedMs": 10539,
         "stage": "engine_started",
         "fileId": "pptx",
         "code": null,
@@ -494,7 +508,7 @@
       },
       {
         "sequence": 25,
-        "elapsedMs": 11753,
+        "elapsedMs": 11040,
         "stage": "result_ready",
         "fileId": "pptx",
         "code": null,
@@ -502,7 +516,7 @@
       },
       {
         "sequence": 26,
-        "elapsedMs": 11754,
+        "elapsedMs": 11042,
         "stage": "route_selected",
         "fileId": "odt",
         "code": null,
@@ -510,7 +524,7 @@
       },
       {
         "sequence": 27,
-        "elapsedMs": 11755,
+        "elapsedMs": 11043,
         "stage": "engine_started",
         "fileId": "odt",
         "code": null,
@@ -518,7 +532,7 @@
       },
       {
         "sequence": 28,
-        "elapsedMs": 12156,
+        "elapsedMs": 11444,
         "stage": "result_ready",
         "fileId": "odt",
         "code": null,
@@ -526,7 +540,7 @@
       },
       {
         "sequence": 29,
-        "elapsedMs": 12158,
+        "elapsedMs": 11446,
         "stage": "route_selected",
         "fileId": "doc",
         "code": null,
@@ -534,7 +548,7 @@
       },
       {
         "sequence": 30,
-        "elapsedMs": 12158,
+        "elapsedMs": 11446,
         "stage": "engine_started",
         "fileId": "doc",
         "code": null,
@@ -542,7 +556,7 @@
       },
       {
         "sequence": 31,
-        "elapsedMs": 12560,
+        "elapsedMs": 11847,
         "stage": "result_ready",
         "fileId": "doc",
         "code": null,
@@ -550,7 +564,7 @@
       },
       {
         "sequence": 32,
-        "elapsedMs": 12561,
+        "elapsedMs": 11849,
         "stage": "route_selected",
         "fileId": "rtf",
         "code": null,
@@ -558,7 +572,7 @@
       },
       {
         "sequence": 33,
-        "elapsedMs": 12579,
+        "elapsedMs": 11850,
         "stage": "engine_started",
         "fileId": "rtf",
         "code": null,
@@ -566,7 +580,7 @@
       },
       {
         "sequence": 34,
-        "elapsedMs": 12980,
+        "elapsedMs": 12251,
         "stage": "result_ready",
         "fileId": "rtf",
         "code": null,
@@ -574,7 +588,7 @@
       },
       {
         "sequence": 35,
-        "elapsedMs": 12982,
+        "elapsedMs": 12252,
         "stage": "route_selected",
         "fileId": "ods",
         "code": null,
@@ -582,7 +596,7 @@
       },
       {
         "sequence": 36,
-        "elapsedMs": 12983,
+        "elapsedMs": 12253,
         "stage": "engine_started",
         "fileId": "ods",
         "code": null,
@@ -590,7 +604,7 @@
       },
       {
         "sequence": 37,
-        "elapsedMs": 22907,
+        "elapsedMs": 22479,
         "stage": "result_ready",
         "fileId": "ods",
         "code": null,
@@ -598,7 +612,7 @@
       },
       {
         "sequence": 38,
-        "elapsedMs": 22908,
+        "elapsedMs": 22480,
         "stage": "route_selected",
         "fileId": "xls",
         "code": null,
@@ -606,7 +620,7 @@
       },
       {
         "sequence": 39,
-        "elapsedMs": 22909,
+        "elapsedMs": 22481,
         "stage": "engine_started",
         "fileId": "xls",
         "code": null,
@@ -614,7 +628,7 @@
       },
       {
         "sequence": 40,
-        "elapsedMs": 32840,
+        "elapsedMs": 33208,
         "stage": "result_ready",
         "fileId": "xls",
         "code": null,
@@ -622,7 +636,7 @@
       },
       {
         "sequence": 41,
-        "elapsedMs": 32841,
+        "elapsedMs": 33210,
         "stage": "route_selected",
         "fileId": "odp",
         "code": null,
@@ -630,7 +644,7 @@
       },
       {
         "sequence": 42,
-        "elapsedMs": 32842,
+        "elapsedMs": 33211,
         "stage": "engine_started",
         "fileId": "odp",
         "code": null,
@@ -638,7 +652,7 @@
       },
       {
         "sequence": 43,
-        "elapsedMs": 33345,
+        "elapsedMs": 33713,
         "stage": "result_ready",
         "fileId": "odp",
         "code": null,
@@ -646,7 +660,7 @@
       },
       {
         "sequence": 44,
-        "elapsedMs": 33347,
+        "elapsedMs": 33715,
         "stage": "route_selected",
         "fileId": "ppt",
         "code": null,
@@ -654,7 +668,7 @@
       },
       {
         "sequence": 45,
-        "elapsedMs": 33349,
+        "elapsedMs": 33718,
         "stage": "engine_started",
         "fileId": "ppt",
         "code": null,
@@ -662,7 +676,7 @@
       },
       {
         "sequence": 46,
-        "elapsedMs": 33750,
+        "elapsedMs": 34119,
         "stage": "result_ready",
         "fileId": "ppt",
         "code": null,
@@ -670,7 +684,7 @@
       },
       {
         "sequence": 47,
-        "elapsedMs": 33753,
+        "elapsedMs": 34121,
         "stage": "route_selected",
         "fileId": "large_docx",
         "code": null,
@@ -678,7 +692,7 @@
       },
       {
         "sequence": 48,
-        "elapsedMs": 33754,
+        "elapsedMs": 34122,
         "stage": "engine_started",
         "fileId": "large_docx",
         "code": null,
@@ -686,7 +700,7 @@
       },
       {
         "sequence": 49,
-        "elapsedMs": 34957,
+        "elapsedMs": 35225,
         "stage": "result_ready",
         "fileId": "large_docx",
         "code": null,
@@ -694,7 +708,7 @@
       },
       {
         "sequence": 50,
-        "elapsedMs": 34979,
+        "elapsedMs": 35242,
         "stage": "job_finished",
         "fileId": null,
         "code": "partial",
@@ -712,10 +726,10 @@
     "engine": "Poppler",
     "status": "PASS",
     "pages": [
-      "docx 1-2",
-      "xlsx 1-2",
-      "pptx 1-2",
-      "large_docx 1"
+      "native-qa-04 docx 1-2",
+      "native-qa-03 xlsx 1-2",
+      "native-qa-03 pptx 1-2",
+      "native-qa-03 large_docx 1"
     ],
     "scope": "Synthetic examples, not full visual fidelity certification"
   }
