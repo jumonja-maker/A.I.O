@@ -153,6 +153,30 @@ class NativeTransportHTTPTests(unittest.TestCase):
         self.assertTrue(next(f for f in report['formats'] if f['id'] == 'png')['enabled'])
         self.assertEqual(len(self.server.converter.active), 0)
 
+    def test_inspect_reads_fragmented_json_body_exactly(self):
+        # A SocketIO reader can return a short body even with more bytes
+        # promised by Content-Length. Simulate separated TCP packets to
+        # protect metadata inspection and the unchanged Excel endpoint.
+        files = [{'id': 'f' + str(i), 'name': 'image.bmp', 'size': i}
+                 for i in range(120)]
+        body = json.dumps({'files': files}).encode('utf-8')
+        headers = ('POST /api/converter/inspect HTTP/1.0\r\n' +
+            'Host: 127.0.0.1:' + str(self.server.server_port) + '\r\n' +
+            'X-AIO-Token: ' + self.token + '\r\n' +
+            'Content-Type: application/json\r\n' +
+            'Content-Length: ' + str(len(body)) + '\r\n\r\n').encode()
+        with socket.create_connection(('127.0.0.1', self.server.server_port)) as connection:
+            connection.settimeout(5)
+            connection.sendall(headers + body[:13])
+            time.sleep(.1)
+            connection.sendall(body[13:])
+            data = bytearray()
+            while chunk := connection.recv(64 * 1024):
+                data.extend(chunk)
+        self.assertTrue(data.startswith(b'HTTP/1.0 200'), data[:150])
+        payload = json.loads(bytes(data).split(b'\r\n\r\n', 1)[1])
+        self.assertEqual(len(payload['files']), len(files))
+
     def test_bmp_and_unknown_extension_are_delivered_unchanged(self):
         content = b'BM' + b'\x00\xff' * 100
         outcome = self.convert([('Картинка.bmp', content), ('unknown.custom', b'custom')])
