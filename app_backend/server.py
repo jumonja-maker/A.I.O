@@ -1,7 +1,7 @@
 """Minimal authenticated loopback host for A.I.O UI and independent Excel merge.
 
 No legacy converter imports, route catalogues, Advanced hooks or fallback
-conversion engines. Converter Guard has a separate, intentionally empty port.
+conversion engines. The converter is not wired until its new architecture is supplied.
 """
 from __future__ import annotations
 
@@ -140,8 +140,8 @@ def start_server(port: int = 0):
                 return self._json(200, {'available':False,
                     'message':'Проверка обновлений для нового репозитория пока не настроена.'})
             if path.startswith('/api/converter'):
-                return self._json(501, {'code':'GUARD_NOT_READY',
-                    'error':'Новый Converter Guard ещё не подключён.'})
+                return self._json(501, {'code':'CONVERTER_NOT_CONNECTED',
+                    'error':'Конвертер пока не подключён.'})
             return self._static(path)
 
         def _read_multipart(self):
@@ -186,8 +186,8 @@ def start_server(port: int = 0):
             if path == '/api/icon-theme':
                 return self._json(200, {'ok':True})
             if path.startswith('/api/converter'):
-                return self._json(501, {'code':'GUARD_NOT_READY',
-                    'error':'Новый Converter Guard ещё не подключён.'})
+                return self._json(501, {'code':'CONVERTER_NOT_CONNECTED',
+                    'error':'Конвертер пока не подключён.'})
             if path != '/api/merge':
                 return self._json(404, {'error':'Неизвестная операция.'})
             job = self.headers.get('X-AIO-Job','')
