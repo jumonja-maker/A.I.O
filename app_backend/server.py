@@ -10,6 +10,7 @@ from email.parser import BytesParser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import io
+import select
 import zipfile
 import mimetypes
 import re
@@ -26,6 +27,30 @@ from .libreoffice_catalog import EXTENSION
 from .converter_transport import ConverterTransport
 from .converter_upload_stream import MultipartUpload, content_length
 from urllib.parse import quote
+
+
+class CancellableSocketUpload:
+    """Read only available TCP bytes, without any elapsed-time policy.
+
+    The request headers use an unbuffered rfile, so there are no prefetched
+    body bytes bypassed by recv(). Cancellation wakes within 0.1 seconds on
+    Linux and Windows without shutting down the socket write half.
+    """
+    def __init__(self, connection, cancel):
+        self.connection = connection
+        self.cancel = cancel
+
+    def read(self, size):
+        while not self.cancel.is_set():
+            readable, _, _ = select.select([self.connection], [], [], 0.1)
+            if readable:
+                try:
+                    return self.connection.recv(size)
+                except OSError:
+                    if self.cancel.is_set():
+                        raise LibreOfficeError('Загрузка отменена.', 'CANCELLED')
+                    raise
+        raise LibreOfficeError('Загрузка отменена.', 'CANCELLED')
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -63,6 +88,10 @@ def start_server(port: int = 0):
     root = asset_root().resolve()
 
     class Handler(BaseHTTPRequestHandler):
+        # Use an unbuffered socket reader: buffered rfile.read(64 KiB) can wait
+        # forever for a stalled client and cannot be interrupted reliably by
+        # shutdown(SHUT_RD) on Windows. Readiness polling below permits cancel.
+        rbufsize = 0
         server_version = 'AIO-Clean/0.1'
         sys_version = ''
 
@@ -80,11 +109,23 @@ def start_server(port: int = 0):
                 "font-src 'self'; base-uri 'none'; form-action 'none'")
             self.end_headers()
 
+        def _read_exact(self, size):
+            # SocketIO.read() may return fewer bytes than requested, unlike the
+            # previously buffered reader. Keep Excel and JSON framing exact.
+            output = io.BytesIO()
+            while size:
+                data = self.rfile.read(min(64 * 1024, size))
+                if not data:
+                    raise ValueError('Загрузка HTTP прервана.')
+                output.write(data)
+                size -= len(data)
+            return output.getvalue()
+
         def _send(self, code, payload, content_type='application/octet-stream'):
             try:
                 self._headers(code, content_type, len(payload))
                 self.wfile.write(payload)
-            except (BrokenPipeError, ConnectionResetError):
+            except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
                 pass  # The caller closed its own upload/download.
 
         def _json(self, code, value):
@@ -202,7 +243,7 @@ def start_server(port: int = 0):
             content_type = self.headers.get('Content-Type', '')
             if not content_type.lower().startswith('multipart/form-data;'):
                 raise MergeError('Требуется загрузка файлов Excel.')
-            body = self.rfile.read(int(length))
+            body = self._read_exact(int(length))
             if len(body) != int(length):
                 raise MergeError('Загрузка Excel была прервана.')
             mime = (b'MIME-Version: 1.0\r\nContent-Type: ' +
@@ -239,7 +280,7 @@ def start_server(port: int = 0):
         def _read_converter_json(self):
             if self.headers.get('Content-Type', '').split(';')[0] != 'application/json':
                 raise LibreOfficeError('Нужен JSON-запрос.', 'INVALID_REQUEST')
-            value = json.loads(self.rfile.read(content_length(self.headers)))
+            value = json.loads(self._read_exact(content_length(self.headers)))
             if not isinstance(value, dict):
                 raise LibreOfficeError('Некорректные параметры.', 'INVALID_REQUEST')
             return value
@@ -269,8 +310,11 @@ def start_server(port: int = 0):
                 if not JOB_PATTERN.fullmatch(identity):
                     raise LibreOfficeError('Некорректный идентификатор задания.', 'INVALID_REQUEST')
                 request = self.server.converter.begin(identity, self.connection)
-                files, fields = MultipartUpload(self.rfile, content_length(self.headers),
-                    self.headers.get('Content-Type', ''), request.cancel).read(request.root / 'inputs')
+                files, fields = MultipartUpload(
+                    CancellableSocketUpload(self.connection, request.cancel),
+                    content_length(self.headers),
+                    self.headers.get('Content-Type', ''),
+                    request.cancel).read(request.root / 'inputs')
                 try:
                     ids = json.loads(fields['ids'])
                     formats = json.loads(fields['formats']) if 'formats' in fields else [fields.get('format')]
