@@ -58,9 +58,10 @@ class CleanFoundationTests(unittest.TestCase):
         html = self.fetch('/').read().decode('utf-8')
         self.assertIn('src/excel-tool.js', html)
         self.assertIn('src/converter-bridge.js', html)
-        self.assertIn('elva-v13-happy-thumb.webp', html)
+        self.assertIn('elva-v13-happy-64.png', html)
+        self.assertIn('elva-v13-happy-128.png 128w', html)
         self.assertIn('data-aio-token=', html)
-        self.assertGreater(len(self.fetch('/assets/brand/elva-v13-happy-thumb.webp').read()), 2000)
+        self.assertGreater(len(self.fetch('/assets/brand/elva-v13-happy-128.png').read()), 2000)
 
     def test_designer_source_is_hash_checked_and_renderable(self):
         js = read_designer_asset(str(asset_root()), 'file-converter.js')

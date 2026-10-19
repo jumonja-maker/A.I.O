@@ -19,14 +19,16 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 UninstallDisplayName=A.I.O (Clean QA)
 WizardStyle=modern
+SetupIconFile=..\..\assets\brand\icons\aio.ico
+UninstallDisplayIcon={app}\_internal\assets\brand\icons\aio.ico
 DisableProgramGroupPage=yes
 
 [Files]
 Source: "..\..\dist\A.I.O\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{autoprograms}\A.I.O (Clean QA)"; Filename: "{app}\A.I.O.exe"
-Name: "{autodesktop}\A.I.O (Clean QA)"; Filename: "{app}\A.I.O.exe"; Tasks: desktopicon
+Name: "{autoprograms}\A.I.O (Clean QA)"; Filename: "{app}\A.I.O.exe"; IconFilename: "{app}\_internal\assets\brand\icons\aio.ico"; IconIndex: 0
+Name: "{autodesktop}\A.I.O (Clean QA)"; Filename: "{app}\A.I.O.exe"; IconFilename: "{app}\_internal\assets\brand\icons\aio.ico"; IconIndex: 0; Tasks: desktopicon
 
 [Tasks]
 Name: desktopicon; Description: "Создать ярлык на рабочем столе"; Flags: unchecked

@@ -1,0 +1,60 @@
+{
+  "scope": "Linux/source native Qt/WebEngine; Windows installer NOT_RUN",
+  "scenarios": [
+    {
+      "source": "brand/elva-v13-happy-128.png",
+      "loaded": true,
+      "selectedPixels": 128,
+      "cssWidth": 58,
+      "cssHeight": 58,
+      "dpr": 2,
+      "theme": "light",
+      "favicon": "assets/brand/icons/aio-64.png"
+    },
+    {
+      "source": "brand/elva-v13-happy-128.png",
+      "loaded": true,
+      "selectedPixels": 128,
+      "cssWidth": 58,
+      "cssHeight": 58,
+      "dpr": 2,
+      "theme": "dark",
+      "favicon": "assets/brand/icons/aio-64.png"
+    },
+    {
+      "source": "brand/elva-v13-happy-256.png",
+      "loaded": true,
+      "selectedPixels": 256,
+      "cssWidth": 58,
+      "cssHeight": 58,
+      "dpr": 3,
+      "theme": "light",
+      "favicon": "assets/brand/icons/aio-64.png"
+    },
+    {
+      "source": "brand/elva-v13-happy-256.png",
+      "loaded": true,
+      "selectedPixels": 256,
+      "cssWidth": 52,
+      "cssHeight": 52,
+      "dpr": 4,
+      "theme": "dark",
+      "favicon": "assets/brand/icons/aio-64.png"
+    }
+  ],
+  "nativeIcon": {
+    "sizes": [
+      16,
+      20,
+      24,
+      32,
+      48,
+      64,
+      128,
+      256
+    ],
+    "pixelsMatchApprovedMark": true,
+    "applicationIconNotNull": true
+  },
+  "status": "PASS"
+}

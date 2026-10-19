@@ -9,6 +9,9 @@ import os
 import sys
 
 root = Path(SPECPATH)
+app_icon = root / 'assets' / 'brand' / 'icons' / 'aio.ico'
+if not app_icon.is_file():
+    raise RuntimeError('Approved A.I.O icon missing. Run tools/build_brand_icons.py before packaging.')
 assets = []
 for folder in ('src', 'addons', 'assets'):
     for path in (root / folder).rglob('*'):
@@ -55,5 +58,6 @@ exe = EXE(
     debug=False,
     strip=False,
     upx=False,
+    icon=str(app_icon),
 )
 coll = COLLECT(exe, a.binaries, a.datas, name='A.I.O', strip=False, upx=False)

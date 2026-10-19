@@ -4,31 +4,25 @@
 (() => {
   'use strict';
   const ASSET_ROOT = 'assets/brand/';
-  const icons = Object.freeze({
-    light: Object.freeze({
-      // Legacy svg property retained for existing listeners; it points to the
-      // approved raster mark so no UI consumer displays the retired SVG.
-      svg: ASSET_ROOT + 'elva-v13-happy-thumb.webp',
-      ico: ASSET_ROOT + 'elva-v13-happy-thumb.webp',
-      icns: ASSET_ROOT + 'elva-v13-happy-thumb.webp',
-      png: ASSET_ROOT + 'elva-v13-happy-thumb.webp'
-    }),
-    dark: Object.freeze({
-      // Legacy svg property retained for existing listeners; it points to the
-      // approved raster mark so no UI consumer displays the retired SVG.
-      svg: ASSET_ROOT + 'elva-v13-happy-thumb.webp',
-      ico: ASSET_ROOT + 'elva-v13-happy-thumb.webp',
-      icns: ASSET_ROOT + 'elva-v13-happy-thumb.webp',
-      png: ASSET_ROOT + 'elva-v13-happy-thumb.webp'
-    })
+  // One approved application mark in both themes; Elva's responsive header
+  // image is independent and must never be replaced by a small favicon.
+  const mark = Object.freeze({
+    svg: ASSET_ROOT + 'icons/aio-256.png', // legacy property, raster mark
+    ico: ASSET_ROOT + 'icons/aio.ico',
+    icns: null, // this Windows/Linux patch does not invent an ICNS resource
+    png: ASSET_ROOT + 'icons/aio-256.png'
   });
+  const icons = Object.freeze({ light: mark, dark: mark });
   function setTheme(theme) {
     if (theme !== 'light' && theme !== 'dark') return;
     const files = icons[theme];
     const mark = document.querySelector('[data-aio-app-logo]');
     if (mark) mark.setAttribute('src', files.png);
     const favicon = document.getElementById('app-favicon');
-    if (favicon) favicon.setAttribute('href', files.png);
+    if (favicon) {
+      favicon.setAttribute('href', ASSET_ROOT + 'icons/aio-64.png');
+      favicon.setAttribute('type', 'image/png');
+    }
     // Give native hosts a stable, explicit contract without assuming the GUI stack.
     // Theme state remains in app.js; the UI never modifies desktop shortcuts itself.
     window.dispatchEvent(new CustomEvent('aio:brand-theme', {
