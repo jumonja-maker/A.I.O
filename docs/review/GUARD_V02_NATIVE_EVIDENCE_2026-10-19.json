@@ -1,0 +1,910 @@
+{
+  "scope": "Synthetic Linux/source Guard v0.2; no UI or Windows integration",
+  "engine": "LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5",
+  "cases": [
+    {
+      "label": "bad-first-mixed-inputs",
+      "formats": [
+        "pdf"
+      ],
+      "sources": [
+        {
+          "name": "bad.docx",
+          "bytes": 267
+        },
+        {
+          "name": "writer.docx",
+          "bytes": 55863
+        },
+        {
+          "name": "calc.xlsx",
+          "bytes": 5449
+        },
+        {
+          "name": "impress.pptx",
+          "bytes": 29159
+        },
+        {
+          "name": "image.bmp",
+          "bytes": 18486
+        }
+      ],
+      "seconds": 12.77,
+      "succeeded": 4,
+      "failed": 1,
+      "states": [
+        {
+          "fileId": "0",
+          "name": "bad.docx",
+          "state": "error",
+          "targets": [
+            {
+              "format": "pdf",
+              "state": "error",
+              "code": "ENGINE_FAILED",
+              "error": "LibreOffice завершился с кодом 1.",
+              "stage": "engine",
+              "libreOfficeStarted": true,
+              "percent": null,
+              "outputs": []
+            }
+          ]
+        },
+        {
+          "fileId": "1",
+          "name": "writer.docx",
+          "state": "ready",
+          "targets": [
+            {
+              "format": "pdf",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "libreOfficeStarted": true,
+              "percent": 100,
+              "outputs": [
+                {
+                  "fileId": "1",
+                  "format": "pdf",
+                  "name": "writer.pdf",
+                  "archiveName": "0002-pdf/writer.pdf",
+                  "size": 30364,
+                  "saved": false,
+                  "mime": "application/pdf"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "fileId": "2",
+          "name": "calc.xlsx",
+          "state": "ready",
+          "targets": [
+            {
+              "format": "pdf",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "libreOfficeStarted": true,
+              "percent": 100,
+              "outputs": [
+                {
+                  "fileId": "2",
+                  "format": "pdf",
+                  "name": "calc.pdf",
+                  "archiveName": "0003-pdf/calc.pdf",
+                  "size": 16285,
+                  "saved": false,
+                  "mime": "application/pdf"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "fileId": "3",
+          "name": "impress.pptx",
+          "state": "ready",
+          "targets": [
+            {
+              "format": "pdf",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "libreOfficeStarted": true,
+              "percent": 100,
+              "outputs": [
+                {
+                  "fileId": "3",
+                  "format": "pdf",
+                  "name": "impress.pdf",
+                  "archiveName": "0004-pdf/impress.pdf",
+                  "size": 12191,
+                  "saved": false,
+                  "mime": "application/pdf"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "fileId": "4",
+          "name": "image.bmp",
+          "state": "ready",
+          "targets": [
+            {
+              "format": "pdf",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "libreOfficeStarted": true,
+              "percent": 100,
+              "outputs": [
+                {
+                  "fileId": "4",
+                  "format": "pdf",
+                  "name": "image.pdf",
+                  "archiveName": "0005-pdf/image.pdf",
+                  "size": 13315,
+                  "saved": false,
+                  "mime": "application/pdf"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "bmp-multiple-targets",
+      "formats": [
+        "png",
+        "pdf",
+        "tiff",
+        "svg",
+        "webp"
+      ],
+      "sources": [
+        {
+          "name": "image.bmp",
+          "bytes": 18486
+        }
+      ],
+      "seconds": 1.647,
+      "succeeded": 5,
+      "failed": 0,
+      "states": [
+        {
+          "fileId": "0",
+          "name": "image.bmp",
+          "state": "ready",
+          "targets": [
+            {
+              "format": "png",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "libreOfficeStarted": true,
+              "percent": 100,
+              "outputs": [
+                {
+                  "fileId": "0",
+                  "format": "png",
+                  "name": "image.png",
+                  "archiveName": "0001-png/image.png",
+                  "size": 26821,
+                  "saved": false,
+                  "mime": "image/png"
+                }
+              ]
+            },
+            {
+              "format": "pdf",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "libreOfficeStarted": true,
+              "percent": 100,
+              "outputs": [
+                {
+                  "fileId": "0",
+                  "format": "pdf",
+                  "name": "image.pdf",
+                  "archiveName": "0002-pdf/image.pdf",
+                  "size": 13315,
+                  "saved": false,
+                  "mime": "application/pdf"
+                }
+              ]
+            },
+            {
+              "format": "tiff",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "libreOfficeStarted": true,
+              "percent": 100,
+              "outputs": [
+                {
+                  "fileId": "0",
+                  "format": "tiff",
+                  "name": "image.tiff",
+                  "archiveName": "0003-tiff/image.tiff",
+                  "size": 64326,
+                  "saved": false,
+                  "mime": "image/tiff"
+                }
+              ]
+            },
+            {
+              "format": "svg",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "libreOfficeStarted": true,
+              "percent": 100,
+              "outputs": [
+                {
+                  "fileId": "0",
+                  "format": "svg",
+                  "name": "image.svg",
+                  "archiveName": "0004-svg/image.svg",
+                  "size": 29337,
+                  "saved": false,
+                  "mime": "image/svg+xml"
+                }
+              ]
+            },
+            {
+              "format": "webp",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "libreOfficeStarted": true,
+              "percent": 100,
+              "outputs": [
+                {
+                  "fileId": "0",
+                  "format": "webp",
+                  "name": "image.webp",
+                  "archiveName": "0005-webp/image.webp",
+                  "size": 18972,
+                  "saved": false,
+                  "mime": "image/webp"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "writer-native-targets",
+      "formats": [
+        "docx",
+        "odt",
+        "html",
+        "txt",
+        "pdf"
+      ],
+      "sources": [
+        {
+          "name": "writer.docx",
+          "bytes": 55863
+        }
+      ],
+      "seconds": 2.729,
+      "succeeded": 5,
+      "failed": 0,
+      "states": [
+        {
+          "fileId": "0",
+          "name": "writer.docx",
+          "state": "ready",
+          "targets": [
+            {
+              "format": "docx",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "libreOfficeStarted": true,
+              "percent": 100,
+              "outputs": [
+                {
+                  "fileId": "0",
+                  "format": "docx",
+                  "name": "writer.docx",
+                  "archiveName": "0001-docx/writer.docx",
+                  "size": 39165,
+                  "saved": false,
+                  "mime": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                }
+              ]
+            },
+            {
+              "format": "odt",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "libreOfficeStarted": true,
+              "percent": 100,
+              "outputs": [
+                {
+                  "fileId": "0",
+                  "format": "odt",
+                  "name": "writer.odt",
+                  "archiveName": "0002-odt/writer.odt",
+                  "size": 37638,
+                  "saved": false,
+                  "mime": "application/vnd.oasis.opendocument.text"
+                }
+              ]
+            },
+            {
+              "format": "html",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "libreOfficeStarted": true,
+              "percent": 100,
+              "outputs": [
+                {
+                  "fileId": "0",
+                  "format": "html",
+                  "name": "writer.html",
+                  "archiveName": "0003-html/writer.html",
+                  "size": 2309,
+                  "saved": false,
+                  "mime": "text/html"
+                },
+                {
+                  "fileId": "0",
+                  "format": "html",
+                  "name": "writer_html_270321d7.png",
+                  "archiveName": "0003-html/writer_html_270321d7.png",
+                  "size": 18564,
+                  "saved": false,
+                  "mime": "image/png"
+                },
+                {
+                  "fileId": "0",
+                  "format": "html",
+                  "name": "writer_html_f96e761f.gif",
+                  "archiveName": "0003-html/writer_html_f96e761f.gif",
+                  "size": 915,
+                  "saved": false,
+                  "mime": "image/gif"
+                }
+              ]
+            },
+            {
+              "format": "txt",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "libreOfficeStarted": true,
+              "percent": 100,
+              "outputs": [
+                {
+                  "fileId": "0",
+                  "format": "txt",
+                  "name": "writer.txt",
+                  "archiveName": "0004-txt/writer.txt",
+                  "size": 104,
+                  "saved": false,
+                  "mime": "text/plain"
+                }
+              ]
+            },
+            {
+              "format": "pdf",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "libreOfficeStarted": true,
+              "percent": 100,
+              "outputs": [
+                {
+                  "fileId": "0",
+                  "format": "pdf",
+                  "name": "writer.pdf",
+                  "archiveName": "0005-pdf/writer.pdf",
+                  "size": 30364,
+                  "saved": false,
+                  "mime": "application/pdf"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "calc-native-targets",
+      "formats": [
+        "xlsx",
+        "ods",
+        "csv",
+        "pdf"
+      ],
+      "sources": [
+        {
+          "name": "calc.xlsx",
+          "bytes": 5449
+        }
+      ],
+      "seconds": 40.309,
+      "succeeded": 4,
+      "failed": 0,
+      "states": [
+        {
+          "fileId": "0",
+          "name": "calc.xlsx",
+          "state": "ready",
+          "targets": [
+            {
+              "format": "xlsx",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "libreOfficeStarted": true,
+              "percent": 100,
+              "outputs": [
+                {
+                  "fileId": "0",
+                  "format": "xlsx",
+                  "name": "calc.xlsx",
+                  "archiveName": "0001-xlsx/calc.xlsx",
+                  "size": 7296,
+                  "saved": false,
+                  "mime": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                }
+              ]
+            },
+            {
+              "format": "ods",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "libreOfficeStarted": true,
+              "percent": 100,
+              "outputs": [
+                {
+                  "fileId": "0",
+                  "format": "ods",
+                  "name": "calc.ods",
+                  "archiveName": "0002-ods/calc.ods",
+                  "size": 9766,
+                  "saved": false,
+                  "mime": "application/vnd.oasis.opendocument.spreadsheet"
+                }
+              ]
+            },
+            {
+              "format": "csv",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "libreOfficeStarted": true,
+              "percent": 100,
+              "outputs": [
+                {
+                  "fileId": "0",
+                  "format": "csv",
+                  "name": "calc.csv",
+                  "archiveName": "0003-csv/calc.csv",
+                  "size": 29,
+                  "saved": false,
+                  "mime": "text/csv"
+                }
+              ]
+            },
+            {
+              "format": "pdf",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "libreOfficeStarted": true,
+              "percent": 100,
+              "outputs": [
+                {
+                  "fileId": "0",
+                  "format": "pdf",
+                  "name": "calc.pdf",
+                  "archiveName": "0004-pdf/calc.pdf",
+                  "size": 16285,
+                  "saved": false,
+                  "mime": "application/pdf"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "impress-native-targets",
+      "formats": [
+        "pptx",
+        "odp",
+        "pdf"
+      ],
+      "sources": [
+        {
+          "name": "impress.pptx",
+          "bytes": 29159
+        }
+      ],
+      "seconds": 1.919,
+      "succeeded": 3,
+      "failed": 0,
+      "states": [
+        {
+          "fileId": "0",
+          "name": "impress.pptx",
+          "state": "ready",
+          "targets": [
+            {
+              "format": "pptx",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "libreOfficeStarted": true,
+              "percent": 100,
+              "outputs": [
+                {
+                  "fileId": "0",
+                  "format": "pptx",
+                  "name": "impress.pptx",
+                  "archiveName": "0001-pptx/impress.pptx",
+                  "size": 29792,
+                  "saved": false,
+                  "mime": "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                }
+              ]
+            },
+            {
+              "format": "odp",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "libreOfficeStarted": true,
+              "percent": 100,
+              "outputs": [
+                {
+                  "fileId": "0",
+                  "format": "odp",
+                  "name": "impress.odp",
+                  "archiveName": "0002-odp/impress.odp",
+                  "size": 20517,
+                  "saved": false,
+                  "mime": "application/vnd.oasis.opendocument.presentation"
+                }
+              ]
+            },
+            {
+              "format": "pdf",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "libreOfficeStarted": true,
+              "percent": 100,
+              "outputs": [
+                {
+                  "fileId": "0",
+                  "format": "pdf",
+                  "name": "impress.pdf",
+                  "archiveName": "0003-pdf/impress.pdf",
+                  "size": 12191,
+                  "saved": false,
+                  "mime": "application/pdf"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "unlisted-input-extension",
+      "formats": [
+        "docx",
+        "pdf"
+      ],
+      "sources": [
+        {
+          "name": "text.unlisted",
+          "bytes": 24
+        }
+      ],
+      "seconds": 1.036,
+      "succeeded": 2,
+      "failed": 0,
+      "states": [
+        {
+          "fileId": "0",
+          "name": "text.unlisted",
+          "state": "ready",
+          "targets": [
+            {
+              "format": "docx",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "libreOfficeStarted": true,
+              "percent": 100,
+              "outputs": [
+                {
+                  "fileId": "0",
+                  "format": "docx",
+                  "name": "text.docx",
+                  "archiveName": "0001-docx/text.docx",
+                  "size": 5011,
+                  "saved": false,
+                  "mime": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                }
+              ]
+            },
+            {
+              "format": "pdf",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "libreOfficeStarted": true,
+              "percent": 100,
+              "outputs": [
+                {
+                  "fileId": "0",
+                  "format": "pdf",
+                  "name": "text.pdf",
+                  "archiveName": "0002-pdf/text.pdf",
+                  "size": 12989,
+                  "saved": false,
+                  "mime": "application/pdf"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "pdf-native-import",
+      "formats": [
+        "png"
+      ],
+      "sources": [
+        {
+          "name": "writer.pdf",
+          "bytes": 30364
+        }
+      ],
+      "seconds": 3.528,
+      "succeeded": 1,
+      "failed": 0,
+      "states": [
+        {
+          "fileId": "0",
+          "name": "writer.pdf",
+          "state": "ready",
+          "targets": [
+            {
+              "format": "png",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "libreOfficeStarted": true,
+              "percent": 100,
+              "outputs": [
+                {
+                  "fileId": "0",
+                  "format": "png",
+                  "name": "writer.png",
+                  "archiveName": "0001-png/writer.png",
+                  "size": 122708,
+                  "saved": false,
+                  "mime": "image/png"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "over-50-mib-batch",
+      "formats": [
+        "pdf"
+      ],
+      "sources": [
+        {
+          "name": "large-one.docx",
+          "bytes": 28146846
+        },
+        {
+          "name": "large-two.docx",
+          "bytes": 28146846
+        }
+      ],
+      "seconds": 1.904,
+      "succeeded": 2,
+      "failed": 0,
+      "states": [
+        {
+          "fileId": "0",
+          "name": "large-one.docx",
+          "state": "ready",
+          "targets": [
+            {
+              "format": "pdf",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "libreOfficeStarted": true,
+              "percent": 100,
+              "outputs": [
+                {
+                  "fileId": "0",
+                  "format": "pdf",
+                  "name": "large-one.pdf",
+                  "archiveName": "0001-pdf/large-one.pdf",
+                  "size": 91454,
+                  "saved": false,
+                  "mime": "application/pdf"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "fileId": "1",
+          "name": "large-two.docx",
+          "state": "ready",
+          "targets": [
+            {
+              "format": "pdf",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "libreOfficeStarted": true,
+              "percent": 100,
+              "outputs": [
+                {
+                  "fileId": "1",
+                  "format": "pdf",
+                  "name": "large-two.pdf",
+                  "archiveName": "0002-pdf/large-two.pdf",
+                  "size": 91454,
+                  "saved": false,
+                  "mime": "application/pdf"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "pythonTracedPeakBytes": 286322
+    },
+    {
+      "label": "skip-running-native-file",
+      "formats": [
+        "pdf"
+      ],
+      "sources": [
+        {
+          "name": "writer.docx",
+          "bytes": 55863
+        },
+        {
+          "name": "calc.xlsx",
+          "bytes": 5449
+        }
+      ],
+      "seconds": 11.046,
+      "succeeded": 1,
+      "failed": 1,
+      "states": [
+        {
+          "fileId": "0",
+          "name": "writer.docx",
+          "state": "cancelled",
+          "targets": [
+            {
+              "format": "pdf",
+              "state": "cancelled",
+              "code": "CANCELLED",
+              "error": "Конвертация отменена.",
+              "stage": "engine",
+              "libreOfficeStarted": true,
+              "percent": null,
+              "outputs": []
+            }
+          ]
+        },
+        {
+          "fileId": "1",
+          "name": "calc.xlsx",
+          "state": "ready",
+          "targets": [
+            {
+              "format": "pdf",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "libreOfficeStarted": true,
+              "percent": 100,
+              "outputs": [
+                {
+                  "fileId": "1",
+                  "format": "pdf",
+                  "name": "calc.pdf",
+                  "archiveName": "0002-pdf/calc.pdf",
+                  "size": 16285,
+                  "saved": false,
+                  "mime": "application/pdf"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "nativeInputBytesUnchangedAtEveryLaunch": true,
+  "directNativePDFBaseline": {
+    "pages": 2,
+    "textEqual": true,
+    "encodedImagesEqual": true,
+    "renderedPixelComparison": "PASS: both pages, 72 DPI, identical pixels"
+  },
+  "nativeHTTP": "PASS: BMP → native PDF → HTTP stream → file → save acknowledgment → release",
+  "status": "PASS",
+  "sourcesUnchanged": true,
+  "nativeAttempts": 30,
+  "largeBatchBytes": 56293692,
+  "pythonTracedPeakLargeBatchBytes": 286322,
+  "notRun": [
+    "Windows",
+    "NIKITA",
+    "installed EXE",
+    "GUI integration",
+    "full user corpus"
+  ],
+  "baseCommit": "af1065687ff2ac25c57037f03106c7bc1dc7392b",
+  "qualifiedRuntimeBlobs": {
+    "app_backend/converter_guard/__init__.py": "606177406386fa11a68c4a363dce8a69541953fc",
+    "app_backend/converter_guard/adapter.py": "218f2f9f12a4b5f547a7e37d9a1328c1405f2b9c",
+    "app_backend/converter_guard/core.py": "6105f5ebd9fe4d9d1719914c14d42d42e3da9204",
+    "app_backend/converter_guard/errors.py": "659237b02c6e4407c045802ac2a66c3ac5c0d523",
+    "app_backend/converter_guard/http_api.py": "b06f0d3f4d3d89549d0657116bab08209095c24c",
+    "app_backend/converter_guard/policy.py": "98f366abcd0379b5010d6384ad621866146b9718"
+  }
+}

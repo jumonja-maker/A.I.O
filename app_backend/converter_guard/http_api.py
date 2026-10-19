@@ -1,0 +1,195 @@
+"""Optional HTTP port. AIO's existing server/UI do not import or activate it."""
+from contextlib import contextmanager
+from dataclasses import asdict
+import json
+import re
+import secrets
+import socket
+import threading
+from urllib.parse import parse_qs, quote, urlsplit
+
+from ..libreoffice_catalog import mime_for
+from .core import CHUNK
+from .errors import GuardError
+
+PREFIX = '/api/converter-guard'
+
+
+class GuardAPI:
+    def __init__(self, guard, *, origin, token):
+        parsed = urlsplit(origin)
+        if (parsed.scheme != 'http' or parsed.hostname != '127.0.0.1' or not parsed.port
+                or parsed.path or parsed.query or parsed.fragment or parsed.username
+                or parsed.password):
+            raise ValueError('Guard API requires an exact HTTP loopback origin')
+        if not isinstance(token, str) or not token:
+            raise ValueError('Guard API requires a session token')
+        self.guard, self.origin, self.host, self.token = guard, origin, parsed.netloc, token
+        self._connections = set()
+        self._lock = threading.Lock()
+        self._closed = False
+
+    def _authorize(self, handler, *, download=False):
+        with self._lock:
+            if self._closed:
+                raise GuardError('GUARD_CLOSED', 'Guard завершает работу.', status=503)
+        if (handler.headers.get('Host') != self.host or
+                handler.headers.get('Origin', self.origin) != self.origin):
+            raise GuardError('ACCESS_DENIED', 'Нет доступа.', status=403)
+        if not download and not secrets.compare_digest(
+                handler.headers.get('X-AIO-Token', '').encode('utf-8'), self.token.encode('utf-8')):
+            raise GuardError('ACCESS_DENIED', 'Нет доступа.', status=403)
+
+    @staticmethod
+    def _json(handler, status, body):
+        try:
+            return handler._json(status, body)
+        except OSError:
+            return None  # The caller may have closed during cancellation.
+
+    @staticmethod
+    def _identity(value):
+        if not isinstance(value, str) or not re.fullmatch(r'[0-9a-f]{32}', value):
+            raise GuardError('JOB_ID', 'Неверный идентификатор задания.')
+        return value
+
+    @staticmethod
+    def _query(handler, key):
+        values = parse_qs(urlsplit(handler.path).query, keep_blank_values=True).get(key, [])
+        if len(values) != 1:
+            raise GuardError('REQUEST_QUERY', 'Неверные параметры запроса.')
+        return values[0]
+
+    @staticmethod
+    def _length(handler):
+        lengths = handler.headers.get_all('Content-Length', [])
+        if len(lengths) != 1 or not lengths[0].isdecimal() or handler.headers.get('Transfer-Encoding'):
+            handler.close_connection = True
+            raise GuardError('REQUEST_SIZE', 'Требуется однозначный размер запроса.')
+        try:
+            return int(lengths[0])
+        except ValueError as error:
+            raise GuardError('REQUEST_SIZE', 'Неверный размер запроса.') from error
+
+    def _body(self, handler):
+        length = self._length(handler)
+        if not 0 < length <= self.guard.limits.max_metadata_bytes:
+            handler.close_connection = True
+            raise GuardError('REQUEST_SIZE', 'Превышен лимит метаданных Guard.', status=413)
+        if handler.headers.get('Content-Type', '').split(';')[0].strip() != 'application/json':
+            raise GuardError('REQUEST_TYPE', 'Требуется JSON-запрос.')
+        try:
+            raw = handler.rfile.read(length)
+            if len(raw) != length:
+                raise ValueError('incomplete JSON')
+            body = json.loads(raw)
+            if not isinstance(body, dict):
+                raise ValueError('not an object')
+            return body
+        except (ValueError, UnicodeError, RecursionError) as error:
+            raise GuardError('REQUEST_JSON', 'Не удалось прочитать запрос Guard.') from error
+
+    @contextmanager
+    def _transfer(self, handler):
+        with self._lock:
+            if self._closed:
+                raise GuardError('GUARD_CLOSED', 'Guard завершает работу.', status=503)
+            self._connections.add(handler.connection)
+        try:
+            yield
+        finally:
+            with self._lock:
+                self._connections.discard(handler.connection)
+
+    @staticmethod
+    def _shutdown(connection, direction):
+        try:
+            connection.shutdown(direction)
+        except OSError:
+            pass
+
+    def close(self):
+        with self._lock:
+            self._closed = True
+            connections = list(self._connections)
+        for connection in connections:
+            self._shutdown(connection, socket.SHUT_RDWR)
+
+    def get(self, handler, path):
+        try:
+            self._authorize(handler, download=path == PREFIX + '/result')
+            if path == PREFIX + '/result':
+                return self._download(handler)
+            if path == PREFIX + '/status':
+                return self._json(handler,200, {'schemaVersion': 2, 'available': self.guard.adapter.available,
+                    'acceptedExtensions': '', 'compatibility': 'native_decision',
+                    'limits': asdict(self.guard.limits), 'storage': self.guard.storage_stats()})
+            if path == PREFIX + '/jobs':
+                trace = parse_qs(urlsplit(handler.path).query).get('trace') == ['1']
+                return self._json(handler,200, self.guard.status(
+                    self._identity(self._query(handler, 'job')), include_trace=trace))
+            raise GuardError('API_NOT_FOUND', 'Неизвестная операция Guard.', status=404)
+        except GuardError as error:
+            return self._json(handler,error.status, error.as_dict())
+        except OSError:
+            return None  # Disconnected result remains retained for a later save.
+
+    def post(self, handler, path):
+        try:
+            self._authorize(handler)
+            handler.connection.settimeout(self.guard.limits.upload_idle_timeout)
+            if path == PREFIX + '/input':
+                length = self._length(handler)
+                if handler.headers.get('Content-Type', '').split(';')[0].strip() != 'application/octet-stream':
+                    raise GuardError('REQUEST_TYPE', 'Требуется поток файла.')
+                with self._transfer(handler):
+                    self.guard.upload(self._identity(self._query(handler, 'job')),
+                        self._query(handler, 'file'), handler.rfile, length,
+                        interrupt=lambda: self._shutdown(handler.connection, socket.SHUT_RD))
+                return self._json(handler,200, {'ok': True})
+            # Track metadata reads too: close() must unblock a stalled JSON body.
+            with self._transfer(handler):
+                body = self._body(handler)
+            if path == PREFIX + '/inspect':
+                return self._json(handler,200, self.guard.capabilities(body.get('files')))
+            if path == PREFIX + '/jobs':
+                if body.get('options'):
+                    raise GuardError('OPTIONS_NOT_CONNECTED', 'Параметры экспорта пока не подключены.')
+                if 'formats' in body and 'formatId' in body:
+                    raise GuardError('OUTPUT_FORMAT', 'Укажите formats или formatId.')
+                formats = body.get('formats', [body.get('formatId', 'pdf')])
+                return self._json(handler,201, self.guard.create(body.get('files'), formats))
+            identity = self._identity(body.get('jobId'))
+            if path == PREFIX + '/start':
+                return self._json(handler,202, self.guard.start(identity))
+            if path == PREFIX + '/cancel':
+                return self._json(handler,200, self.guard.cancel(identity))
+            if path == PREFIX + '/cancel-file':
+                return self._json(handler,200, self.guard.cancel_file(identity, body.get('fileId')))
+            if path == PREFIX + '/saved':
+                return self._json(handler,200, self.guard.confirm_saved(identity, body.get('ticket')))
+            if path == PREFIX + '/release':
+                self.guard.release(identity)
+                return self._json(handler,200, {'ok': True})
+            raise GuardError('API_NOT_FOUND', 'Неизвестная операция Guard.', status=404)
+        except GuardError as error:
+            handler.close_connection = True
+            return self._json(handler,error.status, error.as_dict())
+        except (OSError, TimeoutError):
+            return self._json(handler,408, {'code': 'UPLOAD_INTERRUPTED', 'error': 'Передача была прервана.'})
+
+    def _download(self, handler):
+        ticket = self._query(handler, 'ticket')
+        if not re.fullmatch(r'[A-Za-z0-9_-]{32,128}', ticket):
+            raise GuardError('RESULT_TICKET', 'Неверный идентификатор результата.', status=404)
+        with self._transfer(handler), self.guard.open_result(ticket) as (stream, name, size):
+            handler.send_response(200)
+            handler.send_header('Content-Type', mime_for(name.rsplit('.', 1)[-1].lower()))
+            handler.send_header('Content-Length', str(size))
+            handler.send_header('Content-Disposition', "attachment; filename*=UTF-8''" + quote(name, safe=''))
+            handler.send_header('Cache-Control', 'no-store')
+            handler.send_header('Referrer-Policy', 'no-referrer')
+            handler.send_header('X-Content-Type-Options', 'nosniff')
+            handler.end_headers()
+            while block := stream.read(CHUNK):
+                handler.wfile.write(block)
