@@ -1,2 +1,2 @@
-"""All in One: offline Excel merge and file conversion tools."""
-__version__ = '0.3.0'
+"""A.I.O clean application shell, Excel merge and new Converter Guard boundary."""
+__version__ = "0.1.0-dev"
