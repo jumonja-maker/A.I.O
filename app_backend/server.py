@@ -26,6 +26,8 @@ from .libreoffice_engine import LibreOfficeError, inspect_metadata
 from .libreoffice_catalog import EXTENSION
 from .converter_transport import ConverterTransport
 from .converter_upload_stream import MultipartUpload, content_length
+from .converter_guard import ConverterGuard
+from .converter_guard.http_api import GuardAPI
 from urllib.parse import quote
 
 
@@ -75,12 +77,20 @@ class LocalServer(ThreadingHTTPServer):
         self.merge_gate = threading.BoundedSemaphore(1)
         self.converter_gate = threading.BoundedSemaphore(1)
         self.converter = ConverterTransport()
+        self.guard = None
+        self.guard_api = None
         self.progress = {}
         self.progress_lock = threading.Lock()
 
     def server_close(self):
-        self.converter.close()
-        super().server_close()
+        try:
+            if self.guard_api is not None:
+                self.guard_api.close()
+            if self.guard is not None:
+                self.guard.close()
+        finally:
+            self.converter.close()
+            super().server_close()
 
 
 def start_server(port: int = 0):
@@ -183,6 +193,8 @@ def start_server(port: int = 0):
 
         def do_GET(self):
             path = urlsplit(self.path).path
+            if path.startswith('/api/converter-guard'):
+                return self.server.guard_api.get(self, path)
             if path == '/api/merge-progress':
                 if not self._authorized():
                     return self._json(403, {'error':'Нет доступа.'})
@@ -350,6 +362,8 @@ def start_server(port: int = 0):
 
         def do_POST(self):
             path = urlsplit(self.path).path
+            if path.startswith('/api/converter-guard'):
+                return self.server.guard_api.post(self, path)
             if not self._authorized():
                 return self._json(403, {'error':'Нет доступа.'})
             if path == '/api/icon-theme':
@@ -387,4 +401,11 @@ def start_server(port: int = 0):
             pass  # Never log filenames or contents of personal spreadsheets.
 
     server = LocalServer(('127.0.0.1', port), Handler)
+    try:
+        server.guard = ConverterGuard()
+        server.guard_api = GuardAPI(server.guard,
+            origin=f'http://127.0.0.1:{server.server_port}', token=token)
+    except BaseException:
+        server.server_close()
+        raise
     return server, token
