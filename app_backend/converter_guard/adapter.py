@@ -77,6 +77,10 @@ class LibreOfficeAdapter:
                 'description': description, 'mime': mime,
                 'registeredExport': ext in native.exports if native.valid else registered,
                 'enabled': available and (not files or bool(compatible or unknown)),
+                # A filename recommendation cannot veto the native model of
+                # renamed/unknown content. Selection and routing are separate.
+                'nativeAttemptAvailable': available,
+                'selectableFileIds': [f['id'] for f in files] if available else [],
                 'compatibleFileIds': compatible if available else [],
                 'undeterminedFileIds': unknown if available else [],
                 'incompatibleFileIds': [i for i, state in states.items() if state == 'unavailable'],

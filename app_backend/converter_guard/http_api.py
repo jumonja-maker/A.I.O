@@ -1,4 +1,4 @@
-"""Optional HTTP port. AIO's existing server/UI do not import or activate it."""
+"""Guard HTTP port, mounted by AIO on its unbuffered loopback handler."""
 from contextlib import contextmanager
 from dataclasses import asdict
 import json
@@ -104,7 +104,12 @@ class GuardAPI:
             raise GuardError('REQUEST_TYPE', 'Требуется JSON-запрос.')
         try:
             # Qt/Windows uses an unbuffered SocketIO reader; read() may be short.
-            raw = handler._read_exact(length)
+            raw = bytearray()
+            while len(raw) < length:
+                block = handler.rfile.read(min(CHUNK, length - len(raw)))
+                if not block:
+                    break
+                raw.extend(block)
             if len(raw) != length:
                 raise ValueError('incomplete JSON')
             body = json.loads(raw)

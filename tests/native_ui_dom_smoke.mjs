@@ -18,7 +18,7 @@ window.HTMLElement.prototype.getBoundingClientRect = () => ({left:0,right:600,to
 window.HTMLElement.prototype.focus = function(){};
 let metadataRequests = 0;
 const apiFetch = (url,options) => {
-  if (String(url).includes('/api/converter/inspect')) {
+  if (String(url).includes('/api/converter-guard/inspect')) {
     assert.equal(typeof options.body, 'string', 'inspection uses JSON metadata');
     assert.ok(Array.isArray(JSON.parse(options.body).files));
     metadataRequests++;
@@ -126,7 +126,16 @@ add(Array.from({length:103},(_,i)=>new File(['BM'],'many_'+i+'.bmp')));
 await until(()=>rows().length===106&&stable(),'UI accepts more than 100 files');
 assertSearch();
 assert.equal(document.querySelector('[data-cv-count]').textContent,'(106)');
+run.click();
+await until(()=>!save.hidden,'more than 100 files can convert');
+await until(()=>rows().filter(r=>r.dataset.selected==='true').every(r=>r.dataset.aioFpState),
+  'progress for every selected file above old 100-file cap');
+assert.equal(rows().filter(r=>r.dataset.aioFpState==='ready').length,105);
+// Explicitly dispose the last retained job before the host fixture closes.
+format('PDF').click();
+await until(()=>!document.querySelector('.aio-fp-row'),'bulk run release');
 console.log(JSON.stringify({status:'PASS',scope:'DOM/HTTP; save acknowledgment simulated',
   permanentSearch:[0,1,3],imageCategory:true,anyInputExtension:true,metadataRequests,
   mixedInputs:true,rowAndCircleSelection:true,scrollRetention:true,partialResults:true,
-  saveCancellationRetry:true,checksClearedAfterSave:true,repeat:true,moreThan100Files:true}));
+  saveCancellationRetry:true,checksClearedAfterSave:true,repeat:true,moreThan100Files:true,
+  bulkConversionPaint:true}));

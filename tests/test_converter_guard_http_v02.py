@@ -20,6 +20,10 @@ from test_converter_guard_v02 import FakeAdapter
 
 
 class Handler(BaseHTTPRequestHandler):
+    # Guard's cooperative socket uploader requires the same unbuffered body
+    # reader as the real AIO host, otherwise headers can prefetch input bytes.
+    rbufsize = 0
+
     def _json(self, status, body):
         data = json.dumps(body, ensure_ascii=False).encode('utf-8')
         self.send_response(status)

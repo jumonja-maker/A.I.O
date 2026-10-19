@@ -467,10 +467,14 @@ class AdapterAndPolicyTests(unittest.TestCase):
         result=subprocess.run([sys.executable,'-c',code],capture_output=True,text=True,timeout=15)
         self.assertEqual(result.returncode,0,result.stderr)
 
-    def test_current_application_never_activates_guard_implicitly(self):
-        code = ('import sys;from app_backend.server import start_server;'
+    def test_mounted_guard_is_idle_until_an_explicit_job(self):
+        # PR9 deliberately mounts Guard. Preserve the real v0.2 invariant:
+        # opening the shell must not create a worker, spool or native process.
+        code = ('import threading;from app_backend.server import start_server;'
+                'before={t.ident for t in threading.enumerate()};'
                 's,_=start_server();'
-                'assert not any(k.startswith("app_backend.converter_guard") for k in sys.modules);'
+                'assert s.guard.storage_stats()==dict(jobs=0,reservedBytes=0,tickets=0,running=0,queued=0);'
+                'assert {t.ident for t in threading.enumerate()}==before;'
                 's.server_close()')
         result=subprocess.run([sys.executable,'-c',code],capture_output=True,text=True,timeout=15)
         self.assertEqual(result.returncode,0,result.stderr)

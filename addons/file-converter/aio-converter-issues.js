@@ -337,7 +337,7 @@
         const hidden = !value.files.length || (!after && rows.length === 0);
         slot.classList.toggle('aio-cv-issues-empty', hidden);
         if (hidden) close();
-        button.textContent = after ? (rows.length ? 'Ошибки (' + rows.length + ')' : 'Результат') :
+        button.textContent = after ? (rows.length ? 'Итоги (' + rows.length + ')' : 'Результат') :
           rows.length ? 'Проблемы (' + rows.length + ')' : 'Риски конвертации';
         button.title = button.textContent;
         heading.textContent = after ? 'После конвертации' : 'Перед конвертацией';
@@ -347,7 +347,13 @@
           note.textContent += ' Сгруппировано ' + rawCount + ' сочетаний по ' +
             rows.length + ' исходным причинам; затронутые форматы перечислены ниже.';
         const targetReport = value.result?.targetReport || value.retryResult?.targetReport || batchOutcome(value);
-        if (after && Number.isSafeInteger(targetReport?.succeeded) && targetReport.succeeded >= 0 &&
+        if (after && targetReport?.schemaVersion === 3 && Number.isSafeInteger(targetReport?.filtered) &&
+            Number.isSafeInteger(targetReport?.succeeded) && Number.isSafeInteger(targetReport?.failed)) {
+          note.textContent = 'Готово: ' + targetReport.succeeded + ' из ' + targetReport.total +
+            '. Пропущено Guard: ' + targetReport.filtered + '. Ошибок: ' + targetReport.failed +
+            '. Отменено: ' + targetReport.cancelled + '. Запусков LibreOffice: ' + targetReport.attempted +
+            '. Сохранность содержимого пока не проверялась.';
+        } else if (after && Number.isSafeInteger(targetReport?.succeeded) && targetReport.succeeded >= 0 &&
             Number.isSafeInteger(targetReport?.total) && targetReport.total >= targetReport.succeeded &&
             Number.isSafeInteger(targetReport?.failed) && targetReport.failed >= 0) {
           note.textContent = 'По отчёту движка готово: ' + targetReport.succeeded + ' из ' + targetReport.total +
