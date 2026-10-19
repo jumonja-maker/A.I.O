@@ -1,7 +1,7 @@
 """Minimal authenticated loopback host for A.I.O UI and independent Excel merge.
 
-No legacy converter imports, route catalogues, Advanced hooks or fallback
-conversion engines. The converter is not wired until its new architecture is supplied.
+No legacy converter imports, Advanced hooks or fallback conversion engines.
+Converter Guard owns its own bounded file lifecycle, independently from Excel.
 """
 from __future__ import annotations
 
@@ -19,6 +19,8 @@ from urllib.parse import urlsplit, parse_qs
 
 from .converter_assets import read_designer_asset
 from .excel import merge_xlsx, MergeError, MAX_TOTAL_BYTES, MAX_FILE_BYTES
+from .converter_guard import ConverterGuard
+from .converter_guard.http_api import GuardAPI
 
 ROOT = Path(__file__).resolve().parent.parent
 MAX_UPLOAD = MAX_TOTAL_BYTES + 2 * 1024 * 1024
@@ -37,14 +39,21 @@ class LocalServer(ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = False
 
-    def __init__(self, address, handler):
+    def __init__(self, address, handler, converter_guard=None):
         super().__init__(address, handler)
         self.merge_gate = threading.BoundedSemaphore(1)
         self.progress = {}
         self.progress_lock = threading.Lock()
+        self.converter_guard = converter_guard if converter_guard is not None else ConverterGuard()
+        self.guard_api = GuardAPI(self.converter_guard)
+
+    def server_close(self):
+        self.guard_api.close()
+        self.converter_guard.close()
+        super().server_close()
 
 
-def start_server(port: int = 0):
+def start_server(port: int = 0, *, converter_guard=None):
     token = secrets.token_urlsafe(32)
     root = asset_root().resolve()
 
@@ -67,8 +76,11 @@ def start_server(port: int = 0):
             self.end_headers()
 
         def _send(self, code, payload, content_type='application/octet-stream'):
-            self._headers(code, content_type, len(payload))
-            self.wfile.write(payload)
+            try:
+                self._headers(code, content_type, len(payload))
+                self.wfile.write(payload)
+            except (BrokenPipeError, ConnectionResetError):
+                pass
 
         def _json(self, code, value):
             data = json.dumps(value, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
@@ -76,6 +88,12 @@ def start_server(port: int = 0):
 
         def _authorized(self):
             return secrets.compare_digest(self.headers.get('X-AIO-Token', ''), token)
+
+        def _local_request(self):
+            expected = '127.0.0.1:' + str(self.server.server_port)
+            origin = self.headers.get('Origin')
+            return (self.headers.get('Host') == expected and
+                    (origin is None or origin == 'http://' + expected))
 
         def _progress(self, job, stage, current=0, total=0):
             with self.server.progress_lock:
@@ -124,6 +142,8 @@ def start_server(port: int = 0):
             return self._send(200, blob, mime)
 
         def do_GET(self):
+            if not self._local_request():
+                return self._json(403, {'code':'LOCAL_ONLY', 'error':'Недопустимый источник запроса.'})
             path = urlsplit(self.path).path
             if path == '/api/merge-progress':
                 if not self._authorized():
@@ -140,8 +160,10 @@ def start_server(port: int = 0):
                 return self._json(200, {'available':False,
                     'message':'Проверка обновлений для нового репозитория пока не настроена.'})
             if path.startswith('/api/converter'):
-                return self._json(501, {'code':'CONVERTER_NOT_CONNECTED',
-                    'error':'Конвертер пока не подключён.'})
+                try:
+                    return self.server.guard_api.get(self, path)
+                except (BrokenPipeError, ConnectionResetError):
+                    return
             return self._static(path)
 
         def _read_multipart(self):
@@ -180,14 +202,15 @@ def start_server(port: int = 0):
             return files
 
         def do_POST(self):
+            if not self._local_request():
+                return self._json(403, {'code':'LOCAL_ONLY', 'error':'Недопустимый источник запроса.'})
             path = urlsplit(self.path).path
             if not self._authorized():
                 return self._json(403, {'error':'Нет доступа.'})
             if path == '/api/icon-theme':
                 return self._json(200, {'ok':True})
             if path.startswith('/api/converter'):
-                return self._json(501, {'code':'CONVERTER_NOT_CONNECTED',
-                    'error':'Конвертер пока не подключён.'})
+                return self.server.guard_api.post(self, path)
             if path != '/api/merge':
                 return self._json(404, {'error':'Неизвестная операция.'})
             job = self.headers.get('X-AIO-Job','')
@@ -214,5 +237,5 @@ def start_server(port: int = 0):
         def log_message(self, *_):
             pass  # Never log filenames or contents of personal spreadsheets.
 
-    server = LocalServer(('127.0.0.1', port), Handler)
+    server = LocalServer(('127.0.0.1', port), Handler, converter_guard)
     return server, token
