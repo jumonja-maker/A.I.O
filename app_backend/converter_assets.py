@@ -1,4 +1,4 @@
-"""Read exact designer addon from compressed, hash-checked local source assets.
+"""Materialize the owner-approved historical UI; never import converter backend.
 
 Only files physically bundled with All in One are used. No internet or network
 requests, no runtime user files and no dynamically evaluated code on the server.
@@ -76,6 +76,7 @@ def read_designer_asset(root: str, name: str) -> bytes:
         raw = apply_selection_design(raw)
         from .converter_diagnostics_ui_patch import apply_diagnostics_ui
         raw = apply_diagnostics_ui(raw)
-        from .converter_advanced_ui_patch import apply_advanced_ui
-        raw = apply_advanced_ui(raw)
+        # Advanced and the historical conversion backend intentionally stay
+        # in the archived repository. Only approved visual UI transformations
+        # are materialized here; Guard will be implemented independently.
     return raw
