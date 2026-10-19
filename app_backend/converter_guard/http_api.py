@@ -79,7 +79,8 @@ class GuardAPI:
         if handler.headers.get('Content-Type', '').split(';')[0].strip() != 'application/json':
             raise GuardError('REQUEST_TYPE', 'Требуется JSON-запрос.')
         try:
-            raw = handler.rfile.read(length)
+            # Qt/Windows uses an unbuffered SocketIO reader; read() may be short.
+            raw = handler._read_exact(length)
             if len(raw) != length:
                 raise ValueError('incomplete JSON')
             body = json.loads(raw)
