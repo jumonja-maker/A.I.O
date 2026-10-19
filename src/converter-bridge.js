@@ -1,4 +1,4 @@
-/* New Converter Guard boundary.
+/* New конвертера boundary.
  * The approved DESIGN is mounted from its archived designer snapshot, but the
  * old converter controller, filters and conversion policies are NOT imported.
  * Conversion remains intentionally unavailable until the new Guard is ready.
@@ -10,8 +10,8 @@
   if (!bridge) return;
   const extensions = '.docx,.doc,.odt,.rtf,.txt,.html,.htm,.xlsx,.xls,.ods,.csv,.pptx,.ppt,.odp,.pdf,.png,.jpg,.jpeg,.webp,.bmp,.tiff,.tif';
   function unavailable() {
-    const err = new Error('Новый A.I.O Converter Guard ещё не подключён. Конвертация временно недоступна.');
-    err.code = 'GUARD_NOT_READY';
+    const err = new Error('Новый A.I.O конвертера ещё не подключён. Конвертация временно недоступна.');
+    err.code = 'CONVERTER_NOT_CONNECTED';
     err.userMessage = err.message;
     throw err;
   }
@@ -28,7 +28,7 @@
           formats: [], capabilities: []
         })),
         formats: [],
-        message: 'Интерфейс сохранён. Новый Converter Guard пока не подключён.'
+        message: 'Интерфейс сохранён. Движок конвертации пока не подключён.'
       };
     },
     async diagnoseFiles() { return {status:'unavailable',issues:[],message:'Диагностика Guard пока не подключена.'}; },
@@ -44,7 +44,7 @@
     if (!root) return;
     const note = document.createElement('p');
     note.className = 'guard-migration-note';
-    note.textContent = 'Новая основа A.I.O: конвертер ожидает подключения Converter Guard. Объединитель Excel работает отдельно.';
+    note.textContent = 'Новая основа A.I.O: конвертер ожидает подключения конвертера. Объединитель Excel работает отдельно.';
     note.setAttribute('role', 'status');
     root.addEventListener('click', () => {
       const pane = root.querySelector('[data-tool-id="file-converter"]');
