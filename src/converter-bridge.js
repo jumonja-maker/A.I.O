@@ -1,4 +1,4 @@
-/* A.I.O + native Converter Guard v0.6 integration (QA branch only).
+/* A.I.O + native Converter Guard v0.7 integration (QA branch only).
    Preserve the existing designer, Excel save bridge and independent LO engine. */
 (() => {
   'use strict';
@@ -11,6 +11,7 @@
   const retained = new Map();
   let active = null, progress = null, generation = 0;
   let prepared = null, preparing = null, inspectionSequence = 0;
+  let inspected = null;
 
   const errorOf = (message, code) => {
     const e = new Error(message);
@@ -80,14 +81,15 @@
     if (request) {request.cancelled = true; await releaseJob(request.jobId);}
   }
   function dispose() {
+    inspected = null;
     resetProgress();
     cancelInspection().catch(() => {});
     if (prepared) {releaseJob(prepared.jobId).catch(() => {});prepared = null;}
   }
   const contains = (stage, inputs) => stage && !stage.used && inputs.every(f =>
     stage.inputs.some(p => String(p.id) === String(f.id) && p.file === f.file));
-  async function prepareInputs(inputs, {signal, onCreated, validate = () => {}} = {}) {
-    if (prepared && prepared.inputs.length === inputs.length && contains(prepared, inputs))
+  async function prepareInputs(inputs, {signal, onCreated, validate = () => {}, force = false} = {}) {
+    if (!force && prepared && prepared.inputs.length === inputs.length && contains(prepared, inputs))
       return prepared;
     await cancelInspection();
     const reusable = prepared && inputs.every(f=>!prepared.inputs.some(p=>String(p.id)===String(f.id)&&p.file!==f.file))
@@ -130,7 +132,7 @@
       let inspection;
       for (;;) {
         current();
-        try {inspection = await api('/preflight', {jobId:request.jobId});break;}
+        try {inspection = await api('/preflight', {jobId:request.jobId,recheck:force});break;}
         catch (error) {
           if (error.code !== 'PREFLIGHT_BUSY' || Date.now() >= deadline) throw error;
           await new Promise(resolve => setTimeout(resolve, 75));
@@ -138,6 +140,7 @@
       }
       current();
       prepared = {jobId:request.jobId,inputs:[...inputs],inspection,used:false};
+      inspected = {inputs:[...inputs],inspection};
       accepted = true;
       return prepared;
     } finally {
@@ -145,14 +148,45 @@
       if (!accepted && request.jobId) await releaseJob(request.jobId);
     }
   }
-  async function inspectFiles({files=[],signal}={}) {
+  function projectInspection(inspection, inputs) {
+    const ids = new Set(inputs.map(f=>String(f.id)));
+    const files = inspection.files.filter(f=>ids.has(String(f.id)));
+    const formats = inspection.formats.map(f=>{
+      const value = {...f};
+      for (const key of ['selectableFileIds','verifiedFileIds','compatibleFileIds',
+                         'undeterminedFileIds','incompatibleFileIds'])
+        value[key] = (f[key] || []).filter(id=>ids.has(String(id)));
+      value.enabled = Boolean(inspection.available && value.verifiedFileIds.length);
+      return value;
+    });
+    return {...inspection,files,formats,
+      message:files.some(f=>f.preflight?.state!=='detected') ? inspection.message : ''};
+  }
+  async function inspectFiles({files=[],signal,force=false}={}) {
     const inputs = Array.from(files);
     if (!inputs.length) {
+      inspected = null;
       await cancelInspection();
       if (prepared) {await releaseJob(prepared.jobId);prepared = null;}
       return api('/inspect', {files:[]}, 'POST', signal);
     }
-    return (await prepareInputs(inputs, {signal})).inspection;
+    if (!force && !preparing && inspected && inputs.every(f=>inspected.inputs.some(
+      p=>String(p.id)===String(f.id) && p.file===f.file))) {
+      if (inputs.length===inspected.inputs.length && inputs.every((f,i)=>
+        String(f.id)===String(inspected.inputs[i].id) && f.file===inspected.inputs[i].file))
+        return inspected.inspection;
+      // Removal only: immutable File references, no upload/native restart.
+      // This view is never accepted as authority by the backend at start().
+      const inspection = projectInspection(inspected.inspection,inputs);
+      inspected = {inputs:[...inputs],inspection};
+      if (prepared) {
+        const ids=new Set(inputs.map(f=>String(f.id)));
+        prepared.inputs=prepared.inputs.filter(f=>ids.has(String(f.id)));
+        prepared.inspection=inspection;
+      }
+      return inspection;
+    }
+    return (await prepareInputs(inputs, {signal,force})).inspection;
   }
   function update(report, op, onProgress) {
     if (!report || op.generation !== generation) return;
@@ -175,7 +209,7 @@
         + ', пропущено Guard: ' + (report.filtered ?? 0) + '.'});
   }
 
-  async function run({files, formatIds, formatId, onProgress, onlyVerified=false} = {}) {
+  async function run({files, formatIds, formatId, onProgress} = {}) {
     if (active) throw errorOf('Уже выполняется конвертация.', 'CLIENT_BUSY');
     const inputs = Array.from(files || []);
     const formats = formatIds || [formatId];
@@ -190,7 +224,6 @@
     progress?.dispose();
     const root = document.querySelector('.aio-cv');
     progress = root && window.AIOFileProgress ? window.AIOFileProgress.attach(root) : null;
-    progress?.begin({runId:op.id, fileIds:inputs.map(f => String(f.id))});
     let last = null;
     try {
       for (const id of [...retained.keys()]) await releaseJob(id);
@@ -200,8 +233,15 @@
         await prepareInputs(inputs,{onCreated:claim,validate:()=>check(op)});
       check(op);
       stage.used = true;prepared = null;claim(stage.jobId);
-      const start = () => api('/start',{jobId:op.jobId,formats,
-        fileIds:inputs.map(f=>String(f.id)),onlyVerified});
+      const start = () => {
+        const plan = inputs.map(f=>({fileId:String(f.id),formats:formats.filter(id=>
+          stage.inspection.formats.some(target=>target.id===id &&
+            target.verifiedFileIds?.includes(String(f.id))))})).filter(f=>f.formats.length);
+        if (!plan.length) throw errorOf('Нет подтверждённых направлений. Повторите проверку.',
+          'PREFLIGHT_ROUTE_UNDETERMINED');
+        progress?.begin({runId:op.id,fileIds:plan.map(f=>f.fileId)});
+        return api('/start',{jobId:op.jobId,plan,fileIds:plan.map(f=>f.fileId),onlyVerified:true});
+      };
       try {await start();}
       catch (error) {
         if (error.code !== 'JOB_NOT_FOUND') throw error;

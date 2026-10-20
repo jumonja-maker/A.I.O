@@ -124,14 +124,14 @@ class RegistryTests(unittest.TestCase):
         self.assertEqual(native.hint('image.bmp','dbf'),'registered')
         self.assertEqual(native.hint('word.docx','odt'),'registered')
 
-    def test_mixed_metadata_keeps_the_target_for_compatible_files(self):
+    def test_mixed_metadata_keeps_hints_but_needs_native_proof_for_selection(self):
         adapter=LibreOfficeAdapter(self.exe)
         before=set(threading.enumerate())
         value=adapter.capabilities([{'id':'a','name':'x.bmp','size':1},
             {'id':'b','name':'x.xlsx','size':1},{'id':'c','name':'x.unknown','size':1}])
         self.assertEqual(set(threading.enumerate()),before)
         dbf=next(f for f in value['formats'] if f['id']=='dbf')
-        self.assertTrue(dbf['enabled'])
+        self.assertFalse(dbf['enabled'])
         self.assertEqual(dbf['compatibleFileIds'],['b'])
         self.assertEqual(dbf['incompatibleFileIds'],['a'])
         self.assertEqual(dbf['undeterminedFileIds'],['c'])

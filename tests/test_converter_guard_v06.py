@@ -104,20 +104,21 @@ class GuardPreflightContracts(unittest.TestCase):
         pdf=next(f for f in info['formats'] if f['id']=='pdf')
         self.assertEqual(pdf['verifiedFileIds'],['1'])
         self.assertEqual(pdf['undeterminedFileIds'],['0'])
-        self.assertIn('0',pdf['selectableFileIds'])
+        self.assertNotIn('0',pdf['selectableFileIds'])
         self.guard.start(identity,file_ids=['0','1'],formats=['pdf'],only_verified=True)
         done=wait_finished(self.guard,identity)
         self.assertEqual(done['files'][0]['state'],'skipped')
         self.assertEqual(done['files'][0]['targets'][0]['code'],'PREFLIGHT_ROUTE_UNDETERMINED')
         self.assertEqual(self.adapter.exports,[('word.docx','pdf')])
 
-    def test_unknown_source_keeps_an_explicit_manual_attempt(self):
+    def test_unknown_source_cannot_bypass_preflight_with_legacy_flag(self):
         identity=self.prepare([('unknown.custom',b'?')])
         self.guard.preflight(identity)
         self.guard.start(identity,file_ids=['0'],formats=['pdf'],only_verified=False)
         done=wait_finished(self.guard,identity)
-        self.assertEqual(done['succeeded'],1)
-        self.assertEqual(self.adapter.exports,[('unknown.custom','pdf')])
+        self.assertEqual(done['succeeded'],0)
+        self.assertEqual(done['filtered'],1)
+        self.assertEqual(self.adapter.exports,[])
 
     def test_invalid_start_does_not_consume_the_prepared_session(self):
         identity=self.prepare([('word.docx',b'W')])

@@ -19,11 +19,11 @@ def apply_native_ui(raw: bytes) -> bytes:
 
     once('  const MAX_FILES = 100;\n', '')
     once('    enabled: value?.enabled === true,',
-         "    enabled: value?.enabled === true || value?.nativeAttemptAvailable === true,\n"
+         "    enabled: value?.enabled === true,\n"
          "    nativeDecision:['native_decision','native_registry_hint','native_preflight'].includes(value?.compatibility),\n"
          "    compatibility:value?.compatibility,\n"
          "    selectableFileIds:Array.isArray(value?.selectableFileIds)?value.selectableFileIds.map(String):"
-         "(Array.isArray(value?.compatibleFileIds)?value.compatibleFileIds.map(String):[]),\n"
+         "(Array.isArray(value?.verifiedFileIds)?value.verifiedFileIds.map(String):[]),\n"
          "    incompatibleFileIds:Array.isArray(value?.incompatibleFileIds)?value.incompatibleFileIds.map(String):[],\n"
          "    undeterminedFileIds:Array.isArray(value?.undeterminedFileIds)?value.undeterminedFileIds.map(String):[],")
     once('    options: Array.isArray(value?.options) ? value.options : [],',
@@ -99,15 +99,15 @@ def apply_native_ui(raw: bytes) -> bytes:
             raise ValueError('Native selection eligibility requires controller review: ' + name)
         source = source.replace(name, name.replace('compatibleFileIds', 'selectableFileIds'))
     once('    const selectedFormats = new Set();',
-         '    const selectedFormats = new Set();\n    let onlyVerified = false;')
+         '    const selectedFormats = new Set();\n    const onlyVerified = true;')
     once('    function selectAllAvailableFormats() {',
-         '    function selectAllAvailableFormats() {\n      onlyVerified = true;')
+         '    function selectAllAvailableFormats() {\n      // Explicit user selection; never invoked by inspection.\n')
     anchor = 'const available=(analysis?.formats||[]).filter(formatAvailable);'
     if source.count(anchor) != 2:
         raise ValueError('Preflight Select All requires controller review')
     source = source.replace(anchor, "const available=(analysis?.formats||[]).filter(f=>f.enabled&&selectedFiles().some(x=>f.verifiedFileIds.includes(x.id)));")
     once("button.addEventListener('click',()=>{if(!enabled || saving || status==='processing')return;",
-         "button.addEventListener('click',()=>{if(!enabled || saving || status==='processing')return;onlyVerified=false;")
+         "button.addEventListener('click',()=>{if(!enabled || saving || status==='processing'||status==='checking')return;")
     once('formatIds:[...selectedFormats],onProgress}', 'formatIds:[...selectedFormats],onProgress,onlyVerified}')
     once('formatId:fmt.id,options:{...formatValues},onProgress}',
          'formatId:fmt.id,options:{...formatValues},onProgress,onlyVerified}')
@@ -122,4 +122,24 @@ def apply_native_ui(raw: bytes) -> bytes:
          "      if(status==='processing' && typeof adapter.cancel==='function'){runBtn.hidden=false;runBtn.disabled=false;runBtn.textContent='Отменить';}\n"
          "      if(status==='checking'&&adapter.cancelInspection){runBtn.hidden=false;runBtn.disabled=false;runBtn.textContent='Отменить проверку';}\n"
          "      if(status==='error'&&!analysis&&files.length){runBtn.hidden=false;runBtn.disabled=false;runBtn.textContent='Повторить проверку';}")
+    once('    async function inspect() {',
+         '    async function inspect({force=false,preserveFormats=false}={}) {\n'
+         '      if(!force&&!preserveFormats){selectedFormats.clear();selectedFormat=null;}')
+    once('await adapter.inspectFiles({ files:filePayload() })',
+         'await adapter.inspectFiles({ files:filePayload(),force })')
+    once('selectedFileIds.delete(id);files=files.filter(x=>x.id!==id); inspect();',
+         'selectedFileIds.delete(id);files=files.filter(x=>x.id!==id); inspect({preserveFormats:true});')
+    once('if(!analysis.formats.some(f=>f.id===id&&f.enabled))selectedFormats.delete(id);',
+         'if(!analysis.formats.some(f=>f.id===id&&formatAvailable(f)))selectedFormats.delete(id);')
+    once("availability.textContent='Недоступно';",
+         "availability.textContent=status==='checking'?'Проверяется…':'Недоступно';")
+    once('onBusyChanged:()=>{if(alive)renderSummary();}',
+         'onRetryPreflight:()=>inspect({force:true}),onBusyChanged:()=>{if(alive)renderSummary();}')
+    once('formats:(analysis?.formats||[]), selectedFormats:[...selectedFormats],',
+         'formats:(analysis?.formats||[]), preflightFiles:(analysis?.files||[]), selectedFormats:[...selectedFormats],')
+    once("if(status==='error'&&!analysis&&files.length){await inspect();return;}",
+         "if(status==='error'&&!analysis&&files.length){await inspect({force:true});return;}")
+    # Single-target captions must count eligible files, not the whole list.
+    once('p.textContent=fmt.nativeDecision?\x60\x24{inputs.length} файлов · результат: \x24{fmt.label}\x60:\x60\x24{eligible.length} из \x24{inputs.length} файлов · результат: \x24{fmt.label}\x60;',
+         'p.textContent=\x60\x24{eligible.length} из \x24{inputs.length} файлов · результат: \x24{fmt.label}\x60;')
     return source.encode('utf-8')

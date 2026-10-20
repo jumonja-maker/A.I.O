@@ -77,11 +77,11 @@ class LibreOfficeAdapter:
             formats.append({'id': ext, 'label': ext.upper(), 'category': category,
                 'description': description, 'mime': mime,
                 'registeredExport': ext in native.exports if native.valid else registered,
-                'enabled': available and (not files or bool(compatible or unknown)),
-                # A filename recommendation cannot veto the native model of
-                # renamed/unknown content. Selection and routing are separate.
-                'nativeAttemptAvailable': available and (proofs is None or not files or bool(compatible or unknown)),
-                'selectableFileIds': [f['id'] for f in files if proofs is None or states[f['id']] != 'unavailable'] if available else [],
+                'enabled': available and proofs is not None and bool(compatible),
+                # Hints and undetermined routes remain visible diagnostics,
+                # but only a native preflight proof admits a UI selection.
+                'nativeAttemptAvailable': False,
+                'selectableFileIds': compatible if available and proofs is not None else [],
                 'verifiedFileIds': compatible if available and proofs is not None else [],
                 'compatibleFileIds': compatible if available else [],
                 'undeterminedFileIds': unknown if available else [],
@@ -99,11 +99,22 @@ class LibreOfficeAdapter:
                 'registryWarning': 'EXTERNAL_FILTER_REGISTRY' if native.external_filters else
                                    None if native.valid else 'REGISTRY_UNAVAILABLE',
                 'preflightComplete': proofs is not None,
-                'message': ('Для части файлов направления не подтверждены. Их можно выбрать вручную; '
-                            '«Выбрать всё» включает только подтверждённые направления.'
+                'message': ('Для части файлов направления не подтверждены и пока недоступны. '
+                            'Причина указана в «Проблемах». Можно повторить проверку.'
                             if proofs is not None and any(not p or p.get('state') != 'detected'
                                                           for p in proofs.values()) else ''),
                 'qualityCompared': False}
+
+    def preflight_fingerprint(self):
+        """Installation identity for a bounded, in-memory content-proof cache."""
+        native = registry(self.executable)
+        if not self.available or not native.valid:
+            return None
+        try:
+            stat = self.executable.stat()
+            return (native.fingerprint, str(self.executable), stat.st_mtime_ns, stat.st_size)
+        except OSError:
+            return None
 
     def preflight(self, source, workspace, *, cancel, timeout):
         from .preflight import inspect_source

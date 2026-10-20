@@ -1,10 +1,11 @@
 """Disk-owned, opt-in native jobs. One worker; independent file/target failures."""
 from __future__ import annotations
 
-from collections import deque
+from collections import deque, OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 import copy
+import hashlib
 from dataclasses import dataclass, field
 import json
 import os
@@ -70,6 +71,7 @@ class _File:
     interrupt: object = None
     name_normalized: bool = False
     native_route: dict | None = None
+    content_digest: str | None = None
     cancel: threading.Event = field(default_factory=threading.Event)
 
 
@@ -116,6 +118,7 @@ class _Job:
     packaging_error: str | None = None
     preparation: bool = False
     preflight_checks: int = 0
+    preflight_cache_hits: int = 0
 
 
 def _source_name(name):
@@ -155,6 +158,28 @@ class ConverterGuard:
         self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix='aio-guard')
         self._closed = False
         self._preflight_gate = threading.BoundedSemaphore(1)
+        self._proof_cache = OrderedDict()
+
+    def _cached_proof(self, key):
+        # Metadata only: no source bytes, processes, timers or disk copies.
+        now = time.monotonic()
+        for old, (stamp, _) in list(self._proof_cache.items()):
+            if now - stamp > self.limits.retention_seconds:
+                del self._proof_cache[old]
+        if key is None or key not in self._proof_cache:
+            return None
+        stamp, proof = self._proof_cache[key]
+        self._proof_cache.move_to_end(key)
+        return copy.deepcopy(proof)
+
+    def _remember_proof(self, key, proof):
+        if (key is None or proof.get('state') != 'detected'
+                or proof.get('registryFingerprint') != key[0][0]):
+            return
+        self._proof_cache[key] = (time.monotonic(), copy.deepcopy(proof))
+        self._proof_cache.move_to_end(key)
+        while len(self._proof_cache) > 256:
+            self._proof_cache.popitem(last=False)
 
     def capabilities(self, files):
         return self.adapter.capabilities([] if files == [] else validate_files(files, self.limits))
@@ -244,6 +269,7 @@ class ConverterGuard:
             item.uploading, item.interrupt = True, interrupt
             job.io += 1
         part = item.source.parent.parent / (item.source.parent.name + '.part')
+        digest = hashlib.sha256()
         try:
             item.source.parent.mkdir(parents=True, exist_ok=True)
             with part.open('xb') as output:
@@ -257,12 +283,14 @@ class ConverterGuard:
                     if not block or len(block) > remaining:
                         raise GuardError('UPLOAD_TRUNCATED', 'Загрузка файла прервана.', stage='upload')
                     output.write(block)
+                    digest.update(block)
                     remaining -= len(block)
             with self._lock:
                 if job.cancel.is_set() or item.cancel.is_set():
                     raise GuardError('CANCELLED', 'Загрузка отменена.', stage='upload')
                 part.replace(item.source)
                 item.state = 'queued'
+                item.content_digest = digest.hexdigest()
                 self._record(job, 'input_stored', file_id=item.id)
                 if item.name_normalized:
                     self._record(job, 'input_name_adjusted', file_id=item.id, code='SOURCE_NAME_NORMALIZED')
@@ -315,15 +343,17 @@ class ConverterGuard:
             self._record(job, 'prepared_selection_updated')
             return self._snapshot(job)
 
-    def preflight(self, job_id):
+    def preflight(self, job_id, *, recheck=False):
         """Inspect stored originals once, before any requested export."""
+        if type(recheck) is not bool:
+            raise GuardError('PREFLIGHT_REQUEST', 'Некорректный режим проверки.')
         if not self._preflight_gate.acquire(blocking=False):
             raise GuardError('PREFLIGHT_BUSY', 'Завершается предыдущая проверка.', stage='preflight', status=409)
         job = None
         try:
             with self._lock:
                 job = self._get(job_id)
-                if (not job.preparation or job.state != 'uploading' or job.running or
+                if (not job.preparation or job.state not in {'uploading', 'prepared'} or job.running or
                         any(f.uploading or f.state not in {'queued','prepared'} for f in job.files)):
                     job = None
                     raise GuardError('JOB_STATE', 'Дождитесь загрузки исходников.', status=409)
@@ -333,7 +363,17 @@ class ConverterGuard:
             for item in job.files:
                 if job.cancel.is_set():
                     raise GuardError('CANCELLED', 'Предварительная проверка отменена.', stage='preflight')
-                if item.state == 'prepared':
+                if item.state == 'prepared' and not recheck:
+                    continue
+                identity = getattr(self.adapter, 'preflight_fingerprint', lambda: None)()
+                key = (identity, item.content_digest, item.source.name) if identity and item.content_digest else None
+                with self._lock:
+                    proof = None if recheck else self._cached_proof(key)
+                    if proof is not None:
+                        item.native_route, item.state = proof, 'prepared'
+                        job.preflight_cache_hits += 1
+                        self._record(job, 'preflight_cache_hit', file_id=item.id)
+                if proof is not None:
                     continue
                 work = job.root / 'preflight' / item.source.parent.name
                 with self._lock:
@@ -351,6 +391,9 @@ class ConverterGuard:
                 finally:
                     self._remove_work(job, work)
                 with self._lock:
+                    if job.cancel.is_set():
+                        raise GuardError('CANCELLED', 'Предварительная проверка отменена.', stage='preflight')
+                    self._remember_proof(key, proof)
                     item.native_route = proof
                     item.state = 'prepared'
                     self._record(job, 'preflight_finished', file_id=item.id,
@@ -363,6 +406,7 @@ class ConverterGuard:
                     [{'id': f.id, 'name': f.name, 'size': f.size} for f in job.files],
                     proofs={f.id: f.native_route for f in job.files})
                 report['preflightChecks'] = job.preflight_checks
+                report['preflightCacheHits'] = job.preflight_cache_hits
                 return report
         finally:
             if job is not None:
@@ -375,7 +419,7 @@ class ConverterGuard:
                 self._cleanup(job)
             self._preflight_gate.release()
 
-    def start(self, job_id, *, formats=None, file_ids=None, only_verified=False):
+    def start(self, job_id, *, formats=None, file_ids=None, only_verified=False, plan=None):
         with self._lock:
             job = self._get(job_id)
             if type(only_verified) is not bool:
@@ -389,7 +433,7 @@ class ConverterGuard:
                     raise GuardError('CONVERSION_PLAN', 'Выберите подготовленные исходники.', stage='plan')
                 selected = [job.files_by_id[i] for i in file_ids]
                 planned = validate_plan([{'id': f.id, 'name': f.name, 'size': f.size} for f in selected],
-                                        formats, None)
+                                        formats, plan)
                 selected_ids = set(file_ids)
                 for item in job.files:
                     if item.id not in selected_ids:
@@ -404,19 +448,19 @@ class ConverterGuard:
                     task_index += len(item.targets)
                     for task in item.targets:
                         decision = routing(task.format, item.native_route)
-                        if decision == 'unavailable' or only_verified and decision != 'registered':
+                        if decision != 'registered':
                             task.state, task.stage = 'skipped', 'preflight'
                             task.code = ('NATIVE_ROUTE_UNAVAILABLE' if decision == 'unavailable' else
                                          'PREFLIGHT_ROUTE_UNDETERMINED')
                             task.error = ('У определённого LibreOffice типа нет этого экспорта.'
                                           if decision == 'unavailable' else
-                                          'Направление не подтверждено; не включено в автоматический план.')
+                                          'Направление не подтверждено; экспорт не запускается.')
                             task.route = copy.deepcopy(item.native_route)
                             self._record(job, 'preflight_route_excluded', file_id=item.id,
                                          target=task.format, code=task.code)
                 job.state = 'uploading'
                 job.preparation = False
-            elif formats is not None or file_ids is not None or only_verified:
+            elif formats is not None or file_ids is not None or only_verified or plan is not None:
                 raise GuardError('JOB_STATE', 'Это задание создано без предварительной подготовки.', status=409)
             if job.state != 'uploading' or any(
                     f.uploading or f.state not in {'queued', 'cancelled'} for f in job.files):
@@ -903,6 +947,7 @@ class ConverterGuard:
                 job.released = True
                 callbacks.extend(self._stop(job))
             self._tickets.clear()
+            self._proof_cache.clear()
         self._interrupt(callbacks)
         self._executor.shutdown(wait=True)
         with self._io_drained:

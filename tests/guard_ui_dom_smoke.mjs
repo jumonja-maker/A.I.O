@@ -85,7 +85,8 @@ rows()[0].querySelector('[data-op="remove"]').click();
 await until(()=>rows().length===0&&stable(),'remove unknown');
 add([new File(['W'],'renamed.bmp'),new File(['BM'],'image.bmp'),new File(['a,b'],'table.csv')]);
 await until(()=>rows().length===3&&stable(),'three native models prepared');
-target('DOCX').click(); // clear the persisted single selection
+assert.equal(document.querySelectorAll('.aio-cv__format-main[aria-pressed="true"]').length,0,'new file set must not inherit old selections');
+assert.equal(run.disabled,true,'conversion waits for an explicit user selection');
 const offered=preflights.at(-1);
 const selected=offered.formats.filter(f=>f.verifiedFileIds.length).map(f=>f.id);
 assert.equal(selected.length,6,'only registered exports enter Select All');
@@ -96,28 +97,44 @@ assert.equal(plans.length,startsBefore,'Select All itself must not start convers
 run.click();await until(()=>!save.hidden,'preflight filtered three-file conversion');
 const plan=plans.at(-1),report=reports.at(-1);
 assert.equal(plan.onlyVerified,true);
-assert.deepEqual(plan.formats,selected);
-assert.deepEqual(report.files[0].targets.map(t=>t.format),selected);
-assert.equal(report.total,18);assert.equal(report.succeeded,8);assert.equal(report.filtered,10);
+assert.deepEqual(plan.plan,offered.files.map(file=>({fileId:file.id,formats:selected.filter(id=>
+  offered.formats.find(f=>f.id===id).verifiedFileIds.includes(file.id))})));
+assert.equal(report.total,8);assert.equal(report.succeeded,8);assert.equal(report.filtered,0);
 assert.equal(report.attempted,8);assert.equal(report.failed,0);
 assert.ok(offered.files[0].preflight.documentServices.includes('com.sun.star.text.TextDocument'));
-assert.ok(startStates.at(-1).files[1].targets.filter(t=>t.state==='skipped').length>=4);
-assert.ok(report.files.flatMap(f=>f.targets).filter(t=>t.state==='skipped')
-  .every(t=>t.stage==='preflight'&&t.libreOfficeStarted===false));
-await until(()=>rows()[0].dataset.aioFpState==='ready','skipped routes are not painted as errors');
-assert.ok(rows()[0].querySelector('.aio-fp-label').textContent.includes('пропущено Guard: 3'));
+assert.ok(startStates.at(-1).files.flatMap(f=>f.targets).every(t=>t.state!=='skipped'));
+await until(()=>rows()[0].dataset.aioFpState==='ready','only confirmed planned targets are painted');
+assert.equal(document.querySelector('[data-cv-select-all-formats]').disabled,false,'Select All stays available after an explicit choice');
 const issues=document.querySelector('.aio-cv-issues-button');issues.click();
-assert.ok(issues.textContent.startsWith('Итоги'));
-assert.ok(document.querySelector('.aio-cv-issues-note').textContent.includes('Пропущено Guard: 10'));
+assert.ok(issues.textContent==='Результат');
+assert.ok(document.querySelector('.aio-cv-issues-note').textContent.includes('Готово: 8 из 8'));
 assert.ok(document.querySelector('.aio-cv-issues-note').textContent.includes('Ошибок: 0'));
-assert.ok(document.querySelector('.aio-cv-issues-list').textContent.includes('Направление пропущено Guard'));
 save.click();await until(()=>save.hidden&&stable(),'renamed save');
 await until(()=>rows()[0].querySelector('.aio-fp-check')?.hidden,'saved check clears');
 assert.equal(downloaded,2);
+const checksBeforeRemoval=preflights.length;
 while(rows().length) {
   const count=rows().length;rows()[0].querySelector('[data-op="remove"]').click();
   await until(()=>rows().length===count-1&&stable(),'remove prior source');
 }
+assert.equal(preflights.length,checksBeforeRemoval,'removal after save must not restart preflight');
+add(new File(['UNKNOWN!'],'unconfirmed.csv'));
+await until(()=>rows().length===1&&stable(),'unconfirmed CSV');
+assert.equal(document.querySelectorAll('.aio-cv__format-main[aria-pressed="true"]').length,0);
+assert.equal(target('DOCX').disabled,true);
+assert.equal(target('PDF').disabled,true);
+assert.equal(run.disabled,true);
+assert.equal(document.querySelector('[data-cv-select-all-formats]').disabled,true);
+issues.click();
+assert.equal(document.querySelectorAll('.aio-cv-issues-list .aio-cv-issues-item').length,1,
+  'one failed preflight is one cause, not an item for every format');
+assert.ok(document.querySelector('.aio-cv-issues-list').textContent.includes('PREFLIGHT_IMPORT_UNDETERMINED'));
+const retry=document.querySelector('.aio-cv-issues-popover > .aio-cv-issues-retry');
+assert.equal(retry.hidden,false);const checksBeforeRetry=preflights.length;retry.click();
+await until(()=>preflights.length===checksBeforeRetry+1&&stable(),'explicit unknown retry');
+assert.equal(run.disabled,true);
+rows()[0].querySelector('[data-op="remove"]').click();
+await until(()=>rows().length===0&&stable(),'remove unconfirmed CSV');
 add(new File(['BM'],'completed.bmp'));
 await until(()=>rows().length===1&&stable(),'first cancel-case input');
 add(new File(['HOLD'],'hold.docx'));
@@ -138,6 +155,6 @@ const status=await (await apiFetch('/api/converter-guard/status',{
   headers:{'X-AIO-Token':document.body.dataset.aioToken}})).json();
 assert.equal(status.storage.jobs,0);assert.equal(status.storage.reservedBytes,0);
 console.log(JSON.stringify({status:'PASS',scope:'preserved DOM + real Guard HTTP; synthetic native/save',
-  unknownSelectable:true,threeFileSelectAll:true,requestedPairs:18,nativeAttempts:8,filteredBeforeStart:10,errors:0,
-  honestIssues:true,skipsDoNotTurnReadyRed:true,savedChecksClear:true,
+  unknownSelectable:true,threeFileSelectAll:true,requestedPairs:8,nativeAttempts:8,unplannedPairs:10,errors:0,
+  honestIssues:true,unknownBlockedBeforeStart:true,noAutomaticSelection:true,removalAfterSaveNoPreflight:true,savedChecksClear:true,
   cancelledJobRetainsCompletedOutput:true,releasedSpool:true}));

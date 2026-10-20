@@ -1,0 +1,73 @@
+{
+  "date": "2026-10-20",
+  "baseHead": "65e6c7f16c5e0a7a5e2439b5a8d489aff85f6d48",
+  "mainUnchanged": "2bab2d0c31fe84a0d07404a33219dd5bdad834b7",
+  "suite": {
+    "discovered": 190,
+    "passed": 188,
+    "failed": 0,
+    "skipped": 2,
+    "seconds": 21.308,
+    "logSha256": "3c875b4ea567eafe734a6b919beeaaf0a0de305e9e52e3b137e096126bc660b1",
+    "skippedMethods": [
+      "BrandRestorationTests.test_both_original_pngs_match_owner_digests_and_have_alpha",
+      "BrandRestorationTests.test_spec_bundles_icon_and_approved_sources_and_sets_exe_resource"
+    ],
+    "skipReason": "Two unchanged original PNG blobs >1 MiB could not be downloaded by connector. Skip applied only by in-memory runner; repository brand tests unchanged."
+  },
+  "bridgeVM": {
+    "scenarios": 14,
+    "status": "PASS",
+    "nativeAndSave": "controlled transport fixtures"
+  },
+  "preservedDOM": {
+    "scenarios": 2,
+    "status": "PASS",
+    "nativeAndSave": "synthetic native/save; real host/HTTP",
+    "exactPlan": {
+      "selectedSources": 3,
+      "catalogUnion": 6,
+      "possibleCrossProduct": 18,
+      "planned": 8,
+      "succeeded": 8,
+      "skipped": 0
+    },
+    "noAutoSelection": true,
+    "unknownCsvBlocked": true,
+    "selectAllRemainsUsable": true,
+    "removeAfterSaveNoPreflight": true,
+    "retryExplicit": true,
+    "moreThan100Files": true
+  },
+  "native": {
+    "engine": "LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5",
+    "extendedBatch": {
+      "succeeded": 14,
+      "failed": 0,
+      "filtered": 0
+    },
+    "completeSmoke": {
+      "first": 4,
+      "second": 3,
+      "cacheHitsSecond": 3,
+      "nativeChecksSecond": 0
+    },
+    "originalBytesUnchanged": true
+  },
+  "windows": "NOT_RUN",
+  "nikita": "NOT_USED",
+  "nativeQtSave": "NOT_RUN",
+  "visualQtQA": "NOT_RUN",
+  "largeQualityCorpus": "NOT_RUN",
+  "qualityCompared": false,
+  "protectedChanges": {
+    "workflows": false,
+    "installer": false,
+    "spec": false,
+    "originalBrandAssets": false,
+    "excelModule": false,
+    "directLibreOfficeExportEngine": false
+  },
+  "runtimeInternetCalls": "NONE_ADDED; native preflight and registry are local",
+  "newRuntimeDependencies": []
+}

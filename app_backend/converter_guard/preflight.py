@@ -19,6 +19,13 @@ SERVICES = {
 }
 
 
+def _diagnostic_stage(work):
+    try:
+        return (work / 'stage.txt').read_text(encoding='ascii').strip()[:64]
+    except OSError:
+        return 'child_not_started'
+
+
 def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile):
     from .routes import registry
     native = registry(executable)
@@ -63,18 +70,14 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
                 if cancel.wait(.05):
                     raise GuardError('CANCELLED', 'Предварительная проверка отменена.', stage='preflight')
                 if time.monotonic() >= deadline:
-                    stage = work / 'stage.txt'
-                    try:
-                        marker = stage.read_text(encoding='ascii').strip()[:64]
-                    except OSError:
-                        marker = 'child_not_started'
                     return {'state': 'undetermined', 'code': 'PREFLIGHT_TIMEOUT',
-                            'diagnosticStage': marker}
+                            'diagnosticStage': _diagnostic_stage(work)}
             if cancel.is_set():
                 raise GuardError('CANCELLED', 'Предварительная проверка отменена.', stage='preflight')
             result = work / 'result.json'
             if tree.process.returncode or not result.is_file() or result.stat().st_size > 2048:
-                return {'state': 'undetermined', 'code': 'PREFLIGHT_API_UNAVAILABLE'}
+                return {'state': 'undetermined', 'code': 'PREFLIGHT_API_UNAVAILABLE',
+                        'diagnosticStage': _diagnostic_stage(work)}
             detected = json.loads(result.read_text(encoding='utf-8'))
             if os.name == 'nt':
                 graphic_type = detected.get('graphicType')
@@ -86,10 +89,12 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
                                 'graphicType': graphic_type,
                                 'registryFingerprint': native.fingerprint, 'exported': False}
                 type_name = detected.get('typeName')
-                services = native.services_for_type(type_name)
+                filter_name = detected.get('filterName')
+                services = native.services_for_type(type_name, filter_name)
                 if detected.get('state') == 'detected' and services:
                     return {'state': 'detected', 'documentServices': list(services),
                             'basis': 'native_preflight_uno_type', 'typeName': type_name,
+                            **({'filterName': filter_name} if filter_name is not None else {}),
                             'registryFingerprint': native.fingerprint, 'exported': False}
                 code = (detected.get('code') if detected.get('state') != 'detected'
                         else 'PREFLIGHT_UNO_TYPE_UNMAPPED')
