@@ -1,4 +1,4 @@
-"""Optional resource policy; no extension, page, MB or elapsed-time veto."""
+"""Guard deadlines and optional resource policy; no extension, page or MB veto."""
 from dataclasses import dataclass
 import math
 from pathlib import Path
@@ -16,14 +16,17 @@ class GuardLimits:
     max_files: int | None = None
     max_file_bytes: int | None = None
     max_spool_bytes: int | None = None
-    file_timeout: float | None = None
+    # A queue must eventually move past a wedged native operation. This is
+    # Guard policy, configurable per explicit run; never a format/size veto.
+    file_timeout: float | None = 1800
     retention_seconds: float = 1800
-    max_metadata_bytes: int = 1024 * 1024
+    max_metadata_bytes: int = 16 * 1024 * 1024
     upload_idle_timeout: float = 30
-    preflight_timeout: float = 15
+    preflight_timeout: float = 120
+    session_max_tasks: int = 128
 
     def __post_init__(self):
-        for key in ('max_jobs', 'max_metadata_bytes'):
+        for key in ('max_jobs', 'max_metadata_bytes', 'session_max_tasks'):
             value = getattr(self, key)
             if type(value) is not int or value <= 0:
                 raise ValueError(key + ' must be a positive integer')

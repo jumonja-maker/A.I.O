@@ -137,7 +137,7 @@ class GuardTests(unittest.TestCase):
     def test_native_sidecars_and_failure_report_keep_relative_hierarchy(self):
         state = self.run_job([('bad.docx', b'x'), ('web.docx', b'x')], ['html'])
         with self.guard.open_result(ticket(state['result'])) as (stream, name, _):
-            self.assertEqual(name, 'AIO_Results.zip')
+            self.assertEqual(name, 'AIO_Results_Partial.zip')
             with zipfile.ZipFile(stream) as archive:
                 names = archive.namelist()
                 self.assertIn('0002-html/web.html', names)
@@ -237,7 +237,8 @@ class GuardTests(unittest.TestCase):
         self.assertEqual(state['total'],120)
         self.assertEqual(self.guard.storage_stats()['reservedBytes'],1200*1024**3)
         self.assertIsNone(self.guard.limits.max_files)
-        self.assertIsNone(self.guard.limits.file_timeout)
+        self.assertEqual(self.guard.limits.file_timeout, 1800)
+        self.assertIsNone(GuardLimits(file_timeout=None).file_timeout)
 
     def test_large_upload_is_chunked_without_file_sized_memory(self):
         class Generated:

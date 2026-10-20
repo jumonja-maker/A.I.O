@@ -9,6 +9,7 @@ from pathlib import Path
 import socket
 import threading
 import time
+import tempfile
 import unittest
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
@@ -22,7 +23,8 @@ ROOT = Path(__file__).resolve().parents[1]
 class AioGuardIntegrationContracts(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.server, cls.token = start_server()
+        cls.workspace = tempfile.TemporaryDirectory()
+        cls.server, cls.token = start_server(guard_recovery_parent=Path(cls.workspace.name)/'guard-results')
         cls.worker = threading.Thread(target=cls.server.serve_forever,
                                       daemon=True)
         cls.worker.start()
@@ -33,6 +35,7 @@ class AioGuardIntegrationContracts(unittest.TestCase):
         cls.server.shutdown()
         cls.server.server_close()
         cls.worker.join(5)
+        cls.workspace.cleanup()
 
     def request(self, path, body=None, *, token=True, origin=None):
         headers = {'Content-Type': 'application/json'}

@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import subprocess
 import sys
 import threading
 
@@ -17,9 +18,10 @@ from .native_process import ProcessTree
 
 
 class LibreOfficeError(ValueError):
-    def __init__(self, message: str, code: str = 'LIBREOFFICE_ERROR'):
+    def __init__(self, message: str, code: str = 'LIBREOFFICE_ERROR', *, diagnostic=''):
         super().__init__(message)
         self.code = code
+        self.diagnostic = diagnostic
 
 
 def source_format(name: str) -> str:
@@ -104,7 +106,7 @@ def inspect(files, ids):
 
 def convert_path(source: Path, target: str, workspace: Path, *,
                  executable: Path | None = None, cancel=None, on_started=lambda: None,
-                 convert_spec: str | None = None, stdout=None) -> list[Path]:
+                 convert_spec: str | None = None, stdout=None, log_sink=None, import_filter=None) -> list[Path]:
     source_format(source.name)
     if not isinstance(target, str) or not EXTENSION.fullmatch(target):
         raise LibreOfficeError('Некорректное расширение результата.', 'INVALID_FORMAT')
@@ -122,21 +124,43 @@ def convert_path(source: Path, target: str, workspace: Path, *,
                '--headless', '--nologo', '--nodefault', '--norestore',
                '--convert-to', convert_spec or target,
                '--outdir', str(output.resolve()), str(source.resolve())]
+    if import_filter:
+        command.insert(6, '--infilter=' + import_filter)
+    diagnostic, logs, return_code = '', None, None
     try:
-        capture = {} if stdout is None else {'stdout': stdout}
-        with ProcessTree(command, cwd=workspace, on_started=on_started, **capture) as tree:
+        from .converter_guard.native_logs import NativeLogs
+        with ProcessTree(command, cwd=workspace, on_started=on_started,
+                         stdout=subprocess.PIPE if stdout is None else stdout,
+                         stderr=subprocess.PIPE) as tree:
+            logs = NativeLogs(tree.process)
             while tree.process.poll() is None:
                 if cancel.wait(0.1):
                     raise LibreOfficeError('Конвертация отменена.', 'CANCELLED')
             if cancel.is_set():
                 raise LibreOfficeError('Конвертация отменена.', 'CANCELLED')
-            if tree.process.returncode != 0:
-                raise LibreOfficeError('LibreOffice завершился с кодом ' +
-                                       str(tree.process.returncode) + '.', 'ENGINE_FAILED')
+            return_code = tree.process.returncode
     except OSError as exc:
         raise LibreOfficeError('Не удалось запустить LibreOffice.', 'ENGINE_LAUNCH_FAILED') from exc
+    finally:
+        diagnostic = logs.finish() if logs else ''
+        # Diagnostics are bounded and do not expose private storage paths.
+        for private in (str(source.resolve()), str(workspace.resolve()), str(profile.resolve()), str(binary)):
+            diagnostic = diagnostic.replace(private, '[local]')
+        diagnostic = diagnostic[-8192:]
+        if log_sink:
+            log_sink(diagnostic)
+    if return_code != 0:
+        source_failed = bool(re.search(r'(?im)^Error:\s*source file could not be loaded\.?\s*$', diagnostic))
+        raise LibreOfficeError('LibreOffice не смог открыть исходный документ.' if source_failed else
+                               'LibreOffice завершился с кодом ' + str(return_code) + '.',
+                               'SOURCE_IMPORT_FAILED' if source_failed else 'ENGINE_FAILED',
+                               diagnostic=diagnostic)
     results = sorted(p for p in output.rglob('*')
                      if p.is_file() and not p.is_symlink())
     if not results:
-        raise LibreOfficeError('LibreOffice не создал запрошенный результат.', 'ENGINE_OUTPUT_MISSING')
+        source_failed = bool(re.search(r'(?im)^Error:\s*source file could not be loaded\.?\s*$', diagnostic))
+        raise LibreOfficeError('LibreOffice не смог открыть исходный документ.' if source_failed else
+                               'LibreOffice не создал запрошенный результат.',
+                               'SOURCE_IMPORT_FAILED' if source_failed else 'ENGINE_OUTPUT_MISSING',
+                               diagnostic=diagnostic)
     return results

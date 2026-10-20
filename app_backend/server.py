@@ -28,6 +28,7 @@ from .converter_transport import ConverterTransport
 from .converter_upload_stream import MultipartUpload, content_length
 from .converter_guard import ConverterGuard
 from .converter_guard.http_api import GuardAPI
+from .converter_guard.result_store import data_directory
 from urllib.parse import quote
 
 
@@ -93,7 +94,7 @@ class LocalServer(ThreadingHTTPServer):
             super().server_close()
 
 
-def start_server(port: int = 0):
+def start_server(port: int = 0, *, guard_recovery_parent=None):
     token = secrets.token_urlsafe(32)
     root = asset_root().resolve()
 
@@ -402,7 +403,8 @@ def start_server(port: int = 0):
 
     server = LocalServer(('127.0.0.1', port), Handler)
     try:
-        server.guard = ConverterGuard()
+        server.guard = ConverterGuard(recovery_parent=(data_directory() / 'jobs'
+            if guard_recovery_parent is None else guard_recovery_parent))
         server.guard_api = GuardAPI(server.guard,
             origin=f'http://127.0.0.1:{server.server_port}', token=token)
     except BaseException:

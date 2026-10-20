@@ -80,6 +80,11 @@ class Registry:
                 if EXTENSION.fullmatch(e.lower()))
         self.types = {e.lower() for item in types.values() for e in item.get('Extensions', '').split()
                       if EXTENSION.fullmatch(e.lower())}
+        self.preferred_filters = {}
+        for item in types.values():
+            for extension in item.get('Extensions', '').split():
+                if item.get('PreferredFilter'):
+                    self.preferred_filters.setdefault(extension.lower(), set()).add(item['PreferredFilter'])
         for identity, item in filters.items():
             service = item.get('DocumentService')
             flags = set(item.get('Flags', '').split())
@@ -96,6 +101,22 @@ class Registry:
                     for extension in extensions:
                         mapping.setdefault(extension, set()).add(service)
         self.valid = self.valid and bool(self.imports) and bool(self.exports)
+        self.import_services = frozenset(s for services in self.imports.values() for s in services)
+        self.export_candidates = {}
+        for name,(service,extensions,flags) in self.filters.items():
+            if 'EXPORT' in flags:
+                for extension in extensions:
+                    self.export_candidates.setdefault((extension,service),set()).add(name)
+
+    def export_filter(self, target, services):
+        """Choose only an unambiguous installed default; otherwise retain CLI."""
+        if not self.valid or target in self.uncertain_extensions:
+            return None
+        candidates = set().union(*(self.export_candidates.get((target,service),set()) for service in services))
+        preferred = candidates.intersection(self.preferred_filters.get(target, ()))
+        if len(preferred) == 1:
+            return next(iter(preferred))
+        return next(iter(candidates)) if len(candidates) == 1 else None
 
     def services_for_type(self, type_name, filter_name=None):
         # A verified UNO TypeDetection name, not a file suffix, is mapped
@@ -140,6 +161,14 @@ class Registry:
                 'registryFingerprint': self.fingerprint, 'basis': 'native_selected_export_filter'}
 
     def observed_decision(self, target, proof):
+        if (proof and proof.get('basis') == 'native_preflight_uno_document'
+                and proof.get('state') == 'detected' and proof.get('modelLoaded') is True
+                and proof.get('registryFingerprint') == self.fingerprint):
+            services = proof.get('documentServices')
+            installed = self.import_services
+            if isinstance(services, list) and services and all(s in installed for s in services):
+                return self.decide(target, set(services))
+            return 'undetermined'
         if (proof and proof.get('basis') == 'native_preflight_uno_graphic'
                 and proof.get('state') == 'detected'
                 and proof.get('registryFingerprint') == self.fingerprint

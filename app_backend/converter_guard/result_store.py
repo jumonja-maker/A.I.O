@@ -1,0 +1,169 @@
+"""Atomic job metadata and append-only terminal-task records, without tokens.
+
+Only application-owned output paths are restored. No source file is imported
+and no conversion resumes automatically after restart. Unsaved output bytes
+remain owned until an explicit save acknowledgement or discard.
+"""
+import json
+import hashlib
+import os
+from pathlib import Path
+import threading
+import secrets
+
+
+def data_directory():
+    if os.environ.get('AIO_GUARD_DATA_DIR'):
+        return Path(os.environ['AIO_GUARD_DATA_DIR']).expanduser().resolve()
+    if os.name == 'nt':
+        base = Path(os.environ.get('LOCALAPPDATA') or Path.home() / 'AppData/Local')
+    else:
+        base = Path(os.environ.get('XDG_DATA_HOME') or Path.home() / '.local/share')
+    return base / 'AIO' / 'ConverterGuard'
+
+
+def atomic_json(path, value):
+    temporary = path.with_suffix('.new')
+    with temporary.open('w', encoding='utf-8') as output:
+        json.dump(value, output, ensure_ascii=True, separators=(',', ':'))
+        output.flush()
+        os.fsync(output.fileno())
+    temporary.replace(path)
+
+
+class ResultStore:
+    def __init__(self, root):
+        self.root = Path(root)
+        self.lock = threading.Lock()
+        self.owner = None
+
+    def acquire(self):
+        self.owner = (self.root / 'owner.lock').open('a+b')
+        try:
+            if os.name == 'nt':
+                import msvcrt
+                if self.owner.tell() == 0:
+                    self.owner.write(b'0')
+                    self.owner.flush()
+                self.owner.seek(0)
+                msvcrt.locking(self.owner.fileno(), msvcrt.LK_NBLCK, 1)
+            else:
+                import fcntl
+                fcntl.flock(self.owner, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return True
+        except OSError:
+            self.close()
+            return False
+
+    def close(self):
+        if self.owner:
+            self.owner.close()
+            self.owner = None
+
+    def initialize(self, job):
+        value = {'schema': 1, 'jobId': job.id,
+            'files': [{'id': f.id, 'name': f.name, 'size': f.size,'nativeRoute':f.native_route,
+                       'targets': [{'index': t.index, 'format': t.format} for t in f.targets]}
+                      for f in job.files]}
+        value['checksum'] = self._digest(value)
+        atomic_json(self.root / 'job.json', value)
+
+    @staticmethod
+    def _digest(value):
+        return hashlib.sha256(json.dumps(value,ensure_ascii=True,sort_keys=True,
+                                         separators=(',',':')).encode('ascii')).hexdigest()
+
+    def append(self, record):
+        self.append_many((record,))
+
+    def append_many(self, records):
+        with self.lock, (self.root / 'results.jsonl').open('a', encoding='utf-8') as output:
+            for record in records:
+                output.write(json.dumps({'record':record,'checksum':self._digest(record)},
+                                         ensure_ascii=True,separators=(',', ':'))+'\n')
+            output.flush()
+            os.fsync(output.fileno())
+
+    def task(self, item, task):
+        transaction=secrets.token_hex(16)
+        def records():
+            yield {'kind':'task_begin','transaction':transaction,'index': task.index, 'fileId': item.id,
+            'state': task.state, 'code': task.code, 'error': task.error,
+            'stage': task.stage, 'diagnostic': task.diagnostic,
+            'startedMs': task.started_ms, 'finishedMs': task.finished_ms,
+            'durationMs':task.duration_ms,'executionMode':task.execution_mode,
+            'loStarted': task.lo_started}
+            for artifact in task.artifacts:
+                yield {'kind':'output','transaction':transaction,
+                       'output':{'path':artifact.path.relative_to(self.root).as_posix(),
+                                 'archiveName':artifact.archive_name,'name':artifact.name,'size':artifact.size}}
+            yield {'kind':'task_commit','transaction':transaction}
+        self.append_many(records())
+
+    def saved(self, artifacts):
+        self.append_many({'kind':'saved','paths':[a.path.relative_to(self.root).as_posix()]} for a in artifacts)
+
+    def finish(self, job):
+        self.append({'kind':'summary','timings':dict(job.timings),'officeStarts':job.office_starts,
+                     'fileTimeoutSeconds':job.file_timeout,'state':job.state})
+
+    def read(self):
+        header = self.root / 'job.json'
+        if header.is_symlink() or header.stat().st_size > 32 * 1024 * 1024:
+            raise ValueError('Invalid recovery header')
+        value = json.loads(header.read_text(encoding='utf-8'))
+        if not isinstance(value, dict) or value.get('schema') != 1:
+            raise ValueError('Unknown recovery schema')
+        checksum=value.pop('checksum',None)
+        if checksum != self._digest(value):
+            raise ValueError('Recovery header checksum mismatch')
+        records = {}
+        saved = set()
+        pending = {}
+        ledger = self.root / 'results.jsonl'
+        if ledger.is_symlink():
+            raise ValueError('Invalid recovery ledger')
+        if ledger.exists():
+            with ledger.open(encoding='utf-8') as stream:
+                while line := stream.readline(8 * 1024 * 1024 + 1):
+                    # A crash may leave an incomplete final append. Earlier
+                    # fsynced records remain valid; never infer a ready output.
+                    if len(line) > 8 * 1024 * 1024 or not line.endswith('\n'):
+                        break
+                    try:
+                        envelope = json.loads(line)
+                        record = envelope['record']
+                        if envelope.get('checksum') != self._digest(record):
+                            break
+                        if record.get('kind') == 'task' and type(record.get('index')) is int:
+                            records[record['index']] = record
+                        elif record.get('kind') == 'task_begin':
+                            pending={record['transaction']:{**record,'outputs':[]}}
+                        elif record.get('kind') == 'output' and record.get('transaction') in pending:
+                            pending[record['transaction']]['outputs'].append(record['output'])
+                        elif record.get('kind') == 'task_commit' and record.get('transaction') in pending:
+                            complete=pending.pop(record['transaction'])
+                            records[complete['index']]=complete
+                        elif record.get('kind') == 'saved':
+                            saved.update(p for p in record.get('paths', []) if isinstance(p, str))
+                        elif record.get('kind') == 'summary':
+                            value['summary']=record
+                    except (ValueError, TypeError, AttributeError, KeyError):
+                        break
+        return value, records, saved
+
+    def output_path(self, relative, size):
+        if not isinstance(relative, str) or type(size) is not int or size < 0:
+            raise ValueError('Invalid output metadata')
+        path = self.root / relative
+        if Path(relative).is_absolute() or '..' in Path(relative).parts:
+            raise ValueError('Output path escapes its job')
+        for part in (path, *path.parents):
+            if part == self.root.parent:
+                break
+            if part.is_symlink():
+                raise ValueError('Symlink in recovery output')
+        if (not path.resolve(strict=True).is_relative_to(self.root.resolve())
+                or not path.is_file() or path.stat().st_size != size):
+            raise ValueError('Output is missing or changed')
+        return path

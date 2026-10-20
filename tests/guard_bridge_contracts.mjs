@@ -130,22 +130,22 @@ const completed=[];
 {
   const e=environment({statuses:[ready({packagingError:'BUNDLE_QUOTA'})]});
   const outcome=await e.bridge.convertMany({files,formatIds:formats});
-  const saved=[];let cancelSecond=true;
+  const saved=[];
   e.window.AllInOneBridge.saveExcel=async item=>{
-    saved.push(item.ticket);
-    if(saved.length===2&&cancelSecond){cancelSecond=false;return {cancelled:true};}
-    return {saved:true};
+    saved.push(item);
+    assert.equal(item.saveMode,'folder','bulk fallback must request one folder');
+    return saved.length===1?{cancelled:true}:{saved:true,savedAll:true};
   };
   const first=await e.bridge.saveResult({result:outcome.result});
   assert.equal(first.cancelled,true);
-  assert.equal(e.events.includes('release'),false,'remaining unsaved copies stay retained');
+  assert.equal(e.events.includes('release'),false,'cancelled batch save retains all outputs');
   const second=await e.bridge.saveResult({result:outcome.result});
   assert.equal(second.saved,true);
-  assert.deepEqual(saved,['c'.repeat(43),'d'.repeat(43),'d'.repeat(43)]);
-  assert.deepEqual(e.events.filter(x=>typeof x==='string'&&x.startsWith('ack:')),
-    ['ack:'+'c'.repeat(43),'ack:'+'d'.repeat(43)]);
+  assert.equal(saved.length,2,'one save request per user attempt, never one per output');
+  assert.equal(e.events.filter(x=>typeof x==='string'&&x.startsWith('ack:')).length,0,
+    'native bulk save confirms the whole manifest itself');
   assert.equal(e.events.at(-2),'release');
-  completed.push('archive failure saves each copy and resumes after cancelled save');
+  completed.push('archive failure uses one folder save and retains files after cancelled save');
 }
 {
   const final=ready({state:'cancelled',cancelled:3,filtered:0});

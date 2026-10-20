@@ -163,8 +163,13 @@ class GuardAPI:
                 match = re.fullmatch(r'"([0-9a-f]{32}):([0-9]{1,20})"',
                                      handler.headers.get('If-None-Match', ''))
                 since = int(match[2]) if match and match[1] == identity else None
-                state = self.guard.status(identity, include_trace=trace, since_revision=since)
+                delta = parse_qs(urlsplit(handler.path).query).get('delta') == ['1']
+                state = self.guard.status(identity, include_trace=trace, since_revision=since, delta=delta)
                 return self._status_reply(handler, state)
+            if path == PREFIX + '/recoverable':
+                return self._json(handler,200, self.guard.recoverable())
+            if path == PREFIX + '/report':
+                return self._json(handler,200, self.guard.report(self._identity(self._query(handler, 'job'))))
             if path == PREFIX + '/retry-plan':
                 cancelled = parse_qs(urlsplit(handler.path).query).get('includeCancelled') == ['1']
                 return self._json(handler,200, self.guard.retry_plan(
@@ -213,19 +218,25 @@ class GuardAPI:
                 return self._json(handler,200, self.guard.update_prepared(identity, body.get('files')))
             if path == PREFIX + '/preflight':
                 return self._json(handler,200, self.guard.preflight(identity,
-                    recheck=body.get('recheck', False)))
+                    recheck=body.get('recheck', False),timeout_seconds=body.get('timeoutSeconds'),
+                    only_undetermined=body.get('onlyUndetermined',False)))
             if path == PREFIX + '/start':
                 return self._json(handler,202, self.guard.start(identity,
                     formats=body.get('formats'), file_ids=body.get('fileIds'),
-                    only_verified=body.get('onlyVerified', False), plan=body.get('plan')))
+                    only_verified=body.get('onlyVerified', False), plan=body.get('plan'),
+                    timeout_seconds=body.get('timeoutSeconds')))
             if path == PREFIX + '/cancel':
                 return self._json(handler,200, self.guard.cancel(identity))
             if path == PREFIX + '/cancel-file':
                 return self._json(handler,200, self.guard.cancel_file(identity, body.get('fileId')))
+            if path == PREFIX + '/pause':
+                return self._json(handler,200, self.guard.pause(identity, body.get('paused', True)))
+            if path == PREFIX + '/bundle':
+                return self._json(handler,202, self.guard.rebuild_bundle(identity))
             if path == PREFIX + '/saved':
                 return self._json(handler,200, self.guard.confirm_saved(identity, body.get('ticket')))
             if path == PREFIX + '/release':
-                self.guard.release(identity)
+                self.guard.release(identity, discard=body.get('discard', False))
                 return self._json(handler,200, {'ok': True})
             raise GuardError('API_NOT_FOUND', 'Неизвестная операция Guard.', status=404)
         except GuardError as error:
@@ -239,14 +250,17 @@ class GuardAPI:
         if not re.fullmatch(r'[A-Za-z0-9_-]{32,128}', ticket):
             raise GuardError('RESULT_TICKET', 'Неверный идентификатор результата.', status=404)
         with self._transfer(handler), self.guard.open_result(ticket) as (stream, name, size):
+            folder = parse_qs(urlsplit(handler.path).query).get('mode') == ['folder']
             handler.send_response(200)
             handler.send_header('Content-Type', mime_for(name.rsplit('.', 1)[-1].lower()))
-            handler.send_header('Content-Length', str(size))
+            handler.send_header('Content-Length', str(0 if folder else size))
             handler.send_header('Content-Disposition', "attachment; filename*=UTF-8''" + quote(name, safe=''))
             handler.send_header('Cache-Control', 'no-store')
             handler.send_header('Referrer-Policy', 'no-referrer')
             handler.send_header('X-Content-Type-Options', 'nosniff')
             handler.end_headers()
+            if folder:
+                return  # The native shell handles one directory choice, not a Blob.
             while block := stream.read(CHUNK):
                 handler.wfile.write(block)
 

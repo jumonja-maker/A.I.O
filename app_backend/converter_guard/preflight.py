@@ -26,17 +26,22 @@ def _diagnostic_stage(work):
         return 'child_not_started'
 
 
-def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile):
+def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile,
+                   native=None, office_session=None):
     from .routes import registry
-    native = registry(executable)
+    native = native if native is not None else registry(executable)
     if not native.valid:
         return {'state': 'undetermined', 'code': 'PREFLIGHT_REGISTRY_UNAVAILABLE'}
     work = work.resolve()
     work.mkdir(parents=True, exist_ok=False)
     prepare_profile(work / 'profile')
     manifest = work / 'request.json'
-    manifest.write_text(json.dumps({'program': str(Path(executable).resolve().parent),
-                                    'source': str(source.resolve())}), encoding='utf-8')
+    request = {'program': str(Path(executable).resolve().parent), 'source': str(source.resolve())}
+    request['documentServices'] = sorted({service for services in native.imports.values() for service in services})
+    request['importFilters'] = sorted(name for name, (_, _, flags) in native.filters.items() if 'IMPORT' in flags)
+    if office_session is not None:
+        request.update(officePipe=office_session.pipe, profile=str(office_session.profile.resolve()))
+    manifest.write_text(json.dumps(request), encoding='utf-8')
     program = Path(executable).resolve().parent
     environment = dict(os.environ)
     if os.name == 'nt':
@@ -63,6 +68,17 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
     try:
         with ProcessTree(command, cwd=work, env=environment) as tree:
             if os.name == 'nt':
+                services = detected.get('documentServices')
+                installed = {service for values in native.imports.values() for service in values}
+                if (detected.get('state') == 'detected' and detected.get('modelLoaded') is True
+                        and isinstance(services, list) and services and all(s in installed for s in services)):
+                    selected = detected.get('filterName')
+                    item = native.filters.get(selected)
+                    import_filter = selected if item and 'IMPORT' in item[2] and item[0] in services else None
+                    return {'state':'detected','basis':'native_preflight_uno_document','modelLoaded':True,
+                            'documentServices':sorted(set(services)), 'typeName':detected.get('typeName'),
+                            'filterName':selected, 'selectedImportFilter':import_filter,
+                            'registryFingerprint':native.fingerprint,'exported':False}
                 # A short handshake keeps the UNO-spawned soffice process
                 # inside our Windows kill-on-close Job Object.
                 (work / 'start.token').write_text('ready', encoding='ascii')
@@ -80,26 +96,11 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
                         'diagnosticStage': _diagnostic_stage(work)}
             detected = json.loads(result.read_text(encoding='utf-8'))
             if os.name == 'nt':
-                graphic_type = detected.get('graphicType')
-                if detected.get('state') == 'detected' and type(graphic_type) is int and graphic_type in (1, 2):
-                    drawing = 'com.sun.star.drawing.DrawingDocument'
-                    if any(drawing in available for available in native.imports.values()):
-                        return {'state': 'detected', 'documentServices': [drawing],
-                                'basis': 'native_preflight_uno_graphic',
-                                'graphicType': graphic_type,
-                                'registryFingerprint': native.fingerprint, 'exported': False}
-                type_name = detected.get('typeName')
-                filter_name = detected.get('filterName')
-                services = native.services_for_type(type_name, filter_name)
-                if detected.get('state') == 'detected' and services:
-                    return {'state': 'detected', 'documentServices': list(services),
-                            'basis': 'native_preflight_uno_type', 'typeName': type_name,
-                            **({'filterName': filter_name} if filter_name is not None else {}),
-                            'registryFingerprint': native.fingerprint, 'exported': False}
                 code = (detected.get('code') if detected.get('state') != 'detected'
                         else 'PREFLIGHT_UNO_TYPE_UNMAPPED')
                 if code not in ('PREFLIGHT_UNO_API_UNAVAILABLE', 'PREFLIGHT_UNO_TYPE_UNKNOWN',
-                                'PREFLIGHT_UNO_TYPE_UNMAPPED'):
+                                'PREFLIGHT_UNO_TYPE_UNMAPPED', 'PREFLIGHT_IMPORT_FAILED',
+                                'PREFLIGHT_INTERACTION_REQUIRED'):
                     code = 'PREFLIGHT_UNO_API_UNAVAILABLE'
                 try:
                     stage = (work / 'stage.txt').read_text(encoding='ascii').strip()[:64]

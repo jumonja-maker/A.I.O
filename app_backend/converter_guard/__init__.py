@@ -1,4 +1,4 @@
-"""Guard v0.7 library; importing it never connects or starts the UI."""
+"""Guard v0.8 library; importing it never connects or starts the UI."""
 from .adapter import LibreOfficeAdapter
 from .core import ConverterGuard, GuardTrace
 from .errors import GuardError
