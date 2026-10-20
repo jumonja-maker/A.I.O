@@ -16,7 +16,7 @@ from ..libreoffice_catalog import OOR, EXTENSION, properties, registry_files
 
 class Registry:
     def __init__(self, files, executable):
-        self.imports, self.exports, self.filters = {}, {}, {}
+        self.imports, self.exports, self.filters, self.type_services = {}, {}, {}, {}
         self.external_filters = False
         # Export targets touched by load-order-dependent extensions must stay
         # UNKNOWN rather than disabling the unaffected native registry.
@@ -72,6 +72,7 @@ class Registry:
                         if node.get(OOR + 'op') == 'replace':
                             collection[identity] = {}
                         collection.setdefault(identity, {}).update(properties(node))
+        self.uncertain_type_ids = set(dirty_type_ids)
         for type_id in dirty_type_ids:
             self.uncertain_extensions.update(
                 e.lower() for e in types.get(type_id, {}).get('Extensions', '').split()
@@ -86,11 +87,21 @@ class Registry:
             extensions = {e.lower() for e in types.get(item.get('Type'), {}).get('Extensions', '').split()
                           if EXTENSION.fullmatch(e.lower())}
             self.filters[identity] = (service, frozenset(extensions), frozenset(flags))
+            if 'IMPORT' in flags and item.get('Type'):
+                self.type_services.setdefault(item['Type'], set()).add(service)
             for flag, mapping in (('IMPORT', self.imports), ('EXPORT', self.exports)):
                 if flag in flags:
                     for extension in extensions:
                         mapping.setdefault(extension, set()).add(service)
         self.valid = self.valid and bool(self.imports) and bool(self.exports)
+
+    def services_for_type(self, type_name):
+        # A verified UNO TypeDetection name, not a file suffix, is mapped
+        # to native import services from the same installed FilterFactory.
+        if (not self.valid or not isinstance(type_name, str)
+                or type_name in self.uncertain_type_ids):
+            return ()
+        return tuple(sorted(self.type_services.get(type_name, ())))
 
     def hint(self, filename, target):
         source_ext = Path(filename).suffix.lower().lstrip('.')
@@ -119,6 +130,13 @@ class Registry:
                 'registryFingerprint': self.fingerprint, 'basis': 'native_selected_export_filter'}
 
     def observed_decision(self, target, proof):
+        if (proof and proof.get('basis') == 'native_preflight_uno_type'
+                and proof.get('state') == 'detected'
+                and proof.get('registryFingerprint') == self.fingerprint):
+            services = self.services_for_type(proof.get('typeName'))
+            if services and sorted(services) == sorted(proof.get('documentServices', ())):
+                return self.decide(target, set(services))
+            return 'undetermined'
         if (proof and proof.get('basis') == 'native_preflight_document_kind'
                 and proof.get('registryFingerprint') == self.fingerprint
                 and proof.get('state') == 'detected'
