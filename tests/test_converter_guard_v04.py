@@ -171,6 +171,29 @@ class RegistryTests(unittest.TestCase):
         self.assertTrue(native.external_filters)
         self.assertEqual(native.hint('image.bmp','dbf'),'undetermined')
 
+    def test_explicit_filter_extension_overlay_only_uncertains_affected_format(self):
+        # A stock LibreOffice distribution may include Wiki Publisher as a
+        # well-formed Types.xcu + Filter.xcu. It must NOT invalidate BMP→PDF
+        # or wrongly allow BMP→DBF before export.
+        addon=Path(self.temp.name)/'share/extensions/wiki-publisher'
+        addon.mkdir(parents=True)
+        prefix='<oor:component-data xmlns:oor="http://openoffice.org/2001/registry" '
+        (addon/'Types.xcu').write_text(
+            prefix+'oor:name="Types"><node oor:name="Types">'+
+            node('MediaWiki',Extensions='txt')+'</node></oor:component-data>',encoding='utf-8')
+        (addon/'Filter.xcu').write_text(
+            prefix+'oor:name="Filter"><node oor:name="Filters">'+
+            node('MediaWiki',Type='MediaWiki',DocumentService=W,Flags='EXPORT')+
+            '</node></oor:component-data>',encoding='utf-8')
+        native=registry(self.exe)
+        self.assertTrue(native.valid)
+        self.assertTrue(native.external_filters)
+        self.assertIn('txt',native.uncertain_extensions)
+        self.assertEqual(native.hint('picture.bmp','pdf'),'registered')
+        self.assertEqual(native.hint('picture.bmp','dbf'),'unavailable')
+        self.assertEqual(native.decide('txt',{W}),'undetermined')
+        self.assertEqual(native.hint('renamed.txt','pdf'),'undetermined')
+
     def test_failed_native_export_cannot_become_document_model_proof(self):
         adapter=LibreOfficeAdapter(self.exe);observed=[]
         def failed(*args,**kwargs):
