@@ -77,6 +77,14 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
                 return {'state': 'undetermined', 'code': 'PREFLIGHT_API_UNAVAILABLE'}
             detected = json.loads(result.read_text(encoding='utf-8'))
             if os.name == 'nt':
+                graphic_type = detected.get('graphicType')
+                if detected.get('state') == 'detected' and type(graphic_type) is int and graphic_type in (1, 2):
+                    drawing = 'com.sun.star.drawing.DrawingDocument'
+                    if any(drawing in available for available in native.imports.values()):
+                        return {'state': 'detected', 'documentServices': [drawing],
+                                'basis': 'native_preflight_uno_graphic',
+                                'graphicType': graphic_type,
+                                'registryFingerprint': native.fingerprint, 'exported': False}
                 type_name = detected.get('typeName')
                 services = native.services_for_type(type_name)
                 if detected.get('state') == 'detected' and services:
