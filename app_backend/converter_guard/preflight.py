@@ -112,6 +112,17 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
                         'diagnosticStage': stage,
                         'diagnosticType': str(detected.get('typeName') or '')[:96]}
             kind = detected.get('kind')
+            if (os.name != 'nt' and detected.get('state') == 'detected'
+                    and type(kind) is int and kind == 4
+                    and detected.get('contentClass') == 'mathml'):
+                formula = 'com.sun.star.formula.FormulaProperties'
+                # The MathML XML root and successful LOK load identify the
+                # input. Also require an installed native formula import.
+                if formula in {svc for values in native.imports.values() for svc in values}:
+                    return {'state':'detected','basis':'native_preflight_mathml_content',
+                            'documentServices':[formula], 'nativeKind':kind,
+                            'mathmlRoot':True, 'registryFingerprint':native.fingerprint,
+                            'exported':False}
             if detected.get('state') != 'detected' or type(kind) is not int or kind not in SERVICES:
                 native_code = detected.get('code', 'PREFLIGHT_KIND_UNDETERMINED')
                 if native_code not in ('PREFLIGHT_INIT_FAILED', 'PREFLIGHT_API_UNAVAILABLE',
