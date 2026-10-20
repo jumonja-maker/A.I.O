@@ -6,6 +6,8 @@ from collections import Counter, defaultdict
 import io
 import json
 import os
+import subprocess
+import sys
 from pathlib import Path
 import re
 import tempfile
@@ -164,6 +166,24 @@ class BlackBoxEmitterTests(unittest.TestCase):
         self.assertEqual(sum(e['type']=='task_queued' for e in events),800)
         emitter.emit('task_started',request_id='request',file_id='1',target='pdf')
         self.assertEqual(self.events(emitter),events)
+
+    def test_abrupt_process_exit_leaves_parseable_partial_jsonl(self):
+        # A forced exit cannot guarantee delivery of the final pending events.
+        # What reached disk must still be complete JSONL without document bytes.
+        destination=self.root/'abrupt.jsonl'
+        code = (
+            "from app_backend.blackbox_telemetry import TelemetryEmitter;"
+            "import os,time;"
+            "e=TelemetryEmitter(r'" + str(destination) + "');"
+            "[e.emit('task_started',request_id='r',file_id=str(i),target='pdf') for i in range(500)];"
+            "time.sleep(.35);os._exit(41)"
+        )
+        proc=subprocess.run([sys.executable,'-c',code],timeout=10,check=False)
+        self.assertEqual(proc.returncode,41)
+        records=[json.loads(line) for line in destination.read_text(encoding='utf-8').splitlines()]
+        self.assertTrue(records)
+        self.assertTrue(all(set(event).issubset(FIELDS) for event in records))
+        self.assertTrue(all(type(event.get('seq')) is int for event in records))
 
     def test_opted_in_and_disabled_guard_results_equal(self):
         emitter=self.emitter()
