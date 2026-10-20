@@ -12,6 +12,10 @@ from pathlib import Path
 import struct
 import tempfile
 import threading
+import sys
+
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
 
 from app_backend.converter_guard import ConverterGuard, LibreOfficeAdapter
 from app_backend.converter_guard.routes import registry
