@@ -51,9 +51,10 @@ class TelemetryEmitter:
     def __init__(self, path: Path | str, *, capacity: int = 8192):
         if not isinstance(capacity, int) or isinstance(capacity, bool) or not 1 <= capacity <= 65536:
             raise ValueError('Invalid telemetry capacity')
-        destination = Path(path).expanduser().resolve()
-        if not destination.is_absolute() or destination.suffix.lower() != '.jsonl':
+        requested = Path(path).expanduser()
+        if not requested.is_absolute() or requested.suffix.lower() != '.jsonl':
             raise ValueError('Telemetry requires an absolute .jsonl destination')
+        destination = requested.resolve()
         tmp = Path(tempfile.gettempdir()).resolve()
         if destination == tmp or destination.is_relative_to(tmp):
             raise ValueError('Telemetry must be outside conversion/temp directories')
