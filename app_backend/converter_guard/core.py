@@ -168,7 +168,7 @@ class _LocalHtmlResources(HTMLParser):
 
     @staticmethod
     def _local(value):
-        value = value.strip().strip('"\\'')
+        value = value.strip().strip(chr(34)).strip(chr(39))
         if not value or value.startswith(('#', '//', '/', 'data:')):
             return False
         if re.match(r'(?i)^[a-z][a-z0-9+.-]*:', value):
