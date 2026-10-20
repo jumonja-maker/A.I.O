@@ -67,18 +67,6 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
     deadline = time.monotonic() + timeout
     try:
         with ProcessTree(command, cwd=work, env=environment) as tree:
-            if os.name == 'nt':
-                services = detected.get('documentServices')
-                installed = {service for values in native.imports.values() for service in values}
-                if (detected.get('state') == 'detected' and detected.get('modelLoaded') is True
-                        and isinstance(services, list) and services and all(s in installed for s in services)):
-                    selected = detected.get('filterName')
-                    item = native.filters.get(selected)
-                    import_filter = selected if item and 'IMPORT' in item[2] and item[0] in services else None
-                    return {'state':'detected','basis':'native_preflight_uno_document','modelLoaded':True,
-                            'documentServices':sorted(set(services)), 'typeName':detected.get('typeName'),
-                            'filterName':selected, 'selectedImportFilter':import_filter,
-                            'registryFingerprint':native.fingerprint,'exported':False}
                 # A short handshake keeps the UNO-spawned soffice process
                 # inside our Windows kill-on-close Job Object.
                 (work / 'start.token').write_text('ready', encoding='ascii')
@@ -95,6 +83,20 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
                 return {'state': 'undetermined', 'code': 'PREFLIGHT_API_UNAVAILABLE',
                         'diagnosticStage': _diagnostic_stage(work)}
             detected = json.loads(result.read_text(encoding='utf-8'))
+            if not isinstance(detected, dict):
+                return {'state': 'undetermined', 'code': 'PREFLIGHT_API_UNAVAILABLE'}
+            if os.name == 'nt':
+                services = detected.get('documentServices')
+                installed = {service for values in native.imports.values() for service in values}
+                if (detected.get('state') == 'detected' and detected.get('modelLoaded') is True
+                        and isinstance(services, list) and services and all(s in installed for s in services)):
+                    selected = detected.get('filterName')
+                    item = native.filters.get(selected)
+                    import_filter = selected if item and 'IMPORT' in item[2] and item[0] in services else None
+                    return {'state':'detected','basis':'native_preflight_uno_document','modelLoaded':True,
+                            'documentServices':sorted(set(services)), 'typeName':detected.get('typeName'),
+                            'filterName':selected, 'selectedImportFilter':import_filter,
+                            'registryFingerprint':native.fingerprint,'exported':False}
             if os.name == 'nt':
                 code = (detected.get('code') if detected.get('state') != 'detected'
                         else 'PREFLIGHT_UNO_TYPE_UNMAPPED')
@@ -108,7 +110,7 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
                     stage = 'unknown'
                 return {'state': 'undetermined', 'code': code,
                         'diagnosticStage': stage,
-                        'diagnosticType': str(type_name or '')[:96]}
+                        'diagnosticType': str(detected.get('typeName') or '')[:96]}
             kind = detected.get('kind')
             if detected.get('state') != 'detected' or type(kind) is not int or kind not in SERVICES:
                 native_code = detected.get('code', 'PREFLIGHT_KIND_UNDETERMINED')
