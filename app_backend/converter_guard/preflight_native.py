@@ -33,7 +33,17 @@ def _table(pointer, structure, member):
     return table
 
 
-def detect(program, profile, source):
+def _stage(work, name):
+    # The parent reads this fixed vocabulary after timeout; no document
+    # names or private paths are emitted. A Windows C call can hang indefinitely.
+    with (work / 'stage.txt').open('w', encoding='ascii') as output:
+        output.write(name)
+        output.flush()
+        os.fsync(output.fileno())
+
+
+def detect(program, profile, source, work):
+    _stage(work, 'dll_scope')
     dll_scope = os.add_dll_directory(str(program)) if os.name == 'nt' else None
     names = (('sofficeapp.dll', 'mergedlo.dll') if os.name == 'nt' else
              ('libsofficeapp.dylib', 'libmergedlo.dylib') if sys.platform == 'darwin' else
@@ -42,19 +52,27 @@ def detect(program, profile, source):
                     and (program / n).stat().st_size > 1000), None)
     if library is None:
         return {'state': 'undetermined', 'code': 'PREFLIGHT_API_UNAVAILABLE'}
+    _stage(work, 'dll_load')
     native = C.CDLL(str(library), mode=getattr(C, 'RTLD_GLOBAL', 0))
+    _stage(work, 'dll_loaded')
     hook = native.libreofficekit_hook_2
     hook.argtypes, hook.restype = [C.c_char_p, C.c_char_p], C.c_void_p
+    _stage(work, 'kit_init')
     kit = hook(str(program).encode('utf-8'), profile.as_uri().encode('utf-8'))
+    _stage(work, 'kit_initialized')
     if not kit:
         return {'state': 'undetermined', 'code': 'PREFLIGHT_INIT_FAILED'}
     table = _table(kit, _Kit, 'load_options')
     load = C.CFUNCTYPE(C.c_void_p, C.c_void_p, C.c_char_p, C.c_char_p)(table.load_options)
+    _stage(work, 'document_load')
     doc = load(kit, source.as_uri().encode('utf-8'), b'ReadOnly=true')
+    _stage(work, 'document_loaded')
     if not doc:
         return {'state': 'undetermined', 'code': 'PREFLIGHT_IMPORT_UNDETERMINED'}
     table = _table(doc, _Document, 'document_type')
+    _stage(work, 'document_type')
     kind = C.CFUNCTYPE(C.c_int, C.c_void_p)(table.document_type)(doc)
+    _stage(work, 'document_typed')
     return ({'state': 'detected', 'kind': kind} if kind in (0, 1, 2, 3) else
             {'state': 'undetermined', 'code': 'PREFLIGHT_KIND_UNDETERMINED'})
 
@@ -69,7 +87,7 @@ def main(manifest_path):
     if not source.is_file() or not program.is_dir():
         raise ValueError('Invalid preflight input')
     try:
-        result = detect(program, profile, source)
+        result = detect(program, profile, source, work)
     except (OSError, AttributeError, ValueError, TypeError):
         result = {'state': 'undetermined', 'code': 'PREFLIGHT_API_UNAVAILABLE'}
     part = work / 'result.part'
@@ -77,6 +95,7 @@ def main(manifest_path):
         json.dump(result, stream)
         stream.flush()
     part.replace(work / 'result.json')
+    _stage(work, 'result_written')
     # All native state belongs to this process. Global office shutdown can
     # await an event loop; OS exit and the parent's ProcessTree release it.
     os._exit(0)
