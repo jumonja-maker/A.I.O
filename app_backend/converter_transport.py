@@ -89,6 +89,16 @@ class ConverterTransport:
             }))
 
     def finish(self, request, retained=False):
+        # Report the actual terminal snapshot even if the HTTP handler fails
+        # while packaging, responding, or retaining the files.
+        tasks = [task for row in request.files for task in row['targets']]
+        finished = sum(task.get('state') == 'ready' for task in tasks)
+        failed = sum(task.get('state') == 'error' for task in tasks)
+        outcome = ('ready' if finished and not failed else
+                   'partial' if finished else
+                   'cancelled' if request.cancel.is_set() else 'failed')
+        self._telemetry('job_finished', request_id=request.identity,
+                        stage='complete', status=outcome)
         try:
             if not retained:
                 request.temporary.cleanup()
