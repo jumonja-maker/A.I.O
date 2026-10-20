@@ -88,7 +88,13 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
                 if code not in ('PREFLIGHT_UNO_API_UNAVAILABLE', 'PREFLIGHT_UNO_TYPE_UNKNOWN',
                                 'PREFLIGHT_UNO_TYPE_UNMAPPED'):
                     code = 'PREFLIGHT_UNO_API_UNAVAILABLE'
-                return {'state': 'undetermined', 'code': code}
+                try:
+                    stage = (work / 'stage.txt').read_text(encoding='ascii').strip()[:64]
+                except OSError:
+                    stage = 'unknown'
+                return {'state': 'undetermined', 'code': code,
+                        'diagnosticStage': stage,
+                        'diagnosticType': str(type_name or '')[:96]}
             kind = detected.get('kind')
             if detected.get('state') != 'detected' or type(kind) is not int or kind not in SERVICES:
                 native_code = detected.get('code', 'PREFLIGHT_KIND_UNDETERMINED')
