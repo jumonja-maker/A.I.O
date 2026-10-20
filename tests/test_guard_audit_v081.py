@@ -100,6 +100,30 @@ class AuditGuardV081(unittest.TestCase):
         guard.cancel(job)
         self.assertTrue(guard._jobs[job].bundle_cancel.is_set())
 
+    def test_f10_mathml_content_is_not_an_extension_guess(self):
+        from app_backend.converter_guard.preflight_native import _mathml_root
+        mathml=self.root/'renamed.bin'
+        mathml.write_text('<math xmlns="http://www.w3.org/1998/Math/MathML"><mfrac><mn>1</mn><mi>x</mi></mfrac></math>',encoding='utf-8')
+        self.assertTrue(_mathml_root(mathml))
+        mathml.write_text('<html><div>Not MathML</div></html>',encoding='utf-8')
+        self.assertFalse(_mathml_root(mathml))
+
+    def test_f10_formula_proof_requires_content_and_native_service(self):
+        from app_backend.converter_guard.routes import Registry
+        native=Registry.__new__(Registry)
+        service='com.sun.star.formula.FormulaProperties'
+        native.valid=True
+        native.fingerprint='fixture'
+        native.import_services=frozenset({service})
+        native.exports={'pdf':{service}}
+        native.uncertain_extensions=set()
+        proof={'state':'detected','basis':'native_preflight_mathml_content',
+               'nativeKind':4,'mathmlRoot':True,
+               'registryFingerprint':'fixture','documentServices':[service]}
+        self.assertEqual(native.observed_decision('pdf',proof),'registered')
+        self.assertEqual(native.observed_decision('pdf',{**proof,'mathmlRoot':False}),'undetermined')
+        self.assertEqual(native.observed_decision('pdf',{**proof,'nativeKind':5}),'undetermined')
+
     def test_f09_html_with_missing_local_asset_not_silently_approved(self):
         html=self.root/'index.html'
         html.write_text('<html><img src="relative.png"></html>',encoding='utf-8')
