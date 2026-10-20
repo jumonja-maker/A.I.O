@@ -213,8 +213,9 @@ class _Cancellation:
 
 
 class ConverterGuard:
-    def __init__(self, *, adapter=None, limits=None, spool_parent=None, recovery_parent=None):
+    def __init__(self, *, adapter=None, limits=None, spool_parent=None, recovery_parent=None, telemetry=None):
         self.adapter = adapter if adapter is not None else LibreOfficeAdapter()
+        self.telemetry = telemetry
         self.limits = limits if limits is not None else GuardLimits()
         self._recovery = None if recovery_parent is None else Path(recovery_parent).resolve()
         self._parent = self._recovery or (None if spool_parent is None else Path(spool_parent).resolve())
@@ -408,8 +409,7 @@ class ConverterGuard:
     def capabilities(self, files):
         return self.adapter.capabilities([] if files == [] else validate_files(files, self.limits))
 
-    @staticmethod
-    def _record(job, stage, **details):
+    def _record(self, job, stage, **details):
         job.trace.add(stage, **details)
         job.revision += 1
         changed = details.get('file_id')
@@ -419,6 +419,113 @@ class ConverterGuard:
         if stage in ('preflight_started','preflight_done','job_queued','job_started',
                      'engine_started','packaging_started','bundle_ready','job_finished'):
             job.timings.setdefault(stage+'Ms',round((time.monotonic()-job.trace.started)*1000))
+        # Best-effort observation of already-committed GUARD state. The emitter
+        # performs ONLY bounded put_nowait here; its separate writer owns I/O.
+        # No telemetry exception may escape into a conversion task.
+        if self.telemetry is not None:
+            try:
+                self._telemetry_record(job, stage, details)
+            except Exception:
+                pass
+
+    def _telemetry_record(self, job, stage, details):
+        sink = self.telemetry
+        identity = job.id
+        file_id, target = details.get('file_id'), details.get('target')
+        code = details.get('code')
+        item = job.files_by_id.get(file_id) if file_id is not None else None
+        task = next((t for t in item.targets if t.format == target), None) if item and target else None
+
+        def send(kind, *, phase=None, status=None, reason=None, elapsed=None,
+                 fid=file_id, fmt=target):
+            sink.emit(kind, request_id=identity, file_id=fid, target=fmt,
+                      stage=phase, status=status, reason_code=reason,
+                      duration_ms=elapsed)
+
+        if stage == 'job_queued':
+            send('job_queued', phase='queue', status='queued')
+            # Each planned operation has a stable (opaque-hashed) file ID and
+            # target, even if it was filtered by preflight before execution.
+            for source in job.files:
+                for action in source.targets:
+                    send('task_queued', fid=source.id, fmt=action.format,
+                         phase='queue', status='queued')
+                    if action.state == 'skipped':
+                        send('task_failed', fid=source.id, fmt=action.format,
+                             phase='preflight', status='skipped',
+                             reason=action.code or 'PREFLIGHT_ROUTE_UNAVAILABLE')
+            return
+        if stage == 'route_selected':
+            send('route_selected', phase='route', status='registered')
+            send('task_started', phase='engine', status='running')
+            return
+        if stage == 'result_ready':
+            send('result_created', phase='result', status='ready')
+            send('task_succeeded', phase='result', status='ready',
+                 elapsed=task.duration_ms if task else None)
+            return
+        if stage == 'route_filtered':
+            send('task_failed', phase='route', status='skipped',
+                 reason=code or 'NATIVE_ROUTE_UNAVAILABLE')
+            return
+        if stage == 'native_stage':
+            send('native_stage', phase=task.stage if task else 'engine',
+                 status='running')
+            return
+        if stage == 'task_finished':
+            # Task completion is derived from *actual* task state, not this
+            # finally hook: emitting success here would misclassify failures.
+            return
+        if item is not None and task is not None and task.state in {'error','cancelled'}:
+            send('task_cancelled' if task.state == 'cancelled' else 'task_failed',
+                 phase=task.stage if task.stage in ('queue','import','export','engine',
+                                                   'storage','result','route','launch','preflight')
+                       else 'engine',
+                 status='cancelled' if task.state == 'cancelled' else 'failed',
+                 reason=task.code, elapsed=task.duration_ms)
+            return
+        if stage == 'preflight_file_started':
+            send('preflight_started', phase='preflight', status='started')
+        elif stage == 'preflight_finished':
+            proof = item.native_route if item else None
+            send('preflight_finished', phase='preflight',
+                 status='detected' if proof and proof.get('state') == 'detected'
+                 else 'undetermined', reason=code)
+        elif stage == 'engine_started':
+            send('libreoffice_started', phase='launch', status='started')
+        elif stage == 'save_confirmed':
+            send('save_confirmed', phase='save', status='saved')
+        elif stage == 'packaging_started':
+            send('archive_started', phase='packaging', status='started')
+        elif stage == 'bundle_ready':
+            send('archive_ready', phase='bundle', status='ready')
+        elif stage == 'bundle':
+            send('archive_failed', phase='bundle', status='failed', reason=code)
+        elif stage == 'cancel_requested':
+            send('cancel_requested', phase='cancel', status='cancelled')
+        elif stage == 'file_cancel_requested':
+            send('file_cancel_requested', phase='cancel', status='cancelled')
+        elif stage == 'job_started':
+            send('job_started', phase='queue', status='running')
+        elif stage == 'job_finished':
+            send('job_finished', phase='complete', status=job.state, reason=code)
+        elif stage == 'job_failed':
+            send('job_failed', phase='complete', status='failed', reason=code)
+        elif stage == 'worker_finished':
+            send('worker_finished', phase='complete', status='finished')
+        elif stage in {'job_created','input_stored','preflight_started',
+                       'preflight_done','route_filtered','route_selected',
+                       'results_available','recovered','results_retained'}:
+            mapping = {'job_created':'job_created', 'input_stored':'input_stored',
+                       'preflight_started':'preflight_batch_started',
+                       'preflight_done':'preflight_batch_finished',
+                       'results_available':'results_available',
+                       'recovered':'job_recovered',
+                       'results_retained':'results_retained'}
+            kind = mapping.get(stage)
+            if kind:
+                send(kind, phase='preflight' if stage.startswith('preflight')
+                     else 'recovery' if stage == 'recovered' else 'idle')
 
     def _get(self, identity):
         job = self._jobs.get(identity)
