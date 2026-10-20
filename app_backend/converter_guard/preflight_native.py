@@ -58,18 +58,26 @@ def detect(program, profile, source, work):
     hook = native.libreofficekit_hook_2
     hook.argtypes, hook.restype = [C.c_char_p, C.c_char_p], C.c_void_p
     _stage(work, 'kit_init')
-    # LibreOfficeKit 26.8 expects the *installation root* on Windows
-    # (containing program/ and share/), not the program/ DLL directory.
-    # Older POSIX deployments continue using their proven program directory.
-    install = program.parent if os.name == 'nt' else program
-    kit = hook(str(install).encode('utf-8'), profile.as_uri().encode('utf-8'))
+    # This calls the *exported hook* directly from sofficeapp.dll.
+    # Its ABI takes the DLL's program directory, not the installation
+    # root expected by the higher-level LibreOfficeKitInit.h loader.
+    kit = hook(str(program).encode('utf-8'), profile.as_uri().encode('utf-8'))
     _stage(work, 'kit_initialized')
     if not kit:
         return {'state': 'undetermined', 'code': 'PREFLIGHT_INIT_FAILED'}
-    table = _table(kit, _Kit, 'load_options')
-    load = C.CFUNCTYPE(C.c_void_p, C.c_void_p, C.c_char_p, C.c_char_p)(table.load_options)
-    _stage(work, 'document_load')
-    doc = load(kit, source.as_uri().encode('utf-8'), b'ReadOnly=true')
+    # LO 26.8 on NIKITA stalls in documentLoadWithOptions on Windows.
+    # The import-only documentLoad ABI is an independent native function;
+    # no saveAs/render/export call is made. Profile blocks all macros.
+    if os.name == 'nt':
+        table = _table(kit, _Kit, 'load')
+        load = C.CFUNCTYPE(C.c_void_p, C.c_void_p, C.c_char_p)(table.load)
+        _stage(work, 'document_load_basic')
+        doc = load(kit, source.as_uri().encode('utf-8'))
+    else:
+        table = _table(kit, _Kit, 'load_options')
+        load = C.CFUNCTYPE(C.c_void_p, C.c_void_p, C.c_char_p, C.c_char_p)(table.load_options)
+        _stage(work, 'document_load_options')
+        doc = load(kit, source.as_uri().encode('utf-8'), b'ReadOnly=true')
     _stage(work, 'document_loaded')
     if not doc:
         return {'state': 'undetermined', 'code': 'PREFLIGHT_IMPORT_UNDETERMINED'}
