@@ -94,9 +94,10 @@ class ConverterTransport:
         tasks = [task for row in request.files for task in row['targets']]
         finished = sum(task.get('state') == 'ready' for task in tasks)
         failed = sum(task.get('state') == 'error' for task in tasks)
-        outcome = ('ready' if finished and not failed else
-                   'partial' if finished else
-                   'cancelled' if request.cancel.is_set() else 'failed')
+        outcome = ('cancelled' if request.cancel.is_set() and not retained else
+                   'failed' if not retained else
+                   'ready' if finished and not failed else
+                   'partial' if finished else 'failed')
         self._telemetry('job_finished', request_id=request.identity,
                         stage='complete', status=outcome)
         try:
@@ -187,6 +188,8 @@ class ConverterTransport:
             name, mime = path.name, mime_for(path.suffix.lower().lstrip('.'))
         else:
             path = request.root / 'Конвертированные_файлы.zip'
+            self._telemetry('archive_started', request_id=request.identity,
+                            stage='packaging', status='started')
             with ZipFile(path, 'w', compression=ZIP_STORED, allowZip64=True) as archive:
                 for archive_name, output in artifacts:
                     archive.write(output, archive_name)
@@ -194,6 +197,8 @@ class ConverterTransport:
                     archive.writestr('AIO-conversion-report.json',
                                      json.dumps(report, ensure_ascii=False, indent=2).encode())
             name, mime = path.name, 'application/zip'
+            self._telemetry('archive_ready', request_id=request.identity,
+                            stage='bundle', status='ready')
         ticket = secrets.token_urlsafe(32)
         with self.lock:
             if self.closed:
