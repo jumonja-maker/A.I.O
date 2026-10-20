@@ -70,7 +70,8 @@ class TelemetryEmitter:
         self._writer_thread = threading.Thread(
             target=self._writer, name='aio-blackbox-jsonl', daemon=True)
         self._writer_thread.start()
-        self.emit('telemetry_started', status='started', stage='idle')
+        self.emit('telemetry_started', status='started', stage='idle',
+                  process_pid=os.getpid())
 
     def _opaque(self, value):
         if value is None:
