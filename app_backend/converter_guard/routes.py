@@ -130,6 +130,15 @@ class Registry:
                 'registryFingerprint': self.fingerprint, 'basis': 'native_selected_export_filter'}
 
     def observed_decision(self, target, proof):
+        if (proof and proof.get('basis') == 'native_preflight_uno_graphic'
+                and proof.get('state') == 'detected'
+                and proof.get('registryFingerprint') == self.fingerprint
+                and type(proof.get('graphicType')) is int
+                and proof.get('graphicType') in (1, 2)
+                and proof.get('documentServices') == ['com.sun.star.drawing.DrawingDocument']
+                and any('com.sun.star.drawing.DrawingDocument' in services
+                        for services in self.imports.values())):
+            return self.decide(target, {'com.sun.star.drawing.DrawingDocument'})
         if (proof and proof.get('basis') == 'native_preflight_uno_type'
                 and proof.get('state') == 'detected'
                 and proof.get('registryFingerprint') == self.fingerprint):
