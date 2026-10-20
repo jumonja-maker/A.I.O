@@ -44,7 +44,13 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
                 if cancel.wait(.05):
                     raise GuardError('CANCELLED', 'Предварительная проверка отменена.', stage='preflight')
                 if time.monotonic() >= deadline:
-                    return {'state': 'undetermined', 'code': 'PREFLIGHT_TIMEOUT'}
+                    stage = work / 'stage.txt'
+                    try:
+                        marker = stage.read_text(encoding='ascii').strip()[:64]
+                    except OSError:
+                        marker = 'child_not_started'
+                    return {'state': 'undetermined', 'code': 'PREFLIGHT_TIMEOUT',
+                            'diagnosticStage': marker}
             if cancel.is_set():
                 raise GuardError('CANCELLED', 'Предварительная проверка отменена.', stage='preflight')
             result = work / 'result.json'
