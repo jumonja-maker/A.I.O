@@ -63,7 +63,7 @@ def _read_simple_table(data: bytes, name: str):
     except ValueError as exc:
         raise MergeError(f'«{name}»: {exc}') from exc
     try:
-        wb = load_workbook(BytesIO(data), read_only=False, data_only=False, keep_links=False)
+        wb = load_workbook(BytesIO(data), read_only=False, data_only=False, keep_links=False, rich_text=True)
     except (OSError, ValueError, TypeError, KeyError, InvalidFileException, BadZipFile) as exc:
         raise MergeError(f'«{name}»: невозможно открыть XLSX.') from exc
     try:
@@ -94,6 +94,7 @@ def _read_simple_table(data: bytes, name: str):
         # IDs into a new workbook silently changes colors/fonts. Capture the
         # actual objects once per distinct source style and re-register them
         # with the output workbook when copying a visible cell.
+        from openpyxl.cell.rich_text import CellRichText
         style_cache = {}
         def visible_style(cell):
             style = cell._style
@@ -109,6 +110,8 @@ def _read_simple_table(data: bytes, name: str):
         for row_i, row in enumerate(ws.iter_rows()):
             content = []
             for cell in row:
+                if isinstance(cell.value, CellRichText):
+                    raise MergeError(f'«{name}»: разное оформление внутри ячейки (rich text) пока не поддерживается; объединение остановлено без потери стилей.')
                 if cell.data_type in ('f', 'e'):
                     raise MergeError(f'«{name}»: формулы и значения-ошибки пока не поддерживаются.')
                 if cell.hyperlink or cell.comment:
@@ -132,7 +135,8 @@ def _read_simple_table(data: bytes, name: str):
         heights = {index: dim.height for index, dim in ws.row_dimensions.items()
                    if dim.height is not None}
         return (headers, rows, style_cache, header_cells, widths, heights,
-                ws.freeze_panes, wb.loaded_theme)
+                ws.freeze_panes, wb.loaded_theme,
+                (ws.sheet_format.defaultRowHeight, ws.sheet_format.defaultColWidth, ws.sheet_format.baseColWidth))
     finally:
         wb.close()
 
@@ -159,6 +163,7 @@ def merge_xlsx(inputs: list[tuple[str, bytes]], progress=None) -> bytes:
     max_widths = {}
     first_theme = None
     first_has_styles = False
+    source_sheet_format = None
     for file_index, (name, data) in enumerate(inputs, start=1):
         report('read', file_index, len(inputs))
         if not isinstance(name, str) or not name.lower().endswith('.xlsx'):
@@ -168,7 +173,7 @@ def merge_xlsx(inputs: list[tuple[str, bytes]], progress=None) -> bytes:
         if name in seen_names:
             raise MergeError(f'Файл «{name}» выбран повторно.')
         seen_names.add(name)
-        headers, rows, styles, first_row, widths, heights, source_freeze, theme = (
+        headers, rows, styles, first_row, widths, heights, source_freeze, theme, sheet_format = (
             _read_simple_table(data, name))
         if expected is None:
             expected = headers
@@ -177,8 +182,11 @@ def merge_xlsx(inputs: list[tuple[str, bytes]], progress=None) -> bytes:
             freeze_panes = source_freeze
             first_theme = theme
             first_has_styles = bool(styles)
+            source_sheet_format = sheet_format
         elif expected != headers:
             raise MergeError(f'«{name}»: названия или порядок столбцов отличаются.')
+        if sheet_format != source_sheet_format:
+            raise MergeError(f'«{name}»: разные размеры строк или столбцов по умолчанию; безопасное объединение такого оформления пока не поддерживается.')
         # Theme-indexed font/fill colors are not portable between unrelated
         # workbook color themes. Keep the first workbook's theme, and refuse
         # styled workbooks with a different theme rather than silently
@@ -201,6 +209,13 @@ def merge_xlsx(inputs: list[tuple[str, bytes]], progress=None) -> bytes:
         out.loaded_theme = first_theme
     ws = out.active
     ws.title = 'Объединённая таблица'
+    default_height, default_width, base_col_width = source_sheet_format
+    if default_height is not None:
+        ws.sheet_format.defaultRowHeight = default_height
+    if default_width is not None:
+        ws.sheet_format.defaultColWidth = default_width
+    if base_col_width is not None:
+        ws.sheet_format.baseColWidth = base_col_width
     ws.append(expected)
     def apply_style(cell, metadata):
         if metadata is None:
