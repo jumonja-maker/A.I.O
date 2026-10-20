@@ -221,5 +221,6 @@ class GuardV08Tests(unittest.TestCase):
             task.artifacts.append(_Artifact('a'*32,path,path.name,1,'ticket',archive_name='0001-html/'+path.name))
         job=_Job('a'*32,root,[item],0);store.initialize(job);store.task(item,task)
         self.assertLess(max(len(line) for line in (root/'results.jsonl').read_bytes().splitlines()),2048)
-        _,records,_=store.read()
+        _,records,_,integrity=store.read()
+        self.assertEqual(integrity,'complete')
         self.assertEqual(len(records[0]['outputs']),1500)
