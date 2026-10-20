@@ -18,22 +18,25 @@ class Registry:
     def __init__(self, files, executable):
         self.imports, self.exports, self.filters = {}, {}, {}
         self.external_filters = False
+        # Export targets touched by load-order-dependent extensions must stay
+        # UNKNOWN rather than disabling the unaffected native registry.
+        self.uncertain_extensions = set()
         self.valid = bool(files)
         self.fingerprint = hashlib.sha256(json.dumps(
             [str(executable), files], ensure_ascii=True).encode()).hexdigest()
         types, filters = {}, {}
+        dirty_type_ids = set()
         for name, _modified, _size in files:
             try:
                 root = ET.parse(name).getroot()
             except (OSError, ET.ParseError):
                 self.valid = False
                 continue
-            if Path(name).suffix == '.xcu' and any(
-                    element.get(OOR + 'name') in ('Types', 'Filter') or
-                    'org.openoffice.TypeDetection.' in element.get(OOR + 'path', '')
-                    for element in root.iter()):
-                # A shared extension can add exporters outside base XCDs.
-                # Its activation/override order belongs to LO, not this reader.
+            overlay = Path(name).suffix.lower() == '.xcu'
+            if overlay and any('org.openoffice.TypeDetection.' in
+                               element.get(OOR + 'path', '') for element in root.iter()):
+                # Incremental registry updates with unresolved paths cannot be
+                # mapped to individual extensions: fail closed for all routes.
                 self.external_filters = True
                 self.valid = False
             # GraphicFilter's encoder list is NOT the document FilterFactory.
@@ -44,15 +47,35 @@ class Registry:
                 for group in component.findall('node'):
                     if group.get(OOR + 'name') not in ('Types', 'Filters'):
                         continue
-                    collection = types if group.get(OOR + 'name') == 'Types' else filters
+                    is_types = group.get(OOR + 'name') == 'Types'
+                    collection = types if is_types else filters
                     for node in group.findall('node'):
                         identity = node.get(OOR + 'name')
+                        if overlay:
+                            self.external_filters = True
+                            previous = collection.get(identity, {})
+                            incoming = properties(node)
+                            if is_types:
+                                dirty_type_ids.add(identity)
+                                self.uncertain_extensions.update(
+                                    e.lower() for e in previous.get('Extensions', '').split()
+                                    if EXTENSION.fullmatch(e.lower()))
+                                self.uncertain_extensions.update(
+                                    e.lower() for e in incoming.get('Extensions', '').split()
+                                    if EXTENSION.fullmatch(e.lower()))
+                            else:
+                                dirty_type_ids.update(t for t in (
+                                    previous.get('Type'), incoming.get('Type')) if t)
                         if node.get(OOR + 'op') == 'remove':
                             collection.pop(identity, None)
                             continue
                         if node.get(OOR + 'op') == 'replace':
                             collection[identity] = {}
                         collection.setdefault(identity, {}).update(properties(node))
+        for type_id in dirty_type_ids:
+            self.uncertain_extensions.update(
+                e.lower() for e in types.get(type_id, {}).get('Extensions', '').split()
+                if EXTENSION.fullmatch(e.lower()))
         self.types = {e.lower() for item in types.values() for e in item.get('Extensions', '').split()
                       if EXTENSION.fullmatch(e.lower())}
         for identity, item in filters.items():
@@ -70,12 +93,15 @@ class Registry:
         self.valid = self.valid and bool(self.imports) and bool(self.exports)
 
     def hint(self, filename, target):
-        services = self.imports.get(Path(filename).suffix.lower().lstrip('.'), set())
+        source_ext = Path(filename).suffix.lower().lstrip('.')
+        if source_ext in self.uncertain_extensions:
+            return 'undetermined'
+        services = self.imports.get(source_ext, set())
         return self.decide(target, services)
 
     def decide(self, target, services):
         exports = self.exports.get(target, set())
-        if not self.valid:
+        if not self.valid or target in self.uncertain_extensions:
             return 'undetermined'
         if not exports:
             # Native import/graphic encoders do not imply CLI document export.
@@ -86,7 +112,8 @@ class Registry:
 
     def proof(self, filter_name, target):
         item = self.filters.get(filter_name)
-        if not self.valid or not item or 'EXPORT' not in item[2] or target not in item[1]:
+        if (not self.valid or target in self.uncertain_extensions or not item
+                or 'EXPORT' not in item[2] or target not in item[1]):
             return None
         return {'documentService': item[0], 'filter': filter_name,
                 'registryFingerprint': self.fingerprint, 'basis': 'native_selected_export_filter'}
