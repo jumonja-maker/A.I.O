@@ -10,6 +10,7 @@ import io
 import json
 from pathlib import Path
 import struct
+import subprocess
 import tempfile
 import threading
 import sys
@@ -38,6 +39,13 @@ def main():
     adapter = LibreOfficeAdapter()
     if not adapter.available:
         raise RuntimeError('GUARD_V06_PREFLIGHT_NIKITA: LibreOffice executable missing')
+    version = subprocess.run([str(adapter.executable), '--version'],
+                             capture_output=True, text=True, timeout=15)
+    print('GUARD_V06_LO_VERSION ' + json.dumps({
+        'exitCode': version.returncode,
+        'stdout': version.stdout.strip()[:200],
+        'stderr': version.stderr.strip()[:200]
+    }), flush=True)
     reg = registry(adapter.executable)
     manifest = registry_files(adapter.executable)
     program = adapter.executable.resolve().parent.parent
