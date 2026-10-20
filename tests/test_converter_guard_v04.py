@@ -210,6 +210,18 @@ class RegistryTests(unittest.TestCase):
         self.assertEqual(native.observed_decision('dbf',{**proof,
                          'registryFingerprint':'stale'}),'undetermined')
 
+    def test_native_uno_graphic_provider_is_pre_export_draw_proof(self):
+        native=registry(self.exe)
+        proof={'state':'detected','basis':'native_preflight_uno_graphic',
+               'documentServices':[D], 'graphicType':1,
+               'registryFingerprint':native.fingerprint}
+        self.assertEqual(native.observed_decision('pdf',proof),'registered')
+        self.assertEqual(native.observed_decision('dbf',proof),'unavailable')
+        self.assertEqual(native.observed_decision('pdf',{**proof,'graphicType':0}),
+                         'undetermined')
+        self.assertEqual(native.observed_decision('pdf',{**proof,
+                         'documentServices':[W]}),'undetermined')
+
     def test_failed_native_export_cannot_become_document_model_proof(self):
         adapter=LibreOfficeAdapter(self.exe);observed=[]
         def failed(*args,**kwargs):
