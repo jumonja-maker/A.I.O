@@ -63,6 +63,13 @@ class NativeUIDOMAcceptance(cases.NativeTransportHTTPTests):
         self.assertEqual(result.returncode, 0, result.stdout + '\n' + result.stderr)
         print(result.stdout.strip())
 
+    def test_thousand_file_queue_controls(self):
+        result = subprocess.run(['node', str(Path(__file__).with_name('guard_queue_dom_v08.mjs'))],
+            env=dict(os.environ, AIO_TEST_SERVER=self.base), capture_output=True,
+            text=True, timeout=90)
+        self.assertEqual(result.returncode, 0, result.stdout + '\n' + result.stderr)
+        print(result.stdout.strip())
+
     def test_guard_unknown_and_renamed_file_selection(self):
         result = subprocess.run(['node', str(Path(__file__).with_name('guard_ui_dom_smoke.mjs'))],
             env=dict(os.environ, AIO_TEST_SERVER=self.base), capture_output=True,

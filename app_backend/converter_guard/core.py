@@ -3,11 +3,12 @@ from __future__ import annotations
 
 from collections import deque, OrderedDict
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 import copy
 import hashlib
 from dataclasses import dataclass, field
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -22,6 +23,7 @@ from ..libreoffice_catalog import mime_for
 from .adapter import LibreOfficeAdapter
 from .errors import GuardError
 from .policy import GuardLimits, validate_files, validate_plan
+from .result_store import ResultStore
 
 CHUNK = 64 * 1024
 SUCCESS = {'ready', 'saved'}
@@ -57,6 +59,12 @@ class _Task:
     lo_started: bool = False
     artifacts: list = field(default_factory=list)
     route: dict | None = None
+    diagnostic: str = ''
+    started_ms: int | None = None
+    finished_ms: int | None = None
+    execution_mode: str | None = None
+    started_mono: float | None = None
+    duration_ms: int | None = None
 
 
 @dataclass
@@ -119,6 +127,23 @@ class _Job:
     preparation: bool = False
     preflight_checks: int = 0
     preflight_cache_hits: int = 0
+    bundle_cancel: threading.Event = field(default_factory=threading.Event)
+    pause_wake: threading.Event = field(default_factory=threading.Event)
+    paused: bool = False
+    current: object = None
+    file_timeout: float | None = None
+    changes: object = field(default_factory=lambda: deque(maxlen=4096))
+    office_starts: int = 0
+    store: object = None
+    recovery_error: str | None = None
+    recovered: bool = False
+    detached: bool = False
+    strict_native: bool = False
+    save_cancel: threading.Event = field(default_factory=threading.Event)
+    timings: dict = field(default_factory=dict)
+    preflight_timeout_seconds: float | None = None
+    diagnostic_bytes: int = 0
+    preflight_identity: object = None
 
 
 def _source_name(name):
@@ -145,10 +170,11 @@ class _Cancellation:
 
 
 class ConverterGuard:
-    def __init__(self, *, adapter=None, limits=None, spool_parent=None):
+    def __init__(self, *, adapter=None, limits=None, spool_parent=None, recovery_parent=None):
         self.adapter = adapter if adapter is not None else LibreOfficeAdapter()
         self.limits = limits if limits is not None else GuardLimits()
-        self._parent = None if spool_parent is None else Path(spool_parent).resolve()
+        self._recovery = None if recovery_parent is None else Path(recovery_parent).resolve()
+        self._parent = self._recovery or (None if spool_parent is None else Path(spool_parent).resolve())
         self._lock = threading.RLock()
         self._io_drained = threading.Condition(self._lock)
         self._jobs, self._tickets = {}, {}
@@ -159,6 +185,139 @@ class ConverterGuard:
         self._closed = False
         self._preflight_gate = threading.BoundedSemaphore(1)
         self._proof_cache = OrderedDict()
+        self._recovery_issues = []
+        self._recovery_loaded = not bool(self._recovery)
+        self._recovery_lock = threading.Lock()
+
+    def _load_recovery(self):
+        # Excel/startup does no recovery scan. The first explicit recovery or
+        # retained-job lookup runs on its HTTP caller, never the Qt UI thread.
+        with self._recovery_lock:
+            if not self._recovery_loaded and not self._closed:
+                self._recover_results()
+                self._recovery_loaded = True
+
+    def _batch(self, job, name):
+        method = getattr(self.adapter, 'batch', None)
+        return (method(job.root / name, max_tasks=self.limits.session_max_tasks)
+                if method else nullcontext())
+
+    def _journal(self, job, item, task):
+        if job.store:
+            try:
+                job.store.task(item, task)
+            except OSError:
+                job.recovery_error = 'RECOVERY_WRITE_FAILED'
+
+    def _initialize_store(self, job):
+        if self._recovery and job.store is None:
+            job.store = ResultStore(job.root)
+            try:
+                if not job.store.acquire():
+                    raise OSError('Recovery store is busy')
+                job.store.initialize(job)
+            except OSError:
+                job.recovery_error = 'RECOVERY_WRITE_FAILED'
+
+    def _recover_results(self):
+        for root in sorted(self._recovery.glob('aio-guard-*')):
+            if root.is_symlink() or not root.is_dir() or not (root/'job.json').is_file():
+                continue
+            store = ResultStore(root)
+            try:
+                if not store.acquire():
+                    continue  # Another running A.I.O instance owns this job.
+                header, records, saved = store.read()
+                identity = header.get('jobId')
+                if not isinstance(identity, str) or not re.fullmatch(r'[0-9a-f]{32}', identity):
+                    raise ValueError('Invalid recovery job')
+                rows = validate_files(header.get('files'), self.limits)
+                files, indices = [], set()
+                for row, original in zip(rows, header['files']):
+                    tasks = []
+                    for target in original.get('targets', []):
+                        index, format_id = target['index'], target['format']
+                        if (type(index) is not int or index < 0 or index in indices or
+                                not isinstance(format_id, str) or not re.fullmatch(r'[a-z0-9][a-z0-9_-]*', format_id)):
+                            raise ValueError('Invalid recovery task')
+                        indices.add(index)
+                        tasks.append(_Task(format_id, index, state='cancelled',
+                            code='INTERRUPTED_RESTART', error='Задание было прервано. Исходник можно выбрать повторно.'))
+                    files.append(_File(**row, source=root/'input'/'unavailable', targets=tasks, state='done',
+                                       native_route=original.get('nativeRoute')))
+                job = _Job(identity, root, files, 0, store=store, recovered=True)
+                summary=header.get('summary',{})
+                job.timings=summary.get('timings',{})
+                job.office_starts=summary.get('officeStarts',0)
+                job.file_timeout=summary.get('fileTimeoutSeconds')
+                job.files_by_id = {item.id:item for item in files}
+                for item in files:
+                    for task in item.targets:
+                        record = records.get(task.index, {})
+                        if record.get('fileId') != item.id or record.get('state') not in DONE:
+                            continue
+                        task.state, task.code, task.error = record['state'], record.get('code'), record.get('error')
+                        task.stage, task.diagnostic = record.get('stage'), str(record.get('diagnostic', ''))[-8192:]
+                        task.lo_started = record.get('loStarted') is True
+                        task.started_ms, task.finished_ms = record.get('startedMs'), record.get('finishedMs')
+                        if any(v is not None and (type(v) is not int or v < 0)
+                               for v in (task.started_ms,task.finished_ms,record.get('durationMs'))):
+                            raise ValueError('Invalid recovery timing')
+                        task.duration_ms=record.get('durationMs')
+                        task.execution_mode=record.get('executionMode')
+                        if task.state not in SUCCESS:
+                            continue
+                        for output in record.get('outputs', []):
+                            try:
+                                relative = output['path']
+                                if Path(relative).parts[:3] != ('work', str(task.index), 'output'):
+                                    raise ValueError('Unexpected output location')
+                                path = store.output_path(relative, output['size'])
+                                archive_name = output['archiveName']
+                                if (not isinstance(archive_name, str) or '\\' in archive_name or
+                                        Path(archive_name).is_absolute() or '..' in Path(archive_name).parts):
+                                    raise ValueError('Invalid archive name')
+                                artifact = _Artifact(identity, path, path.name, output['size'],
+                                    secrets.token_urlsafe(32), item.id, task.format, archive_name,
+                                    saved=relative in saved)
+                                task.artifacts.append(artifact)
+                                job.artifacts.append(artifact)
+                            except (OSError, ValueError, KeyError, TypeError):
+                                task.state, task.code = 'error', 'RECOVERY_OUTPUT_MISSING'
+                                task.error = 'Один из результатов отсутствует или изменён. Доступные файлы сохранены.'
+                        if task.artifacts and task.state in SUCCESS:
+                            task.state = 'saved' if all(a.saved for a in task.artifacts) else 'ready'
+                if not job.artifacts:
+                    store.close()
+                    continue
+                job.reserved = sum(p.stat().st_size for p in root.rglob('*') if p.is_file() and not p.is_symlink())
+                job.result = {**job.artifacts[0].metadata(), 'jobId':identity}
+                job.packaging_error = 'RECOVERED_RESULTS'
+                job.state = 'partial'
+                job.diagnostic_bytes=sum(len(t.diagnostic.encode('utf-8')) for f in files for t in f.targets)
+                with self._lock:
+                    if self._closed or identity in self._jobs:
+                        store.close()
+                        continue
+                    self._jobs[identity] = job
+                    self._reserved += job.reserved
+                    for artifact in job.artifacts:
+                        self._tickets[artifact.ticket] = artifact
+                    self._record(job, 'recovered')
+            except (OSError, ValueError, TypeError, KeyError, GuardError):
+                store.close()  # Never delete an unreadable recovery directory.
+                self._recovery_issues.append({'folder':root.name,'code':'RECOVERY_METADATA_INVALID'})
+
+    def recoverable(self):
+        self._load_recovery()
+        with self._lock:
+            return {'warnings':list(self._recovery_issues),
+                    'jobs': [{'jobId': j.id, 'recovered': j.recovered,
+                              'label':j.files[0].name if j.files else 'Результаты',
+                              'outputs': len(j.artifacts), 'bytes': sum(a.size for a in j.artifacts),
+                              'state': j.state}
+                             for j in self._jobs.values() if not j.running and not j.released
+                             and any(not a.saved for a in j.artifacts)]}
 
     def _cached_proof(self, key):
         # Metadata only: no source bytes, processes, timers or disk copies.
@@ -188,6 +347,13 @@ class ConverterGuard:
     def _record(job, stage, **details):
         job.trace.add(stage, **details)
         job.revision += 1
+        changed = details.get('file_id')
+        if stage in {'job_queued', 'save_confirmed', 'job_finished', 'recovered'} and changed is None:
+            changed = '*'
+        job.changes.append((job.revision, changed))
+        if stage in ('preflight_started','preflight_done','job_queued','job_started',
+                     'engine_started','packaging_started','bundle_ready','job_finished'):
+            job.timings.setdefault(stage+'Ms',round((time.monotonic()-job.trace.started)*1000))
 
     def _get(self, identity):
         job = self._jobs.get(identity)
@@ -235,6 +401,8 @@ class ConverterGuard:
             if maximum is not None and self._reserved + size > maximum:
                 raise GuardError('SPOOL_QUOTA', 'Недостаточно настроенной квоты Guard.', status=413)
             try:
+                if self._parent:
+                    self._parent.mkdir(parents=True, exist_ok=True, mode=0o700)
                 root = Path(tempfile.mkdtemp(prefix='aio-guard-', dir=self._parent)).resolve()
             except OSError as error:
                 raise GuardError('STORAGE_UNAVAILABLE', 'Не удалось создать временное хранилище.',
@@ -343,10 +511,14 @@ class ConverterGuard:
             self._record(job, 'prepared_selection_updated')
             return self._snapshot(job)
 
-    def preflight(self, job_id, *, recheck=False):
+    def preflight(self, job_id, *, recheck=False, timeout_seconds=None, only_undetermined=False):
         """Inspect stored originals once, before any requested export."""
-        if type(recheck) is not bool:
+        if type(recheck) is not bool or type(only_undetermined) is not bool:
             raise GuardError('PREFLIGHT_REQUEST', 'Некорректный режим проверки.')
+        if timeout_seconds is not None and (isinstance(timeout_seconds,bool) or
+                not isinstance(timeout_seconds,(int,float)) or not math.isfinite(timeout_seconds) or timeout_seconds<=0):
+            raise GuardError('PREFLIGHT_REQUEST','Укажите положительное время проверки.')
+        native_timeout=self.limits.preflight_timeout if timeout_seconds is None else timeout_seconds
         if not self._preflight_gate.acquire(blocking=False):
             raise GuardError('PREFLIGHT_BUSY', 'Завершается предыдущая проверка.', stage='preflight', status=409)
         job = None
@@ -358,46 +530,60 @@ class ConverterGuard:
                     job = None
                     raise GuardError('JOB_STATE', 'Дождитесь загрузки исходников.', status=409)
                 job.state, job.running = 'checking', True
+                job.preflight_timeout_seconds = native_timeout
                 job.io += 1
                 self._record(job, 'preflight_started')
-            for item in job.files:
-                if job.cancel.is_set():
-                    raise GuardError('CANCELLED', 'Предварительная проверка отменена.', stage='preflight')
-                if item.state == 'prepared' and not recheck:
-                    continue
+            with self._batch(job, 'preflight-office') as office:
                 identity = getattr(self.adapter, 'preflight_fingerprint', lambda: None)()
-                key = (identity, item.content_digest, item.source.name) if identity and item.content_digest else None
-                with self._lock:
-                    proof = None if recheck else self._cached_proof(key)
-                    if proof is not None:
-                        item.native_route, item.state = proof, 'prepared'
-                        job.preflight_cache_hits += 1
-                        self._record(job, 'preflight_cache_hit', file_id=item.id)
-                if proof is not None:
-                    continue
-                work = job.root / 'preflight' / item.source.parent.name
-                with self._lock:
-                    job.preflight_checks += 1
-                    self._record(job, 'preflight_file_started', file_id=item.id)
-                try:
-                    proof = self.adapter.preflight(item.source, work, cancel=job.cancel,
-                                                   timeout=self.limits.preflight_timeout)
-                except GuardError as error:
-                    if error.code == 'CANCELLED':
-                        raise
-                    proof = {'state': 'undetermined', 'code': error.code}
-                except Exception:
-                    proof = {'state': 'undetermined', 'code': 'PREFLIGHT_API_UNAVAILABLE'}
-                finally:
-                    self._remove_work(job, work)
-                with self._lock:
+                engine_changed=identity!=job.preflight_identity
+                job.preflight_identity=identity
+                for position, item in enumerate(job.files):
                     if job.cancel.is_set():
                         raise GuardError('CANCELLED', 'Предварительная проверка отменена.', stage='preflight')
-                    self._remember_proof(key, proof)
-                    item.native_route = proof
-                    item.state = 'prepared'
-                    self._record(job, 'preflight_finished', file_id=item.id,
-                                 code=proof.get('code', 'NATIVE_KIND_DETECTED'))
+                    if item.state == 'prepared' and not recheck and not engine_changed:
+                        continue
+                    if (only_undetermined and item.state == 'prepared' and item.native_route
+                            and item.native_route.get('state') == 'detected' and identity
+                            and item.native_route.get('registryFingerprint') == identity[0]):
+                        continue
+                    if recheck:
+                        item.cancel.clear()
+                    key = (identity, item.content_digest, item.source.name) if identity and item.content_digest else None
+                    with self._lock:
+                        proof = None if recheck else self._cached_proof(key)
+                        if proof is not None:
+                            item.native_route, item.state = proof, 'prepared'
+                            job.preflight_cache_hits += 1
+                            self._record(job, 'preflight_cache_hit', file_id=item.id)
+                    if proof is not None:
+                        continue
+                    work = job.root / 'preflight' / item.source.parent.name
+                    with self._lock:
+                        job.preflight_checks += 1
+                        job.current = (item, _Task('', -position - 1, state='converting',
+                            stage='preflight', started_ms=round(time.time()*1000)))
+                        self._record(job, 'preflight_file_started', file_id=item.id)
+                    try:
+                        proof = self.adapter.preflight(item.source, work, cancel=_Cancellation(job.cancel,item.cancel),
+                                                       timeout=native_timeout)
+                    except GuardError as error:
+                        if error.code == 'CANCELLED' and job.cancel.is_set():
+                            raise
+                        proof = {'state': 'undetermined', 'code': 'PREFLIGHT_SKIPPED'
+                                 if error.code == 'CANCELLED' else error.code}
+                    except Exception:
+                        proof = {'state': 'undetermined', 'code': 'PREFLIGHT_API_UNAVAILABLE'}
+                    finally:
+                        self._remove_work(job, work)
+                    with self._lock:
+                        if job.cancel.is_set():
+                            raise GuardError('CANCELLED', 'Предварительная проверка отменена.', stage='preflight')
+                        self._remember_proof(key, proof)
+                        item.native_route = proof
+                        item.state = 'prepared'
+                        job.current = None
+                        self._record(job, 'preflight_finished', file_id=item.id,
+                                     code=proof.get('code', 'NATIVE_KIND_DETECTED'))
             with self._lock:
                 if job.cancel.is_set():
                     raise GuardError('CANCELLED', 'Предварительная проверка отменена.', stage='preflight')
@@ -412,19 +598,32 @@ class ConverterGuard:
             if job is not None:
                 with self._lock:
                     job.running = False
+                    job.current = None
                     if job.cancel.is_set():
                         job.state = 'cancelled'
                     job.io -= 1
+                    self._record(job,'preflight_done')
                     self._io_drained.notify_all()
                 self._cleanup(job)
             self._preflight_gate.release()
 
-    def start(self, job_id, *, formats=None, file_ids=None, only_verified=False, plan=None):
+    def start(self, job_id, *, formats=None, file_ids=None, only_verified=False, plan=None,
+              timeout_seconds=None):
+        planning_started = time.monotonic()
+        if timeout_seconds is not None and (isinstance(timeout_seconds, bool) or
+                not isinstance(timeout_seconds, (int, float)) or
+                not math.isfinite(timeout_seconds) or timeout_seconds <= 0):
+            raise GuardError('ENGINE_TIMEOUT_POLICY', 'Укажите положительное время обработки.')
+        # Inventory/stat work happens once, before entering the global lock.
+        decider = getattr(self.adapter, 'route_decider', None)
+        routing = (decider() if decider else
+                   getattr(self.adapter, 'route_decision', lambda target, proof: 'undetermined'))
         with self._lock:
             job = self._get(job_id)
             if type(only_verified) is not bool:
                 raise GuardError('CONVERSION_PLAN', 'Некорректный режим предварительного плана.', stage='plan')
             if job.preparation:
+                job.strict_native = True
                 if job.state != 'prepared' or job.running:
                     raise GuardError('JOB_STATE', 'Сначала завершите предварительную проверку.', status=409)
                 if (not isinstance(file_ids, list) or not file_ids or
@@ -441,7 +640,6 @@ class ConverterGuard:
                 job.files = selected
                 job.files_by_id = {f.id: f for f in selected}
                 task_index = 0
-                routing = getattr(self.adapter, 'route_decision', lambda target, proof: 'undetermined')
                 for item in job.files:
                     item.state = 'queued'
                     item.targets = [_Task(target, task_index + i) for i, target in enumerate(planned[item.id])]
@@ -466,6 +664,9 @@ class ConverterGuard:
                     f.uploading or f.state not in {'queued', 'cancelled'} for f in job.files):
                 raise GuardError('JOB_STATE', 'Дождитесь загрузки всех файлов.', status=409)
             job.state, job.running = 'queued', True
+            job.timings['planMs'] = round((time.monotonic()-planning_started)*1000)
+            job.file_timeout = self.limits.file_timeout if timeout_seconds is None else timeout_seconds
+            self._initialize_store(job)
             self._record(job, 'job_queued')
             job.future = self._executor.submit(self._run, job)
             return self._snapshot(job)
@@ -473,6 +674,13 @@ class ConverterGuard:
     def _fail(self, job, item, task, error):
         task.state = 'cancelled' if error.code == 'CANCELLED' else 'error'
         task.code, task.error, task.stage = error.code, error.message, error.stage
+        diagnostic=getattr(error,'diagnostic','').encode('utf-8',errors='replace')
+        remaining=max(0,2*1024*1024-job.diagnostic_bytes)
+        task.diagnostic=diagnostic[-min(8192,remaining):].decode('utf-8',errors='ignore') if remaining else ''
+        job.diagnostic_bytes+=len(task.diagnostic.encode('utf-8'))
+        task.finished_ms = round(time.time() * 1000)
+        task.duration_ms = round((time.monotonic()-task.started_mono)*1000) if task.started_mono else None
+        self._journal(job, item, task)
         self._record(job, error.stage, file_id=item.id, target=task.format,
                       code=error.code, lo_started=task.lo_started)
 
@@ -509,6 +717,9 @@ class ConverterGuard:
             job.artifacts.extend(artifacts)
             task.artifacts = artifacts
             task.state = 'ready'
+            task.finished_ms = round(time.time() * 1000)
+            task.duration_ms = round((time.monotonic()-task.started_mono)*1000) if task.started_mono else None
+            self._journal(job, item, task)
             self._record(job, 'result_ready', file_id=item.id, target=task.format,
                           lo_started=task.lo_started)
 
@@ -565,70 +776,110 @@ class ConverterGuard:
             with self._lock:
                 job.state = 'running'
                 self._record(job, 'job_started')
-            for item in job.files:
-                for task in item.targets:
-                    workspace = job.root / 'work' / str(task.index)
+            with self._batch(job, 'export-office') as office:
+                for item in job.files:
+                    source_failure = None
+                    prepare_source = getattr(self.adapter, 'prepare_source', None)
+                    if prepare_source:
+                        prepare_source(item.native_route)
+                    for task in item.targets:
+                        self._wait_unpaused(job)
+                        workspace = job.root / 'work' / str(task.index)
+                        with self._lock:
+                            if task.state in DONE:
+                                continue
+                            if job.cancel.is_set() or item.cancel.is_set():
+                                if task.state not in DONE:
+                                    self._fail(job, item, task, GuardError('CANCELLED', 'Конвертация отменена.'))
+                                continue
+                            if source_failure:
+                                self._fail(job, item, task, GuardError(
+                                    'SOURCE_DEFERRED_AFTER_TIMEOUT' if source_failure == 'ENGINE_TIMEOUT' else
+                                    'PREFLIGHT_ROUTE_UNDETERMINED' if source_failure == 'NATIVE_MODEL_CHANGED' else 'SOURCE_IMPORT_FAILED',
+                                    'Оставшиеся направления этого файла отложены после тайм-аута. Можно повторить с большим временем.'
+                                    if source_failure == 'ENGINE_TIMEOUT' else
+                                    'Нативная модель изменилась. Повторите проверку исходника.' if source_failure == 'NATIVE_MODEL_CHANGED' else
+                                    'LibreOffice не смог открыть этот исходник; повторные экспорты не запускались.',
+                                    stage='queue' if source_failure == 'ENGINE_TIMEOUT' else 'import'))
+                                continue
+                            item.state, task.state = 'converting', 'converting'
+                            task.started_ms = round(time.time() * 1000)
+                            task.started_mono = time.monotonic()
+                            task.stage = 'engine'
+                            job.current = (item, task)
+                            self._record(job, 'route_selected', file_id=item.id, target=task.format)
+                        try:
+                            def started():
+                                with self._lock:
+                                    task.lo_started = True
+                                    task.execution_mode = getattr(self.adapter,'execution_mode',lambda:None)()
+                                    self._record(job, 'engine_started', file_id=item.id,
+                                                  target=task.format, lo_started=True)
+
+                            routing = getattr(self.adapter, 'route_decision', None)
+                            decision = routing(task.format, item.native_route) if routing else None
+                            if routing and (decision == 'unavailable' or job.strict_native and decision != 'registered'):
+                                with self._lock:
+                                    task.state, task.code, task.stage = 'skipped', 'NATIVE_ROUTE_UNAVAILABLE', 'route'
+                                    task.error = ('Для определённого LibreOffice типа документа нет экспорта в '
+                                                  + task.format.upper() + '.')
+                                    task.route = dict(item.native_route)
+                                    if decision != 'unavailable':
+                                        task.code, task.error = 'PREFLIGHT_ROUTE_UNDETERMINED', 'Подтверждение направления устарело. Повторите проверку.'
+                                    task.finished_ms = round(time.time() * 1000)
+                                    self._journal(job, item, task)
+                                    self._record(job, 'route_filtered', file_id=item.id,
+                                                 target=task.format, code=task.code)
+                                continue
+
+                            def detected(proof):
+                                with self._lock:
+                                    item.native_route = dict(proof)
+                                    self._record(job, 'native_document_identified', file_id=item.id,
+                                                 target=task.format, lo_started=task.lo_started)
+
+                            needs_observation = getattr(self.adapter, 'observation_needed', lambda proof: True)
+                            def stage_changed(stage):
+                                if stage in ('import','export'):
+                                    with self._lock:
+                                        task.stage=stage
+                                        self._record(job,'native_stage',file_id=item.id,target=task.format)
+                            stages = ({'on_stage':stage_changed} if getattr(self.adapter.convert,'__func__',None)
+                                      is LibreOfficeAdapter.convert else {})
+                            paths = self.adapter.convert(item.source, task.format, workspace,
+                                cancel=_Cancellation(job.cancel, item.cancel),
+                                timeout=job.file_timeout, on_started=started,
+                                output_limit=(None if self.limits.max_spool_bytes is None else self._output_budget),
+                                **stages, **({'on_document_service': detected if needs_observation(item.native_route) else None}
+                                   if routing else {}))
+                            self._retain_outputs(job, item, task, workspace, paths)
+                        except GuardError as error:
+                            if error.code in ('ENGINE_TIMEOUT', 'SOURCE_IMPORT_FAILED','NATIVE_MODEL_CHANGED'):
+                                source_failure = error.code
+                            with self._lock:
+                                self._fail(job, item, task, error)
+                        except OSError:
+                            with self._lock:
+                                self._fail(job, item, task, GuardError('STORAGE_ERROR',
+                                    'Ошибка временного хранилища.', stage='storage', status=507))
+                        except Exception:
+                            with self._lock:
+                                self._fail(job, item, task, GuardError('ENGINE_INTERNAL',
+                                    'Внутренняя ошибка обработки файла.', stage='engine'))
+                        finally:
+                            with self._lock:
+                                job.current = None
+                                if office is not None:
+                                    job.office_starts = office.starts
+                                self._record(job, 'task_finished', file_id=item.id, target=task.format, code=task.code)
+                            self._remove_work(job, workspace / 'profile' if task.state in SUCCESS else workspace)
                     with self._lock:
-                        if task.state in DONE:
-                            continue
-                        if job.cancel.is_set() or item.cancel.is_set():
-                            if task.state not in DONE:
-                                self._fail(job, item, task, GuardError('CANCELLED', 'Конвертация отменена.'))
-                            continue
-                        item.state, task.state = 'converting', 'converting'
-                        self._record(job, 'route_selected', file_id=item.id, target=task.format)
-                    try:
-                        def started():
-                            with self._lock:
-                                task.lo_started = True
-                                self._record(job, 'engine_started', file_id=item.id,
-                                              target=task.format, lo_started=True)
-
-                        routing = getattr(self.adapter, 'route_decision', None)
-                        if routing and routing(task.format, item.native_route) == 'unavailable':
-                            with self._lock:
-                                task.state, task.code, task.stage = 'skipped', 'NATIVE_ROUTE_UNAVAILABLE', 'route'
-                                task.error = ('Для определённого LibreOffice типа документа нет экспорта в '
-                                              + task.format.upper() + '.')
-                                task.route = dict(item.native_route)
-                                self._record(job, 'route_filtered', file_id=item.id,
-                                             target=task.format, code=task.code)
-                            continue
-
-                        def detected(proof):
-                            with self._lock:
-                                item.native_route = dict(proof)
-                                self._record(job, 'native_document_identified', file_id=item.id,
-                                             target=task.format, lo_started=task.lo_started)
-
-                        needs_observation = getattr(self.adapter, 'observation_needed', lambda proof: True)
-                        paths = self.adapter.convert(item.source, task.format, workspace,
-                            cancel=_Cancellation(job.cancel, item.cancel),
-                            timeout=self.limits.file_timeout, on_started=started,
-                            output_limit=(None if self.limits.max_spool_bytes is None else self._output_budget),
-                            **({'on_document_service': detected if needs_observation(item.native_route) else None}
-                               if routing else {}))
-                        self._retain_outputs(job, item, task, workspace, paths)
-                    except GuardError as error:
-                        with self._lock:
-                            self._fail(job, item, task, error)
-                    except OSError:
-                        with self._lock:
-                            self._fail(job, item, task, GuardError('STORAGE_ERROR',
-                                'Ошибка временного хранилища.', stage='storage', status=507))
-                    except Exception:
-                        with self._lock:
-                            self._fail(job, item, task, GuardError('ENGINE_INTERNAL',
-                                'Внутренняя ошибка обработки файла.', stage='engine'))
-                    finally:
-                        self._remove_work(job, workspace / 'profile' if task.state in SUCCESS else workspace)
-                with self._lock:
-                    item.state = 'done'
-                    item.state = self._file_state(item)
-                    self._record(job, 'input_finished', file_id=item.id)
-                # Keep original bytes across all targets; drop only the temp
-                # input after its last target. Original user files are untouched.
-                self._drop_source(job, item)
+                        item.state = 'done'
+                        item.state = self._file_state(item)
+                        self._record(job, 'input_finished', file_id=item.id)
+                    # Keep original bytes across all targets; drop only the temp
+                    # input after its last target. Original user files are untouched.
+                    self._drop_source(job, item)
             with self._lock:
                 job.state = 'packaging'
                 self._record(job, 'packaging_started')
@@ -651,13 +902,44 @@ class ConverterGuard:
                 job.state = 'failed'
                 if job.artifacts and job.result is None:
                     job.result = {**job.artifacts[0].metadata(), 'jobId': job.id}
+                if job.artifacts and job.bundle is None:
+                    job.packaging_error = 'BUNDLE_INTERRUPTED'
                 self._record(job, 'job_failed', code='GUARD_INTERNAL')
         finally:
             with self._lock:
                 job.running = False
                 job.touched = time.monotonic()
                 self._record(job, 'worker_finished', code=job.state)
+                if job.store:
+                    try:job.store.finish(job)
+                    except OSError:job.recovery_error='RECOVERY_WRITE_FAILED'
             self._cleanup(job)
+
+    def _wait_unpaused(self, job):
+        while True:
+            with self._lock:
+                if not job.paused or job.cancel.is_set():
+                    if job.state == 'paused':
+                        job.state = 'running'
+                        self._record(job, 'queue_resumed')
+                    return
+                if job.state != 'paused':
+                    job.state = 'paused'
+                    self._record(job, 'queue_paused')
+                job.pause_wake.clear()
+            job.pause_wake.wait(.1)
+
+    def pause(self, job_id, paused=True):
+        if type(paused) is not bool:
+            raise GuardError('QUEUE_PAUSE', 'Некорректное состояние паузы.')
+        with self._lock:
+            job = self._get(job_id)
+            if not job.running or job.state == 'packaging':
+                raise GuardError('JOB_STATE', 'Очередь сейчас не выполняется.', status=409)
+            job.paused = paused
+            job.pause_wake.set()
+            self._record(job, 'pause_requested' if paused else 'resume_requested')
+            return self._snapshot(job)
 
     @staticmethod
     def _counts(job):
@@ -684,17 +966,32 @@ class ConverterGuard:
 
     def _report(self, job):
         return {'schemaVersion': 3, **self._counts(job), 'preflightChecks':job.preflight_checks, 'files': [
-            {'fileId': f.id, 'name': f.name, 'warnings': (
+            {'fileId': f.id, 'name': f.name, 'nativeRoute': f.native_route, 'warnings': (
                 ['SOURCE_NAME_NORMALIZED'] if f.name_normalized else []),
-             'targets': [{'format': t.format, 'state': t.state, 'code': t.code,
+             'targets': [{'taskId': job.id + ':' + str(t.index), 'format': t.format, 'state': t.state, 'code': t.code,
                           'error': t.error, 'stage': t.stage,
+                          'diagnostic': t.diagnostic,
+                          'executionMode': t.execution_mode,
+                          'durationMs': t.duration_ms,
+                          'outputs': [{'path': a.archive_name, 'size': a.size} for a in t.artifacts],
                           'route': t.route,
                           'libreOfficeStarted': t.lo_started} for t in f.targets]}
-            for f in job.files], 'qualityCompared': False}
+            for f in job.files], 'timings':dict(job.timings),'qualityCompared': False}
+
+    def report(self, job_id):
+        if job_id not in self._jobs:
+            self._load_recovery()
+        with self._lock:
+            job = self._get(job_id)
+            return {**self._report(job), 'jobId': job.id, 'state': job.state,
+                    'officeStarts':job.office_starts,'trace':job.trace.snapshot(),
+                    'fileTimeoutSeconds':job.file_timeout,'recoveryError':job.recovery_error}
 
     def _make_result(self, job):
         with self._lock:
             if not job.artifacts:
+                return
+            if job.bundle is not None:
                 return
             # Until an archive is actually ready, keep a real, downloadable
             # artifact as fallback. A ZIP name without a ticket loses the save
@@ -708,7 +1005,7 @@ class ConverterGuard:
             report = json.dumps(self._report(job), ensure_ascii=False, indent=2).encode('utf-8')
             budget = (sum(a.size + 512 + 2 * len(a.archive_name.encode('utf-8')) for a in job.artifacts)
                       + len(report) + 4096)
-            if job.cancel.is_set():
+            if job.bundle_cancel.is_set():
                 job.packaging_error = 'BUNDLE_CANCELLED'
                 self._record(job, 'bundle', code=job.packaging_error)
                 return
@@ -718,7 +1015,7 @@ class ConverterGuard:
                 job.packaging_error = 'BUNDLE_QUOTA'
                 self._record(job, 'bundle', code=job.packaging_error)
                 return
-        bundle, retained = job.root / 'results.zip', False
+        bundle, retained = job.root / ('results-' + secrets.token_hex(6) + '.zip'), False
         try:
             with zipfile.ZipFile(bundle, 'x', compression=zipfile.ZIP_STORED, allowZip64=True) as archive:
                 for artifact in job.artifacts:
@@ -728,7 +1025,7 @@ class ConverterGuard:
                     with artifact.path.open('rb') as source, archive.open(
                             info, 'w', force_zip64=True) as output:
                         while block := source.read(CHUNK):
-                            if job.cancel.is_set():
+                            if job.bundle_cancel.is_set():
                                 raise GuardError('BUNDLE_CANCELLED', 'Упаковка отменена.')
                             output.write(block)
                 archive.writestr('AIO-conversion-report.json', report)
@@ -739,7 +1036,10 @@ class ConverterGuard:
                     self._reserve(job, delta)
                 else:
                     self._unreserve(job, -delta)
-                artifact = _Artifact(job.id, bundle, 'AIO_Results.zip', actual, secrets.token_urlsafe(32))
+                name = ('AIO_Results_Partial.zip' if any(t.state not in SUCCESS for f in job.files for t in f.targets)
+                        else 'AIO_Results.zip')
+                artifact = _Artifact(job.id, bundle, name, actual, secrets.token_urlsafe(32))
+                job.packaging_error = None
                 job.bundle = artifact
                 self._tickets[artifact.ticket] = artifact
                 job.result = {**artifact.metadata(), 'jobId': job.id}
@@ -760,11 +1060,145 @@ class ConverterGuard:
                     with self._lock:
                         self._unreserve(job, budget)
 
-    def _snapshot(self, job, include_trace=False):
+    def rebuild_bundle(self, job_id):
+        with self._lock:
+            job = self._get(job_id)
+            if job.running or not job.artifacts:
+                raise GuardError('JOB_STATE', 'Дождитесь готовых результатов.', status=409)
+            if job.bundle is not None:
+                return self._snapshot(job)
+            job.bundle_cancel.clear()
+            job.state, job.running = 'packaging', True
+            self._record(job, 'packaging_started')
+            job.future = self._executor.submit(self._rebuild_bundle, job)
+            return self._snapshot(job)
+
+    def _rebuild_bundle(self, job):
+        try:
+            self._make_result(job)
+        except Exception:
+            with self._lock:
+                job.packaging_error='BUNDLE_INTERRUPTED'
+                self._record(job,'bundle',code=job.packaging_error)
+        finally:
+            with self._lock:
+                job.state, job.running = 'partial', False
+                self._record(job, 'job_finished')
+            self._cleanup(job)
+
+    def save_folder(self, ticket, destination, *, cancel=None, on_progress=lambda current, total: None):
+        """Desktop-only, one directory choice; no paths accepted by HTTP API."""
+        cancel = cancel or threading.Event()
+        with self._lock:
+            anchor = self._tickets.get(ticket)
+            if anchor is None:
+                raise GuardError('RESULT_NOT_FOUND', 'Результат больше недоступен.', status=404)
+            job = self._get(anchor.job_id)
+            cancel = _Cancellation(cancel,job.save_cancel)
+            if job.running:
+                raise GuardError('JOB_STATE', 'Дождитесь остановки очереди.', status=409)
+            copies = list(job.artifacts)
+            report = self._report(job)
+            job.io += 1
+        folder = None
+        try:
+            destination = Path(destination).resolve(strict=True)
+            if self.owns_path(destination):
+                raise GuardError('SAVE_OWNED_STORAGE','Выберите папку вне служебного хранилища AIO.',stage='save')
+            required = sum(a.size for a in copies)
+            if not destination.is_dir() or shutil.disk_usage(destination).free < required + 1024 * 1024:
+                raise GuardError('OUTPUT_DISK_SPACE', 'Недостаточно места в выбранной папке.', stage='save', status=507)
+            # One fresh root preserves every native relative sidecar path and
+            # avoids both overwrites and thousands of collision dialogs.
+            for attempt in range(100):
+                name = 'AIO_Results_' + job.id[:8] + ('' if attempt == 0 else '_' + str(attempt))
+                folder = destination / name
+                try:
+                    folder.mkdir()
+                    break
+                except FileExistsError:
+                    continue
+            else:
+                raise GuardError('OUTPUT_COLLISION', 'Не удалось создать отдельную папку результатов.', stage='save')
+            manifest = []
+            for number, artifact in enumerate(copies, 1):
+                if cancel.is_set():
+                    raise GuardError('SAVE_CANCELLED', 'Сохранение отменено. Исходные результаты остаются в AIO.', stage='save')
+                relative = Path(artifact.archive_name)
+                if relative.is_absolute() or '..' in relative.parts:
+                    raise GuardError('ENGINE_OUTPUT_PATH', 'Недопустимое имя результата.', stage='save')
+                target = folder / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                if not target.parent.resolve().is_relative_to(folder.resolve()):
+                    raise GuardError('ENGINE_OUTPUT_PATH', 'Недопустимый путь результата.', stage='save')
+                part = target.with_name(target.name + '.aio-part-' + secrets.token_hex(6))
+                digest, written = hashlib.sha256(), 0
+                try:
+                    with artifact.path.open('rb') as source, part.open('xb') as output:
+                        while block := source.read(CHUNK):
+                            if cancel.is_set():
+                                raise GuardError('SAVE_CANCELLED', 'Сохранение отменено. Результаты остаются в AIO.', stage='save')
+                            output.write(block)
+                            digest.update(block)
+                            written += len(block)
+                        output.flush()
+                        os.fsync(output.fileno())
+                    if written != artifact.size or target.exists():
+                        raise GuardError('SAVE_CHANGED', 'Результат изменён или имя уже занято.', stage='save')
+                    # Destination is a newly created private result tree.
+                    part.replace(target)
+                finally:
+                    part.unlink(missing_ok=True)
+                manifest.append({'path': artifact.archive_name, 'size': written,
+                                 'sha256': digest.hexdigest(), 'fileId':artifact.file_id,
+                                 'format':artifact.format})
+                on_progress(number, len(copies))
+            from .result_store import atomic_json
+            atomic_json(folder / 'AIO-conversion-report.json', report)
+            atomic_json(folder / 'AIO-results-manifest.json', {'schema':1,'outputs':manifest})
+            if cancel.is_set():
+                raise GuardError('SAVE_CANCELLED', 'Сохранение отменено. Результаты остаются в AIO.', stage='save')
+            with self._lock:
+                for artifact in copies:
+                    artifact.saved = True
+                for item in job.files:
+                    for task in item.targets:
+                        if task.state in SUCCESS and task.artifacts and all(a.saved for a in task.artifacts):
+                            task.state = 'saved'
+                if job.store:
+                    try:
+                        job.store.saved(copies)
+                    except OSError:
+                        job.recovery_error = 'RECOVERY_WRITE_FAILED'
+                self._record(job, 'save_confirmed')
+            return {'saved':True, 'savedAll':True, 'name':folder.name, 'outputs':len(copies)}
+        except OSError as error:
+            raise GuardError('SAVE_STORAGE_FAILED', 'Не удалось сохранить все файлы. Результаты остаются в AIO.',
+                             stage='save', status=507) from error
+        finally:
+            with self._lock:
+                job.io -= 1
+                self._io_drained.notify_all()
+            self._cleanup(job)
+
+    def owns_path(self, path):
+        """Do not confirm a save into a directory our cleanup will remove."""
+        resolved=Path(path).resolve()
+        with self._lock:
+            roots=[j.root for j in self._jobs.values()]
+            if self._parent:
+                roots.append(self._parent)
+        return any(resolved.is_relative_to(root.resolve()) for root in roots)
+
+    def _snapshot(self, job, include_trace=False, only_files=None):
         rows = []
         for item in job.files:
-            targets = [{'format': t.format, 'state': t.state, 'code': t.code, 'error': t.error,
+            if only_files is not None and item.id not in only_files:
+                continue
+            targets = [{'taskId': job.id + ':' + str(t.index), 'format': t.format, 'state': t.state, 'code': t.code, 'error': t.error,
                         'stage': t.stage, 'libreOfficeStarted': t.lo_started,
+                        'executionMode':t.execution_mode,
+                        'startedMs': t.started_ms, 'finishedMs': t.finished_ms,
                         'route': copy.deepcopy(t.route),
                         'percent': 100 if t.state in SUCCESS else None,
                         'outputs': [a.metadata() for a in t.artifacts]} for t in item.targets]
@@ -778,14 +1212,35 @@ class ConverterGuard:
         if result is not None:
             result['outputs'] = [a.metadata() for a in job.artifacts]
         finished = not job.running and job.state in TERMINAL
+        current = None
+        if job.current:
+            item, task = job.current
+            current = {'taskId': job.id + ':' + str(task.index), 'fileId': item.id,
+                       'name': item.name, 'format': task.format, 'stage': task.stage,
+                       'startedMs': task.started_ms, 'position': task.index + 1}
+            if task.stage == 'preflight':
+                current['taskId']=job.id+':preflight:'+item.id
+                current['position']=-task.index
         return {'schemaVersion': 3, 'jobId': job.id, 'revision': job.revision,
                 'state': job.state, 'finished': finished,
+                'diagnosticBytes':job.diagnostic_bytes,
+                'currentTask': current, 'pauseRequested': job.paused,
+                'fileTimeoutSeconds': job.file_timeout, 'officeStarts': job.office_starts,
+                'recovered': job.recovered, 'recoveryError': job.recovery_error,
+                'timings':dict(job.timings),
                 'files': rows, **counts, 'preflightChecks':job.preflight_checks,
+                'preflightTotal':len(job.files),
+                'preflightTimeoutSeconds':job.preflight_timeout_seconds,
+                'preflightCompleted':sum(f.state == 'prepared' for f in job.files),
+                'preparation':job.preparation,
+                'preflightUndetermined':sum(not f.native_route or f.native_route.get('state')!='detected' for f in job.files),
                 'percent': counts['completed'] * 100 / counts['total'] if counts['total'] else None, 'result': result,
                 'trace': job.trace.snapshot() if include_trace else None,
                 'packagingError': job.packaging_error}
 
-    def status(self, job_id, *, include_trace=False, since_revision=None):
+    def status(self, job_id, *, include_trace=False, since_revision=None, delta=False):
+        if job_id not in self._jobs:
+            self._load_recovery()
         if since_revision is not None and (type(since_revision) is not int or since_revision < 0):
             raise GuardError('STATUS_REVISION', 'Некорректная версия состояния.')
         self._prune()
@@ -793,6 +1248,12 @@ class ConverterGuard:
             job = self._get(job_id)
             if not include_trace and since_revision == job.revision:
                 return {'jobId': job.id, 'revision': job.revision, 'unchanged': True}
+            if (delta and not include_trace and since_revision is not None and job.changes
+                    and job.changes[0][0] <= since_revision + 1 <= job.revision):
+                changes = {file_id for revision, file_id in job.changes if revision > since_revision}
+                if '*' not in changes:
+                    return {**self._snapshot(job, only_files=changes), 'delta': True,
+                            'baseRevision': since_revision}
             return self._snapshot(job, include_trace)
 
     def retry_plan(self, job_id, *, include_cancelled=False):
@@ -824,6 +1285,7 @@ class ConverterGuard:
 
     def _stop(self, job):
         job.cancel.set()
+        job.pause_wake.set()
         self._cancel_queued(job)
         if job.state == 'uploading':
             for item in job.files:
@@ -857,7 +1319,7 @@ class ConverterGuard:
             item = job.files_by_id.get(file_id) if isinstance(file_id, str) else None
             if item is None:
                 raise GuardError('FILE_NOT_FOUND', 'Файл не относится к заданию.', status=404)
-            if all(t.state in DONE for t in item.targets):
+            if not job.preparation and all(t.state in DONE for t in item.targets):
                 return self._snapshot(job)
             item.cancel.set()
             for task in item.targets:
@@ -899,6 +1361,11 @@ class ConverterGuard:
             for target in job.artifacts if artifact is job.bundle else [artifact]:
                 target.saved = True
             artifact.saved = True
+            if job.store:
+                try:
+                    job.store.saved(job.artifacts if artifact is job.bundle else [artifact])
+                except OSError:
+                    job.recovery_error = 'RECOVERY_WRITE_FAILED'
             for item in job.files:
                 for task in item.targets:
                     if task.state in SUCCESS and task.artifacts and all(a.saved for a in task.artifacts):
@@ -908,15 +1375,28 @@ class ConverterGuard:
             self._record(job, 'save_confirmed', file_id=artifact.file_id, target=artifact.format)
             return self._snapshot(job)
 
-    def release(self, job_id):
+    def release(self, job_id, *, discard=False):
+        if type(discard) is not bool:
+            raise GuardError('DISCARD_REQUEST', 'Некорректное подтверждение удаления.')
         with self._lock:
             job = self._get(job_id)
-            job.released = True
-            callbacks = self._stop(job)
-            for artifact in job.artifacts + ([job.bundle] if job.bundle else []):
-                self._tickets.pop(artifact.ticket, None)
+            if self._recovery and not discard and ((job.running and not job.preparation) or
+                                                   any(not a.saved for a in job.artifacts)):
+                job.detached = True
+                callbacks = self._stop(job)
+                self._record(job, 'results_retained')
+                preserve = True
+            else:
+                preserve = False
+                job.bundle_cancel.set()
+                job.save_cancel.set()
+                job.released = True
+                callbacks = self._stop(job)
+                for artifact in job.artifacts + ([job.bundle] if job.bundle else []):
+                    self._tickets.pop(artifact.ticket, None)
         self._interrupt(callbacks)
-        self._cleanup(job)
+        if not preserve:
+            self._cleanup(job)
 
     def _cleanup(self, job):
         with self._lock:
@@ -925,6 +1405,8 @@ class ConverterGuard:
             job.cleaning = True
         # Potentially slow filesystem deletion never holds the global job lock.
         try:
+            if job.store:
+                job.store.close()
             shutil.rmtree(job.root)
         except FileNotFoundError:
             pass
@@ -944,7 +1426,9 @@ class ConverterGuard:
             self._closed = True
             callbacks = []
             for job in self._jobs.values():
-                job.released = True
+                job.bundle_cancel.set()
+                job.save_cancel.set()
+                job.released = not bool(self._recovery)
                 callbacks.extend(self._stop(job))
             self._tickets.clear()
             self._proof_cache.clear()
@@ -953,6 +1437,19 @@ class ConverterGuard:
         with self._io_drained:
             self._io_drained.wait_for(lambda: all(j.io == 0 for j in self._jobs.values()), timeout=5)
         self._prune()
+        if self._recovery:
+            with self._lock:
+                jobs = list(self._jobs.values())
+            for job in jobs:
+                if job.artifacts and any(not a.saved for a in job.artifacts):
+                    if job.store:
+                        job.store.close()
+                else:
+                    job.released = True
+                    self._cleanup(job)
+            with self._lock:
+                self._jobs.clear()
+                self._reserved = 0
 
     def storage_stats(self):
         with self._lock:

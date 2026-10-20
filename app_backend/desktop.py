@@ -5,10 +5,11 @@ import json
 import sys
 import threading
 from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
 
-from PySide6.QtCore import QUrl, Qt
+from PySide6.QtCore import QUrl, Qt, QObject, Signal
 from PySide6.QtGui import QIcon, QDesktopServices
-from PySide6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox
+from PySide6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QProgressDialog
 from PySide6.QtWebEngineCore import (
     QWebEnginePage, QWebEngineProfile, QWebEngineScript,
     QWebEngineDownloadRequest, QWebEngineUrlRequestInterceptor)
@@ -16,6 +17,12 @@ from PySide6.QtWebEngineWidgets import QWebEngineView
 
 from .server import start_server, asset_root
 from .downloads import download_filter
+from .converter_guard.errors import GuardError
+
+
+class FolderSaveSignals(QObject):
+    progress = Signal(str, int, int)
+    finished = Signal(str, object)
 
 
 def application_icon():
@@ -60,6 +67,10 @@ class MainWindow(QMainWindow):
     def __init__(self, server, port):
         super().__init__()
         self._downloads = []
+        self._folder_saves = {}
+        self._folder_signals = FolderSaveSignals(self)
+        self._folder_signals.progress.connect(self._folder_progress)
+        self._folder_signals.finished.connect(self._folder_finished)
         self._server = server
         self.setWindowTitle('A.I.O — All in One помощник')
         self.setWindowIcon(application_icon())
@@ -88,8 +99,8 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.view)
         self.view.load(QUrl(f'http://127.0.0.1:{port}/'))
 
-    def _notify_download(self, status, name, source_url):
-        data = json.dumps({'status':status, 'name':name, 'sourceUrl':source_url},
+    def _notify_download(self, status, name, source_url, **extra):
+        data = json.dumps({'status':status, 'name':name, 'sourceUrl':source_url, **extra},
                           ensure_ascii=False)
         self.page.runJavaScript(
             "window.dispatchEvent(new CustomEvent('aio-native-save-result',{detail:" +
@@ -106,6 +117,10 @@ class MainWindow(QMainWindow):
             item.cancel()
             self._notify_download('failed', name, url)
             return
+        query = parse_qs(urlsplit(url).query)
+        if query.get('mode') == ['folder']:
+            item.cancel()
+            return self._save_folder(url, query['ticket'][0])
         destination, _ = QFileDialog.getSaveFileName(
             self, 'Сохранить результат', name, dialog_filter)
         if not destination:
@@ -113,6 +128,10 @@ class MainWindow(QMainWindow):
             self._notify_download('cancelled', name, url)
             return
         path = Path(destination)
+        if urlsplit(url).path == '/api/converter-guard/result' and self._server.guard.owns_path(path):
+            item.cancel()
+            self._notify_download('failed',name,url,error='Выберите папку вне служебного хранилища AIO.')
+            return
         if path.suffix.lower() != '.' + extension:
             self._notify_download('cancelled', name, url)
             item.cancel()
@@ -134,6 +153,49 @@ class MainWindow(QMainWindow):
             self._on_download_state(d, state, u, p))
         item.accept()
 
+    def _save_folder(self, url, ticket):
+        destination = QFileDialog.getExistingDirectory(self, 'Сохранить все результаты в папку')
+        if not destination:
+            self._notify_download('cancelled', '', url)
+            return
+        cancelled = threading.Event()
+        dialog = QProgressDialog('Сохранение результатов…', 'Отменить сохранение', 0, 0, self)
+        dialog.setWindowTitle('AIO — сохранение результатов')
+        dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        dialog.setAutoClose(False)
+        dialog.setAutoReset(False)
+        dialog.canceled.connect(cancelled.set)
+        dialog.show()
+        self._folder_saves[url] = (cancelled, dialog)
+
+        def work():
+            try:
+                result = self._server.guard.save_folder(ticket, destination, cancel=cancelled,
+                    on_progress=lambda current, total:self._folder_signals.progress.emit(url,current,total))
+            except GuardError as error:
+                result = {'cancelled':error.code == 'SAVE_CANCELLED', 'error':error.message}
+            except Exception:
+                result = {'error':'Не удалось сохранить результаты. Готовые файлы остаются в AIO.'}
+            self._folder_signals.finished.emit(url, result)
+        threading.Thread(target=work, daemon=True, name='aio-folder-save').start()
+
+    def _folder_progress(self, url, current, total):
+        operation = self._folder_saves.get(url)
+        if operation:
+            dialog = operation[1]
+            dialog.setMaximum(total)
+            dialog.setValue(current)
+            dialog.setLabelText('Сохранено файлов: ' + str(current) + ' из ' + str(total))
+
+    def _folder_finished(self, url, result):
+        operation = self._folder_saves.pop(url, None)
+        if operation:
+            operation[1].close()
+            operation[1].deleteLater()
+        status = 'completed' if result.get('saved') else 'cancelled' if result.get('cancelled') else 'failed'
+        self._notify_download(status, result.get('name', ''), url,
+                              savedAll=result.get('savedAll',False), error=result.get('error',''))
+
     def _on_download_state(self, item, state, source_url, path):
         if state == QWebEngineDownloadRequest.DownloadState.DownloadInProgress:
             return
@@ -152,6 +214,8 @@ class MainWindow(QMainWindow):
             pass
 
     def closeEvent(self, event):
+        for cancelled, _dialog in self._folder_saves.values():
+            cancelled.set()
         self._server.shutdown()
         self._server.server_close()
         super().closeEvent(event)

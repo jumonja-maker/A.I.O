@@ -88,7 +88,7 @@ class NativeTransportHTTPTests(unittest.TestCase):
         self.native_patch = patch('app_backend.converter_transport.convert_path',
                                   side_effect=self.fake_native)
         self.native_patch.start()
-        self.server, self.token = start_server()
+        self.server, self.token = start_server(guard_recovery_parent=Path(self.work.name)/'guard-results')
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
         self.base = 'http://127.0.0.1:' + str(self.server.server_port)

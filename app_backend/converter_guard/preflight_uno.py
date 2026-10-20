@@ -1,9 +1,9 @@
-"""Bundled LibreOffice Python UNO worker source for Windows pre-export detection.
+"""Bundled LibreOffice Python UNO worker source for Windows pre-export import.
 
 The parent writes this fixed script into its private temporary workspace and
 launches the Python that came with the same LibreOffice installation.
-The worker asks LibreOffice's TypeDetection to inspect document *content*;
-it never calls saveAs, convertTo, or documentLoad.
+The worker detects content, loads one hidden native model, obtains its actual
+services and closes it. It never starts an export or a requested conversion.
 """
 UNO_WORKER_SOURCE = r'''
 import json
@@ -50,7 +50,7 @@ def main(manifest_name):
     work = manifest.parent
     req = json.loads(manifest.read_text(encoding='utf-8'))
     program = Path(req['program']).resolve(strict=True)
-    profile = (work / 'profile').resolve(strict=True)
+    profile = Path(req.get('profile', work / 'profile')).resolve(strict=True)
     source = Path(req['source']).resolve(strict=True)
     if program.name.lower() != 'program' or not source.is_file():
         raise ValueError('Invalid preflight paths')
@@ -67,15 +67,17 @@ def main(manifest_name):
 
     import uno
     stage(work, 'uno_python_imported')
-    suffix = secrets.token_hex(12)
+    suffix = req.get('officePipe') or ('aio_preflight_' + secrets.token_hex(12))
+    if not isinstance(suffix, str) or not suffix.replace('_', '').isalnum():
+        raise ValueError('Invalid private office pipe')
     office = program / 'soffice.exe'
     if not office.is_file():
         office = program / 'soffice.com'
     if not office.is_file():
         raise FileNotFoundError('Native LibreOffice executable not found')
-    arg = '--accept=pipe,name=aio_preflight_' + suffix + ';urp;StarOffice.ServiceManager'
+    arg = '--accept=pipe,name=' + suffix + ';urp;StarOffice.ServiceManager'
     stage(work, 'uno_office_start')
-    child = subprocess.Popen(
+    child = None if req.get('officePipe') else subprocess.Popen(
         [str(office), '-env:UserInstallation=' + profile.as_uri(),
          '--headless', '--nologo', '--nodefault', '--norestore', '--nofirststartwizard', arg],
         cwd=str(program), stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
@@ -84,7 +86,7 @@ def main(manifest_name):
     local = uno.getComponentContext()
     resolver = local.ServiceManager.createInstanceWithContext(
         'com.sun.star.bridge.UnoUrlResolver', local)
-    url = 'uno:pipe,name=aio_preflight_' + suffix + ';urp;StarOffice.ComponentContext'
+    url = 'uno:pipe,name=' + suffix + ';urp;StarOffice.ComponentContext'
     until = time.monotonic() + 10
     remote = None
     while time.monotonic() < until:
@@ -92,7 +94,7 @@ def main(manifest_name):
             remote = resolver.resolve(url)
             break
         except Exception:
-            if child.poll() is not None:
+            if child is not None and child.poll() is not None:
                 break
             time.sleep(.1)
     if remote is None:
@@ -107,7 +109,10 @@ def main(manifest_name):
     prop.Name = 'URL'
     prop.Value = source.as_uri()
     # AllowDeep=true makes LibreOffice inspect bytes, not merely the suffix.
-    result = detected_document(detector, (prop,))
+    try:
+        result = detected_document(detector, (prop,))
+    except Exception:
+        result = None
     stage(work, 'uno_type_detected')
     if result is None:
         # The document TypeDetection service does not classify all graphic
@@ -124,14 +129,62 @@ def main(manifest_name):
                 result = {'state': 'detected', 'graphicType': kind}
         except Exception:
             pass
-    part = work / 'result.part'
-    with part.open('x', encoding='utf-8') as stream:
+    # A registered type alone does not prove this document can be opened.
+    # Load once, without exporting, and obtain the actual native model.
+    stage(work, 'uno_document_load')
+    import unohelper
+    from com.sun.star.task import XInteractionHandler
+
+    class AbortInteraction(unohelper.Base, XInteractionHandler):
+        blocked = False
+        def handle(self, request):
+            self.blocked = True
+            for continuation in request.getContinuations():
+                abort = continuation.queryInterface(uno.getTypeByName('com.sun.star.task.XInteractionAbort'))
+                if abort is not None:
+                    abort.select()
+                    return
+
+    def property_value(name, value):
+        item = uno.createUnoStruct('com.sun.star.beans.PropertyValue')
+        item.Name, item.Value = name, value
+        return item
+
+    handler = AbortInteraction()
+    options = [property_value('Hidden', True), property_value('ReadOnly', True),
+               property_value('Silent', True), property_value('MacroExecutionMode', 0),
+               property_value('UpdateDocMode', 0), property_value('InteractionHandler', handler)]
+    selected = (result or {}).get('filterName')
+    desktop = remote.ServiceManager.createInstanceWithContext('com.sun.star.frame.Desktop', remote)
+    model = None
+    try:
+        model = desktop.loadComponentFromURL(source.as_uri(), '_blank', 0, tuple(options))
+        services = [s for s in req.get('documentServices', []) if model is not None and model.supportsService(s)]
+        if not services:
+            result = {'state':'undetermined','code':'PREFLIGHT_INTERACTION_REQUIRED'
+                      if handler.blocked else 'PREFLIGHT_IMPORT_FAILED'}
+        else:
+            actual_filter = next((p.Value for p in model.getArgs() if p.Name == 'FilterName'),None)
+            result = {**(result or {}), 'state':'detected','modelLoaded':True,'documentServices':services,
+                      'filterName':actual_filter}
+    except Exception:
+        result = {'state':'undetermined','code':'PREFLIGHT_INTERACTION_REQUIRED'
+                  if handler.blocked else 'PREFLIGHT_IMPORT_FAILED'}
+    finally:
+        if model is not None:
+            if hasattr(model, 'close'):
+                model.close(True)
+            else:
+                model.dispose()
+    stage(work, 'uno_document_closed')
+    with (work / 'result.part').open('w', encoding='utf-8') as stream:
         json.dump(result, stream)
         stream.flush()
         os.fsync(stream.fileno())
-    part.replace(work / 'result.json')
+    (work / 'result.part').replace(work / 'result.json')
     stage(work, 'result_written')
-    # The Job Object owns both this Python worker and the connected office.
+    # The worker is owned by its Job Object; a reused office belongs to the
+    # outer batch Job Object. Both are private to this AIO request.
     os._exit(0)
 
 

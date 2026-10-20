@@ -41,7 +41,9 @@ def apply_native_ui(raw: bytes) -> bytes:
          "        selectedFormat=selectedFormats.values().next().value||null;\n"
          "        if(first&&!analysis.formats.some(f=>f.category===selectedCategory))selectedCategory=first.category;")
     once("p.textContent=inputs.length+' из '+inputs.length+' файлов · '+labels.length+' '+formatWord(labels.length)+': '+summaryText;",
-         "p.textContent=inputs.length+' файлов · '+labels.length+' '+formatWord(labels.length)+': '+summaryText;")
+         "const inputIds=new Set(inputs.map(f=>f.id));let plannedPairs=0;\n"
+         "        for(const fmt of analysis.formats){if(selectedFormats.has(fmt.id))for(const id of fmt.verifiedFileIds||[])if(inputIds.has(id))plannedPairs++;}\n"
+         "        p.textContent=inputs.length+' файлов · '+labels.length+' '+formatWord(labels.length)+' · '+plannedPairs+' преобразований: '+summaryText;")
     once('p.textContent=\x60\x24{eligible.length} из \x24{inputs.length} файлов · результат: \x24{fmt.label}\x60;',
          'p.textContent=fmt.nativeDecision?\x60\x24{inputs.length} файлов · результат: \x24{fmt.label}\x60:\x60\x24{eligible.length} из \x24{inputs.length} файлов · результат: \x24{fmt.label}\x60;')
 
@@ -142,4 +144,22 @@ def apply_native_ui(raw: bytes) -> bytes:
     # Single-target captions must count eligible files, not the whole list.
     once('p.textContent=fmt.nativeDecision?\x60\x24{inputs.length} файлов · результат: \x24{fmt.label}\x60:\x60\x24{eligible.length} из \x24{inputs.length} файлов · результат: \x24{fmt.label}\x60;',
          'p.textContent=\x60\x24{eligible.length} из \x24{inputs.length} файлов · результат: \x24{fmt.label}\x60;')
+    once('    const onlyVerified = true;',
+         "    const onlyVerified = true;\n"
+         "    const eligibilityCache=new WeakMap();\n"
+         "    const eligibleIds=(fmt,field='selectableFileIds')=>{let entry=eligibilityCache.get(fmt);"
+         "if(!entry){entry=new Map();eligibilityCache.set(fmt,entry);}"
+         "if(!entry.has(field))entry.set(field,new Set(fmt[field]||[]));return entry.get(field);};")
+    for name in ('fmt','f'):
+        source=source.replace(name+'.selectableFileIds.includes(', 'eligibleIds('+name+').has(')
+        source=source.replace(name+'.verifiedFileIds.includes(', "eligibleIds("+name+",'verifiedFileIds').has(")
+    once('const eligible=fmt.selectableFileIds.filter(id=>inputs.some(f=>f.id===id));',
+         'const chosenIds=new Set(inputs.map(f=>f.id));const eligible=fmt.selectableFileIds.filter(id=>chosenIds.has(id));')
+    once('async function inspect({force=false,preserveFormats=false}={})',
+         'async function inspect({force=false,preserveFormats=false,timeoutSeconds,onlyUndetermined=false}={})')
+    once('await adapter.inspectFiles({ files:filePayload(),force })',
+         'await adapter.inspectFiles({ files:filePayload(),force,timeoutSeconds,onlyUndetermined })')
+    once('    typeFilter.sync();\n    render();\n    inspect();',
+         "    root.addEventListener('aio-guard-recheck',event=>{inspect({force:true,timeoutSeconds:event.detail?.timeoutSeconds||600,onlyUndetermined:true}).finally(()=>event.detail?.done?.());});\n"
+         '    typeFilter.sync();\n    render();\n    inspect();')
     return source.encode('utf-8')

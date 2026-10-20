@@ -105,6 +105,27 @@ class GuardV07Contracts(unittest.TestCase):
         self.assertEqual(report['preflightCacheHits'],0)
         self.assertEqual(len(self.adapter.inspections),3)
 
+    def test_extended_retry_only_checks_unknown_files_and_engine_change_checks_all(self):
+        identity=self.guard.create([{'id':'ok','name':'ok.csv','size':1},
+                                   {'id':'unknown','name':'unknown.csv','size':1}],prepare_only=True)['jobId']
+        self.guard.upload(identity,'ok',io.BytesIO(b'C'),1)
+        self.guard.upload(identity,'unknown',io.BytesIO(b'?'),1)
+        self.guard.preflight(identity)
+        before=len(self.adapter.inspections)
+        self.guard.preflight(identity,recheck=True,only_undetermined=True,timeout_seconds=1200)
+        self.assertEqual(len(self.adapter.inspections)-before,1)
+        self.registry_file.write_text(self.registry_file.read_text()+'\n')
+        self.guard.preflight(identity)
+        self.assertEqual(len(self.adapter.inspections)-before,3)
+
+    def test_loaded_native_model_proof_does_not_enable_a_different_service(self):
+        native=registry(self.exe)
+        proof={'state':'detected','basis':'native_preflight_uno_document','modelLoaded':True,
+               'documentServices':[C],'registryFingerprint':native.fingerprint}
+        self.assertEqual(native.observed_decision('dbf',proof),'registered')
+        self.assertEqual(native.observed_decision('docx',proof),'unavailable')
+        self.assertEqual(native.observed_decision('dbf',{**proof,'modelLoaded':False}),'undetermined')
+
     def test_timeouts_are_not_cached_and_retry_does_not_upload_again(self):
         self.adapter.preflight = lambda *a,**k: {'state':'undetermined','code':'PREFLIGHT_TIMEOUT',
                                                'diagnosticStage':'uno_type_detection'}

@@ -7,8 +7,8 @@ from urllib.parse import parse_qs, urlsplit
 def download_filter(url: str, name: str, port: int) -> str | None:
     suffix = Path(name).suffix.lower()
     origin = f'http://127.0.0.1:{port}'
-    if url.startswith('blob:' + origin + '/') and suffix == '.xlsx':
-        return 'Excel (*.xlsx)'
+    if url.startswith('blob:' + origin + '/') and suffix in ('.xlsx', '.json'):
+        return 'Excel (*.xlsx)' if suffix == '.xlsx' else 'Отчёт JSON (*.json)'
     try:
         parsed = urlsplit(url)
         if (parsed.scheme != 'http' or parsed.hostname != '127.0.0.1' or parsed.port != port
@@ -19,7 +19,9 @@ def download_filter(url: str, name: str, port: int) -> str | None:
     except ValueError:
         return None
     query = parse_qs(parsed.query, keep_blank_values=True)
-    if set(query) - {'ticket', 'aioSave'} or len(query.get('ticket', [])) != 1:
+    if set(query) - {'ticket', 'aioSave', 'mode'} or len(query.get('ticket', [])) != 1:
+        return None
+    if 'mode' in query and (parsed.path != '/api/converter-guard/result' or query['mode'] != ['folder']):
         return None
     if not re.fullmatch(r'[A-Za-z0-9_-]{32,128}', query['ticket'][0]):
         return None

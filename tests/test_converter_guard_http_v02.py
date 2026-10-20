@@ -108,7 +108,7 @@ class GuardHTTPTests(unittest.TestCase):
     def test_status_reports_unbounded_document_policy_without_old_allowlist(self):
         state=self.json_request('status')
         self.assertIsNone(state['limits']['max_file_bytes'])
-        self.assertIsNone(state['limits']['file_timeout'])
+        self.assertEqual(state['limits']['file_timeout'], 1800)
         self.assertEqual(state['acceptedExtensions'],'')
         self.assertNotIn('inputs',state)
 

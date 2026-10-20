@@ -114,6 +114,11 @@
       if (result.downloadUrl &&
           !/^\/api\/converter(?:-guard)?\/result\?ticket=[A-Za-z0-9_-]{32,128}$/.test(url))
         fail('Недопустимый путь сохранения результата.');
+      if (result.saveMode === 'folder') {
+        if (!window.AllInOneNativeShell || !url.startsWith('/api/converter-guard/'))
+          fail('Сохранение в папку доступно в приложении AIO. Можно сохранить ZIP.');
+        url += '&mode=folder';
+      }
       // A retained ticket may be saved again after a cancel/timeout. Give
       // EACH attempt a distinct URL; even the same result cannot consume a
       // late acknowledgement from its previous native download.
@@ -139,11 +144,12 @@
                   !['completed', 'cancelled', 'failed'].includes(detail.status)) return;
               cleanup();
               if (detail.status === 'completed') {
-                resolve({ name: detail.name || result.name, saved: true });
+                resolve({ name: detail.name || result.name, saved: true,
+                          savedAll: detail.savedAll === true });
               } else if (detail.status === 'cancelled') {
                 resolve({ cancelled: true });
               } else {
-                reject(new Error('Не удалось сохранить файл.'));
+                reject(new Error(detail.error || 'Не удалось сохранить файл.'));
               }
             }
             window.addEventListener('aio-native-save-result', onResult);

@@ -99,7 +99,7 @@
         parts.copy.append(clone);
       }
     }
-    function render() {
+    function render(dirtyIds) {
       if (disposed) return;
       observer.disconnect();
       try {
@@ -107,6 +107,7 @@
           if (!scope.contains(row) || !files.has(String(row.dataset.fileId))) restore(row, parts);
         }
         for (const row of scope.querySelectorAll('.aio-cv__file[data-file-id]')) {
+          if (dirtyIds && !dirtyIds.has(String(row.dataset.fileId))) continue;
           const data = files.get(String(row.dataset.fileId));
           if (!data) continue;
           const parts = decorate(row);
@@ -186,10 +187,10 @@
       render(); return true;
     }
     function finishTargets(event) {
-      if (!current(event) || !Array.isArray(event.files) || event.files.length !== files.size ||
+      if (!current(event) || !Array.isArray(event.files) || (!event.partial && event.files.length !== files.size) ||
           [...files.values()].some(x=>x.state==='saving')) return false;
       const ids=event.files.map(x=>String(x.fileId));
-      if (new Set(ids).size!==files.size || ids.some(id=>!files.has(id)) ||
+      if (new Set(ids).size!==event.files.length || ids.some(id=>!files.has(id)) ||
           event.files.some(x=>!['queued','converting','ready','partial','error','cancelled','skipped'].includes(x.state)||
             (x.allCopiesSaved!==undefined&&(typeof x.allCopiesSaved!=='boolean'||x.allCopiesSaved&&!['ready','partial'].includes(x.state))))) return false;
       for(const row of event.files){
@@ -210,7 +211,7 @@
             (working?' · '+working.format.toUpperCase()+'…':errors.length?' · '+errors.map(x=>x.format.toUpperCase()).join(', ')+': ошибка':''),
           targetTitle:summary+(detail?' · '+detail:'')});
       }
-      render(); return true;
+      render(event.partial ? new Set(ids) : undefined); return true;
     }
     function finishBatch(event) {
       if (!current(event) || !Array.isArray(event.files) || event.files.length !== files.size ||
