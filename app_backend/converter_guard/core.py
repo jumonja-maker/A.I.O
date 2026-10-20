@@ -210,11 +210,17 @@ class ConverterGuard:
                 job.recovery_error = 'RECOVERY_WRITE_FAILED'
 
     def _initialize_store(self, job):
-        if self._recovery and job.store is None:
-            job.store = ResultStore(job.root)
+        if self._recovery:
+            if job.store is None:
+                job.store = ResultStore(job.root)
+                try:
+                    if not job.store.acquire():
+                        raise OSError('Recovery store is busy')
+                except OSError:
+                    job.recovery_error = 'RECOVERY_WRITE_FAILED'
+                    return
+            # Persist ownership during preparation; rewrite plans at start.
             try:
-                if not job.store.acquire():
-                    raise OSError('Recovery store is busy')
                 job.store.initialize(job)
             except OSError:
                 job.recovery_error = 'RECOVERY_WRITE_FAILED'
@@ -227,7 +233,7 @@ class ConverterGuard:
             try:
                 if not store.acquire():
                     continue  # Another running A.I.O instance owns this job.
-                header, records, saved = store.read()
+                header, records, saved, integrity = store.read()
                 identity = header.get('jobId')
                 if not isinstance(identity, str) or not re.fullmatch(r'[0-9a-f]{32}', identity):
                     raise ValueError('Invalid recovery job')
@@ -246,6 +252,11 @@ class ConverterGuard:
                     files.append(_File(**row, source=root/'input'/'unavailable', targets=tasks, state='done',
                                        native_route=original.get('nativeRoute')))
                 job = _Job(identity, root, files, 0, store=store, recovered=True)
+                if integrity != 'complete':
+                    job.recovery_error = 'RECOVERY_LEDGER_INCOMPLETE'
+                    self._recovery_issues.append({'folder':root.name,
+                        'code':'RECOVERY_LEDGER_INCOMPLETE', 'integrity':integrity,
+                        'jobId':identity})
                 summary=header.get('summary',{})
                 job.timings=summary.get('timings',{})
                 job.office_starts=summary.get('officeStarts',0)
@@ -288,8 +299,19 @@ class ConverterGuard:
                         if task.artifacts and task.state in SUCCESS:
                             task.state = 'saved' if all(a.saved for a in task.artifacts) else 'ready'
                 if not job.artifacts:
+                    self._recovery_issues.append({'folder':root.name,
+                        'code':'RECOVERY_UNFINISHED_PREPARATION', 'jobId':identity,
+                        'bytes':sum(p.stat().st_size for p in root.rglob('*')
+                                    if p.is_file() and not p.is_symlink())})
                     store.close()
                     continue
+                indexed={a.path.resolve() for a in job.artifacts}
+                untracked=any(p.resolve() not in indexed for p in root.glob('work/*/output/**/*')
+                              if p.is_file() and not p.is_symlink())
+                if untracked and not job.recovery_error:
+                    job.recovery_error='RECOVERY_UNTRACKED_OUTPUTS'
+                    self._recovery_issues.append({'folder':root.name,
+                        'code':'RECOVERY_UNTRACKED_OUTPUTS', 'jobId':identity})
                 job.reserved = sum(p.stat().st_size for p in root.rglob('*') if p.is_file() and not p.is_symlink())
                 job.result = {**job.artifacts[0].metadata(), 'jobId':identity}
                 job.packaging_error = 'RECOVERED_RESULTS'
@@ -419,6 +441,7 @@ class ConverterGuard:
             identity = secrets.token_hex(16)
             job = _Job(identity, root, files, size, preparation=prepare_only)
             job.files_by_id = {item.id: item for item in files}
+            self._initialize_store(job)
             self._record(job, 'job_created')
             self._jobs[identity] = job
             self._reserved += size
@@ -965,7 +988,8 @@ class ConverterGuard:
         return counts
 
     def _report(self, job):
-        return {'schemaVersion': 3, **self._counts(job), 'preflightChecks':job.preflight_checks, 'files': [
+        return {'schemaVersion': 3, **self._counts(job), 'preflightChecks':job.preflight_checks,
+                'recoveryError':job.recovery_error, 'files': [
             {'fileId': f.id, 'name': f.name, 'nativeRoute': f.native_route, 'warnings': (
                 ['SOURCE_NAME_NORMALIZED'] if f.name_normalized else []),
              'targets': [{'taskId': job.id + ':' + str(t.index), 'format': t.format, 'state': t.state, 'code': t.code,
@@ -1171,7 +1195,9 @@ class ConverterGuard:
                     except OSError:
                         job.recovery_error = 'RECOVERY_WRITE_FAILED'
                 self._record(job, 'save_confirmed')
-            return {'saved':True, 'savedAll':True, 'name':folder.name, 'outputs':len(copies)}
+            return {'saved':True, 'savedAll':job.recovery_error is None,
+                    'incompleteRecovery':bool(job.recovery_error),
+                    'name':folder.name, 'outputs':len(copies)}
         except OSError as error:
             raise GuardError('SAVE_STORAGE_FAILED', 'Не удалось сохранить все файлы. Результаты остаются в AIO.',
                              stage='save', status=507) from error
@@ -1306,6 +1332,8 @@ class ConverterGuard:
     def cancel(self, job_id):
         with self._lock:
             job = self._get(job_id)
+            if job.state == 'packaging':
+                job.bundle_cancel.set()
             callbacks = self._stop(job)
             self._record(job, 'cancel_requested')
             snapshot = self._snapshot(job)
@@ -1380,8 +1408,9 @@ class ConverterGuard:
             raise GuardError('DISCARD_REQUEST', 'Некорректное подтверждение удаления.')
         with self._lock:
             job = self._get(job_id)
-            if self._recovery and not discard and ((job.running and not job.preparation) or
-                                                   any(not a.saved for a in job.artifacts)):
+            if self._recovery and not discard and (job.recovery_error or
+                    (job.running and not job.preparation) or
+                    any(not a.saved for a in job.artifacts)):
                 job.detached = True
                 callbacks = self._stop(job)
                 self._record(job, 'results_retained')
@@ -1441,7 +1470,7 @@ class ConverterGuard:
             with self._lock:
                 jobs = list(self._jobs.values())
             for job in jobs:
-                if job.artifacts and any(not a.saved for a in job.artifacts):
+                if job.recovery_error or (job.artifacts and any(not a.saved for a in job.artifacts)):
                     if job.store:
                         job.store.close()
                 else:
