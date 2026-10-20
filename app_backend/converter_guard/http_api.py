@@ -212,11 +212,12 @@ class GuardAPI:
             if path == PREFIX + '/prepare-update':
                 return self._json(handler,200, self.guard.update_prepared(identity, body.get('files')))
             if path == PREFIX + '/preflight':
-                return self._json(handler,200, self.guard.preflight(identity))
+                return self._json(handler,200, self.guard.preflight(identity,
+                    recheck=body.get('recheck', False)))
             if path == PREFIX + '/start':
                 return self._json(handler,202, self.guard.start(identity,
                     formats=body.get('formats'), file_ids=body.get('fileIds'),
-                    only_verified=body.get('onlyVerified', False)))
+                    only_verified=body.get('onlyVerified', False), plan=body.get('plan')))
             if path == PREFIX + '/cancel':
                 return self._json(handler,200, self.guard.cancel(identity))
             if path == PREFIX + '/cancel-file':

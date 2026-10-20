@@ -39,7 +39,7 @@ class GuardV05Contracts(unittest.TestCase):
         for key, value in expected.items():
             self.assertEqual(report[key], value, key)
 
-    def test_filename_warning_keeps_explicit_native_attempt_available_without_probe(self):
+    def test_filename_hint_does_not_enable_a_native_attempt_without_preflight(self):
         adapter = LibreOfficeAdapter(self.exe)
         with patch('app_backend.converter_guard.adapter.convert_path',
                    side_effect=AssertionError('metadata must not launch LO')):
@@ -48,15 +48,15 @@ class GuardV05Contracts(unittest.TestCase):
         self.assertFalse(dbf['enabled'])  # still an honest filename recommendation
         self.assertEqual(dbf['compatibleFileIds'], [])
         self.assertEqual(dbf['incompatibleFileIds'], ['one'])
-        self.assertTrue(dbf['nativeAttemptAvailable'])
-        self.assertEqual(dbf['selectableFileIds'], ['one'])
+        self.assertFalse(dbf['nativeAttemptAvailable'])
+        self.assertEqual(dbf['selectableFileIds'], [])
         self.assertFalse(report['qualityCompared'])
 
-    def test_unknown_file_can_be_selected_for_every_native_target(self):
+    def test_unknown_metadata_cannot_enable_every_native_target(self):
         formats = LibreOfficeAdapter(self.exe).capabilities([
             {'id': 'unknown', 'name': 'document.unlisted', 'size': 1}])['formats']
-        self.assertTrue(all(f['nativeAttemptAvailable'] for f in formats))
-        self.assertTrue(all(f['selectableFileIds'] == ['unknown'] for f in formats))
+        self.assertTrue(all(not f['nativeAttemptAvailable'] for f in formats))
+        self.assertTrue(all(f['selectableFileIds'] == [] for f in formats))
 
     def test_missing_engine_cannot_claim_native_attempt_available(self):
         formats = LibreOfficeAdapter(Path(self.temp.name) / 'absent').capabilities([

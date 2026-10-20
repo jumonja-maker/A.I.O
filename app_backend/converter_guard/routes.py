@@ -17,6 +17,7 @@ from ..libreoffice_catalog import OOR, EXTENSION, properties, registry_files
 class Registry:
     def __init__(self, files, executable):
         self.imports, self.exports, self.filters, self.type_services = {}, {}, {}, {}
+        self.filter_types = {}
         self.external_filters = False
         # Export targets touched by load-order-dependent extensions must stay
         # UNKNOWN rather than disabling the unaffected native registry.
@@ -87,6 +88,7 @@ class Registry:
             extensions = {e.lower() for e in types.get(item.get('Type'), {}).get('Extensions', '').split()
                           if EXTENSION.fullmatch(e.lower())}
             self.filters[identity] = (service, frozenset(extensions), frozenset(flags))
+            self.filter_types[identity] = item.get('Type')
             if 'IMPORT' in flags and item.get('Type'):
                 self.type_services.setdefault(item['Type'], set()).add(service)
             for flag, mapping in (('IMPORT', self.imports), ('EXPORT', self.exports)):
@@ -95,13 +97,21 @@ class Registry:
                         mapping.setdefault(extension, set()).add(service)
         self.valid = self.valid and bool(self.imports) and bool(self.exports)
 
-    def services_for_type(self, type_name):
+    def services_for_type(self, type_name, filter_name=None):
         # A verified UNO TypeDetection name, not a file suffix, is mapped
         # to native import services from the same installed FilterFactory.
         if (not self.valid or not isinstance(type_name, str)
                 or type_name in self.uncertain_type_ids):
             return ()
-        return tuple(sorted(self.type_services.get(type_name, ())))
+        if filter_name is not None:
+            item = self.filters.get(filter_name) if isinstance(filter_name, str) else None
+            if (not item or 'IMPORT' not in item[2]
+                    or self.filter_types.get(filter_name) != type_name):
+                return ()
+            return (item[0],)
+        services = self.type_services.get(type_name, ())
+        # A union of possible import services is not a detected model.
+        return tuple(services) if len(services) == 1 else ()
 
     def hint(self, filename, target):
         source_ext = Path(filename).suffix.lower().lstrip('.')
@@ -142,7 +152,7 @@ class Registry:
         if (proof and proof.get('basis') == 'native_preflight_uno_type'
                 and proof.get('state') == 'detected'
                 and proof.get('registryFingerprint') == self.fingerprint):
-            services = self.services_for_type(proof.get('typeName'))
+            services = self.services_for_type(proof.get('typeName'), proof.get('filterName'))
             if services and sorted(services) == sorted(proof.get('documentServices', ())):
                 return self.decide(target, set(services))
             return 'undetermined'

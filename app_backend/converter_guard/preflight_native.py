@@ -77,7 +77,12 @@ def detect(program, profile, source, work):
         table = _table(kit, _Kit, 'load_options')
         load = C.CFUNCTYPE(C.c_void_p, C.c_void_p, C.c_char_p, C.c_char_p)(table.load_options)
         _stage(work, 'document_load_options')
-        doc = load(kit, source.as_uri().encode('utf-8'), b'ReadOnly=true')
+        # LOK consumes Batch itself, then passes the remaining string as the
+        # import filter's FilterOptions. ReadOnly=true is NOT a LOK option:
+        # it becomes invalid CSV parser options, instead of a read-only flag.
+        # Batch uses LO's silent interaction mode and native import defaults.
+        # Only our private copy is opened; this worker never saves it.
+        doc = load(kit, source.as_uri().encode('utf-8'), b'Batch=true')
     _stage(work, 'document_loaded')
     if not doc:
         return {'state': 'undetermined', 'code': 'PREFLIGHT_IMPORT_UNDETERMINED'}

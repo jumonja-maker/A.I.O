@@ -4,6 +4,15 @@
   const terminal = new Set(['ready', 'saved', 'error']);
   const limitText = (value, max = 1600) => String(value || '').slice(0, max);
   const riskPattern = /экспериментально|только текст|не восстанавливаются|могут .*сохраниться|могут измениться|не остаются редактируемыми|один слайд|извлечение таблиц/i;
+  const preflightReasons = {
+    PREFLIGHT_TIMEOUT:'LibreOffice не завершил распознавание за отведённое время.',
+    ENGINE_NOT_FOUND:'LibreOffice не найден.',
+    PREFLIGHT_REGISTRY_UNAVAILABLE:'Не удалось прочитать реестр фильтров LibreOffice.',
+    PREFLIGHT_UNO_API_UNAVAILABLE:'Не удалось выполнить проверку через UNO установленного LibreOffice.',
+    PREFLIGHT_UNO_TYPE_UNKNOWN:'LibreOffice не определил тип содержимого.',
+    PREFLIGHT_UNO_TYPE_UNMAPPED:'Тип распознан, но однозначный импортирующий фильтр не подтверждён.',
+    PREFLIGHT_IMPORT_UNDETERMINED:'LibreOffice не подтвердил импорт содержимого.'
+  };
   let sequence = 0;
 
   function batchOutcome(snapshot) {
@@ -37,6 +46,13 @@
               : 'Движок не завершил преобразование.')});
         }
       }
+      if (report?.schemaVersion === 3) for (const file of snapshot.files) {
+        if (report.files?.some(row=>String(row.fileId)===String(file.id))) continue;
+        const proof = snapshot.preflightFiles?.find(f=>String(f.id)===String(file.id))?.preflight;
+        if (proof?.state === 'undetermined') rows.push({source:file.name,target:'',
+          kind:'Файл не включён в план',reason:(preflightReasons[proof.code] ||
+            'Направления не подтверждены.') + ' Экспорт этого файла не запускался.'});
+      }
       if (!report) for (const file of (batchOutcome(snapshot)?.files || [])) {
         if (file.state !== 'error') continue;
         const owner = snapshot.allFiles.find(f => String(f.id) === String(file.fileId));
@@ -47,6 +63,18 @@
         target: '', kind: 'Ошибка задания', reason: snapshot.statusMessage || 'Не удалось завершить задание. Нет подтверждения, что каждый файл завершился ошибкой.'});
       return rows;
     }
+    if (snapshot.status === 'checking') return rows;
+    const pending = new Set();
+    for (const file of snapshot.files) {
+      const proof = snapshot.preflightFiles?.find(f=>String(f.id)===String(file.id))?.preflight;
+      if (!proof || proof.state === 'detected') continue;
+      pending.add(String(file.id));
+      rows.push({source:file.name,target:'',kind:'Проверка файла не завершена',
+        reason:(preflightReasons[proof.code] || 'Направления конвертации пока не подтверждены.') +
+          (proof.code ? ' Код: '+limitText(proof.code,80)+'.' : '') +
+          (proof.diagnosticStage ? ' Этап: '+limitText(proof.diagnosticStage,64)+'.' : '') +
+          ' Форматы пока недоступны. Можно повторить проверку направлений.'});
+    }
     const candidates = selected.length ? selected : snapshot.formats.filter(f => !f.enabled || f.undeterminedFileIds?.length);
     for (const fmt of candidates) {
       const ids = Array.isArray(fmt.compatibleFileIds) ? fmt.compatibleFileIds.map(String) : [];
@@ -55,6 +83,7 @@
       const compatible = [];
       for (const file of snapshot.files) {
         const id = String(file.id);
+        if (pending.has(id)) continue;
         if (ids.includes(id) && fmt.enabled) {
           compatible.push(file.name);
         } else if (incompatible.includes(id)) {
@@ -66,7 +95,7 @@
                 + 'Это предварительная подсказка, а не проверка содержимого.'});
         } else if (undetermined.includes(id)) {
           rows.push({source:file.name,target:fmt.label||fmt.id,kind:'Направление не подтверждено',
-            reason:'Не включается в «Выбрать всё». При необходимости выберите формат вручную для прямой попытки LibreOffice.'});
+            reason:'Направление не подтверждено и пока недоступно. Можно повторить проверку направлений.'});
         }
       }
       const risk = fmt.help?.[2]?.text || '';
@@ -95,7 +124,7 @@
     }));
   }
 
-  function attach({root, adapter, onBusyChanged = () => {}}) {
+  function attach({root, adapter, onBusyChanged = () => {}, onRetryPreflight}) {
     const pane = root.querySelector('.aio-cv__pane--right');
     const formatHeader = pane?.querySelector('.aio-cv__format-head');
     let header = formatHeader || pane?.querySelector('.aio-cv__pane-head');
@@ -134,6 +163,8 @@
     const closeButton = node('button', 'aio-cv-issues-close', 'Закрыть');
     closeButton.type = 'button';
     const note = node('p', 'aio-cv-issues-note');
+    const preflightRetry = node('button', 'aio-cv-issues-retry', 'Повторить проверку направлений');
+    preflightRetry.type = 'button'; preflightRetry.hidden = true;
     const list = node('div', 'aio-cv-issues-list');
     const more = node('button', 'aio-cv-issues-more', 'Проверить подробнее');
     more.type = 'button';
@@ -150,7 +181,7 @@
     retry.type = 'button'; retry.hidden = true;
     details.append(activity, reportArea, retry);
     top.append(heading, closeButton);
-    pop.append(top, note, list, more, details);
+    pop.append(top, note, list, preflightRetry, more, details);
     slot.append(button);
     // AIO-UI-001: title, diagnostics, and Select All share ONE fixed row.
     if (formatHeader) formatHeader.insertBefore(slot, formatHeader.querySelector('[data-cv-select-all-formats]'));
@@ -299,11 +330,13 @@
       if (expanded) requestDetails();
     };
     const onRetry = () => requestDetails(true);
+    const onPreflightRetry = () => {if(!preflightRetry.disabled)onRetryPreflight?.();};
     const onClose = () => close(true);
     button.addEventListener('click', toggle);
     closeButton.addEventListener('click', onClose);
     more.addEventListener('click', onMore);
     retry.addEventListener('click', onRetry);
+    preflightRetry.addEventListener('click', onPreflightRetry);
     document.addEventListener('pointerdown', outside, true);
     document.addEventListener('keydown', onKey, true);
     window.addEventListener('resize', position);
@@ -325,11 +358,13 @@
         // Progress renders are frequent; do not rebuild the same potentially
         // 100-source compatibility matrix on every engine message.
         let rows;
-        if (!after && briefCache?.formats === value.formats && sameSelection(briefCache.selection, selection)) {
+        if (!after && briefCache?.formats === value.formats && briefCache.status === value.status &&
+            briefCache.preflightFiles === value.preflightFiles && sameSelection(briefCache.selection, selection)) {
           rows = briefCache.rows;
         } else {
           rows = brief(value, after);
-          briefCache = after ? null : {formats: value.formats, selection, rows};
+          briefCache = after ? null : {formats: value.formats, preflightFiles:value.preflightFiles,
+            status:value.status, selection, rows};
         }
         // Root-cause groups, not one scary item for every blocked output.
         const rawCount = rows.length;
@@ -344,6 +379,9 @@
           rows.length ? 'Проблемы (' + rows.length + ')' : 'Риски конвертации';
         button.title = button.textContent;
         heading.textContent = after ? 'После конвертации' : 'Перед конвертацией';
+        preflightRetry.hidden = after || !onRetryPreflight ||
+          !value.preflightFiles?.some(f=>f.preflight?.state==='undetermined');
+        preflightRetry.disabled = ['checking','processing'].includes(value.status) || value.saving === true;
         note.textContent = after ? 'Отчёт задания показывает ошибки движка. Отсутствие ошибок не подтверждает сохранность всего содержимого.' :
           'Краткая сводка по выбранным форматам. Подробный анализ документа запускается только по вашему запросу.';
         if (rawCount > rows.length)
@@ -377,6 +415,7 @@
         closeButton.removeEventListener('click', onClose);
         more.removeEventListener('click', onMore);
         retry.removeEventListener('click', onRetry);
+        preflightRetry.removeEventListener('click', onPreflightRetry);
         document.removeEventListener('pointerdown', outside, true);
         document.removeEventListener('keydown', onKey, true);
         window.removeEventListener('resize', position);

@@ -42,7 +42,7 @@ function environment(options={}) {
     }
     if(path==='/preflight') {
       if(options.preflight)await options.preflight.promise;
-      return reply({preflightComplete:true,files:[],formats:formats.map(id=>({id,
+      return reply({available:true,preflightComplete:true,files:[],formats:formats.map(id=>({id,
         verifiedFileIds:['one'],compatibleFileIds:['one'],selectableFileIds:['one']}))});
     }
     if(path==='/cancel') {cancelled=true;return reply({ok:true});}
@@ -76,8 +76,9 @@ const completed=[];
   const e=environment();
   const outcome=await e.bridge.convertMany({files,formatIds:formats});
   const request=e.calls.find(c=>c.path==='/start').body;
-  assert.deepEqual(JSON.parse(JSON.stringify(request.formats)),formats);
+  assert.deepEqual(JSON.parse(JSON.stringify(request.plan[0].formats)),formats);
   assert.deepEqual(JSON.parse(JSON.stringify(request.fileIds)),['one']);
+  assert.equal(request.onlyVerified,true,'manual selection cannot bypass the verified plan');
   assert.equal(e.calls.some(c=>c.path==='/inspect'),false,'run does not infer type from a filename');
   assert.equal(outcome.result.ticket,ticket);
   const gate=deferred();
@@ -186,7 +187,7 @@ const completed=[];
   await e.bridge.inspectFiles({files:[...files,extra]});
   await e.bridge.inspectFiles({files:[extra]});
   assert.equal(e.calls.filter(c=>c.path==='/prepare').length,1);
-  assert.equal(e.calls.filter(c=>c.path==='/prepare-update').length,2);
+  assert.equal(e.calls.filter(c=>c.path==='/prepare-update').length,1);
   assert.equal(e.calls.filter(c=>c.path.startsWith('/input')).length,2);
   assert.equal(e.calls.some(c=>c.path==='/start'),false);
   completed.push('additions upload only new bytes; removals reuse prepared inputs');
@@ -209,6 +210,29 @@ const completed=[];
   assert.ok(e.calls.some(c=>c.path==='/release'&&c.body.jobId===jobId));
   assert.equal(e.calls.some(c=>c.path==='/start'),false);
   completed.push('cancelled native inspection never caches a late response or starts export');
+}
+{
+  const e=environment();
+  await e.bridge.inspectFiles({files});
+  const result=await e.bridge.convertMany({files,formatIds:formats});
+  await e.bridge.saveResult({result:result.result});
+  const before=e.calls.length;
+  const info=await e.bridge.inspectFiles({files});
+  assert.equal(info.preflightComplete,true);
+  assert.equal(e.calls.length,before,'completed/saved run retains the immutable inspection view');
+  const changed=[{id:'one',file:{name:'renamed.bmp',size:1}}];
+  await e.bridge.inspectFiles({files:changed});
+  assert.equal(e.calls.filter(c=>c.path==='/prepare').length,2,'same metadata is not the same File');
+  completed.push('inspection view survives save; changed File object requires backend validation');
+}
+{
+  const e=environment();
+  await e.bridge.inspectFiles({files});
+  await e.bridge.inspectFiles({files,force:true});
+  assert.equal(e.calls.filter(c=>c.path.startsWith('/input')).length,1);
+  assert.equal(e.calls.filter(c=>c.path==='/preflight').length,2);
+  assert.equal(e.calls.filter(c=>c.path==='/preflight').at(-1).body.recheck,true);
+  completed.push('explicit preflight retry bypasses the proof cache without uploading bytes twice');
 }
 console.log(JSON.stringify({status:'PASS',scope:'browser adapter VM; controlled HTTP/native-save stub',
   scenarios:completed.length,checks:completed}));

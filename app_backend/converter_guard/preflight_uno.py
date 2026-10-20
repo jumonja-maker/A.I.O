@@ -15,6 +15,29 @@ import sys
 import time
 
 
+def detected_document(detector, descriptor):
+    # queryTypeByDescriptor has an [inout] descriptor. PyUNO returns
+    # (return_value, updated_descriptor), not just the type-name string.
+    response = detector.queryTypeByDescriptor(descriptor, True)
+    if isinstance(response, tuple) and len(response) == 2:
+        type_name, updated = response
+    else:
+        type_name, updated = response, ()
+    if not isinstance(type_name, str) or not type_name:
+        return None
+    result = {'state': 'detected', 'typeName': type_name}
+    # Use LO's chosen import filter to disambiguate shared types (plain
+    # text can belong to Writer or Calc). Never infer it from an extension.
+    if isinstance(updated, (tuple, list)):
+        for value in updated:
+            if getattr(value, 'Name', None) == 'FilterName':
+                name = getattr(value, 'Value', None)
+                if isinstance(name, str) and name:
+                    result['filterName'] = name
+                break
+    return result
+
+
 def stage(folder, name):
     with (folder / 'stage.txt').open('w', encoding='ascii') as stream:
         stream.write(name)
@@ -84,11 +107,9 @@ def main(manifest_name):
     prop.Name = 'URL'
     prop.Value = source.as_uri()
     # AllowDeep=true makes LibreOffice inspect bytes, not merely the suffix.
-    detected = detector.queryTypeByDescriptor((prop,), True)
+    result = detected_document(detector, (prop,))
     stage(work, 'uno_type_detected')
-    if isinstance(detected, str) and detected:
-        result = {'state': 'detected', 'typeName': detected}
-    else:
+    if result is None:
         # The document TypeDetection service does not classify all graphic
         # streams. Let the *same native LibreOffice* GraphicProvider inspect
         # bytes; getType() = PIXEL/VECTOR means decoded graphic, not filename.
