@@ -154,6 +154,7 @@ class GuardAPI:
                 return self._json(handler,200, {'schemaVersion': 3, 'available': self.guard.adapter.available,
                     'acceptedExtensions': '', 'compatibility': 'native_decision',
                     'routeFiltering': 'native_registry_after_model_confirmation',
+                    'preflightAvailable': True, 'selectAllPolicy': 'only_preflight_confirmed',
                     'qualityCompared': False,
                     'limits': asdict(self.guard.limits), 'storage': self.guard.storage_stats()})
             if path == PREFIX + '/jobs':
@@ -194,6 +195,8 @@ class GuardAPI:
                 body = self._body(handler)
             if path == PREFIX + '/inspect':
                 return self._json(handler,200, self.guard.capabilities(body.get('files')))
+            if path == PREFIX + '/prepare':
+                return self._json(handler,201, self.guard.create(body.get('files'), prepare_only=True))
             if path == PREFIX + '/jobs':
                 if body.get('options'):
                     raise GuardError('OPTIONS_NOT_CONNECTED', 'Параметры экспорта пока не подключены.')
@@ -206,8 +209,14 @@ class GuardAPI:
                 return self._json(handler,201, self.guard.create(
                     body.get('files'), formats, plan=body.get('plan')))
             identity = self._identity(body.get('jobId'))
+            if path == PREFIX + '/prepare-update':
+                return self._json(handler,200, self.guard.update_prepared(identity, body.get('files')))
+            if path == PREFIX + '/preflight':
+                return self._json(handler,200, self.guard.preflight(identity))
             if path == PREFIX + '/start':
-                return self._json(handler,202, self.guard.start(identity))
+                return self._json(handler,202, self.guard.start(identity,
+                    formats=body.get('formats'), file_ids=body.get('fileIds'),
+                    only_verified=body.get('onlyVerified', False)))
             if path == PREFIX + '/cancel':
                 return self._json(handler,200, self.guard.cancel(identity))
             if path == PREFIX + '/cancel-file':

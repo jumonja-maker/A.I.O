@@ -92,6 +92,11 @@ class Registry:
                 'registryFingerprint': self.fingerprint, 'basis': 'native_selected_export_filter'}
 
     def observed_decision(self, target, proof):
+        if (proof and proof.get('basis') == 'native_preflight_document_kind'
+                and proof.get('registryFingerprint') == self.fingerprint
+                and proof.get('state') == 'detected'
+                and isinstance(proof.get('documentServices'), list)):
+            return self.decide(target, set(proof['documentServices']))
         if (not proof or proof.get('registryFingerprint') != self.fingerprint
                 or proof.get('basis') != 'native_selected_export_filter'):
             return 'undetermined'

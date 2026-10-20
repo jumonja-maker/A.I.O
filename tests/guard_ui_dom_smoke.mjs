@@ -14,14 +14,23 @@ window.requestAnimationFrame=callback=>setTimeout(callback,1);window.cancelAnima
 window.localStorage={getItem:()=>null,setItem(){}};
 window.HTMLElement.prototype.getBoundingClientRect=()=>({left:0,right:600,top:0,bottom:400,width:600,height:400});
 window.HTMLElement.prototype.focus=function(){};
-const plans=[],reports=[];
+const plans=[],reports=[],preflights=[],beforeStarts=[],startStates=[];
 const apiFetch=async (url,options={})=>{
   const resolved=new URL(url,base);
-  if(resolved.pathname==='/api/converter-guard/jobs'&&options.method==='POST')
-    plans.push(JSON.parse(options.body));
+  if(resolved.pathname==='/api/converter-guard/start'&&options.method==='POST') {
+    const plan=JSON.parse(options.body);plans.push(plan);
+    const state=await (await nativeFetch(base+'/api/converter-guard/jobs?job='+plan.jobId,
+      {headers:{'X-AIO-Token':document.body.dataset.aioToken}})).json();
+    assert.equal(state.state,'prepared');assert.equal(state.attempted,0);
+    beforeStarts.push(state);
+  }
   const response=await nativeFetch(resolved,options);
   if(resolved.pathname==='/api/converter-guard/jobs'&&resolved.search&&response.status===200)
     reports.push(await response.clone().json());
+  if(resolved.pathname==='/api/converter-guard/preflight'&&response.ok)
+    preflights.push(await response.clone().json());
+  if(resolved.pathname==='/api/converter-guard/start'&&response.ok)
+    startStates.push(await response.clone().json());
   return response;
 };
 window.fetch=apiFetch;
@@ -45,13 +54,13 @@ const stable=()=>document.querySelector('[data-cv-add]')?.disabled===false;
 await until(()=>stable()&&document.querySelectorAll('[role="tab"]').length>=3,'initial catalog');
 const picker=document.querySelector('[data-cv-picker]');
 function add(file) {
-  Object.defineProperty(picker,'files',{configurable:true,value:[file]});
+  Object.defineProperty(picker,'files',{configurable:true,value:Array.isArray(file)?file:[file]});
   picker.dispatchEvent(new window.Event('change'));
 }
 function target(label) {
   for(const category of [...document.querySelectorAll('[data-cv-categories] [role="tab"]')]) {
     category.click();
-    const button=document.querySelector('[aria-label="Выбрать '+label+'"]');
+    const button=document.querySelector('[aria-label="Выбрать '+label+'"], [aria-label="'+label+' недоступен"]');
     if(button)return button;
   }
   throw Error(label+' must remain available for a native attempt');
@@ -74,41 +83,53 @@ window.AllInOneBridge.saveExcel=async result=>{
 save.click();await until(()=>save.hidden&&stable(),'confirmed unknown save');
 rows()[0].querySelector('[data-op="remove"]').click();
 await until(()=>rows().length===0&&stable(),'remove unknown');
-add(new File(['W'],'renamed.bmp'));
-await until(()=>rows().length===1&&stable(),'renamed Writer source');
+add([new File(['W'],'renamed.bmp'),new File(['BM'],'image.bmp'),new File(['a,b'],'table.csv')]);
+await until(()=>rows().length===3&&stable(),'three native models prepared');
 target('DOCX').click(); // clear the persisted single selection
-const selected=['PDF','DOCX','ODT','DBF','PNG'];
-for(const label of selected) {const button=target(label);assert.equal(button.disabled,false);button.click();}
-run.click();await until(()=>!save.hidden,'broad renamed conversion');
+const offered=preflights.at(-1);
+const selected=offered.formats.filter(f=>f.verifiedFileIds.length).map(f=>f.id);
+assert.equal(selected.length,6,'only registered exports enter Select All');
+assert.ok(selected.includes('dbf'));assert.ok(!selected.includes('bmp'));
+const startsBefore=plans.length;
+document.querySelector('[data-cv-select-all-formats]').click();
+assert.equal(plans.length,startsBefore,'Select All itself must not start conversion');
+run.click();await until(()=>!save.hidden,'preflight filtered three-file conversion');
 const plan=plans.at(-1),report=reports.at(-1);
-assert.deepEqual(plan.plan[0].formats,selected.map(s=>s.toLowerCase()));
-assert.deepEqual(report.files[0].targets.map(t=>t.format),plan.plan[0].formats);
-assert.equal(report.total,5);assert.equal(report.succeeded,3);assert.equal(report.filtered,2);
-assert.equal(report.attempted,3);assert.equal(report.failed,0);
-assert.equal(report.files[0].nativeRoute.documentService,'com.sun.star.text.TextDocument');
+assert.equal(plan.onlyVerified,true);
+assert.deepEqual(plan.formats,selected);
+assert.deepEqual(report.files[0].targets.map(t=>t.format),selected);
+assert.equal(report.total,18);assert.equal(report.succeeded,8);assert.equal(report.filtered,10);
+assert.equal(report.attempted,8);assert.equal(report.failed,0);
+assert.ok(offered.files[0].preflight.documentServices.includes('com.sun.star.text.TextDocument'));
+assert.ok(startStates.at(-1).files[1].targets.filter(t=>t.state==='skipped').length>=4);
+assert.ok(report.files.flatMap(f=>f.targets).filter(t=>t.state==='skipped')
+  .every(t=>t.stage==='preflight'&&t.libreOfficeStarted===false));
 await until(()=>rows()[0].dataset.aioFpState==='ready','skipped routes are not painted as errors');
-assert.ok(rows()[0].querySelector('.aio-fp-label').textContent.includes('пропущено Guard: 2'));
+assert.ok(rows()[0].querySelector('.aio-fp-label').textContent.includes('пропущено Guard: 3'));
 const issues=document.querySelector('.aio-cv-issues-button');issues.click();
 assert.ok(issues.textContent.startsWith('Итоги'));
-assert.ok(document.querySelector('.aio-cv-issues-note').textContent.includes('Пропущено Guard: 2'));
+assert.ok(document.querySelector('.aio-cv-issues-note').textContent.includes('Пропущено Guard: 10'));
 assert.ok(document.querySelector('.aio-cv-issues-note').textContent.includes('Ошибок: 0'));
 assert.ok(document.querySelector('.aio-cv-issues-list').textContent.includes('Направление пропущено Guard'));
 save.click();await until(()=>save.hidden&&stable(),'renamed save');
 await until(()=>rows()[0].querySelector('.aio-fp-check')?.hidden,'saved check clears');
 assert.equal(downloaded,2);
-rows()[0].querySelector('[data-op="remove"]').click();
-await until(()=>rows().length===0&&stable(),'remove renamed');
+while(rows().length) {
+  const count=rows().length;rows()[0].querySelector('[data-op="remove"]').click();
+  await until(()=>rows().length===count-1&&stable(),'remove prior source');
+}
 add(new File(['BM'],'completed.bmp'));
 await until(()=>rows().length===1&&stable(),'first cancel-case input');
 add(new File(['HOLD'],'hold.docx'));
 await until(()=>rows().length===2&&stable(),'second cancel-case input');
-for(const label of selected) {const button=target(label);if(button.getAttribute('aria-pressed')==='true')button.click();}
+for(const label of selected) {const button=target(label.toUpperCase());if(button.getAttribute('aria-pressed')==='true'&&!button.disabled)button.click();}
 target('PDF').click();run.click();
 await until(()=>rows()[1].dataset.aioFpState==='converting','second file is really active');
 assert.equal(run.textContent,'Отменить');run.click();
 await until(()=>!save.hidden,'cancel retains the first completed output');
 assert.equal(reports.at(-1).state,'cancelled');
 assert.equal(reports.at(-1).succeeded,1);assert.equal(reports.at(-1).cancelled,1);
+await until(()=>rows().every(r=>r.dataset.aioFpState),'cancelled run paint restored after UI render');
 assert.deepEqual(rows().map(r=>r.dataset.aioFpState),['ready','cancelled']);
 save.click();await until(()=>save.hidden&&stable(),'save partial cancellation');
 await until(()=>rows()[0].querySelector('.aio-fp-check')?.hidden,'partial cancel saved check clears');
@@ -117,6 +138,6 @@ const status=await (await apiFetch('/api/converter-guard/status',{
   headers:{'X-AIO-Token':document.body.dataset.aioToken}})).json();
 assert.equal(status.storage.jobs,0);assert.equal(status.storage.reservedBytes,0);
 console.log(JSON.stringify({status:'PASS',scope:'preserved DOM + real Guard HTTP; synthetic native/save',
-  unknownSelectable:true,broadRenamedPlan:5,nativeAttempts:3,filtered:2,errors:0,
+  unknownSelectable:true,threeFileSelectAll:true,requestedPairs:18,nativeAttempts:8,filteredBeforeStart:10,errors:0,
   honestIssues:true,skipsDoNotTurnReadyRed:true,savedChecksClear:true,
   cancelledJobRetainsCompletedOutput:true,releasedSpool:true}));

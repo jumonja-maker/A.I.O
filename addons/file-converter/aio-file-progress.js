@@ -167,7 +167,7 @@
     function beginSave(event) {
       const states = [...files.values()].map(data=>data.state);
       if (!current(event) || !states.some(x=>['ready','partial'].includes(x)) ||
-          states.some(x=>!['ready','partial','error','cancelled','partial-saved','saved'].includes(x))) return false;
+          states.some(x=>!['ready','partial','error','cancelled','skipped','partial-saved','saved'].includes(x))) return false;
       files.forEach(data=>{if(['ready','partial','partial-saved','saved'].includes(data.state)){
         data.beforeSave=data.state;data.state='saving';
       }}); render(); return true;
@@ -180,7 +180,7 @@
     function finishSave(event) {
       const states = [...files.values()].map(data=>data.state);
       if (!current(event) || typeof event.saved !== 'boolean' || !states.includes('saving') ||
-          states.some(x=>!['saving','error','cancelled'].includes(x))) return false;
+          states.some(x=>!['saving','error','cancelled','skipped'].includes(x))) return false;
       files.forEach(data=>{if(data.state==='saving')data.state=event.saved?
         (['partial','partial-saved'].includes(data.beforeSave)?'partial-saved':'saved'):data.beforeSave;});
       render(); return true;
@@ -190,7 +190,7 @@
           [...files.values()].some(x=>x.state==='saving')) return false;
       const ids=event.files.map(x=>String(x.fileId));
       if (new Set(ids).size!==files.size || ids.some(id=>!files.has(id)) ||
-          event.files.some(x=>!['queued','converting','ready','partial','error','cancelled'].includes(x.state)||
+          event.files.some(x=>!['queued','converting','ready','partial','error','cancelled','skipped'].includes(x.state)||
             (x.allCopiesSaved!==undefined&&(typeof x.allCopiesSaved!=='boolean'||x.allCopiesSaved&&!['ready','partial'].includes(x.state))))) return false;
       for(const row of event.files){
         const errors=row.targets.filter(x=>x.state==='error');

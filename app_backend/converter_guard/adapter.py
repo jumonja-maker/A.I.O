@@ -65,12 +65,13 @@ class LibreOfficeAdapter:
     def available(self):
         return bool(self.executable and self.executable.is_file())
 
-    def capabilities(self, files):
+    def capabilities(self, files, *, proofs=None):
         available = self.available
         native = registry(self.executable)
         formats = []
         for ext, category, description, mime, registered in catalog(self.executable):
-            states = {f['id']: native.hint(f['name'], ext) for f in files}
+            states = {f['id']: (native.hint(f['name'], ext) if proofs is None else
+                               native.observed_decision(ext, proofs.get(f['id']))) for f in files}
             compatible = [i for i, state in states.items() if state == 'registered']
             unknown = [i for i, state in states.items() if state == 'undetermined']
             formats.append({'id': ext, 'label': ext.upper(), 'category': category,
@@ -79,21 +80,37 @@ class LibreOfficeAdapter:
                 'enabled': available and (not files or bool(compatible or unknown)),
                 # A filename recommendation cannot veto the native model of
                 # renamed/unknown content. Selection and routing are separate.
-                'nativeAttemptAvailable': available,
-                'selectableFileIds': [f['id'] for f in files] if available else [],
+                'nativeAttemptAvailable': available and (proofs is None or not files or bool(compatible or unknown)),
+                'selectableFileIds': [f['id'] for f in files if proofs is None or states[f['id']] != 'unavailable'] if available else [],
+                'verifiedFileIds': compatible if available and proofs is not None else [],
                 'compatibleFileIds': compatible if available else [],
                 'undeterminedFileIds': unknown if available else [],
                 'incompatibleFileIds': [i for i, state in states.items() if state == 'unavailable'],
-                'compatibility': 'native_registry_hint',
+                'compatibility': 'native_registry_hint' if proofs is None else 'native_preflight',
                 'reasonCode': ('NATIVE_ROUTE_UNAVAILABLE' if files and not compatible and not unknown
                                else 'NATIVE_ROUTE_UNDETERMINED' if unknown else 'NATIVE_ROUTE_REGISTERED')})
-        return {'files': [{**item, 'compatibility': 'native_decision'} for item in files],
+        return {'files': [{**item, 'compatibility': 'native_decision',
+                           **({'preflight': proofs.get(item['id'])} if proofs is not None else {})}
+                          for item in files],
                 'formats': formats, 'acceptedExtensions': '',
-                'compatibility': 'native_registry_hint', 'available': available,
+                'compatibility': 'native_registry_hint' if proofs is None else 'native_preflight',
+                'available': available,
                 'registryAvailable': native.valid, 'registryFingerprint': native.fingerprint,
                 'registryWarning': 'EXTERNAL_FILTER_REGISTRY' if native.external_filters else
                                    None if native.valid else 'REGISTRY_UNAVAILABLE',
+                'preflightComplete': proofs is not None,
+                'message': ('Для части файлов направления не подтверждены. Их можно выбрать вручную; '
+                            '«Выбрать всё» включает только подтверждённые направления.'
+                            if proofs is not None and any(not p or p.get('state') != 'detected'
+                                                          for p in proofs.values()) else ''),
                 'qualityCompared': False}
+
+    def preflight(self, source, workspace, *, cancel, timeout):
+        from .preflight import inspect_source
+        if not self.available:
+            return {'state': 'undetermined', 'code': 'ENGINE_NOT_FOUND'}
+        return inspect_source(self.executable, source, workspace, cancel=cancel,
+                              timeout=timeout, prepare_profile=prepare_profile)
 
     def route_decision(self, target, proof):
         return registry(self.executable).observed_decision(target, proof)
@@ -101,7 +118,9 @@ class LibreOfficeAdapter:
     def observation_needed(self, proof):
         native = registry(self.executable)
         return native.valid and not (proof and proof.get('registryFingerprint') == native.fingerprint
-                                    and proof.get('basis') == 'native_selected_export_filter')
+            and (proof.get('basis') == 'native_selected_export_filter' or
+                 proof.get('basis') == 'native_preflight_document_kind'
+                 and proof.get('state') == 'detected' and proof.get('documentServices')))
 
     def convert(self, source, target, workspace, *, cancel, timeout,
                 on_started, output_limit=None, on_document_service=None):

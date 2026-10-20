@@ -1,0 +1,108 @@
+{
+  "scope": "Guard v0.6 source/Linux on PR9 fc0a673; qualified local checkout, no Windows acceptance",
+  "baseCommit": "fc0a673edbb06b79728c4b61c2becf3399b4f486",
+  "baseTree": "cdf784856048a7aa20b643a73fa3131ca001908f",
+  "python": "3.12.14",
+  "node": "v24.19.0",
+  "platform": "Linux-6.18.55-x86_64-with-glibc2.39",
+  "unitTests": {
+    "discovered": 178,
+    "passed": 176,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 2,
+    "seconds": 25.966,
+    "skippedTests": [
+      "BrandRestorationTests.test_both_original_pngs_match_owner_digests_and_have_alpha",
+      "BrandRestorationTests.test_spec_bundles_icon_and_approved_sources_and_sets_exe_resource"
+    ],
+    "qualification": "Two unchanged >1 MiB master PNG blobs were unavailable through the GitHub file connector. Only this local runner marks these two tests skipped; repository tests remain unchanged. Full checkout must run them.",
+    "unavailableUnchangedBlobs": {
+      "assets/brand/aio-new-brand-source.png": "4288071be3e10f33227aacd1f495f1d0d5f03783",
+      "assets/brand/elva-v13-happy-source.png": "6eb9e3b15bf369d298af0b98a64db152bf59618a"
+    },
+    "command": "AIO_DOM_MODULE=/path/to/linkedom/worker.js AIO_LIBREOFFICE=/path/to/native/program/soffice python -m unittest discover -s tests -v (qualified local runner, two unavailable-asset skips)"
+  },
+  "bridgeVm": {
+    "status": "PASS",
+    "scenarios": 12,
+    "transport": "controlled asynchronous HTTP/save fixture"
+  },
+  "preservedDom": {
+    "status": "PASS",
+    "scenarios": 2,
+    "nativeBoundary": "synthetic",
+    "threeFileSelectAll": {
+      "requestedPairs": 18,
+      "exportCalls": 8,
+      "filteredBeforeStart": 10,
+      "errors": 0
+    },
+    "moreThan100Files": "PASS",
+    "qtSave": "fixture; NOT native Qt acceptance"
+  },
+  "realNative": {
+    "status": "PASS",
+    "evidence": "GUARD_V06_NATIVE_2026-10-20.json",
+    "sourceTypes": [
+      "BMP",
+      "DOCX renamed BMP",
+      "XLSX"
+    ],
+    "pairs": 15,
+    "preflightImports": 3,
+    "exports": 9,
+    "succeeded": 9,
+    "filteredBeforeStart": 6,
+    "failed": 0,
+    "allCatalogRoutesExported": false,
+    "negativeControlTimeoutsInconclusive": 2,
+    "pdfComparison": "synthetic two-page fixture only; not a quality scanner"
+  },
+  "syntax": {
+    "pythonCompileall": "PASS",
+    "nodeBridgeAndQaParse": "PASS",
+    "gitDiffCheck": "PASS"
+  },
+  "runtimeSha256": {
+    "app_backend/converter_guard/__init__.py": "3fcdaa9198ffc8a36108864724500c2efd4762fa103031e7e1738daf0641ad32",
+    "app_backend/converter_guard/adapter.py": "4f36be5721678205982e8d7fa89530cc2e8054004c72cad17e5b2d2e799b5711",
+    "app_backend/converter_guard/core.py": "fe0dab2e67b736ff0f78ffcc29ffd26d847e1f0a939eaa2909275b8a36da28fc",
+    "app_backend/converter_guard/errors.py": "bf82768297e5caa4ae7d95f54a23418f0d3e0dffe0cde306f567ceb41988f76b",
+    "app_backend/converter_guard/http_api.py": "08367e1584e0a7d9ce3f33b9ccad18b2e7ac791b62fe096e72cb3ee23eca7124",
+    "app_backend/converter_guard/native_observation.py": "7be1ab1e4271fd238cfde4fabb46d74f4f5b27cb837eb1fe1edd386868e8ee20",
+    "app_backend/converter_guard/policy.py": "c6fc7bd9772d85cb760e5b6eb1a7b6eb69d612b24355e7871b00d68fdce44689",
+    "app_backend/converter_guard/preflight.py": "24b71c6843b2f12363916c2c6dd41ba833b8801f1f11a90cae252ee14f89da44",
+    "app_backend/converter_guard/preflight_native.py": "e03055a20bf615d4500170735381be0c9987aeb738a19b45e8aa5996f79c2f39",
+    "app_backend/converter_guard/routes.py": "364bb0a78c0410f14cdedc9ab16387095b349ff454ce8b1ddfceb5d955d646ce",
+    "app_backend/native_process.py": "9bb85ed80f971410a24ed3251564b27c2c58aef935db07e1790d4c29591ab21d",
+    "app_backend/converter_native_ui_patch.py": "99fe318df5ab1880f1b5c62e603bb6de2e8a9148f07ac72712abce0c420dbe9b",
+    "launcher.py": "7ef2f057c5b61cdfabce4f62a4814ab0d9de79c8f1c9e3808ea20f9919924832",
+    "src/converter-bridge.js": "5edab577f1cf5da35fa33d8acfcee210533dbb08d7e86097275846ec1e4590bd",
+    "addons/file-converter/aio-file-progress.js": "8e83791525015fc6ac3c173d37368b6ae9a2cdab0dba04681e7e6548cb4f30f7",
+    "addons/file-converter/aio-converter-issues.js": "7e7ad9a1121a922f56f982243ee8a57b170b2a5c4feb4508a233f668e59f5804"
+  },
+  "windows": "NOT_RUN",
+  "nikita": "NOT_USED",
+  "frozenExe": "NOT_RUN",
+  "setup": "NOT_RUN",
+  "nativeQtSave": "NOT_RUN",
+  "changedWorkflows": false,
+  "changedInstallers": false,
+  "changedBrandAssets": false,
+  "inheritedOwnerWorkflowPinnedTo": "74356230bc0824b2806ed7dd8a9a83ca96f120ed",
+  "limits": {
+    "maxFileBytes": null,
+    "maxFiles": null,
+    "conversionTimeout": null,
+    "preflightSoftSeconds": 15
+  },
+  "limitations": [
+    "Native API import adds bounded up-front work; no single-file speedup is claimed.",
+    "Document-kind to registered exporter compatibility is not proof of successful content conversion.",
+    "Text kinds conservatively union Writer/Web/Global services; uncommon kinds stay undetermined and manual-attempt eligible.",
+    "Unavailable API, registry, bitness mismatch or soft timeout leave routes unknown, not unsupported.",
+    "Prepared source copies live on disk until use, reset/disposal or retention expiry; no page/size cap is introduced.",
+    "No Advanced, OCR, alternate conversion engine, content-loss comparison or Windows workflow was added."
+  ]
+}
