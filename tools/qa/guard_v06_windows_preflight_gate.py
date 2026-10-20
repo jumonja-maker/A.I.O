@@ -46,6 +46,16 @@ def main():
         'stdout': version.stdout.strip()[:200],
         'stderr': version.stderr.strip()[:200]
     }), flush=True)
+    install_program = adapter.executable.resolve().parent
+    print('GUARD_UNO_RUNTIME_DISCOVERY ' + json.dumps({
+        'pythonExe': (install_program / 'python.exe').is_file(),
+        'unoPy': (install_program / 'uno.py').is_file(),
+        'pyunoPyd': (install_program / 'pyuno.pyd').is_file(),
+        'pythonCoreDirs': [p.name for p in install_program.glob('python-core-*')][:8],
+        'unoExe': (install_program / 'uno.exe').is_file(),
+        'sofficeAppDll': (install_program / 'sofficeapp.dll').is_file(),
+        'mergedLoDll': (install_program / 'mergedlo.dll').is_file()
+    }), flush=True)
     reg = registry(adapter.executable)
     manifest = registry_files(adapter.executable)
     program = adapter.executable.resolve().parent.parent
