@@ -194,6 +194,22 @@ class RegistryTests(unittest.TestCase):
         self.assertEqual(native.decide('txt',{W}),'undetermined')
         self.assertEqual(native.hint('renamed.txt','pdf'),'undetermined')
 
+    def test_deep_uno_type_proof_uses_installed_import_filters_only(self):
+        native = registry(self.exe)
+        self.assertEqual(native.services_for_type('bmp'), (D,))
+        self.assertEqual(native.services_for_type('docx'), (W,))
+        self.assertEqual(native.services_for_type('xlsx'), (C,))
+        self.assertEqual(native.services_for_type('unknown_native_type'), ())
+        proof = {'state':'detected', 'basis':'native_preflight_uno_type',
+                 'typeName':'bmp', 'documentServices':[D],
+                 'registryFingerprint':native.fingerprint}
+        self.assertEqual(native.observed_decision('pdf',proof),'registered')
+        self.assertEqual(native.observed_decision('dbf',proof),'unavailable')
+        self.assertEqual(native.observed_decision('dbf',{**proof,'documentServices':[C]}),
+                         'undetermined')
+        self.assertEqual(native.observed_decision('dbf',{**proof,
+                         'registryFingerprint':'stale'}),'undetermined')
+
     def test_failed_native_export_cannot_become_document_model_proof(self):
         adapter=LibreOfficeAdapter(self.exe);observed=[]
         def failed(*args,**kwargs):
