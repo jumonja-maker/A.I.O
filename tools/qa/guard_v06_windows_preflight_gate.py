@@ -19,6 +19,7 @@ sys.path.insert(0, str(ROOT))
 
 from app_backend.converter_guard import ConverterGuard, LibreOfficeAdapter
 from app_backend.converter_guard.routes import registry
+from app_backend.libreoffice_catalog import registry_files
 
 
 def bmp_fixture():
@@ -38,6 +39,21 @@ def main():
     if not adapter.available:
         raise RuntimeError('GUARD_V06_PREFLIGHT_NIKITA: LibreOffice executable missing')
     reg = registry(adapter.executable)
+    manifest = registry_files(adapter.executable)
+    program = adapter.executable.resolve().parent.parent
+    print('GUARD_V06_REGISTRY_DIAGNOSTIC ' + json.dumps({
+        'engine': str(adapter.executable), 'installRoot': str(program),
+        'registryFolder': str(program / 'share' / 'registry'),
+        'registryDirectoryExists': (program / 'share' / 'registry').is_dir(),
+        'registryFileCount': len(manifest),
+        'registryFiles': [Path(x[0]).name for x in manifest][:20],
+        'importExtensions': len(reg.imports), 'exportExtensions': len(reg.exports),
+        'nativeTypes': len(reg.types), 'externalFilters': reg.external_filters,
+        'registryValid': reg.valid,
+        'extensionsDirExists': (program / 'share' / 'extensions').is_dir(),
+        'extensionXCUFiles': [p.name for p in (program / 'share' / 'extensions').rglob('*.xcu')][:20]
+           if (program / 'share' / 'extensions').is_dir() else []
+    }, ensure_ascii=False), flush=True)
     if not reg.valid:
         raise RuntimeError('GUARD_V06_PREFLIGHT_NIKITA: installed LibreOffice native registry unavailable')
     with tempfile.TemporaryDirectory(prefix='aio-guard-v06-windows-') as directory:
