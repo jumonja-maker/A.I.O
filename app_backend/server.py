@@ -25,6 +25,7 @@ from .excel import merge_xlsx, MergeError, MAX_TOTAL_BYTES, MAX_FILE_BYTES
 from .libreoffice_engine import LibreOfficeError, inspect_metadata
 from .libreoffice_catalog import EXTENSION
 from .converter_transport import ConverterTransport
+from .blackbox_telemetry import from_environment
 from .converter_upload_stream import MultipartUpload, content_length
 from .converter_guard import ConverterGuard
 from .converter_guard.http_api import GuardAPI
@@ -77,7 +78,8 @@ class LocalServer(ThreadingHTTPServer):
         super().__init__(address, handler)
         self.merge_gate = threading.BoundedSemaphore(1)
         self.converter_gate = threading.BoundedSemaphore(1)
-        self.converter = ConverterTransport()
+        self.telemetry = from_environment()
+        self.converter = ConverterTransport(telemetry=self.telemetry)
         self.guard = None
         self.guard_api = None
         self.progress = {}
@@ -90,8 +92,14 @@ class LocalServer(ThreadingHTTPServer):
             if self.guard is not None:
                 self.guard.close()
         finally:
-            self.converter.close()
-            super().server_close()
+            try:
+                self.converter.close()
+            finally:
+                try:
+                    if self.telemetry is not None:
+                        self.telemetry.close()
+                finally:
+                    super().server_close()
 
 
 def start_server(port: int = 0, *, guard_recovery_parent=None):
@@ -404,7 +412,8 @@ def start_server(port: int = 0, *, guard_recovery_parent=None):
     server = LocalServer(('127.0.0.1', port), Handler)
     try:
         server.guard = ConverterGuard(recovery_parent=(data_directory() / 'jobs'
-            if guard_recovery_parent is None else guard_recovery_parent))
+            if guard_recovery_parent is None else guard_recovery_parent),
+            telemetry=server.telemetry)
         server.guard_api = GuardAPI(server.guard,
             origin=f'http://127.0.0.1:{server.server_port}', token=token)
     except BaseException:
