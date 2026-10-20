@@ -8,6 +8,7 @@ from pathlib import Path
 import secrets
 import tempfile
 import threading
+import time
 from zipfile import ZipFile, ZIP_STORED
 
 from .libreoffice_catalog import mime_for
@@ -41,7 +42,8 @@ class Result:
 
 
 class ConverterTransport:
-    def __init__(self):
+    def __init__(self, *, telemetry=None):
+        self.telemetry = telemetry
         self.lock = threading.RLock()
         self.active = {}
         self.results = {}
@@ -54,13 +56,23 @@ class ConverterTransport:
                 raise LibreOfficeError('Задание недоступно.', 'REQUEST_BUSY')
             request = Request(identity, connection, tempfile.TemporaryDirectory(prefix='aio-lo-'))
             self.active[identity] = request
+            self._telemetry('job_created', request_id=identity, stage='queue', status='queued')
             return request
+
+    def _telemetry(self, kind, **fields):
+        try:
+            if self.telemetry is not None:
+                self.telemetry.emit(kind, **fields)
+        except Exception:
+            pass
 
     def cancel(self, identity):
         with self.lock:
             request = self.active.get(identity)
             if request:
                 request.cancel.set()
+                self._telemetry('cancel_requested', request_id=identity,
+                                stage='cancel', status='cancelled')
                 # Polling wakes stalled uploads on cancellation without
                 # shutting down their response socket (WinError 10053).
             return bool(request)
@@ -95,10 +107,19 @@ class ConverterTransport:
             request.files = [{'fileId': identity, 'targets': [
                 {'format': target, 'state': 'queued', 'libreOfficeStarted': False}
                 for target in formats]} for identity in ids]
+        self._telemetry('job_queued', request_id=request.identity, stage='queue', status='queued')
+        for file_id in ids:
+            for target in formats:
+                self._telemetry('task_queued', request_id=request.identity,
+                                file_id=file_id, target=target,
+                                stage='queue', status='queued')
         for i, source in enumerate(files):
             for j, target in enumerate(formats):
                 row = request.files[i]['targets'][j]
                 row['state'] = 'running'
+                started_at = time.monotonic()
+                self._telemetry('task_started', request_id=request.identity,
+                                file_id=ids[i], target=target, stage='engine', status='running')
                 try:
                     if request.cancel.is_set():
                         raise LibreOfficeError('Конвертация отменена.', 'CANCELLED')
@@ -106,6 +127,9 @@ class ConverterTransport:
                     def started():
                         with self.lock:
                             row['libreOfficeStarted'] = True
+                        self._telemetry('libreoffice_started', request_id=request.identity,
+                                        file_id=ids[i], target=target,
+                                        stage='launch', status='started')
 
                     outputs = convert_path(source['path'], target,
                         request.root / 'native' / str(i) / str(j),
@@ -116,11 +140,26 @@ class ConverterTransport:
                         artifacts.append((archive_path, path))
                     row['state'] = 'ready'
                     row['warnings'] = source['warnings']
+                    self._telemetry('result_created', request_id=request.identity,
+                                    file_id=ids[i], target=target, stage='result', status='ready')
+                    self._telemetry('task_succeeded', request_id=request.identity,
+                                    file_id=ids[i], target=target, stage='result',
+                                    status='ready',
+                                    duration_ms=round((time.monotonic()-started_at)*1000))
                 except LibreOfficeError as exc:
                     row.update(state='error', code=exc.code, error=str(exc))
+                    self._telemetry('task_cancelled' if exc.code == 'CANCELLED' else 'task_failed',
+                                    request_id=request.identity, file_id=ids[i],
+                                    target=target, stage='engine', reason_code=exc.code,
+                                    status='cancelled' if exc.code == 'CANCELLED' else 'failed',
+                                    duration_ms=round((time.monotonic()-started_at)*1000))
                 except OSError:
                     row.update(state='error', code='STORAGE_ERROR',
                                error='Ошибка чтения или записи файла. Проверьте свободное место и права доступа.')
+                    self._telemetry('task_failed', request_id=request.identity,
+                                    file_id=ids[i], target=target, stage='storage',
+                                    reason_code='STORAGE_ERROR', status='failed',
+                                    duration_ms=round((time.monotonic()-started_at)*1000))
                 finally:
                     with self.lock:
                         request.completed += 1
