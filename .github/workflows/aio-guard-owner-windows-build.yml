@@ -87,7 +87,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           Set-StrictMode -Version Latest
-          $expected = '053f95b5da38ed87e0ecd512884e50b5f52b7d77'
+          $expected = '0fd82c7750dfb7dfc90dc576990d53b397eebb86'
           # Git is not in the restricted NIKITA PATH. The pinned checkout uses
           # GitHub's authenticated ZIP fallback, and checks every extracted file.
           $expectedTree = 'fd02265ffa1e9cbafdff0d50b69ed00ff9bb1918'
@@ -198,7 +198,9 @@ jobs:
                                'app_backend\converter_guard\core.py',
                                'tests\test_guard_aio_integration.py',
                                'app_backend\converter_guard\preflight_native.py',
-                               'tools\qa\guard_v06_windows_preflight_gate.py')) {
+                               'tools\qa\guard_v06_windows_preflight_gate.py',
+                               'tools\qa\guard_v07_windows_preflight_gate.py',
+                               'tests\test_guard_uninstaller_contract.py')) {
             if (-not (Test-Path -LiteralPath $asset -PathType Leaf)) {
               throw ('Required Guard/brand file missing: ' + $asset)
             }
@@ -251,7 +253,13 @@ jobs:
             $sha = (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash.ToLowerInvariant()
             $sha + '  ' + [IO.Path]::GetFileName($_)
           } | Set-Content -LiteralPath 'build\installer\SHA256SUMS.txt' -Encoding ascii
-          @('SOURCE=053f95b5da38ed87e0ecd512884e50b5f52b7d77',
+          Get-Content -LiteralPath 'build\installer\SHA256SUMS.txt' | ForEach-Object { Write-Host ('AIO_BUILD_SHA256=' + $_) }
+          @($setup,$portable) | ForEach-Object {
+            $details=Get-Item -LiteralPath $_
+            Write-Host ('AIO_BUILD_FILE=' + $details.Name + ';BYTES=' + $details.Length)
+          }
+          Write-Host ('LOCAL_PACKAGE_DIRECTORY=' + (Resolve-Path 'build\installer').Path)
+          @('SOURCE=0fd82c7750dfb7dfc90dc576990d53b397eebb86',
             'GUARD=V0.7-PREFLIGHT-INTEGRATED', 'LIBREOFFICE=BUNDLED',
             'ADVANCED=ABSENT', 'DIRECT_LO_QA=TRUE', 'NATIVE_UI_PATCH_4=INCLUDED', 'GUARD_UI=ACTIVE', 'BRAND_ICONS=RESTORED', 'GUARD_V05=MERGED_FROM_PR10', 'GUARD_V06=MERGED_FROM_PR11', 'GUARD_V07=MERGED_FROM_PR12', 'INSTALLER_QA_UNINSTALL_SCOPE=CHECKED',
             'INSTALLED=NO;RELEASED=NO;MERGED=NO') |
@@ -275,7 +283,7 @@ jobs:
       - name: Report separate build success and artifact delivery
         if: always()
         run: |
-          Write-Host 'PINNED_SOURCE=053f95b5da38ed87e0ecd512884e50b5f52b7d77'
+          Write-Host 'PINNED_SOURCE=0fd82c7750dfb7dfc90dc576990d53b397eebb86'
           Write-Host 'PACKAGE_STEP=${{ steps.package.outcome }}'
           Write-Host 'PRIVATE_UPLOAD=${{ steps.upload.outcome }}'
           Write-Host 'NOT_INSTALLED;NO_RELEASE;GUARD_V07_QA_ONLY'
