@@ -58,7 +58,11 @@ def detect(program, profile, source, work):
     hook = native.libreofficekit_hook_2
     hook.argtypes, hook.restype = [C.c_char_p, C.c_char_p], C.c_void_p
     _stage(work, 'kit_init')
-    kit = hook(str(program).encode('utf-8'), profile.as_uri().encode('utf-8'))
+    # LibreOfficeKit 26.8 expects the *installation root* on Windows
+    # (containing program/ and share/), not the program/ DLL directory.
+    # Older POSIX deployments continue using their proven program directory.
+    install = program.parent if os.name == 'nt' else program
+    kit = hook(str(install).encode('utf-8'), profile.as_uri().encode('utf-8'))
     _stage(work, 'kit_initialized')
     if not kit:
         return {'state': 'undetermined', 'code': 'PREFLIGHT_INIT_FAILED'}
