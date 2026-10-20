@@ -119,7 +119,7 @@ class LibreOfficeAdapter:
         native = registry(self.executable)
         return native.valid and not (proof and proof.get('registryFingerprint') == native.fingerprint
             and (proof.get('basis') == 'native_selected_export_filter' or
-                 proof.get('basis') == 'native_preflight_document_kind'
+                 proof.get('basis') in ('native_preflight_document_kind', 'native_preflight_uno_type')
                  and proof.get('state') == 'detected' and proof.get('documentServices')))
 
     def convert(self, source, target, workspace, *, cancel, timeout,
