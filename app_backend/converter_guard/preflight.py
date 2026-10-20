@@ -59,7 +59,12 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
             detected = json.loads(result.read_text(encoding='utf-8'))
             kind = detected.get('kind')
             if detected.get('state') != 'detected' or type(kind) is not int or kind not in SERVICES:
-                return {'state': 'undetermined', 'code': 'PREFLIGHT_KIND_UNDETERMINED'}
+                native_code = detected.get('code', 'PREFLIGHT_KIND_UNDETERMINED')
+                if native_code not in ('PREFLIGHT_INIT_FAILED', 'PREFLIGHT_API_UNAVAILABLE',
+                                       'PREFLIGHT_IMPORT_UNDETERMINED',
+                                       'PREFLIGHT_KIND_UNDETERMINED'):
+                    native_code = 'PREFLIGHT_KIND_UNDETERMINED'
+                return {'state': 'undetermined', 'code': native_code}
             return {'state': 'detected', 'documentServices': list(SERVICES[kind]),
                     'basis': 'native_preflight_document_kind', 'nativeKind': kind,
                     'registryFingerprint': native.fingerprint, 'exported': False}
