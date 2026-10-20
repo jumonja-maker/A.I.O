@@ -1,0 +1,11 @@
+{
+  "scope": "warm metadata inspection only; Python allocations, excludes LO memory",
+  "inspections": 100,
+  "filesPerInspection": 3,
+  "formats": 87,
+  "totalSeconds": 0.6073,
+  "averageMilliseconds": 6.073,
+  "pythonTracedPeakBytes": 160717,
+  "observationThreads": 0,
+  "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6"
+}

@@ -98,6 +98,10 @@ def _registered_exports(files):
 
 
 def mime_for(extension):
+    # Windows MIME registry often reports application/x-zip-compressed.
+    # The HTTP API contracts and interoperable archive type use application/zip.
+    if extension.lower() == 'zip':
+        return 'application/zip'
     return mimetypes.guess_type('result.' + extension)[0] or 'application/octet-stream'
 
 

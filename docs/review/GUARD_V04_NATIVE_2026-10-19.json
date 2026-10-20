@@ -1,0 +1,304 @@
+{
+  "scope": "Linux/source, synthetic route matrix; Windows NOT_RUN; no quality scanner",
+  "engine": "LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5",
+  "cases": [
+    {
+      "label": "three-bmps-entire-catalog",
+      "requested": 261,
+      "nativeAttempts": 81,
+      "filtered": 180,
+      "ready": 81,
+      "errors": [],
+      "seconds": 27.078
+    },
+    {
+      "label": "mixed-models",
+      "requested": 12,
+      "nativeAttempts": 8,
+      "filtered": 4,
+      "ready": 8,
+      "errors": [],
+      "seconds": 33.031
+    },
+    {
+      "label": "docx-renamed-bmp",
+      "requested": 3,
+      "nativeAttempts": 3,
+      "filtered": 0,
+      "ready": 3,
+      "errors": [],
+      "seconds": 1.529
+    },
+    {
+      "label": "unlisted-source",
+      "requested": 2,
+      "nativeAttempts": 2,
+      "filtered": 0,
+      "ready": 2,
+      "errors": [],
+      "seconds": 0.845
+    }
+  ],
+  "directNegativeControls": {
+    "checked": 60,
+    "falseDenials": [],
+    "results": [
+      {
+        "target": "docx",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "doc",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "odt",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "rtf",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "txt",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "xlsx",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "xls",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "ods",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "csv",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "pptx",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "ppt",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "odp",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "dbf",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "dif",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "docm",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "dot",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "dotm",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "dotx",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "dps",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "dpt",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "epub",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "et",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "ett",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "fodp",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "fods",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "fodt",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "markdown",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "md",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "mml",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "odc",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "odf",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "odm",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "oth",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "otm",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "otp",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "ots",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "ott",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "pot",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "potm",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "potx",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "pps",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "ppsx",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "pptm",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "slk",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "svm",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "sxw",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "sylk",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "tab",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "tsv",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "wps",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "wpt",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "xlc",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "xlk",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "xlm",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "xlsm",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "xlt",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "xltm",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "xltx",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "xlw",
+        "result": "ENGINE_FAILED"
+      },
+      {
+        "target": "xxx",
+        "result": "ENGINE_FAILED"
+      }
+    ]
+  },
+  "nativePDFBaseline": {
+    "pages": 2,
+    "textEqual": true,
+    "encodedImagesEqual": true
+  },
+  "sourceBytesUnchangedAtEveryObservedLaunch": true,
+  "status": "PASS",
+  "ownedJobsAfterRelease": 0,
+  "reservedBytesAfterRelease": 0,
+  "observationThreadsAfterCompletion": 0,
+  "nativeCancellationWithObservation": {
+    "status": "PASS",
+    "firstNativeFileCancelled": true,
+    "nextFileReady": true,
+    "observationThreads": 0
+  }
+}

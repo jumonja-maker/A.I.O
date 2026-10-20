@@ -1,0 +1,323 @@
+{
+  "status": "PASS",
+  "scope": "actual Linux LibreOffice + HTTP + JS bridge; save fixture",
+  "preflight": [
+    {
+      "id": "f0",
+      "name": "table0.csv",
+      "state": "detected",
+      "documentServices": [
+        "com.sun.star.sheet.SpreadsheetDocument"
+      ],
+      "basis": "native_preflight_document_kind",
+      "nativeKind": 1,
+      "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+      "exported": false
+    },
+    {
+      "id": "f1",
+      "name": "table1.csv",
+      "state": "detected",
+      "documentServices": [
+        "com.sun.star.sheet.SpreadsheetDocument"
+      ],
+      "basis": "native_preflight_document_kind",
+      "nativeKind": 1,
+      "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+      "exported": false
+    },
+    {
+      "id": "f2",
+      "name": "table2.csv",
+      "state": "detected",
+      "documentServices": [
+        "com.sun.star.sheet.SpreadsheetDocument"
+      ],
+      "basis": "native_preflight_document_kind",
+      "nativeKind": 1,
+      "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+      "exported": false
+    },
+    {
+      "id": "f3",
+      "name": "image.bmp",
+      "state": "detected",
+      "documentServices": [
+        "com.sun.star.drawing.DrawingDocument"
+      ],
+      "basis": "native_preflight_document_kind",
+      "nativeKind": 3,
+      "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+      "exported": false
+    }
+  ],
+  "first": {
+    "total": 4,
+    "succeeded": 4,
+    "failed": 0,
+    "filtered": 0,
+    "outputs": [
+      {
+        "fileId": "f0",
+        "format": "pdf",
+        "archiveName": "0001-pdf/table0.pdf"
+      },
+      {
+        "fileId": "f1",
+        "format": "pdf",
+        "archiveName": "0002-pdf/table1.pdf"
+      },
+      {
+        "fileId": "f2",
+        "format": "pdf",
+        "archiveName": "0003-pdf/table2.pdf"
+      },
+      {
+        "fileId": "f3",
+        "format": "pdf",
+        "archiveName": "0004-pdf/image.pdf"
+      }
+    ]
+  },
+  "second": {
+    "total": 3,
+    "succeeded": 3,
+    "nativeChecks": 0,
+    "cacheHits": 3
+  },
+  "removalAfterSaveNoRequests": true,
+  "counts": {
+    "uploads": 7,
+    "preflights": 2,
+    "starts": 2
+  },
+  "storage": {
+    "jobs": 0,
+    "reservedBytes": 0,
+    "tickets": 0,
+    "running": 0,
+    "queued": 0
+  },
+  "engine": "LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5",
+  "inspectionTimes": [
+    {
+      "name": "table0.csv",
+      "seconds": 0.3048,
+      "state": "detected"
+    },
+    {
+      "name": "table1.csv",
+      "seconds": 0.3029,
+      "state": "detected"
+    },
+    {
+      "name": "table2.csv",
+      "seconds": 0.2525,
+      "state": "detected"
+    },
+    {
+      "name": "image.bmp",
+      "seconds": 0.2525,
+      "state": "detected"
+    }
+  ],
+  "exportCount": 7,
+  "sourceHashes": {
+    "table0.csv": "71973a3a10f625073bc33e5c888f600c58f471d4ccc08e8ce0a064090549d761",
+    "table1.csv": "c93ea672905f44799279027a97d507ac8a646570dcd09ad74881de03025fbbb0",
+    "table2.csv": "b11d202f76bfc202df29be62085f5feca17adb63e27b170e1b22daf6e4d47f98",
+    "image.bmp": "b7c63b612a05813bddfae3a5f184e275761f29b27e3a5d7fcd2d1c2af5650a01"
+  },
+  "sourceBytesUnchanged": true,
+  "syntheticCsvPdfText": [
+    {
+      "pages": 1,
+      "alphaAndBetaPresent": true
+    },
+    {
+      "pages": 1,
+      "alphaAndBetaPresent": true
+    },
+    {
+      "pages": 1,
+      "alphaAndBetaPresent": true
+    }
+  ],
+  "windows": "NOT_RUN",
+  "qtNativeSave": "NOT_RUN",
+  "qualityCorpus": "NOT_RUN; text presence is not a layout/quality guarantee",
+  "baseHead": "65e6c7f16c5e0a7a5e2439b5a8d489aff85f6d48",
+  "extendedFirstBatch": {
+    "status": "PASS",
+    "report": {
+      "schemaVersion": 3,
+      "total": 14,
+      "completed": 14,
+      "attempted": 14,
+      "succeeded": 14,
+      "failed": 0,
+      "cancelled": 0,
+      "filtered": 0,
+      "pending": 0,
+      "preflightChecks": 4,
+      "files": [
+        {
+          "fileId": "f0",
+          "name": "table0.csv",
+          "warnings": [],
+          "targets": [
+            {
+              "format": "pdf",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "route": null,
+              "libreOfficeStarted": true
+            },
+            {
+              "format": "xlsx",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "route": null,
+              "libreOfficeStarted": true
+            },
+            {
+              "format": "dbf",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "route": null,
+              "libreOfficeStarted": true
+            },
+            {
+              "format": "png",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "route": null,
+              "libreOfficeStarted": true
+            }
+          ]
+        },
+        {
+          "fileId": "f1",
+          "name": "table1.csv",
+          "warnings": [],
+          "targets": [
+            {
+              "format": "pdf",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "route": null,
+              "libreOfficeStarted": true
+            },
+            {
+              "format": "xlsx",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "route": null,
+              "libreOfficeStarted": true
+            },
+            {
+              "format": "dbf",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "route": null,
+              "libreOfficeStarted": true
+            },
+            {
+              "format": "png",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "route": null,
+              "libreOfficeStarted": true
+            }
+          ]
+        },
+        {
+          "fileId": "f2",
+          "name": "table2.csv",
+          "warnings": [],
+          "targets": [
+            {
+              "format": "pdf",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "route": null,
+              "libreOfficeStarted": true
+            },
+            {
+              "format": "xlsx",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "route": null,
+              "libreOfficeStarted": true
+            },
+            {
+              "format": "dbf",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "route": null,
+              "libreOfficeStarted": true
+            },
+            {
+              "format": "png",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "route": null,
+              "libreOfficeStarted": true
+            }
+          ]
+        },
+        {
+          "fileId": "f3",
+          "name": "image.bmp",
+          "warnings": [],
+          "targets": [
+            {
+              "format": "pdf",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "route": null,
+              "libreOfficeStarted": true
+            },
+            {
+              "format": "png",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": null,
+              "route": null,
+              "libreOfficeStarted": true
+            }
+          ]
+        }
+      ],
+      "qualityCompared": false
+    },
+    "harnessContinuation": "TIMEOUT after 180 s during second run; not counted as a full acceptance PASS. Subsequent reduced smoke completed both runs."
+  }
+}

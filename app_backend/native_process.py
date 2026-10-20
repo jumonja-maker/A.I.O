@@ -11,7 +11,8 @@ import subprocess
 
 
 class ProcessTree:
-    def __init__(self, command: list[str], *, cwd, on_started=lambda: None):
+    def __init__(self, command: list[str], *, cwd, on_started=lambda: None, stdout=None,
+                 stderr=None, env=None, stdin=None):
         self.process = None
         self._job = None
         self._kernel = None
@@ -19,14 +20,15 @@ class ProcessTree:
         if os.name == 'nt':
             self._make_windows_job()
         try:
-            self.process = subprocess.Popen(command, cwd=cwd, stdin=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=False,
+            self.process = subprocess.Popen(command, cwd=cwd, stdin=subprocess.DEVNULL if stdin is None else stdin,
+                stdout=subprocess.DEVNULL if stdout is None else stdout,
+                stderr=subprocess.DEVNULL if stderr is None else stderr, shell=False, env=env,
                 start_new_session=os.name != 'nt',
                 creationflags=(subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0))
-            on_started()
             if self._job and not self._kernel.AssignProcessToJobObject(
                     self._job, int(self.process._handle)):
                 raise OSError('Cannot contain LibreOffice process')
+            on_started()
         except BaseException:
             if self.process is not None:
                 self.process.kill()

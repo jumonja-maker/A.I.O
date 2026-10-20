@@ -19,7 +19,17 @@ def apply_native_ui(raw: bytes) -> bytes:
 
     once('  const MAX_FILES = 100;\n', '')
     once('    enabled: value?.enabled === true,',
-         "    enabled: value?.enabled === true,\n    nativeDecision:value?.compatibility==='native_decision',")
+         "    enabled: value?.enabled === true,\n"
+         "    nativeDecision:['native_decision','native_registry_hint','native_preflight'].includes(value?.compatibility),\n"
+         "    compatibility:value?.compatibility,\n"
+         "    selectableFileIds:Array.isArray(value?.selectableFileIds)?value.selectableFileIds.map(String):"
+         "(Array.isArray(value?.verifiedFileIds)?value.verifiedFileIds.map(String):[]),\n"
+         "    incompatibleFileIds:Array.isArray(value?.incompatibleFileIds)?value.incompatibleFileIds.map(String):[],\n"
+         "    undeterminedFileIds:Array.isArray(value?.undeterminedFileIds)?value.undeterminedFileIds.map(String):[],")
+    once('    options: Array.isArray(value?.options) ? value.options : [],',
+         '    options: Array.isArray(value?.options) ? value.options : [],\n'
+         '    verifiedFileIds:Array.isArray(value?.verifiedFileIds)?value.verifiedFileIds.map(String):'
+         '(Array.isArray(value?.compatibleFileIds)?value.compatibleFileIds.map(String):[]),')
     once('＋ Добавить файлы', '+ Добавить файлы')
     once('Выберите формат результата</h2>', 'Формат результата</h2>')
     once("const ext = (name) => (String(name).split('.').pop() || '').toUpperCase().slice(0, 7);",
@@ -31,7 +41,9 @@ def apply_native_ui(raw: bytes) -> bytes:
          "        selectedFormat=selectedFormats.values().next().value||null;\n"
          "        if(first&&!analysis.formats.some(f=>f.category===selectedCategory))selectedCategory=first.category;")
     once("p.textContent=inputs.length+' из '+inputs.length+' файлов · '+labels.length+' '+formatWord(labels.length)+': '+summaryText;",
-         "p.textContent=inputs.length+' файлов · '+labels.length+' '+formatWord(labels.length)+': '+summaryText;")
+         "const inputIds=new Set(inputs.map(f=>f.id));let plannedPairs=0;\n"
+         "        for(const fmt of analysis.formats){if(selectedFormats.has(fmt.id))for(const id of fmt.verifiedFileIds||[])if(inputIds.has(id))plannedPairs++;}\n"
+         "        p.textContent=inputs.length+' файлов · '+labels.length+' '+formatWord(labels.length)+' · '+plannedPairs+' преобразований: '+summaryText;")
     once('p.textContent=\x60\x24{eligible.length} из \x24{inputs.length} файлов · результат: \x24{fmt.label}\x60;',
          'p.textContent=fmt.nativeDecision?\x60\x24{inputs.length} файлов · результат: \x24{fmt.label}\x60:\x60\x24{eligible.length} из \x24{inputs.length} файлов · результат: \x24{fmt.label}\x60;')
 
@@ -74,6 +86,7 @@ def apply_native_ui(raw: bytes) -> bytes:
          "      if(status==='processing' && typeof adapter.cancel==='function'){runBtn.hidden=false;runBtn.disabled=false;runBtn.textContent='Отменить';}")
     once('    async function inspect() {',
          '    async function inspect() {\n      adapter.resetProgress?.();')
+    once('Определяем форматы и доступные действия…', 'Проверяем направления до конвертации…')
     once('alive=false;inspectionToken++;closePopover();',
          'alive=false;inspectionToken++;adapter.resetProgress?.();closePopover();')
     once("formatValues={};currentResult=null;retryResult=null;status='idle';statusMessage='';renderFormats();renderOptions();renderSummary();",
@@ -81,4 +94,72 @@ def apply_native_ui(raw: bytes) -> bytes:
     once('window.AIOConverterAddon = Object.freeze({register, mount, MAX_FILES});',
          'window.AIOConverterAddon = Object.freeze({register, mount});')
     once('    typeFilter.sync();\n    render();', '    typeFilter.sync();\n    render();\n    inspect();')
+    # Eligibility is supplied by Guard, separately from filename route hints.
+    # Retain the hint arrays for diagnostics; never use them to discard input.
+    for name, count in (('fmt.compatibleFileIds', 4), ('f.compatibleFileIds', 3)):
+        if source.count(name) != count:
+            raise ValueError('Native selection eligibility requires controller review: ' + name)
+        source = source.replace(name, name.replace('compatibleFileIds', 'selectableFileIds'))
+    once('    const selectedFormats = new Set();',
+         '    const selectedFormats = new Set();\n    const onlyVerified = true;')
+    once('    function selectAllAvailableFormats() {',
+         '    function selectAllAvailableFormats() {\n      // Explicit user selection; never invoked by inspection.\n')
+    anchor = 'const available=(analysis?.formats||[]).filter(formatAvailable);'
+    if source.count(anchor) != 2:
+        raise ValueError('Preflight Select All requires controller review')
+    source = source.replace(anchor, "const available=(analysis?.formats||[]).filter(f=>f.enabled&&selectedFiles().some(x=>f.verifiedFileIds.includes(x.id)));")
+    once("button.addEventListener('click',()=>{if(!enabled || saving || status==='processing')return;",
+         "button.addEventListener('click',()=>{if(!enabled || saving || status==='processing'||status==='checking')return;")
+    once('formatIds:[...selectedFormats],onProgress}', 'formatIds:[...selectedFormats],onProgress,onlyVerified}')
+    once('formatId:fmt.id,options:{...formatValues},onProgress}',
+         'formatId:fmt.id,options:{...formatValues},onProgress,onlyVerified}')
+    once("statusMessage=analysis.formats.some(f=>f.enabled)?'':analysis.message;", 'statusMessage=analysis.message;')
+    once('alive=false;inspectionToken++;adapter.resetProgress?.();closePopover();',
+         "alive=false;inspectionToken++;if(adapter.dispose)adapter.dispose();else adapter.resetProgress?.();closePopover();")
+    once('    async function runConversion() {',
+         "    async function runConversion() {\n"
+         "      if(status==='checking'&&adapter.cancelInspection){await adapter.cancelInspection();return;}\n"
+         "      if(status==='error'&&!analysis&&files.length){await inspect();return;}")
+    once("      if(status==='processing' && typeof adapter.cancel==='function'){runBtn.hidden=false;runBtn.disabled=false;runBtn.textContent='Отменить';}",
+         "      if(status==='processing' && typeof adapter.cancel==='function'){runBtn.hidden=false;runBtn.disabled=false;runBtn.textContent='Отменить';}\n"
+         "      if(status==='checking'&&adapter.cancelInspection){runBtn.hidden=false;runBtn.disabled=false;runBtn.textContent='Отменить проверку';}\n"
+         "      if(status==='error'&&!analysis&&files.length){runBtn.hidden=false;runBtn.disabled=false;runBtn.textContent='Повторить проверку';}")
+    once('    async function inspect() {',
+         '    async function inspect({force=false,preserveFormats=false}={}) {\n'
+         '      if(!force&&!preserveFormats){selectedFormats.clear();selectedFormat=null;}')
+    once('await adapter.inspectFiles({ files:filePayload() })',
+         'await adapter.inspectFiles({ files:filePayload(),force })')
+    once('selectedFileIds.delete(id);files=files.filter(x=>x.id!==id); inspect();',
+         'selectedFileIds.delete(id);files=files.filter(x=>x.id!==id); inspect({preserveFormats:true});')
+    once('if(!analysis.formats.some(f=>f.id===id&&f.enabled))selectedFormats.delete(id);',
+         'if(!analysis.formats.some(f=>f.id===id&&formatAvailable(f)))selectedFormats.delete(id);')
+    once("availability.textContent='Недоступно';",
+         "availability.textContent=status==='checking'?'Проверяется…':'Недоступно';")
+    once('onBusyChanged:()=>{if(alive)renderSummary();}',
+         'onRetryPreflight:()=>inspect({force:true}),onBusyChanged:()=>{if(alive)renderSummary();}')
+    once('formats:(analysis?.formats||[]), selectedFormats:[...selectedFormats],',
+         'formats:(analysis?.formats||[]), preflightFiles:(analysis?.files||[]), selectedFormats:[...selectedFormats],')
+    once("if(status==='error'&&!analysis&&files.length){await inspect();return;}",
+         "if(status==='error'&&!analysis&&files.length){await inspect({force:true});return;}")
+    # Single-target captions must count eligible files, not the whole list.
+    once('p.textContent=fmt.nativeDecision?\x60\x24{inputs.length} файлов · результат: \x24{fmt.label}\x60:\x60\x24{eligible.length} из \x24{inputs.length} файлов · результат: \x24{fmt.label}\x60;',
+         'p.textContent=\x60\x24{eligible.length} из \x24{inputs.length} файлов · результат: \x24{fmt.label}\x60;')
+    once('    const onlyVerified = true;',
+         "    const onlyVerified = true;\n"
+         "    const eligibilityCache=new WeakMap();\n"
+         "    const eligibleIds=(fmt,field='selectableFileIds')=>{let entry=eligibilityCache.get(fmt);"
+         "if(!entry){entry=new Map();eligibilityCache.set(fmt,entry);}"
+         "if(!entry.has(field))entry.set(field,new Set(fmt[field]||[]));return entry.get(field);};")
+    for name in ('fmt','f'):
+        source=source.replace(name+'.selectableFileIds.includes(', 'eligibleIds('+name+').has(')
+        source=source.replace(name+'.verifiedFileIds.includes(', "eligibleIds("+name+",'verifiedFileIds').has(")
+    once('const eligible=fmt.selectableFileIds.filter(id=>inputs.some(f=>f.id===id));',
+         'const chosenIds=new Set(inputs.map(f=>f.id));const eligible=fmt.selectableFileIds.filter(id=>chosenIds.has(id));')
+    once('async function inspect({force=false,preserveFormats=false}={})',
+         'async function inspect({force=false,preserveFormats=false,timeoutSeconds,onlyUndetermined=false}={})')
+    once('await adapter.inspectFiles({ files:filePayload(),force })',
+         'await adapter.inspectFiles({ files:filePayload(),force,timeoutSeconds,onlyUndetermined })')
+    once('    typeFilter.sync();\n    render();\n    inspect();',
+         "    root.addEventListener('aio-guard-recheck',event=>{inspect({force:true,timeoutSeconds:event.detail?.timeoutSeconds||600,onlyUndetermined:true}).finally(()=>event.detail?.done?.());});\n"
+         '    typeFilter.sync();\n    render();\n    inspect();')
     return source.encode('utf-8')

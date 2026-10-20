@@ -1,0 +1,108 @@
+{
+  "status": "PASS",
+  "scope": "native LibreOffice + real HTTP/browser bridge; Qt save fixture",
+  "total": 15,
+  "succeeded": 10,
+  "attempted": 10,
+  "filtered": 5,
+  "failed": 0,
+  "polls": 13,
+  "unchangedPolls": 2,
+  "explicitTicket": true,
+  "saveCancellationRetry": true,
+  "releasedSpool": true,
+  "outputs": [
+    {
+      "fileId": "f0",
+      "format": "pdf",
+      "archiveName": "0001-pdf/picture.pdf"
+    },
+    {
+      "fileId": "f0",
+      "format": "png",
+      "archiveName": "0005-png/picture.png"
+    },
+    {
+      "fileId": "f1",
+      "format": "pdf",
+      "archiveName": "0006-pdf/renamed.pdf"
+    },
+    {
+      "fileId": "f1",
+      "format": "docx",
+      "archiveName": "0007-docx/renamed.docx"
+    },
+    {
+      "fileId": "f1",
+      "format": "odt",
+      "archiveName": "0008-odt/renamed.odt"
+    },
+    {
+      "fileId": "f1",
+      "format": "png",
+      "archiveName": "0010-png/renamed.png"
+    },
+    {
+      "fileId": "f2",
+      "format": "pdf",
+      "archiveName": "0011-pdf/plain.pdf"
+    },
+    {
+      "fileId": "f2",
+      "format": "docx",
+      "archiveName": "0012-docx/plain.docx"
+    },
+    {
+      "fileId": "f2",
+      "format": "odt",
+      "archiveName": "0013-odt/plain.odt"
+    },
+    {
+      "fileId": "f2",
+      "format": "png",
+      "archiveName": "0015-png/plain.png"
+    }
+  ],
+  "engine": "LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5",
+  "windows": "NOT_RUN",
+  "qtNativeSave": "NOT_RUN",
+  "sourceBytesUnchanged": true,
+  "observerThreadsAfterClose": 0,
+  "directNegativeControls": {
+    "checked": 5,
+    "falseDenials": 0,
+    "results": [
+      {
+        "source": "picture.bmp",
+        "format": "docx",
+        "nativeError": "ENGINE_FAILED"
+      },
+      {
+        "source": "picture.bmp",
+        "format": "odt",
+        "nativeError": "ENGINE_FAILED"
+      },
+      {
+        "source": "picture.bmp",
+        "format": "dbf",
+        "nativeError": "ENGINE_FAILED"
+      },
+      {
+        "source": "renamed.bmp",
+        "format": "dbf",
+        "nativeError": "ENGINE_FAILED"
+      },
+      {
+        "source": "plain.unlisted",
+        "format": "dbf",
+        "nativeError": "ENGINE_FAILED"
+      }
+    ]
+  },
+  "pdfBaseline": {
+    "pages": 2,
+    "textEqual": true,
+    "encodedImagesEqual": true
+  },
+  "qualityScannerAdded": false
+}

@@ -18,7 +18,7 @@ window.HTMLElement.prototype.getBoundingClientRect = () => ({left:0,right:600,to
 window.HTMLElement.prototype.focus = function(){};
 let metadataRequests = 0;
 const apiFetch = (url,options) => {
-  if (String(url).includes('/api/converter/inspect')) {
+  if (String(url).includes('/api/converter-guard/inspect')) {
     assert.equal(typeof options.body, 'string', 'inspection uses JSON metadata');
     assert.ok(Array.isArray(JSON.parse(options.body).files));
     metadataRequests++;
@@ -83,18 +83,19 @@ assertSearch();
 add([new File(['BROKEN'],'broken.docx'),new File(['BM'],'good.bmp'),new File(['a,b'],'table.csv')]);
 await until(()=>rows().length===3&&stable(),'mixed inputs');
 const format=label=>document.querySelector('[aria-label="Выбрать '+label+'"]');
-assert.equal(format('DOCX').disabled,false,'mixed list does not disable Writer target');
+assert.equal(document.querySelector('[aria-label="DOCX недоступен"]').disabled,true,'unknown Writer source cannot enable DOCX');
 document.querySelector('[data-cv-categories] [role="tab"]').click();
 format('PDF').click();
 const run=document.querySelector('[data-cv-run]');
 assert.equal(run.disabled,false);
 run.click();
 await until(()=>!document.querySelector('[data-cv-save]').hidden,'partial result');
-await until(()=>rows().every(r=>r.dataset.aioFpState),'paint initialized');
-assert.deepEqual(rows().map(r=>r.dataset.aioFpState),['error','ready','ready']);
+await until(()=>rows().slice(1).every(r=>r.dataset.aioFpState),'paint initialized');
+assert.deepEqual(rows().map(r=>r.dataset.aioFpState),[undefined,'ready','ready']);
 const issues=document.querySelector('.aio-cv-issues-button');
 issues.click();
 assert.ok(document.querySelector('.aio-cv-issues-list').textContent.includes('broken.docx'));
+assert.ok(document.querySelector('.aio-cv-issues-list').textContent.includes('Экспорт этого файла не запускался'));
 let cancelSave=true, downloaded=false;
 window.AllInOneBridge.saveExcel=async result=>{
   if(cancelSave){cancelSave=false;return {cancelled:true};}
@@ -109,24 +110,34 @@ const save=document.querySelector('[data-cv-save]');
 save.click();
 await until(()=>document.querySelector('[data-cv-status]').textContent.includes('отменено'),'save cancellation');
 await until(()=>!save.disabled,'save retry enabled');
-assert.equal(rows().filter(r=>!r.querySelector('.aio-fp-check').hidden).length,2);
+assert.equal(rows().filter(r=>r.querySelector('.aio-fp-check')?.hidden===false).length,2);
 save.click();
 await until(()=>save.hidden,'save confirmation');
 assert.equal(downloaded,true);
-await until(()=>rows().every(r=>r.dataset.aioFpState),'restored saved paint');
-assert.equal(rows().filter(r=>!r.querySelector('.aio-fp-check').hidden).length,0);
+await until(()=>rows().slice(1).every(r=>r.dataset.aioFpState),'restored saved paint');
+assert.equal(rows().filter(r=>r.querySelector('.aio-fp-check')?.hidden===false).length,0);
 rows()[0].querySelector('[data-op="select"]').click();
 assert.equal(run.disabled,false);
 run.click();
 await until(()=>!save.hidden,'repeat run without restart');
 // Editing a format releases the previous result and its paint observer.
-format('TXT').click();
+format('PDF').click();
 await until(()=>!document.querySelector('.aio-fp-row'),'paint released after target edit');
 add(Array.from({length:103},(_,i)=>new File(['BM'],'many_'+i+'.bmp')));
 await until(()=>rows().length===106&&stable(),'UI accepts more than 100 files');
 assertSearch();
 assert.equal(document.querySelector('[data-cv-count]').textContent,'(106)');
+assert.equal(run.disabled,true,'adding inputs clears the previous format choice');
+format('PDF').click();run.click();
+await until(()=>!save.hidden,'more than 100 files can convert');
+await until(()=>rows().filter(r=>r.dataset.selected==='true').every(r=>r.dataset.aioFpState),
+  'progress for every selected file above old 100-file cap');
+assert.equal(rows().filter(r=>r.dataset.aioFpState==='ready').length,105);
+// Explicitly dispose the last retained job before the host fixture closes.
+format('PDF').click();
+await until(()=>!document.querySelector('.aio-fp-row'),'bulk run release');
 console.log(JSON.stringify({status:'PASS',scope:'DOM/HTTP; save acknowledgment simulated',
   permanentSearch:[0,1,3],imageCategory:true,anyInputExtension:true,metadataRequests,
   mixedInputs:true,rowAndCircleSelection:true,scrollRetention:true,partialResults:true,
-  saveCancellationRetry:true,checksClearedAfterSave:true,repeat:true,moreThan100Files:true}));
+  saveCancellationRetry:true,checksClearedAfterSave:true,repeat:true,moreThan100Files:true,
+  bulkConversionPaint:true}));

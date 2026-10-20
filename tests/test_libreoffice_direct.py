@@ -37,6 +37,13 @@ class LibreOfficeDirectTests(unittest.TestCase):
         self.assertEqual(report['acceptedExtensions'], '')
         self.assertIsNone(report['policy'])
 
+    def test_zip_http_mime_is_portable_on_windows(self):
+        from app_backend.libreoffice_catalog import mime_for
+        with patch('app_backend.libreoffice_catalog.mimetypes.guess_type',
+                   return_value=('application/x-zip-compressed', None)):
+            self.assertEqual(mime_for('zip'), 'application/zip')
+            self.assertEqual(mime_for('ZIP'), 'application/zip')
+
     def test_missing_engine_has_an_explicit_reason(self):
         with patch.object(lo, 'engine_binary', return_value=None):
             report = lo.inspect_metadata([{'id': 'one', 'name': 'file.bmp', 'size': 0}])

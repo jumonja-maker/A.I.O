@@ -1,0 +1,168 @@
+{
+  "date": "2026-10-20",
+  "baseSHA": "db55f6366a947ed5cdeb32cb7d6c3b35bf3bc1a4",
+  "status": "DRAFT_PENDING_NATIVE_WINDOWS_ACCEPTANCE",
+  "suite": {
+    "discovered": 219,
+    "passed": 217,
+    "failed": 0,
+    "notRun": [
+      "test_brand_restoration.BrandRestorationTests.test_both_original_pngs_match_owner_digests_and_have_alpha",
+      "test_brand_restoration.BrandRestorationTests.test_spec_bundles_icon_and_approved_sources_and_sets_exe_resource"
+    ],
+    "elapsedSeconds": 61.191,
+    "notRunReason": "Two original PNG masters >1 MiB unavailable in local checkout; remote blobs preserved unchanged"
+  },
+  "queueSynthetic": {
+    "scope": "1000-file Guard queue; synthetic native boundary",
+    "files": 1000,
+    "succeeded": 1000,
+    "pythonHeapPeakMiB": 9.84,
+    "elapsedSecondsWithTracemalloc": 12.447
+  },
+  "planner": {
+    "status": "PASS",
+    "scope": "plan + JSON serialization only; no native preflight/export",
+    "files": 1000,
+    "formats": 83,
+    "plannedPairs": 62250,
+    "equivalentPlan": true,
+    "previousMedianMs": 112.207,
+    "actualBridgeMedianMs": 30.104,
+    "samples": {
+      "previous": [
+        148.647844,
+        108.99010399999997,
+        112.206996
+      ],
+      "actual": [
+        31.926878999999985,
+        30.104323000000022,
+        28.721292000000062
+      ]
+    }
+  },
+  "nativeLinux": {
+    "status": "PASS",
+    "scope": "real local LibreOffice, generated 4-file / 11-export corpus; not full visual QA",
+    "preflightMs": 1176,
+    "elapsedMs": 69915,
+    "quality": {
+      "officeContainers": "PASS",
+      "textAndTableMarkers": "PASS",
+      "sourceBytesUnchanged": "PASS",
+      "pdfText": "PASS",
+      "pdfPageGeometryMatchesCLI": "PASS",
+      "csvMatchesNativeCLI": "PASS"
+    },
+    "baseline": {
+      "docxMs": 402,
+      "xlsxMs": 9619
+    },
+    "sourceSHA256": {
+      "docx": "8e529a516033deab64f130c9a3c07060eb1375cf0a005e6f587862e82f0acf94",
+      "xlsx": "418525df4284c0d6410f8facc2889dd5aad880ed0fa93d72195051451f640f8c",
+      "csv": "b99c8caf7a613acc9ef45eb0ef958d93e8d17e5ae9ebe44673feeca2d41d8d52",
+      "bmp": "a7beb5056325b28509539b4f84f7444a1333692b32806406fe21d7d6f991ee8b"
+    }
+  },
+  "nativeLinuxTasks": [
+    {
+      "source": "document.docx",
+      "targets": [
+        {
+          "format": "pdf",
+          "state": "saved",
+          "executionMode": "native_cli",
+          "durationMs": 404
+        },
+        {
+          "format": "odt",
+          "state": "saved",
+          "executionMode": "native_cli",
+          "durationMs": 503
+        },
+        {
+          "format": "docx",
+          "state": "saved",
+          "executionMode": "native_cli",
+          "durationMs": 403
+        }
+      ]
+    },
+    {
+      "source": "sheet.xlsx",
+      "targets": [
+        {
+          "format": "pdf",
+          "state": "saved",
+          "executionMode": "native_cli",
+          "durationMs": 9120
+        },
+        {
+          "format": "xlsx",
+          "state": "saved",
+          "executionMode": "native_cli",
+          "durationMs": 9520
+        },
+        {
+          "format": "csv",
+          "state": "saved",
+          "executionMode": "native_cli",
+          "durationMs": 9723
+        }
+      ]
+    },
+    {
+      "source": "table.csv",
+      "targets": [
+        {
+          "format": "pdf",
+          "state": "saved",
+          "executionMode": "native_cli",
+          "durationMs": 9421
+        },
+        {
+          "format": "xlsx",
+          "state": "saved",
+          "executionMode": "native_cli",
+          "durationMs": 9321
+        },
+        {
+          "format": "dbf",
+          "state": "saved",
+          "executionMode": "native_cli",
+          "durationMs": 9529
+        }
+      ]
+    },
+    {
+      "source": "picture.bmp",
+      "targets": [
+        {
+          "format": "pdf",
+          "state": "saved",
+          "executionMode": "native_cli",
+          "durationMs": 302
+        },
+        {
+          "format": "png",
+          "state": "saved",
+          "executionMode": "native_cli",
+          "durationMs": 302
+        }
+      ]
+    }
+  ],
+  "notRun": [
+    "real Windows UNO",
+    "real Qt folder dialog/copy",
+    "exact original ODC/EPUB stress fixtures",
+    "1000 real native exports",
+    "full visual/semantic quality comparison"
+  ],
+  "qualityCompared": false,
+  "mainModified": false,
+  "protectedWorkflowsModified": false,
+  "note": "Synthetic queue heap excludes LibreOffice and Qt. Planner timing excludes native preflight/export. Linux native test retains CLI."
+}
