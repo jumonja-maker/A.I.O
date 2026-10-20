@@ -7,6 +7,7 @@ from contextlib import contextmanager, nullcontext
 import copy
 import hashlib
 from dataclasses import dataclass, field
+from html.parser import HTMLParser
 import json
 import math
 import os
@@ -155,6 +156,48 @@ def _source_name(name):
     safe_suffix = suffix if re.fullmatch(r'\.[a-zA-Z0-9_-]{1,32}', suffix) else '.bin'
     return ('source' + safe_suffix if normalized else name), normalized
 
+
+
+class _LocalHtmlResources(HTMLParser):
+    """Detect references which cannot survive isolated single-file upload."""
+    _tags = {'img', 'link', 'script', 'source', 'video', 'audio', 'iframe', 'object'}
+    _attrs = {'src', 'srcset', 'href', 'poster', 'data'}
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.found = False
+
+    @staticmethod
+    def _local(value):
+        value = value.strip().strip('"\\'')
+        if not value or value.startswith(('#', '//', '/', 'data:')):
+            return False
+        if re.match(r'(?i)^[a-z][a-z0-9+.-]*:', value):
+            return False
+        return True
+
+    def handle_starttag(self, tag, attrs):
+        if tag not in self._tags:
+            return
+        for key, value in attrs:
+            if key in self._attrs and isinstance(value, str):
+                urls = (part.strip().split()[0] for part in value.split(',') if part.strip())
+                if any(self._local(url) for url in urls):
+                    self.found = True
+
+
+def _missing_html_resources(source):
+    if source.suffix.lower() not in {'.html', '.htm', '.xhtml'}:
+        return False
+    inspector = _LocalHtmlResources()
+    # Streaming parser: never load an entire user document just to look for
+    # relative paths. No external file or network resource is opened.
+    with source.open('rb') as stream:
+        while not inspector.found:
+            block = stream.read(128 * 1024)
+            if not block:
+                break
+            inspector.feed(block.decode('utf-8', errors='replace'))
+    return inspector.found
 
 class _Cancellation:
     """Combine job/file cancellation without another timer or watcher thread."""
@@ -587,8 +630,13 @@ class ConverterGuard:
                             stage='preflight', started_ms=round(time.time()*1000)))
                         self._record(job, 'preflight_file_started', file_id=item.id)
                     try:
-                        proof = self.adapter.preflight(item.source, work, cancel=_Cancellation(job.cancel,item.cancel),
-                                                       timeout=native_timeout)
+                        if _missing_html_resources(item.source):
+                            proof = {'state':'undetermined',
+                                     'code':'HTML_LOCAL_RESOURCES_NOT_UPLOADED',
+                                     'exported':False}
+                        else:
+                            proof = self.adapter.preflight(item.source, work, cancel=_Cancellation(job.cancel,item.cancel),
+                                                           timeout=native_timeout)
                     except GuardError as error:
                         if error.code == 'CANCELLED' and job.cancel.is_set():
                             raise
@@ -671,9 +719,13 @@ class ConverterGuard:
                         decision = routing(task.format, item.native_route)
                         if decision != 'registered':
                             task.state, task.stage = 'skipped', 'preflight'
-                            task.code = ('NATIVE_ROUTE_UNAVAILABLE' if decision == 'unavailable' else
+                            missing_html = (item.native_route or {}).get('code') == 'HTML_LOCAL_RESOURCES_NOT_UPLOADED'
+                            task.code = ('HTML_LOCAL_RESOURCES_NOT_UPLOADED' if missing_html else
+                                         'NATIVE_ROUTE_UNAVAILABLE' if decision == 'unavailable' else
                                          'PREFLIGHT_ROUTE_UNDETERMINED')
-                            task.error = ('У определённого LibreOffice типа нет этого экспорта.'
+                            task.error = ('HTML ссылается на локальные файлы, но AIO получил только основной HTML. '
+                                          'Чтобы не потерять изображения/стили, экспорт не запускается.'
+                                          if missing_html else 'У определённого LibreOffice типа нет этого экспорта.'
                                           if decision == 'unavailable' else
                                           'Направление не подтверждено; экспорт не запускается.')
                             task.route = copy.deepcopy(item.native_route)
