@@ -86,10 +86,23 @@ def main(manifest_name):
     # AllowDeep=true makes LibreOffice inspect bytes, not merely the suffix.
     detected = detector.queryTypeByDescriptor((prop,), True)
     stage(work, 'uno_type_detected')
-    if not isinstance(detected, str) or not detected:
-        result = {'state': 'undetermined', 'code': 'PREFLIGHT_UNO_TYPE_UNKNOWN'}
-    else:
+    if isinstance(detected, str) and detected:
         result = {'state': 'detected', 'typeName': detected}
+    else:
+        # The document TypeDetection service does not classify all graphic
+        # streams. Let the *same native LibreOffice* GraphicProvider inspect
+        # bytes; getType() = PIXEL/VECTOR means decoded graphic, not filename.
+        stage(work, 'uno_graphic_detection')
+        result = {'state': 'undetermined', 'code': 'PREFLIGHT_UNO_TYPE_UNKNOWN'}
+        try:
+            provider = remote.ServiceManager.createInstanceWithContext(
+                'com.sun.star.graphic.GraphicProvider', remote)
+            graphic = provider.queryGraphic((prop,)) if provider else None
+            kind = int(graphic.getType()) if graphic is not None else 0
+            if kind in (1, 2):
+                result = {'state': 'detected', 'graphicType': kind}
+        except Exception:
+            pass
     part = work / 'result.part'
     with part.open('x', encoding='utf-8') as stream:
         json.dump(result, stream)
