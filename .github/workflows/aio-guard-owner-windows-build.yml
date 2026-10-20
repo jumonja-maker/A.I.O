@@ -76,7 +76,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: jumonja-maker/A.I.O
-          ref: af4d8f626196a3e637beda0127e31b76fb78e690
+          ref: ffcf0b2d9cd23d6773289c07bb393902304dfedf
           path: guard-pinned-source-${{ github.run_id }}
           fetch-depth: 1
           persist-credentials: false
@@ -87,10 +87,10 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           Set-StrictMode -Version Latest
-          $expected = 'af4d8f626196a3e637beda0127e31b76fb78e690'
+          $expected = 'ffcf0b2d9cd23d6773289c07bb393902304dfedf'
           # Git is not in the restricted NIKITA PATH. The pinned checkout uses
           # GitHub's authenticated ZIP fallback, and checks every extracted file.
-          $expectedTree = '2ec590cdc94316cf44dc9cb94182f741dc8e0f64'
+          $expectedTree = 'e1c08ce7ece10e2d7a9923fe965f0dc8e37291aa'
           $python = 'D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\Scripts\python.exe'
           $marker = 'D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\.00aio-test-only-venv.txt'
           if (-not (Test-Path -LiteralPath $python -PathType Leaf) -or
@@ -247,7 +247,7 @@ jobs:
             $sha = (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash.ToLowerInvariant()
             $sha + '  ' + [IO.Path]::GetFileName($_)
           } | Set-Content -LiteralPath 'build\installer\SHA256SUMS.txt' -Encoding ascii
-          @('SOURCE=af4d8f626196a3e637beda0127e31b76fb78e690',
+          @('SOURCE=ffcf0b2d9cd23d6773289c07bb393902304dfedf',
             'GUARD=V0.6-PREFLIGHT-INTEGRATED', 'LIBREOFFICE=BUNDLED',
             'ADVANCED=ABSENT', 'DIRECT_LO_QA=TRUE', 'NATIVE_UI_PATCH_4=INCLUDED', 'GUARD_UI=ACTIVE', 'BRAND_ICONS=RESTORED', 'GUARD_V05=MERGED_FROM_PR10', 'GUARD_V06=MERGED_FROM_PR11',
             'INSTALLED=NO;RELEASED=NO;MERGED=NO') |
@@ -271,7 +271,7 @@ jobs:
       - name: Report separate build success and artifact delivery
         if: always()
         run: |
-          Write-Host 'PINNED_SOURCE=af4d8f626196a3e637beda0127e31b76fb78e690'
+          Write-Host 'PINNED_SOURCE=ffcf0b2d9cd23d6773289c07bb393902304dfedf'
           Write-Host 'PACKAGE_STEP=${{ steps.package.outcome }}'
           Write-Host 'PRIVATE_UPLOAD=${{ steps.upload.outcome }}'
           Write-Host 'NOT_INSTALLED;NO_RELEASE;GUARD_V06_QA_ONLY'
