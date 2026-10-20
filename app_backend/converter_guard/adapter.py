@@ -119,6 +119,19 @@ class LibreOfficeAdapter:
             unknown = [i for i, state in states.items() if state == 'undetermined']
             formats.append({'id': ext, 'label': ext.upper(), 'category': category,
                 'description': description, 'mime': mime,
+                # Native compatibility is not a claim of content/visual equivalence.
+                # The existing help-button reads this property in normal mode.
+                'help': ({
+                    'csv': 'CSV сохраняет только один активный лист и не сохраняет формулы, форматирование и остальные листы.',
+                    'tsv': 'TSV сохраняет только один активный лист без оформления и формул.',
+                    'tab': 'TAB сохраняет текстовую таблицу без оформления и других листов.',
+                    'png': 'Из документов и рисунков LibreOffice может создавать изображение страницы, а не исходную пиксельную копию.',
+                    'jpg': 'JPEG — формат с потерями; экспорт может менять качество изображения и геометрию страницы.',
+                    'jpeg': 'JPEG — формат с потерями; экспорт может менять качество изображения и геометрию страницы.',
+                    'webp': 'Графический экспорт документа может менять размер полотна и формат представления.',
+                    'pdf': 'PDF предназначен для просмотра: структура и редактируемость исходника могут измениться.',
+                    'epub': 'EPUB создаётся фильтром экспорта; поддержка экспорта не означает, что EPUB можно открыть как исходник.'
+                }).get(ext, 'Проверка Guard подтверждает маршрут, но не гарантирует отсутствие смысловых или визуальных потерь.'),
                 'registeredExport': ext in native.exports if native.valid else registered,
                 'enabled': available and proofs is not None and bool(compatible),
                 # Hints and undetermined routes remain visible diagnostics,
