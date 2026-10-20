@@ -67,8 +67,8 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
     deadline = time.monotonic() + timeout
     try:
         with ProcessTree(command, cwd=work, env=environment) as tree:
-                # A short handshake keeps the UNO-spawned soffice process
-                # inside our Windows kill-on-close Job Object.
+            if os.name == 'nt':
+                # Handshake puts the worker-spawned soffice in our Job Object.
                 (work / 'start.token').write_text('ready', encoding='ascii')
             while tree.process.poll() is None:
                 if cancel.wait(.05):
