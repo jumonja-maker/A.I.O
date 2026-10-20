@@ -11,7 +11,7 @@ import subprocess
 
 
 class ProcessTree:
-    def __init__(self, command: list[str], *, cwd, on_started=lambda: None, stdout=None):
+    def __init__(self, command: list[str], *, cwd, on_started=lambda: None, stdout=None, env=None):
         self.process = None
         self._job = None
         self._kernel = None
@@ -21,7 +21,7 @@ class ProcessTree:
         try:
             self.process = subprocess.Popen(command, cwd=cwd, stdin=subprocess.DEVNULL,
                 stdout=subprocess.DEVNULL if stdout is None else stdout,
-                stderr=subprocess.DEVNULL, shell=False,
+                stderr=subprocess.DEVNULL, shell=False, env=env,
                 start_new_session=os.name != 'nt',
                 creationflags=(subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0))
             on_started()

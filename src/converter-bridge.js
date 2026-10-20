@@ -1,4 +1,4 @@
-/* A.I.O + native Converter Guard v0.5 integration (QA branch only).
+/* A.I.O + native Converter Guard v0.6 integration (QA branch only).
    Preserve the existing designer, Excel save bridge and independent LO engine. */
 (() => {
   'use strict';
@@ -10,6 +10,7 @@
   const headers = Object.freeze({'X-AIO-Token': token});
   const retained = new Map();
   let active = null, progress = null, generation = 0;
+  let prepared = null, preparing = null, inspectionSequence = 0;
 
   const errorOf = (message, code) => {
     const e = new Error(message);
@@ -73,6 +74,86 @@
     progress?.dispose();
     progress = null;
   }
+  async function cancelInspection() {
+    inspectionSequence++;
+    const request = preparing;
+    if (request) {request.cancelled = true; await releaseJob(request.jobId);}
+  }
+  function dispose() {
+    resetProgress();
+    cancelInspection().catch(() => {});
+    if (prepared) {releaseJob(prepared.jobId).catch(() => {});prepared = null;}
+  }
+  const contains = (stage, inputs) => stage && !stage.used && inputs.every(f =>
+    stage.inputs.some(p => String(p.id) === String(f.id) && p.file === f.file));
+  async function prepareInputs(inputs, {signal, onCreated, validate = () => {}} = {}) {
+    if (prepared && prepared.inputs.length === inputs.length && contains(prepared, inputs))
+      return prepared;
+    await cancelInspection();
+    const reusable = prepared && inputs.every(f=>!prepared.inputs.some(p=>String(p.id)===String(f.id)&&p.file!==f.file))
+      ? prepared : null;
+    if (prepared && !reusable) await releaseJob(prepared.jobId);
+    prepared = null;
+    const request = {sequence:++inspectionSequence,jobId:null,cancelled:false};
+    preparing = request;
+    const current = () => {
+      validate();
+      if (request.cancelled || signal?.aborted || request.sequence !== inspectionSequence)
+        throw errorOf('Предварительная проверка отменена.', 'CANCELLED');
+    };
+    let accepted = false;
+    try {
+      current();
+      let created, uploads = inputs;
+      if (reusable) {
+        request.jobId = reusable.jobId;
+        try {
+          created = await api('/prepare-update',{jobId:reusable.jobId,files:metadata(inputs)});
+          uploads = inputs.filter(f=>!reusable.inputs.some(p=>String(p.id)===String(f.id)&&p.file===f.file));
+        } catch (error) {if(error.code!=='JOB_NOT_FOUND')throw error;}
+      }
+      if (!created) created = await api('/prepare', {files:metadata(inputs)});
+      request.jobId = created.jobId;
+      onCreated?.(created.jobId);
+      current();
+      for (const file of uploads) {
+        await payloadOf(await fetch(prefix + '/input?job=' + encodeURIComponent(request.jobId)
+          + '&file=' + encodeURIComponent(String(file.id)), {
+          method:'POST',headers:{...headers,'Content-Type':'application/octet-stream'},
+          body:file.file,cache:'no-store',signal
+        }));
+        current();
+      }
+      // A released older check can need a short process-tree cleanup. Do not
+      // start parallel native imports while it is still shutting down.
+      const deadline = Date.now() + 10000;
+      let inspection;
+      for (;;) {
+        current();
+        try {inspection = await api('/preflight', {jobId:request.jobId});break;}
+        catch (error) {
+          if (error.code !== 'PREFLIGHT_BUSY' || Date.now() >= deadline) throw error;
+          await new Promise(resolve => setTimeout(resolve, 75));
+        }
+      }
+      current();
+      prepared = {jobId:request.jobId,inputs:[...inputs],inspection,used:false};
+      accepted = true;
+      return prepared;
+    } finally {
+      if (preparing === request) preparing = null;
+      if (!accepted && request.jobId) await releaseJob(request.jobId);
+    }
+  }
+  async function inspectFiles({files=[],signal}={}) {
+    const inputs = Array.from(files);
+    if (!inputs.length) {
+      await cancelInspection();
+      if (prepared) {await releaseJob(prepared.jobId);prepared = null;}
+      return api('/inspect', {files:[]}, 'POST', signal);
+    }
+    return (await prepareInputs(inputs, {signal})).inspection;
+  }
   function update(report, op, onProgress) {
     if (!report || op.generation !== generation) return;
     progress?.finishTargets({runId:op.id, files:(report.files || []).map(row => {
@@ -82,24 +163,19 @@
       const running = targets.some(t => t.state === 'converting');
       const queued = targets.some(t => t.state === 'queued');
       const cancelled = targets.some(t => t.state === 'cancelled');
+      const skipped = targets.length && targets.every(t => t.state === 'skipped');
       const state = running ? 'converting' : queued ? 'queued' :
-        failed || cancelled ? (successes ? 'partial' : cancelled && !failed ? 'cancelled' : 'error') : 'ready';
+        skipped ? 'skipped' : failed || cancelled ? (successes ? 'partial' : cancelled && !failed ? 'cancelled' : 'error') : 'ready';
       return {fileId:row.fileId, targets, state, succeeded:successes, total:targets.length,
         error:targets.find(t => t.state === 'error')?.error || ''};
     })});
     onProgress?.({percent:report.percent ?? null,
       message:'Обработано: ' + (report.completed ?? 0) + ' из ' + (report.total ?? 0)
-        + '. Запусков LibreOffice: ' + (report.attempted ?? 0)
+        + '. Экспортов LibreOffice: ' + (report.attempted ?? 0)
         + ', пропущено Guard: ' + (report.filtered ?? 0) + '.'});
   }
 
-  // Preserve the entire choice and its order. Only Guard's confirmed native
-  // model may skip a route; filename hints never remove selected work here.
-  function makePlan(inputs, formats) {
-    return inputs.map(file => ({fileId:String(file.id), formats:[...formats]}));
-  }
-
-  async function run({files, formatIds, formatId, onProgress} = {}) {
+  async function run({files, formatIds, formatId, onProgress, onlyVerified=false} = {}) {
     if (active) throw errorOf('Уже выполняется конвертация.', 'CLIENT_BUSY');
     const inputs = Array.from(files || []);
     const formats = formatIds || [formatId];
@@ -119,25 +195,22 @@
     try {
       for (const id of [...retained.keys()]) await releaseJob(id);
       check(op);
-      const info = metadata(inputs);
-      const plan = makePlan(info, formats);
-      const created = await api('/jobs', {files:info, plan});
-      op.jobId = created.jobId;
-      retained.set(op.jobId, {ticket:null, saved:new Set()});
+      const claim = id => {op.jobId=id;retained.set(id,{ticket:null,saved:new Set()});};
+      let stage = contains(prepared,inputs) ? prepared :
+        await prepareInputs(inputs,{onCreated:claim,validate:()=>check(op)});
       check(op);
-
-      for (const file of inputs) {
-        check(op);
-        const response = await fetch(prefix + '/input?job=' + encodeURIComponent(op.jobId)
-          + '&file=' + encodeURIComponent(String(file.id)), {
-          method:'POST',headers:{...headers,'Content-Type':'application/octet-stream'},
-          body:file.file,cache:'no-store'
-        });
-        const payload = await response.json();
-        if (!response.ok) throw errorOf(payload.error || 'Не удалось передать файл Guard.',payload.code);
+      stage.used = true;prepared = null;claim(stage.jobId);
+      const start = () => api('/start',{jobId:op.jobId,formats,
+        fileIds:inputs.map(f=>String(f.id)),onlyVerified});
+      try {await start();}
+      catch (error) {
+        if (error.code !== 'JOB_NOT_FOUND') throw error;
+        // A long-idle prepared job may expire. Revalidate the same File
+        // objects instead of treating expiry as an unsupported document.
+        retained.delete(op.jobId);
+        stage = await prepareInputs(inputs,{onCreated:claim,validate:()=>check(op)});
+        check(op);stage.used=true;prepared=null;claim(stage.jobId);await start();
       }
-      check(op);
-      await api('/start', {jobId:op.jobId});
       for (;;) {
         // After explicit cancel, wait for Guard's real terminal state so that
         // already completed outputs can still be offered for saving.
@@ -205,8 +278,7 @@
   }
   bridge.converter = Object.freeze({
     acceptedExtensions:'', directLibreOffice:true, converterGuard:true,
-    inspectFiles({files=[],signal}={}) {return api('/inspect',{files:metadata(files)},'POST',signal);},
-    convert:run,convertMany:run,saveResult,cancel,resetProgress,
+    inspectFiles,convert:run,convertMany:run,saveResult,cancel,resetProgress,cancelInspection,dispose,
     async diagnoseFiles({files=[],phase='before',result}={}) {
       const report=result?.targetReport;
       return {phase,files:metadata(files).map(file=>({...file,complete:false,

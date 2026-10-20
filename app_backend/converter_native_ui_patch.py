@@ -20,12 +20,16 @@ def apply_native_ui(raw: bytes) -> bytes:
     once('  const MAX_FILES = 100;\n', '')
     once('    enabled: value?.enabled === true,',
          "    enabled: value?.enabled === true || value?.nativeAttemptAvailable === true,\n"
-         "    nativeDecision:['native_decision','native_registry_hint'].includes(value?.compatibility),\n"
+         "    nativeDecision:['native_decision','native_registry_hint','native_preflight'].includes(value?.compatibility),\n"
          "    compatibility:value?.compatibility,\n"
          "    selectableFileIds:Array.isArray(value?.selectableFileIds)?value.selectableFileIds.map(String):"
          "(Array.isArray(value?.compatibleFileIds)?value.compatibleFileIds.map(String):[]),\n"
          "    incompatibleFileIds:Array.isArray(value?.incompatibleFileIds)?value.incompatibleFileIds.map(String):[],\n"
          "    undeterminedFileIds:Array.isArray(value?.undeterminedFileIds)?value.undeterminedFileIds.map(String):[],")
+    once('    options: Array.isArray(value?.options) ? value.options : [],',
+         '    options: Array.isArray(value?.options) ? value.options : [],\n'
+         '    verifiedFileIds:Array.isArray(value?.verifiedFileIds)?value.verifiedFileIds.map(String):'
+         '(Array.isArray(value?.compatibleFileIds)?value.compatibleFileIds.map(String):[]),')
     once('＋ Добавить файлы', '+ Добавить файлы')
     once('Выберите формат результата</h2>', 'Формат результата</h2>')
     once("const ext = (name) => (String(name).split('.').pop() || '').toUpperCase().slice(0, 7);",
@@ -80,6 +84,7 @@ def apply_native_ui(raw: bytes) -> bytes:
          "      if(status==='processing' && typeof adapter.cancel==='function'){runBtn.hidden=false;runBtn.disabled=false;runBtn.textContent='Отменить';}")
     once('    async function inspect() {',
          '    async function inspect() {\n      adapter.resetProgress?.();')
+    once('Определяем форматы и доступные действия…', 'Проверяем направления до конвертации…')
     once('alive=false;inspectionToken++;closePopover();',
          'alive=false;inspectionToken++;adapter.resetProgress?.();closePopover();')
     once("formatValues={};currentResult=null;retryResult=null;status='idle';statusMessage='';renderFormats();renderOptions();renderSummary();",
@@ -93,4 +98,28 @@ def apply_native_ui(raw: bytes) -> bytes:
         if source.count(name) != count:
             raise ValueError('Native selection eligibility requires controller review: ' + name)
         source = source.replace(name, name.replace('compatibleFileIds', 'selectableFileIds'))
+    once('    const selectedFormats = new Set();',
+         '    const selectedFormats = new Set();\n    let onlyVerified = false;')
+    once('    function selectAllAvailableFormats() {',
+         '    function selectAllAvailableFormats() {\n      onlyVerified = true;')
+    anchor = 'const available=(analysis?.formats||[]).filter(formatAvailable);'
+    if source.count(anchor) != 2:
+        raise ValueError('Preflight Select All requires controller review')
+    source = source.replace(anchor, "const available=(analysis?.formats||[]).filter(f=>f.enabled&&selectedFiles().some(x=>f.verifiedFileIds.includes(x.id)));")
+    once("button.addEventListener('click',()=>{if(!enabled || saving || status==='processing')return;",
+         "button.addEventListener('click',()=>{if(!enabled || saving || status==='processing')return;onlyVerified=false;")
+    once('formatIds:[...selectedFormats],onProgress}', 'formatIds:[...selectedFormats],onProgress,onlyVerified}')
+    once('formatId:fmt.id,options:{...formatValues},onProgress}',
+         'formatId:fmt.id,options:{...formatValues},onProgress,onlyVerified}')
+    once("statusMessage=analysis.formats.some(f=>f.enabled)?'':analysis.message;", 'statusMessage=analysis.message;')
+    once('alive=false;inspectionToken++;adapter.resetProgress?.();closePopover();',
+         "alive=false;inspectionToken++;if(adapter.dispose)adapter.dispose();else adapter.resetProgress?.();closePopover();")
+    once('    async function runConversion() {',
+         "    async function runConversion() {\n"
+         "      if(status==='checking'&&adapter.cancelInspection){await adapter.cancelInspection();return;}\n"
+         "      if(status==='error'&&!analysis&&files.length){await inspect();return;}")
+    once("      if(status==='processing' && typeof adapter.cancel==='function'){runBtn.hidden=false;runBtn.disabled=false;runBtn.textContent='Отменить';}",
+         "      if(status==='processing' && typeof adapter.cancel==='function'){runBtn.hidden=false;runBtn.disabled=false;runBtn.textContent='Отменить';}\n"
+         "      if(status==='checking'&&adapter.cancelInspection){runBtn.hidden=false;runBtn.disabled=false;runBtn.textContent='Отменить проверку';}\n"
+         "      if(status==='error'&&!analysis&&files.length){runBtn.hidden=false;runBtn.disabled=false;runBtn.textContent='Повторить проверку';}")
     return source.encode('utf-8')

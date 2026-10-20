@@ -20,6 +20,7 @@ class GuardLimits:
     retention_seconds: float = 1800
     max_metadata_bytes: int = 1024 * 1024
     upload_idle_timeout: float = 30
+    preflight_timeout: float = 15
 
     def __post_init__(self):
         for key in ('max_jobs', 'max_metadata_bytes'):
@@ -30,7 +31,7 @@ class GuardLimits:
             value = getattr(self, key)
             if value is not None and (type(value) is not int or value <= 0):
                 raise ValueError(key + ' must be None or a positive integer')
-        for key in ('file_timeout', 'retention_seconds', 'upload_idle_timeout'):
+        for key in ('file_timeout', 'retention_seconds', 'upload_idle_timeout', 'preflight_timeout'):
             value = getattr(self, key)
             if value is None and key == 'file_timeout':
                 continue

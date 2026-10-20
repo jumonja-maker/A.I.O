@@ -23,8 +23,9 @@ const files=JSON.parse(process.env.AIO_TEST_SOURCES).map((path,i)=>({id:'f'+i,
 const formatIds=['pdf','docx','odt','dbf','png'];
 const inspection=await bridge.inspectFiles({files});
 const dbf=inspection.formats.find(f=>f.id==='dbf');
-assert.ok(dbf.nativeAttemptAvailable);
-assert.deepEqual(dbf.selectableFileIds,files.map(f=>f.id));
+// v0.6 imports first, so known Draw/Writer exclusions are already authoritative.
+assert.equal(dbf.nativeAttemptAvailable,!inspection.preflightComplete);
+assert.deepEqual(dbf.selectableFileIds,inspection.preflightComplete?[]:files.map(f=>f.id));
 const outcome=await bridge.convertMany({files,formatIds});
 const report=outcome.targetReport;
 writeFileSync(process.env.AIO_TEST_ARCHIVE.replace(/\.zip$/,'.status.json'),JSON.stringify(report,

@@ -1,0 +1,280 @@
+{
+  "status": "PASS",
+  "scope": "native LibreOffice + real HTTP/browser bridge; Qt save fixture",
+  "total": 15,
+  "succeeded": 9,
+  "attempted": 9,
+  "filtered": 6,
+  "failed": 0,
+  "preflightChecks": 3,
+  "requests": {
+    "uploads": 3,
+    "preflights": 1,
+    "starts": 1,
+    "polls": 180,
+    "unchanged": 168
+  },
+  "beforeExport": {
+    "state": "prepared",
+    "total": 0,
+    "attempted": 0
+  },
+  "preflight": [
+    {
+      "id": "f0",
+      "name": "picture.bmp",
+      "state": "detected",
+      "documentServices": [
+        "com.sun.star.drawing.DrawingDocument"
+      ],
+      "basis": "native_preflight_document_kind",
+      "nativeKind": 3,
+      "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+      "exported": false
+    },
+    {
+      "id": "f1",
+      "name": "renamed.bmp",
+      "state": "detected",
+      "documentServices": [
+        "com.sun.star.text.TextDocument",
+        "com.sun.star.text.WebDocument",
+        "com.sun.star.text.GlobalDocument"
+      ],
+      "basis": "native_preflight_document_kind",
+      "nativeKind": 0,
+      "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+      "exported": false
+    },
+    {
+      "id": "f2",
+      "name": "table.xlsx",
+      "state": "detected",
+      "documentServices": [
+        "com.sun.star.sheet.SpreadsheetDocument"
+      ],
+      "basis": "native_preflight_document_kind",
+      "nativeKind": 1,
+      "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+      "exported": false
+    }
+  ],
+  "confirmedRoutes": [
+    {
+      "id": "f0",
+      "count": 27
+    },
+    {
+      "id": "f1",
+      "count": 37
+    },
+    {
+      "id": "f2",
+      "count": 37
+    }
+  ],
+  "excluded": [
+    {
+      "fileId": "f0",
+      "format": "dbf",
+      "stage": "preflight",
+      "started": false
+    },
+    {
+      "fileId": "f0",
+      "format": "docx",
+      "stage": "preflight",
+      "started": false
+    },
+    {
+      "fileId": "f0",
+      "format": "odt",
+      "stage": "preflight",
+      "started": false
+    },
+    {
+      "fileId": "f1",
+      "format": "dbf",
+      "stage": "preflight",
+      "started": false
+    },
+    {
+      "fileId": "f2",
+      "format": "docx",
+      "stage": "preflight",
+      "started": false
+    },
+    {
+      "fileId": "f2",
+      "format": "odt",
+      "stage": "preflight",
+      "started": false
+    }
+  ],
+  "saveCancellationRetry": true,
+  "releasedSpool": true,
+  "cachedInspection": true,
+  "outputs": [
+    {
+      "fileId": "f0",
+      "format": "pdf",
+      "archiveName": "0002-pdf/picture.pdf"
+    },
+    {
+      "fileId": "f0",
+      "format": "png",
+      "archiveName": "0005-png/picture.png"
+    },
+    {
+      "fileId": "f1",
+      "format": "pdf",
+      "archiveName": "0007-pdf/renamed.pdf"
+    },
+    {
+      "fileId": "f1",
+      "format": "docx",
+      "archiveName": "0008-docx/renamed.docx"
+    },
+    {
+      "fileId": "f1",
+      "format": "odt",
+      "archiveName": "0009-odt/renamed.odt"
+    },
+    {
+      "fileId": "f1",
+      "format": "png",
+      "archiveName": "0010-png/renamed.png"
+    },
+    {
+      "fileId": "f2",
+      "format": "dbf",
+      "archiveName": "0011-dbf/table.dbf"
+    },
+    {
+      "fileId": "f2",
+      "format": "pdf",
+      "archiveName": "0012-pdf/table.pdf"
+    },
+    {
+      "fileId": "f2",
+      "format": "png",
+      "archiveName": "0015-png/table.png"
+    }
+  ],
+  "engine": "LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5",
+  "windows": "NOT_RUN",
+  "qtNativeSave": "NOT_RUN",
+  "sourceBytesUnchanged": true,
+  "observerThreadsAfterClose": 0,
+  "nativeImports": [
+    {
+      "source": "picture.bmp",
+      "seconds": 0.303
+    },
+    {
+      "source": "renamed.bmp",
+      "seconds": 0.604
+    },
+    {
+      "source": "table.xlsx",
+      "seconds": 0.403
+    }
+  ],
+  "exportCalls": [
+    {
+      "source": "picture.bmp",
+      "format": "pdf"
+    },
+    {
+      "source": "picture.bmp",
+      "format": "png"
+    },
+    {
+      "source": "renamed.bmp",
+      "format": "pdf"
+    },
+    {
+      "source": "renamed.bmp",
+      "format": "docx"
+    },
+    {
+      "source": "renamed.bmp",
+      "format": "odt"
+    },
+    {
+      "source": "renamed.bmp",
+      "format": "png"
+    },
+    {
+      "source": "table.xlsx",
+      "format": "dbf"
+    },
+    {
+      "source": "table.xlsx",
+      "format": "pdf"
+    },
+    {
+      "source": "table.xlsx",
+      "format": "png"
+    }
+  ],
+  "sourceSha256": {
+    "picture.bmp": "e15eefabc8dbfab165f96509f59dddc3916406505a2bdb5c5d0c390cda3e5b2d",
+    "renamed.bmp": "fdb9a3e597327e0620243475653aefb38f66d1f7f620bb18efdbf8e872a828c7",
+    "table.xlsx": "29d04c5caf613b0aae2b54df9f56a3d80428e82054fd0fb2157f81216361fdfb"
+  },
+  "directNegativeControls": {
+    "checked": 6,
+    "falseDenialsDetected": 0,
+    "inconclusive": 2,
+    "results": [
+      {
+        "source": "picture.bmp",
+        "format": "dbf",
+        "nativeError": "ENGINE_FAILED",
+        "conclusive": true
+      },
+      {
+        "source": "picture.bmp",
+        "format": "docx",
+        "nativeError": "ENGINE_FAILED",
+        "conclusive": true
+      },
+      {
+        "source": "picture.bmp",
+        "format": "odt",
+        "nativeError": "ENGINE_FAILED",
+        "conclusive": true
+      },
+      {
+        "source": "renamed.bmp",
+        "format": "dbf",
+        "nativeError": "ENGINE_FAILED",
+        "conclusive": true
+      },
+      {
+        "source": "table.xlsx",
+        "format": "docx",
+        "nativeError": "ENGINE_TIMEOUT",
+        "conclusive": false
+      },
+      {
+        "source": "table.xlsx",
+        "format": "odt",
+        "nativeError": "ENGINE_TIMEOUT",
+        "conclusive": false
+      }
+    ]
+  },
+  "nativeTimeoutFallback": {
+    "code": "PREFLIGHT_TIMEOUT",
+    "manualExportSucceeded": true
+  },
+  "nativeInspectionCancellation": true,
+  "pdfBaseline": {
+    "pages": 2,
+    "textEqual": true,
+    "encodedImagesEqual": true
+  },
+  "qualityScannerAdded": false
+}

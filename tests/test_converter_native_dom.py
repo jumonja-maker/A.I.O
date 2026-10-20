@@ -18,6 +18,15 @@ class GuardDOMAdapter(LibreOfficeAdapter):
         super().__init__(executable)
         self.native = native
 
+    def preflight(self, source, workspace, *, cancel, timeout):
+        head=source.read_bytes()[:8]
+        if head.startswith((b'BROKEN',b'UNKNOWN!')):
+            return {'state':'undetermined','code':'PREFLIGHT_IMPORT_UNDETERMINED'}
+        service = D if head.startswith(b'BM') else C if head.startswith(b'a,b') else W
+        return {'state':'detected','basis':'native_preflight_document_kind',
+                'documentServices':[service],
+                'registryFingerprint':registry(self.executable).fingerprint,'exported':False}
+
     def convert(self, source, target, workspace, *, on_document_service=None, **kwargs):
         native = registry(self.executable)
         head = source.read_bytes()[:8]

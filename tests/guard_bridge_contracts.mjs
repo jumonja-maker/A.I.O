@@ -30,13 +30,20 @@ function environment(options={}) {
       json:async()=>{assert.notEqual(status,304,'304 must never be parsed as JSON');return payload;}});
     if(path==='/inspect') return reply({files:[],formats:formats.map(id=>({id,
       incompatibleFileIds:['one'],compatibleFileIds:[]}))});
-    if(path==='/jobs') {
+    if(path==='/prepare') {
       if(options.created) await options.created.promise;
       return reply({jobId},201);
     }
+    if(path==='/prepare-update')return options.prepareUpdateError
+      ?reply({code:'SPOOL_QUOTA',error:'No configured quota'},413):reply({jobId});
     if(path.startsWith('/input')) {
       if(options.uploadError)return reply({code:'UPLOAD_TRUNCATED',error:'Upload failed'},400);
       return reply({ok:true});
+    }
+    if(path==='/preflight') {
+      if(options.preflight)await options.preflight.promise;
+      return reply({preflightComplete:true,files:[],formats:formats.map(id=>({id,
+        verifiedFileIds:['one'],compatibleFileIds:['one'],selectableFileIds:['one']}))});
     }
     if(path==='/cancel') {cancelled=true;return reply({ok:true});}
     if(path==='/start') return reply({ok:true},202);
@@ -68,9 +75,10 @@ const completed=[];
 {
   const e=environment();
   const outcome=await e.bridge.convertMany({files,formatIds:formats});
-  const request=e.calls.find(c=>c.path==='/jobs').body;
-  assert.deepEqual(JSON.parse(JSON.stringify(request.plan)),[{fileId:'one',formats}]);
-  assert.equal(e.calls.some(c=>c.path==='/inspect'),false,'run reuses the choice, no new filename veto');
+  const request=e.calls.find(c=>c.path==='/start').body;
+  assert.deepEqual(JSON.parse(JSON.stringify(request.formats)),formats);
+  assert.deepEqual(JSON.parse(JSON.stringify(request.fileIds)),['one']);
+  assert.equal(e.calls.some(c=>c.path==='/inspect'),false,'run does not infer type from a filename');
   assert.equal(outcome.result.ticket,ticket);
   const gate=deferred();
   e.window.AllInOneBridge.saveExcel=async()=>{await gate.promise;return {saved:true};};
@@ -79,7 +87,7 @@ const completed=[];
   assert.equal(e.events.some(x=>typeof x==='string'&&x.startsWith('ack:')),false);
   gate.resolve();await saving;
   assert.ok(e.events.indexOf('ack:'+ticket)<e.events.indexOf('release'));
-  completed.push('complete broad plan and native-save acknowledgement ordering');
+  completed.push('preflight before complete plan and native-save acknowledgement ordering');
 }
 {
   let progress=0;
@@ -148,6 +156,59 @@ const completed=[];
   assert.equal(e.events.includes('release'),false);
   await e.bridge.saveResult({result:outcome.result});
   completed.push('cancelled job still offers completed outputs');
+}
+{
+  const e=environment();
+  const info=await e.bridge.inspectFiles({files});
+  assert.equal(info.preflightComplete,true);
+  assert.equal(e.calls.some(c=>c.path==='/start'),false,'inspection must not start export');
+  e.bridge.resetProgress(); // changing selected formats retains preparation
+  await e.bridge.inspectFiles({files});
+  await e.bridge.convertMany({files,formatIds:formats,onlyVerified:true});
+  assert.equal(e.calls.filter(c=>c.path==='/prepare').length,1);
+  assert.equal(e.calls.filter(c=>c.path.startsWith('/input')).length,1);
+  assert.equal(e.calls.filter(c=>c.path==='/preflight').length,1);
+  assert.equal(e.calls.find(c=>c.path==='/start').body.onlyVerified,true);
+  assert.ok(e.calls.findIndex(c=>c.path==='/preflight')<e.calls.findIndex(c=>c.path==='/start'));
+  completed.push('Select All reuses preflight and uploaded inputs without repeated native import');
+}
+{
+  const e=environment();
+  await e.bridge.inspectFiles({files});
+  await e.bridge.inspectFiles({files:[]});
+  assert.ok(e.calls.some(c=>c.path==='/release'));
+  assert.equal(e.calls.some(c=>c.path==='/start'),false);
+  completed.push('empty file list releases prepared inputs without export');
+}
+{
+  const e=environment(),extra={id:'two',file:{name:'new.xlsx',size:1}};
+  await e.bridge.inspectFiles({files});
+  await e.bridge.inspectFiles({files:[...files,extra]});
+  await e.bridge.inspectFiles({files:[extra]});
+  assert.equal(e.calls.filter(c=>c.path==='/prepare').length,1);
+  assert.equal(e.calls.filter(c=>c.path==='/prepare-update').length,2);
+  assert.equal(e.calls.filter(c=>c.path.startsWith('/input')).length,2);
+  assert.equal(e.calls.some(c=>c.path==='/start'),false);
+  completed.push('additions upload only new bytes; removals reuse prepared inputs');
+}
+{
+  const e=environment({prepareUpdateError:true});
+  await e.bridge.inspectFiles({files});
+  await assert.rejects(e.bridge.inspectFiles({files:[...files,{id:'two',file:{name:'new.xlsx',size:1}}]}),
+    error=>error.code==='SPOOL_QUOTA');
+  assert.ok(e.calls.some(c=>c.path==='/release'&&c.body.jobId===jobId));
+  assert.equal(e.calls.some(c=>c.path==='/start'),false);
+  completed.push('failed preparation update releases the previous disk ownership');
+}
+{
+  const preflight=deferred(),e=environment({preflight});
+  const inspection=e.bridge.inspectFiles({files});
+  while(!e.calls.some(c=>c.path==='/preflight'))await new Promise(r=>setTimeout(r,1));
+  await e.bridge.cancelInspection();preflight.resolve();
+  await assert.rejects(inspection,error=>error.code==='CANCELLED');
+  assert.ok(e.calls.some(c=>c.path==='/release'&&c.body.jobId===jobId));
+  assert.equal(e.calls.some(c=>c.path==='/start'),false);
+  completed.push('cancelled native inspection never caches a late response or starts export');
 }
 console.log(JSON.stringify({status:'PASS',scope:'browser adapter VM; controlled HTTP/native-save stub',
   scenarios:completed.length,checks:completed}));

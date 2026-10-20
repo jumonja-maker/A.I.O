@@ -47,7 +47,7 @@
         target: '', kind: 'Ошибка задания', reason: snapshot.statusMessage || 'Не удалось завершить задание. Нет подтверждения, что каждый файл завершился ошибкой.'});
       return rows;
     }
-    const candidates = selected.length ? selected : snapshot.formats.filter(f => !f.enabled);
+    const candidates = selected.length ? selected : snapshot.formats.filter(f => !f.enabled || f.undeterminedFileIds?.length);
     for (const fmt of candidates) {
       const ids = Array.isArray(fmt.compatibleFileIds) ? fmt.compatibleFileIds.map(String) : [];
       const undetermined = Array.isArray(fmt.undeterminedFileIds) ? fmt.undeterminedFileIds.map(String) : [];
@@ -60,10 +60,13 @@
         } else if (incompatible.includes(id)) {
           rows.push({source: file.name, target: fmt.label || fmt.id,
             kind: 'Нет зарегистрированного маршрута',
-            reason: 'Для расширения исходника реестр LibreOffice не показывает экспорт в этот формат. '
-              + 'Это предварительная подсказка, а не проверка содержимого.'});
+            reason: fmt.compatibility==='native_preflight'
+              ? 'Предварительная проверка определила тип содержимого. У этого типа в реестре LibreOffice нет выбранного экспорта.'
+              : 'Для расширения исходника реестр LibreOffice не показывает экспорт в этот формат. '
+                + 'Это предварительная подсказка, а не проверка содержимого.'});
         } else if (undetermined.includes(id)) {
-          // Unknown models are deliberately not reported as unsupported.
+          rows.push({source:file.name,target:fmt.label||fmt.id,kind:'Направление не подтверждено',
+            reason:'Не включается в «Выбрать всё». При необходимости выберите формат вручную для прямой попытки LibreOffice.'});
         }
       }
       const risk = fmt.help?.[2]?.text || '';
@@ -351,7 +354,7 @@
             Number.isSafeInteger(targetReport?.succeeded) && Number.isSafeInteger(targetReport?.failed)) {
           note.textContent = 'Готово: ' + targetReport.succeeded + ' из ' + targetReport.total +
             '. Пропущено Guard: ' + targetReport.filtered + '. Ошибок: ' + targetReport.failed +
-            '. Отменено: ' + targetReport.cancelled + '. Запусков LibreOffice: ' + targetReport.attempted +
+            '. Отменено: ' + targetReport.cancelled + '. Экспортов LibreOffice: ' + targetReport.attempted +
             '. Сохранность содержимого пока не проверялась.';
         } else if (after && Number.isSafeInteger(targetReport?.succeeded) && targetReport.succeeded >= 0 &&
             Number.isSafeInteger(targetReport?.total) && targetReport.total >= targetReport.succeeded &&
