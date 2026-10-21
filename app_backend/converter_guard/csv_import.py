@@ -25,7 +25,7 @@ def csv_import_hint(source: Path, native):
         return None
     eligible = [name for name, (service, extensions, flags) in native.filters.items()
                 if service == CALC and 'csv' in extensions and 'IMPORT' in flags]
-    preferred = set(native.preferred_filters.get('csv', ())).intersection(eligible)
+    preferred = set(getattr(native, 'preferred_filters', {}).get('csv', ())).intersection(eligible)
     if len(preferred) == 1:
         selected = next(iter(preferred))
     elif len(eligible) == 1:
