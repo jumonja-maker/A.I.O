@@ -57,11 +57,35 @@ jobs:
           $python='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\Scripts\python.exe'
           $marker='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\.00aio-test-only-venv.txt'
           if (-not (Test-Path -LiteralPath $python -PathType Leaf) -or -not (Test-Path -LiteralPath $marker -PathType Leaf) -or (Get-Content -LiteralPath $marker -Raw).Trim() -cne '00AIO NIKITA ISOLATED DOCX PDF QA PY311 QT6103') { throw 'Approved offline Python missing.' }
-          $sha=(& git rev-parse HEAD).Trim()
-          $tree=(& git rev-parse HEAD^{tree}).Trim()
-          if ($sha -cne '337e9ab0d6fb4a9b65ade576155bf485d14a2205' -or $tree -cne '79fba36042fcd5ecc3a8203563db79db16811902') { throw 'Pinned source SHA/tree mismatch.' }
-          Write-Host ('PINNED_SHA='+$sha)
-          Write-Host ('PINNED_TREE='+$tree)
+          # NIKITA checkout can use the GitHub REST archive with no Git in PATH.
+          # Verify all extracted files against the trusted source commit's tree.
+          $verify=@'
+          import hashlib,sys
+          from pathlib import Path
+          def digest(folder):
+              entries=[]
+              for child in folder.iterdir():
+                  if child.name=='.git': continue
+                  name=child.name.encode('utf-8')
+                  if child.is_symlink(): raise ValueError('Unexpected symlink')
+                  if child.is_dir():
+                      mode,oid,key=b'40000',digest(child),name+b'/'
+                  elif child.is_file():
+                      data=child.read_bytes()
+                      mode=b'100644'
+                      oid=hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).digest()
+                      key=name
+                  else: raise ValueError('Unexpected file type')
+                  entries.append((key,mode+b' '+name+b'\0'+oid))
+              raw=b''.join(row for _,row in sorted(entries,key=lambda x:x[0]))
+              return hashlib.sha1(b'tree '+str(len(raw)).encode()+b'\0'+raw).digest()
+          found=digest(Path.cwd()).hex()
+          print('PINNED_TREE='+found)
+          if found!=sys.argv[1]: raise SystemExit('Pinned source tree mismatch')
+          '@
+          & $python -c $verify '79fba36042fcd5ecc3a8203563db79db16811902'
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned source snapshot rejected.' }
+          Write-Host 'PINNED_SOURCE=337e9ab0d6fb4a9b65ade576155bf485d14a2205'
           & $python -c 'import sys,openpyxl,PySide6.QtWebEngineWidgets; assert sys.version_info[:2]==(3,11)'
           if ($LASTEXITCODE -ne 0) { throw 'QA env prerequisites missing.' }
       - name: Compile and run isolated telemetry and Guard suites
