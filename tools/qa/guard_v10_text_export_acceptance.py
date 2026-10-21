@@ -145,6 +145,17 @@ def main():
         for key in sources:
             for target in ('csv', 'tsv', 'tab'):
                 actual = records(outputs[key, target], ',' if target == 'csv' else '\t')
+                if actual != expected_by_source[key]:
+                    # Synthetic QA fixtures only; report a bounded redacted
+                    # row/byte preview to diagnose locale-sensitive LO behavior.
+                    print(json.dumps({
+                        'qaCellMismatch': key + ' -> ' + target,
+                        'actualRows': len(actual),
+                        'expectedRows': len(expected_by_source[key]),
+                        'actualPreview': actual[:5],
+                        'expectedPreview': expected_by_source[key][:5],
+                        'outputFirstBytesHex': outputs[key, target].read_bytes()[:96].hex(),
+                    }, ensure_ascii=True), flush=True)
                 assert actual == expected_by_source[key], 'Cell mismatch: ' + key + ' -> ' + target
                 checks.append({'source': key, 'target': target, 'rows': len(actual), 'status': 'PASS'})
         assert outputs['xlsx', 'pdf'].read_bytes().startswith(b'%PDF-')
