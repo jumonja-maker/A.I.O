@@ -28,8 +28,10 @@ class UnoWorkerContracts(unittest.TestCase):
             def getArgs(self):return (SimpleNamespace(Name='FilterName',Value='Actual native import'),)
             def storeToURL(self,url,options):
                 exports.append({p.Name:p.Value for p in options})
-                from urllib.parse import unquote,urlsplit
-                Path(unquote(urlsplit(url).path)).write_text('native fixture')
+                from urllib.parse import urlsplit
+                from urllib.request import url2pathname
+                # file:///D:/... must resolve to D:\\... on Windows.
+                Path(url2pathname(urlsplit(url).path)).write_text('native fixture')
             def close(self,negotiate):self.closed=True
         def load(url,frame,flags,options):
             loads.append({p.Name:p.Value for p in options})
