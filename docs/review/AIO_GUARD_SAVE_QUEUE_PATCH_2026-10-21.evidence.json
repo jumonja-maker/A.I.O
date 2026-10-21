@@ -1,0 +1,100 @@
+{
+  "patch": "guard-save-queue-20261021",
+  "baseCommit": "1f5d39c81654c7156400d87c710a48cf1381f2ce",
+  "baseTree": "1495b042df536f733df051cee813950e5cb06cbe",
+  "basePullRequest": 16,
+  "mainAtVerification": "2bab2d0c31fe84a0d07404a33219dd5bdad834b7",
+  "localSourceVerification": {
+    "baseCommit": "1f5d39c81654c7156400d87c710a48cf1381f2ce",
+    "baseTree": "1495b042df536f733df051cee813950e5cb06cbe",
+    "verifiedBlobs": 179,
+    "unmaterializedUnchangedFiles": [
+      "assets/brand/aio-new-brand-source.png",
+      "assets/brand/elva-v13-happy-source.png"
+    ]
+  },
+  "fullDiscovery": {
+    "run": 259,
+    "failures": 1,
+    "subtestErrors": 2,
+    "skipped": 3,
+    "limitation": "Two unchanged >1 MB master PNGs are not available in the local checkout. Both affected test methods were then explicitly omitted from the code regression run."
+  },
+  "codeRegressions": {
+    "run": 258,
+    "passed": 255,
+    "skipped": 3,
+    "failures": 0,
+    "errors": 0,
+    "omittedBrandMethods": 2,
+    "elapsedSeconds": 34.755,
+    "omitted": [
+      "test_brand_restoration.BrandRestorationTests.test_both_original_pngs_match_owner_digests_and_have_alpha",
+      "test_brand_restoration.BrandRestorationTests.test_spec_bundles_icon_and_approved_sources_and_sets_exe_resource"
+    ],
+    "skippedReason": "Existing linkedom-dependent DOM acceptance; AIO_DOM_MODULE is not installed."
+  },
+  "afterLastUiGuardChange": {
+    "bridgeWrapper": "PASS",
+    "actualJavaScriptScenarios": 8,
+    "otherApplicationLogicChanged": false
+  },
+  "actualBridgeContracts": {
+    "existingScenarios": 14,
+    "newScenarios": 8,
+    "status": "PASS",
+    "nativeSaveBoundary": "controlled test acknowledgements"
+  },
+  "loopbackHttpTests": {
+    "run": 17,
+    "status": "PASS"
+  },
+  "newPythonSaveQueueRegressions": {
+    "run": 8,
+    "status": "PASS"
+  },
+  "synthetic1000FileQueue": {
+    "succeeded": 1000,
+    "failed": 0,
+    "pythonHeapPeakMiB": 9.84,
+    "elapsedSecondsWithTracemalloc": 16.092,
+    "realLibreOfficeExports": false
+  },
+  "nativeAcceptance": {
+    "status": "PASS",
+    "engineVersion": "LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5",
+    "nativeExports": 3,
+    "scope": "Linux native CLI; generated DOCX fixtures; controlled barrier before second export",
+    "windowsQt": "NOT_RUN",
+    "fullVisualQuality": "NOT_RUN",
+    "preflightMs": 1286,
+    "liveSaveMs": 7,
+    "liveSnapshotOutputs": 1,
+    "finalSnapshotOutputs": 3,
+    "savedDuringLiveQueue": true,
+    "lateOutputsNotAcknowledged": true,
+    "independentQaReadback": "PASS",
+    "pdfTextMarkers": "PASS",
+    "sourceBytesUnchanged": "PASS",
+    "sourceSHA256": {
+      "first.docx": "521a624a47b2460c66bb29e528d6ad142a3dc633c238cdd46bbd06cedfcce922",
+      "hold.docx": "521a624a47b2460c66bb29e528d6ad142a3dc633c238cdd46bbd06cedfcce922",
+      "last.docx": "521a624a47b2460c66bb29e528d6ad142a3dc633c238cdd46bbd06cedfcce922"
+    },
+    "finalSucceeded": 3,
+    "finalFailed": 0,
+    "finalCancelled": 0,
+    "elapsedMs": 2858
+  },
+  "notRun": [
+    "Windows NIKITA",
+    "PySide6/Qt native save dialog",
+    "Real browser visual/DOM acceptance",
+    "Original 255-file full conversion corpus",
+    "Independent visual fidelity comparison"
+  ],
+  "unmodifiedMasterBlobs": {
+    "assets/brand/aio-new-brand-source.png": "4288071be3e10f33227aacd1f495f1d0d5f03783",
+    "assets/brand/elva-v13-happy-source.png": "6eb9e3b15bf369d298af0b98a64db152bf59618a"
+  }
+}

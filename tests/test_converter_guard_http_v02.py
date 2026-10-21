@@ -134,6 +134,19 @@ class GuardHTTPTests(unittest.TestCase):
         saved=self.json_request('saved',{'jobId':state['jobId'],'ticket':ticket})
         self.assertEqual(saved['files'][0]['state'],'saved')
 
+    def test_compact_save_acknowledgement_is_explicit_and_bounded(self):
+        state=self.job([('first.docx',b'x'),('second.docx',b'x')],['pdf','png'])
+        body={'jobId':state['jobId'],'ticket':state['result']['ticket'],'compact':True}
+        saved=self.json_request('saved',body)
+        self.assertTrue(saved['savedAll'])
+        self.assertEqual(saved['outputs'],4)
+        self.assertEqual(saved['remainingOutputs'],0)
+        self.assertNotIn('files',saved)
+        self.assertLess(len(json.dumps(saved)),600)
+        with self.assertRaises(HTTPError) as error:
+            self.request('saved',{**body,'compact':'true'})
+        self.assertEqual(json.loads(error.exception.read())['code'],'SAVE_REQUEST')
+
     def test_partial_result_includes_failures_without_blocking_other_files(self):
         state=self.job([('bad.docx',b'x'),('okay.bmp',b'x')],['pdf','bad','png'])
         self.assertEqual(state['state'],'partial')
