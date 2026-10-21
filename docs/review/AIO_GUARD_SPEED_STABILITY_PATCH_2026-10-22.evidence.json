@@ -1,0 +1,720 @@
+{
+  "patch": "guard-v11-speed-stability",
+  "date": "2026-10-22",
+  "repository": "jumonja-maker/A.I.O",
+  "branch": "patch/guard-v11-speed-stability-20261022",
+  "baseBranch": "feature/blackbox-deep-telemetry-v01-20261021",
+  "baseCommit": "282f5322d637750166c072a5dbb82103387b7c19",
+  "baseTree": "80933f1f58213dc35901268697026a6b5037d20e",
+  "testedFinalCodeCommit": "17be5c96b7e67fd6942685f03389a303926a8ef1",
+  "testedFinalCodeTree": "860e5ef1cb87f285b52eab5d464571510f94f1a9",
+  "codeBlobs": [
+    {
+      "path": "app_backend/converter_guard/adapter.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "55cd7b1aad0194685b05b83728bc76ffa48d5e94"
+    },
+    {
+      "path": "app_backend/converter_guard/core.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c5eaee277dd9d4b97a491924bf97421e8e94ef45"
+    },
+    {
+      "path": "app_backend/converter_guard/result_store.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c5be7a21c2c99347897ae8210f05a04435cfe667"
+    },
+    {
+      "path": "app_backend/converter_guard/uno_session.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3b1e18a128eb26adac8e677eafd77f39b6215bce"
+    },
+    {
+      "path": "app_backend/libreoffice_engine.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3632dc3a8dd6d2c1f09cb3c530ab88035afdcedb"
+    },
+    {
+      "path": "app_backend/converter_guard/native_metrics.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c52d78d2f04ecd6dcf9e32b3793a9bce90e726bd"
+    },
+    {
+      "path": "tests/test_guard_native_metrics_v11.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d1295ad6ecd60c62ab7d77b40f492e12eab97ecf"
+    },
+    {
+      "path": "tests/test_guard_performance_v11.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "61b448426de8e0da24badee69b0c3343edfb6445"
+    },
+    {
+      "path": "tools/qa/guard_v11_status_benchmark.py",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8d32037e3bace04b9b425eb02bd9177669aea023"
+    }
+  ],
+  "integratedOwnerChangesPreserved": {
+    "PR17": "merged into QA by 00AIO during this work",
+    "PR18": "merged into QA by 00AIO during this work",
+    "mainUnchanged": "2bab2d0c31fe84a0d07404a33219dd5bdad834b7",
+    "ownerBlobHashes": {
+      ".github/workflows/aio-guard-pr17-pr18-nikita-qa.yml": "b3defb0bd842409a33047253a6f3219b9e2c58d9",
+      ".github/workflows/blackbox-v02-nikita-qa.yml": "94973ee16efec600336706a1cb5593030b7920e9",
+      "app_backend/blackbox_telemetry.py": "3c1a13b5b118fb2c9e81db5a09c5c2402d1fd92e",
+      "tests/test_blackbox_audit_v02.py": "990acc1ea23c39ad60ba278f8b4adaa901ac1c3a",
+      "tools/qa/guard_v10_text_export_acceptance.py": "c34f35bb04ffb7a1d7f9c392f1df4ef1c2071d34"
+    }
+  },
+  "codeRegression": {
+    "status": "PASS",
+    "codeCommit": "17be5c96b7e67fd6942685f03389a303926a8ef1",
+    "baseCommit": "282f5322d637750166c072a5dbb82103387b7c19",
+    "all9CodeBlobsMatchPublishedCheckpoint": true,
+    "discovered": 291,
+    "run": 289,
+    "passed": 286,
+    "skipped": [
+      {
+        "test": "test_converter_native_dom.NativeUIDOMAcceptance.test_guard_unknown_and_renamed_file_selection",
+        "reason": "Set AIO_DOM_MODULE to an existing linkedom package"
+      },
+      {
+        "test": "test_converter_native_dom.NativeUIDOMAcceptance.test_thousand_file_queue_controls",
+        "reason": "Set AIO_DOM_MODULE to an existing linkedom package"
+      },
+      {
+        "test": "test_converter_native_dom.NativeUIDOMAcceptance.test_ui_contract",
+        "reason": "Set AIO_DOM_MODULE to an existing linkedom package"
+      }
+    ],
+    "failures": [],
+    "errors": [],
+    "excludedUnavailableBinarySources": [
+      "test_brand_restoration.BrandRestorationTests.test_both_original_pngs_match_owner_digests_and_have_alpha",
+      "test_brand_restoration.BrandRestorationTests.test_spec_bundles_icon_and_approved_sources_and_sets_exe_resource"
+    ],
+    "elapsedMs": 35319,
+    "syntheticQueue": {
+      "scope": "1000-file Guard queue; synthetic native boundary",
+      "files": 1000,
+      "succeeded": 1000,
+      "pythonHeapPeakMiB": 11.46,
+      "elapsedSecondsWithTracemalloc": 16.482
+    },
+    "excelRegression": "EXCEL_PERFORMANCE_10000_ROWS: 1.72s; 10000 rows x 8 cells exact"
+  },
+  "newTests": {
+    "performanceJournalRaces": 10,
+    "nativeTimingAndCleanup": 8,
+    "total": 18
+  },
+  "redEvidence": {
+    "initialPerformanceTests": {
+      "failures": 4,
+      "scope": "PR18 base before journal/status changes"
+    },
+    "initialNativeContracts": {
+      "errors": 4,
+      "scope": "worker lacked requested timing/reader/cleanup contracts"
+    },
+    "deepDetectionCalls": {
+      "before": 3,
+      "after": 1,
+      "modelsBefore": 3,
+      "modelsAfter": 3,
+      "scope": "1 inspect and 2 export controlled native objects"
+    },
+    "shutdownRace": {
+      "before": "UPLOAD_STATE after create raced shutdown",
+      "after": "GUARD_CLOSED from create",
+      "scope": "targeted concurrent controlled journal barrier"
+    }
+  },
+  "statusBenchmark": {
+    "summary": [
+      {
+        "files": 100,
+        "targetsPerFile": 32,
+        "medianBeforeMs": 0.865,
+        "medianAfterMs": 0.047,
+        "ratio": 18.4
+      },
+      {
+        "files": 1000,
+        "targetsPerFile": 32,
+        "medianBeforeMs": 8.29,
+        "medianAfterMs": 0.125,
+        "ratio": 66.32
+      }
+    ],
+    "rawPairedRuns": {
+      "scope": "same generated status workload; alternating order; no concurrent native exports",
+      "repetitions": [
+        {
+          "before": {
+            "scope": "synthetic Guard status bookkeeping; no native conversion",
+            "runs": [
+              {
+                "files": 100,
+                "targetsPerFile": 32,
+                "tasks": 3200,
+                "frames": 100,
+                "totalMs": 86.249,
+                "medianMs": 0.816,
+                "p95Ms": 0.993
+              },
+              {
+                "files": 1000,
+                "targetsPerFile": 32,
+                "tasks": 32000,
+                "frames": 100,
+                "totalMs": 838.725,
+                "medianMs": 8.29,
+                "p95Ms": 9.03
+              }
+            ]
+          },
+          "after": {
+            "scope": "synthetic Guard status bookkeeping; no native conversion",
+            "runs": [
+              {
+                "files": 100,
+                "targetsPerFile": 32,
+                "tasks": 3200,
+                "frames": 100,
+                "totalMs": 5.912,
+                "medianMs": 0.047,
+                "p95Ms": 0.12
+              },
+              {
+                "files": 1000,
+                "targetsPerFile": 32,
+                "tasks": 32000,
+                "frames": 100,
+                "totalMs": 13.098,
+                "medianMs": 0.124,
+                "p95Ms": 0.164
+              }
+            ]
+          }
+        },
+        {
+          "after": {
+            "scope": "synthetic Guard status bookkeeping; no native conversion",
+            "runs": [
+              {
+                "files": 100,
+                "targetsPerFile": 32,
+                "tasks": 3200,
+                "frames": 100,
+                "totalMs": 4.987,
+                "medianMs": 0.046,
+                "p95Ms": 0.062
+              },
+              {
+                "files": 1000,
+                "targetsPerFile": 32,
+                "tasks": 32000,
+                "frames": 100,
+                "totalMs": 12.863,
+                "medianMs": 0.125,
+                "p95Ms": 0.141
+              }
+            ]
+          },
+          "before": {
+            "scope": "synthetic Guard status bookkeeping; no native conversion",
+            "runs": [
+              {
+                "files": 100,
+                "targetsPerFile": 32,
+                "tasks": 3200,
+                "frames": 100,
+                "totalMs": 91.034,
+                "medianMs": 0.878,
+                "p95Ms": 1.205
+              },
+              {
+                "files": 1000,
+                "targetsPerFile": 32,
+                "tasks": 32000,
+                "frames": 100,
+                "totalMs": 819.716,
+                "medianMs": 7.904,
+                "p95Ms": 9.827
+              }
+            ]
+          }
+        },
+        {
+          "before": {
+            "scope": "synthetic Guard status bookkeeping; no native conversion",
+            "runs": [
+              {
+                "files": 100,
+                "targetsPerFile": 32,
+                "tasks": 3200,
+                "frames": 100,
+                "totalMs": 88.617,
+                "medianMs": 0.865,
+                "p95Ms": 1.037
+              },
+              {
+                "files": 1000,
+                "targetsPerFile": 32,
+                "tasks": 32000,
+                "frames": 100,
+                "totalMs": 927.522,
+                "medianMs": 9.158,
+                "p95Ms": 10.364
+              }
+            ]
+          },
+          "after": {
+            "scope": "synthetic Guard status bookkeeping; no native conversion",
+            "runs": [
+              {
+                "files": 100,
+                "targetsPerFile": 32,
+                "tasks": 3200,
+                "frames": 100,
+                "totalMs": 7.241,
+                "medianMs": 0.048,
+                "p95Ms": 0.13
+              },
+              {
+                "files": 1000,
+                "targetsPerFile": 32,
+                "tasks": 32000,
+                "frames": 100,
+                "totalMs": 15.9,
+                "medianMs": 0.132,
+                "p95Ms": 0.251
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "scope": "status bookkeeping only, not conversion throughput",
+    "benchmarkCoreCommit": "11a5f30257d8d5b54ce151fcfd4cc43b9ce3fdc2",
+    "finalStatusBookkeepingUnchanged": true
+  },
+  "nativeAcceptanceCodeCommit": "006f8a4b9531b569c6f2e0a6364f2cca09bc214a",
+  "nativeAcceptanceScopeNote": "Final 17be5c9 only adds create/shutdown rejection and its test; import/export/save unchanged. Final full regression is separately recorded.",
+  "nativeText": {
+    "status": "PASS",
+    "engineVersion": "LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5",
+    "scope": "Linux native CLI; generated text/spreadsheet fixtures",
+    "windowsUnoQt": "NOT_RUN",
+    "fullVisualQuality": "NOT_RUN",
+    "preflightMs": 1475,
+    "conversionMs": 156696,
+    "nativeExportsSucceeded": 16,
+    "nativeExportsFailed": 0,
+    "nativeExportsCancelled": 0,
+    "failedTargets": [],
+    "sources": 5,
+    "fixturePreparationExports": 1,
+    "localeNumericNotationVariants": [],
+    "cellQualityContract": "exact text, decimal-equivalent for two fixture numeric cells",
+    "directNativeControls": [
+      {
+        "source": "xlsx",
+        "target": "tsv",
+        "byteIdentical": true
+      },
+      {
+        "source": "semicolon",
+        "target": "csv",
+        "byteIdentical": true
+      }
+    ],
+    "outputChecks": [
+      {
+        "source": "xlsx",
+        "target": "csv",
+        "rows": 4,
+        "status": "PASS"
+      },
+      {
+        "source": "xlsx",
+        "target": "tsv",
+        "rows": 4,
+        "status": "PASS"
+      },
+      {
+        "source": "xlsx",
+        "target": "tab",
+        "rows": 4,
+        "status": "PASS"
+      },
+      {
+        "source": "ods",
+        "target": "csv",
+        "rows": 4,
+        "status": "PASS"
+      },
+      {
+        "source": "ods",
+        "target": "tsv",
+        "rows": 4,
+        "status": "PASS"
+      },
+      {
+        "source": "ods",
+        "target": "tab",
+        "rows": 4,
+        "status": "PASS"
+      },
+      {
+        "source": "semicolon",
+        "target": "csv",
+        "rows": 4,
+        "status": "PASS"
+      },
+      {
+        "source": "semicolon",
+        "target": "tsv",
+        "rows": 4,
+        "status": "PASS"
+      },
+      {
+        "source": "semicolon",
+        "target": "tab",
+        "rows": 4,
+        "status": "PASS"
+      },
+      {
+        "source": "tsv",
+        "target": "csv",
+        "rows": 4,
+        "status": "PASS"
+      },
+      {
+        "source": "tsv",
+        "target": "tsv",
+        "rows": 4,
+        "status": "PASS"
+      },
+      {
+        "source": "tsv",
+        "target": "tab",
+        "rows": 4,
+        "status": "PASS"
+      },
+      {
+        "source": "boundary",
+        "target": "csv",
+        "rows": 10922,
+        "status": "PASS"
+      },
+      {
+        "source": "boundary",
+        "target": "tsv",
+        "rows": 10922,
+        "status": "PASS"
+      },
+      {
+        "source": "boundary",
+        "target": "tab",
+        "rows": 10922,
+        "status": "PASS"
+      }
+    ],
+    "savedOutputs": 16,
+    "boundaryRows": 10922,
+    "sourceBytesUnchanged": "PASS",
+    "sourceSHA256": {
+      "xlsx": "34fdd442ac5080a94c0dcb88aeba304bd19a70f7218070dca12890e4413cbd85",
+      "ods": "3477b3c680346eef5a98afd40f30ff03d64beda2f5db1a605e9f593d4a76a0f1",
+      "semicolon": "14c4b17f236e42add2d90fcda0b2a9bc0d7cf9e299109401f3317873e7ba4bca",
+      "tsv": "8d22ad4f157db652728f6356d63a7dbeda979b196f26071c4385b8380600396c",
+      "boundary": "996e20bc3026f639784a43fe30a6ad6a722f1c3aae32ac1fbb71201553a93937"
+    },
+    "quotedLfUnicodeAndFormulaValue": "PASS",
+    "pdfHeader": "PASS",
+    "elapsedMs": 189714
+  },
+  "nativeLiveSave": {
+    "status": "PASS",
+    "engineVersion": "LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5",
+    "nativeExports": 3,
+    "scope": "Linux native CLI; generated DOCX fixtures; controlled barrier before second export",
+    "windowsQt": "NOT_RUN",
+    "fullVisualQuality": "NOT_RUN",
+    "preflightMs": 1180,
+    "liveSaveMs": 5,
+    "liveSnapshotOutputs": 1,
+    "finalSnapshotOutputs": 3,
+    "savedDuringLiveQueue": true,
+    "lateOutputsNotAcknowledged": true,
+    "independentQaReadback": "PASS",
+    "pdfTextMarkers": "PASS",
+    "sourceBytesUnchanged": "PASS",
+    "sourceSHA256": {
+      "first.docx": "09d46b925f80c71c2bac55827909fa375e48eac393c040c08758c446877144e9",
+      "hold.docx": "09d46b925f80c71c2bac55827909fa375e48eac393c040c08758c446877144e9",
+      "last.docx": "09d46b925f80c71c2bac55827909fa375e48eac393c040c08758c446877144e9"
+    },
+    "finalSucceeded": 3,
+    "finalFailed": 0,
+    "finalCancelled": 0,
+    "elapsedMs": 2537
+  },
+  "nativePhaseMeasurements": {
+    "scope": "CLI phase measurements from saved native text QA report",
+    "tasks": [
+      {
+        "fileId": "xlsx",
+        "target": "csv",
+        "timings": {
+          "source": "cli_process",
+          "launchMs": 0,
+          "processMs": 9733,
+          "adapterMs": 9734
+        }
+      },
+      {
+        "fileId": "xlsx",
+        "target": "tsv",
+        "timings": {
+          "source": "cli_process",
+          "launchMs": 0,
+          "processMs": 10322,
+          "adapterMs": 10323
+        }
+      },
+      {
+        "fileId": "xlsx",
+        "target": "tab",
+        "timings": {
+          "source": "cli_process",
+          "launchMs": 0,
+          "processMs": 10022,
+          "adapterMs": 10023
+        }
+      },
+      {
+        "fileId": "xlsx",
+        "target": "pdf",
+        "timings": {
+          "source": "cli_process",
+          "launchMs": 0,
+          "processMs": 9925,
+          "adapterMs": 9926
+        }
+      },
+      {
+        "fileId": "ods",
+        "target": "csv",
+        "timings": {
+          "source": "cli_process",
+          "launchMs": 0,
+          "processMs": 9928,
+          "adapterMs": 9929
+        }
+      },
+      {
+        "fileId": "ods",
+        "target": "tsv",
+        "timings": {
+          "source": "cli_process",
+          "launchMs": 1,
+          "processMs": 9818,
+          "adapterMs": 9819
+        }
+      },
+      {
+        "fileId": "ods",
+        "target": "tab",
+        "timings": {
+          "source": "cli_process",
+          "launchMs": 0,
+          "processMs": 9416,
+          "adapterMs": 9417
+        }
+      },
+      {
+        "fileId": "semicolon",
+        "target": "csv",
+        "timings": {
+          "source": "cli_process",
+          "launchMs": 0,
+          "processMs": 9618,
+          "adapterMs": 9619
+        }
+      },
+      {
+        "fileId": "semicolon",
+        "target": "tsv",
+        "timings": {
+          "source": "cli_process",
+          "launchMs": 0,
+          "processMs": 10121,
+          "adapterMs": 10122
+        }
+      },
+      {
+        "fileId": "semicolon",
+        "target": "tab",
+        "timings": {
+          "source": "cli_process",
+          "launchMs": 0,
+          "processMs": 9721,
+          "adapterMs": 9721
+        }
+      },
+      {
+        "fileId": "tsv",
+        "target": "csv",
+        "timings": {
+          "source": "cli_process",
+          "launchMs": 0,
+          "processMs": 10121,
+          "adapterMs": 10122
+        }
+      },
+      {
+        "fileId": "tsv",
+        "target": "tsv",
+        "timings": {
+          "source": "cli_process",
+          "launchMs": 0,
+          "processMs": 9518,
+          "adapterMs": 9519
+        }
+      },
+      {
+        "fileId": "tsv",
+        "target": "tab",
+        "timings": {
+          "source": "cli_process",
+          "launchMs": 0,
+          "processMs": 9618,
+          "adapterMs": 9619
+        }
+      },
+      {
+        "fileId": "boundary",
+        "target": "csv",
+        "timings": {
+          "source": "cli_process",
+          "launchMs": 0,
+          "processMs": 9725,
+          "adapterMs": 9725
+        }
+      },
+      {
+        "fileId": "boundary",
+        "target": "tsv",
+        "timings": {
+          "source": "cli_process",
+          "launchMs": 1,
+          "processMs": 9719,
+          "adapterMs": 9720
+        }
+      },
+      {
+        "fileId": "boundary",
+        "target": "tab",
+        "timings": {
+          "source": "cli_process",
+          "launchMs": 1,
+          "processMs": 9218,
+          "adapterMs": 9219
+        }
+      }
+    ],
+    "processMsSum": 156543,
+    "adapterMsSum": 156557,
+    "launchMsSum": 3,
+    "jobTimings": {
+      "journalMs": 25,
+      "preflight_startedMs": 3,
+      "preflight_doneMs": 1478,
+      "planMs": 0,
+      "job_queuedMs": 1479,
+      "job_startedMs": 1481,
+      "engine_startedMs": 1482,
+      "packaging_startedMs": 158094,
+      "bundle_readyMs": 158095,
+      "job_finishedMs": 158095
+    }
+  },
+  "singleProcessSnapshot": {
+    "scope": "single Linux snapshot of QA-owned generated-fixture process tree; not a leak or Windows measurement",
+    "osCpuCount": 9,
+    "samples": [
+      {
+        "pid": 5614,
+        "parent": 5613,
+        "name": "python",
+        "rssKiB": 31868,
+        "peakRssKiB": 33580,
+        "threads": 4
+      },
+      {
+        "pid": 5981,
+        "parent": 5614,
+        "name": "oosplash",
+        "rssKiB": 2284,
+        "peakRssKiB": 26884,
+        "threads": 2
+      },
+      {
+        "pid": 5993,
+        "parent": 5981,
+        "name": "soffice.bin",
+        "rssKiB": 90160,
+        "peakRssKiB": 3363944,
+        "threads": 2
+      }
+    ],
+    "cgroupCpuMax": "800000 100000"
+  },
+  "workerLifecycle": {
+    "status": "PASS",
+    "cycles": 20,
+    "scope": "POSIX generated Python worker / actual owned process tree, not Windows native LibreOffice",
+    "noLiveReadersProfilesOrExtraDescriptors": true
+  },
+  "staticChecks": {
+    "compileall": "PASS",
+    "gitDiffCheck": "PASS"
+  },
+  "memoryConclusion": "Per-source counters and temporary journal metadata cost extra heap. No total app RSS reduction or absence of all LibreOffice leaks is claimed.",
+  "nativeSpeedConclusion": "No overall native-export speedup proved. Removed unused UNO deep-detection calls; Windows timing acceptance remains required. Linux sample is dominated by owned native process lifetime.",
+  "notRun": [
+    "Windows/NIKITA on this patch",
+    "Qt/real DOM integration",
+    "installer build",
+    "full original 255-file corpus",
+    "complete visual comparison",
+    "2 excluded PNG source-dependent methods"
+  ],
+  "unchangedScope": [
+    "main",
+    "workflows",
+    "Excel code",
+    "images",
+    "UI source/layout",
+    "format admission policy",
+    "compression/resolution/macro security settings"
+  ],
+  "preservedMasterPngs": {
+    "assets/brand/aio-new-brand-source.png": "4288071be3e10f33227aacd1f495f1d0d5f03783",
+    "assets/brand/elva-v13-happy-source.png": "6eb9e3b15bf369d298af0b98a64db152bf59618a"
+  }
+}
