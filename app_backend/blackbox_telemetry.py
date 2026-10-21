@@ -14,6 +14,7 @@ import re
 import secrets
 import tempfile
 import threading
+import time
 
 FIELDS = frozenset({
     'type', 'seq', 'timestamp', 'request_id', 'file_id', 'target',
@@ -76,7 +77,7 @@ class TelemetryEmitter:
         self.path = destination
         self._key = secrets.token_bytes(16)
         self.producer_id = secrets.token_hex(12)
-        self._epoch = __import__('time').monotonic_ns()
+        self._epoch = time.monotonic_ns()
         self._queue = queue.Queue(maxsize=capacity)
         self._sequence_lock = threading.Lock()
         self._next_seq = 0
@@ -120,7 +121,7 @@ class TelemetryEmitter:
                 return
             event = {'type': kind, 'timestamp': _utc_now(),
                      'producer_id': self.producer_id, 'schema_version': 2,
-                     'monotonic_ns': __import__('time').monotonic_ns() - self._epoch}
+                     'monotonic_ns': time.monotonic_ns() - self._epoch}
             if request_id is not None:
                 event['request_id'] = self._opaque(request_id)
             if file_id is not None:
@@ -205,6 +206,8 @@ class TelemetryEmitter:
                         stream.write(json.dumps({
                             'type': 'telemetry_dropped', 'seq': expected,
                             'timestamp': _utc_now(), 'stage': 'idle',
+                            'producer_id': self.producer_id, 'schema_version': 2,
+                            'monotonic_ns': time.monotonic_ns() - self._epoch,
                             'status': 'failed', 'reason_code': 'QUEUE_OVERFLOW',
                             # BLACK.BOX v0.1 preserves only known fields.
                             'duration_ms': missing,
@@ -219,6 +222,8 @@ class TelemetryEmitter:
                     stream.write(json.dumps({
                         'type': 'telemetry_dropped', 'seq': last,
                         'timestamp': _utc_now(), 'stage': 'idle',
+                        'producer_id': self.producer_id, 'schema_version': 2,
+                        'monotonic_ns': time.monotonic_ns() - self._epoch,
                         'status': 'failed', 'reason_code': 'QUEUE_OVERFLOW',
                         'duration_ms': last - expected + 1,
                     }, separators=(',', ':')) + '\n')
