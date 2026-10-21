@@ -1,0 +1,168 @@
+name: "AIO Guard v11 NIKITA pinned QA"
+on:
+  pull_request:
+    types: [labeled]
+permissions:
+  contents: read
+concurrency:
+  group: aio-guard-v11-pinned-nikita
+  cancel-in-progress: false
+jobs:
+  windows-qa:
+    if: >-
+      github.repository == 'jumonja-maker/A.I.O' &&
+      github.actor == 'jumonja-maker' &&
+      github.event.action == 'labeled' &&
+      github.event.label.name == 'aio-guard-v11-nikita-qa-once' &&
+      github.event.pull_request.number == 19 &&
+      github.event.pull_request.user.login == 'jumonja-maker' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'patch/guard-v11-speed-stability-20261022' &&
+      github.event.pull_request.base.ref == 'feature/blackbox-deep-telemetry-v01-20261021'
+    runs-on: [self-hosted, Windows, X64, local-d-manual]
+    timeout-minutes: 70
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PIP_NO_INDEX: '1'
+      PIP_NO_INPUT: '1'
+      AIO_BLACKBOX_EVENTS: ''
+      QT_QPA_PLATFORM: offscreen
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - name: Validate restricted NIKITA host
+        run: |
+          $ErrorActionPreference='Stop'
+          if ($env:RUNNER_NAME -cne 'NIKITA' -or $env:RUNNER_OS -cne 'Windows' -or $env:USERNAME -ine 'aio-runner') { throw 'Untrusted runner' }
+          $principal=New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+          if ($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Elevated QA is forbidden' }
+          foreach ($key in @('GITHUB_WORKSPACE','RUNNER_TEMP','TEMP','TMP')) {
+            $value=[Environment]::GetEnvironmentVariable($key)
+            if ([string]::IsNullOrWhiteSpace($value) -or -not [IO.Path]::GetFullPath($value).StartsWith('D:\',[StringComparison]::OrdinalIgnoreCase)) { throw ($key+' is not on D:') }
+          }
+          if ((Get-PSDrive -Name D -PSProvider FileSystem).Free -lt 15GB) { throw 'Insufficient D: disk' }
+          Write-Host 'NIKITA_RESTRICTED_HOST=PASS'
+      - name: Checkout immutable Guard v11 snapshot
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: jumonja-maker/A.I.O
+          ref: 661b3e7f1aa34508b66a6678fa0df0331b7b4cbf
+          path: aio-v11-pin-${{ github.run_id }}
+          persist-credentials: false
+          clean: true
+      - name: Verify source tree and offline runtime
+        working-directory: aio-v11-pin-${{ github.run_id }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $python='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\Scripts\python.exe'
+          $marker='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\.00aio-test-only-venv.txt'
+          if (-not (Test-Path -LiteralPath $python -PathType Leaf) -or -not (Test-Path -LiteralPath $marker -PathType Leaf) -or
+             (Get-Content -LiteralPath $marker -Raw).Trim() -cne '00AIO NIKITA ISOLATED DOCX PDF QA PY311 QT6103') { throw 'Offline Python unavailable' }
+          $verify=@'
+          import hashlib, sys
+          from pathlib import Path
+          def tree(folder):
+              entries=[]
+              for child in folder.iterdir():
+                  if child.name=='.git':continue
+                  key=child.name.encode('utf-8')
+                  if child.is_symlink():raise ValueError('symlink')
+                  if child.is_dir():mode,sha,sort=b'40000',tree(child),key+b'/'
+                  elif child.is_file():
+                      data=child.read_bytes()
+                      mode=b'100644'
+                      sha=hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).digest()
+                      sort=key
+                  else:raise ValueError('unrecognized file')
+                  entries.append((sort,mode+b' '+key+b'\0'+sha))
+              data=b''.join(row for _,row in sorted(entries,key=lambda x:x[0]))
+              return hashlib.sha1(b'tree '+str(len(data)).encode()+b'\0'+data).digest()
+          actual=tree(Path.cwd()).hex()
+          print('PINNED_TREE='+actual)
+          if actual!=sys.argv[1]:raise SystemExit('TREE_MISMATCH')
+          '@
+          & $python -c $verify '7f8c95aac1cdb4ae4920baac2bd4871674034b25'
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned source mismatch' }
+          & $python -c 'import sys,openpyxl,PySide6.QtWebEngineWidgets; assert sys.version_info[:2]==(3,11)'
+          if ($LASTEXITCODE -ne 0) { throw 'Offline Python deps missing' }
+          $node=Get-Command node -ErrorAction SilentlyContinue
+          if ($node) {$node=$node.Source}
+          else {
+            $runnerRoot=Split-Path -Parent (Split-Path -Parent $env:RUNNER_TEMP)
+            $candidates=@(
+              (Join-Path $runnerRoot 'externals\node24\bin\node.exe'),
+              (Join-Path $runnerRoot 'externals\node20\bin\node.exe'),
+              'D:\AIO-Lab\nodejs\node.exe'
+            )
+            $node=@($candidates | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1)
+            if ($node.Count -ne 1) { throw 'Offline Node runtime unavailable' }
+            $node=$node[0]
+          }
+          $env:PATH=[IO.Path]::GetDirectoryName($node)+';'+$env:PATH
+          'AIO_QA_NODE='+$node | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $engine=$null
+          foreach($base in @('D:\LBR\LibreOffice','D:\LBR','D:\AIO-Lab\LibreOffice','C:\Program Files\LibreOffice')) {
+            foreach($app in @('program\soffice.com','program\soffice.exe')) {
+              $bin=Join-Path $base $app
+              if ((Test-Path -LiteralPath $bin -PathType Leaf) -and
+                  (Test-Path -LiteralPath (Join-Path $base 'program\soffice.bin') -PathType Leaf) -and
+                  (Test-Path -LiteralPath (Join-Path $base 'share') -PathType Container)) {
+                  $engine=$bin; break
+              }
+            }
+            if ($engine) { break }
+          }
+          if (-not $engine) { throw 'Complete native LibreOffice missing' }
+          'AIO_QA_ENGINE='+$engine | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host 'PINNED_SOURCE=661b3e7f1aa34508b66a6678fa0df0331b7b4cbf'
+          Write-Host ('NATIVE_LO='+$engine)
+      - name: Full Python, JS and Guard concurrency regression
+        id: tests
+        working-directory: aio-v11-pin-${{ github.run_id }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $python='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\Scripts\python.exe'
+          & $python -m compileall -q app_backend tests tools/qa
+          if ($LASTEXITCODE -ne 0) { throw 'COMPILE_FAIL' }
+          foreach($name in @('test_guard_performance_v11.py','test_guard_native_metrics_v11.py',
+                'test_guard_save_queue_v09.py','test_guard_export_recipes_v10.py',
+                'test_blackbox_audit_v02.py')) {
+            & $python -m unittest discover -s tests -p $name -v
+            if ($LASTEXITCODE -ne 0) { throw ('REGRESSION_FAILED '+$name) }
+          }
+          & $env:AIO_QA_NODE --check src/converter-bridge.js
+          if ($LASTEXITCODE -ne 0) { throw 'JS_SYNTAX_FAILED' }
+          & $env:AIO_QA_NODE tests/guard_bridge_contracts.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'JS_BRIDGE_FAILED' }
+          & $env:AIO_QA_NODE tests/guard_save_queue_v09.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'JS_QUEUE_FAILED' }
+          & $python -m unittest discover -s tests -p 'test_*.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'FULL_TESTS_FAILED' }
+          Write-Host 'GUARD_V11_WINDOWS_FULL_REGRESSIONS=PASS'
+      - name: Real Windows LibreOffice native save and CSV text
+        id: native
+        working-directory: aio-v11-pin-${{ github.run_id }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $python='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\Scripts\python.exe'
+          $dir=Join-Path $env:GITHUB_WORKSPACE ('aio-v11-qa-evidence-'+$env:GITHUB_RUN_ID)
+          if (Test-Path -LiteralPath $dir) { throw 'Evidence path collision' }
+          New-Item -ItemType Directory -Path $dir -ErrorAction Stop | Out-Null
+          & $python tools/qa/guard_v09_save_queue_acceptance.py --output (Join-Path $dir 'v09') --executable $env:AIO_QA_ENGINE
+          if ($LASTEXITCODE -ne 0) { throw 'NATIVE_V09_FAILED' }
+          & $python tools/qa/guard_v10_text_export_acceptance.py --output (Join-Path $dir 'v10') --executable $env:AIO_QA_ENGINE
+          if ($LASTEXITCODE -ne 0) { throw 'NATIVE_V10_FAILED' }
+          & $python tools/qa/guard_v11_status_benchmark.py --output (Join-Path $dir 'v11-status.json') --frames 100
+          if ($LASTEXITCODE -ne 0) { throw 'BENCH_V11_FAILED' }
+          Write-Host 'GUARD_V11_WINDOWS_NATIVE_AND_BENCH=PASS'
+      - name: Summarize verdict without installers or releases
+        if: always()
+        run: |
+          Write-Host 'PINNED_SOURCE=661b3e7f1aa34508b66a6678fa0df0331b7b4cbf'
+          Write-Host 'TEST_STATUS=${{ steps.tests.outcome }}'
+          Write-Host 'NATIVE_STATUS=${{ steps.native.outcome }}'
+          Write-Host 'PACKAGE=NOT_RUN; INSTALL=NOT_RUN; RELEASE=NOT_RUN; MAIN_UNCHANGED'
+          if ('${{ steps.tests.outcome }}' -ne 'success' -or '${{ steps.native.outcome }}' -ne 'success') {
+            throw 'Windows Guard v11 validation incomplete or failed; integration not authorized'
+          }
