@@ -3,6 +3,7 @@
   'use strict';
   let root=null, bar=null, state=null, jobs=[], warnings=[], page=0, refreshPending=false, clock=null;
   let preview=null, previewId=null, previewRequest=0;
+  const pendingActions=new Set();
   const labels={queued:'В очереди',converting:'Конвертируется',ready:'Готово',saved:'Сохранено',
     error:'Ошибка',cancelled:'Отменено',skipped:'Исключено Guard'};
   const api=()=>window.AllInOneBridge?.converter;
@@ -15,7 +16,7 @@
     const footer=root.querySelector('.aio-cv__footer');if(!footer)return;
     bar=document.createElement('div');bar.className='aio-guard-queue';bar.hidden=true;
     bar.innerHTML='<div class="aio-guard-current"><span data-g-current></span><button type="button" data-g-pause>Пауза</button><button type="button" data-g-skip>Пропустить файл</button></div>'+
-      '<details><summary>Очередь и результаты</summary><dialog class="aio-guard-popup">'+
+      '<details><summary>Состояние</summary><dialog class="aio-guard-popup">'+
       '<div data-g-counts></div><div class="aio-guard-warning" data-g-warning></div>'+
       '<div class="aio-guard-tools"><input type="search" placeholder="Имя файла или формат" aria-label="Поиск в очереди"><select aria-label="Состояние задач"><option value="all">Все задачи</option><option value="error">Ошибки</option><option value="pending">Ожидают</option><option value="ready">Готовые</option></select></div>'+
       '<div class="aio-guard-list" role="list" aria-label="Задачи конвертации"></div>'+
@@ -26,9 +27,15 @@
     footer.append(bar);
     bar.querySelector('[data-g-folder]').hidden=!window.AllInOneNativeShell;
     const action=(selector,work)=>bar.querySelector(selector).addEventListener('click',async event=>{
-      const button=event.currentTarget;button.disabled=true;
-      try{await work();await refresh();}catch(error){text('[data-g-warning]',error.userMessage||error.message);}
-      finally{button.disabled=false;render();}
+      if(pendingActions.has(selector))return;
+      const button=event.currentTarget;pendingActions.add(selector);button.disabled=true;
+      text('[data-g-warning]','Выполняется запрос…');
+      try{const result=await work();
+        text('[data-g-warning]',result?.saved?'Сохранено файлов: '+(result.outputs??'')+
+          (result.savedAll?'':' · остальные результаты остаются в AIO.'):'Запрос принят.');
+        await refresh();
+      }catch(error){text('[data-g-warning]',error.userMessage||error.message);}
+      finally{pendingActions.delete(selector);button.disabled=false;render();}
     });
     action('[data-g-pause]',()=>api().pause(!state?.pauseRequested));
     action('[data-g-skip]',()=>api().skipCurrent());
@@ -73,7 +80,7 @@
     bar.hidden=!state&&!jobs.length&&!warnings.length;
     bar.closest('.aio-cv__footer')?.classList.toggle('aio-guard-has-queue',!bar.hidden);
     const active=state?.currentTask;
-    text('[data-g-current]',active?active.name+(active.stage==='preflight'?' · проверка исходника':
+    text('[data-g-current]',state?.statusReadError?'Связь со статусом прервана · повторяем запрос':active?active.name+(active.stage==='preflight'?' · проверка исходника':
       active.stage==='upload'?' · подготовка исходника':' → '+active.format.toUpperCase())+' · '+
       Math.max(0,Math.floor((Date.now()-active.startedMs)/1000))+' с':
       state?.state==='paused'?'Очередь на паузе':state?.state==='prepared'?'Исходники проверены. Выберите форматы.':state&&!state.finished?'Подготовка результатов…':
@@ -94,14 +101,21 @@
       if(jobs.some(j=>j.jobId===selected))select.value=selected;select.dataset.signature=signature;
       if(select.value!==previewId){preview=null;loadPreview();}
     }
-    for(const key of ['zip','folder','discard'])bar.querySelector('[data-g-'+key+']').disabled=!jobs.length;
+    const chosen=jobs.find(job=>job.jobId===select.value);
+    bar.querySelector('[data-g-folder]').disabled=!chosen||chosen.saveInProgress;
+    bar.querySelector('[data-g-zip]').disabled=!chosen||chosen.running||chosen.saveInProgress;
+    bar.querySelector('[data-g-zip]').title=chosen?.running?'ZIP доступен после завершения очереди. Сейчас можно сохранить готовые файлы в папку.':'';
+    bar.querySelector('[data-g-discard]').disabled=!chosen||chosen.running||chosen.saveInProgress;
+    bar.querySelector('[data-g-discard]').title=chosen?.running?'Сначала завершите или отмените очередь. Готовые результаты сейчас можно сохранить.':'';
     for(const key of ['retry','long'])bar.querySelector('[data-g-'+key+']').disabled=!state?.finished||!state.failed||!api()?.canRetry();
     const recheck=bar.querySelector('[data-g-check]');
     recheck.hidden=!state?.preparation||!state.preflightUndetermined;
     recheck.disabled=state?.state!=='prepared';
     bar.querySelector('[data-g-report]').disabled=!jobs.length&&!state?.jobId&&!warnings.length;
+    for(const selector of pendingActions)bar.querySelector(selector).disabled=true;
     if(warnings.length)text('[data-g-warning]','Не удалось прочитать журнал '+warnings.length+' заданий. Файлы не удалены. Сохраните технический отчёт для восстановления.');
     if(state?.recoveryError)text('[data-g-warning]','Журнал восстановления записан не полностью. Сохраните результаты перед закрытием.');
+    if(state?.statusReadError)text('[data-g-warning]',state.statusReadMessage);
     if(bar.querySelector('details').open)renderRows();
     if(active&&!clock)clock=setInterval(()=>render(),1000);
     if(!active&&clock){clearInterval(clock);clock=null;}
@@ -146,12 +160,22 @@
       rows.length+' задач · '+(page+1)+' / '+pages);
     bar.querySelector('[data-g-prev]').disabled=page===0;bar.querySelector('[data-g-next]').disabled=page>=pages-1;
   }
-  window.addEventListener('aio-guard-state',event=>{state=event.detail;mount();render();if(state?.finished)refresh();});
+  window.addEventListener('aio-guard-state',event=>{
+    state=event.detail;mount();render();
+    const job=jobs.find(j=>j.jobId===state?.jobId);
+    // Discover completed outputs even when the popup was opened before the
+    // first export finished. No extra refresh for unchanged status polls.
+    if(state?.finished || state?.partialResult && (!job ||
+        job.outputs!==state.partialResult.outputsCount || job.saveInProgress!==state.saveInProgress))refresh();
+  });
   window.addEventListener('aio-guard-save-confirmed',event=>{
     const id=event.detail?.jobId;
-    if(id===state?.jobId)state=null;
-    if(id===previewId){preview=null;previewId=null;}
-    jobs=jobs.filter(j=>j.jobId!==id);
+    const released=event.detail?.released!==false&&event.detail?.savedAll!==false;
+    if(released){
+      if(id===state?.jobId)state=null;
+      if(id===previewId){preview=null;previewId=null;}
+      jobs=jobs.filter(j=>j.jobId!==id);
+    }
     if(bar)bar.querySelector('[data-g-jobs]').dataset.signature='';
     refresh();render();
   });

@@ -234,7 +234,8 @@ class GuardAPI:
             if path == PREFIX + '/bundle':
                 return self._json(handler,202, self.guard.rebuild_bundle(identity))
             if path == PREFIX + '/saved':
-                return self._json(handler,200, self.guard.confirm_saved(identity, body.get('ticket')))
+                return self._json(handler,200, self.guard.confirm_saved(identity, body.get('ticket'),
+                    compact=body.get('compact', False)))
             if path == PREFIX + '/release':
                 self.guard.release(identity, discard=body.get('discard', False))
                 return self._json(handler,200, {'ok': True})

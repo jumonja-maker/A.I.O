@@ -145,7 +145,13 @@
               cleanup();
               if (detail.status === 'completed') {
                 resolve({ name: detail.name || result.name, saved: true,
-                          savedAll: detail.savedAll === true });
+                          savedAll: detail.savedAll === true,
+                          snapshotComplete: detail.snapshotComplete === true,
+                          incompleteRecovery: detail.incompleteRecovery === true,
+                          jobRunning: detail.jobRunning === true,
+                          saveId: detail.saveId, outputs: detail.outputs,
+                          remainingOutputs: detail.remainingOutputs,
+                          bytesWritten: detail.bytesWritten });
               } else if (detail.status === 'cancelled') {
                 resolve({ cancelled: true });
               } else {

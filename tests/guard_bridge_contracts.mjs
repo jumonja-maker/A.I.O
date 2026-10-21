@@ -53,7 +53,7 @@ function environment(options={}) {
       if(value===304)return reply(null,304);
       return reply(value,200,'"'+jobId+':'+value.revision+'"');
     }
-    if(path==='/saved') {events.push('ack:'+body.ticket);return reply({ok:true});}
+    if(path==='/saved') {events.push('ack:'+body.ticket);return reply({jobId,saved:true,savedAll:true});}
     if(path==='/release') {events.push('release');return reply({ok:true});}
     throw Error('Unexpected route: '+path);
   };
