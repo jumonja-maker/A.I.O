@@ -460,9 +460,11 @@ class ConverterGuard:
                       native_status=('completed' if kind == 'task_succeeded' else
                                      'failed' if kind == 'task_failed' else
                                      'cancelled' if kind == 'task_cancelled' else None),
-                      output_contract_status=('checked' if kind == 'task_succeeded'
-                                              else 'not_checked' if kind == 'task_failed'
-                                              else None),
+                      output_contract_status=(
+                          'invalid' if kind in ('task_succeeded', 'output_contract_warning')
+                          and current and any(a.size == 0 for a in current.artifacts)
+                          else 'checked' if kind == 'task_succeeded'
+                          else 'not_checked' if kind == 'task_failed' else None),
                       fidelity_status='not_checked' if kind == 'task_succeeded' else None,
                       save_status='saved' if kind == 'save_confirmed' else None,
                       result_size=sum(a.size for a in current.artifacts)
@@ -497,6 +499,10 @@ class ConverterGuard:
             send('result_created', phase='result', status='ready')
             send('task_succeeded', phase='result', status='ready',
                  elapsed=task.duration_ms if task else None)
+            # Diagnostic only. Native success remains as GUARD determined.
+            if task and any(a.size == 0 for a in task.artifacts):
+                send('output_contract_warning', phase='result', status='failed',
+                     reason='OUTPUT_EMPTY')
             return
         if stage == 'route_filtered':
             send('task_failed', phase='route', status='skipped',
