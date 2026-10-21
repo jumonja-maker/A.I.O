@@ -85,20 +85,30 @@ class ResultStore:
             os.fsync(output.fileno())
 
     def task(self, item, task):
-        transaction=secrets.token_hex(16)
+        self.tasks(((item, task),))
+
+    def tasks(self, entries):
+        # Each terminal task still has its own begin/commit transaction.
+        # A cancellation batch needs one flush/fsync rather than one per task.
         def records():
-            yield {'kind':'task_begin','transaction':transaction,'index': task.index, 'fileId': item.id,
+            for item, task in entries:
+                yield from self._task_records(item, task)
+        self.append_many(records())
+
+    def _task_records(self, item, task):
+        transaction=secrets.token_hex(16)
+        yield {'kind':'task_begin','transaction':transaction,'index': task.index, 'fileId': item.id,
             'state': task.state, 'code': task.code, 'error': task.error,
             'stage': task.stage, 'diagnostic': task.diagnostic,
             'startedMs': task.started_ms, 'finishedMs': task.finished_ms,
             'durationMs':task.duration_ms,'executionMode':task.execution_mode,
+            'nativeTimings':task.native_timings,
             'loStarted': task.lo_started}
-            for artifact in task.artifacts:
-                yield {'kind':'output','transaction':transaction,
+        for artifact in task.artifacts:
+            yield {'kind':'output','transaction':transaction,
                        'output':{'path':artifact.path.relative_to(self.root).as_posix(),
                                  'archiveName':artifact.archive_name,'name':artifact.name,'size':artifact.size}}
-            yield {'kind':'task_commit','transaction':transaction}
-        self.append_many(records())
+        yield {'kind':'task_commit','transaction':transaction}
 
     def saved(self, artifacts):
         self.append_many({'kind':'saved','paths':[a.path.relative_to(self.root).as_posix()]} for a in artifacts)

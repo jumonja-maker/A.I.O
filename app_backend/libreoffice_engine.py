@@ -12,6 +12,7 @@ import shutil
 import subprocess
 import sys
 import threading
+import time
 
 from .libreoffice_catalog import EXTENSION, catalog
 from .native_process import ProcessTree
@@ -106,7 +107,8 @@ def inspect(files, ids):
 
 def convert_path(source: Path, target: str, workspace: Path, *,
                  executable: Path | None = None, cancel=None, on_started=lambda: None,
-                 convert_spec: str | None = None, stdout=None, log_sink=None, import_filter=None) -> list[Path]:
+                 convert_spec: str | None = None, stdout=None, log_sink=None, import_filter=None,
+                 metrics_sink=None) -> list[Path]:
     source_format(source.name)
     if not isinstance(target, str) or not EXTENSION.fullmatch(target):
         raise LibreOfficeError('Некорректное расширение результата.', 'INVALID_FORMAT')
@@ -127,11 +129,14 @@ def convert_path(source: Path, target: str, workspace: Path, *,
     if import_filter:
         command.insert(6, '--infilter=' + import_filter)
     diagnostic, logs, return_code = '', None, None
+    native_tick = time.monotonic()
+    launch_ms = None
     try:
         from .converter_guard.native_logs import NativeLogs
         with ProcessTree(command, cwd=workspace, on_started=on_started,
                          stdout=subprocess.PIPE if stdout is None else stdout,
                          stderr=subprocess.PIPE) as tree:
+            launch_ms = round((time.monotonic()-native_tick)*1000)
             logs = NativeLogs(tree.process)
             while tree.process.poll() is None:
                 if cancel.wait(0.1):
@@ -142,7 +147,13 @@ def convert_path(source: Path, target: str, workspace: Path, *,
     except OSError as exc:
         raise LibreOfficeError('Не удалось запустить LibreOffice.', 'ENGINE_LAUNCH_FAILED') from exc
     finally:
+        process_ms = round((time.monotonic()-native_tick)*1000)
         diagnostic = logs.finish() if logs else ''
+        if metrics_sink and launch_ms is not None:
+            try:
+                metrics_sink({'source':'cli_process', 'launchMs':launch_ms, 'processMs':process_ms})
+            except Exception:
+                pass  # Observation must never change an export outcome.
         # Diagnostics are bounded and do not expose private storage paths.
         for private in (str(source.resolve()), str(workspace.resolve()), str(profile.resolve()), str(binary)):
             diagnostic = diagnostic.replace(private, '[local]')
