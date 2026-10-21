@@ -22,7 +22,7 @@ FIELDS = frozenset({
     'backend', 'worker_id', 'worker_reused', 'filter_name',
     'native_status', 'output_contract_status', 'fidelity_status',
     'save_status', 'source_size', 'source_sha256', 'result_size',
-    'process_exit_code', 'monotonic_ns', 'reason_family',
+    'process_exit_code', 'monotonic_ns', 'reason_family', 'result_sha256',
 })
 TYPE = re.compile(r'^[a-zA-Z][a-zA-Z0-9_.-]{0,63}$')
 TARGET = re.compile(r'^[a-zA-Z0-9_-]{1,24}$')
@@ -100,7 +100,7 @@ class TelemetryEmitter:
              result_id=None, backend=None, worker_id=None, worker_reused=None,
              filter_name=None, native_status=None, output_contract_status=None,
              fidelity_status=None, save_status=None, source_size=None,
-             source_sha256=None, result_size=None, process_exit_code=None,
+             source_sha256=None, result_size=None, result_sha256=None, process_exit_code=None,
              reason_family=None):
         """Safe even when called from under the GUARD RLock: no disk or waits."""
         try:
@@ -151,6 +151,8 @@ class TelemetryEmitter:
                 event['result_size'] = result_size
             if isinstance(source_sha256, str) and DIGEST.fullmatch(source_sha256):
                 event['source_sha256'] = source_sha256
+            if isinstance(result_sha256, str) and DIGEST.fullmatch(result_sha256):
+                event['result_sha256'] = result_sha256
             if type(process_exit_code) is int and -2147483648 <= process_exit_code <= 2147483647:
                 event['process_exit_code'] = process_exit_code
             if isinstance(reason_family, str) and CODE.fullmatch(reason_family):
