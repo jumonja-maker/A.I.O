@@ -22,7 +22,7 @@ FIELDS = frozenset({
     'backend', 'worker_id', 'worker_reused', 'filter_name',
     'native_status', 'output_contract_status', 'fidelity_status',
     'save_status', 'source_size', 'source_sha256', 'result_size',
-    'process_exit_code', 'monotonic_ns', 'reason_family', 'result_sha256',
+    'process_exit_code', 'monotonic_ns', 'reason_family', 'result_sha256', 'producer_id',
 })
 TYPE = re.compile(r'^[a-zA-Z][a-zA-Z0-9_.-]{0,63}$')
 TARGET = re.compile(r'^[a-zA-Z0-9_-]{1,24}$')
@@ -64,6 +64,7 @@ class TelemetryEmitter:
             raise ValueError('Telemetry must be outside conversion/temp directories')
         self.path = destination
         self._key = secrets.token_bytes(16)
+        self.producer_id = secrets.token_hex(12)
         self._epoch = __import__('time').monotonic_ns()
         self._queue = queue.Queue(maxsize=capacity)
         self._sequence_lock = threading.Lock()
@@ -107,6 +108,7 @@ class TelemetryEmitter:
             if not TYPE.fullmatch(kind):
                 return
             event = {'type': kind, 'timestamp': _utc_now(),
+                     'producer_id': self.producer_id,
                      'schema_version': 2,
                      'monotonic_ns': __import__('time').monotonic_ns() - self._epoch}
             if request_id is not None:
