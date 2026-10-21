@@ -155,6 +155,13 @@ def main(manifest_name):
                property_value('Silent', True), property_value('MacroExecutionMode', 0),
                property_value('UpdateDocMode', 0), property_value('InteractionHandler', handler)]
     selected = (result or {}).get('filterName')
+    hint = req.get('csvImportHint')
+    # A sampled UTF-8 tabular stream plus a uniquely selected *installed*
+    # Calc native importer is still only a hint. The live model must prove
+    # Calc service and the selected FilterName before any route is admitted.
+    if isinstance(hint, dict):
+        options.append(property_value('FilterName', hint['filter']))
+        options.append(property_value('FilterOptions', hint['options']))
     desktop = remote.ServiceManager.createInstanceWithContext('com.sun.star.frame.Desktop', remote)
     model = None
     try:
