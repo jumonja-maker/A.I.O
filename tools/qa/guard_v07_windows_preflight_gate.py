@@ -16,6 +16,7 @@ sys.path.insert(0, str(ROOT))
 
 from app_backend.converter_guard import ConverterGuard, LibreOfficeAdapter
 from app_backend.converter_guard.routes import registry
+from app_backend.converter_guard.csv_import import csv_import_hint, CALC
 from guard_v06_windows_preflight_gate import bmp_fixture
 
 CALC = "com.sun.star.sheet.SpreadsheetDocument"
@@ -40,6 +41,17 @@ def main():
             identity = guard.create(descriptors, prepare_only=True)["jobId"]
             for key, (_, payload) in inputs.items():
                 guard.upload(identity, key, io.BytesIO(payload), len(payload))
+            # Synthetic corpus only; no private file bytes/paths logged.
+            source = guard._jobs[identity].files_by_id['csv'].source
+            native_csv = [(name, sorted(exts)) for name, (svc, exts, flags)
+                          in reg.filters.items()
+                          if svc == CALC and 'csv' in exts and 'IMPORT' in flags]
+            print("GUARD_CSV_FILTER_DIAGNOSTIC " + json.dumps({
+                'registryCandidates':native_csv,
+                'preferred':sorted(reg.preferred_filters.get('csv', ())),
+                'contentHint':csv_import_hint(source,reg),
+                'sourceSampleKind':'synthetic_utf8_comma_3_rows'},
+                ensure_ascii=True), flush=True)
             initial = guard.status(identity)
             if initial["attempted"] != 0:
                 raise AssertionError("Preflight ran an export before native validation")
