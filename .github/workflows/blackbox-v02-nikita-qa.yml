@@ -1,0 +1,85 @@
+name: "BLACK.BOX v2 NIKITA pinned QA"
+on:
+  pull_request:
+    types: [labeled]
+permissions:
+  contents: read
+concurrency:
+  group: blackbox-v2-pinned-nikita-qa
+  cancel-in-progress: false
+jobs:
+  telemetry-windows:
+    if: >-
+      github.repository == 'jumonja-maker/A.I.O' &&
+      github.actor == 'jumonja-maker' &&
+      github.event.action == 'labeled' &&
+      github.event.label.name == 'aio-blackbox-v2-nikita-qa-once' &&
+      github.event.pull_request.number == 16 &&
+      github.event.pull_request.user.login == 'jumonja-maker' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'feature/blackbox-audit-events-v02-20261021' &&
+      github.event.pull_request.base.ref == 'feature/blackbox-deep-telemetry-v01-20261021'
+    runs-on: [self-hosted, Windows, X64, local-d-manual]
+    timeout-minutes: 30
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PIP_NO_INDEX: '1'
+      PIP_NO_INPUT: '1'
+      AIO_BLACKBOX_EVENTS: ''
+      QT_QPA_PLATFORM: offscreen
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - name: Verify NIKITA host and non-elevated D drive
+        run: |
+          $ErrorActionPreference='Stop'
+          if ($env:RUNNER_NAME -cne 'NIKITA' -or $env:RUNNER_OS -cne 'Windows' -or $env:USERNAME -ine 'aio-runner') { throw 'Unauthorized runner.' }
+          $principal=New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+          if ($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Elevated QA forbidden.' }
+          foreach ($key in @('GITHUB_WORKSPACE','RUNNER_TEMP','TEMP','TMP')) {
+            $path=[Environment]::GetEnvironmentVariable($key)
+            if ([string]::IsNullOrWhiteSpace($path) -or -not [IO.Path]::GetFullPath($path).StartsWith('D:\',[StringComparison]::OrdinalIgnoreCase)) { throw ('Unexpected location '+$key) }
+          }
+          Write-Host 'TRUSTED_QA_RUNNER=PASS'
+      - name: Checkout verified telemetry v2 source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: jumonja-maker/A.I.O
+          ref: 337e9ab0d6fb4a9b65ade576155bf485d14a2205
+          path: aio-bbv2-pin-${{ github.run_id }}
+          persist-credentials: false
+          clean: true
+      - name: Verify source commit and offline QA env
+        working-directory: aio-bbv2-pin-${{ github.run_id }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $python='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\Scripts\python.exe'
+          $marker='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\.00aio-test-only-venv.txt'
+          if (-not (Test-Path -LiteralPath $python -PathType Leaf) -or -not (Test-Path -LiteralPath $marker -PathType Leaf) -or (Get-Content -LiteralPath $marker -Raw).Trim() -cne '00AIO NIKITA ISOLATED DOCX PDF QA PY311 QT6103') { throw 'Approved offline Python missing.' }
+          $sha=(& git rev-parse HEAD).Trim()
+          $tree=(& git rev-parse HEAD^{tree}).Trim()
+          if ($sha -cne '337e9ab0d6fb4a9b65ade576155bf485d14a2205' -or $tree -cne '79fba36042fcd5ecc3a8203563db79db16811902') { throw 'Pinned source SHA/tree mismatch.' }
+          Write-Host ('PINNED_SHA='+$sha)
+          Write-Host ('PINNED_TREE='+$tree)
+          & $python -c 'import sys,openpyxl,PySide6.QtWebEngineWidgets; assert sys.version_info[:2]==(3,11)'
+          if ($LASTEXITCODE -ne 0) { throw 'QA env prerequisites missing.' }
+      - name: Compile and run isolated telemetry and Guard suites
+        working-directory: aio-bbv2-pin-${{ github.run_id }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $python='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\Scripts\python.exe'
+          & $python -m compileall -q app_backend tests
+          if ($LASTEXITCODE -ne 0) { throw 'COMPILE_FAIL' }
+          foreach ($pattern in @('test_blackbox_telemetry.py','test_blackbox_audit_v02.py','test_guard_audit_v081.py','test_guard_csv_noninteractive.py')) {
+            & $python -m unittest discover -s tests -p $pattern -v
+            if ($LASTEXITCODE -ne 0) { throw ('TEST_FAIL: '+$pattern) }
+          }
+          & $python -m unittest discover -s tests -v
+          if ($LASTEXITCODE -ne 0) { throw 'FULL_REGRESSION_FAILED' }
+          Write-Host 'BLACKBOX_V2_WINDOWS_FULL_REGRESSIONS=PASS'
+      - name: Report exact version and no packaging
+        if: always()
+        run: |
+          Write-Host 'QA_SOURCE_PIN=337e9ab0d6fb4a9b65ade576155bf485d14a2205'
+          Write-Host 'BUILD=NO;INSTALL=NO;RELEASE=NO;MAIN_UNCHANGED'
