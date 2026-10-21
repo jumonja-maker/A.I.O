@@ -1,0 +1,259 @@
+{
+  "patch": "guard-v10-native-text-recipes",
+  "handoffDate": "2026-10-22",
+  "repository": "jumonja-maker/A.I.O",
+  "branch": "patch/guard-v10-output-recipes-20261021",
+  "basePR": 17,
+  "baseCommit": "2a97c3c7a90ce0289f10169133ab7b7c2b08d21a",
+  "baseTree": "886eafadce00d86e471b5fe25ab596c059f0de7b",
+  "testedCodeCommit": "c8205fdaba00f4e7a301297ef1426b0cceb51fbb",
+  "testedCodeBlobs": {
+    "app_backend/converter_guard/adapter.py": "d4110edf97ea14b48a85d5a313f15c8a4665ffe9",
+    "app_backend/converter_guard/csv_import.py": "f88269c5a525e6305c50962399609c978e679d38",
+    "app_backend/converter_guard/uno_session.py": "0cbf146b7a327f819e5384050b0e8b28ad60948e",
+    "app_backend/converter_guard/export_recipe.py": "c04eabd43ee3b299986bf996e3920ab5d8e266ff",
+    "tests/test_guard_csv_noninteractive.py": "a2af8e38c1c55e1d4279f76caa7efee044a1cc34",
+    "tests/test_guard_uno_session.py": "7a678c82ab4514c2f2bcfda03d2cd66b18dd8461",
+    "tests/test_guard_export_recipes_v10.py": "da9cab7720fdc24e2bc88b3670d4f266a399bfde",
+    "tools/qa/guard_v10_text_export_acceptance.py": "6b3e5f9d22da94fc3c5a50c07ae153abdc5b3929"
+  },
+  "restoration": {
+    "baseBlobsLocallyVerified": 185,
+    "baseBlobsTotal": 187,
+    "codeRegressionsRerunAfterRestoration": true,
+    "nativeAcceptanceRerunAfterRestoration": true
+  },
+  "codeRegression": {
+    "status": "PASS",
+    "discovered": 272,
+    "run": 270,
+    "passed": 267,
+    "skipped": [
+      {
+        "test": "test_converter_native_dom.NativeUIDOMAcceptance.test_guard_unknown_and_renamed_file_selection",
+        "reason": "Set AIO_DOM_MODULE to an existing linkedom package"
+      },
+      {
+        "test": "test_converter_native_dom.NativeUIDOMAcceptance.test_thousand_file_queue_controls",
+        "reason": "Set AIO_DOM_MODULE to an existing linkedom package"
+      },
+      {
+        "test": "test_converter_native_dom.NativeUIDOMAcceptance.test_ui_contract",
+        "reason": "Set AIO_DOM_MODULE to an existing linkedom package"
+      }
+    ],
+    "failures": [],
+    "errors": [],
+    "excludedUnavailableBinarySources": [
+      "test_brand_restoration.BrandRestorationTests.test_both_original_pngs_match_owner_digests_and_have_alpha",
+      "test_brand_restoration.BrandRestorationTests.test_spec_bundles_icon_and_approved_sources_and_sets_exe_resource"
+    ],
+    "elapsedMs": 30046
+  },
+  "newTestMethods": {
+    "exportRecipes": 9,
+    "csvUtf8Boundary": 2,
+    "unoImportExportIsolation": 1
+  },
+  "syntheticQueue": {
+    "status": "PASS",
+    "files": 1000,
+    "succeeded": 1000,
+    "pythonHeapPeakMiB": 9.84,
+    "elapsedSecondsWithTracemalloc": 11.733,
+    "realNativeConversions": false,
+    "measuresLibreOfficeRSS": false
+  },
+  "excelRegression": {
+    "status": "PASS",
+    "rows": 10000,
+    "columns": 8,
+    "elapsedSeconds": 1.62
+  },
+  "jsContracts": {
+    "bridgeScenarios": 14,
+    "saveQueueScenarios": 8,
+    "status": "PASS",
+    "scope": "controlled VM / transport and native-save boundaries; not real Qt/browser"
+  },
+  "staticChecks": {
+    "compileall": "PASS",
+    "gitDiffCheck": "PASS"
+  },
+  "historicalFirstNativeAttempt": {
+    "source": "observations retained in conversation before environment rollback; original files unavailable",
+    "succeeded": 13,
+    "failed": 3,
+    "failedInput": "semicolon.unknown",
+    "failedTargets": [
+      "csv",
+      "tsv",
+      "tab"
+    ],
+    "code": "ENGINE_FAILED",
+    "observedModel": "Writer",
+    "interpretation": "Unknown-extension detection remains unresolved. Final positive corpus uses semicolon.csv confirmed as Calc; this is not evidence of a fix for the failed input."
+  },
+  "nativeAcceptance": {
+    "status": "PASS",
+    "engineVersion": "LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5",
+    "scope": "Linux native CLI; generated text/spreadsheet fixtures",
+    "windowsUnoQt": "NOT_RUN",
+    "fullVisualQuality": "NOT_RUN",
+    "preflightMs": 1472,
+    "conversionMs": 155370,
+    "nativeExportsSucceeded": 16,
+    "nativeExportsFailed": 0,
+    "nativeExportsCancelled": 0,
+    "failedTargets": [],
+    "sources": 5,
+    "fixturePreparationExports": 1,
+    "directNativeControls": [
+      {
+        "source": "xlsx",
+        "target": "tsv",
+        "byteIdentical": true
+      },
+      {
+        "source": "semicolon",
+        "target": "csv",
+        "byteIdentical": true
+      }
+    ],
+    "outputChecks": [
+      {
+        "source": "xlsx",
+        "target": "csv",
+        "rows": 4,
+        "status": "PASS"
+      },
+      {
+        "source": "xlsx",
+        "target": "tsv",
+        "rows": 4,
+        "status": "PASS"
+      },
+      {
+        "source": "xlsx",
+        "target": "tab",
+        "rows": 4,
+        "status": "PASS"
+      },
+      {
+        "source": "ods",
+        "target": "csv",
+        "rows": 4,
+        "status": "PASS"
+      },
+      {
+        "source": "ods",
+        "target": "tsv",
+        "rows": 4,
+        "status": "PASS"
+      },
+      {
+        "source": "ods",
+        "target": "tab",
+        "rows": 4,
+        "status": "PASS"
+      },
+      {
+        "source": "semicolon",
+        "target": "csv",
+        "rows": 4,
+        "status": "PASS"
+      },
+      {
+        "source": "semicolon",
+        "target": "tsv",
+        "rows": 4,
+        "status": "PASS"
+      },
+      {
+        "source": "semicolon",
+        "target": "tab",
+        "rows": 4,
+        "status": "PASS"
+      },
+      {
+        "source": "tsv",
+        "target": "csv",
+        "rows": 4,
+        "status": "PASS"
+      },
+      {
+        "source": "tsv",
+        "target": "tsv",
+        "rows": 4,
+        "status": "PASS"
+      },
+      {
+        "source": "tsv",
+        "target": "tab",
+        "rows": 4,
+        "status": "PASS"
+      },
+      {
+        "source": "boundary",
+        "target": "csv",
+        "rows": 10922,
+        "status": "PASS"
+      },
+      {
+        "source": "boundary",
+        "target": "tsv",
+        "rows": 10922,
+        "status": "PASS"
+      },
+      {
+        "source": "boundary",
+        "target": "tab",
+        "rows": 10922,
+        "status": "PASS"
+      }
+    ],
+    "savedOutputs": 16,
+    "boundaryRows": 10922,
+    "sourceBytesUnchanged": "PASS",
+    "sourceSHA256": {
+      "xlsx": "71af5e7e283beac360231cf1cb8438bd5981830afd6ec6d15882196fbe5a5f17",
+      "ods": "10fb71f91b04906168ea3c910154146f43f16956726175edfe10d268af5f6e72",
+      "semicolon": "14c4b17f236e42add2d90fcda0b2a9bc0d7cf9e299109401f3317873e7ba4bca",
+      "tsv": "8d22ad4f157db652728f6356d63a7dbeda979b196f26071c4385b8380600396c",
+      "boundary": "996e20bc3026f639784a43fe30a6ad6a722f1c3aae32ac1fbb71201553a93937"
+    },
+    "quotedLfUnicodeAndFormulaValue": "PASS",
+    "pdfHeader": "PASS",
+    "elapsedMs": 186040
+  },
+  "performanceConclusion": "No real-native speedup proven. Synthetic queue timings must not be treated as native conversion throughput.",
+  "unmodifiedScope": [
+    "main",
+    "workflows",
+    "images",
+    "Excel",
+    "UI",
+    "Guard route admission",
+    "PR17 queue and saving"
+  ],
+  "preservedOriginalBrandBlobs": {
+    "assets/brand/aio-new-brand-source.png": "4288071be3e10f33227aacd1f495f1d0d5f03783",
+    "assets/brand/elva-v13-happy-source.png": "6eb9e3b15bf369d298af0b98a64db152bf59618a"
+  },
+  "notRun": [
+    "Windows native UNO acceptance",
+    "Windows Qt/browser integration",
+    "installer build",
+    "owner NIKITA runner",
+    "real 255-file user corpus",
+    "complete visual comparison",
+    "2 source PNG-dependent methods absent locally"
+  ],
+  "knownOpenIssues": [
+    "Unknown-extension text native model selection",
+    "Draw HTML empty content / unaccepted XHTML page layout",
+    "macro/template MIME and content fidelity",
+    "multipage and animation completeness",
+    "real-native performance root cause"
+  ]
+}

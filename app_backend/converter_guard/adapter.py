@@ -10,6 +10,7 @@ from ..libreoffice_engine import LibreOfficeError, convert_path, engine_binary
 from .errors import GuardError
 from .routes import registry
 from .csv_import import csv_import_hint
+from .export_recipe import native_export_recipe
 from .native_observation import NativeObservation
 
 
@@ -100,15 +101,24 @@ class LibreOfficeAdapter:
     def prepare_source(self, proof):
         self._local.proof = proof
         name = (proof or {}).get('selectedImportFilter')
+        options = (proof or {}).get('selectedImportOptions')
+        if (not name and (proof or {}).get('basis') == 'native_preflight_document_kind'
+                and (proof or {}).get('state') == 'detected'
+                and (proof or {}).get('nativeKind') == 1
+                and (proof or {}).get('documentServices') == ['com.sun.star.sheet.SpreadsheetDocument']):
+            # LOK confirms the model, but does not expose its chosen filter.
+            # Keep an explicit installed text-import request separate from
+            # a UNO-observed selected filter; never replace a different model.
+            name = proof.get('requestedImportFilter')
+            options = proof.get('requestedImportOptions')
         native = self._registry()
         item = native.filters.get(name)
         self._local.import_filter = (name if item and 'IMPORT' in item[2] and
             (proof or {}).get('registryFingerprint') == native.fingerprint and
             item[0] in (proof or {}).get('documentServices', ()) else None)
-        self._local.import_options = ((proof or {}).get('selectedImportOptions')
+        self._local.import_options = (options
             if self._local.import_filter and
-            isinstance((proof or {}).get('selectedImportOptions'), str) and
-            (proof or {}).get('selectedImportOptions') in
+            isinstance(options, str) and options in
                 {f'{n},34,76,1' for n in (44, 59, 9, 124)}
             and self._local.import_filter in
                 {key for key,(service,extensions,flags) in native.filters.items()
@@ -229,6 +239,13 @@ class LibreOfficeAdapter:
             proof = inspect_source(self.executable, source, workspace, cancel=cancel,
                 timeout=timeout, prepare_profile=prepare_profile, native=self._registry(),
                 office_session=office if os.name == 'nt' and not hasattr(office,'request') else None)
+            if (hint and proof.get('state') == 'detected'
+                    and proof.get('basis') == 'native_preflight_document_kind'
+                    and proof.get('nativeKind') == 1
+                    and proof.get('documentServices') == ['com.sun.star.sheet.SpreadsheetDocument']
+                    and proof.get('registryFingerprint') == native.fingerprint):
+                proof = {**proof, 'requestedImportFilter': hint['filter'],
+                         'requestedImportOptions': hint['options']}
             if office and proof.get('code') in ('PREFLIGHT_TIMEOUT', 'PREFLIGHT_API_UNAVAILABLE',
                                                 'PREFLIGHT_UNO_API_UNAVAILABLE'):
                 office.recycle()
@@ -262,6 +279,9 @@ class LibreOfficeAdapter:
         control = (cancel if timeout is None and output_limit is None else
                    _RunControl(cancel, workspace, timeout, output_limit))
         try:
+            native = self._registry()
+            recipe = native_export_recipe(native, target, getattr(self._local, 'proof', None))
+            export_args = {'convert_spec': recipe.cli_spec(target)} if recipe else {}
             # The first requested native export identifies the actual model.
             # Filename hints never veto a file, including renamed/unlisted ones.
             batch = getattr(self._local, 'batch', None)
@@ -269,7 +289,7 @@ class LibreOfficeAdapter:
                 office, native = batch[1], batch[0]
                 proof = getattr(self._local,'proof',None) or {}
                 services = proof.get('documentServices', [proof.get('documentService')])
-                filter_name = native.export_filter(target, services)
+                filter_name = recipe.filter_name if recipe else None
                 if filter_name:
                     output = workspace / 'output'
                     output.mkdir(parents=True)
@@ -279,6 +299,7 @@ class LibreOfficeAdapter:
                         on_started()
                         result = office.request({'operation':'export','source':str(source.resolve()),
                             'format':target,'output':str(output.resolve()),'exportFilter':filter_name,
+                            'exportOptions':recipe.filter_options,
                             'importFilter':getattr(self._local,'import_filter',None),
                             'importOptions':getattr(self._local,'import_options',None),
                             'services':sorted(native.import_services),'expectedServices':services,
@@ -302,11 +323,10 @@ class LibreOfficeAdapter:
             filter_opts = getattr(self._local, 'import_options', None)
             if filtered and filter_opts:
                 filtered = filtered + ':' + filter_opts
-            native = self._registry()
             if on_document_service is None or not native.valid:
                 return convert_path(source, target, workspace, executable=self.executable,
                                     cancel=control, on_started=on_started,
-                                    import_filter=filtered)
+                                    import_filter=filtered, **export_args)
             observation = NativeObservation()
             completed = False
             try:
@@ -318,10 +338,10 @@ class LibreOfficeAdapter:
                         # or drain thread must not veto a native conversion.
                         return convert_path(source, target, workspace, executable=self.executable,
                                             cancel=control, on_started=on_started,
-                                    import_filter=filtered)
+                                            import_filter=filtered, **export_args)
                     paths = convert_path(source, target, workspace, executable=self.executable,
                         cancel=control, on_started=on_started, stdout=observation.writer,
-                        import_filter=filtered)
+                        import_filter=filtered, **export_args)
                 completed = True
                 return paths
             finally:

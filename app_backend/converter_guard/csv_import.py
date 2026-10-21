@@ -6,6 +6,7 @@ continue through ordinary Guard preflight, without new source-size limits.
 """
 from __future__ import annotations
 
+import codecs
 import csv
 import io
 from pathlib import Path
@@ -40,12 +41,16 @@ def csv_import_hint(source: Path, native):
         return None  # No registered, unambiguous text-CSV importer.
     try:
         with Path(source).open('rb') as stream:
-            sample = stream.read(65536)
+            # One look-ahead byte distinguishes a bounded prefix from EOF.
+            # An incomplete final UTF-8 character in a prefix is not damage.
+            prefix = stream.read(65537)
+        truncated = len(prefix) > 65536
+        sample = prefix[:65536]
         if not sample or b'\0' in sample:
             return None
-        text = sample.decode('utf-8-sig', errors='strict')
+        text = codecs.getincrementaldecoder('utf-8-sig')('strict').decode(sample, final=not truncated)
         # A partial last row in a bounded sample must not change the dialect.
-        if len(sample) == 65536 and '\n' in text:
+        if truncated and '\n' in text:
             text = text[:text.rfind('\n') + 1]
         if not text or '\n' not in text:
             return None

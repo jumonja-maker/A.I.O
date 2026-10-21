@@ -56,6 +56,20 @@ class CsvImportHintQA(unittest.TestCase):
         self.assertIsNone(csv_import_hint(self.source('table.csv',b'arbitrary bytes'),NATIVE))
         self.assertIsNotNone(csv_import_hint(self.source('table.unknown',b'a,b\n1,2\n'),NATIVE))
 
+    def test_bounded_sample_does_not_reject_a_valid_utf8_prefix_cut_inside_a_character(self):
+        prefix = b'name,amount\nalpha,1\nbeta,2\n'
+        for tail in ('я', '€', '🙂'):
+            with self.subTest(character=tail):
+                payload = prefix + b'x' * (65535 - len(prefix)) + tail.encode('utf-8') + b',3\n'
+                source = self.source('large.unknown', payload)
+                self.assertEqual(csv_import_hint(source, NATIVE),
+                                 {'filter': CSV_FILTER, 'options': '44,34,76,1'})
+
+    def test_incomplete_utf8_at_real_eof_is_not_treated_as_a_valid_sample(self):
+        for payload in (b'a,b\n1,2\n\xd1', b'a,b\n1,2\n' + b'x' * (65535 - 8) + b'\xd1'):
+            with self.subTest(length=len(payload)):
+                self.assertIsNone(csv_import_hint(self.source('invalid.csv', payload), NATIVE))
+
     def test_ambiguous_or_unavailable_native_importer_never_guessed(self):
         path = self.source('table.csv',b'a,b\n1,2\n')
         self.assertIsNone(csv_import_hint(path,SimpleNamespace(valid=False)))
