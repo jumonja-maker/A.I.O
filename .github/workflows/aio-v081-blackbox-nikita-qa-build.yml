@@ -65,7 +65,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: jumonja-maker/A.I.O
-          ref: e4678a2f326eee47d75524d1bae6daef22348d23
+          ref: 6ea0433ba34554ef9a8e1b1a05879cf601a6048f
           path: aio-pin-${{ github.run_id }}
           persist-credentials: false
           clean: true
@@ -109,7 +109,7 @@ jobs:
           if (Test-Path -LiteralPath $script) { throw 'Verifier filename collision.' }
           try {
             [IO.File]::WriteAllText($script,$verifier,[Text.UTF8Encoding]::new($false))
-            & $python $script '7787ad2c1d68acc57defe723a63d43420786f072'
+            & $python $script '04a2cf933b4e68aae866886774243d79ee245587'
             if ($LASTEXITCODE -ne 0) { throw 'Source snapshot rejected.' }
           } finally {
             Remove-Item -LiteralPath $script -Force -ErrorAction SilentlyContinue
@@ -132,7 +132,7 @@ jobs:
           $compiler=@(Get-ChildItem -LiteralPath $dir -Filter ISCC.exe -File -Recurse -ErrorAction Stop)
           if ($compiler.Count -ne 1) { throw 'Trusted Inno compiler missing.' }
           'AIO_APPROVED_ISCC='+$compiler[0].FullName | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-          Write-Host 'SOURCE_SHA=e4678a2f326eee47d75524d1bae6daef22348d23'
+          Write-Host 'SOURCE_SHA=6ea0433ba34554ef9a8e1b1a05879cf601a6048f'
           Write-Host 'OFFLINE_DEPENDENCIES=PASS'
 
       - name: Compile Python, run all regressions and BLACKBOX stress QA
@@ -223,7 +223,7 @@ jobs:
             (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash.ToLowerInvariant()+
               '  '+[IO.Path]::GetFileName($_)
           } | Set-Content -LiteralPath 'build\installer\SHA256SUMS.txt' -Encoding ascii
-          @('SOURCE=e4678a2f326eee47d75524d1bae6daef22348d23','TREE=7787ad2c1d68acc57defe723a63d43420786f072','GUARD=V0.8.1-PR14',
+          @('SOURCE=6ea0433ba34554ef9a8e1b1a05879cf601a6048f','TREE=04a2cf933b4e68aae866886774243d79ee245587','GUARD=V0.8.1-PR14',
             'BLACKBOX=TELEMETRY-V0.1-PR15','LIBREOFFICE=BUNDLED',
             'NATIVE_WINDOWS_QA=PASS','INSTALLED=NO;RELEASED=NO;MAIN=UNCHANGED') |
               Set-Content -LiteralPath 'build\installer\BUILD-STATUS.txt' -Encoding utf8
@@ -254,7 +254,7 @@ jobs:
       - name: Report separate test, package and upload outcomes
         if: always()
         run: |
-          Write-Host 'PINNED_SOURCE=e4678a2f326eee47d75524d1bae6daef22348d23'
+          Write-Host 'PINNED_SOURCE=6ea0433ba34554ef9a8e1b1a05879cf601a6048f'
           Write-Host 'TESTS=${{ steps.tests.outcome }}'
           Write-Host 'NATIVE=${{ steps.native.outcome }}'
           Write-Host 'PACKAGE=${{ steps.package.outcome }}'
