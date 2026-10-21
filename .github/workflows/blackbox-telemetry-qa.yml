@@ -8,6 +8,7 @@ on:
       - "app_backend/converter_transport.py"
       - "app_backend/server.py"
       - "tests/test_blackbox_telemetry.py"
+      - "tests/test_blackbox_audit_v02.py"
       - ".github/workflows/blackbox-telemetry-qa.yml"
   workflow_dispatch:
 
@@ -37,4 +38,6 @@ jobs:
             app_backend/converter_transport.py \
             app_backend/server.py
       - name: Check BLACK.BOX event emitter contracts and Guard isolation
-        run: python -m unittest discover -s tests -p 'test_blackbox_telemetry.py' -v
+        run: |
+          python -m unittest discover -s tests -p 'test_blackbox_telemetry.py' -v
+          python -m unittest discover -s tests -p 'test_blackbox_audit_v02.py' -v

@@ -14,10 +14,17 @@ import re
 import secrets
 import tempfile
 import threading
+import time
 
 FIELDS = frozenset({
     'type', 'seq', 'timestamp', 'request_id', 'file_id', 'target',
     'stage', 'status', 'duration_ms', 'reason_code', 'process_pid',
+    'schema_version', 'module_id', 'task_id', 'attempt_id', 'result_id',
+    'backend', 'worker_id', 'worker_reused', 'filter_name',
+    'native_status', 'output_contract_status', 'fidelity_status',
+    'save_status', 'source_size', 'source_sha256', 'result_size',
+    'process_exit_code', 'monotonic_ns', 'reason_family',
+    'result_sha256', 'producer_id', 'error_fingerprint',
 })
 TYPE = re.compile(r'^[a-zA-Z][a-zA-Z0-9_.-]{0,63}$')
 TARGET = re.compile(r'^[a-zA-Z0-9_-]{1,24}$')
@@ -34,6 +41,15 @@ STATUSES = frozenset({
     'cancelled', 'skipped', 'completed', 'started', 'finished',
     'detected', 'undetermined', 'registered', 'unavailable',
 })
+
+
+AUDIT_CODE = re.compile(r'^[a-zA-Z0-9_.-]{1,96}$')
+DIGEST = re.compile(r'^[0-9a-f]{64}$')
+SAFE_STATE = frozenset({'completed', 'ready', 'failed', 'skipped', 'cancelled',
+    'not_checked', 'unknown', 'checked', 'invalid', 'saved', 'partial', 'error'})
+SAFE_BACKENDS = frozenset({'uno', 'cli', 'native_uno', 'native_cli', 'lok',
+    'native', 'office_session', 'uno_session', 'unknown'})
+SAFE_MODULES = frozenset({'converter', 'guard', 'app'})
 
 
 def _utc_now():
@@ -60,6 +76,8 @@ class TelemetryEmitter:
             raise ValueError('Telemetry must be outside conversion/temp directories')
         self.path = destination
         self._key = secrets.token_bytes(16)
+        self.producer_id = secrets.token_hex(12)
+        self._epoch = time.monotonic_ns()
         self._queue = queue.Queue(maxsize=capacity)
         self._sequence_lock = threading.Lock()
         self._next_seq = 0
@@ -71,7 +89,7 @@ class TelemetryEmitter:
             target=self._writer, name='aio-blackbox-jsonl', daemon=True)
         self._writer_thread.start()
         self.emit('telemetry_started', status='started', stage='idle',
-                  process_pid=os.getpid())
+                  process_pid=os.getpid(), module_id='app')
 
     def _opaque(self, value):
         if value is None:
@@ -91,12 +109,19 @@ class TelemetryEmitter:
 
     def emit(self, kind, *, request_id=None, file_id=None, target=None,
              stage=None, status=None, duration_ms=None, reason_code=None,
-             process_pid=None):
+             process_pid=None, module_id=None, task_id=None, attempt_id=None,
+             result_id=None, backend=None, worker_id=None, worker_reused=None,
+             filter_name=None, native_status=None, output_contract_status=None,
+             fidelity_status=None, save_status=None, source_size=None,
+             source_sha256=None, result_size=None, result_sha256=None,
+             process_exit_code=None, reason_family=None, error_fingerprint=None):
         """Safe even when called from under the GUARD RLock: no disk or waits."""
         try:
             if not TYPE.fullmatch(kind):
                 return
-            event = {'type': kind, 'timestamp': _utc_now()}
+            event = {'type': kind, 'timestamp': _utc_now(),
+                     'producer_id': self.producer_id, 'schema_version': 2,
+                     'monotonic_ns': time.monotonic_ns() - self._epoch}
             if request_id is not None:
                 event['request_id'] = self._opaque(request_id)
             if file_id is not None:
@@ -113,6 +138,40 @@ class TelemetryEmitter:
                 event['duration_ms'] = int(duration_ms)
             if type(process_pid) is int and process_pid > 0:
                 event['process_pid'] = process_pid
+            if module_id in SAFE_MODULES:
+                event['module_id'] = module_id
+            for field, value in (('task_id', task_id), ('attempt_id', attempt_id),
+                                 ('result_id', result_id), ('worker_id', worker_id)):
+                if value is not None:
+                    event[field] = self._opaque(value)
+            if backend in SAFE_BACKENDS:
+                event['backend'] = backend
+            if type(worker_reused) is bool:
+                event['worker_reused'] = worker_reused
+            if isinstance(filter_name, str) and AUDIT_CODE.fullmatch(filter_name):
+                event['filter_name'] = filter_name
+            for field, value in (('native_status', native_status),
+                                 ('output_contract_status', output_contract_status),
+                                 ('fidelity_status', fidelity_status),
+                                 ('save_status', save_status)):
+                if value in SAFE_STATE:
+                    event[field] = value
+            if type(source_size) is int and source_size >= 0:
+                event['source_size'] = source_size
+            if type(result_size) is int and result_size >= 0:
+                event['result_size'] = result_size
+            if isinstance(source_sha256, str) and DIGEST.fullmatch(source_sha256):
+                event['source_sha256'] = source_sha256
+            if isinstance(result_sha256, str) and DIGEST.fullmatch(result_sha256):
+                event['result_sha256'] = result_sha256
+            if type(process_exit_code) is int and -2147483648 <= process_exit_code <= 2147483647:
+                event['process_exit_code'] = process_exit_code
+            if isinstance(reason_family, str) and CODE.fullmatch(reason_family):
+                event['reason_family'] = reason_family
+            if isinstance(error_fingerprint, str) and error_fingerprint:
+                # Per-process keyed hash of the native diagnostic. Never
+                # write stderr/paths/document text to the event stream.
+                event['error_fingerprint'] = self._opaque(error_fingerprint)
             with self._sequence_lock:
                 if self._closed or self._error:
                     return
@@ -147,6 +206,8 @@ class TelemetryEmitter:
                         stream.write(json.dumps({
                             'type': 'telemetry_dropped', 'seq': expected,
                             'timestamp': _utc_now(), 'stage': 'idle',
+                            'producer_id': self.producer_id, 'schema_version': 2,
+                            'monotonic_ns': time.monotonic_ns() - self._epoch,
                             'status': 'failed', 'reason_code': 'QUEUE_OVERFLOW',
                             # BLACK.BOX v0.1 preserves only known fields.
                             'duration_ms': missing,
@@ -161,6 +222,8 @@ class TelemetryEmitter:
                     stream.write(json.dumps({
                         'type': 'telemetry_dropped', 'seq': last,
                         'timestamp': _utc_now(), 'stage': 'idle',
+                        'producer_id': self.producer_id, 'schema_version': 2,
+                        'monotonic_ns': time.monotonic_ns() - self._epoch,
                         'status': 'failed', 'reason_code': 'QUEUE_OVERFLOW',
                         'duration_ms': last - expected + 1,
                     }, separators=(',', ':')) + '\n')

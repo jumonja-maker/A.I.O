@@ -444,9 +444,42 @@ class ConverterGuard:
 
         def send(kind, *, phase=None, status=None, reason=None, elapsed=None,
                  fid=file_id, fmt=target):
+            source = job.files_by_id.get(fid) if fid is not None else None
+            current = (next((t for t in source.targets if t.format == fmt), None)
+                       if source and fmt else None)
+            task_id = (identity + ':' + str(current.index)) if current else None
+            artifact = current.artifacts[0] if current and current.artifacts else None
+            native_mode = current.execution_mode if current else None
             sink.emit(kind, request_id=identity, file_id=fid, target=fmt,
                       stage=phase, status=status, reason_code=reason,
-                      duration_ms=elapsed)
+                      duration_ms=elapsed, module_id='guard',
+                      task_id=task_id,
+                      attempt_id=task_id + ':1' if task_id else None,
+                      result_id=artifact.ticket if artifact else None,
+                      backend=native_mode if native_mode else 'unknown',
+                      native_status=('completed' if kind == 'task_succeeded' else
+                                     'failed' if kind == 'task_failed' else
+                                     'cancelled' if kind == 'task_cancelled' else None),
+                      output_contract_status=(
+                          'invalid' if kind in ('task_succeeded', 'output_contract_warning')
+                          and current and any(a.size == 0 for a in current.artifacts)
+                          else 'checked' if kind == 'task_succeeded'
+                          else 'not_checked' if kind == 'task_failed' else None),
+                      fidelity_status='not_checked' if kind == 'task_succeeded' else None,
+                      save_status='saved' if kind == 'save_confirmed' else None,
+                      result_size=sum(a.size for a in current.artifacts)
+                          if current and current.artifacts else None,
+                      source_size=source.size if source and kind == 'input_registered' else None,
+                      source_sha256=source.content_digest if source and kind == 'input_registered' else None,
+                      reason_family=('CANCEL' if kind in ('task_cancelled', 'cancel_requested') else
+                                     'ENGINE' if kind == 'task_failed' and
+                                     (reason or '').startswith('ENGINE_') else
+                                     'STORAGE' if reason and ('STORAGE' in reason or 'DISK' in reason)
+                                     else 'PREFLIGHT' if reason and ('PREFLIGHT' in reason or 'ROUTE' in reason)
+                                     else 'UNCLASSIFIED' if kind == 'task_failed' else None),
+                      error_fingerprint=(current.diagnostic if current and
+                                         kind == 'task_failed' and current.diagnostic
+                                         else None))
 
         if stage == 'job_queued':
             send('job_queued', phase='queue', status='queued')
@@ -469,14 +502,22 @@ class ConverterGuard:
             send('result_created', phase='result', status='ready')
             send('task_succeeded', phase='result', status='ready',
                  elapsed=task.duration_ms if task else None)
+            # Diagnostic only. Native success remains as GUARD determined.
+            if task and any(a.size == 0 for a in task.artifacts):
+                send('output_contract_warning', phase='result', status='failed',
+                     reason='OUTPUT_EMPTY')
             return
         if stage == 'route_filtered':
             send('task_failed', phase='route', status='skipped',
                  reason=code or 'NATIVE_ROUTE_UNAVAILABLE')
             return
         if stage == 'native_stage':
-            send('native_stage', phase=task.stage if task else 'engine',
-                 status='running')
+            native_phase = task.stage if task else 'engine'
+            send('native_stage', phase=native_phase, status='running')
+            # Start is observable. Do not invent phase completion while the
+            # underlying UNO/CLI call may still be inside native code.
+            if native_phase in ('import', 'export'):
+                send(native_phase + '_started', phase=native_phase, status='started')
             return
         if stage == 'task_finished':
             # Task completion is derived from *actual* task state, not this
@@ -501,6 +542,7 @@ class ConverterGuard:
             send('libreoffice_started', phase='launch', status='started')
         elif stage == 'save_confirmed':
             send('save_confirmed', phase='save', status='saved')
+            send('save_finished', phase='save', status='saved')
         elif stage == 'packaging_started':
             send('archive_started', phase='packaging', status='started')
         elif stage == 'bundle_ready':
@@ -532,6 +574,8 @@ class ConverterGuard:
             if kind:
                 send(kind, phase='preflight' if stage.startswith('preflight')
                      else 'recovery' if stage == 'recovered' else 'idle')
+            if stage == 'input_stored':
+                send('input_registered', phase='upload', status='completed')
 
     def _get(self, identity):
         job = self._jobs.get(identity)
@@ -1003,6 +1047,25 @@ class ConverterGuard:
                                     task.execution_mode = getattr(self.adapter,'execution_mode',lambda:None)()
                                     self._record(job, 'engine_started', file_id=item.id,
                                                   target=task.format, lo_started=True)
+                                    # If the current batch exposes a native worker,
+                                    # correlate its *actual* PID with the task.
+                                    # In UNO mode this can be the Python/UNO
+                                    # bridge, NOT necessarily soffice.exe itself.
+                                    tree = getattr(office, 'tree', None) if office else None
+                                    child = getattr(tree, 'process', None)
+                                    worker_pid = getattr(child, 'pid', None)
+                                    if (self.telemetry is not None and
+                                            type(worker_pid) is int and worker_pid > 0):
+                                        try:
+                                            key = job.id + ':' + str(task.index)
+                                            self.telemetry.emit('native_worker_observed',
+                                                request_id=job.id, file_id=item.id,
+                                                target=task.format, module_id='guard',
+                                                task_id=key, attempt_id=key + ':1',
+                                                process_pid=worker_pid, stage='engine',
+                                                backend=task.execution_mode or 'unknown')
+                                        except Exception:
+                                            pass
 
                             routing = getattr(self.adapter, 'route_decision', None)
                             decision = routing(task.format, item.native_route) if routing else None
@@ -1341,6 +1404,19 @@ class ConverterGuard:
                 manifest.append({'path': artifact.archive_name, 'size': written,
                                  'sha256': digest.hexdigest(), 'fileId':artifact.file_id,
                                  'format':artifact.format})
+                # Already computed while copying; no second read or quality scan.
+                # This is a write-completed event, NOT independent readback
+                # verification or proof that the whole folder has been saved.
+                if self.telemetry is not None:
+                    try:
+                        self.telemetry.emit('save_file_written',
+                            request_id=job.id, file_id=artifact.file_id,
+                            target=artifact.format, module_id='guard',
+                            result_id=artifact.ticket, result_size=written,
+                            result_sha256=digest.hexdigest(),
+                            stage='save', status='completed', save_status='completed')
+                    except Exception:
+                        pass
                 on_progress(number, len(copies))
             from .result_store import atomic_json
             atomic_json(folder / 'AIO-conversion-report.json', report)
