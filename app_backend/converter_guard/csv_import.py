@@ -1,0 +1,72 @@
+"""Content-aware optional noninteractive native Calc text-import hint.
+
+Not a routing decision: only a successfully loaded UNO spreadsheet with an
+installed importer can establish compatibility. Unknown and binary inputs
+continue through ordinary Guard preflight, without new source-size limits.
+"""
+from __future__ import annotations
+
+import csv
+import io
+from pathlib import Path
+
+
+CALC = 'com.sun.star.sheet.SpreadsheetDocument'
+DELIMITERS = (',', ';', '\t', '|')
+
+
+def csv_import_hint(source: Path, native):
+    """Return a validated UNO filter/options pair, or None.
+
+    Use a bounded sample; no suffix-based admission, and no new rejection.
+    UTF-8 is chosen only when actual sampled bytes decode as strict UTF-8.
+    """
+    if not getattr(native, 'valid', False):
+        return None
+    eligible = [name for name, (service, extensions, flags) in native.filters.items()
+                if service == CALC and 'csv' in extensions and 'IMPORT' in flags]
+    preferred = set(native.preferred_filters.get('csv', ())).intersection(eligible)
+    if len(preferred) == 1:
+        selected = next(iter(preferred))
+    elif len(eligible) == 1:
+        selected = eligible[0]
+    else:
+        return None  # Ambiguous native registry: no guessed import filter.
+    try:
+        with Path(source).open('rb') as stream:
+            sample = stream.read(65536)
+        if not sample or b'\0' in sample:
+            return None
+        text = sample.decode('utf-8-sig', errors='strict')
+        # A partial last row in a bounded sample must not change the dialect.
+        if len(sample) == 65536 and '\n' in text:
+            text = text[:text.rfind('\n') + 1]
+        if not text or '\n' not in text:
+            return None
+        choices = []
+        for delimiter in DELIMITERS:
+            try:
+                reader = csv.reader(io.StringIO(text, newline=''),
+                                    delimiter=delimiter, quotechar='"', strict=True)
+                rows = []
+                for record in reader:
+                    if record:
+                        rows.append(record)
+                    if len(rows) >= 8:
+                        break
+                if len(rows) < 2:
+                    continue
+                width = len(rows[0])
+                if width < 2 or any(len(row) != width for row in rows):
+                    continue
+                choices.append(delimiter)
+            except (csv.Error, ValueError, UnicodeError):
+                continue
+        if len(choices) != 1:
+            return None
+    except (OSError, UnicodeError, ValueError):
+        return None
+    # Native Calc CSV import syntax: separator code, text delimiter code,
+    # UTF-8 charset 76, and first data row 1. Never depend on UI dialogs.
+    separator = ord(choices[0])
+    return {'filter': selected, 'options': f'{separator},34,76,1'}
