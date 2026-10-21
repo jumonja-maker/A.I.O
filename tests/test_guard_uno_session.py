@@ -90,6 +90,15 @@ class UnoWorkerContracts(unittest.TestCase):
         self.assertEqual(exports,[])
         self.assertEqual(replies[-1]['code'],'NATIVE_MODEL_CHANGED')
 
+    def test_import_and_export_options_are_separate_and_never_leak_to_next_export(self):
+        _, loads, exports, replies = self.execute([
+            {'importFilter': 'Calc text import', 'importOptions': '59,34,76,1',
+             'exportOptions': '9,34,76,1,'}, {}])
+        self.assertEqual(loads[0]['FilterOptions'], '59,34,76,1')
+        self.assertEqual(exports[0]['FilterOptions'], '9,34,76,1,')
+        self.assertNotIn('FilterOptions', exports[1])
+        self.assertTrue(all(r['ok'] for r in replies))
+
     def test_failed_import_does_not_poison_the_next_source(self):
         models,loads,exports,replies=self.execute([{},{}],fail_first=True)
         self.assertEqual(replies[1]['code'],'SOURCE_IMPORT_FAILED')

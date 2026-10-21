@@ -109,7 +109,10 @@ def main(boot_name):
                     stage = 'export'
                     send({'id':request_id,'stage':'export'})
                     target = Path(req['output']) / (source.stem + '.' + req['format'])
-                    model.storeToURL(target.as_uri(), (prop('FilterName', req['exportFilter']),prop('Overwrite',False)))
+                    export_options = [prop('FilterName', req['exportFilter']), prop('Overwrite', False)]
+                    if req.get('exportOptions') is not None:
+                        export_options.append(prop('FilterOptions', req['exportOptions']))
+                    model.storeToURL(target.as_uri(), tuple(export_options))
                     present = target.is_file() and not target.is_symlink()
                     # Result paths stay on disk. Thousands of HTML sidecars
                     # must not overflow the small control-message channel.
