@@ -713,6 +713,8 @@ class ConverterGuard:
         try:
             self._store_write(job, self._initialize_store, job)
             with self._lock:
+                if self._closed:
+                    raise GuardError('GUARD_CLOSED', 'Guard завершает работу.', status=503)
                 return self._snapshot(job)
         finally:
             with self._lock:

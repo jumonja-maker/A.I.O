@@ -239,6 +239,40 @@ class GuardPerformanceQA(unittest.TestCase):
         self.assertEqual([error.code for error in errors], ['CANCELLED'])
         self.assertEqual(self.guard.status(identity)['state'], 'cancelled')
 
+    def test_create_racing_shutdown_does_not_return_an_already_deleted_job(self):
+        entered, resume = threading.Event(), threading.Event()
+        original = ResultStore.initialize
+        errors, returned = [], []
+        def blocked(store, job):
+            entered.set()
+            self.assertTrue(resume.wait(3))
+            original(store, job)
+        def create():
+            try:
+                returned.append(self.guard.create([
+                    {'id':'one', 'name':'one.docx', 'size':1}], ['pdf'])['jobId'])
+            except Exception as error:
+                errors.append(error)
+        with patch.object(ResultStore, 'initialize', blocked):
+            creator = threading.Thread(target=create)
+            creator.start()
+            closer = None
+            try:
+                self.assertTrue(entered.wait(2))
+                closer = threading.Thread(target=self.guard.close)
+                closer.start()
+                until = time.monotonic() + 1
+                while not self.guard._closed and time.monotonic() < until:
+                    time.sleep(.001)
+                self.assertTrue(self.guard._closed)
+            finally:
+                resume.set()
+                creator.join(3)
+                if closer: closer.join(3)
+        self.assertFalse(returned)
+        self.assertEqual([getattr(error, 'code', None) for error in errors], ['GUARD_CLOSED'])
+        self.assertEqual(self.guard.storage_stats()['jobs'], 0)
+
 
 if __name__ == '__main__':
     unittest.main()
