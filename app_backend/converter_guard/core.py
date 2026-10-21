@@ -1047,6 +1047,25 @@ class ConverterGuard:
                                     task.execution_mode = getattr(self.adapter,'execution_mode',lambda:None)()
                                     self._record(job, 'engine_started', file_id=item.id,
                                                   target=task.format, lo_started=True)
+                                    # If the current batch exposes a native worker,
+                                    # correlate its *actual* PID with the task.
+                                    # In UNO mode this can be the Python/UNO
+                                    # bridge, NOT necessarily soffice.exe itself.
+                                    tree = getattr(office, 'tree', None) if office else None
+                                    child = getattr(tree, 'process', None)
+                                    worker_pid = getattr(child, 'pid', None)
+                                    if (self.telemetry is not None and
+                                            type(worker_pid) is int and worker_pid > 0):
+                                        try:
+                                            key = job.id + ':' + str(task.index)
+                                            self.telemetry.emit('native_worker_observed',
+                                                request_id=job.id, file_id=item.id,
+                                                target=task.format, module_id='guard',
+                                                task_id=key, attempt_id=key + ':1',
+                                                process_pid=worker_pid, stage='engine',
+                                                backend=task.execution_mode or 'unknown')
+                                        except Exception:
+                                            pass
 
                             routing = getattr(self.adapter, 'route_decision', None)
                             decision = routing(task.format, item.native_route) if routing else None
