@@ -184,7 +184,7 @@ class _LocalHtmlResources(HTMLParser):
                 # Only srcset is a list; src/href/poster/data are single URIs.
                 # Srcset descriptors are separated by commas, typically followed
                 # by whitespace; uncertain candidates remain fail-closed.
-                candidates = (re.split(r',\\s+(?=\\S)', value) if key == 'srcset'
+                candidates = (re.split(r',\s+(?=\S)', value) if key == 'srcset'
                               else [value])
                 urls = (part.strip().split()[0] for part in candidates if part.strip())
                 if any(self._local(url) for url in urls):
