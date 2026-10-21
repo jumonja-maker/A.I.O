@@ -12,6 +12,7 @@ from .routes import registry
 from .csv_import import csv_import_hint
 from .export_recipe import native_export_recipe
 from .native_observation import NativeObservation
+from .native_metrics import clean_timings
 
 
 def prepare_profile(profile):
@@ -97,6 +98,9 @@ class LibreOfficeAdapter:
 
     def execution_mode(self):
         return getattr(self._local,'execution_mode',None)
+
+    def native_timings(self):
+        return clean_timings(getattr(self._local, 'metrics', None))
 
     def prepare_source(self, proof):
         self._local.proof = proof
@@ -272,6 +276,8 @@ class LibreOfficeAdapter:
     def convert(self, source, target, workspace, *, cancel, timeout,
                 on_started, output_limit=None, on_document_service=None, on_stage=None):
         self._local.execution_mode = None
+        self._local.metrics = None
+        adapter_tick = time.monotonic()
         if not self.available:
             raise GuardError('ENGINE_NOT_FOUND', 'LibreOffice не найден.', stage='launch', status=503)
         if cancel.is_set():
@@ -294,8 +300,11 @@ class LibreOfficeAdapter:
                     output = workspace / 'output'
                     output.mkdir(parents=True)
                     try:
+                        startup_tick = time.monotonic()
                         office.ensure_started(control,min(45,timeout) if timeout is not None else 45)
+                        startup_ms = round((time.monotonic()-startup_tick)*1000)
                         self._local.execution_mode = 'native_uno'
+                        self._local.metrics = {'source':'uno_document', 'workerStartupMs':startup_ms}
                         on_started()
                         result = office.request({'operation':'export','source':str(source.resolve()),
                             'format':target,'output':str(output.resolve()),'exportFilter':filter_name,
@@ -305,6 +314,9 @@ class LibreOfficeAdapter:
                             'services':sorted(native.import_services),'expectedServices':services,
                             'importFilters':[name for name,item in native.filters.items() if 'IMPORT' in item[2]]},
                             cancel=control,timeout=timeout,on_stage=on_stage or (lambda stage:None))
+                        self._local.metrics = {**(clean_timings(result.get('timings')) or
+                                                 {'source':'uno_document'}),
+                                               'workerStartupMs':startup_ms}
                         if not result.get('ok'):
                             diagnostic=str(result.get('diagnostic','')).replace(str(source.parent.parent.parent),'[local]')
                             raise GuardError(result.get('code') or 'ENGINE_FAILED','LibreOffice не смог '+
@@ -326,7 +338,7 @@ class LibreOfficeAdapter:
             if on_document_service is None or not native.valid:
                 return convert_path(source, target, workspace, executable=self.executable,
                                     cancel=control, on_started=on_started,
-                                    import_filter=filtered, **export_args)
+                                    import_filter=filtered, metrics_sink=self._capture_metrics, **export_args)
             observation = NativeObservation()
             completed = False
             try:
@@ -338,10 +350,10 @@ class LibreOfficeAdapter:
                         # or drain thread must not veto a native conversion.
                         return convert_path(source, target, workspace, executable=self.executable,
                                             cancel=control, on_started=on_started,
-                                            import_filter=filtered, **export_args)
+                                            import_filter=filtered, metrics_sink=self._capture_metrics, **export_args)
                     paths = convert_path(source, target, workspace, executable=self.executable,
                         cancel=control, on_started=on_started, stdout=observation.writer,
-                        import_filter=filtered, **export_args)
+                        import_filter=filtered, metrics_sink=self._capture_metrics, **export_args)
                 completed = True
                 return paths
             finally:
@@ -354,3 +366,9 @@ class LibreOfficeAdapter:
         except OSError as error:
             raise GuardError('STORAGE_ERROR', 'Ошибка временного хранилища Guard.',
                              stage='storage', status=507) from error
+        finally:
+            if self._local.metrics is not None:
+                self._local.metrics['adapterMs'] = round((time.monotonic()-adapter_tick)*1000)
+
+    def _capture_metrics(self, value):
+        self._local.metrics = clean_timings(value)

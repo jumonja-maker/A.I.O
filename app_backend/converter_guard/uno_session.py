@@ -71,18 +71,26 @@ def main(boot_name):
     for raw in sys.stdin:
         req = json.loads(raw)
         model, result, stage = None, None, 'import'
+        operation_tick = time.monotonic()
+        import_tick = export_tick = None
+        timings = {'source':'uno_document'}
         request_id = req['id']
         try:
             source = Path(req['source']).resolve(strict=True)
             send({'id':request_id,'stage':'import'})
-            descriptor = (prop('URL', source.as_uri()),)
-            try:
-                detected = detector.queryTypeByDescriptor(descriptor, True)
-                type_name, updated = detected if isinstance(detected, tuple) and len(detected) == 2 else (detected, ())
-            except Exception:
-                # Detection failure must not veto a successful native import.
-                type_name, updated = None, ()
-            selected = next((p.Value for p in updated if p.Name == 'FilterName'), None)
+            import_tick = time.monotonic()
+            type_name, selected = None, None
+            if req['operation'] == 'inspect':
+                descriptor = (prop('URL', source.as_uri()),)
+                try:
+                    detected = detector.queryTypeByDescriptor(descriptor, True)
+                    type_name, updated = detected if isinstance(detected, tuple) and len(detected) == 2 else (detected, ())
+                except Exception:
+                    # Detection failure must not veto a successful import.
+                    type_name, updated = None, ()
+                selected = next((p.Value for p in updated if p.Name == 'FilterName'), None)
+            # Exports use the loaded model and its real services below. A deep
+            # detection result was discarded here, duplicating work per target.
             handler = Abort()
             options = [prop('Hidden', True), prop('ReadOnly', True), prop('Silent', True),
                        prop('MacroExecutionMode', 0), prop('UpdateDocMode', 0), prop('InteractionHandler', handler)]
@@ -94,6 +102,7 @@ def main(boot_name):
                 if req.get('importOptions'):
                     options.append(prop('FilterOptions', req['importOptions']))
             model = desktop.loadComponentFromURL(source.as_uri(), '_blank', 0, tuple(options))
+            timings['importMs'] = round((time.monotonic()-import_tick)*1000)
             if model is None:
                 result = {'id':request_id,'ok':False,'code':'PREFLIGHT_INTERACTION_REQUIRED'
                           if handler.blocked else 'SOURCE_IMPORT_FAILED','stage':'import'}
@@ -112,7 +121,11 @@ def main(boot_name):
                     export_options = [prop('FilterName', req['exportFilter']), prop('Overwrite', False)]
                     if req.get('exportOptions') is not None:
                         export_options.append(prop('FilterOptions', req['exportOptions']))
-                    model.storeToURL(target.as_uri(), tuple(export_options))
+                    export_tick = time.monotonic()
+                    try:
+                        model.storeToURL(target.as_uri(), tuple(export_options))
+                    finally:
+                        timings['exportMs'] = round((time.monotonic()-export_tick)*1000)
                     present = target.is_file() and not target.is_symlink()
                     # Result paths stay on disk. Thousands of HTML sidecars
                     # must not overflow the small control-message channel.
@@ -122,12 +135,19 @@ def main(boot_name):
             result = {'id':request_id,'ok':False,'code':'SOURCE_IMPORT_FAILED' if stage == 'import' else 'ENGINE_FAILED',
                       'stage':stage,'diagnostic':str(error)[-4096:]}
         finally:
+            if import_tick is not None and 'importMs' not in timings:
+                timings['importMs'] = round((time.monotonic()-import_tick)*1000)
             if model is not None:
+                close_tick = time.monotonic()
                 try:
                     if hasattr(model,'close'): model.close(True)
                     else: model.dispose()
                 except Exception:
                     result['recycle'] = True
+                finally:
+                    timings['closeMs'] = round((time.monotonic()-close_tick)*1000)
+            timings['operationMs'] = round((time.monotonic()-operation_tick)*1000)
+            result['timings'] = timings
         send(result)
         if result.get('recycle'):
             break
@@ -150,7 +170,10 @@ class UnoSession:
         self.profile = self.pipe = None
         self.disabled = False
 
-    def _read(self, stream):
+    def _read(self, stream, responses=None):
+        # Bind to this generation; a late dying reader must not feed a newly
+        # started worker's queue after cancellation or recycling.
+        responses = self.responses if responses is None else responses
         try:
             while line := stream.readline(65537):
                 if len(line) > 65536:
@@ -158,7 +181,7 @@ class UnoSession:
                 if not line.startswith(b'AIO_GUARD_RPC '):
                     continue
                 try:
-                    self.responses.put_nowait(json.loads(line[len(b'AIO_GUARD_RPC '):]))
+                    responses.put_nowait(json.loads(line[len(b'AIO_GUARD_RPC '):]))
                 except (ValueError, queue.Full):
                     break
         finally:
@@ -209,7 +232,7 @@ class UnoSession:
         self.tree = ProcessTree([str(self.executable.parent/'python.exe'),str(worker),str(boot)],
             cwd=self.workspace,env=environment,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
         self.logs = NativeLogs(self.tree.process,capture_stdout=False)
-        self.reader = threading.Thread(target=self._read,args=(self.tree.process.stdout,),daemon=True,name='aio-uno-response')
+        self.reader = threading.Thread(target=self._read,args=(self.tree.process.stdout,self.responses),daemon=True,name='aio-uno-response')
         self.reader.start()
         start.write_text('ready',encoding='ascii')
         self.starts += 1
@@ -239,17 +262,29 @@ class UnoSession:
             raise
 
     def recycle(self):
-        if self.tree:
-            if self.tree.process.stdin:
-                self.tree.process.stdin.close()
-            self.tree.close();self.tree=None
-        if self.reader:
-            self.reader.join(timeout=1);self.reader=None
-        if self.logs:
-            self.logs.finish();self.logs=None
-        if self.profile:
-            shutil.rmtree(self.profile,ignore_errors=True)
-        self.profile=self.pipe=None
+        tree, reader, logs, profile = self.tree, self.reader, self.logs, self.profile
+        self.tree = self.reader = self.logs = self.profile = self.pipe = None
+        try:
+            # Terminate the owned process before flushing/closing its stdin.
+            # BrokenPipeError previously skipped every remaining cleanup step.
+            if tree:
+                tree.close()
+        finally:
+            try:
+                if tree and tree.process.stdin:
+                    try:
+                        tree.process.stdin.close()
+                    except (OSError, ValueError):
+                        pass
+            finally:
+                try:
+                    if reader:
+                        reader.join(timeout=1)
+                    if logs:
+                        logs.finish()
+                finally:
+                    if profile:
+                        shutil.rmtree(profile,ignore_errors=True)
 
     def __enter__(self):return self
     def __exit__(self,*_):
