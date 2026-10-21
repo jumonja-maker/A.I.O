@@ -79,14 +79,18 @@ def main(boot_name):
             source = Path(req['source']).resolve(strict=True)
             send({'id':request_id,'stage':'import'})
             import_tick = time.monotonic()
-            descriptor = (prop('URL', source.as_uri()),)
-            try:
-                detected = detector.queryTypeByDescriptor(descriptor, True)
-                type_name, updated = detected if isinstance(detected, tuple) and len(detected) == 2 else (detected, ())
-            except Exception:
-                # Detection failure must not veto a successful native import.
-                type_name, updated = None, ()
-            selected = next((p.Value for p in updated if p.Name == 'FilterName'), None)
+            type_name, selected = None, None
+            if req['operation'] == 'inspect':
+                descriptor = (prop('URL', source.as_uri()),)
+                try:
+                    detected = detector.queryTypeByDescriptor(descriptor, True)
+                    type_name, updated = detected if isinstance(detected, tuple) and len(detected) == 2 else (detected, ())
+                except Exception:
+                    # Detection failure must not veto a successful import.
+                    type_name, updated = None, ()
+                selected = next((p.Value for p in updated if p.Name == 'FilterName'), None)
+            # Exports use the loaded model and its real services below. A deep
+            # detection result was discarded here, duplicating work per target.
             handler = Abort()
             options = [prop('Hidden', True), prop('ReadOnly', True), prop('Silent', True),
                        prop('MacroExecutionMode', 0), prop('UpdateDocMode', 0), prop('InteractionHandler', handler)]

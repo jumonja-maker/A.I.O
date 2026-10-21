@@ -9,7 +9,7 @@ import tempfile
 import threading
 from types import SimpleNamespace
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from app_backend.converter_guard.uno_session import UnoSession
 from app_backend.converter_guard.native_logs import NativeLogs
@@ -20,6 +20,24 @@ import test_guard_uno_session as worker_contracts
 
 
 class NativeMetricsQA(unittest.TestCase):
+    def test_deep_type_detection_is_not_repeated_for_exports(self):
+        calls = []
+        def namespace(**kwargs):
+            detect = kwargs.get('queryTypeByDescriptor')
+            if detect:
+                def measured(*args):
+                    calls.append(args)
+                    return detect(*args)
+                kwargs['queryTypeByDescriptor'] = measured
+            return SimpleNamespace(**kwargs)
+        with patch.object(worker_contracts, 'SimpleNamespace', side_effect=namespace):
+            models, _, exports, replies = worker_contracts.UnoWorkerContracts().execute([
+                {'operation':'inspect'}, {}, {}])
+        self.assertTrue(all(reply['ok'] for reply in replies))
+        self.assertEqual(len(exports), 2)
+        self.assertEqual(len(models), 3, 'Every export still opens a fresh native model')
+        self.assertEqual(len(calls), 1, 'Only inspection uses the deep detector result')
+
     def test_worker_reports_real_import_export_and_close_durations(self):
         _, _, _, replies = worker_contracts.UnoWorkerContracts().execute([{}, {}])
         exported = [reply for reply in replies if reply.get('id') != 'ready']
