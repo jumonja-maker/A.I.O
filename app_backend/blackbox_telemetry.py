@@ -41,8 +41,17 @@ STATUSES = frozenset({
 })
 
 
-AUDIT_CODE = re.compile(r'^[a-zA-Z0-9_.-]{1,96}    return datetime.now(timezone.utc).isoformat(timespec='milliseconds')
+AUDIT_CODE = re.compile(r'^[a-zA-Z0-9_.-]{1,96}$')
+DIGEST = re.compile(r'^[0-9a-f]{64}$')
+SAFE_STATE = frozenset({'completed', 'ready', 'failed', 'skipped', 'cancelled',
+    'not_checked', 'unknown', 'checked', 'invalid', 'saved', 'partial', 'error'})
+SAFE_BACKENDS = frozenset({'uno', 'cli', 'native_uno', 'native_cli', 'lok',
+                           'native', 'office_session', 'uno_session', 'unknown'})
+SAFE_MODULES = frozenset({'converter', 'guard', 'app'})
 
+
+def _utc_now():
+    return datetime.now(timezone.utc).isoformat(timespec='milliseconds')
 
 class TelemetryEmitter:
     """Non-blocking bounded producer; single serialized best-effort file writer.
