@@ -119,12 +119,26 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw ('REGRESSION_FAILED '+$name) }
           }
           $node=Get-Command node -ErrorAction SilentlyContinue
-          if (-not $node) { throw 'Node runtime required for UI bridge QA' }
-          & node --check src/converter-bridge.js
+          if ($node) { $node=$node.Source }
+          else {
+            $runnerRoot=Split-Path -Parent (Split-Path -Parent $env:RUNNER_TEMP)
+            $candidates=@(
+              (Join-Path $runnerRoot 'externals\node24\bin\node.exe'),
+              (Join-Path $runnerRoot 'externals\node20\bin\node.exe'),
+              'D:\AIO-Lab\nodejs\node.exe'
+            )
+            $node=@($candidates | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1)
+            if ($node.Count -ne 1) { throw 'Offline Node runtime unavailable for UI bridge QA' }
+            $node=$node[0]
+          }
+          $env:PATH=[IO.Path]::GetDirectoryName($node)+';'+$env:PATH
+          & $node --version
+          if ($LASTEXITCODE -ne 0) { throw 'Node runtime failed' }
+          & $node --check src/converter-bridge.js
           if ($LASTEXITCODE -ne 0) { throw 'JS syntax failed' }
-          & node tests/guard_bridge_contracts.mjs
+          & $node tests/guard_bridge_contracts.mjs
           if ($LASTEXITCODE -ne 0) { throw 'JS_BRIDGE_TEST_FAILED' }
-          & node tests/guard_save_queue_v09.mjs
+          & $node tests/guard_save_queue_v09.mjs
           if ($LASTEXITCODE -ne 0) { throw 'JS_QUEUE_TEST_FAILED' }
           & $python -m unittest discover -s tests -p 'test_*.py' -v
           if ($LASTEXITCODE -ne 0) { throw 'ALL_TESTS_FAILED' }
