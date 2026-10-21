@@ -444,9 +444,37 @@ class ConverterGuard:
 
         def send(kind, *, phase=None, status=None, reason=None, elapsed=None,
                  fid=file_id, fmt=target):
+            source = job.files_by_id.get(fid) if fid is not None else None
+            current = (next((t for t in source.targets if t.format == fmt), None)
+                       if source and fmt else None)
+            task_id = (identity + ':' + str(current.index)) if current else None
+            artifact = current.artifacts[0] if current and current.artifacts else None
+            native_mode = current.execution_mode if current else None
             sink.emit(kind, request_id=identity, file_id=fid, target=fmt,
                       stage=phase, status=status, reason_code=reason,
-                      duration_ms=elapsed)
+                      duration_ms=elapsed, module_id='guard',
+                      task_id=task_id,
+                      attempt_id=task_id + ':1' if task_id else None,
+                      result_id=artifact.ticket if artifact else None,
+                      backend=native_mode if native_mode else 'unknown',
+                      native_status=('completed' if kind == 'task_succeeded' else
+                                     'failed' if kind == 'task_failed' else
+                                     'cancelled' if kind == 'task_cancelled' else None),
+                      output_contract_status=('checked' if kind == 'task_succeeded'
+                                              else 'not_checked' if kind == 'task_failed'
+                                              else None),
+                      fidelity_status='not_checked' if kind == 'task_succeeded' else None,
+                      save_status='saved' if kind == 'save_confirmed' else None,
+                      result_size=sum(a.size for a in current.artifacts)
+                          if current and current.artifacts else None,
+                      source_size=source.size if source and kind == 'input_registered' else None,
+                      source_sha256=source.content_digest if source and kind == 'input_registered' else None,
+                      reason_family=('CANCEL' if kind in ('task_cancelled', 'cancel_requested') else
+                                     'ENGINE' if kind == 'task_failed' and
+                                     (reason or '').startswith('ENGINE_') else
+                                     'STORAGE' if reason and ('STORAGE' in reason or 'DISK' in reason)
+                                     else 'PREFLIGHT' if reason and ('PREFLIGHT' in reason or 'ROUTE' in reason)
+                                     else 'UNCLASSIFIED' if kind == 'task_failed' else None))
 
         if stage == 'job_queued':
             send('job_queued', phase='queue', status='queued')
@@ -475,8 +503,12 @@ class ConverterGuard:
                  reason=code or 'NATIVE_ROUTE_UNAVAILABLE')
             return
         if stage == 'native_stage':
-            send('native_stage', phase=task.stage if task else 'engine',
-                 status='running')
+            native_phase = task.stage if task else 'engine'
+            send('native_stage', phase=native_phase, status='running')
+            # Start is observable. Do not invent phase completion while the
+            # underlying UNO/CLI call may still be inside native code.
+            if native_phase in ('import', 'export'):
+                send(native_phase + '_started', phase=native_phase, status='started')
             return
         if stage == 'task_finished':
             # Task completion is derived from *actual* task state, not this
@@ -501,6 +533,7 @@ class ConverterGuard:
             send('libreoffice_started', phase='launch', status='started')
         elif stage == 'save_confirmed':
             send('save_confirmed', phase='save', status='saved')
+            send('save_finished', phase='save', status='saved')
         elif stage == 'packaging_started':
             send('archive_started', phase='packaging', status='started')
         elif stage == 'bundle_ready':
@@ -532,6 +565,8 @@ class ConverterGuard:
             if kind:
                 send(kind, phase='preflight' if stage.startswith('preflight')
                      else 'recovery' if stage == 'recovered' else 'idle')
+            if stage == 'input_stored':
+                send('input_registered', phase='upload', status='completed')
 
     def _get(self, identity):
         job = self._jobs.get(identity)
