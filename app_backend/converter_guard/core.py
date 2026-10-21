@@ -1376,6 +1376,19 @@ class ConverterGuard:
                 manifest.append({'path': artifact.archive_name, 'size': written,
                                  'sha256': digest.hexdigest(), 'fileId':artifact.file_id,
                                  'format':artifact.format})
+                # Already computed while copying; no second read or quality scan.
+                # This is a write-completed event, NOT independent readback
+                # verification or proof that the whole folder has been saved.
+                if self.telemetry is not None:
+                    try:
+                        self.telemetry.emit('save_file_written',
+                            request_id=job.id, file_id=artifact.file_id,
+                            target=artifact.format, module_id='guard',
+                            result_id=artifact.ticket, result_size=written,
+                            result_sha256=digest.hexdigest(),
+                            stage='save', status='completed', save_status='completed')
+                    except Exception:
+                        pass
                 on_progress(number, len(copies))
             from .result_store import atomic_json
             atomic_json(folder / 'AIO-conversion-report.json', report)
