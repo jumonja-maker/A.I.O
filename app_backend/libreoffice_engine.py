@@ -139,8 +139,15 @@ def convert_path(source: Path, target: str, workspace: Path, *,
             launch_ms = round((time.monotonic()-native_tick)*1000)
             logs = NativeLogs(tree.process)
             while tree.process.poll() is None:
-                if cancel.wait(0.1):
+                if cancel.is_set():
                     raise LibreOfficeError('Конвертация отменена.', 'CANCELLED')
+                try:
+                    # Wake when the process actually exits, instead of adding
+                    # a full 100ms sleep to every short conversion. The same
+                    # bounded interval still checks cancellation/Guard policy.
+                    tree.process.wait(timeout=0.1)
+                except subprocess.TimeoutExpired:
+                    pass
             if cancel.is_set():
                 raise LibreOfficeError('Конвертация отменена.', 'CANCELLED')
             return_code = tree.process.returncode

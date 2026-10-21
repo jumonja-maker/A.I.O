@@ -224,7 +224,7 @@ class GuardAPI:
                 return self._json(handler,202, self.guard.start(identity,
                     formats=body.get('formats'), file_ids=body.get('fileIds'),
                     only_verified=body.get('onlyVerified', False), plan=body.get('plan'),
-                    timeout_seconds=body.get('timeoutSeconds')))
+                    timeout_seconds=body.get('timeoutSeconds'), archive_mode=body.get('archiveMode', 'auto')))
             if path == PREFIX + '/cancel':
                 return self._json(handler,200, self.guard.cancel(identity))
             if path == PREFIX + '/cancel-file':

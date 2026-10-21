@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import sys
+import subprocess
 import time
 
 from ..native_process import ProcessTree
@@ -75,11 +76,15 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
                 # Handshake puts the worker-spawned soffice in our Job Object.
                 (work / 'start.token').write_text('ready', encoding='ascii')
             while tree.process.poll() is None:
-                if cancel.wait(.05):
+                if cancel.is_set():
                     raise GuardError('CANCELLED', 'Предварительная проверка отменена.', stage='preflight')
                 if time.monotonic() >= deadline:
                     return {'state': 'undetermined', 'code': 'PREFLIGHT_TIMEOUT',
                             'diagnosticStage': _diagnostic_stage(work)}
+                try:
+                    tree.process.wait(timeout=min(.05, max(0, deadline-time.monotonic())))
+                except subprocess.TimeoutExpired:
+                    pass
             if cancel.is_set():
                 raise GuardError('CANCELLED', 'Предварительная проверка отменена.', stage='preflight')
             result = work / 'result.json'

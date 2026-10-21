@@ -30,17 +30,16 @@ class GuardV07Contracts(unittest.TestCase):
         self.guard.upload(job['jobId'], file_id, io.BytesIO(content), len(content))
         return job['jobId']
 
-    def test_pyuno_inout_tuple_retains_the_native_selected_filter(self):
+    def test_preflight_retains_the_filter_and_type_used_by_the_loaded_model(self):
         namespace = {'__name__':'uno_worker_contract'}
         exec(compile(UNO_WORKER_SOURCE, 'uno_worker_contract', 'exec'), namespace)
-        descriptor = (SimpleNamespace(Name='FilterName', Value='Calc CSV'),)
-        detector = SimpleNamespace(queryTypeByDescriptor=lambda props, deep: ('generic_Text', descriptor))
-        self.assertEqual(namespace['detected_document'](detector, ()),
-                         {'state':'detected','typeName':'generic_Text','filterName':'Calc CSV'})
-        detector.queryTypeByDescriptor = lambda props, deep: ('', descriptor)
-        self.assertIsNone(namespace['detected_document'](detector, ()))
-        detector.queryTypeByDescriptor = lambda props, deep: 'docx'
-        self.assertEqual(namespace['detected_document'](detector, ())['typeName'], 'docx')
+        args = (SimpleNamespace(Name='FilterName', Value='Calc CSV'),
+                SimpleNamespace(Name='TypeName', Value='generic_Text'))
+        model = SimpleNamespace(getArgs=lambda: args)
+        self.assertEqual(namespace['model_metadata'](model),
+                         {'typeName':'generic_Text','filterName':'Calc CSV'})
+        model.getArgs = lambda: ()
+        self.assertEqual(namespace['model_metadata'](model), {'typeName':None,'filterName':None})
 
     def test_shared_text_type_cannot_admit_both_writer_and_calc_exports(self):
         xml = self.registry_file.read_text()

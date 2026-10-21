@@ -299,6 +299,7 @@ class LibreOfficeAdapter:
                 if filter_name:
                     output = workspace / 'output'
                     output.mkdir(parents=True)
+                    request_sent = response_received = False
                     try:
                         startup_tick = time.monotonic()
                         office.ensure_started(control,min(45,timeout) if timeout is not None else 45)
@@ -306,6 +307,7 @@ class LibreOfficeAdapter:
                         self._local.execution_mode = 'native_uno'
                         self._local.metrics = {'source':'uno_document', 'workerStartupMs':startup_ms}
                         on_started()
+                        request_sent = True
                         result = office.request({'operation':'export','source':str(source.resolve()),
                             'format':target,'output':str(output.resolve()),'exportFilter':filter_name,
                             'exportOptions':recipe.filter_options,
@@ -314,18 +316,32 @@ class LibreOfficeAdapter:
                             'services':sorted(native.import_services),'expectedServices':services,
                             'importFilters':[name for name,item in native.filters.items() if 'IMPORT' in item[2]]},
                             cancel=control,timeout=timeout,on_stage=on_stage or (lambda stage:None))
+                        response_received = True
                         self._local.metrics = {**(clean_timings(result.get('timings')) or
                                                  {'source':'uno_document'}),
                                                'workerStartupMs':startup_ms}
                         if not result.get('ok'):
                             diagnostic=str(result.get('diagnostic','')).replace(str(source.parent.parent.parent),'[local]')
-                            raise GuardError(result.get('code') or 'ENGINE_FAILED','LibreOffice не смог '+
-                                ('открыть исходник.' if result.get('stage')=='import' else 'создать выбранный результат.'),
+                            code = result.get('code') or 'ENGINE_FAILED'
+                            message = ('LibreOffice запросил дополнительные данные при экспорте. '
+                                       'Направление не завершено; остальные задачи продолжаются.'
+                                       if code == 'EXPORT_INTERACTION_REQUIRED' else
+                                       'Для открытия исходника LibreOffice нужны дополнительные данные. '
+                                       'Автоматическая обработка этого файла невозможна.'
+                                       if code == 'PREFLIGHT_INTERACTION_REQUIRED' else
+                                       'LibreOffice не смог '+('открыть исходник.'
+                                       if result.get('stage')=='import' else 'создать выбранный результат.'))
+                            raise GuardError(code, message,
                                 stage=result.get('stage','engine'),diagnostic=diagnostic)
                         return sorted(p for p in output.rglob('*') if p.is_file() and not p.is_symlink())
                     except GuardError as error:
-                        office.recycle()
-                        if error.code != 'UNO_SESSION_UNAVAILABLE' or error.stage != 'launch':
+                        # A completed error reply has already closed its model.
+                        # Keep that healthy worker for the next task. Transport,
+                        # timeout/cancel failures still destroy the owned tree.
+                        if not response_received:
+                            office.recycle()
+                        if (request_sent or error.code != 'UNO_SESSION_UNAVAILABLE'
+                                or error.stage != 'launch'):
                             raise
                         office.disabled = True
                         output.rmdir()  # No requested export ran; original CLI remains available.

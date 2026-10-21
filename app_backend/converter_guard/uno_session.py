@@ -66,31 +66,21 @@ def main(boot_name):
     if remote is None:
         raise RuntimeError('Native office connection unavailable')
     desktop = remote.ServiceManager.createInstanceWithContext('com.sun.star.frame.Desktop', remote)
-    detector = remote.ServiceManager.createInstanceWithContext('com.sun.star.document.TypeDetection', remote)
     send({'id':'ready','ok':True})
     for raw in sys.stdin:
         req = json.loads(raw)
         model, result, stage = None, None, 'import'
         operation_tick = time.monotonic()
-        import_tick = export_tick = None
+        import_tick = export_tick = export_handler = handler = None
         timings = {'source':'uno_document'}
         request_id = req['id']
         try:
             source = Path(req['source']).resolve(strict=True)
             send({'id':request_id,'stage':'import'})
             import_tick = time.monotonic()
-            type_name, selected = None, None
-            if req['operation'] == 'inspect':
-                descriptor = (prop('URL', source.as_uri()),)
-                try:
-                    detected = detector.queryTypeByDescriptor(descriptor, True)
-                    type_name, updated = detected if isinstance(detected, tuple) and len(detected) == 2 else (detected, ())
-                except Exception:
-                    # Detection failure must not veto a successful import.
-                    type_name, updated = None, ()
-                selected = next((p.Value for p in updated if p.Name == 'FilterName'), None)
-            # Exports use the loaded model and its real services below. A deep
-            # detection result was discarded here, duplicating work per target.
+            # Loading already invokes native detection. A separate deep query
+            # can read/decompress a complex source twice before one preflight.
+            # Only the live model and its actual import arguments admit routes.
             handler = Abort()
             options = [prop('Hidden', True), prop('ReadOnly', True), prop('Silent', True),
                        prop('MacroExecutionMode', 0), prop('UpdateDocMode', 0), prop('InteractionHandler', handler)]
@@ -108,17 +98,21 @@ def main(boot_name):
                           if handler.blocked else 'SOURCE_IMPORT_FAILED','stage':'import'}
             else:
                 services = [s for s in req['services'] if model.supportsService(s)]
-                actual_filter = next((p.Value for p in model.getArgs() if p.Name == 'FilterName'), None)
+                arguments = {p.Name:p.Value for p in model.getArgs()
+                             if p.Name in ('FilterName', 'TypeName')}
+                actual_filter = arguments.get('FilterName')
                 if req['operation'] == 'inspect':
-                    result = {'id':request_id,'ok':True,'services':services,'typeName':type_name,
-                              'filterName':actual_filter,'detectedFilterName':selected}
+                    result = {'id':request_id,'ok':True,'services':services,
+                              'typeName':arguments.get('TypeName'), 'filterName':actual_filter}
                 elif not set(services).intersection(req['expectedServices']):
                     result = {'id':request_id,'ok':False,'code':'NATIVE_MODEL_CHANGED','stage':'import'}
                 else:
                     stage = 'export'
                     send({'id':request_id,'stage':'export'})
                     target = Path(req['output']) / (source.stem + '.' + req['format'])
-                    export_options = [prop('FilterName', req['exportFilter']), prop('Overwrite', False)]
+                    export_handler = Abort()
+                    export_options = [prop('FilterName', req['exportFilter']), prop('Overwrite', False),
+                                      prop('Silent', True), prop('InteractionHandler', export_handler)]
                     if req.get('exportOptions') is not None:
                         export_options.append(prop('FilterOptions', req['exportOptions']))
                     export_tick = time.monotonic()
@@ -129,10 +123,16 @@ def main(boot_name):
                     present = target.is_file() and not target.is_symlink()
                     # Result paths stay on disk. Thousands of HTML sidecars
                     # must not overflow the small control-message channel.
-                    result = {'id':request_id,'ok':present,'primary':target.name,'stage':'export',
-                              'code':'ENGINE_OUTPUT_MISSING' if not present else None}
+                    result = {'id':request_id,'ok':present and not export_handler.blocked,
+                              'primary':target.name,'stage':'export',
+                              'code':('EXPORT_INTERACTION_REQUIRED' if export_handler.blocked else
+                                      'ENGINE_OUTPUT_MISSING' if not present else None)}
         except Exception as error:
-            result = {'id':request_id,'ok':False,'code':'SOURCE_IMPORT_FAILED' if stage == 'import' else 'ENGINE_FAILED',
+            result = {'id':request_id,'ok':False,'code':('PREFLIGHT_INTERACTION_REQUIRED'
+                      if stage == 'import' and handler is not None and handler.blocked else
+                      'SOURCE_IMPORT_FAILED' if stage == 'import' else
+                      'EXPORT_INTERACTION_REQUIRED' if export_handler is not None and export_handler.blocked
+                      else 'ENGINE_FAILED'),
                       'stage':stage,'diagnostic':str(error)[-4096:]}
         finally:
             if import_tick is not None and 'importMs' not in timings:

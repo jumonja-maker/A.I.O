@@ -317,6 +317,7 @@
         let state;
         try {
           state=await api('/start',{jobId:op.jobId,plan,fileIds:plan.map(f=>f.fileId),onlyVerified:true,
+                                  archiveMode:window.AllInOneNativeShell === true ? 'on_demand' : 'auto',
                                   ...(timeoutSeconds ? {timeoutSeconds} : {})});
         } catch(error) {
           op.startRejected=error.httpStatus>=400&&error.httpStatus<500&&error.httpStatus!==408;
@@ -405,12 +406,15 @@
     if (!jobId || ownership?.ticket !== result.ticket)
       throw errorOf('Результат больше недоступен.', 'RESULT_NOT_FOUND');
     if (savingJobs.has(jobId)) throw errorOf('Результаты этого задания уже сохраняются.', 'SAVE_BUSY');
+    if (mode === 'zip' && result.folderOnly)
+      return bridge.converter.saveRetained(jobId, 'zip');
     savingJobs.add(jobId);
     const wasActive = active?.jobId === jobId;
     let saved = false;
     if (!wasActive && result.progressRunId) progress?.beginSave({runId:result.progressRunId});
     try {
-      const folder = mode === 'folder' || (mode !== 'zip' && result.packagingError && result.outputs?.length > 1);
+      const folder = mode === 'folder' || (mode !== 'zip' && (result.folderOnly ||
+        result.packagingError && result.outputs?.length > 1));
       const outcome = await bridge.saveExcel({...result, ...(folder ? {saveMode:'folder'} : {})});
       if (outcome?.saved !== true) return outcome;
       if (folder && (outcome.incompleteRecovery || outcome.savedAll !== true && !outcome.snapshotComplete))
@@ -463,11 +467,12 @@
       let state=await api('/jobs?job='+encodeURIComponent(jobId),undefined,'GET');
       if(mode==='zip'&&!state.finished)
         throw errorOf('Пока очередь работает, готовые результаты можно сохранить в папку. ZIP доступен после завершения.', 'ZIP_REQUIRES_FINISHED');
-      if(mode==='zip' && state.packagingError) {
+      if(mode==='zip' && (state.bundleDeferred || state.packagingError)) {
         await api('/bundle',{jobId});
         const op={jobId,generation};
         do {state=await poll(op)||state;if(!state.finished)await new Promise(r=>setTimeout(r,200));}while(!state.finished);
-        if(state.packagingError)throw errorOf('ZIP не собран. Сохраните все результаты в папку.','BUNDLE_UNAVAILABLE');
+        if(state.bundleDeferred || state.packagingError)
+          throw errorOf('ZIP не собран. Сохраните все результаты в папку.','BUNDLE_UNAVAILABLE');
       }
       const result=state.result || (mode==='folder' ? state.partialResult : null);
       if(!result)throw errorOf('Нет доступных результатов.','RESULT_NOT_FOUND');

@@ -15,7 +15,7 @@ const artifact=ticket=>({jobId,ticket,name:'result.pdf',downloadUrl:'/api/conver
 
 function fixture(options={}){
   const calls=[],events=[];
-  let started=false,done=false,paused=false,revision=2,polls=0;
+  let started=false,done=false,paused=false,revision=2,polls=0,bundled=false;
   const state=()=>({jobId,revision,finished:done,state:done?'ready':'running',
     total:2,completed:done?2:1,succeeded:done?2:1,failed:0,cancelled:0,filtered:0,pending:done?0:1,
     currentTask:done?null:{taskId:jobId+':1',fileId:'one',name:'input.docx',format:'html',stage:'export',startedMs:Date.now()},
@@ -23,14 +23,18 @@ function fixture(options={}){
     files:[{fileId:'one',name:'input.docx',state:done?'ready':'converting',targets:[
       {format:'pdf',state:'ready',outputs:[artifact(firstTicket)]},
       {format:'html',state:done?'ready':'converting',outputs:[]}]}],
-    result:done?{...artifact(bundleTicket),name:'results.zip',outputs:[artifact(firstTicket)]}:null,
+    bundleDeferred:done&&options.deferBundle&&!bundled,
+    packagingError:options.bundleFails&&bundled?'BUNDLE_STORAGE_FAILED':null,
+    result:done?{...artifact(options.deferBundle&&!bundled?firstTicket:bundleTicket),
+      name:options.deferBundle&&!bundled?'result.pdf':'results.zip',
+      folderOnly:options.deferBundle&&!bundled,outputs:[artifact(firstTicket)]}:null,
     partialResult:{...artifact(firstTicket),outputsCount:1,folderOnly:true}});
   const root={dispatchEvent:event=>{events.push(event);return true;}};
   const progress={};
   for(const name of ['begin','dispose','finishTargets','failBatch','beginSave','finishSave'])
     progress[name]=value=>events.push({type:name,detail:value});
-  const window={AllInOneNativeShell:true,
-    AllInOneBridge:{saveExcel:async()=>options.hostSave?.()||{saved:true,savedAll:false,snapshotComplete:true,outputs:1,jobRunning:true}},
+  const window={AllInOneNativeShell:options.browser!==true,
+    AllInOneBridge:{saveExcel:async result=>options.hostSave?.(result)||{saved:true,savedAll:false,snapshotComplete:true,outputs:1,jobRunning:true}},
     AIOFileProgress:{attach:()=>progress},dispatchEvent:event=>{events.push(event);return true;}};
   class CustomEvent{constructor(type,{detail}={}){this.type=type;this.detail=detail;}}
   const fetch=async(url,init={})=>{
@@ -51,6 +55,7 @@ function fixture(options={}){
       return response(override||state());
     }
     if(path==='/saved')return response({jobId,saved:true,savedAll:true,outputs:2});
+    if(path==='/bundle'){bundled=true;revision++;return response(state(),202);}
     if(path==='/release')return response({ok:true});
     if(path==='/pause'){paused=body.paused;revision++;return response(state());}
     if(path==='/cancel-file'){revision++;return response({...state(),files:state().files.map(f=>({...f,cancellationRequested:true}))});}
@@ -154,5 +159,55 @@ const completed=[];
   assert.equal(f.calls.some(c=>c.path==='/bundle'),false);
   f.finish();await operation;
   completed.push('duplicate save, live ZIP and live result deletion are rejected without altering queue');
+}
+{
+  const seen=[],f=fixture({deferBundle:true,hostSave:result=>{seen.push(result);return {saved:false,cancelled:true};}});
+  const operation=f.bridge.convertMany({files:input,formatIds:['pdf','html']});
+  await until(()=>f.polled()>0);f.finish();
+  const converted=await operation;
+  assert.equal(f.calls.find(c=>c.path==='/start').body.archiveMode,'on_demand');
+  assert.equal(converted.targetReport.bundleDeferred,true);
+  await f.bridge.saveResult({result:converted.result});
+  assert.equal(seen[0].saveMode,'folder');
+  assert.equal(f.calls.some(c=>c.path==='/bundle'||c.path==='/release'),false);
+  completed.push('native default save uses every retained output in a folder without building ZIP');
+}
+{
+  const f=fixture({browser:true});
+  const operation=f.bridge.convertMany({files:input,formatIds:['pdf','html']});
+  await until(()=>f.polled()>0);f.finish();await operation;
+  assert.equal(f.calls.find(c=>c.path==='/start').body.archiveMode,'auto');
+  completed.push('browser retains automatic archive download contract');
+}
+{
+  const seen=[],f=fixture({deferBundle:true,hostSave:result=>{seen.push(result);return {saved:false,cancelled:true};}});
+  const operation=f.bridge.convertMany({files:input,formatIds:['pdf','html']});
+  await until(()=>f.polled()>0);f.finish();await operation;
+  await f.bridge.saveRetained(jobId,'zip');
+  assert.equal(f.calls.filter(c=>c.path==='/bundle').length,1);
+  assert.equal(seen[0].ticket,bundleTicket);
+  assert.equal(seen[0].saveMode,undefined);
+  assert.equal(f.calls.some(c=>c.path==='/saved'||c.path==='/release'),false);
+  completed.push('explicit ZIP request builds archive and uses its new ticket without acknowledging a cancelled save');
+}
+{
+  let saved=0;
+  const f=fixture({deferBundle:true,bundleFails:true,hostSave:()=>{saved++;return {saved:false};}});
+  const operation=f.bridge.convertMany({files:input,formatIds:['pdf','html']});
+  await until(()=>f.polled()>0);f.finish();await operation;
+  await assert.rejects(f.bridge.saveRetained(jobId,'zip'),error=>error.code==='BUNDLE_UNAVAILABLE');
+  assert.equal(saved,0,'A primary artifact must not be offered as a complete ZIP');
+  assert.equal(f.calls.some(c=>c.path==='/saved'||c.path==='/release'),false);
+  completed.push('failed explicit archive does not save or acknowledge only the first artifact');
+}
+{
+  const seen=[],f=fixture({deferBundle:true,hostSave:result=>{seen.push(result);return {saved:false,cancelled:true};}});
+  const operation=f.bridge.convertMany({files:input,formatIds:['pdf','html']});
+  await until(()=>f.polled()>0);f.finish();const converted=await operation;
+  await f.bridge.saveResult({result:converted.result,mode:'zip'});
+  assert.equal(f.calls.filter(c=>c.path==='/bundle').length,1);
+  assert.equal(seen[0].ticket,bundleTicket);
+  assert.equal(seen[0].saveMode,undefined);
+  completed.push('direct explicit ZIP save cannot mistake the first artifact for the complete archive');
 }
 console.log(JSON.stringify({status:'PASS',scope:'actual JS bridge with controlled native-save and transport boundaries',checks:completed}));
