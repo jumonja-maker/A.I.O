@@ -212,8 +212,7 @@ class LibreOfficeAdapter:
                 result = office.request({'operation':'inspect','source':str(source.resolve()),
                     'services':sorted(native.import_services),
                     'importFilter':hint['filter'] if hint else None,
-                    'importOptions':hint['options'] if hint else None,
-                    'importFilters':[name for name,item in native.filters.items() if 'IMPORT' in item[2]]},
+                    'importOptions':hint['options'] if hint else None},
                     cancel=cancel,timeout=timeout)
                 services = result.get('services')
                 if (result.get('ok') and isinstance(services,list) and services
@@ -313,8 +312,7 @@ class LibreOfficeAdapter:
                             'exportOptions':recipe.filter_options,
                             'importFilter':getattr(self._local,'import_filter',None),
                             'importOptions':getattr(self._local,'import_options',None),
-                            'services':sorted(native.import_services),'expectedServices':services,
-                            'importFilters':[name for name,item in native.filters.items() if 'IMPORT' in item[2]]},
+                            'services':sorted(native.import_services),'expectedServices':services},
                             cancel=control,timeout=timeout,on_stage=on_stage or (lambda stage:None))
                         response_received = True
                         self._local.metrics = {**(clean_timings(result.get('timings')) or

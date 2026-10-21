@@ -139,6 +139,24 @@ class UnoPipelineTests(unittest.TestCase):
 class HealthyWorkerTests(unittest.TestCase):
     setUp = recipes.ExportRecipesQA.setUp
     tearDown = recipes.ExportRecipesQA.tearDown
+
+    def test_export_control_message_does_not_repeat_the_entire_native_filter_registry(self):
+        self.native.filters.update({('Unused native import '+str(i)):
+            ('com.sun.star.sheet.SpreadsheetDocument',('fixture',),frozenset({'IMPORT'}))
+            for i in range(5000)})
+        messages=[]
+        def request(value, **_):
+            messages.append(value)
+            (Path(value['output'])/'result.pdf').write_bytes(b'next-result')
+            return {'ok':True}
+        office=SimpleNamespace(disabled=False,ensure_started=lambda *args:None,request=request,recycle=Mock())
+        self.adapter._local.batch=(self.native,office)
+        self.adapter.prepare_source(self.proof)
+        self.adapter.convert(self.source,'pdf',self.root/'small-message',cancel=threading.Event(),
+                             timeout=3,on_started=lambda:None)
+        self.assertNotIn('importFilters',messages[0])
+        self.assertLess(len(json.dumps(messages[0]).encode()),4096,
+                        'Unused registry growth must not inflate every export control message')
     def test_completed_native_export_error_keeps_the_healthy_worker(self):
         calls=[]
         def request(value, **_):

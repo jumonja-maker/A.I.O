@@ -41,7 +41,6 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
     manifest = work / 'request.json'
     request = {'program': str(Path(executable).resolve().parent), 'source': str(source.resolve())}
     request['documentServices'] = sorted({service for services in native.imports.values() for service in services})
-    request['importFilters'] = sorted(name for name, (_, _, flags) in native.filters.items() if 'IMPORT' in flags)
     if hint:
         request['csvImportHint'] = hint
     if office_session is not None:
