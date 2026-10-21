@@ -397,8 +397,8 @@ def from_environment():
 )
 SAFE_STATE = frozenset({'completed', 'ready', 'failed', 'skipped', 'cancelled',
     'not_checked', 'unknown', 'checked', 'invalid', 'saved', 'partial', 'error'})
-SAFE_BACKENDS = frozenset({'uno', 'cli', 'lok', 'native', 'office_session',
-                           'uno_session', 'unknown'})
+SAFE_BACKENDS = frozenset({'uno', 'cli', 'native_uno', 'native_cli', 'lok',
+                           'native', 'office_session', 'uno_session', 'unknown'})
 SAFE_MODULES = frozenset({'converter', 'guard', 'app'})
 
 def _utc_now():
