@@ -476,7 +476,10 @@ class ConverterGuard:
                                      (reason or '').startswith('ENGINE_') else
                                      'STORAGE' if reason and ('STORAGE' in reason or 'DISK' in reason)
                                      else 'PREFLIGHT' if reason and ('PREFLIGHT' in reason or 'ROUTE' in reason)
-                                     else 'UNCLASSIFIED' if kind == 'task_failed' else None))
+                                     else 'UNCLASSIFIED' if kind == 'task_failed' else None),
+                      error_fingerprint=(current.diagnostic if current and
+                                         kind == 'task_failed' and current.diagnostic
+                                         else None))
 
         if stage == 'job_queued':
             send('job_queued', phase='queue', status='queued')
