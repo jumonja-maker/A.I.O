@@ -43,6 +43,15 @@ class CsvImportHintQA(unittest.TestCase):
                        b'a,\xff\nc,d\n',b'a,b;c\n1,2;3\n']:
             self.assertIsNone(csv_import_hint(self.source('test.csv',bytes_),NATIVE))
 
+    def test_lo_268_native_calc_text_csv_outweighs_orcus_when_both_installed(self):
+        source = self.source('sample.unknown',b'name,amount\nalpha,1\nbeta,2\n')
+        native = SimpleNamespace(valid=True, filters={
+            CSV_FILTER:(CALC,frozenset({'csv','tab','tsv','txt'}),frozenset({'IMPORT'})),
+            'Orcus CSV':(CALC,frozenset({'csv','tab','tsv','txt'}),frozenset({'IMPORT'}))},
+            preferred_filters={})
+        self.assertEqual(csv_import_hint(source,native),
+                         {'filter':CSV_FILTER,'options':'44,34,76,1'})
+
     def test_source_extension_alone_never_grants_proof(self):
         self.assertIsNone(csv_import_hint(self.source('table.csv',b'arbitrary bytes'),NATIVE))
         self.assertIsNotNone(csv_import_hint(self.source('table.unknown',b'a,b\n1,2\n'),NATIVE))
