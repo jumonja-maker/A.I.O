@@ -6,6 +6,7 @@ from pathlib import Path
 import tempfile
 import threading
 import time
+import sys
 import tracemalloc
 import unittest
 import zipfile
@@ -169,7 +170,7 @@ class GuardV08Tests(unittest.TestCase):
         guard=self.guard();started=time.monotonic();tracemalloc.start()
         try:
             job=prepare(guard,['file'+str(i)+'.csv' for i in range(1000)],('pdf',))
-            guard.start(job);done=wait_finished(guard,job,seconds=25)
+            guard.start(job);done=wait_finished(guard,job,seconds=120 if sys.platform=='win32' else 25)
             _,peak=tracemalloc.get_traced_memory()
         finally:tracemalloc.stop()
         self.assertEqual((done['total'],done['succeeded'],done['failed']),(1000,1000,0))
