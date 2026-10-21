@@ -23,7 +23,7 @@ FIELDS = frozenset({
     'native_status', 'output_contract_status', 'fidelity_status',
     'save_status', 'source_size', 'source_sha256', 'result_size',
     'process_exit_code', 'monotonic_ns', 'reason_family',
-    'result_sha256', 'producer_id',
+    'result_sha256', 'producer_id', 'error_fingerprint',
 })
 TYPE = re.compile(r'^[a-zA-Z][a-zA-Z0-9_.-]{0,63}$')
 TARGET = re.compile(r'^[a-zA-Z0-9_-]{1,24}$')
@@ -113,7 +113,7 @@ class TelemetryEmitter:
              filter_name=None, native_status=None, output_contract_status=None,
              fidelity_status=None, save_status=None, source_size=None,
              source_sha256=None, result_size=None, result_sha256=None,
-             process_exit_code=None, reason_family=None):
+             process_exit_code=None, reason_family=None, error_fingerprint=None):
         """Safe even when called from under the GUARD RLock: no disk or waits."""
         try:
             if not TYPE.fullmatch(kind):
@@ -167,6 +167,10 @@ class TelemetryEmitter:
                 event['process_exit_code'] = process_exit_code
             if isinstance(reason_family, str) and CODE.fullmatch(reason_family):
                 event['reason_family'] = reason_family
+            if isinstance(error_fingerprint, str) and error_fingerprint:
+                # Per-process keyed hash of the native diagnostic. Never
+                # write stderr/paths/document text to the event stream.
+                event['error_fingerprint'] = self._opaque(error_fingerprint)
             with self._sequence_lock:
                 if self._closed or self._error:
                     return
