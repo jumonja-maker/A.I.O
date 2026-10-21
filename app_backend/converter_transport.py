@@ -62,6 +62,24 @@ class ConverterTransport:
     def _telemetry(self, kind, **fields):
         try:
             if self.telemetry is not None:
+                # Passive identity only; never alter the conversion policy.
+                fields.setdefault('module_id', 'converter')
+                request = fields.get('request_id')
+                file_id = fields.get('file_id')
+                target = fields.get('target')
+                if request is not None and file_id is not None and target is not None:
+                    key = f'{request}:{file_id}:{target}'
+                    fields.setdefault('task_id', key)
+                    fields.setdefault('attempt_id', key + ':1')
+                if kind == 'task_succeeded':
+                    fields.setdefault('native_status', 'completed')
+                    fields.setdefault('output_contract_status', 'not_checked')
+                    fields.setdefault('fidelity_status', 'not_checked')
+                if kind in ('task_failed', 'task_cancelled'):
+                    fields.setdefault('native_status',
+                                      'cancelled' if kind == 'task_cancelled' else 'failed')
+                    fields.setdefault('reason_family', 'ENGINE' if kind == 'task_failed'
+                                      else 'CANCEL')
                 self.telemetry.emit(kind, **fields)
         except Exception:
             pass
