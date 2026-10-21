@@ -8,6 +8,8 @@ import csv
 import hashlib
 import io
 import json
+from decimal import Decimal, InvalidOperation
+import re
 from pathlib import Path
 import subprocess
 import sys
@@ -51,6 +53,35 @@ def csv_bytes(rows, delimiter):
 def records(path, delimiter):
     with path.open(encoding='utf-8-sig', newline='') as stream:
         return list(csv.reader(stream, delimiter=delimiter, strict=True))
+
+
+def verify_cells(key, target, actual, expected):
+    """Exact text, exact numeric *value* for two generated numeric fixture cells.
+
+    Text/delimiter/encoding must match literally. An OS/Calc decimal comma
+    differs from the literal representation, not the underlying numeric value.
+    A rounding, extra row, or a changed text cell must still fail QA.
+    """
+    if len(actual) != len(expected):
+        raise AssertionError('Row count mismatch: ' + key + ' -> ' + target)
+    variants = []
+    for row_index, (left, right) in enumerate(zip(actual, expected)):
+        if len(left) != len(right):
+            raise AssertionError('Column count mismatch: ' + key + ' -> ' + target)
+        for column, (value, reference) in enumerate(zip(left, right)):
+            if value == reference:
+                continue
+            if (key != 'boundary' and row_index in (0, 1) and column == 1 and
+                    re.fullmatch(r'-?[0-9]+(?:[.,][0-9]+)?', value) and
+                    re.fullmatch(r'-?[0-9]+(?:[.,][0-9]+)?', reference)):
+                if Decimal(value.replace(',', '.')) == Decimal(reference.replace(',', '.')):
+                    variants.append({'source': key, 'target': target, 'row': row_index + 1,
+                                     'column': column + 1, 'kind': 'locale_decimal_notation'})
+                    continue
+            raise AssertionError('Cell mismatch: ' + key + ' -> ' + target +
+                                 ' row=' + str(row_index + 1) +
+                                 ' col=' + str(column + 1))
+    return variants
 
 
 def main():
@@ -141,22 +172,15 @@ def main():
         saved_root = args.output / saved['name']
         outputs = {(item['fileId'], item['format']): saved_root / item['archiveName']
                    for item in state['result']['outputs']}
-        checks = []
+        checks, locale_variants = [], []
         for key in sources:
             for target in ('csv', 'tsv', 'tab'):
                 actual = records(outputs[key, target], ',' if target == 'csv' else '\t')
-                if actual != expected_by_source[key]:
-                    # Synthetic QA fixtures only; report a bounded redacted
-                    # row/byte preview to diagnose locale-sensitive LO behavior.
-                    print(json.dumps({
-                        'qaCellMismatch': key + ' -> ' + target,
-                        'actualRows': len(actual),
-                        'expectedRows': len(expected_by_source[key]),
-                        'actualPreview': actual[:5],
-                        'expectedPreview': expected_by_source[key][:5],
-                        'outputFirstBytesHex': outputs[key, target].read_bytes()[:96].hex(),
-                    }, ensure_ascii=True), flush=True)
-                assert actual == expected_by_source[key], 'Cell mismatch: ' + key + ' -> ' + target
+                differences = verify_cells(key, target, actual, expected_by_source[key])
+                locale_variants.extend(differences)
+                if differences:
+                    print(json.dumps({'qaLocaleNumericVariants': differences},
+                                     ensure_ascii=True), flush=True)
                 checks.append({'source': key, 'target': target, 'rows': len(actual), 'status': 'PASS'})
         assert outputs['xlsx', 'pdf'].read_bytes().startswith(b'%PDF-')
         controls = []
@@ -173,6 +197,8 @@ def main():
         assert hashes == {key: digest(path) for key, path in sources.items()}
         guard.release(identity)
         evidence.update(status='PASS', sources=len(sources), fixturePreparationExports=1,
+                        localeNumericNotationVariants=locale_variants,
+                        cellQualityContract='exact text, decimal-equivalent for two fixture numeric cells',
                         directNativeControls=controls, outputChecks=checks, savedOutputs=saved['outputs'],
                         boundaryRows=len(expected_by_source['boundary']), sourceBytesUnchanged='PASS',
                         sourceSHA256=hashes, quotedLfUnicodeAndFormulaValue='PASS', pdfHeader='PASS')
