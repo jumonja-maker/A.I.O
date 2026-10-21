@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import sys
 import threading
+import time
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
@@ -169,9 +170,18 @@ class MainWindow(QMainWindow):
         self._folder_saves[url] = (cancelled, dialog)
 
         def work():
+            last_progress = 0.0
+            def progress(current, total):
+                nonlocal last_progress
+                now = time.monotonic()
+                # Keep Qt's event queue bounded during thousands of small
+                # copies. Always deliver the exact final count.
+                if current == total or now - last_progress >= .1:
+                    last_progress = now
+                    self._folder_signals.progress.emit(url, current, total)
             try:
                 result = self._server.guard.save_folder(ticket, destination, cancel=cancelled,
-                    on_progress=lambda current, total:self._folder_signals.progress.emit(url,current,total))
+                    on_progress=progress)
             except GuardError as error:
                 result = {'cancelled':error.code == 'SAVE_CANCELLED', 'error':error.message}
             except Exception:
@@ -194,7 +204,13 @@ class MainWindow(QMainWindow):
             operation[1].deleteLater()
         status = 'completed' if result.get('saved') else 'cancelled' if result.get('cancelled') else 'failed'
         self._notify_download(status, result.get('name', ''), url,
-                              savedAll=result.get('savedAll',False), error=result.get('error',''))
+                              savedAll=result.get('savedAll',False), error=result.get('error',''),
+                              snapshotComplete=result.get('snapshotComplete',False),
+                              incompleteRecovery=result.get('incompleteRecovery',False),
+                              jobRunning=result.get('jobRunning',False),
+                              saveId=result.get('saveId'), outputs=result.get('outputs',0),
+                              remainingOutputs=result.get('remainingOutputs',0),
+                              bytesWritten=result.get('bytesWritten',0))
 
     def _on_download_state(self, item, state, source_url, path):
         if state == QWebEngineDownloadRequest.DownloadState.DownloadInProgress:

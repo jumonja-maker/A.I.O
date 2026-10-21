@@ -8,6 +8,7 @@ from pathlib import Path
 import secrets
 import tempfile
 import threading
+import time
 from zipfile import ZipFile, ZIP_STORED
 
 from .libreoffice_catalog import mime_for
@@ -41,7 +42,8 @@ class Result:
 
 
 class ConverterTransport:
-    def __init__(self):
+    def __init__(self, *, telemetry=None):
+        self.telemetry = telemetry
         self.lock = threading.RLock()
         self.active = {}
         self.results = {}
@@ -54,13 +56,41 @@ class ConverterTransport:
                 raise LibreOfficeError('Задание недоступно.', 'REQUEST_BUSY')
             request = Request(identity, connection, tempfile.TemporaryDirectory(prefix='aio-lo-'))
             self.active[identity] = request
+            self._telemetry('job_created', request_id=identity, stage='queue', status='queued')
             return request
+
+    def _telemetry(self, kind, **fields):
+        try:
+            if self.telemetry is not None:
+                # Passive identity only; never alter the conversion policy.
+                fields.setdefault('module_id', 'converter')
+                request = fields.get('request_id')
+                file_id = fields.get('file_id')
+                target = fields.get('target')
+                if request is not None and file_id is not None and target is not None:
+                    key = f'{request}:{file_id}:{target}'
+                    fields.setdefault('task_id', key)
+                    fields.setdefault('attempt_id', key + ':1')
+                if kind == 'task_succeeded':
+                    fields.setdefault('native_status', 'completed')
+                    fields.setdefault('output_contract_status', 'not_checked')
+                    fields.setdefault('fidelity_status', 'not_checked')
+                if kind in ('task_failed', 'task_cancelled'):
+                    fields.setdefault('native_status',
+                                      'cancelled' if kind == 'task_cancelled' else 'failed')
+                    fields.setdefault('reason_family', 'ENGINE' if kind == 'task_failed'
+                                      else 'CANCEL')
+                self.telemetry.emit(kind, **fields)
+        except Exception:
+            pass
 
     def cancel(self, identity):
         with self.lock:
             request = self.active.get(identity)
             if request:
                 request.cancel.set()
+                self._telemetry('cancel_requested', request_id=identity,
+                                stage='cancel', status='cancelled')
                 # Polling wakes stalled uploads on cancellation without
                 # shutting down their response socket (WinError 10053).
             return bool(request)
@@ -77,6 +107,17 @@ class ConverterTransport:
             }))
 
     def finish(self, request, retained=False):
+        # Report the actual terminal snapshot even if the HTTP handler fails
+        # while packaging, responding, or retaining the files.
+        tasks = [task for row in request.files for task in row['targets']]
+        finished = sum(task.get('state') == 'ready' for task in tasks)
+        failed = sum(task.get('state') == 'error' for task in tasks)
+        outcome = ('cancelled' if request.cancel.is_set() and not retained else
+                   'failed' if not retained else
+                   'ready' if finished and not failed else
+                   'partial' if finished else 'failed')
+        self._telemetry('job_finished', request_id=request.identity,
+                        stage='complete', status=outcome)
         try:
             if not retained:
                 request.temporary.cleanup()
@@ -95,10 +136,19 @@ class ConverterTransport:
             request.files = [{'fileId': identity, 'targets': [
                 {'format': target, 'state': 'queued', 'libreOfficeStarted': False}
                 for target in formats]} for identity in ids]
+        self._telemetry('job_queued', request_id=request.identity, stage='queue', status='queued')
+        for file_id in ids:
+            for target in formats:
+                self._telemetry('task_queued', request_id=request.identity,
+                                file_id=file_id, target=target,
+                                stage='queue', status='queued')
         for i, source in enumerate(files):
             for j, target in enumerate(formats):
                 row = request.files[i]['targets'][j]
                 row['state'] = 'running'
+                started_at = time.monotonic()
+                self._telemetry('task_started', request_id=request.identity,
+                                file_id=ids[i], target=target, stage='engine', status='running')
                 try:
                     if request.cancel.is_set():
                         raise LibreOfficeError('Конвертация отменена.', 'CANCELLED')
@@ -106,6 +156,9 @@ class ConverterTransport:
                     def started():
                         with self.lock:
                             row['libreOfficeStarted'] = True
+                        self._telemetry('libreoffice_started', request_id=request.identity,
+                                        file_id=ids[i], target=target,
+                                        stage='launch', status='started')
 
                     outputs = convert_path(source['path'], target,
                         request.root / 'native' / str(i) / str(j),
@@ -116,11 +169,26 @@ class ConverterTransport:
                         artifacts.append((archive_path, path))
                     row['state'] = 'ready'
                     row['warnings'] = source['warnings']
+                    self._telemetry('result_created', request_id=request.identity,
+                                    file_id=ids[i], target=target, stage='result', status='ready')
+                    self._telemetry('task_succeeded', request_id=request.identity,
+                                    file_id=ids[i], target=target, stage='result',
+                                    status='ready',
+                                    duration_ms=round((time.monotonic()-started_at)*1000))
                 except LibreOfficeError as exc:
                     row.update(state='error', code=exc.code, error=str(exc))
+                    self._telemetry('task_cancelled' if exc.code == 'CANCELLED' else 'task_failed',
+                                    request_id=request.identity, file_id=ids[i],
+                                    target=target, stage='engine', reason_code=exc.code,
+                                    status='cancelled' if exc.code == 'CANCELLED' else 'failed',
+                                    duration_ms=round((time.monotonic()-started_at)*1000))
                 except OSError:
                     row.update(state='error', code='STORAGE_ERROR',
                                error='Ошибка чтения или записи файла. Проверьте свободное место и права доступа.')
+                    self._telemetry('task_failed', request_id=request.identity,
+                                    file_id=ids[i], target=target, stage='storage',
+                                    reason_code='STORAGE_ERROR', status='failed',
+                                    duration_ms=round((time.monotonic()-started_at)*1000))
                 finally:
                     with self.lock:
                         request.completed += 1
@@ -138,6 +206,8 @@ class ConverterTransport:
             name, mime = path.name, mime_for(path.suffix.lower().lstrip('.'))
         else:
             path = request.root / 'Конвертированные_файлы.zip'
+            self._telemetry('archive_started', request_id=request.identity,
+                            stage='packaging', status='started')
             with ZipFile(path, 'w', compression=ZIP_STORED, allowZip64=True) as archive:
                 for archive_name, output in artifacts:
                     archive.write(output, archive_name)
@@ -145,6 +215,8 @@ class ConverterTransport:
                     archive.writestr('AIO-conversion-report.json',
                                      json.dumps(report, ensure_ascii=False, indent=2).encode())
             name, mime = path.name, 'application/zip'
+            self._telemetry('archive_ready', request_id=request.identity,
+                            stage='bundle', status='ready')
         ticket = secrets.token_urlsafe(32)
         with self.lock:
             if self.closed:

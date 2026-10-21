@@ -9,6 +9,7 @@
   const prefix = '/api/converter-guard';
   const headers = Object.freeze({'X-AIO-Token': token});
   const retained = new Map();
+  const savingJobs = new Set();
   let active = null, progress = null, generation = 0;
   let prepared = null, preparing = null, inspectionSequence = 0;
   let inspected = null;
@@ -33,6 +34,7 @@
     if (!response.ok) {
       const e = errorOf(payload.error || 'Операция Converter Guard не выполнена.', payload.code);
       e.stage = payload.stage;
+      e.httpStatus = response.status;
       throw e;
     }
     return payload;
@@ -44,21 +46,29 @@
     });
     return payloadOf(response);
   }
-  async function poll(operation) {
-    const response = await fetch(prefix + '/jobs?job=' + encodeURIComponent(operation.jobId) + '&delta=1', {
-      headers:{...headers, ...(operation.etag ? {'If-None-Match':operation.etag} : {})},
+  async function poll(operation, full = false) {
+    const response = await fetch(prefix + '/jobs?job=' + encodeURIComponent(operation.jobId) + (full ? '' : '&delta=1'), {
+      headers:{...headers, ...(!full && operation.etag ? {'If-None-Match':operation.etag} : {})},
       cache:'no-store'
     });
     if (response.status === 304) return null; // no JSON, paint or issues rerender
     let state = await payloadOf(response);
-    operation.etag = response.headers.get('ETag');
+    if (state.jobId !== operation.jobId)
+      throw errorOf('Получен статус другого задания.', 'STATUS_JOB_MISMATCH');
+    // A command can finish while an earlier poll is still in flight. Never
+    // roll the UI back, and recover a lost delta from a full state request.
+    if (operation.snapshot && state.revision < operation.snapshot.revision) return null;
     if (state.delta) {
-      if (!operation.snapshot || state.baseRevision !== operation.snapshot.revision)
-        throw errorOf('Состояние очереди изменилось. Повторите получение статуса.', 'STATUS_REVISION');
+      if (!operation.snapshot || state.baseRevision !== operation.snapshot.revision) {
+        operation.etag = null;
+        if (!full) return poll(operation, true);
+        throw errorOf('Не удалось восстановить состояние очереди.', 'STATUS_REVISION');
+      }
       const changed = new Map(state.files.map(f=>[String(f.fileId),f]));
       state = {...state,files:operation.snapshot.files.map(f=>changed.get(String(f.fileId)) || f),
                changedFileIds:[...changed.keys()]};
     }
+    operation.etag = response.headers.get('ETag');
     operation.snapshot = state;
     return state;
   }
@@ -67,19 +77,34 @@
       throw errorOf('Задание отменено.', 'CANCELLED');
   };
   async function releaseJob(id) {
-    if (!id) return;
+    if (!id || savingJobs.has(id)) return false;
     try {
       await api('/release', {jobId: id});
       retained.delete(id);
-    } catch (_) {}
+      return true;
+    } catch (_) {return false;}
   }
   async function cancel() {
     const op = active;
     if (!op) return;
+    const previous = op.cancelled;
     op.cancelled = true;
     if (op.jobId) {
-      try { await api('/cancel', {jobId: op.jobId}); } catch (_) {}
+      try { return await control(op, '/cancel', {jobId: op.jobId}); }
+      catch (error) {op.cancelled = previous; throw error;}
     }
+  }
+  async function control(op, path, body) {
+    const state = await api(path, body);
+    if (state.jobId === op.jobId && (!op.snapshot || state.revision >= op.snapshot.revision)) {
+      op.snapshot = state;
+      op.etag = null;
+      if (op.generation === generation) {
+        if (op === active) update(state, op, op.onProgress);
+        else publish(state);
+      }
+    }
+    return state;
   }
   function resetProgress() {
     generation++;
@@ -265,7 +290,7 @@
         formats.some(f => typeof f !== 'string' || !/^[a-z0-9][a-z0-9_-]*$/.test(f)))
       throw errorOf('Выберите формат результата.', 'INVALID_FORMAT');
     const op = {id:Array.from(crypto.getRandomValues(new Uint8Array(16)),
-      b=>b.toString(16).padStart(2,'0')).join(''), generation, cancelled:false, jobId:null};
+      b=>b.toString(16).padStart(2,'0')).join(''), generation, cancelled:false, jobId:null,onProgress};
     active = op;
     progress?.dispose();
     const root = document.querySelector('.aio-cv');
@@ -288,9 +313,16 @@
         if (!plan.length) throw errorOf('Нет подтверждённых направлений. Повторите проверку.',
           'PREFLIGHT_ROUTE_UNDETERMINED');
         progress?.begin({runId:op.id,fileIds:plan.map(f=>f.fileId)});
-        const state=await api('/start',{jobId:op.jobId,plan,fileIds:plan.map(f=>f.fileId),onlyVerified:true,
-                                     ...(timeoutSeconds ? {timeoutSeconds} : {})});
-        if(state.jobId)update(state,op,onProgress);
+        op.startRequested=true;op.startRejected=false;
+        let state;
+        try {
+          state=await api('/start',{jobId:op.jobId,plan,fileIds:plan.map(f=>f.fileId),onlyVerified:true,
+                                  ...(timeoutSeconds ? {timeoutSeconds} : {})});
+        } catch(error) {
+          op.startRejected=error.httpStatus>=400&&error.httpStatus<500&&error.httpStatus!==408;
+          throw error;
+        }
+        if(state.jobId){last=state;op.snapshot=state;update(state,op,onProgress);}
         return state;
       };
       try {await start();}
@@ -302,12 +334,28 @@
         stage = await prepareInputs(inputs,{onCreated:claim,validate:()=>check(op)});
         check(op);stage.used=true;prepared=null;claim(stage.jobId);await start();
       }
+      let statusFailures=0;
       for (;;) {
         // After explicit cancel, wait for Guard's real terminal state so that
         // already completed outputs can still be offered for saving.
         check(op, true);
-        const state = await poll(op);
+        let state;
+        try {state = await poll(op);}
+        catch(error) {
+          check(op, true);
+          const transient=error instanceof TypeError||['TypeError','SyntaxError'].includes(error.name)||
+            [408,429].includes(error.httpStatus)||error.httpStatus>=500||error.code==='STATUS_REVISION';
+          if(!transient)throw error;
+          op.etag=null;
+          statusFailures++;
+          const message='Не удалось обновить статус. Повторяем связь с очередью; готовые результаты остаются в AIO.';
+          onProgress?.({percent:last?.percent??null,message});
+          if(last)publish({...last,statusReadError:true,statusReadMessage:message});
+          await new Promise(resolve=>setTimeout(resolve,Math.min(5000,500*statusFailures)));
+          continue;
+        }
         check(op, true);
+        statusFailures=0;
         if (state) {last = state; update(last, op, onProgress);}
         if (last.finished) break;
         await new Promise(resolve => setTimeout(resolve, 400));
@@ -341,7 +389,11 @@
     } finally {
       // Reset during /jobs creation used to leave a late-created job behind.
       // Failed uploads and jobs without outputs also need explicit release.
-      if (op.jobId && (op.generation !== generation || !last?.result?.downloadUrl))
+      // A failed status read is not permission to cancel a live or ambiguously
+      // started backend job. Explicit reset and confirmed empty terminal jobs
+      // still release their ownership.
+      if (op.jobId && (op.generation !== generation || !op.startRequested || op.startRejected ||
+                      last?.finished && !last.result?.downloadUrl))
         await releaseJob(op.jobId);
       if (active === op) active = null;
       if(op.generation===generation && last?.finished)publish(last);
@@ -352,58 +404,89 @@
     const ownership = retained.get(jobId);
     if (!jobId || ownership?.ticket !== result.ticket)
       throw errorOf('Результат больше недоступен.', 'RESULT_NOT_FOUND');
+    if (savingJobs.has(jobId)) throw errorOf('Результаты этого задания уже сохраняются.', 'SAVE_BUSY');
+    savingJobs.add(jobId);
+    const wasActive = active?.jobId === jobId;
     let saved = false;
-    progress?.beginSave({runId:result.progressRunId});
+    if (!wasActive && result.progressRunId) progress?.beginSave({runId:result.progressRunId});
     try {
       const folder = mode === 'folder' || (mode !== 'zip' && result.packagingError && result.outputs?.length > 1);
       const outcome = await bridge.saveExcel({...result, ...(folder ? {saveMode:'folder'} : {})});
       if (outcome?.saved !== true) return outcome;
-      if (folder && outcome.savedAll !== true)
+      if (folder && (outcome.incompleteRecovery || outcome.savedAll !== true && !outcome.snapshotComplete))
         throw errorOf('Восстановленный журнал неполон. Доступные файлы скопированы, но в AIO могут оставаться другие результаты. Не удаляйте служебную папку.', 'SAVE_INCOMPLETE_ACK');
-      if (!outcome.savedAll) await api('/saved', {jobId,ticket:result.ticket});
+      const acknowledgement = folder ? outcome : await api('/saved', {jobId,ticket:result.ticket,compact:true});
       ownership.saved.add(result.ticket);
       saved = true;
-      await releaseJob(jobId);
+      // A partial snapshot is not a request to stop conversion. An operation
+      // that was still being observed also keeps its tickets until its caller
+      // has consumed the terminal state, avoiding a /jobs -> 404 save race.
+      const release = acknowledgement.savedAll === true && !wasActive && active?.jobId !== jobId;
+      savingJobs.delete(jobId);
+      const released=release ? await releaseJob(jobId) : false;
       // Notify both the preserved main controller and the queue about this
       // exact job. Saving an old job must not reset a new active conversion.
-      document.querySelector('.aio-cv')?.dispatchEvent(new CustomEvent('aio-guard-saved',
-        {detail:{jobId,runId:result.progressRunId||null}}));
-      window.dispatchEvent(new CustomEvent('aio-guard-save-confirmed',
-        {detail:{jobId,runId:result.progressRunId||null}}));
-      return {saved:true};
+      const detail={...acknowledgement,jobId,runId:result.progressRunId||null,released};
+      if (typeof CustomEvent === 'function') {
+        if (released) document.querySelector('.aio-cv')?.dispatchEvent?.(
+          new CustomEvent('aio-guard-saved',{detail}));
+        window.dispatchEvent?.(new CustomEvent('aio-guard-save-confirmed',{detail}));
+      }
+      return {...acknowledgement,saved:true};
     } finally {
-      progress?.finishSave({runId:result.progressRunId,saved});
+      savingJobs.delete(jobId);
+      if (!wasActive && result.progressRunId) progress?.finishSave({runId:result.progressRunId,saved});
     }
   }
   bridge.converter = Object.freeze({
     acceptedExtensions:'', directLibreOffice:true, converterGuard:true,
     inspectFiles,convert:run,convertMany:run,saveResult,cancel,resetProgress,cancelInspection,dispose,
-    async pause(paused=true) {if(active?.jobId)return api('/pause',{jobId:active.jobId,paused});},
+    async pause(paused=true) {
+      if(!active?.jobId)throw errorOf('Нет выполняющегося задания для паузы.', 'NO_ACTIVE_JOB');
+      return control(active,'/pause',{jobId:active.jobId,paused});
+    },
     canRetry() {return Boolean(lastRun&&!active);},
     async skipCurrent() {
       const op=active?.snapshot?.currentTask ? active : preparing;
       const fileId=op?.snapshot?.currentTask?.fileId;
-      if(op?.jobId&&fileId)return api('/cancel-file',{jobId:op.jobId,fileId});
+      if(!op?.jobId || !fileId)
+        throw errorOf('Текущая операция ещё не определена или уже завершена. Обновите состояние очереди.', 'NO_CURRENT_TASK');
+      const state=await control(op,'/cancel-file',{jobId:op.jobId,fileId});
+      const file=state.files?.find(f=>String(f.fileId)===String(fileId));
+      if(file && !file.cancellationRequested && file.targets?.every(t=>
+        ['ready','saved','error','cancelled','skipped'].includes(t.state)))
+        throw errorOf('Этот файл уже завершён. Очередь могла перейти к следующему файлу.', 'FILE_ALREADY_FINISHED');
+      return state;
     },
     async recoverable() {return api('/recoverable',undefined,'GET');},
     async saveRetained(jobId,mode='folder') {
       let state=await api('/jobs?job='+encodeURIComponent(jobId),undefined,'GET');
+      if(mode==='zip'&&!state.finished)
+        throw errorOf('Пока очередь работает, готовые результаты можно сохранить в папку. ZIP доступен после завершения.', 'ZIP_REQUIRES_FINISHED');
       if(mode==='zip' && state.packagingError) {
         await api('/bundle',{jobId});
         const op={jobId,generation};
         do {state=await poll(op)||state;if(!state.finished)await new Promise(r=>setTimeout(r,200));}while(!state.finished);
         if(state.packagingError)throw errorOf('ZIP не собран. Сохраните все результаты в папку.','BUNDLE_UNAVAILABLE');
       }
-      if(!state.result)throw errorOf('Нет доступных результатов.','RESULT_NOT_FOUND');
-      retained.set(jobId,{ticket:state.result.ticket,saved:new Set()});
-      return saveResult({result:{...state.result,packagingError:state.packagingError},mode});
+      const result=state.result || (mode==='folder' ? state.partialResult : null);
+      if(!result)throw errorOf('Нет доступных результатов.','RESULT_NOT_FOUND');
+      retained.set(jobId,{ticket:result.ticket,saved:retained.get(jobId)?.saved||new Set()});
+      return saveResult({result:{...result,packagingError:state.packagingError},mode});
     },
-    async discardRetained(jobId) {await api('/release',{jobId,discard:true});retained.delete(jobId);},
+    async discardRetained(jobId) {
+      if(active?.jobId===jobId)
+        throw errorOf('Сначала завершите или отмените очередь. После этого можно удалить её результаты.', 'LIVE_JOB_DISCARD');
+      if(savingJobs.has(jobId))throw errorOf('Дождитесь завершения сохранения.', 'SAVE_BUSY');
+      await api('/release',{jobId,discard:true});retained.delete(jobId);
+    },
     async retryFailed({includeCancelled=false,timeoutSeconds}={}) {
+      if(active)throw errorOf('Дождитесь завершения или отмените текущую очередь перед повтором ошибок.', 'CLIENT_BUSY');
       if(!lastRun)throw errorOf('Исходники повторной попытки недоступны. Добавьте файлы.','RETRY_INPUTS');
       const plan=lastRun.report.files.map(f=>({fileId:String(f.fileId),formats:f.targets.filter(
         t=>t.state==='error'||includeCancelled&&t.state==='cancelled').map(t=>t.format)})).filter(p=>p.formats.length);
       const ids=new Set(plan.map(p=>p.fileId));
+      if(!plan.length)throw errorOf('В этом задании нет выбранных ошибок для повтора.', 'NO_FAILED_TASKS');
       return run({files:lastRun.inputs.filter(f=>ids.has(String(f.id))),formatIds:lastRun.formats,plan,timeoutSeconds});
     },
     async diagnoseFiles({files=[],phase='before',result}={}) {

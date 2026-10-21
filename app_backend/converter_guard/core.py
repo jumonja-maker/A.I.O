@@ -145,6 +145,7 @@ class _Job:
     preflight_timeout_seconds: float | None = None
     diagnostic_bytes: int = 0
     preflight_identity: object = None
+    saving: bool = False
 
 
 def _source_name(name):
@@ -219,8 +220,9 @@ class _Cancellation:
 
 
 class ConverterGuard:
-    def __init__(self, *, adapter=None, limits=None, spool_parent=None, recovery_parent=None):
+    def __init__(self, *, adapter=None, limits=None, spool_parent=None, recovery_parent=None, telemetry=None):
         self.adapter = adapter if adapter is not None else LibreOfficeAdapter()
+        self.telemetry = telemetry
         self.limits = limits if limits is not None else GuardLimits()
         self._recovery = None if recovery_parent is None else Path(recovery_parent).resolve()
         self._parent = self._recovery or (None if spool_parent is None else Path(spool_parent).resolve())
@@ -386,8 +388,9 @@ class ConverterGuard:
                     'jobs': [{'jobId': j.id, 'recovered': j.recovered,
                               'label':j.files[0].name if j.files else 'Результаты',
                               'outputs': len(j.artifacts), 'bytes': sum(a.size for a in j.artifacts),
-                              'state': j.state}
-                             for j in self._jobs.values() if not j.running and not j.released
+                              'state': j.state, 'running': j.running, 'saveInProgress': j.saving,
+                              'unsavedOutputs': sum(not a.saved for a in j.artifacts)}
+                             for j in self._jobs.values() if not j.released
                              and any(not a.saved for a in j.artifacts)]}
 
     def _cached_proof(self, key):
@@ -414,8 +417,7 @@ class ConverterGuard:
     def capabilities(self, files):
         return self.adapter.capabilities([] if files == [] else validate_files(files, self.limits))
 
-    @staticmethod
-    def _record(job, stage, **details):
+    def _record(self, job, stage, **details):
         job.trace.add(stage, **details)
         job.revision += 1
         changed = details.get('file_id')
@@ -425,6 +427,162 @@ class ConverterGuard:
         if stage in ('preflight_started','preflight_done','job_queued','job_started',
                      'engine_started','packaging_started','bundle_ready','job_finished'):
             job.timings.setdefault(stage+'Ms',round((time.monotonic()-job.trace.started)*1000))
+        # Best-effort observation of already-committed GUARD state. The emitter
+        # performs ONLY bounded put_nowait here; its separate writer owns I/O.
+        # No telemetry exception may escape into a conversion task.
+        if self.telemetry is not None:
+            try:
+                self._telemetry_record(job, stage, details)
+            except Exception:
+                pass
+
+    def _telemetry_record(self, job, stage, details):
+        sink = self.telemetry
+        identity = job.id
+        file_id, target = details.get('file_id'), details.get('target')
+        code = details.get('code')
+        item = job.files_by_id.get(file_id) if file_id is not None else None
+        task = next((t for t in item.targets if t.format == target), None) if item and target else None
+
+        def send(kind, *, phase=None, status=None, reason=None, elapsed=None,
+                 fid=file_id, fmt=target):
+            source = job.files_by_id.get(fid) if fid is not None else None
+            current = (next((t for t in source.targets if t.format == fmt), None)
+                       if source and fmt else None)
+            task_id = (identity + ':' + str(current.index)) if current else None
+            artifact = current.artifacts[0] if current and current.artifacts else None
+            native_mode = current.execution_mode if current else None
+            sink.emit(kind, request_id=identity, file_id=fid, target=fmt,
+                      stage=phase, status=status, reason_code=reason,
+                      duration_ms=elapsed, module_id='guard',
+                      task_id=task_id,
+                      attempt_id=task_id + ':1' if task_id else None,
+                      result_id=artifact.ticket if artifact else None,
+                      backend=native_mode if native_mode else 'unknown',
+                      native_status=('completed' if kind == 'task_succeeded' else
+                                     'failed' if kind == 'task_failed' else
+                                     'cancelled' if kind == 'task_cancelled' else None),
+                      output_contract_status=(
+                          'invalid' if kind in ('task_succeeded', 'output_contract_warning')
+                          and current and any(a.size == 0 for a in current.artifacts)
+                          else 'checked' if kind == 'task_succeeded'
+                          else 'not_checked' if kind == 'task_failed' else None),
+                      fidelity_status='not_checked' if kind == 'task_succeeded' else None,
+                      save_status='saved' if kind == 'save_confirmed' else None,
+                      result_size=sum(a.size for a in current.artifacts)
+                          if current and current.artifacts else None,
+                      source_size=source.size if source and kind == 'input_registered' else None,
+                      source_sha256=source.content_digest if source and kind == 'input_registered' else None,
+                      reason_family=('CANCEL' if kind in ('task_cancelled', 'cancel_requested') else
+                                     'ENGINE' if kind == 'task_failed' and
+                                     (reason or '').startswith('ENGINE_') else
+                                     'STORAGE' if reason and ('STORAGE' in reason or 'DISK' in reason)
+                                     else 'PREFLIGHT' if reason and ('PREFLIGHT' in reason or 'ROUTE' in reason)
+                                     else 'UNCLASSIFIED' if kind == 'task_failed' else None),
+                      error_fingerprint=(current.diagnostic if current and
+                                         kind == 'task_failed' and current.diagnostic
+                                         else None))
+
+        if stage == 'job_queued':
+            send('job_queued', phase='queue', status='queued')
+            # Each planned operation has a stable (opaque-hashed) file ID and
+            # target, even if it was filtered by preflight before execution.
+            for source in job.files:
+                for action in source.targets:
+                    send('task_queued', fid=source.id, fmt=action.format,
+                         phase='queue', status='queued')
+                    if action.state == 'skipped':
+                        send('task_failed', fid=source.id, fmt=action.format,
+                             phase='preflight', status='skipped',
+                             reason=action.code or 'PREFLIGHT_ROUTE_UNAVAILABLE')
+            return
+        if stage == 'route_selected':
+            send('route_selected', phase='route', status='registered')
+            send('task_started', phase='engine', status='running')
+            return
+        if stage == 'result_ready':
+            send('result_created', phase='result', status='ready')
+            send('task_succeeded', phase='result', status='ready',
+                 elapsed=task.duration_ms if task else None)
+            # Diagnostic only. Native success remains as GUARD determined.
+            if task and any(a.size == 0 for a in task.artifacts):
+                send('output_contract_warning', phase='result', status='failed',
+                     reason='OUTPUT_EMPTY')
+            return
+        if stage == 'route_filtered':
+            send('task_failed', phase='route', status='skipped',
+                 reason=code or 'NATIVE_ROUTE_UNAVAILABLE')
+            return
+        if stage == 'native_stage':
+            native_phase = task.stage if task else 'engine'
+            send('native_stage', phase=native_phase, status='running')
+            # Start is observable. Do not invent phase completion while the
+            # underlying UNO/CLI call may still be inside native code.
+            if native_phase in ('import', 'export'):
+                send(native_phase + '_started', phase=native_phase, status='started')
+            return
+        if stage == 'task_finished':
+            # Task completion is derived from *actual* task state, not this
+            # finally hook: emitting success here would misclassify failures.
+            return
+        if item is not None and task is not None and task.state in {'error','cancelled'}:
+            send('task_cancelled' if task.state == 'cancelled' else 'task_failed',
+                 phase=task.stage if task.stage in ('queue','import','export','engine',
+                                                   'storage','result','route','launch','preflight')
+                       else 'engine',
+                 status='cancelled' if task.state == 'cancelled' else 'failed',
+                 reason=task.code, elapsed=task.duration_ms)
+            return
+        if stage == 'preflight_file_started':
+            send('preflight_started', phase='preflight', status='started')
+        elif stage == 'preflight_finished':
+            proof = item.native_route if item else None
+            send('preflight_finished', phase='preflight',
+                 status='detected' if proof and proof.get('state') == 'detected'
+                 else 'undetermined', reason=code)
+        elif stage == 'engine_started':
+            send('libreoffice_started', phase='launch', status='started')
+        elif stage == 'save_confirmed':
+            send('save_confirmed', phase='save', status='saved')
+            send('save_finished', phase='save', status='saved')
+        elif stage == 'save_started':
+            send('save_started', phase='save', status='started')
+        elif stage == 'save_failed':
+            send('save_failed', phase='save', status='cancelled' if code == 'SAVE_CANCELLED' else 'failed',
+                 reason=code)
+        elif stage == 'packaging_started':
+            send('archive_started', phase='packaging', status='started')
+        elif stage == 'bundle_ready':
+            send('archive_ready', phase='bundle', status='ready')
+        elif stage == 'bundle':
+            send('archive_failed', phase='bundle', status='failed', reason=code)
+        elif stage == 'cancel_requested':
+            send('cancel_requested', phase='cancel', status='cancelled')
+        elif stage == 'file_cancel_requested':
+            send('file_cancel_requested', phase='cancel', status='cancelled')
+        elif stage == 'job_started':
+            send('job_started', phase='queue', status='running')
+        elif stage == 'job_finished':
+            send('job_finished', phase='complete', status=job.state, reason=code)
+        elif stage == 'job_failed':
+            send('job_failed', phase='complete', status='failed', reason=code)
+        elif stage == 'worker_finished':
+            send('worker_finished', phase='complete', status='finished')
+        elif stage in {'job_created','input_stored','preflight_started',
+                       'preflight_done','route_filtered','route_selected',
+                       'results_available','recovered','results_retained'}:
+            mapping = {'job_created':'job_created', 'input_stored':'input_stored',
+                       'preflight_started':'preflight_batch_started',
+                       'preflight_done':'preflight_batch_finished',
+                       'results_available':'results_available',
+                       'recovered':'job_recovered',
+                       'results_retained':'results_retained'}
+            kind = mapping.get(stage)
+            if kind:
+                send(kind, phase='preflight' if stage.startswith('preflight')
+                     else 'recovery' if stage == 'recovered' else 'idle')
+            if stage == 'input_stored':
+                send('input_registered', phase='upload', status='completed')
 
     def _get(self, identity):
         job = self._jobs.get(identity)
@@ -896,6 +1054,25 @@ class ConverterGuard:
                                     task.execution_mode = getattr(self.adapter,'execution_mode',lambda:None)()
                                     self._record(job, 'engine_started', file_id=item.id,
                                                   target=task.format, lo_started=True)
+                                    # If the current batch exposes a native worker,
+                                    # correlate its *actual* PID with the task.
+                                    # In UNO mode this can be the Python/UNO
+                                    # bridge, NOT necessarily soffice.exe itself.
+                                    tree = getattr(office, 'tree', None) if office else None
+                                    child = getattr(tree, 'process', None)
+                                    worker_pid = getattr(child, 'pid', None)
+                                    if (self.telemetry is not None and
+                                            type(worker_pid) is int and worker_pid > 0):
+                                        try:
+                                            key = job.id + ':' + str(task.index)
+                                            self.telemetry.emit('native_worker_observed',
+                                                request_id=job.id, file_id=item.id,
+                                                target=task.format, module_id='guard',
+                                                task_id=key, attempt_id=key + ':1',
+                                                process_pid=worker_pid, stage='engine',
+                                                backend=task.execution_mode or 'unknown')
+                                        except Exception:
+                                            pass
 
                             routing = getattr(self.adapter, 'route_decision', None)
                             decision = routing(task.format, item.native_route) if routing else None
@@ -1168,21 +1345,70 @@ class ConverterGuard:
                 self._record(job, 'job_finished')
             self._cleanup(job)
 
+    @staticmethod
+    def _saved_all(job):
+        return bool(job.artifacts) and not job.running and not job.recovery_error and all(
+            artifact.saved for artifact in job.artifacts)
+
+    def _acknowledge_outputs(self, job, copies):
+        # Hold an I/O lease, not the global state lock, across durable journal I/O.
+        # ResultStore serializes its own records with conversion transactions.
+        journal_failed = False
+        if job.store:
+            try:
+                job.store.saved(copies)
+            except OSError:
+                journal_failed = True
+        with self._lock:
+            if journal_failed:
+                job.recovery_error = 'RECOVERY_WRITE_FAILED'
+            for artifact in copies:
+                artifact.saved = True
+            for item in job.files:
+                for task in item.targets:
+                    if task.state in SUCCESS and task.artifacts and all(a.saved for a in task.artifacts):
+                        task.state = 'saved'
+                if item.state in SUCCESS | {'partial'}:
+                    item.state = self._file_state(item)
+            self._record(job, 'save_confirmed')
+            return {'jobId': job.id, 'saved': True, 'savedAll': self._saved_all(job),
+                    'incompleteRecovery': bool(job.recovery_error),
+                    'jobRunning': job.running,
+                    'remainingOutputs': sum(not a.saved for a in job.artifacts),
+                    'outputs': len(copies)}
+
     def save_folder(self, ticket, destination, *, cancel=None, on_progress=lambda current, total: None):
-        """Desktop-only, one directory choice; no paths accepted by HTTP API."""
+        """Copy one immutable snapshot of completed outputs, including a live job.
+
+        New outputs stay unsaved; saving never cancels or releases a queue.
+        Destination paths are accepted only from the native desktop host.
+        """
+        from .result_store import atomic_json
         cancel = cancel or threading.Event()
         with self._lock:
             anchor = self._tickets.get(ticket)
             if anchor is None:
                 raise GuardError('RESULT_NOT_FOUND', 'Результат больше недоступен.', status=404)
             job = self._get(anchor.job_id)
-            cancel = _Cancellation(cancel,job.save_cancel)
-            if job.running:
-                raise GuardError('JOB_STATE', 'Дождитесь остановки очереди.', status=409)
-            copies = list(job.artifacts)
+            if job.saving:
+                raise GuardError('SAVE_BUSY', 'Результаты этого задания уже сохраняются.', stage='save', status=409)
+            copies = tuple(job.artifacts)
+            if not copies:
+                raise GuardError('RESULT_NOT_FOUND', 'Пока нет готовых результатов.', status=404)
             report = self._report(job)
+            snapshot_revision, state_at_start = job.revision, job.state
+            cancel = _Cancellation(cancel, job.save_cancel)
             job.io += 1
-        folder = None
+            job.saving = True
+            self._record(job, 'save_started')
+        save_id = secrets.token_hex(16)
+        folder, manifest = None, []
+        bytes_written = 0
+        def save_status(state, code=None):
+            return {'schema': 1, 'jobId': job.id, 'saveId': save_id,
+                    'snapshotRevision': snapshot_revision, 'state': state, 'code': code,
+                    'outputsExpected': len(copies), 'outputsWritten': len(manifest),
+                    'bytesWritten': bytes_written, 'readbackVerified': False}
         try:
             destination = Path(destination).resolve(strict=True)
             if self.owns_path(destination):
@@ -1190,8 +1416,6 @@ class ConverterGuard:
             required = sum(a.size for a in copies)
             if not destination.is_dir() or shutil.disk_usage(destination).free < required + 1024 * 1024:
                 raise GuardError('OUTPUT_DISK_SPACE', 'Недостаточно места в выбранной папке.', stage='save', status=507)
-            # One fresh root preserves every native relative sidecar path and
-            # avoids both overwrites and thousands of collision dialogs.
             for attempt in range(100):
                 name = 'AIO_Results_' + job.id[:8] + ('' if attempt == 0 else '_' + str(attempt))
                 folder = destination / name
@@ -1201,8 +1425,9 @@ class ConverterGuard:
                 except FileExistsError:
                     continue
             else:
+                folder = None
                 raise GuardError('OUTPUT_COLLISION', 'Не удалось создать отдельную папку результатов.', stage='save')
-            manifest = []
+            atomic_json(folder / 'AIO-save-status.json', save_status('writing'))
             for number, artifact in enumerate(copies, 1):
                 if cancel.is_set():
                     raise GuardError('SAVE_CANCELLED', 'Сохранение отменено. Исходные результаты остаются в AIO.', stage='save')
@@ -1227,41 +1452,59 @@ class ConverterGuard:
                         os.fsync(output.fileno())
                     if written != artifact.size or target.exists():
                         raise GuardError('SAVE_CHANGED', 'Результат изменён или имя уже занято.', stage='save')
-                    # Destination is a newly created private result tree.
                     part.replace(target)
                 finally:
                     part.unlink(missing_ok=True)
+                bytes_written += written
                 manifest.append({'path': artifact.archive_name, 'size': written,
-                                 'sha256': digest.hexdigest(), 'fileId':artifact.file_id,
-                                 'format':artifact.format})
+                                 'sha256': digest.hexdigest(), 'fileId': artifact.file_id,
+                                 'format': artifact.format})
+                if self.telemetry is not None:
+                    try:
+                        self.telemetry.emit('save_file_written',
+                            request_id=job.id, file_id=artifact.file_id,
+                            target=artifact.format, module_id='guard',
+                            result_id=artifact.ticket, result_size=written,
+                            result_sha256=digest.hexdigest(),
+                            stage='save', status='completed', save_status='completed')
+                    except Exception:
+                        pass
                 on_progress(number, len(copies))
-            from .result_store import atomic_json
             atomic_json(folder / 'AIO-conversion-report.json', report)
-            atomic_json(folder / 'AIO-results-manifest.json', {'schema':1,'outputs':manifest})
+            atomic_json(folder / 'AIO-results-manifest.json', {
+                'schema': 2, 'jobId': job.id, 'saveId': save_id,
+                'snapshotRevision': snapshot_revision, 'jobStateAtStart': state_at_start,
+                'readbackVerified': False, 'outputs': manifest})
             if cancel.is_set():
                 raise GuardError('SAVE_CANCELLED', 'Сохранение отменено. Результаты остаются в AIO.', stage='save')
+            # Complete the external snapshot before acknowledging or releasing
+            # any source. Hashes above were calculated during copying, NOT by a
+            # second read or a fidelity scan.
+            atomic_json(folder / 'AIO-save-status.json', save_status('completed'))
+            outcome = self._acknowledge_outputs(job, copies)
+            return {**outcome, 'saveId': save_id, 'snapshotComplete': True,
+                    'snapshotRevision': snapshot_revision, 'bytesWritten': bytes_written,
+                    'readbackVerified': False, 'name': folder.name}
+        except Exception as error:
+            code = error.code if isinstance(error, GuardError) else 'SAVE_STORAGE_FAILED'
+            if folder is not None:
+                try:
+                    atomic_json(folder / 'AIO-save-status.json',
+                                save_status('cancelled' if code == 'SAVE_CANCELLED' else 'failed', code))
+                except OSError:
+                    pass
             with self._lock:
-                for artifact in copies:
-                    artifact.saved = True
-                for item in job.files:
-                    for task in item.targets:
-                        if task.state in SUCCESS and task.artifacts and all(a.saved for a in task.artifacts):
-                            task.state = 'saved'
-                if job.store:
-                    try:
-                        job.store.saved(copies)
-                    except OSError:
-                        job.recovery_error = 'RECOVERY_WRITE_FAILED'
-                self._record(job, 'save_confirmed')
-            return {'saved':True, 'savedAll':job.recovery_error is None,
-                    'incompleteRecovery':bool(job.recovery_error),
-                    'name':folder.name, 'outputs':len(copies)}
-        except OSError as error:
-            raise GuardError('SAVE_STORAGE_FAILED', 'Не удалось сохранить все файлы. Результаты остаются в AIO.',
-                             stage='save', status=507) from error
+                self._record(job, 'save_failed', code=code)
+            if isinstance(error, OSError):
+                raise GuardError('SAVE_STORAGE_FAILED',
+                    'Не удалось сохранить все файлы. Результаты остаются в AIO.',
+                    stage='save', status=507) from error
+            raise
         finally:
             with self._lock:
+                job.saving = False
                 job.io -= 1
+                self._record(job, 'save_idle')
                 self._io_drained.notify_all()
             self._cleanup(job)
 
@@ -1320,7 +1563,10 @@ class ConverterGuard:
                 'preflightUndetermined':sum(not f.native_route or f.native_route.get('state')!='detected' for f in job.files),
                 'percent': counts['completed'] * 100 / counts['total'] if counts['total'] else None, 'result': result,
                 'trace': job.trace.snapshot() if include_trace else None,
-                'packagingError': job.packaging_error}
+                'packagingError': job.packaging_error, 'saveInProgress': job.saving,
+                'partialResult': ({**job.artifacts[0].metadata(), 'jobId': job.id,
+                    'outputsCount': len(job.artifacts), 'folderOnly': True}
+                    if job.artifacts else None)}
 
     def status(self, job_id, *, include_trace=False, since_revision=None, delta=False):
         if job_id not in self._jobs:
@@ -1437,29 +1683,33 @@ class ConverterGuard:
                 self._io_drained.notify_all()
             self._cleanup(job)
 
-    def confirm_saved(self, job_id, ticket):
-        """Call only after host-confirmed save completion, never on GET start."""
+    def confirm_saved(self, job_id, ticket, *, compact=False):
+        """Host-confirmed save, with an optional bounded acknowledgement."""
+        if type(compact) is not bool:
+            raise GuardError('SAVE_REQUEST', 'Некорректный режим подтверждения сохранения.')
         with self._lock:
             job = self._get(job_id)
             artifact = self._tickets.get(ticket) if isinstance(ticket, str) else None
             if artifact is None or artifact.job_id != job.id:
                 raise GuardError('RESULT_NOT_FOUND', 'Результат не относится к заданию.', status=404)
-            for target in job.artifacts if artifact is job.bundle else [artifact]:
-                target.saved = True
-            artifact.saved = True
-            if job.store:
-                try:
-                    job.store.saved(job.artifacts if artifact is job.bundle else [artifact])
-                except OSError:
-                    job.recovery_error = 'RECOVERY_WRITE_FAILED'
-            for item in job.files:
-                for task in item.targets:
-                    if task.state in SUCCESS and task.artifacts and all(a.saved for a in task.artifacts):
-                        task.state = 'saved'
-                if item.state in SUCCESS | {'partial'}:
-                    item.state = self._file_state(item)
-            self._record(job, 'save_confirmed', file_id=artifact.file_id, target=artifact.format)
-            return self._snapshot(job)
+            if job.saving:
+                raise GuardError('SAVE_BUSY', 'Результаты этого задания уже сохраняются.', stage='save', status=409)
+            copies = tuple(job.artifacts) if artifact is job.bundle else (artifact,)
+            job.saving = True
+            job.io += 1
+            self._record(job, 'save_started')
+        try:
+            outcome = self._acknowledge_outputs(job, copies)
+            with self._lock:
+                artifact.saved = True
+                return outcome if compact else self._snapshot(job)
+        finally:
+            with self._lock:
+                job.saving = False
+                job.io -= 1
+                self._record(job, 'save_idle')
+                self._io_drained.notify_all()
+            self._cleanup(job)
 
     def release(self, job_id, *, discard=False):
         if type(discard) is not bool:
