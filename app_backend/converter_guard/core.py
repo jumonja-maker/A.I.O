@@ -180,7 +180,13 @@ class _LocalHtmlResources(HTMLParser):
             return
         for key, value in attrs:
             if key in self._attrs and isinstance(value, str):
-                urls = (part.strip().split()[0] for part in value.split(',') if part.strip())
+                # Commas are legal inside data: URLs (including base64).
+                # Only srcset is a list; src/href/poster/data are single URIs.
+                # Srcset descriptors are separated by commas, typically followed
+                # by whitespace; uncertain candidates remain fail-closed.
+                candidates = (re.split(r',\\s+(?=\\S)', value) if key == 'srcset'
+                              else [value])
+                urls = (part.strip().split()[0] for part in candidates if part.strip())
                 if any(self._local(url) for url in urls):
                     self.found = True
 
