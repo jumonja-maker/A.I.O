@@ -130,6 +130,10 @@ class AuditGuardV081(unittest.TestCase):
         self.assertTrue(_missing_html_resources(html))
         html.write_text('<html><img src="data:image/png;base64,abc"><img src="https://example.invalid/p.png"></html>',encoding='utf-8')
         self.assertFalse(_missing_html_resources(html))
+        html.write_text('<html><img srcset="data:image/png;base64,aabb 1x, https://example.invalid/x.png 2x"></html>',encoding='utf-8')
+        self.assertFalse(_missing_html_resources(html))
+        html.write_text('<html><img srcset="data:image/png;base64,aabb 1x, local.png 2x"></html>',encoding='utf-8')
+        self.assertTrue(_missing_html_resources(html))
         html.write_text('<html><a href="chapter2.html">next</a></html>',encoding='utf-8')
         self.assertFalse(_missing_html_resources(html))
 
