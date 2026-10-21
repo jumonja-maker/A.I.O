@@ -28,10 +28,16 @@ def csv_import_hint(source: Path, native):
     preferred = set(getattr(native, 'preferred_filters', {}).get('csv', ())).intersection(eligible)
     if len(preferred) == 1:
         selected = next(iter(preferred))
+    elif 'Text - txt - csv (StarCalc)' in eligible:
+        # LO 26.8 also registers Orcus CSV. Prefer the installed *Calc Text*
+        # importer because it supports explicit FilterOptions and no UI.
+        # This does not authorize a route: actual loaded Calc model must
+        # still confirm this exact native filter.
+        selected = 'Text - txt - csv (StarCalc)'
     elif len(eligible) == 1:
         selected = eligible[0]
     else:
-        return None  # Ambiguous native registry: no guessed import filter.
+        return None  # No registered, unambiguous text-CSV importer.
     try:
         with Path(source).open('rb') as stream:
             sample = stream.read(65536)
