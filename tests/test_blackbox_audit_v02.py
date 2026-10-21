@@ -39,6 +39,25 @@ class AuditV2Tests(unittest.TestCase):
             self.assertNotIn("my-secret.docx", text)
             self.assertNotIn("secret-token", text)
 
+    def test_dropped_markers_keep_v2_producer_identity(self):
+        with tempfile.TemporaryDirectory(prefix="bb-audit-", dir=Path.cwd()) as tmp:
+            emitter = TelemetryEmitter(Path(tmp) / "events.jsonl", capacity=1)
+            for n in range(3000):
+                emitter.emit("task_queued", request_id="job", file_id=str(n), target="pdf")
+            self.assertGreater(emitter.dropped, 0)
+            emitter.close()
+            events = [json.loads(row) for row in (Path(tmp) / "events.jsonl").read_text(
+                encoding="utf-8").splitlines()]
+            markers = [event for event in events if event["type"] == "telemetry_dropped"]
+            self.assertTrue(markers)
+            producer_id = events[0]["producer_id"]
+            self.assertTrue(all(event["schema_version"] == 2 and
+                event["producer_id"] == producer_id and
+                type(event["monotonic_ns"]) is int
+                for event in markers))
+            self.assertTrue(all(event["reason_code"] == "QUEUE_OVERFLOW"
+                for event in markers))
+
     def test_invalid_external_metadata_does_not_leak(self):
         with tempfile.TemporaryDirectory(prefix="bb-audit-", dir=Path.cwd()) as tmp:
             dest = Path(tmp) / "events.jsonl"
