@@ -48,7 +48,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: jumonja-maker/A.I.O
-          ref: ccb427f2f5bd3e770cb70a6aef1e93930413764f
+          ref: d1d75627dc64f4694b8d06cf5e1201c1caa38f93
           path: aio-pin-${{ github.run_id }}
           persist-credentials: false
           clean: true
@@ -84,7 +84,7 @@ jobs:
           print('PINNED_TREE='+actual)
           if actual!=sys.argv[1]:raise SystemExit('TREE_MISMATCH')
           '@
-          & $python -c $verify '7229f5d89f8799f7e703491963dd0d84b260755f'
+          & $python -c $verify 'b5a2a897a1ebe8422d4a0844a3f0286c9c1592d8'
           if ($LASTEXITCODE -ne 0) { throw 'Immutable snapshot verification failed' }
           & $python -c 'import sys,openpyxl,PySide6.QtWebEngineWidgets; assert sys.version_info[:2]==(3,11)'
           if ($LASTEXITCODE -ne 0) { throw 'Missing Python dependencies' }
@@ -103,7 +103,7 @@ jobs:
           if (-not $engine) { throw 'Complete native LibreOffice missing' }
           'AIO_QA_ENGINE='+$engine | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           Write-Host ('LO_NATIVE_ENGINE='+$engine)
-          Write-Host 'PINNED_SOURCE=ccb427f2f5bd3e770cb70a6aef1e93930413764f'
+          Write-Host 'PINNED_SOURCE=d1d75627dc64f4694b8d06cf5e1201c1caa38f93'
 
       - name: Run Guard save/text, bridge and full Python regressions
         id: tests
@@ -162,7 +162,7 @@ jobs:
       - name: Report independent stages, no package/installation/release
         if: always()
         run: |
-          Write-Host 'PINNED_SOURCE=ccb427f2f5bd3e770cb70a6aef1e93930413764f'
+          Write-Host 'PINNED_SOURCE=d1d75627dc64f4694b8d06cf5e1201c1caa38f93'
           Write-Host 'TEST_STATUS=${{ steps.tests.outcome }}'
           Write-Host 'NATIVE_STATUS=${{ steps.native.outcome }}'
           Write-Host 'PACKAGE=NOT_RUN;INSTALL=NOT_RUN;MAIN=UNCHANGED'
