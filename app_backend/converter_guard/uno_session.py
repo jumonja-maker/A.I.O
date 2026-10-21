@@ -91,6 +91,8 @@ def main(boot_name):
             chosen = req.get('importFilter')
             if chosen:
                 options.append(prop('FilterName', chosen))
+                if req.get('importOptions'):
+                    options.append(prop('FilterOptions', req['importOptions']))
             model = desktop.loadComponentFromURL(source.as_uri(), '_blank', 0, tuple(options))
             if model is None:
                 result = {'id':request_id,'ok':False,'code':'PREFLIGHT_INTERACTION_REQUIRED'
