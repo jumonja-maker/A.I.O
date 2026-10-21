@@ -161,6 +161,16 @@ class Registry:
                 'registryFingerprint': self.fingerprint, 'basis': 'native_selected_export_filter'}
 
     def observed_decision(self, target, proof):
+        if (proof and proof.get('basis') == 'native_preflight_mathml_content'
+                and proof.get('state') == 'detected'
+                and proof.get('nativeKind') == 4
+                and proof.get('mathmlRoot') is True
+                and proof.get('registryFingerprint') == self.fingerprint):
+            service = 'com.sun.star.formula.FormulaProperties'
+            if (proof.get('documentServices') == [service]
+                    and service in self.import_services):
+                return self.decide(target, {service})
+            return 'undetermined'
         if (proof and proof.get('basis') == 'native_preflight_uno_document'
                 and proof.get('state') == 'detected' and proof.get('modelLoaded') is True
                 and proof.get('registryFingerprint') == self.fingerprint):

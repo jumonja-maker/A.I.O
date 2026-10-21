@@ -162,4 +162,13 @@ def apply_native_ui(raw: bytes) -> bytes:
     once('    typeFilter.sync();\n    render();\n    inspect();',
          "    root.addEventListener('aio-guard-recheck',event=>{inspect({force:true,timeoutSeconds:event.detail?.timeoutSeconds||600,onlyUndetermined:true}).finally(()=>event.detail?.done?.());});\n"
          '    typeFilter.sync();\n    render();\n    inspect();')
+    # Shared save-confirmation contract: queue and main controller must agree
+    # on the exact job ID, without resetting an unrelated new conversion.
+    once('    typeFilter.sync();\n    render();\n    inspect();',
+         "    root.addEventListener('aio-guard-saved',event=>{\n"
+         "      if(!alive||!currentResult||currentResult.jobId!==event.detail?.jobId)return;\n"
+         "      currentResult=null;retryResult=null;saving=false;status='idle';\n"
+         "      statusMessage='Результаты этого задания сохранены.';render();\n"
+         "    });\n"
+         '    typeFilter.sync();\n    render();\n    inspect();')
     return source.encode('utf-8')

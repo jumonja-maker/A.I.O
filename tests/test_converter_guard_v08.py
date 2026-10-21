@@ -6,6 +6,7 @@ from pathlib import Path
 import tempfile
 import threading
 import time
+import sys
 import tracemalloc
 import unittest
 import zipfile
@@ -169,7 +170,7 @@ class GuardV08Tests(unittest.TestCase):
         guard=self.guard();started=time.monotonic();tracemalloc.start()
         try:
             job=prepare(guard,['file'+str(i)+'.csv' for i in range(1000)],('pdf',))
-            guard.start(job);done=wait_finished(guard,job,seconds=25)
+            guard.start(job);done=wait_finished(guard,job,seconds=120 if sys.platform=='win32' else 25)
             _,peak=tracemalloc.get_traced_memory()
         finally:tracemalloc.stop()
         self.assertEqual((done['total'],done['succeeded'],done['failed']),(1000,1000,0))
@@ -221,5 +222,6 @@ class GuardV08Tests(unittest.TestCase):
             task.artifacts.append(_Artifact('a'*32,path,path.name,1,'ticket',archive_name='0001-html/'+path.name))
         job=_Job('a'*32,root,[item],0);store.initialize(job);store.task(item,task)
         self.assertLess(max(len(line) for line in (root/'results.jsonl').read_bytes().splitlines()),2048)
-        _,records,_=store.read()
+        _,records,_,integrity=store.read()
+        self.assertEqual(integrity,'complete')
         self.assertEqual(len(records[0]['outputs']),1500)

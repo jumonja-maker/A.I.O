@@ -9,6 +9,7 @@ from ..libreoffice_catalog import catalog
 from ..libreoffice_engine import LibreOfficeError, convert_path, engine_binary
 from .errors import GuardError
 from .routes import registry
+from .csv_import import csv_import_hint
 from .native_observation import NativeObservation
 
 
@@ -73,7 +74,8 @@ class LibreOfficeAdapter:
             yield None
             return
         previous = getattr(self._local, 'batch', None)
-        previous_source = (getattr(self._local,'proof',None),getattr(self._local,'import_filter',None))
+        previous_source = (getattr(self._local,'proof',None),getattr(self._local,'import_filter',None),
+                           getattr(self._local,'import_options',None))
         factory = (UnoSession if os.name == 'nt' and os.environ.get('AIO_GUARD_NATIVE_SESSION','1') != '0'
                    and (self.executable.parent/'python.exe').is_file()
                    else OfficeSession)
@@ -83,7 +85,7 @@ class LibreOfficeAdapter:
                 yield office
             finally:
                 self._local.batch = previous
-                self._local.proof, self._local.import_filter = previous_source
+                self._local.proof, self._local.import_filter, self._local.import_options = previous_source
 
     def _registry(self):
         batch = getattr(self._local, 'batch', None)
@@ -103,6 +105,16 @@ class LibreOfficeAdapter:
         self._local.import_filter = (name if item and 'IMPORT' in item[2] and
             (proof or {}).get('registryFingerprint') == native.fingerprint and
             item[0] in (proof or {}).get('documentServices', ()) else None)
+        self._local.import_options = ((proof or {}).get('selectedImportOptions')
+            if self._local.import_filter and
+            isinstance((proof or {}).get('selectedImportOptions'), str) and
+            (proof or {}).get('selectedImportOptions') in
+                {f'{n},34,76,1' for n in (44, 59, 9, 124)}
+            and self._local.import_filter in
+                {key for key,(service,extensions,flags) in native.filters.items()
+                 if service == 'com.sun.star.sheet.SpreadsheetDocument'
+                 and 'csv' in extensions and 'IMPORT' in flags}
+            else None)
 
     @property
     def available(self):
@@ -119,6 +131,19 @@ class LibreOfficeAdapter:
             unknown = [i for i, state in states.items() if state == 'undetermined']
             formats.append({'id': ext, 'label': ext.upper(), 'category': category,
                 'description': description, 'mime': mime,
+                # Native compatibility is not a claim of content/visual equivalence.
+                # The existing help-button reads this property in normal mode.
+                'help': ({
+                    'csv': 'CSV сохраняет только один активный лист и не сохраняет формулы, форматирование и остальные листы.',
+                    'tsv': 'TSV сохраняет только один активный лист без оформления и формул.',
+                    'tab': 'TAB сохраняет текстовую таблицу без оформления и других листов.',
+                    'png': 'Из документов и рисунков LibreOffice может создавать изображение страницы, а не исходную пиксельную копию.',
+                    'jpg': 'JPEG — формат с потерями; экспорт может менять качество изображения и геометрию страницы.',
+                    'jpeg': 'JPEG — формат с потерями; экспорт может менять качество изображения и геометрию страницы.',
+                    'webp': 'Графический экспорт документа может менять размер полотна и формат представления.',
+                    'pdf': 'PDF предназначен для просмотра: структура и редактируемость исходника могут измениться.',
+                    'epub': 'EPUB создаётся фильтром экспорта; поддержка экспорта не означает, что EPUB можно открыть как исходник.'
+                }).get(ext, 'Проверка Guard подтверждает маршрут, но не гарантирует отсутствие смысловых или визуальных потерь.'),
                 'registeredExport': ext in native.exports if native.valid else registered,
                 'enabled': available and proofs is not None and bool(compatible),
                 # Hints and undetermined routes remain visible diagnostics,
@@ -165,11 +190,15 @@ class LibreOfficeAdapter:
             return {'state': 'undetermined', 'code': 'ENGINE_NOT_FOUND'}
         batch = getattr(self._local, 'batch', None)
         office = batch[1] if batch else None
+        native = self._registry()
+        hint = csv_import_hint(source, native)
         if office and hasattr(office, 'request') and not office.disabled:
             native = self._registry()
             try:
                 result = office.request({'operation':'inspect','source':str(source.resolve()),
                     'services':sorted(native.import_services),
+                    'importFilter':hint['filter'] if hint else None,
+                    'importOptions':hint['options'] if hint else None,
                     'importFilters':[name for name,item in native.filters.items() if 'IMPORT' in item[2]]},
                     cancel=cancel,timeout=timeout)
                 services = result.get('services')
@@ -177,9 +206,14 @@ class LibreOfficeAdapter:
                         and all(s in native.import_services for s in services)):
                     selected = result.get('filterName')
                     item = native.filters.get(selected)
+                    confirmed = selected if item and 'IMPORT' in item[2] and item[0] in services else None
+                    if hint and (confirmed != hint['filter'] or
+                                 services != ['com.sun.star.sheet.SpreadsheetDocument']):
+                        return {'state':'undetermined','code':'PREFLIGHT_IMPORT_FILTER_MISMATCH'}
                     return {'state':'detected','basis':'native_preflight_uno_document','modelLoaded':True,
                         'documentServices':services,'typeName':result.get('typeName'),'filterName':selected,
-                        'selectedImportFilter':selected if item and 'IMPORT' in item[2] and item[0] in services else None,
+                        'selectedImportFilter':confirmed,
+                        'selectedImportOptions':hint['options'] if hint else None,
                         'registryFingerprint':native.fingerprint,'exported':False}
                 return {'state':'undetermined','code':result.get('code') or 'PREFLIGHT_IMPORT_FAILED',
                         'diagnosticStage':result.get('stage','import')}
@@ -246,6 +280,7 @@ class LibreOfficeAdapter:
                         result = office.request({'operation':'export','source':str(source.resolve()),
                             'format':target,'output':str(output.resolve()),'exportFilter':filter_name,
                             'importFilter':getattr(self._local,'import_filter',None),
+                            'importOptions':getattr(self._local,'import_options',None),
                             'services':sorted(native.import_services),'expectedServices':services,
                             'importFilters':[name for name,item in native.filters.items() if 'IMPORT' in item[2]]},
                             cancel=control,timeout=timeout,on_stage=on_stage or (lambda stage:None))
@@ -263,11 +298,15 @@ class LibreOfficeAdapter:
                         output.rmdir()  # No requested export ran; original CLI remains available.
             prepare_profile(workspace / 'profile')
             self._local.execution_mode = 'native_cli'
+            filtered = getattr(self._local, 'import_filter', None)
+            filter_opts = getattr(self._local, 'import_options', None)
+            if filtered and filter_opts:
+                filtered = filtered + ':' + filter_opts
             native = self._registry()
             if on_document_service is None or not native.valid:
                 return convert_path(source, target, workspace, executable=self.executable,
                                     cancel=control, on_started=on_started,
-                                    import_filter=getattr(self._local,'import_filter',None))
+                                    import_filter=filtered)
             observation = NativeObservation()
             completed = False
             try:
@@ -279,10 +318,10 @@ class LibreOfficeAdapter:
                         # or drain thread must not veto a native conversion.
                         return convert_path(source, target, workspace, executable=self.executable,
                                             cancel=control, on_started=on_started,
-                                    import_filter=getattr(self._local,'import_filter',None))
+                                    import_filter=filtered)
                     paths = convert_path(source, target, workspace, executable=self.executable,
                         cancel=control, on_started=on_started, stdout=observation.writer,
-                        import_filter=getattr(self._local,'import_filter',None))
+                        import_filter=filtered)
                 completed = True
                 return paths
             finally:

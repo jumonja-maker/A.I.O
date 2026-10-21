@@ -226,3 +226,20 @@
 .workspace .aio-cv__pane--left [data-cv-file-area]::-webkit-scrollbar-button {
   display: none;
 }
+
+/* Guard v0.8.1: reserve a real fourth footer row only while queue is shown.
+   The modal details are moved to the browser top layer, so pane clipping is
+   retained for ordinary content and cannot hide the detailed task list. */
+.workspace .aio-cv__footer.aio-guard-has-queue {
+  flex:0 0 218px !important;
+  height:218px !important;
+  min-height:218px !important;
+  max-height:218px !important;
+  grid-template-rows:62px 48px 48px 30px;
+  gap:7px;
+}
+.workspace .aio-cv__footer.aio-guard-has-queue .aio-guard-queue {
+  grid-row:4;
+  min-height:30px;
+  align-self:center;
+}

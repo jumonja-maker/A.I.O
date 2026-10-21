@@ -29,7 +29,9 @@ def _diagnostic_stage(work):
 def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile,
                    native=None, office_session=None):
     from .routes import registry
+    from .csv_import import csv_import_hint
     native = native if native is not None else registry(executable)
+    hint = csv_import_hint(source, native)
     if not native.valid:
         return {'state': 'undetermined', 'code': 'PREFLIGHT_REGISTRY_UNAVAILABLE'}
     work = work.resolve()
@@ -39,6 +41,8 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
     request = {'program': str(Path(executable).resolve().parent), 'source': str(source.resolve())}
     request['documentServices'] = sorted({service for services in native.imports.values() for service in services})
     request['importFilters'] = sorted(name for name, (_, _, flags) in native.filters.items() if 'IMPORT' in flags)
+    if hint:
+        request['csvImportHint'] = hint
     if office_session is not None:
         request.update(officePipe=office_session.pipe, profile=str(office_session.profile.resolve()))
     manifest.write_text(json.dumps(request), encoding='utf-8')
@@ -68,19 +72,7 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
     try:
         with ProcessTree(command, cwd=work, env=environment) as tree:
             if os.name == 'nt':
-                services = detected.get('documentServices')
-                installed = {service for values in native.imports.values() for service in values}
-                if (detected.get('state') == 'detected' and detected.get('modelLoaded') is True
-                        and isinstance(services, list) and services and all(s in installed for s in services)):
-                    selected = detected.get('filterName')
-                    item = native.filters.get(selected)
-                    import_filter = selected if item and 'IMPORT' in item[2] and item[0] in services else None
-                    return {'state':'detected','basis':'native_preflight_uno_document','modelLoaded':True,
-                            'documentServices':sorted(set(services)), 'typeName':detected.get('typeName'),
-                            'filterName':selected, 'selectedImportFilter':import_filter,
-                            'registryFingerprint':native.fingerprint,'exported':False}
-                # A short handshake keeps the UNO-spawned soffice process
-                # inside our Windows kill-on-close Job Object.
+                # Handshake puts the worker-spawned soffice in our Job Object.
                 (work / 'start.token').write_text('ready', encoding='ascii')
             while tree.process.poll() is None:
                 if cancel.wait(.05):
@@ -95,12 +87,30 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
                 return {'state': 'undetermined', 'code': 'PREFLIGHT_API_UNAVAILABLE',
                         'diagnosticStage': _diagnostic_stage(work)}
             detected = json.loads(result.read_text(encoding='utf-8'))
+            if not isinstance(detected, dict):
+                return {'state': 'undetermined', 'code': 'PREFLIGHT_API_UNAVAILABLE'}
+            if os.name == 'nt':
+                services = detected.get('documentServices')
+                installed = {service for values in native.imports.values() for service in values}
+                if (detected.get('state') == 'detected' and detected.get('modelLoaded') is True
+                        and isinstance(services, list) and services and all(s in installed for s in services)):
+                    selected = detected.get('filterName')
+                    item = native.filters.get(selected)
+                    import_filter = selected if item and 'IMPORT' in item[2] and item[0] in services else None
+                    if hint and (import_filter != hint['filter'] or
+                                 sorted(set(services)) != ['com.sun.star.sheet.SpreadsheetDocument']):
+                        return {'state':'undetermined','code':'PREFLIGHT_IMPORT_FILTER_MISMATCH'}
+                    return {'state':'detected','basis':'native_preflight_uno_document','modelLoaded':True,
+                            'documentServices':sorted(set(services)), 'typeName':detected.get('typeName'),
+                            'filterName':selected, 'selectedImportFilter':import_filter,
+                            'selectedImportOptions':hint['options'] if hint else None,
+                            'registryFingerprint':native.fingerprint,'exported':False}
             if os.name == 'nt':
                 code = (detected.get('code') if detected.get('state') != 'detected'
                         else 'PREFLIGHT_UNO_TYPE_UNMAPPED')
                 if code not in ('PREFLIGHT_UNO_API_UNAVAILABLE', 'PREFLIGHT_UNO_TYPE_UNKNOWN',
                                 'PREFLIGHT_UNO_TYPE_UNMAPPED', 'PREFLIGHT_IMPORT_FAILED',
-                                'PREFLIGHT_INTERACTION_REQUIRED'):
+                                'PREFLIGHT_INTERACTION_REQUIRED','PREFLIGHT_IMPORT_FILTER_MISMATCH'):
                     code = 'PREFLIGHT_UNO_API_UNAVAILABLE'
                 try:
                     stage = (work / 'stage.txt').read_text(encoding='ascii').strip()[:64]
@@ -108,8 +118,19 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
                     stage = 'unknown'
                 return {'state': 'undetermined', 'code': code,
                         'diagnosticStage': stage,
-                        'diagnosticType': str(type_name or '')[:96]}
+                        'diagnosticType': str(detected.get('typeName') or '')[:96]}
             kind = detected.get('kind')
+            if (os.name != 'nt' and detected.get('state') == 'detected'
+                    and type(kind) is int and kind == 4
+                    and detected.get('contentClass') == 'mathml'):
+                formula = 'com.sun.star.formula.FormulaProperties'
+                # The MathML XML root and successful LOK load identify the
+                # input. Also require an installed native formula import.
+                if formula in {svc for values in native.imports.values() for svc in values}:
+                    return {'state':'detected','basis':'native_preflight_mathml_content',
+                            'documentServices':[formula], 'nativeKind':kind,
+                            'mathmlRoot':True, 'registryFingerprint':native.fingerprint,
+                            'exported':False}
             if detected.get('state') != 'detected' or type(kind) is not int or kind not in SERVICES:
                 native_code = detected.get('code', 'PREFLIGHT_KIND_UNDETERMINED')
                 if native_code not in ('PREFLIGHT_INIT_FAILED', 'PREFLIGHT_API_UNAVAILABLE',

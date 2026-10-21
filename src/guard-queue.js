@@ -2,6 +2,7 @@
 (() => {
   'use strict';
   let root=null, bar=null, state=null, jobs=[], warnings=[], page=0, refreshPending=false, clock=null;
+  let preview=null, previewId=null, previewRequest=0;
   const labels={queued:'В очереди',converting:'Конвертируется',ready:'Готово',saved:'Сохранено',
     error:'Ошибка',cancelled:'Отменено',skipped:'Исключено Guard'};
   const api=()=>window.AllInOneBridge?.converter;
@@ -14,14 +15,14 @@
     const footer=root.querySelector('.aio-cv__footer');if(!footer)return;
     bar=document.createElement('div');bar.className='aio-guard-queue';bar.hidden=true;
     bar.innerHTML='<div class="aio-guard-current"><span data-g-current></span><button type="button" data-g-pause>Пауза</button><button type="button" data-g-skip>Пропустить файл</button></div>'+
-      '<details><summary>Очередь и результаты</summary><div class="aio-guard-popup">'+
+      '<details><summary>Очередь и результаты</summary><dialog class="aio-guard-popup">'+
       '<div data-g-counts></div><div class="aio-guard-warning" data-g-warning></div>'+
       '<div class="aio-guard-tools"><input type="search" placeholder="Имя файла или формат" aria-label="Поиск в очереди"><select aria-label="Состояние задач"><option value="all">Все задачи</option><option value="error">Ошибки</option><option value="pending">Ожидают</option><option value="ready">Готовые</option></select></div>'+
       '<div class="aio-guard-list" role="list" aria-label="Задачи конвертации"></div>'+
       '<div class="aio-guard-pages"><button type="button" data-g-prev>Назад</button><span data-g-page></span><button type="button" data-g-next>Далее</button></div>'+
       '<div class="aio-guard-save"><select data-g-jobs aria-label="Несохранённое задание"></select><button type="button" data-g-zip>Сохранить ZIP</button><button type="button" data-g-folder>Сохранить в папку</button></div>'+
       '<div class="aio-guard-save"><button type="button" data-g-retry>Повторить ошибки</button><button type="button" data-g-long>Повторить с большим временем</button><button type="button" data-g-check>Повторить проверку дольше</button><button type="button" data-g-report>Технический отчёт</button><button type="button" data-g-discard>Удалить результаты</button></div>'+
-      '</div></details>';
+      '</dialog></details>';
     footer.append(bar);
     bar.querySelector('[data-g-folder]').hidden=!window.AllInOneNativeShell;
     const action=(selector,work)=>bar.querySelector(selector).addEventListener('click',async event=>{
@@ -53,7 +54,13 @@
     bar.querySelector('.aio-guard-tools select').addEventListener('change',()=>{page=0;renderRows();});
     bar.querySelector('[data-g-prev]').addEventListener('click',()=>{page=Math.max(0,page-1);renderRows();});
     bar.querySelector('[data-g-next]').addEventListener('click',()=>{page++;renderRows();});
-    bar.querySelector('details').addEventListener('toggle',()=>{if(bar.querySelector('details').open){refresh();renderRows();}});
+    const details=bar.querySelector('details'),dialog=bar.querySelector('.aio-guard-popup');
+    details.addEventListener('toggle',()=>{
+      if(details.open&&!dialog.open){dialog.showModal();refresh();renderRows();}
+      else if(!details.open&&dialog.open)dialog.close();
+    });
+    dialog.addEventListener('close',()=>{if(details.open)details.open=false;});
+    bar.querySelector('[data-g-jobs]').addEventListener('change',()=>{page=0;loadPreview();});
     render();refresh();
   }
   async function refresh() {
@@ -64,6 +71,7 @@
   function render() {
     if(!bar)return;
     bar.hidden=!state&&!jobs.length&&!warnings.length;
+    bar.closest('.aio-cv__footer')?.classList.toggle('aio-guard-has-queue',!bar.hidden);
     const active=state?.currentTask;
     text('[data-g-current]',active?active.name+(active.stage==='preflight'?' · проверка исходника':
       active.stage==='upload'?' · подготовка исходника':' → '+active.format.toUpperCase())+' · '+
@@ -84,6 +92,7 @@
         option.value=job.jobId;option.textContent=(job.recovered?'Восстановлено · ':'')+(job.label||'Результаты')+' · '+job.outputs+' файлов';
         option.title=job.jobId;select.append(option);}
       if(jobs.some(j=>j.jobId===selected))select.value=selected;select.dataset.signature=signature;
+      if(select.value!==previewId){preview=null;loadPreview();}
     }
     for(const key of ['zip','folder','discard'])bar.querySelector('[data-g-'+key+']').disabled=!jobs.length;
     for(const key of ['retry','long'])bar.querySelector('[data-g-'+key+']').disabled=!state?.finished||!state.failed||!api()?.canRetry();
@@ -97,11 +106,28 @@
     if(active&&!clock)clock=setInterval(()=>render(),1000);
     if(!active&&clock){clearInterval(clock);clock=null;}
   }
+  async function loadPreview(){
+    if(!bar)return;
+    const id=bar.querySelector('[data-g-jobs]').value,request=++previewRequest;
+    previewId=id;preview=null;
+    if(!id||id===state?.jobId){renderRows();return;}
+    try{
+      const response=await fetch('/api/converter-guard/jobs?job='+encodeURIComponent(id),
+        {headers:{'X-AIO-Token':document.body.dataset.aioToken},cache:'no-store'});
+      if(!response.ok)throw Error('Не удалось загрузить выбранный пакет.');
+      const loaded=await response.json();
+      if(request!==previewRequest||bar.querySelector('[data-g-jobs]').value!==id)return;
+      preview=loaded;
+    }catch(error){if(request===previewRequest)text('[data-g-warning]',error.message);}
+    if(request===previewRequest)renderRows();
+  }
   function renderRows() {
     if(!bar)return;
+    const selected=bar.querySelector('[data-g-jobs]').value;
+    const shown=selected&&selected!==state?.jobId?previewId===selected?preview:null:state;
     const search=bar.querySelector('input').value.toLowerCase(),filter=bar.querySelector('.aio-guard-tools select').value;
     const rows=[];
-    for(const file of state?.files||[])for(const task of file.targets||[]){
+    for(const file of shown?.files||[])for(const task of file.targets||[]){
       if(search&&!(file.name+' '+task.format).toLowerCase().includes(search))continue;
       if(filter==='error'&&task.state!=='error'||filter==='pending'&&!['queued','converting'].includes(task.state)||
          filter==='ready'&&!['ready','saved'].includes(task.state))continue;
@@ -116,10 +142,19 @@
       status.textContent=labels[task.state]||task.state;
       detail.textContent=task.error||task.stage||'';row.append(name,status,detail);list.append(row);
     }
-    text('[data-g-page]',rows.length+' задач · '+(page+1)+' / '+pages);
+    text('[data-g-page]',(shown?.jobId?'Пакет '+shown.jobId.slice(0,8)+' · ':'')+
+      rows.length+' задач · '+(page+1)+' / '+pages);
     bar.querySelector('[data-g-prev]').disabled=page===0;bar.querySelector('[data-g-next]').disabled=page>=pages-1;
   }
   window.addEventListener('aio-guard-state',event=>{state=event.detail;mount();render();if(state?.finished)refresh();});
+  window.addEventListener('aio-guard-save-confirmed',event=>{
+    const id=event.detail?.jobId;
+    if(id===state?.jobId)state=null;
+    if(id===previewId){preview=null;previewId=null;}
+    jobs=jobs.filter(j=>j.jobId!==id);
+    if(bar)bar.querySelector('[data-g-jobs]').dataset.signature='';
+    refresh();render();
+  });
   window.addEventListener('focus',refresh);
   new MutationObserver(mount).observe(document.body,{subtree:true,childList:true});mount();
 })();

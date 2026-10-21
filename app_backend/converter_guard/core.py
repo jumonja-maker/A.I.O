@@ -7,6 +7,7 @@ from contextlib import contextmanager, nullcontext
 import copy
 import hashlib
 from dataclasses import dataclass, field
+from html.parser import HTMLParser
 import json
 import math
 import os
@@ -156,6 +157,54 @@ def _source_name(name):
     return ('source' + safe_suffix if normalized else name), normalized
 
 
+
+class _LocalHtmlResources(HTMLParser):
+    """Detect references which cannot survive isolated single-file upload."""
+    _tags = {'img', 'link', 'script', 'source', 'video', 'audio', 'iframe', 'object'}
+    _attrs = {'src', 'srcset', 'href', 'poster', 'data'}
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.found = False
+
+    @staticmethod
+    def _local(value):
+        value = value.strip().strip(chr(34)).strip(chr(39))
+        if not value or value.startswith(('#', '//', '/', 'data:')):
+            return False
+        if re.match(r'(?i)^[a-z][a-z0-9+.-]*:', value):
+            return False
+        return True
+
+    def handle_starttag(self, tag, attrs):
+        if tag not in self._tags:
+            return
+        for key, value in attrs:
+            if key in self._attrs and isinstance(value, str):
+                # Commas are legal inside data: URLs (including base64).
+                # Only srcset is a list; src/href/poster/data are single URIs.
+                # Srcset descriptors are separated by commas, typically followed
+                # by whitespace; uncertain candidates remain fail-closed.
+                candidates = (re.split(r',\s+(?=\S)', value) if key == 'srcset'
+                              else [value])
+                urls = (part.strip().split()[0] for part in candidates if part.strip())
+                if any(self._local(url) for url in urls):
+                    self.found = True
+
+
+def _missing_html_resources(source):
+    if source.suffix.lower() not in {'.html', '.htm', '.xhtml'}:
+        return False
+    inspector = _LocalHtmlResources()
+    # Streaming parser: never load an entire user document just to look for
+    # relative paths. No external file or network resource is opened.
+    with source.open('rb') as stream:
+        while not inspector.found:
+            block = stream.read(128 * 1024)
+            if not block:
+                break
+            inspector.feed(block.decode('utf-8', errors='replace'))
+    return inspector.found
+
 class _Cancellation:
     """Combine job/file cancellation without another timer or watcher thread."""
     def __init__(self, job, item):
@@ -210,11 +259,17 @@ class ConverterGuard:
                 job.recovery_error = 'RECOVERY_WRITE_FAILED'
 
     def _initialize_store(self, job):
-        if self._recovery and job.store is None:
-            job.store = ResultStore(job.root)
+        if self._recovery:
+            if job.store is None:
+                job.store = ResultStore(job.root)
+                try:
+                    if not job.store.acquire():
+                        raise OSError('Recovery store is busy')
+                except OSError:
+                    job.recovery_error = 'RECOVERY_WRITE_FAILED'
+                    return
+            # Persist ownership during preparation; rewrite plans at start.
             try:
-                if not job.store.acquire():
-                    raise OSError('Recovery store is busy')
                 job.store.initialize(job)
             except OSError:
                 job.recovery_error = 'RECOVERY_WRITE_FAILED'
@@ -227,7 +282,7 @@ class ConverterGuard:
             try:
                 if not store.acquire():
                     continue  # Another running A.I.O instance owns this job.
-                header, records, saved = store.read()
+                header, records, saved, integrity = store.read()
                 identity = header.get('jobId')
                 if not isinstance(identity, str) or not re.fullmatch(r'[0-9a-f]{32}', identity):
                     raise ValueError('Invalid recovery job')
@@ -246,6 +301,11 @@ class ConverterGuard:
                     files.append(_File(**row, source=root/'input'/'unavailable', targets=tasks, state='done',
                                        native_route=original.get('nativeRoute')))
                 job = _Job(identity, root, files, 0, store=store, recovered=True)
+                if integrity != 'complete':
+                    job.recovery_error = 'RECOVERY_LEDGER_INCOMPLETE'
+                    self._recovery_issues.append({'folder':root.name,
+                        'code':'RECOVERY_LEDGER_INCOMPLETE', 'integrity':integrity,
+                        'jobId':identity})
                 summary=header.get('summary',{})
                 job.timings=summary.get('timings',{})
                 job.office_starts=summary.get('officeStarts',0)
@@ -288,8 +348,19 @@ class ConverterGuard:
                         if task.artifacts and task.state in SUCCESS:
                             task.state = 'saved' if all(a.saved for a in task.artifacts) else 'ready'
                 if not job.artifacts:
+                    self._recovery_issues.append({'folder':root.name,
+                        'code':'RECOVERY_UNFINISHED_PREPARATION', 'jobId':identity,
+                        'bytes':sum(p.stat().st_size for p in root.rglob('*')
+                                    if p.is_file() and not p.is_symlink())})
                     store.close()
                     continue
+                indexed={a.path.resolve() for a in job.artifacts}
+                untracked=any(p.resolve() not in indexed for p in root.glob('work/*/output/**/*')
+                              if p.is_file() and not p.is_symlink())
+                if untracked and not job.recovery_error:
+                    job.recovery_error='RECOVERY_UNTRACKED_OUTPUTS'
+                    self._recovery_issues.append({'folder':root.name,
+                        'code':'RECOVERY_UNTRACKED_OUTPUTS', 'jobId':identity})
                 job.reserved = sum(p.stat().st_size for p in root.rglob('*') if p.is_file() and not p.is_symlink())
                 job.result = {**job.artifacts[0].metadata(), 'jobId':identity}
                 job.packaging_error = 'RECOVERED_RESULTS'
@@ -419,6 +490,7 @@ class ConverterGuard:
             identity = secrets.token_hex(16)
             job = _Job(identity, root, files, size, preparation=prepare_only)
             job.files_by_id = {item.id: item for item in files}
+            self._initialize_store(job)
             self._record(job, 'job_created')
             self._jobs[identity] = job
             self._reserved += size
@@ -564,8 +636,13 @@ class ConverterGuard:
                             stage='preflight', started_ms=round(time.time()*1000)))
                         self._record(job, 'preflight_file_started', file_id=item.id)
                     try:
-                        proof = self.adapter.preflight(item.source, work, cancel=_Cancellation(job.cancel,item.cancel),
-                                                       timeout=native_timeout)
+                        if _missing_html_resources(item.source):
+                            proof = {'state':'undetermined',
+                                     'code':'HTML_LOCAL_RESOURCES_NOT_UPLOADED',
+                                     'exported':False}
+                        else:
+                            proof = self.adapter.preflight(item.source, work, cancel=_Cancellation(job.cancel,item.cancel),
+                                                           timeout=native_timeout)
                     except GuardError as error:
                         if error.code == 'CANCELLED' and job.cancel.is_set():
                             raise
@@ -648,9 +725,13 @@ class ConverterGuard:
                         decision = routing(task.format, item.native_route)
                         if decision != 'registered':
                             task.state, task.stage = 'skipped', 'preflight'
-                            task.code = ('NATIVE_ROUTE_UNAVAILABLE' if decision == 'unavailable' else
+                            missing_html = (item.native_route or {}).get('code') == 'HTML_LOCAL_RESOURCES_NOT_UPLOADED'
+                            task.code = ('HTML_LOCAL_RESOURCES_NOT_UPLOADED' if missing_html else
+                                         'NATIVE_ROUTE_UNAVAILABLE' if decision == 'unavailable' else
                                          'PREFLIGHT_ROUTE_UNDETERMINED')
-                            task.error = ('У определённого LibreOffice типа нет этого экспорта.'
+                            task.error = ('HTML ссылается на локальные файлы, но AIO получил только основной HTML. '
+                                          'Чтобы не потерять изображения/стили, экспорт не запускается.'
+                                          if missing_html else 'У определённого LibreOffice типа нет этого экспорта.'
                                           if decision == 'unavailable' else
                                           'Направление не подтверждено; экспорт не запускается.')
                             task.route = copy.deepcopy(item.native_route)
@@ -965,7 +1046,8 @@ class ConverterGuard:
         return counts
 
     def _report(self, job):
-        return {'schemaVersion': 3, **self._counts(job), 'preflightChecks':job.preflight_checks, 'files': [
+        return {'schemaVersion': 3, **self._counts(job), 'preflightChecks':job.preflight_checks,
+                'recoveryError':job.recovery_error, 'files': [
             {'fileId': f.id, 'name': f.name, 'nativeRoute': f.native_route, 'warnings': (
                 ['SOURCE_NAME_NORMALIZED'] if f.name_normalized else []),
              'targets': [{'taskId': job.id + ':' + str(t.index), 'format': t.format, 'state': t.state, 'code': t.code,
@@ -1171,7 +1253,9 @@ class ConverterGuard:
                     except OSError:
                         job.recovery_error = 'RECOVERY_WRITE_FAILED'
                 self._record(job, 'save_confirmed')
-            return {'saved':True, 'savedAll':True, 'name':folder.name, 'outputs':len(copies)}
+            return {'saved':True, 'savedAll':job.recovery_error is None,
+                    'incompleteRecovery':bool(job.recovery_error),
+                    'name':folder.name, 'outputs':len(copies)}
         except OSError as error:
             raise GuardError('SAVE_STORAGE_FAILED', 'Не удалось сохранить все файлы. Результаты остаются в AIO.',
                              stage='save', status=507) from error
@@ -1306,6 +1390,8 @@ class ConverterGuard:
     def cancel(self, job_id):
         with self._lock:
             job = self._get(job_id)
+            if job.state == 'packaging':
+                job.bundle_cancel.set()
             callbacks = self._stop(job)
             self._record(job, 'cancel_requested')
             snapshot = self._snapshot(job)
@@ -1380,8 +1466,9 @@ class ConverterGuard:
             raise GuardError('DISCARD_REQUEST', 'Некорректное подтверждение удаления.')
         with self._lock:
             job = self._get(job_id)
-            if self._recovery and not discard and ((job.running and not job.preparation) or
-                                                   any(not a.saved for a in job.artifacts)):
+            if self._recovery and not discard and (job.recovery_error or
+                    (job.running and not job.preparation) or
+                    any(not a.saved for a in job.artifacts)):
                 job.detached = True
                 callbacks = self._stop(job)
                 self._record(job, 'results_retained')
@@ -1441,7 +1528,7 @@ class ConverterGuard:
             with self._lock:
                 jobs = list(self._jobs.values())
             for job in jobs:
-                if job.artifacts and any(not a.saved for a in job.artifacts):
+                if job.recovery_error or (job.artifacts and any(not a.saved for a in job.artifacts)):
                     if job.store:
                         job.store.close()
                 else:

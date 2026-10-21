@@ -42,6 +42,21 @@ def _stage(work, name):
         os.fsync(output.fileno())
 
 
+
+def _mathml_root(source):
+    """Bounded-memory content identification, never filename-based."""
+    from xml.etree.ElementTree import XMLPullParser, ParseError
+    parser = XMLPullParser(events=('start',))
+    try:
+        with source.open('rb') as stream:
+            while chunk := stream.read(65536):
+                parser.feed(chunk)
+                for _event, element in parser.read_events():
+                    return element.tag == '{http://www.w3.org/1998/Math/MathML}math'
+    except (OSError, ParseError, UnicodeError, ValueError):
+        return False
+    return False
+
 def detect(program, profile, source, work):
     _stage(work, 'dll_scope')
     dll_scope = os.add_dll_directory(str(program)) if os.name == 'nt' else None
@@ -90,8 +105,14 @@ def detect(program, profile, source, work):
     _stage(work, 'document_type')
     kind = C.CFUNCTYPE(C.c_int, C.c_void_p)(table.document_type)(doc)
     _stage(work, 'document_typed')
-    return ({'state': 'detected', 'kind': kind} if kind in (0, 1, 2, 3) else
-            {'state': 'undetermined', 'code': 'PREFLIGHT_KIND_UNDETERMINED'})
+    if kind in (0, 1, 2, 3):
+        return {'state':'detected', 'kind':kind}
+    # LOK OTHER is shared by multiple modules. Never infer FormulaProperties
+    # from OTHER alone or the .mml suffix: require a successfully loaded
+    # native model AND a MathML XML root read from actual source bytes.
+    if kind == 4 and _mathml_root(source):
+        return {'state':'detected','kind':4,'contentClass':'mathml'}
+    return {'state':'undetermined','code':'PREFLIGHT_KIND_UNDETERMINED'}
 
 
 def main(manifest_path):

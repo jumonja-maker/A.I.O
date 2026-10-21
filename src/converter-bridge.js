@@ -359,11 +359,17 @@
       const outcome = await bridge.saveExcel({...result, ...(folder ? {saveMode:'folder'} : {})});
       if (outcome?.saved !== true) return outcome;
       if (folder && outcome.savedAll !== true)
-        throw errorOf('Массовое сохранение не подтверждено. Результаты остаются в AIO.', 'SAVE_INCOMPLETE_ACK');
+        throw errorOf('Восстановленный журнал неполон. Доступные файлы скопированы, но в AIO могут оставаться другие результаты. Не удаляйте служебную папку.', 'SAVE_INCOMPLETE_ACK');
       if (!outcome.savedAll) await api('/saved', {jobId,ticket:result.ticket});
       ownership.saved.add(result.ticket);
       saved = true;
       await releaseJob(jobId);
+      // Notify both the preserved main controller and the queue about this
+      // exact job. Saving an old job must not reset a new active conversion.
+      document.querySelector('.aio-cv')?.dispatchEvent(new CustomEvent('aio-guard-saved',
+        {detail:{jobId,runId:result.progressRunId||null}}));
+      window.dispatchEvent(new CustomEvent('aio-guard-save-confirmed',
+        {detail:{jobId,runId:result.progressRunId||null}}));
       return {saved:true};
     } finally {
       progress?.finishSave({runId:result.progressRunId,saved});

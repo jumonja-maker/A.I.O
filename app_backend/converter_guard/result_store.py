@@ -120,6 +120,9 @@ class ResultStore:
         records = {}
         saved = set()
         pending = {}
+        # A damaged middle record is not an ordinary EOF. Its unindexed
+        # artifacts may still exist and MUST NOT be deleted after a partial save.
+        integrity = 'complete'
         ledger = self.root / 'results.jsonl'
         if ledger.is_symlink():
             raise ValueError('Invalid recovery ledger')
@@ -128,12 +131,17 @@ class ResultStore:
                 while line := stream.readline(8 * 1024 * 1024 + 1):
                     # A crash may leave an incomplete final append. Earlier
                     # fsynced records remain valid; never infer a ready output.
-                    if len(line) > 8 * 1024 * 1024 or not line.endswith('\n'):
+                    if len(line) > 8 * 1024 * 1024:
+                        integrity = 'corrupt'
+                        break
+                    if not line.endswith('\n'):
+                        integrity = 'torn_tail'
                         break
                     try:
                         envelope = json.loads(line)
                         record = envelope['record']
                         if envelope.get('checksum') != self._digest(record):
+                            integrity = 'corrupt'
                             break
                         if record.get('kind') == 'task' and type(record.get('index')) is int:
                             records[record['index']] = record
@@ -149,8 +157,11 @@ class ResultStore:
                         elif record.get('kind') == 'summary':
                             value['summary']=record
                     except (ValueError, TypeError, AttributeError, KeyError):
+                        integrity = 'corrupt'
                         break
-        return value, records, saved
+        if pending and integrity == 'complete':
+            integrity = 'incomplete_transaction'
+        return value, records, saved, integrity
 
     def output_path(self, relative, size):
         if not isinstance(relative, str) or type(size) is not int or size < 0:
