@@ -173,51 +173,88 @@ def _source_name(name):
 
 
 class _LocalHtmlResources(HTMLParser):
-    """Detect references which cannot survive isolated single-file upload."""
+    """Fail closed when isolated HTML contains local assets (including CSS)."""
     _tags = {'img', 'link', 'script', 'source', 'video', 'audio', 'iframe', 'object'}
     _attrs = {'src', 'srcset', 'href', 'poster', 'data'}
+    _css_refs = re.compile(
+        r"""(?is)\burl\(\s*['"]?([^'")\s]+)|@import\s+(?:url\(\s*)?['"]([^'"\s)]+)""")
+
     def __init__(self):
         super().__init__(convert_charrefs=True)
         self.found = False
+        self._in_style = False
+        self._css_tail = ''
 
     @staticmethod
     def _local(value):
         value = value.strip().strip(chr(34)).strip(chr(39))
-        if not value or value.startswith(('#', '//', '/', 'data:')):
+        if not value or value.startswith(('#', '//', 'data:')):
             return False
+        # /assets/logo.svg is a local resource, not a remote URL.
         if re.match(r'(?i)^[a-z][a-z0-9+.-]*:', value):
             return False
         return True
 
+    def _scan_css(self, value):
+        if any(self._local(first or second)
+               for first, second in self._css_refs.findall(value)):
+            self.found = True
+
     def handle_starttag(self, tag, attrs):
-        if tag not in self._tags:
-            return
+        if tag == 'style':
+            self._in_style = True
+            self._css_tail = ''
         for key, value in attrs:
-            if key in self._attrs and isinstance(value, str):
-                # Commas are legal inside data: URLs (including base64).
-                # Only srcset is a list; src/href/poster/data are single URIs.
-                # Srcset descriptors are separated by commas, typically followed
-                # by whitespace; uncertain candidates remain fail-closed.
-                candidates = (re.split(r',\s+(?=\S)', value) if key == 'srcset'
-                              else [value])
-                urls = (part.strip().split()[0] for part in candidates if part.strip())
-                if any(self._local(url) for url in urls):
-                    self.found = True
+            if not isinstance(value, str):
+                continue
+            if key == 'style':
+                self._scan_css(value)
+            if tag not in self._tags or key not in self._attrs:
+                continue
+            # Only srcset is a list; a data URL can contain commas.
+            candidates = (re.split(r',\s+(?=\S)', value) if key == 'srcset'
+                          else [value])
+            urls = (part.strip().split()[0] for part in candidates if part.strip())
+            if any(self._local(url) for url in urls):
+                self.found = True
+
+    def handle_data(self, data):
+        if self._in_style:
+            self._scan_css(self._css_tail + data)
+            # A bounded overlap covers a url() split between feed() calls.
+            self._css_tail = (self._css_tail + data)[-512:]
+
+    def handle_endtag(self, tag):
+        if tag == 'style':
+            self._in_style = False
+            self._css_tail = ''
 
 
-def _missing_html_resources(source):
+def _html_resource_warning(source):
+    """Return an uncertainty code; never silently approve truncated HTML."""
     if source.suffix.lower() not in {'.html', '.htm', '.xhtml'}:
-        return False
+        return None
     inspector = _LocalHtmlResources()
-    # Streaming parser: never load an entire user document just to look for
-    # relative paths. No external file or network resource is opened.
+    inspected = 0
     with source.open('rb') as stream:
         while not inspector.found:
             block = stream.read(128 * 1024)
             if not block:
                 break
+            inspected += len(block)
             inspector.feed(block.decode('utf-8', errors='replace'))
-    return inspector.found
+            # HTMLParser.feed() retains *all* bytes of an unfinished tag,
+            # declaration or comment. An attacker-controlled malformed
+            # document must not grow the Python heap indefinitely.
+            if len(inspector.rawdata) > 512 * 1024 or inspected > 32 * 1024 * 1024:
+                return 'HTML_PREFLIGHT_UNDETERMINED'
+    return 'HTML_LOCAL_RESOURCES_NOT_UPLOADED' if inspector.found else None
+
+
+def _missing_html_resources(source):
+    """Legacy boolean helper; callers needing an explanation use the code."""
+    return _html_resource_warning(source) is not None
+
 
 class _Cancellation:
     """Combine job/file cancellation without another timer or watcher thread."""
@@ -876,9 +913,9 @@ class ConverterGuard:
                             stage='preflight', started_ms=round(time.time()*1000)))
                         self._record(job, 'preflight_file_started', file_id=item.id)
                     try:
-                        if _missing_html_resources(item.source):
-                            proof = {'state':'undetermined',
-                                     'code':'HTML_LOCAL_RESOURCES_NOT_UPLOADED',
+                        html_warning = _html_resource_warning(item.source)
+                        if html_warning:
+                            proof = {'state':'undetermined', 'code':html_warning,
                                      'exported':False}
                         else:
                             proof = self.adapter.preflight(item.source, work, cancel=_Cancellation(job.cancel,item.cancel),
@@ -973,13 +1010,17 @@ class ConverterGuard:
                         decision = routing(task.format, item.native_route)
                         if decision != 'registered':
                             task.state, task.stage = 'skipped', 'preflight'
-                            missing_html = (item.native_route or {}).get('code') == 'HTML_LOCAL_RESOURCES_NOT_UPLOADED'
-                            task.code = ('HTML_LOCAL_RESOURCES_NOT_UPLOADED' if missing_html else
+                            html_issue = (item.native_route or {}).get('code')
+                            html_issue = html_issue if html_issue in (
+                                'HTML_LOCAL_RESOURCES_NOT_UPLOADED', 'HTML_PREFLIGHT_UNDETERMINED') else None
+                            task.code = (html_issue if html_issue else
                                          'NATIVE_ROUTE_UNAVAILABLE' if decision == 'unavailable' else
                                          'PREFLIGHT_ROUTE_UNDETERMINED')
                             task.error = ('HTML ссылается на локальные файлы, но AIO получил только основной HTML. '
                                           'Чтобы не потерять изображения/стили, экспорт не запускается.'
-                                          if missing_html else 'У определённого LibreOffice типа нет этого экспорта.'
+                                          if html_issue == 'HTML_LOCAL_RESOURCES_NOT_UPLOADED' else
+                                          'HTML слишком велик или содержит незавершённый тег. Нельзя подтвердить безопасность автономного экспорта.'
+                                          if html_issue else 'У определённого LibreOffice типа нет этого экспорта.'
                                           if decision == 'unavailable' else
                                           'Направление не подтверждено; экспорт не запускается.')
                             task.route = copy.deepcopy(item.native_route)
