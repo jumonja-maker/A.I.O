@@ -59,3 +59,9 @@
   color: var(--warning, #986800);
 }
 .aio-cv .aio-fp-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+
+/* Terminal states always have visible, semantically distinct symbols. */
+.aio-cv .aio-cv__file[data-aio-fp-state="error"] .aio-fp-check{color:var(--danger,#d23b48)}
+.aio-cv .aio-cv__file[data-aio-fp-state="cancelled"] .aio-fp-check,
+.aio-cv .aio-cv__file[data-aio-fp-state="skipped"] .aio-fp-check{color:var(--muted,#667899)}
+.aio-cv .aio-cv__file:is([data-aio-fp-state="partial"],[data-aio-fp-state="partial-saved"]) .aio-fp-check{color:var(--warning,#986800)}
