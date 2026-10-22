@@ -17,6 +17,19 @@ def section(text, heading):
 
 
 class GuardQaUninstallContract(unittest.TestCase):
+    def test_cyrillic_inno_tasks_are_encoded_for_unicode_compiler(self):
+        # UTF-8 BOM lets older Unicode Inno compilers decode user-facing
+        # Russian strings without mojibake. This is a static contract:
+        # a Windows installer screenshot is still required.
+        for file in INSTALLERS.glob("*.iss"):
+            with self.subTest(installer=file.name):
+                contents = file.read_bytes()
+                self.assertTrue(contents.startswith(b"\\xef\\xbb\\xbf"))
+                decoded = contents.decode("utf-8-sig")
+                self.assertIn('Описание', 'Описание')  # encoding of this test itself
+                self.assertIn('Создать ярлык на рабочем столе', decoded)
+                self.assertNotIn('РЎРѕР·', decoded)
+
     def test_qa_appid_is_unique_from_other_aio_installers(self):
         values = {}
         for file in INSTALLERS.glob("*.iss"):
