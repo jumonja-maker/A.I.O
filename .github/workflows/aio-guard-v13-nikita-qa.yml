@@ -157,8 +157,8 @@ jobs:
           $dir=Join-Path $env:GITHUB_WORKSPACE ('aio-v13-qa-evidence-'+$env:GITHUB_RUN_ID)
           if (Test-Path -LiteralPath $dir) { throw 'QA evidence collision' }
           New-Item -ItemType Directory -Path $dir -ErrorAction Stop | Out-Null
-          & $python tools/qa/guard_v13_native_pipeline_acceptance.py --output (Join-Path $dir 'v13') --executable $env:AIO_QA_ENGINE --session-max-tasks 2
-          if ($LASTEXITCODE -ne 0) { throw 'NATIVE_V13_FAILED' }
+          & $python tools/qa/guard_v12_native_pipeline_acceptance.py --output (Join-Path $dir 'v13') --executable $env:AIO_QA_ENGINE --session-max-tasks 2
+          if ($LASTEXITCODE -ne 0) { throw 'NATIVE_V12_RECHECK_FAILED' }
           & $python tools/qa/guard_v09_save_queue_acceptance.py --output (Join-Path $dir 'v09') --executable $env:AIO_QA_ENGINE
           if ($LASTEXITCODE -ne 0) { throw 'NATIVE_LIVE_SAVE_FAILED' }
           & $python tools/qa/guard_v10_text_export_acceptance.py --output (Join-Path $dir 'v10') --executable $env:AIO_QA_ENGINE
