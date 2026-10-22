@@ -24,9 +24,8 @@ class GuardQaUninstallContract(unittest.TestCase):
         for file in INSTALLERS.glob("*.iss"):
             with self.subTest(installer=file.name):
                 contents = file.read_bytes()
-                self.assertTrue(contents.startswith(b"\\xef\\xbb\\xbf"))
+                self.assertTrue(contents.startswith(bytes([0xEF, 0xBB, 0xBF])))
                 decoded = contents.decode("utf-8-sig")
-                self.assertIn('Описание', 'Описание')  # encoding of this test itself
                 self.assertIn('Создать ярлык на рабочем столе', decoded)
                 self.assertNotIn('РЎРѕР·', decoded)
 
