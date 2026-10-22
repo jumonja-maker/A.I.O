@@ -115,7 +115,7 @@ jobs:
           }
           & $python -c 'import sys,openpyxl,PyInstaller,PySide6.QtWebEngineWidgets; assert sys.version_info[:2]==(3,11)'
           if ($LASTEXITCODE -ne 0) { throw 'Offline Python dependency missing.' }
-          & $python -c 'import pypdf; print("PYPDF_QUALITY_INSPECTION=AVAILABLE")'
+          & $python -c 'import pypdf'
           if ($LASTEXITCODE -ne 0) { throw 'pypdf required for Guard v14 quality inspection is absent in the approved offline Python environment.' }
           $lo=$null
           foreach ($dir in @('D:\LBR\LibreOffice','D:\LBR','D:\AIO-Lab\LibreOffice',
