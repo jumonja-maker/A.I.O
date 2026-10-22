@@ -65,7 +65,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: jumonja-maker/A.I.O
-          ref: f0da56ed988df8ee9252d20978c5d29237a0503f
+          ref: 5c386559da3786e74c9dce7ffc7ac34b82f7cc0c
           path: aio-pr23-audit-${{ github.run_id }}
           fetch-depth: 1
           persist-credentials: false
@@ -112,7 +112,7 @@ jobs:
           if (Test-Path -LiteralPath $script) { throw 'Verifier path collision' }
           try {
             [IO.File]::WriteAllText($script,$verifier,[Text.UTF8Encoding]::new($false))
-            & $python $script '966d29cc9897812feedd2ba8b069568456d02793'
+            & $python $script 'cfb6d3abbc9027f16c79aea71c0047bdd7805b25'
             if ($LASTEXITCODE -ne 0) { throw 'Pinned tree verification failed' }
           } finally {
             Remove-Item -LiteralPath $script -Force -ErrorAction SilentlyContinue
@@ -133,6 +133,9 @@ jobs:
             $node=$node[0]
           }
           'AIO_QA_NODE='+$node | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          [IO.File]::AppendAllText($env:GITHUB_PATH,
+            [IO.Path]::GetDirectoryName($node)+[Environment]::NewLine,
+            [Text.UTF8Encoding]::new($false))
           Write-Host 'APPROVED_PYTHON_AND_NODE=PASS; NO_PIP_OR_INSTALL'
 
       - name: Run source, Guard, native save, Excel and BLACK.BOX regressions
@@ -165,7 +168,7 @@ jobs:
       - name: QA verdict (no installation, packaging, FULLTEST or main changes)
         if: always()
         run: |
-          Write-Host 'PINNED_COMMIT=f0da56ed988df8ee9252d20978c5d29237a0503f'
+          Write-Host 'PINNED_COMMIT=5c386559da3786e74c9dce7ffc7ac34b82f7cc0c'
           Write-Host 'QA_REGRESSIONS=${{ steps.regressions.outcome }}'
           Write-Host 'BUILD=NOT_RUN; INSTALL=NOT_RUN; RELEASE=NOT_RUN'
           Write-Host 'FULLTEST=NOT_RUN; MAIN=UNCHANGED'
