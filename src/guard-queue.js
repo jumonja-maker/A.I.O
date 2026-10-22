@@ -7,6 +7,7 @@
   // unchanged polls and the elapsed-time clock must never rebuild the queue.
   let rowCache=null, paintedRows=null;
   const pendingActions=new Set();
+  let actionFeedback=null,feedbackRevision=null;
   const labels={queued:'В очереди',converting:'Конвертируется',ready:'Готово',saved:'Сохранено',
     error:'Ошибка',cancelled:'Отменено',skipped:'Исключено Guard'};
   const api=()=>window.AllInOneBridge?.converter;
@@ -55,12 +56,22 @@
     const action=(selector,work)=>bar.querySelector(selector).addEventListener('click',async event=>{
       if(pendingActions.has(selector))return;
       const button=event.currentTarget;pendingActions.add(selector);button.disabled=true;
+      actionFeedback='Выполняется команда…';feedbackRevision=state?.revision;
+      renderCurrent();
       text('[data-g-warning]','Выполняется запрос…');
       try{const result=await work();
+        actionFeedback=result?.saved?'Сохранено файлов: '+(result.outputs??''):
+          'Команда принята. Обновляем состояние…';
+        feedbackRevision=state?.revision;
         text('[data-g-warning]',result?.saved?'Сохранено файлов: '+(result.outputs??'')+
           (result.savedAll?'':' · остальные результаты остаются в AIO.'):'Запрос принят.');
+        renderCurrent();
         await refresh();
-      }catch(error){text('[data-g-warning]',error.userMessage||error.message);}
+      }catch(error){
+        actionFeedback=error.userMessage||error.message||'Команда не выполнена.';
+        feedbackRevision=state?.revision;
+        text('[data-g-warning]',actionFeedback);renderCurrent();
+      }
       finally{pendingActions.delete(selector);button.disabled=false;render();}
     });
     action('[data-g-pause]',()=>api().pause(!state?.pauseRequested));
@@ -144,6 +155,10 @@
     if(!active&&clock){clearInterval(clock);clock=null;}
   }
   function renderCurrent(){
+    if(actionFeedback && state?.revision===feedbackRevision){
+      text('[data-g-current]',actionFeedback);return;
+    }
+    actionFeedback=null;
     const active=state?.currentTask;
     text('[data-g-current]',state?.statusReadError?'Связь со статусом прервана · повторяем запрос':active?active.name+(active.stage==='preflight'?' · проверка исходника':
       active.stage==='upload'?' · подготовка исходника':' → '+active.format.toUpperCase())+' · '+
