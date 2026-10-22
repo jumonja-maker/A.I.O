@@ -18,12 +18,15 @@ C='com.sun.star.sheet.SpreadsheetDocument'
 
 
 class UnoWorkerContracts(unittest.TestCase):
-    def execute(self, requests, *, fail_first=False, on_export=None):
+    def execute(self, requests, *, fail_first=False, on_export=None, draw_pages=None):
         namespace={'__name__':'worker_contract'}
         exec(compile(WORKER_SOURCE,'worker_contract','exec'),namespace)
         models=[];loads=[];exports=[]
         class Model:
             closed=False
+            def getDrawPages(self):
+                if draw_pages is None:raise AttributeError('Not a Draw model')
+                return SimpleNamespace(getCount=lambda:draw_pages)
             def supportsService(self,service):return service==W
             def getArgs(self):return (SimpleNamespace(Name='FilterName',Value='Actual native import'),
                                      SimpleNamespace(Name='TypeName',Value='Actual native type'))

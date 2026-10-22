@@ -210,4 +210,13 @@ const completed=[];
   assert.equal(seen[0].saveMode,undefined);
   completed.push('direct explicit ZIP save cannot mistake the first artifact for the complete archive');
 }
+{
+  const f=fixture({poll:({state,finish})=>{finish();return {...state,revision:state.revision+1,finished:true,state:'ready',completed:2,
+    files:state.files.map(file=>({...file,targets:file.targets.map(t=>({...t,state:'saved'}))})),
+    result:{...artifact(bundleTicket),name:'results.zip'}};}});
+  await f.bridge.convertMany({files:input,formatIds:['pdf','html']});
+  const updates=f.events.filter(event=>event.type==='finishTargets');
+  assert.equal(updates.at(-1).detail.files[0].allCopiesSaved,true);
+  completed.push('saved targets keep their saved status during subsequent queue updates');
+}
 console.log(JSON.stringify({status:'PASS',scope:'actual JS bridge with controlled native-save and transport boundaries',checks:completed}));

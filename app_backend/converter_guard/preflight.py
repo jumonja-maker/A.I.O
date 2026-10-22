@@ -108,6 +108,7 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
                             'documentServices':sorted(set(services)), 'typeName':detected.get('typeName'),
                             'filterName':selected, 'selectedImportFilter':import_filter,
                             'selectedImportOptions':hint['options'] if hint else None,
+                            'drawPages':detected.get('drawPages'),
                             'registryFingerprint':native.fingerprint,'exported':False}
             if os.name == 'nt':
                 code = (detected.get('code') if detected.get('state') != 'detected'
@@ -144,6 +145,7 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
                 return {'state': 'undetermined', 'code': native_code}
             return {'state': 'detected', 'documentServices': list(SERVICES[kind]),
                     'basis': 'native_preflight_document_kind', 'nativeKind': kind,
+                    'drawPages': detected.get('drawPages') if kind == 3 else None,
                     'registryFingerprint': native.fingerprint, 'exported': False}
     except (OSError, ValueError):
         return {'state': 'undetermined', 'code': 'PREFLIGHT_API_UNAVAILABLE'}

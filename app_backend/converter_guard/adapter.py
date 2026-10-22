@@ -102,6 +102,9 @@ class LibreOfficeAdapter:
     def native_timings(self):
         return clean_timings(getattr(self._local, 'metrics', None))
 
+    def export_info(self):
+        return getattr(self._local, 'export_info', {})
+
     def prepare_source(self, proof):
         self._local.proof = proof
         name = (proof or {}).get('selectedImportFilter')
@@ -227,6 +230,7 @@ class LibreOfficeAdapter:
                         'documentServices':services,'typeName':result.get('typeName'),'filterName':selected,
                         'selectedImportFilter':confirmed,
                         'selectedImportOptions':hint['options'] if hint else None,
+                        'drawPages':result.get('drawPages'),
                         'registryFingerprint':native.fingerprint,'exported':False}
                 return {'state':'undetermined','code':result.get('code') or 'PREFLIGHT_IMPORT_FAILED',
                         'diagnosticStage':result.get('stage','import')}
@@ -276,6 +280,7 @@ class LibreOfficeAdapter:
                 on_started, output_limit=None, on_document_service=None, on_stage=None):
         self._local.execution_mode = None
         self._local.metrics = None
+        self._local.export_info = {}
         adapter_tick = time.monotonic()
         if not self.available:
             raise GuardError('ENGINE_NOT_FOUND', 'LibreOffice не найден.', stage='launch', status=503)
@@ -286,6 +291,8 @@ class LibreOfficeAdapter:
         try:
             native = self._registry()
             recipe = native_export_recipe(native, target, getattr(self._local, 'proof', None))
+            if recipe:
+                self._local.export_info = {'filter': recipe.filter_name, 'warnings': recipe.warnings}
             export_args = {'convert_spec': recipe.cli_spec(target)} if recipe else {}
             # The first requested native export identifies the actual model.
             # Filename hints never veto a file, including renamed/unlisted ones.
@@ -310,6 +317,7 @@ class LibreOfficeAdapter:
                         result = office.request({'operation':'export','source':str(source.resolve()),
                             'format':target,'output':str(output.resolve()),'exportFilter':filter_name,
                             'exportOptions':recipe.filter_options,
+                            'requiredDrawPages':recipe.required_draw_pages,
                             'importFilter':getattr(self._local,'import_filter',None),
                             'importOptions':getattr(self._local,'import_options',None),
                             'services':sorted(native.import_services),'expectedServices':services},

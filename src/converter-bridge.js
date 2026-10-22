@@ -271,6 +271,7 @@
       const state = running ? 'converting' : queued ? 'queued' :
         skipped ? 'skipped' : failed || cancelled ? (successes ? 'partial' : cancelled && !failed ? 'cancelled' : 'error') : 'ready';
       return {fileId:row.fileId, targets, state, succeeded:successes, total:targets.length,
+        allCopiesSaved:['ready','partial'].includes(state) && successes>0 && targets.every(t=>t.state!=='ready'),
         error:targets.find(t => t.state === 'error')?.error || ''};
     })});
     onProgress?.({percent:report.percent ?? null,
@@ -496,17 +497,18 @@
     },
     async diagnoseFiles({files=[],phase='before',result}={}) {
       const report=result?.targetReport;
-      return {phase,files:metadata(files).map(file=>({...file,complete:false,
-        facts:[],fonts:[],findings:[{level:'not_checked',formats:[],
-          message:'Guard фильтрует направления, но не сравнивает качество содержимого.',advice:''}]})),
-        result:{checks:[{state:'not_checked',
+      const byId=new Map((report?.files||[]).map(row=>[String(row.fileId),row]));
+      return {phase,files:metadata(files).map(file=>{
+        const targets=byId.get(String(file.id))?.targets||[];
+        const findings=targets.flatMap(target=>(target.warnings||[]).map(warning=>({
+          level:'risk',formats:[target.format],message:warning.message,advice:'Сохраните исходник.'})));
+        return {...file,complete:false,facts:[],fonts:[],findings:[...findings,
+          {level:'not_checked',formats:[],message:'Guard подтверждает маршруты, но не сравнивает полноту содержимого и внешний вид.',advice:''}]};
+      }),result:{checks:[{state:'not_checked',
           message:'Проверка сохранности оформления и содержимого пока не выполнялась.'}]},
         scope:['Guard использует реестр LibreOffice и реальную native-модель.',
-          ...(report ? report.files.flatMap(row=>row.targets.map(target=>
-            target.format.toUpperCase()+': '+
-            (target.state==='skipped'?'Пропущено Guard — ': '')+
-            (target.error || target.state)+
-            ' · LibreOffice: '+(target.libreOfficeStarted?'запускался':'не запускался'))) : [])]};
+          'Статус готовности означает создание результата, а не доказанное сохранение качества.',
+          'Все направления, ошибки и выбранные фильтры доступны в техническом отчёте панели «Состояние».']};
     }
   });
 })();

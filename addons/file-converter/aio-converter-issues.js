@@ -11,7 +11,10 @@
     PREFLIGHT_UNO_API_UNAVAILABLE:'Не удалось выполнить проверку через UNO установленного LibreOffice.',
     PREFLIGHT_UNO_TYPE_UNKNOWN:'LibreOffice не определил тип содержимого.',
     PREFLIGHT_UNO_TYPE_UNMAPPED:'Тип распознан, но однозначный импортирующий фильтр не подтверждён.',
-    PREFLIGHT_IMPORT_UNDETERMINED:'LibreOffice не подтвердил импорт содержимого.'
+    PREFLIGHT_IMPORT_UNDETERMINED:'LibreOffice не подтвердил импорт содержимого.',
+    PREFLIGHT_KIND_UNDETERMINED:'Нативный тип не удалось сопоставить с модулем LibreOffice. Это не доказывает повреждение файла.',
+    PREFLIGHT_IMPORT_FAILED:'LibreOffice не подтвердил открытие этого содержимого без диалога.',
+    PREFLIGHT_INTERACTION_REQUIRED:'Для импорта LibreOffice запросил дополнительные сведения. Автоматический импорт не подтверждён.'
   };
   let sequence = 0;
 
@@ -31,12 +34,17 @@
   function brief(snapshot, after) {
     const rows = [];
     const selected = snapshot.formats.filter(f => snapshot.selectedFormats.includes(f.id));
+    const owners = new Map(snapshot.allFiles.map(f=>[String(f.id),f]));
+    const proofs = new Map((snapshot.preflightFiles||[]).map(f=>[String(f.id),f.preflight]));
     if (after) {
       const report = snapshot.result?.targetReport || snapshot.retryResult?.targetReport ||
         (snapshot.failedBatchReport?.files?.some(f=>Array.isArray(f.targets)) ? snapshot.failedBatchReport : null);
       for (const file of (Array.isArray(report?.files) ? report.files : [])) {
-        const owner = snapshot.allFiles.find(f => String(f.id) === String(file.fileId));
+        const owner = owners.get(String(file.fileId));
         for (const target of (Array.isArray(file.targets) ? file.targets : [])) {
+          for(const warning of target.warnings||[])rows.push({
+            source:owner?.file?.name||owner?.name||file.name||'Исходный файл',
+            target:limitText(target.format,12).toUpperCase(),kind:'Предупреждение экспорта',reason:warning.message});
           if (target.state !== 'error' && target.state !== 'skipped') continue;
           rows.push({source: owner?.file?.name || owner?.name || 'Исходный файл',
             target: limitText(target.format, 12).toUpperCase(),
@@ -46,16 +54,17 @@
               : 'Движок не завершил преобразование.')});
         }
       }
+      const reported = new Set((report?.files||[]).map(f=>String(f.fileId)));
       if (report?.schemaVersion === 3) for (const file of snapshot.files) {
-        if (report.files?.some(row=>String(row.fileId)===String(file.id))) continue;
-        const proof = snapshot.preflightFiles?.find(f=>String(f.id)===String(file.id))?.preflight;
+        if (reported.has(String(file.id))) continue;
+        const proof = proofs.get(String(file.id));
         if (proof?.state === 'undetermined') rows.push({source:file.name,target:'',
           kind:'Файл не включён в план',reason:(preflightReasons[proof.code] ||
             'Направления не подтверждены.') + ' Экспорт этого файла не запускался.'});
       }
       if (!report) for (const file of (batchOutcome(snapshot)?.files || [])) {
         if (file.state !== 'error') continue;
-        const owner = snapshot.allFiles.find(f => String(f.id) === String(file.fileId));
+        const owner = owners.get(String(file.fileId));
         rows.push({source: owner?.file?.name || owner?.name || 'Исходный файл',
           target: '', kind: 'Ошибка обработки файла', reason: file.error});
       }
@@ -66,7 +75,7 @@
     if (snapshot.status === 'checking') return rows;
     const pending = new Set();
     for (const file of snapshot.files) {
-      const proof = snapshot.preflightFiles?.find(f=>String(f.id)===String(file.id))?.preflight;
+      const proof = proofs.get(String(file.id));
       if (!proof || proof.state === 'detected') continue;
       pending.add(String(file.id));
       rows.push({source:file.name,target:'',kind:'Проверка файла не завершена',
@@ -77,23 +86,23 @@
     }
     const candidates = selected.length ? selected : snapshot.formats.filter(f => !f.enabled || f.undeterminedFileIds?.length);
     for (const fmt of candidates) {
-      const ids = Array.isArray(fmt.compatibleFileIds) ? fmt.compatibleFileIds.map(String) : [];
-      const undetermined = Array.isArray(fmt.undeterminedFileIds) ? fmt.undeterminedFileIds.map(String) : [];
-      const incompatible = Array.isArray(fmt.incompatibleFileIds) ? fmt.incompatibleFileIds.map(String) : [];
+      const ids = new Set((Array.isArray(fmt.compatibleFileIds)?fmt.compatibleFileIds:[]).map(String));
+      const undetermined = new Set((Array.isArray(fmt.undeterminedFileIds)?fmt.undeterminedFileIds:[]).map(String));
+      const incompatible = new Set((Array.isArray(fmt.incompatibleFileIds)?fmt.incompatibleFileIds:[]).map(String));
       const compatible = [];
       for (const file of snapshot.files) {
         const id = String(file.id);
         if (pending.has(id)) continue;
-        if (ids.includes(id) && fmt.enabled) {
+        if (ids.has(id) && fmt.enabled) {
           compatible.push(file.name);
-        } else if (incompatible.includes(id)) {
+        } else if (incompatible.has(id)) {
           rows.push({source: file.name, target: fmt.label || fmt.id,
             kind: 'Нет зарегистрированного маршрута',
             reason: fmt.compatibility==='native_preflight'
               ? 'Предварительная проверка определила тип содержимого. У этого типа в реестре LibreOffice нет выбранного экспорта.'
               : 'Для расширения исходника реестр LibreOffice не показывает экспорт в этот формат. '
                 + 'Это предварительная подсказка, а не проверка содержимого.'});
-        } else if (undetermined.includes(id)) {
+        } else if (undetermined.has(id)) {
           rows.push({source:file.name,target:fmt.label||fmt.id,kind:'Направление не подтверждено',
             reason:'Направление не подтверждено и пока недоступно. Можно повторить проверку направлений.'});
         }
@@ -358,17 +367,19 @@
         // Progress renders are frequent; do not rebuild the same potentially
         // 100-source compatibility matrix on every engine message.
         let rows;
-        if (!after && briefCache?.formats === value.formats && briefCache.status === value.status &&
+        const report=value.result?.targetReport||value.retryResult?.targetReport||value.failedBatchReport;
+        if (briefCache?.after===after && briefCache.formats === value.formats && briefCache.status === value.status &&
+            briefCache.report===report && briefCache.message===value.statusMessage &&
             briefCache.preflightFiles === value.preflightFiles && sameSelection(briefCache.selection, selection)) {
           rows = briefCache.rows;
         } else {
-          rows = brief(value, after);
-          briefCache = after ? null : {formats: value.formats, preflightFiles:value.preflightFiles,
-            status:value.status, selection, rows};
+          const raw = brief(value, after);
+          rows = groupedIssues(raw);
+          briefCache = {formats: value.formats, preflightFiles:value.preflightFiles,
+            status:value.status, selection, rows,rawCount:raw.length,after,report,message:value.statusMessage};
         }
         // Root-cause groups, not one scary item for every blocked output.
-        const rawCount = rows.length;
-        rows = groupedIssues(rows);
+        const rawCount = briefCache.rawCount;
         // Keep all vertical space for formats until there is a real
         // issue. After a successful run, offer opt-in result inspection even
         // when the engine reports zero errors.

@@ -3,6 +3,9 @@
   'use strict';
   let root=null, bar=null, state=null, jobs=[], warnings=[], page=0, refreshPending=false, clock=null;
   let preview=null, previewId=null, previewRequest=0;
+  // Only the visible page owns DOM nodes. Keep at most one flattened view;
+  // unchanged polls and the elapsed-time clock must never rebuild the queue.
+  let rowCache=null, paintedRows=null;
   const pendingActions=new Set();
   const labels={queued:'В очереди',converting:'Конвертируется',ready:'Готово',saved:'Сохранено',
     error:'Ошибка',cancelled:'Отменено',skipped:'Исключено Guard'};
@@ -10,9 +13,9 @@
   const text=(selector,value)=>{const n=bar?.querySelector(selector);if(n&&n.textContent!==String(value))n.textContent=String(value);};
   function mount() {
     const next=document.querySelector('.aio-cv');
-    if(!next){root=bar=null;if(clock){clearInterval(clock);clock=null;}return;}
+    if(!next){root=bar=null;rowCache=paintedRows=null;if(clock){clearInterval(clock);clock=null;}return;}
     if(next===root&&bar?.isConnected)return;
-    root=next;
+    root=next;rowCache=paintedRows=null;
     const footer=root.querySelector('.aio-cv__footer');if(!footer)return;
     bar=document.createElement('div');bar.className='aio-guard-queue';bar.hidden=true;
     bar.innerHTML='<div class="aio-guard-current"><span data-g-current></span><button type="button" data-g-pause>Пауза</button><button type="button" data-g-skip>Пропустить файл</button></div>'+
@@ -80,11 +83,7 @@
     bar.hidden=!state&&!jobs.length&&!warnings.length;
     bar.closest('.aio-cv__footer')?.classList.toggle('aio-guard-has-queue',!bar.hidden);
     const active=state?.currentTask;
-    text('[data-g-current]',state?.statusReadError?'Связь со статусом прервана · повторяем запрос':active?active.name+(active.stage==='preflight'?' · проверка исходника':
-      active.stage==='upload'?' · подготовка исходника':' → '+active.format.toUpperCase())+' · '+
-      Math.max(0,Math.floor((Date.now()-active.startedMs)/1000))+' с':
-      state?.state==='paused'?'Очередь на паузе':state?.state==='prepared'?'Исходники проверены. Выберите форматы.':state&&!state.finished?'Подготовка результатов…':
-      jobs.length?'Есть несохранённые результаты: '+jobs.length:warnings.length?'Есть результаты с повреждённым журналом':'Обработка завершена');
+    renderCurrent();
     text('[data-g-counts]',state?.state==='uploading'?'Подготовлено исходников: '+state.uploadedFiles+' / '+state.inputFiles:
       state?.state==='checking'?'Проверено исходников: '+state.preflightCompleted+' / '+state.preflightTotal:
       state?'Обработано '+state.completed+' / '+state.total+' · успешно '+state.succeeded+
@@ -117,8 +116,16 @@
     if(state?.recoveryError)text('[data-g-warning]','Журнал восстановления записан не полностью. Сохраните результаты перед закрытием.');
     if(state?.statusReadError)text('[data-g-warning]',state.statusReadMessage);
     if(bar.querySelector('details').open)renderRows();
-    if(active&&!clock)clock=setInterval(()=>render(),1000);
+    if(active&&!clock)clock=setInterval(renderCurrent,1000);
     if(!active&&clock){clearInterval(clock);clock=null;}
+  }
+  function renderCurrent(){
+    const active=state?.currentTask;
+    text('[data-g-current]',state?.statusReadError?'Связь со статусом прервана · повторяем запрос':active?active.name+(active.stage==='preflight'?' · проверка исходника':
+      active.stage==='upload'?' · подготовка исходника':' → '+active.format.toUpperCase())+' · '+
+      Math.max(0,Math.floor((Date.now()-active.startedMs)/1000))+' с':
+      state?.state==='paused'?'Очередь на паузе':state?.state==='prepared'?'Исходники проверены. Выберите форматы.':state&&!state.finished?'Подготовка результатов…':
+      jobs.length?'Есть несохранённые результаты: '+jobs.length:warnings.length?'Есть результаты с повреждённым журналом':'Обработка завершена');
   }
   async function loadPreview(){
     if(!bar)return;
@@ -140,21 +147,34 @@
     const selected=bar.querySelector('[data-g-jobs]').value;
     const shown=selected&&selected!==state?.jobId?previewId===selected?preview:null:state;
     const search=bar.querySelector('input').value.toLowerCase(),filter=bar.querySelector('.aio-guard-tools select').value;
-    const rows=[];
-    for(const file of shown?.files||[])for(const task of file.targets||[]){
-      if(search&&!(file.name+' '+task.format).toLowerCase().includes(search))continue;
-      if(filter==='error'&&task.state!=='error'||filter==='pending'&&!['queued','converting'].includes(task.state)||
-         filter==='ready'&&!['ready','saved'].includes(task.state))continue;
-      rows.push({file,task});
+    const files=shown?.files||[];
+    const sameFiles=rowCache&&rowCache.files.length===files.length&&rowCache.files.every((file,i)=>file===files[i]);
+    if(!sameFiles||rowCache.search!==search||rowCache.filter!==filter||rowCache.jobId!==shown?.jobId){
+      const rows=[];
+      for(const file of files)for(const task of file.targets||[]){
+        if(search&&!(file.name+' '+task.format).toLowerCase().includes(search))continue;
+        if(filter==='error'&&task.state!=='error'||filter==='pending'&&!['queued','converting'].includes(task.state)||
+           filter==='ready'&&!['ready','saved'].includes(task.state))continue;
+        rows.push({file,task});
+      }
+      rowCache={files,rows,search,filter,jobId:shown?.jobId};
     }
+    const rows=rowCache.rows;
     const pages=Math.max(1,Math.ceil(rows.length/50));page=Math.min(page,pages-1);
-    const list=bar.querySelector('.aio-guard-list');list.replaceChildren();
-    for(const {file,task} of rows.slice(page*50,page*50+50)){
-      const row=document.createElement('div');row.className='aio-guard-task';row.setAttribute('role','listitem');
-      const name=document.createElement('strong'),status=document.createElement('span'),detail=document.createElement('small');
-      name.textContent=file.name+' → '+task.format.toUpperCase();name.title=task.taskId||'';
-      status.textContent=labels[task.state]||task.state;
-      detail.textContent=task.error||task.stage||'';row.append(name,status,detail);list.append(row);
+    const visible=rows.slice(page*50,page*50+50);
+    const unchanged=paintedRows&&paintedRows.length===visible.length&&paintedRows.every((row,i)=>
+      row.file===visible[i].file&&row.task===visible[i].task);
+    if(!unchanged){
+      const list=bar.querySelector('.aio-guard-list');list.replaceChildren();
+      for(const {file,task} of visible){
+        const row=document.createElement('div');row.className='aio-guard-task';row.setAttribute('role','listitem');
+        const name=document.createElement('strong'),status=document.createElement('span'),detail=document.createElement('small');
+        name.textContent=file.name+' → '+task.format.toUpperCase();name.title=task.taskId||'';
+        status.textContent=labels[task.state]||task.state;
+        detail.textContent=task.error||(task.warnings||[]).map(w=>w.message).join(' ')||task.stage||'';
+        row.append(name,status,detail);list.append(row);
+      }
+      paintedRows=visible;
     }
     text('[data-g-page]',(shown?.jobId?'Пакет '+shown.jobId.slice(0,8)+' · ':'')+
       rows.length+' задач · '+(page+1)+' / '+pages);
@@ -172,6 +192,7 @@
     const id=event.detail?.jobId;
     const released=event.detail?.released!==false&&event.detail?.savedAll!==false;
     if(released){
+      if(id===rowCache?.jobId)rowCache=paintedRows=null;
       if(id===state?.jobId)state=null;
       if(id===previewId){preview=null;previewId=null;}
       jobs=jobs.filter(j=>j.jobId!==id);

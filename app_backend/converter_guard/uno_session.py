@@ -104,7 +104,16 @@ def main(boot_name):
                 if req['operation'] == 'inspect':
                     result = {'id':request_id,'ok':True,'services':services,
                               'typeName':arguments.get('TypeName'), 'filterName':actual_filter}
+                    if 'com.sun.star.drawing.DrawingDocument' in services:
+                        try:
+                            result['drawPages'] = model.getDrawPages().getCount()
+                        except Exception:
+                            pass
                 elif not set(services).intersection(req['expectedServices']):
+                    result = {'id':request_id,'ok':False,'code':'NATIVE_MODEL_CHANGED','stage':'import'}
+                elif req.get('requiredDrawPages') is not None and (
+                        'com.sun.star.drawing.DrawingDocument' not in services or
+                        model.getDrawPages().getCount() != req['requiredDrawPages']):
                     result = {'id':request_id,'ok':False,'code':'NATIVE_MODEL_CHANGED','stage':'import'}
                 else:
                     stage = 'export'

@@ -26,6 +26,7 @@ from .errors import GuardError
 from .policy import GuardLimits, validate_files, validate_plan
 from .result_store import ResultStore
 from .native_metrics import clean_timings
+from .export_recipe import warning_details, WARNING_TEXT
 
 CHUNK = 64 * 1024
 SUCCESS = {'ready', 'saved'}
@@ -70,6 +71,8 @@ class _Task:
     started_mono: float | None = None
     duration_ms: int | None = None
     native_timings: dict | None = None
+    export_filter: str | None = None
+    warnings: tuple = ()
 
 
 @dataclass
@@ -374,6 +377,12 @@ class ConverterGuard:
                         task.duration_ms=record.get('durationMs')
                         task.execution_mode=record.get('executionMode')
                         task.native_timings=clean_timings(record.get('nativeTimings'))
+                        task.export_filter=record.get('exportFilter')
+                        if task.export_filter is not None and (not isinstance(task.export_filter,str) or
+                                                               len(task.export_filter)>256):
+                            raise ValueError('Invalid recovery export filter')
+                        task.warnings=tuple(code for code in record.get('warnings', [])
+                                            if isinstance(code,str) and code in WARNING_TEXT)
                         if task.state not in SUCCESS:
                             continue
                         for output in record.get('outputs', []):
@@ -519,6 +528,7 @@ class ConverterGuard:
                       attempt_id=task_id + ':1' if task_id else None,
                       result_id=artifact.ticket if artifact else None,
                       backend=native_mode if native_mode else 'unknown',
+                      filter_name=current.export_filter if current else None,
                       native_status=('completed' if kind == 'task_succeeded' else
                                      'failed' if kind == 'task_failed' else
                                      'cancelled' if kind == 'task_cancelled' else None),
@@ -568,6 +578,8 @@ class ConverterGuard:
             if task and any(a.size == 0 for a in task.artifacts):
                 send('output_contract_warning', phase='result', status='failed',
                      reason='OUTPUT_EMPTY')
+            for warning in task.warnings if task else ():
+                send('native_export_warning',phase='result',status='ready',reason=warning)
             return
         if stage == 'route_filtered':
             send('task_failed', phase='route', status='skipped',
@@ -1023,10 +1035,19 @@ class ConverterGuard:
         try:
             getter = getattr(self.adapter, 'native_timings', None)
             value = clean_timings(getter()) if getter else None
+            export = getattr(self.adapter, 'export_info', lambda: {})()
+            export = export if isinstance(export,dict) else {}
+            selected = export.get('filter')
+            selected = selected if isinstance(selected,str) and len(selected)<=256 else None
+            codes = export.get('warnings')
+            codes = codes if isinstance(codes,(list,tuple)) else ()
+            warnings = tuple(code for code in WARNING_TEXT if code in codes)
         except Exception:
             return  # Diagnostic availability cannot change an export outcome.
         with self._lock:
             task.native_timings = value
+            task.export_filter = selected
+            task.warnings = warnings
         if value and self.telemetry is not None:
             for key, phase in (('workerStartupMs','launch'), ('importMs','import'),
                                ('exportMs','export'), ('processMs','engine')):
@@ -1367,6 +1388,7 @@ class ConverterGuard:
                           'executionMode': t.execution_mode,
                           'durationMs': t.duration_ms,
                           'nativeTimings': clean_timings(t.native_timings),
+                          'exportFilter': t.export_filter, 'warnings': warning_details(t.warnings),
                           'outputs': [{'path': a.archive_name, 'size': a.size} for a in t.artifacts],
                           'route': t.route,
                           'libreOfficeStarted': t.lo_started} for t in f.targets]}
@@ -1622,7 +1644,10 @@ class ConverterGuard:
                             stage='save', status='completed', save_status='completed')
                     except Exception:
                         pass
-                on_progress(number, len(copies))
+                try:
+                    on_progress(number, len(copies))
+                except Exception:
+                    pass  # A detached GUI observer cannot interrupt a disk save.
             atomic_json(folder / 'AIO-conversion-report.json', report)
             atomic_json(folder / 'AIO-results-manifest.json', {
                 'schema': 2, 'jobId': job.id, 'saveId': save_id,
@@ -1679,6 +1704,7 @@ class ConverterGuard:
                         'stage': t.stage, 'libreOfficeStarted': t.lo_started,
                         'executionMode':t.execution_mode,
                         'nativeTimings':clean_timings(t.native_timings),
+                        'exportFilter':t.export_filter, 'warnings':warning_details(t.warnings),
                         'startedMs': t.started_ms, 'finishedMs': t.finished_ms,
                         'route': copy.deepcopy(t.route),
                         'percent': 100 if t.state in SUCCESS else None,
