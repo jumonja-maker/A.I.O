@@ -77,6 +77,26 @@ const completed=[];
   const f=fixture();
   const operation=f.bridge.convertMany({files:input,formatIds:['pdf','html']});
   await until(()=>f.polled()>0);
+  f.finish();await operation;
+  f.bridge.resetProgress();
+  assert.equal(f.calls.some(c=>c.path==='/release'),false,
+    'Clearing UI must not discard successful unsaved exports');
+  completed.push('UI reset retains completed unsaved outputs');
+}
+{
+  const f=fixture();
+  const operation=f.bridge.convertMany({files:input,formatIds:['pdf','html']});
+  await until(()=>f.polled()>0);
+  f.bridge.resetProgress();
+  await assert.rejects(operation,error=>error.code==='CANCELLED');
+  assert.equal(f.calls.some(c=>c.path==='/release'),false,
+    'Detaching UI while active must leave partial outputs recoverable');
+  completed.push('UI generation change preserves partial live outputs');
+}
+{
+  const f=fixture();
+  const operation=f.bridge.convertMany({files:input,formatIds:['pdf','html']});
+  await until(()=>f.polled()>0);
   const saved=await f.bridge.saveRetained(jobId,'folder');
   assert.equal(saved.saved,true);assert.equal(saved.savedAll,false);
   assert.equal(f.calls.some(c=>c.path==='/release'||c.path==='/cancel'),false);
