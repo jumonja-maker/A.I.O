@@ -47,7 +47,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: jumonja-maker/A.I.O
-          ref: 147693dced76318ad7b4c0352665c9026cb00240
+          ref: b00ddc2a4ad01c82ef814d5b9546d2bbf4713898
           path: aio-v13-${{ github.run_id }}
           persist-credentials: false
           clean: true
@@ -81,7 +81,7 @@ jobs:
           print('PINNED_TREE='+found)
           if found!=sys.argv[1]:raise SystemExit('GIT_TREE_MISMATCH')
           '@
-          & $python -c $verify 'cad6058e20e65cfaa981d0b4398f913003e73937'
+          & $python -c $verify '8a6d8484a7c99a4803acf13b8b0dc239c3e94475'
           if ($LASTEXITCODE -ne 0) { throw 'Reviewed source tree mismatch' }
           & $python -c 'import sys,openpyxl,PySide6.QtWebEngineWidgets; assert sys.version_info[:2]==(3,11)'
           if ($LASTEXITCODE -ne 0) { throw 'Python dependency mismatch' }
@@ -110,7 +110,7 @@ jobs:
           }
           if (-not $engine) { throw 'Complete native LibreOffice missing' }
           'AIO_QA_ENGINE='+$engine | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          Write-Host 'VERIFIED_SOURCE=147693dced76318ad7b4c0352665c9026cb00240'
+          Write-Host 'VERIFIED_SOURCE=b00ddc2a4ad01c82ef814d5b9546d2bbf4713898'
           Write-Host ('NATIVE_ENGINE='+$engine)
       - name: Python regression and real JS contracts
         id: tests
@@ -169,7 +169,7 @@ jobs:
       - name: Verdict (QA only)
         if: always()
         run: |
-          Write-Host 'PINNED_SOURCE=147693dced76318ad7b4c0352665c9026cb00240'
+          Write-Host 'PINNED_SOURCE=b00ddc2a4ad01c82ef814d5b9546d2bbf4713898'
           Write-Host 'TEST_STATUS=${{ steps.tests.outcome }}'
           Write-Host 'NATIVE_STATUS=${{ steps.native.outcome }}'
           Write-Host 'PACKAGE=NOT_RUN; INSTALL=NOT_RUN; RELEASE=NOT_RUN; MAIN=UNCHANGED'
