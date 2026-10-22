@@ -364,7 +364,13 @@ class ConverterGuard:
 
     def _recover_results(self):
         for root in sorted(self._recovery.glob('aio-guard-*')):
-            if root.is_symlink() or not root.is_dir() or not (root/'job.json').is_file():
+            if root.is_symlink() or not root.is_dir():
+                continue
+            if not (root/'job.json').is_file():
+                # Crash during initial metadata write: preserve and surface
+                # the otherwise invisible directory for manual inspection.
+                self._recovery_issues.append({'folder': root.name,
+                    'code': 'RECOVERY_MANIFEST_MISSING', 'manualRecovery': True})
                 continue
             store = ResultStore(root)
             try:
@@ -445,6 +451,7 @@ class ConverterGuard:
                 if not job.artifacts:
                     self._recovery_issues.append({'folder':root.name,
                         'code':'RECOVERY_UNFINISHED_PREPARATION', 'jobId':identity,
+                        'manualRecovery': True,
                         'bytes':sum(p.stat().st_size for p in root.rglob('*')
                                     if p.is_file() and not p.is_symlink())})
                     store.close()
@@ -472,7 +479,8 @@ class ConverterGuard:
                     self._record(job, 'recovered')
             except (OSError, ValueError, TypeError, KeyError, GuardError):
                 store.close()  # Never delete an unreadable recovery directory.
-                self._recovery_issues.append({'folder':root.name,'code':'RECOVERY_METADATA_INVALID'})
+                self._recovery_issues.append({'folder':root.name,
+                    'code':'RECOVERY_METADATA_INVALID', 'manualRecovery': True})
 
     def recoverable(self):
         self._load_recovery()
