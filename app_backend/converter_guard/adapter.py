@@ -253,7 +253,7 @@ class LibreOfficeAdapter:
                     and proof.get('documentServices') == ['com.sun.star.sheet.SpreadsheetDocument']
                     and proof.get('registryFingerprint') == native.fingerprint):
                 proof = {**proof, 'requestedImportFilter': hint['filter'],
-                         'requestedImportOptions': hint['options']}
+                         'requestedImportOptions': hint['options'], 'csvImportSampleOnly': True}
             if office and proof.get('code') in ('PREFLIGHT_TIMEOUT', 'PREFLIGHT_API_UNAVAILABLE',
                                                 'PREFLIGHT_UNO_API_UNAVAILABLE'):
                 office.recycle()
