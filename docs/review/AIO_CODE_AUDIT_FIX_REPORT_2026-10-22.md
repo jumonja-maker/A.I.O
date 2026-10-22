@@ -14,7 +14,7 @@
 |---|---|---|---|
 | F01 | P1 | У HTMLParser введены ограничение накопленного незавершённого буфера (512 KiB) и объёма сканирования (32 MiB); при неопределённости preflight блокирует без ложного успеха | Код исправлен; runtime-проверка ожидается |
 | F02 | P1 | Общая CLI/UNO-проверка основного результата целевого формата, ненулевой длины и сигнатуры для известных контейнеров; HTML sidecar не считается HTML | Код исправлен; native-совместимость требует проверки |
-| F03 | P1 | Для Qt native-save введён ограниченный watchdog (30 минут), cleanup слушателя/таймера и безопасный retry по новому URL; отсутствие ACK не объявляется сохранением | Код исправлен; проверить Qt/WebEngine |
+| F03 | P1 | Для Qt native-save введён ограниченный watchdog (30 минут), cleanup слушателя/таймера, безопасный retry и уникальность URL между перезагрузками WebEngine; отсутствие ACK не объявляется сохранением | Код исправлен; проверить Qt/WebEngine |
 | F04 | P1 | `shutdown()` и `server_close()` вынесены из GUI thread в поток, завершение через Qt signal; несохранённые результаты не удаляются | Код исправлен; проверить закрытие во время долгого сохранения |
 | F05 | P1/P2 | Статистика `maxJobs`, retained/unsaved jobs, ticket, RAM-independent spool bytes; остаётся только явно подтверждаемое освобождение | Частично: лимит 16 безопасно оставлен, нужен UX при заполнении |
 | F06 | P2 | Папки без `job.json` и непригодные журналы перечисляются как orphan warnings; автоматического удаления нет | Частично: ручной экспорт/спасение orphan-файлов через GUI пока не реализован |
@@ -36,7 +36,7 @@
 ## Добавленные тесты
 
 - `tests/test_code_audit_regressions.py`: незавершённый HTML comment и bounded parser, CSS/root URI, HTML sidecar-only, пустой/неправильный PDF, atomic compare-and-skip, недолговечный ledger, orphan без манифеста, cleanup-retry direct transport.
-- `tests/guard_native_save_watchdog.mjs`: тайм-аут native-save, cleanup listener/timer/DOM anchor, поздний ACK, повторное сохранение с другим URL.
+- `tests/guard_native_save_watchdog.mjs`: тайм-аут native-save, cleanup listener/timer/DOM anchor, поздний ACK, повторное сохранение и перезагрузка renderer с новым URL.
 - `tests/guard_save_queue_v09.mjs`: контролирует отправку `expectedTaskId`.
 - `tests/test_guard_uno_pipeline_v12.py`: native PDF fixtures приведены к минимально валидной сигнатуре.
 - `.github/workflows/clean-foundation-tests.yml`: включены новые Python и JS gates.
