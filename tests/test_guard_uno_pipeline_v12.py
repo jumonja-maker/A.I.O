@@ -124,7 +124,7 @@ class UnoPipelineTests(unittest.TestCase):
             def __init__(self,command,**kwargs):
                 self.process=Process()
                 output=Path(command[command.index('--outdir')+1])
-                (output/'result.pdf').write_bytes(b'fixture')
+                (output/'result.pdf').write_bytes(b'%PDF-1.7\nfixture')
                 kwargs['on_started']()
             def __enter__(self):return self
             def __exit__(self,*_):pass
@@ -132,7 +132,7 @@ class UnoPipelineTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory, patch('app_backend.libreoffice_engine.ProcessTree',Tree):
             root=Path(directory);source=root/'input.docx';source.write_bytes(b'original')
             result=convert_path(source,'pdf',root/'work',executable=Path(__file__),cancel=cancel)
-            self.assertEqual(result[0].read_bytes(),b'fixture')
+            self.assertEqual(result[0].read_bytes(),b'%PDF-1.7\nfixture')
         self.assertEqual(waits,[.1])
 
 
@@ -147,7 +147,7 @@ class HealthyWorkerTests(unittest.TestCase):
         messages=[]
         def request(value, **_):
             messages.append(value)
-            (Path(value['output'])/'result.pdf').write_bytes(b'next-result')
+            (Path(value['output'])/'result.pdf').write_bytes(b'%PDF-1.7\nnext-result')
             return {'ok':True}
         office=SimpleNamespace(disabled=False,ensure_started=lambda *args:None,request=request,recycle=Mock())
         self.adapter._local.batch=(self.native,office)
@@ -163,7 +163,7 @@ class HealthyWorkerTests(unittest.TestCase):
             calls.append(value)
             if len(calls)==1:
                 return {'ok':False,'code':'ENGINE_FAILED','stage':'export','diagnostic':'fixture'}
-            (Path(value['output'])/'result.pdf').write_bytes(b'next-result')
+            (Path(value['output'])/'result.pdf').write_bytes(b'%PDF-1.7\nnext-result')
             return {'ok':True}
         office=SimpleNamespace(disabled=False,ensure_started=lambda *args:None,request=request,recycle=Mock())
         self.adapter._local.batch=(self.native,office)
@@ -174,7 +174,7 @@ class HealthyWorkerTests(unittest.TestCase):
         self.assertEqual(error.exception.code,'ENGINE_FAILED')
         output=self.adapter.convert(self.source,'pdf',self.root/'next',cancel=threading.Event(),
                                     timeout=3,on_started=lambda:None)
-        self.assertEqual(output[0].read_bytes(),b'next-result')
+        self.assertEqual(output[0].read_bytes(),b'%PDF-1.7\nnext-result')
         office.recycle.assert_not_called()
         self.assertEqual(len(calls),2)
 
