@@ -54,7 +54,7 @@ async function until(check,message) {
   throw Error(message+': '+document.querySelector('[data-cv-status]')?.textContent);
 }
 
-const untilReady=async check=>{const deadline=Date.now()+45000;while(Date.now()<deadline){if(await check())return;await new Promise(r=>setTimeout(r,10));}throw Error('Queue UI did not settle');};
+const untilReady=async check=>{const deadline=Date.now()+45000;while(Date.now()<deadline){if(await check())return;await new Promise(r=>setTimeout(r,10));}throw Error('Queue UI did not settle: '+document.querySelector('[data-cv-status]')?.textContent+'; rows='+document.querySelectorAll('.aio-cv__file[data-file-id]').length+'; preflight='+preflights.length+'; reports='+reports.length);};
 [...document.querySelectorAll('.nav-item')].find(n=>n.textContent.includes('Конвертер')).click();
 await untilReady(()=>document.querySelector('[data-cv-add]')?.disabled===false);
 const picker=document.querySelector('[data-cv-picker]');
@@ -67,7 +67,8 @@ if(!pdf){for(const tab of document.querySelectorAll('[data-cv-categories] [role=
 const run=document.querySelector('[data-cv-run]');assert.equal(run.disabled,false);run.click();
 await untilReady(()=>reports.some(r=>r.finished&&r.succeeded===1000));
 await untilReady(()=>document.querySelector('.aio-guard-queue')&&!document.querySelector('.aio-guard-queue').hidden);
-const details=document.querySelector('.aio-guard-queue details');details.open=true;details.dispatchEvent(new window.Event('toggle'));
+document.querySelector('.aio-guard-state-button').click();
+assert.equal(document.querySelector('.aio-guard-popup').open,true);
 await untilReady(()=>document.querySelectorAll('.aio-guard-task').length===50);
 assert.ok(document.querySelector('[data-g-page]').textContent.includes('1000 задач'));
 document.querySelector('[data-g-next]').click();assert.equal(document.querySelectorAll('.aio-guard-task').length,50);

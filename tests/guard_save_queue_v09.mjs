@@ -45,7 +45,7 @@ function fixture(options={}){
       headers:{get:name=>name==='ETag'?'"'+jobId+':'+(value?.revision??0)+'"':null},
       json:async()=>JSON.parse(JSON.stringify(value))});
     if(path==='/prepare')return response({jobId});
-    if(path.startsWith('/input?'))return response({ok:true});
+    if(path.startsWith('/input?')){await options.upload?.();return response({ok:true});}
     if(path==='/preflight')return response({available:true,files:[],formats:['pdf','html'].map(id=>({id,verifiedFileIds:options.noVerified?[]:['one']}))});
     if(path==='/start'){started=true;return response(state());}
     if(path.startsWith('/jobs?')){
@@ -272,5 +272,27 @@ const completed=[];
   const updates=f.events.filter(event=>event.type==='finishTargets');
   assert.equal(updates.at(-1).detail.files[0].allCopiesSaved,true);
   completed.push('saved targets keep their saved status during subsequent queue updates');
+}
+{
+  const f=fixture();
+  assert.equal(f.bridge.getQualityCheck(),false,'ordinary mode performs no quality scan by default');
+  assert.throws(()=>f.bridge.setQualityCheck('yes'));
+  f.bridge.setQualityCheck(true);
+  const operation=f.bridge.convertMany({files:input,formatIds:['pdf','html']});
+  await until(()=>f.polled()>0);
+  assert.equal(f.calls.find(c=>c.path==='/start').body.qualityCheck,true);
+  assert.throws(()=>f.bridge.setQualityCheck(false),/следующей/);
+  f.finish();await operation;
+  f.bridge.setQualityCheck(false);assert.equal(f.bridge.getQualityCheck(),false);
+  completed.push('structural inspection is explicitly enabled per next run, frozen during conversion and off by default');
+}
+{
+  let activeUploads=0,peak=0,completedUploads=0;
+  const f=fixture({upload:async()=>{activeUploads++;peak=Math.max(peak,activeUploads);await tick();activeUploads--;completedUploads++;}});
+  await f.bridge.inspectFiles({files:Array.from({length:21},(_,i)=>({id:String(i),file:{name:'input-'+i+'.docx',size:1}}))});
+  assert.equal(completedUploads,21);assert.equal(peak,4);assert.equal(activeUploads,0);
+  assert.equal(f.calls.filter(c=>c.path==='/start').length,0);
+  assert.equal(f.calls.filter(c=>c.path==='/preflight').length,1);
+  completed.push('21 local uploads use at most four transfers; preflight starts after every upload and no export starts automatically');
 }
 console.log(JSON.stringify({status:'PASS',scope:'actual JS bridge with controlled native-save and transport boundaries',checks:completed}));

@@ -101,13 +101,13 @@ class NativeMetricsQA(unittest.TestCase):
             engine.write_text('#!' + sys.executable + '\n'
                               'import sys\nfrom pathlib import Path\n'
                               'out=Path(sys.argv[sys.argv.index("--outdir")+1])\n'
-                              '(out/"result.pdf").write_bytes(b"fixture")\n')
+                              '(out/"result.pdf").write_bytes(b"%PDF-1.7 fixture")\n')
             engine.chmod(0o700)
             source = root / 'input.docx'
             source.write_bytes(b'original')
             seen = []
             paths = convert_path(source, 'pdf', root / 'one', executable=engine, metrics_sink=seen.append)
-            self.assertEqual(paths[0].read_bytes(), b'fixture')
+            self.assertEqual(paths[0].read_bytes(), b'%PDF-1.7 fixture')
             self.assertEqual(seen[0]['source'], 'cli_process')
             self.assertGreaterEqual(seen[0]['processMs'], seen[0]['launchMs'])
             self.assertNotIn('importMs', seen[0])
@@ -115,7 +115,7 @@ class NativeMetricsQA(unittest.TestCase):
             def unavailable(value):
                 raise RuntimeError('Diagnostics unavailable')
             paths = convert_path(source, 'pdf', root / 'two', executable=engine, metrics_sink=unavailable)
-            self.assertEqual(paths[0].read_bytes(), b'fixture')
+            self.assertEqual(paths[0].read_bytes(), b'%PDF-1.7 fixture')
             self.assertEqual(source.read_bytes(), b'original')
 
     @unittest.skipUnless(os.name == 'posix', 'Owned POSIX worker lifecycle; not Windows Job Object QA')

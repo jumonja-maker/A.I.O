@@ -76,6 +76,35 @@ def _mathml_root(source):
         return False
     return False
 
+def _odf_chart(source):
+    """Disambiguate a loaded OTHER model by ODF package+body, never suffix."""
+    from xml.etree.ElementTree import XMLPullParser, ParseError
+    office='{urn:oasis:names:tc:opendocument:xmlns:office:1.0}'
+    chart='{urn:oasis:names:tc:opendocument:xmlns:chart:1.0}'
+    try:
+        with zipfile.ZipFile(source) as archive:
+            names=archive.namelist()
+            if names.count('mimetype')!=1 or names.count('content.xml')!=1:return False
+            if archive.getinfo('mimetype').file_size>128:return False
+            if archive.read('mimetype')!=b'application/vnd.oasis.opendocument.chart':return False
+            parser=XMLPullParser(events=('start','end'));stack=[];seen=0
+            with archive.open('content.xml') as stream:
+                while block:=stream.read(65536):
+                    seen+=len(block)
+                    if seen>4*1024*1024:return False
+                    parser.feed(block)
+                    for event,element in parser.read_events():
+                        if event=='start':
+                            stack.append(element.tag)
+                            if stack==[office+'document-content',office+'body',office+'chart',chart+'chart']:
+                                return True
+                        else:
+                            stack.pop();element.clear()
+    except (OSError,ValueError,KeyError,ParseError,zipfile.BadZipFile,RuntimeError):
+        return False
+    return False
+
+
 def detect(program, profile, source, work):
     _stage(work, 'dll_scope')
     dll_scope = os.add_dll_directory(str(program)) if os.name == 'nt' else None
@@ -141,6 +170,8 @@ def detect(program, profile, source, work):
     # LOK OTHER is shared by multiple modules. Never infer FormulaProperties
     # from OTHER alone or the .mml suffix: require a successfully loaded
     # native model AND a MathML XML root read from actual source bytes.
+    if kind == 4 and _odf_chart(source):
+        return {'state':'detected','kind':4,'contentClass':'odf_chart'}
     if kind == 4 and _mathml_root(source):
         return {'state':'detected','kind':4,'contentClass':'mathml'}
     return {'state':'undetermined','code':'PREFLIGHT_KIND_UNDETERMINED'}

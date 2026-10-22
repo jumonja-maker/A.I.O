@@ -49,6 +49,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--executable', type=Path)
+    parser.add_argument('--quality-check',action='store_true')
     parser.add_argument('--session-max-tasks', type=int, default=2)
     args = parser.parse_args()
     args.output = args.output.resolve()
@@ -85,6 +86,7 @@ def main():
         assert 'csv' not in eligible.get('docx',set())
         start = time.monotonic()
         guard.start(identity,file_ids=list(sources),only_verified=True,archive_mode='on_demand',
+                    quality_check=args.quality_check,
                     plan=[{'fileId':key,'formats':targets} for key,targets in requested.items()])
         done = finished(guard,identity)
         evidence['queueMs'] = round((time.monotonic()-start)*1000)

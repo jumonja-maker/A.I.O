@@ -170,7 +170,20 @@ class GuardV08Tests(unittest.TestCase):
         guard=self.guard();started=time.monotonic();tracemalloc.start()
         try:
             job=prepare(guard,['file'+str(i)+'.csv' for i in range(1000)],('pdf',))
-            guard.start(job);done=wait_finished(guard,job,seconds=120 if sys.platform=='win32' else 25)
+            started_state=guard.start(job)
+            # Production uses ETag/delta polling, not a full 1000-file snapshot
+            # every 5ms under tracemalloc. Exercise that exact API contract.
+            revision=started_state['revision']
+            deadline=time.monotonic()+(120 if sys.platform=='win32' else 25)
+            while time.monotonic()<deadline:
+                state=guard.status(job,since_revision=revision,delta=True)
+                revision=state['revision']
+                if state.get('finished'):
+                    break
+                time.sleep(.005)
+            else:
+                self.fail('1000-file queue exceeded its deadline; completed='+str(state.get('completed')))
+            done=guard.status(job)  # One complete final ownership inventory.
             _,peak=tracemalloc.get_traced_memory()
         finally:tracemalloc.stop()
         self.assertEqual((done['total'],done['succeeded'],done['failed']),(1000,1000,0))
@@ -208,7 +221,9 @@ class GuardV08Tests(unittest.TestCase):
         document=json.loads(header.read_text());document['files'][0]['name']='changed.csv'
         header.write_text(json.dumps(document))
         restored=self.guard(durable=True);found=restored.recoverable()
-        self.assertEqual(found['jobs'],[])
+        self.assertEqual(len(found['jobs']),1)
+        self.assertTrue(found['jobs'][0]['salvaged'])
+        self.assertFalse(found['jobs'][0]['recoveryDurable'])
         self.assertEqual(found['warnings'][0]['code'],'RECOVERY_METADATA_INVALID')
         self.assertTrue(list(root.rglob('*.pdf')))
 

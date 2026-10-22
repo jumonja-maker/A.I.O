@@ -155,7 +155,8 @@ class GuardAPI:
                     'acceptedExtensions': '', 'compatibility': 'native_decision',
                     'routeFiltering': 'native_registry_after_model_confirmation',
                     'preflightAvailable': True, 'selectAllPolicy': 'only_preflight_confirmed',
-                    'qualityCompared': False,
+                    'qualityCompared': False, 'qualityInspectionAvailable': True,
+                    'qualityInspectionDefault': False,
                     'limits': asdict(self.guard.limits), 'storage': self.guard.storage_stats()})
             if path == PREFIX + '/jobs':
                 trace = parse_qs(urlsplit(handler.path).query).get('trace') == ['1']
@@ -224,7 +225,8 @@ class GuardAPI:
                 return self._json(handler,202, self.guard.start(identity,
                     formats=body.get('formats'), file_ids=body.get('fileIds'),
                     only_verified=body.get('onlyVerified', False), plan=body.get('plan'),
-                    timeout_seconds=body.get('timeoutSeconds'), archive_mode=body.get('archiveMode', 'auto')))
+                    timeout_seconds=body.get('timeoutSeconds'), archive_mode=body.get('archiveMode', 'auto'),
+                    quality_check=body.get('qualityCheck',False)))
             if path == PREFIX + '/cancel':
                 return self._json(handler,200, self.guard.cancel(identity))
             if path == PREFIX + '/cancel-file':

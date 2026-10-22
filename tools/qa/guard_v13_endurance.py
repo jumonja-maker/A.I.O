@@ -123,7 +123,8 @@ def main():
         assert final['savedAll'];evidence['finalSavedOutputs']=verify(destination/final['name'])
         assert evidence['finalSavedOutputs']==7999
         guard.release(identity)
-        assert guard.storage_stats()=={'jobs':0,'reservedBytes':0,'tickets':0,'running':0,'queued':0}
+        released=guard.storage_stats()
+        assert all(released[key]==0 for key in ('jobs','reservedBytes','tickets','running','queued','cleanupPending','unsavedOutputs'))
         del state,latest,restored
         gc.collect();sample('qaSnapshotsDropped')
         evidence.update(status='PASS',succeeded=6999,failed=1,recoveredLateOutput=True,allSavedHashes='PASS',

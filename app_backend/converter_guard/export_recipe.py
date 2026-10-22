@@ -67,5 +67,5 @@ def native_export_recipe(native, target, proof):
     warnings = (('NATIVE_DRAW_HTML_CONTENT_RISK',)
                 if selected == 'draw_html_Export' and target in ('html', 'htm') else
                 ('NATIVE_WRITER_SVG_EXPORT_RISK',)
-                if selected == 'writer_svg_Export' and target == 'svg' and services == [WRITER] else ())
+                if selected == 'writer_svg_Export' and target == 'svg' else ())
     return ExportRecipe(selected, options, warnings=warnings)

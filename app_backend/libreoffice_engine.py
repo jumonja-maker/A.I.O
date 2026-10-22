@@ -215,6 +215,9 @@ def convert_path(source: Path, target: str, workspace: Path, *,
             log_sink(diagnostic)
     if return_code != 0:
         source_failed = bool(re.search(r'(?im)^Error:\s*source file could not be loaded\.?\s*$', diagnostic))
+        if re.search(r'(?im)^Error:\s*no export filter\b', diagnostic):
+            raise LibreOfficeError('LibreOffice не нашёл исполняемый фильтр экспорта для этого документа и формата.',
+                                   'NATIVE_EXPORT_FILTER_UNAVAILABLE', diagnostic=diagnostic)
         raise LibreOfficeError('LibreOffice не смог открыть исходный документ.' if source_failed else
                                'LibreOffice завершился с кодом ' + str(return_code) + '.',
                                'SOURCE_IMPORT_FAILED' if source_failed else 'ENGINE_FAILED',

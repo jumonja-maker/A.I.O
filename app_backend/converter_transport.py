@@ -39,6 +39,7 @@ class Result:
     mime: str
     leases: int = 0
     released: bool = False
+    cleaning: bool = False
 
 
 class ConverterTransport:
@@ -49,6 +50,8 @@ class ConverterTransport:
         self.results = {}
         self.cleanup_pending = []
         self.closed = False
+        self._cleanup_timer = None
+        self._cleanup_retries = 0
 
     def begin(self, identity, connection):
         # Retry only already-released storage. Unsaved tickets are never
@@ -127,6 +130,7 @@ class ConverterTransport:
         except OSError:
             with self.lock:
                 self.cleanup_pending.append(request.temporary)
+            self._schedule_cleanup()
         finally:
             with self.lock:
                 self.active.pop(request.identity, None)
@@ -243,23 +247,54 @@ class ConverterTransport:
         finally:
             with self.lock:
                 result.leases -= 1
-                if result.released and not result.leases:
-                    self.release(ticket)
+                clean = result.released and not result.leases
+            if clean:
+                self.release(ticket)
 
     def release(self, ticket):
+        # The lock protects ownership/leases, not filesystem deletion. A slow
+        # Windows sharing violation must not stall status, cancel or new work.
         with self.lock:
             result = self.results.get(ticket)
-            if result:
-                result.released = True
-                if not result.leases:
-                    try:
-                        result.temporary.cleanup()
-                    except OSError:
-                        return False
+            if result is None:
+                return True
+            result.released = True
+            if result.leases or result.cleaning:
+                return False
+            result.cleaning = True
+        try:
+            result.temporary.cleanup()
+        except OSError:
+            self._schedule_cleanup()
+            return False
+        else:
+            with self.lock:
+                if self.results.get(ticket) is result:
                     self.results.pop(ticket, None)
-                else:
-                    return False
             return True
+        finally:
+            with self.lock:
+                result.cleaning = False
+
+    def _schedule_cleanup(self):
+        # No idle timer in normal operation. After a sharing violation only,
+        # coalesce at most three delayed retries for explicitly released data.
+        with self.lock:
+            pending=bool(self.cleanup_pending) or any(r.released for r in self.results.values())
+            if self.closed or self._cleanup_timer is not None or not pending or self._cleanup_retries>=3:
+                return
+            delay=(.5,2,10)[self._cleanup_retries]
+            self._cleanup_retries+=1
+            def retry():
+                with self.lock:
+                    self._cleanup_timer=None
+                    if self.closed:return
+                self.retry_cleanup()
+                self._schedule_cleanup()
+            timer=threading.Timer(delay,retry)
+            timer.daemon=True
+            self._cleanup_timer=timer
+            timer.start()
 
     def retry_cleanup(self):
         """One bounded best-effort reap of previously released leftovers."""
@@ -289,6 +324,9 @@ class ConverterTransport:
     def close(self):
         with self.lock:
             self.closed = True
+            if self._cleanup_timer is not None:
+                self._cleanup_timer.cancel()
+                self._cleanup_timer = None
             active = list(self.active.values())
             tickets = list(self.results)
         for request in active:

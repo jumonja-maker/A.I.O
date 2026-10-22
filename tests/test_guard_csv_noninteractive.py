@@ -2,6 +2,7 @@
 import io
 from pathlib import Path
 import tempfile
+import threading
 import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -91,7 +92,7 @@ class CsvImportHintQA(unittest.TestCase):
         adapter=LibreOfficeAdapter(executable=self.source('soffice.com',b''))
         adapter._local.batch = (NATIVE,office)
         with patch.object(adapter,'_registry',return_value=NATIVE):
-            result=adapter.preflight(source,self.root/'preflight',cancel=SimpleNamespace(),timeout=3)
+            result=adapter.preflight(source,self.root/'preflight',cancel=threading.Event(),timeout=3)
         self.assertEqual(result['state'],'detected')
         self.assertEqual(result['selectedImportFilter'],CSV_FILTER)
         self.assertEqual(result['selectedImportOptions'],'44,34,76,1')
@@ -102,7 +103,7 @@ class CsvImportHintQA(unittest.TestCase):
         office.request=lambda request,**_: {'ok':True,'services':[CALC],
                             'filterName':'UNEXPECTED_OTHER_FILTER'}
         with patch.object(adapter,'_registry',return_value=NATIVE):
-            rejected=adapter.preflight(source,self.root/'preflight2',cancel=SimpleNamespace(),timeout=3)
+            rejected=adapter.preflight(source,self.root/'preflight2',cancel=threading.Event(),timeout=3)
         self.assertEqual(rejected['state'],'undetermined')
         self.assertEqual(rejected['code'],'PREFLIGHT_IMPORT_FILTER_MISMATCH')
 
