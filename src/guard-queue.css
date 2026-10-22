@@ -1,6 +1,6 @@
-.aio-guard-queue{grid-column:1/-1;grid-row:4;position:relative;min-width:0;border-top:1px solid var(--line,#495063);padding-top:7px;font-size:12px}
+.aio-guard-queue{grid-column:1/-1;grid-row:3;position:relative;min-width:0;min-height:32px;padding-top:0;font-size:12px}
 .aio-guard-queue[hidden]{display:none!important}
-.aio-guard-current{display:flex;gap:7px;align-items:center;min-width:0}
+.aio-guard-current{display:flex;gap:7px;align-items:center;min-width:0;min-height:32px}
 .aio-guard-current>span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .aio-guard-queue button,.aio-guard-queue input,.aio-guard-queue select{font:inherit;color:inherit;background:var(--surface,#252b36);border:1px solid var(--line,#626b7c);border-radius:7px;padding:5px 8px}
 .aio-guard-queue button{cursor:pointer}.aio-guard-queue button:disabled{opacity:.45;cursor:default}
@@ -16,3 +16,10 @@
 .aio-guard-task strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}.aio-guard-task small{grid-column:1/-1;opacity:.8;overflow-wrap:anywhere}
 .aio-guard-warning{color:#f0b76b}.aio-guard-pages span{flex:1;text-align:center}.aio-guard-save select{max-width:100%}
 
+
+/* Top-row State control beside Problems and Select All. */
+.aio-cv .aio-cv__format-head .aio-guard-state-button{order:2;flex:0 1 94px;min-width:0;height:34px;padding:0 8px;border:1px solid var(--line,#626b7c);border-radius:9px;background:var(--status-bg,var(--surface,#252b36));color:var(--text,#eef1f7);font-size:12px;font-weight:600;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.aio-cv .aio-cv__format-head .aio-guard-state-button:disabled{opacity:.5;cursor:default}
+.aio-cv .aio-cv__format-head .aio-cv-issues-slot{order:1}
+.aio-cv .aio-cv__format-head [data-cv-select-all-formats]{order:3}
+.aio-cv .aio-guard-state-button:focus-visible{outline:2px solid var(--accent,#3284f5);outline-offset:2px}
