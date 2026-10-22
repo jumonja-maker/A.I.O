@@ -23,3 +23,6 @@
 .aio-cv .aio-cv__format-head .aio-cv-issues-slot{order:1}
 .aio-cv .aio-cv__format-head [data-cv-select-all-formats]{order:3}
 .aio-cv .aio-guard-state-button:focus-visible{outline:2px solid var(--accent,#3284f5);outline-offset:2px}
+
+.aio-guard-quality{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0;color:inherit;font-size:12px}.aio-guard-quality small{opacity:.7}.aio-guard-quality input{accent-color:#5598ff}
+[data-g-storage]{font-size:12px;opacity:.75;margin:6px 0}

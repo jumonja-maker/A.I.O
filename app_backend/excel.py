@@ -1,7 +1,7 @@
 """Safe, deliberately narrow merge for simple single-sheet XLSX files.
 
 Never modify inputs. Reject advanced workbook features instead of silently losing
-information. The output is written to a new in-memory workbook and independently
+information. The output is written to a new streamed workbook and independently
 re-opened before being exposed to the UI.
 """
 from __future__ import annotations
@@ -12,7 +12,12 @@ from math import isfinite
 from zipfile import ZipFile, BadZipFile
 from pathlib import PurePath
 
+import pickle
+from pathlib import Path
+import tempfile
+
 from openpyxl import Workbook, load_workbook
+from openpyxl.cell import WriteOnlyCell
 from openpyxl.utils.exceptions import InvalidFileException
 
 MAX_INPUT_FILES = 100
@@ -53,7 +58,7 @@ def _check_zip(data: bytes, name: str) -> None:
         raise MergeError(f'«{name}»: файл повреждён или это не XLSX.') from exc
 
 
-def _read_simple_table(data: bytes, name: str):
+def _read_simple_table(data: bytes, name: str, row_sink=None):
     _check_zip(data, name)
     # Excel has its own OPC safety checks and NEVER imports converter routes.
     # This preserves the workbook merge's safety independently of Guard.
@@ -123,7 +128,10 @@ def _read_simple_table(data: bytes, name: str):
                 header_cells = content
                 headers = [v for v, _, _ in content]
             else:
-                rows.append(content)
+                if row_sink is None:
+                    rows.append(content)
+                else:
+                    row_sink(content)
         if not headers or any(not isinstance(h, str) or not h.strip() for h in headers):
             raise MergeError(f'«{name}»: заголовки должны быть непустым текстом.')
         if len(set(headers)) != len(headers):
@@ -147,6 +155,13 @@ def merge_xlsx(inputs: list[tuple[str, bytes]], progress=None) -> bytes:
     progress, if provided, receives only phase/current/total counters and
     never sees workbook contents or filenames.
     """
+    # Private on-disk staging is bounded by input policy and removed on every
+    # exit. Pickle is only written/read in this call, never loaded from uploads.
+    with tempfile.TemporaryDirectory(prefix='aio-excel-') as directory:
+        return _merge_xlsx(inputs, progress, Path(directory))
+
+
+def _merge_xlsx(inputs, progress, directory):
     def report(phase, current=0, total=0):
         if progress is not None:
             progress(phase, current, total)
@@ -156,7 +171,8 @@ def merge_xlsx(inputs: list[tuple[str, bytes]], progress=None) -> bytes:
         raise MergeError('Общий размер файлов превышает 50 МБ.')
     seen_names = set()
     expected = None
-    collected = []
+    stages = []
+    count = 0
     header_style = None
     header_height = None
     freeze_panes = None
@@ -173,8 +189,15 @@ def merge_xlsx(inputs: list[tuple[str, bytes]], progress=None) -> bytes:
         if name in seen_names:
             raise MergeError(f'Файл «{name}» выбран повторно.')
         seen_names.add(name)
-        headers, rows, styles, first_row, widths, heights, source_freeze, theme, sheet_format = (
-            _read_simple_table(data, name))
+        stage = directory / str(file_index)
+        row_count = 0
+        def sink(row):
+            nonlocal row_count
+            pickle.dump(row, staged, protocol=pickle.HIGHEST_PROTOCOL)
+            row_count += 1
+        with stage.open('xb') as staged:
+            headers, rows, styles, first_row, widths, heights, source_freeze, theme, sheet_format = (
+                _read_simple_table(data, name, row_sink=sink))
         if expected is None:
             expected = headers
             header_style = (first_row, styles)
@@ -195,24 +218,19 @@ def merge_xlsx(inputs: list[tuple[str, bytes]], progress=None) -> bytes:
             raise MergeError(f'«{name}»: разные цветовые темы оформленных книг пока не поддерживаются.')
         for column, width in widths.items():
             max_widths[column] = max(width, max_widths.get(column, 0))
-        # Each source's style table is local to that source workbook. Keep
-        # the mapping with its rows, rather than mixing numeric style IDs.
-        rows = [(row, styles, heights.get(source_row))
-                for source_row, row in enumerate(rows, start=2)]
-        if len(collected) + len(rows) + 1 > MAX_TOTAL_ROWS:
+        if count + row_count + 1 > MAX_TOTAL_ROWS:
             raise MergeError('После объединения будет более 100 000 строк.')
-        if (len(collected) + len(rows) + 1) * len(expected) > MAX_GRID_CELLS:
+        if (count + row_count + 1) * len(expected) > MAX_GRID_CELLS:
             raise MergeError('Объединённая таблица превысит предел миллиона ячеек.')
-        collected.extend(rows)
-    # The final source-local list otherwise pins every row twice during the
-    # output phase, even though collected owns the same immutable tuples.
-    rows = None
-    styles = None
-    first_row = None
-    out = Workbook()
+        stages.append((stage, row_count, styles, heights))
+        count += row_count
+    # The complete source workbook and its cell objects have been closed and
+    # released. Only one staged row and the distinct style tables stay live.
+    rows = styles = first_row = None
+    out = Workbook(write_only=True)
     if first_theme:
         out.loaded_theme = first_theme
-    ws = out.active
+    ws = out.create_sheet('Объединённая таблица')
     ws.title = 'Объединённая таблица'
     default_height, default_width, base_col_width = source_sheet_format
     if default_height is not None:
@@ -221,62 +239,53 @@ def merge_xlsx(inputs: list[tuple[str, bytes]], progress=None) -> bytes:
         ws.sheet_format.defaultColWidth = default_width
     if base_col_width is not None:
         ws.sheet_format.baseColWidth = base_col_width
-    ws.append(expected)
     def apply_style(cell, metadata):
-        if metadata is None:
-            return
-        cell.font, cell.fill, cell.border, cell.alignment, cell.protection = metadata
-    # openpyxl otherwise reinterprets header text beginning with '=' as a formula.
-    for col_num, value in enumerate(expected, start=1):
-        cell = ws.cell(row=1, column=col_num)
-        if isinstance(value, str):
-            cell.data_type = 's'
-        _, number_format, key = header_style[0][col_num-1]
-        if number_format and number_format != 'General':
-            cell.number_format = number_format
-        if key is not None:
-            apply_style(cell, header_style[1][key])
+        if metadata is not None:
+            cell.font, cell.fill, cell.border, cell.alignment, cell.protection = metadata
     if header_height is not None:
         ws.row_dimensions[1].height = header_height
     if freeze_panes is not None:
         ws.freeze_panes = freeze_panes
     for column, width in max_widths.items():
         ws.column_dimensions[column].width = width
-    # Worksheet.max_row scans the populated cell collection. Calling it for
-    # every output cell made large merges effectively quadratic (minutes for
-    # 10k rows). append() advances the row counter in constant time.
-    count = len(collected)
-    report('write', 0, count)
-    for row_number, (row, styles, height) in enumerate(collected, start=2):
-        ws.append([value for value, _, _ in row])
-        if height is not None:
-            ws.row_dimensions[row_number].height = height
-        for col_num, (value, number_format, style_key) in enumerate(row, start=1):
-            if style_key is not None:
-                apply_style(ws.cell(row=row_number, column=col_num), styles[style_key])
+    def output_cells(row, styles):
+        cells = []
+        for value, number_format, key in row:
+            # An explicit empty inline cell preserves trailing column width
+            # when a dimension-free streaming reader opens the workbook.
+            cell = WriteOnlyCell(ws, value='' if value is None else value)
             if isinstance(value, str):
-                # The source passed formula rejection as a literal string;
-                # never let a second type inference turn it into executable data.
-                ws.cell(row=row_number, column=col_num).data_type = 's'
-            # openpyxl's default "%.16g" serialization can turn a clean
-            # monetary value (64.01) into 64.01000000000001 in sheet XML.
-            # Preserve the shortest round-trippable decimal representation.
-            # Numeric data_type keeps the saved XLSX cell numeric, not text.
+                cell.data_type = 's'  # Literal '=...' stays text.
             if isinstance(value, float):
                 if not isfinite(value):
                     raise MergeError('В таблице обнаружено недопустимое число.')
-                dest = ws.cell(row=row_number, column=col_num)
-                dest.value = repr(value)
-                dest.data_type = 'n'
+                cell.value, cell.data_type = repr(value), 'n'
             if number_format and number_format != 'General':
-                ws.cell(row=row_number, column=col_num).number_format = number_format
-        # Each output cell is now independently owned by the output book.
-        # Release the source row immediately; retaining all source rows until
-        # XLSX serialization nearly doubles the large-table memory peak.
-        collected[row_number - 2] = None
-        if (row_number - 1) % 1024 == 0 or row_number == count + 1:
-            report('write', row_number - 1, count)
-    collected.clear()
+                cell.number_format = number_format
+            if key is not None:
+                apply_style(cell, styles[key])
+            cells.append(cell)
+        return cells
+    ws.append(output_cells(header_style[0], header_style[1]))
+    report('write', 0, count)
+    written = 0
+    try:
+        for stage, source_count, styles, heights in stages:
+            with stage.open('rb') as staged:
+                for source_row in range(2, source_count + 2):
+                    row = pickle.load(staged)
+                    if heights.get(source_row) is not None:
+                        ws.row_dimensions[written + 2].height = heights[source_row]
+                    ws.append(output_cells(row, styles))
+                    written += 1
+                    if written % 1024 == 0 or written == count:
+                        report('write', written, count)
+            stage.unlink()
+    except BaseException:
+        # Close streaming XML writers if serialization aborts mid-row.
+        ws.close()
+        out.close()
+        raise
     report('save')
     stream = BytesIO()
     out.save(stream)
@@ -287,7 +296,11 @@ def merge_xlsx(inputs: list[tuple[str, bytes]], progress=None) -> bytes:
     check = load_workbook(BytesIO(blob), read_only=True, data_only=False)
     try:
         sheet = check.active
-        if sheet.max_row != count + 1 or list(next(sheet.values)) != expected:
+        # write_only deliberately omits worksheet dimensions; validate by
+        # streaming all rows instead of trusting max_row from a header.
+        actual_rows = sheet.values
+        header = list(next(actual_rows))
+        if sum(1 for _ in actual_rows) != count or header != expected:
             raise RuntimeError('Внутренняя ошибка проверки созданного файла.')
     finally:
         check.close()

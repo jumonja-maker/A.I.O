@@ -1,7 +1,7 @@
 /* Ordinary-mode queue. No automatic selection, export or recovery restart. */
 (() => {
   'use strict';
-  let root=null, bar=null, stateButton=null, state=null, jobs=[], warnings=[], page=0, refreshPending=false, clock=null;
+  let root=null, bar=null, stateButton=null, state=null, jobs=[], warnings=[], storage=null, page=0, refreshPending=false, clock=null;
   let preview=null, previewId=null, previewRequest=0;
   // Only the visible page owns DOM nodes. Keep at most one flattened view;
   // unchanged polls and the elapsed-time clock must never rebuild the queue.
@@ -46,6 +46,7 @@
       '<dialog class="aio-guard-popup" aria-label="Состояние очереди Guard">'+
       '<div data-g-counts></div><div class="aio-guard-warning" data-g-warning></div>'+
       '<div class="aio-guard-tools"><input type="search" placeholder="Имя файла или формат" aria-label="Поиск в очереди"><select aria-label="Состояние задач"><option value="all">Все задачи</option><option value="error">Ошибки</option><option value="pending">Ожидают</option><option value="ready">Готовые</option></select></div>'+
+      '<div data-g-storage></div><label class="aio-guard-quality"><input type="checkbox" data-g-quality> Проверить структуру результатов <small>Дольше; без проверки внешнего вида</small></label>'+
       '<div class="aio-guard-list" role="list" aria-label="Задачи конвертации"></div>'+
       '<div class="aio-guard-pages"><button type="button" data-g-prev>Назад</button><span data-g-page></span><button type="button" data-g-next>Далее</button></div>'+
       '<div class="aio-guard-save"><select data-g-jobs aria-label="Несохранённое задание"></select><button type="button" data-g-zip>Сохранить ZIP</button><button type="button" data-g-folder>Сохранить в папку</button></div>'+
@@ -94,6 +95,12 @@
       const url=URL.createObjectURL(await response.blob()),anchor=document.createElement('a');
       anchor.href=url;anchor.download='AIO-conversion-report.json';anchor.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
     });
+    const qualityInput=bar.querySelector('[data-g-quality]');
+    qualityInput.checked=api()?.getQualityCheck?.()===true;
+    qualityInput.addEventListener('change',()=>{
+      try{api()?.setQualityCheck?.(qualityInput.checked);}catch(error){
+        qualityInput.checked=api()?.getQualityCheck?.()===true;text('[data-g-warning]',error.message);}
+    });
     bar.querySelector('input').addEventListener('input',()=>{page=0;renderRows();});
     bar.querySelector('.aio-guard-tools select').addEventListener('change',()=>{page=0;renderRows();});
     bar.querySelector('[data-g-prev]').addEventListener('click',()=>{page=Math.max(0,page-1);renderRows();});
@@ -109,7 +116,7 @@
   async function refresh() {
     if(refreshPending||!api()?.recoverable)return;
     refreshPending=true;
-    try{const found=await api().recoverable();jobs=found.jobs||[];warnings=found.warnings||[];render();}catch(_){}finally{refreshPending=false;}
+    try{const found=await api().recoverable();jobs=found.jobs||[];warnings=found.warnings||[];storage=found.storage||null;render();}catch(_){}finally{refreshPending=false;}
   }
   function render() {
     if(!bar)return;
@@ -118,6 +125,9 @@
     if(bar.hidden&&bar.querySelector('.aio-guard-popup').open)bar.querySelector('.aio-guard-popup').close();
     bar.closest('.aio-cv__footer')?.classList.toggle('aio-guard-has-queue',!bar.hidden);
     const active=state?.currentTask;
+    text('[data-g-storage]',storage?'Слоты Guard: '+storage.jobs+' / '+storage.maxJobs+
+      ' · несохранено: '+storage.unsavedOutputs+' файлов · '+Math.ceil(storage.unsavedBytes/1048576)+' МБ':'');
+    bar.querySelector('[data-g-quality]').disabled=!!state&&!state.finished&&!state.preparation;
     renderCurrent();
     text('[data-g-counts]',state?.state==='uploading'?'Подготовлено исходников: '+state.uploadedFiles+' / '+state.inputFiles:
       state?.state==='checking'?'Проверено исходников: '+state.preflightCompleted+' / '+state.preflightTotal:
@@ -130,7 +140,7 @@
     const signature=jobs.map(j=>j.jobId+':'+j.outputs).join('|');
     if(select.dataset.signature!==signature){
       select.replaceChildren();for(const job of jobs){const option=document.createElement('option');
-        option.value=job.jobId;option.textContent=(job.recovered?'Восстановлено · ':'')+(job.label||'Результаты')+' · '+job.outputs+' файлов';
+        option.value=job.jobId;option.textContent=(job.salvaged?'Спасено без журнала · ':job.recovered?'Восстановлено · ':'')+(job.label||'Результаты')+' · '+job.outputs+' файлов';
         option.title=job.jobId;select.append(option);}
       if(jobs.some(j=>j.jobId===selected))select.value=selected;select.dataset.signature=signature;
       if(select.value!==previewId){preview=null;loadPreview();}
@@ -149,7 +159,11 @@
     for(const selector of pendingActions)bar.querySelector(selector).disabled=true;
     if(state?.files?.some(f=>f.nativeRoute?.csvImportSampleOnly))
       text('[data-g-warning]','CSV: настройки импорта определены по образцу. Полная сверка ячеек и локали не выполнялась.');
+    if(storage?.pendingRecoveryFolders)text('[data-g-warning]','Ещё папок для восстановления: '+storage.pendingRecoveryFolders+'. Сохраните или удалите завершённые пакеты, чтобы освободить слоты.');
     if(warnings.length)text('[data-g-warning]','Не удалось прочитать журнал '+warnings.length+' заданий. Файлы не удалены. Сохраните технический отчёт для восстановления.');
+    if(jobs.some(j=>j.salvaged))text('[data-g-warning]','Найдены файлы без надёжного журнала. Их можно сохранить; полнота и связь с исходниками не подтверждены. Оригинальная служебная папка останется до явного удаления.');
+    if(state?.files?.some(f=>f.nativeRoute?.csvInspection?.raggedRows))
+      text('[data-g-warning]','В CSV найдены строки с разным числом столбцов. Проверьте разделитель и результат; конвертация не запрещена.');
     if(state?.recoveryError)text('[data-g-warning]','Журнал восстановления записан не полностью. Сохраните результаты перед закрытием.');
     if(state?.statusReadError)text('[data-g-warning]',state.statusReadMessage);
     if(bar.querySelector('.aio-guard-popup').open)renderRows();
@@ -212,7 +226,10 @@
         const name=document.createElement('strong'),status=document.createElement('span'),detail=document.createElement('small');
         name.textContent=file.name+' → '+task.format.toUpperCase();name.title=task.taskId||'';
         status.textContent=labels[task.state]||task.state;
-        detail.textContent=task.error||(task.warnings||[]).map(w=>w.message).join(' ')||task.stage||'';
+        const quality=task.quality;
+        const qualityText=quality?quality.status==='risks_found'?'Возможны потери структуры · подробности в отчёте':
+          quality.qualityCompared?'Часть структуры проверена · внешний вид не проверен':'Структуру сопоставить не удалось':'';
+        detail.textContent=task.error||qualityText||(task.warnings||[]).map(w=>w.message).join(' ')||task.stage||'';
         row.append(name,status,detail);list.append(row);
       }
       paintedRows=visible;

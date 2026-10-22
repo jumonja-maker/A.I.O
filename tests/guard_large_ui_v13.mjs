@@ -71,7 +71,7 @@ progress.finishTargets({runId:'v13',partial:true,files:[{...one,state:'ready',su
 assert.equal(left.querySelector('.aio-fp-paint').hidden,true);
 assert.equal(left.querySelector('.aio-fp-check').hidden,false);
 progress.finishTargets({runId:'v13',partial:true,files:[{...one,state:'ready',allCopiesSaved:true,succeeded:2,targets:one.targets.map(t=>({...t,state:'saved'}))}]});
-assert.equal(left.querySelector('.aio-fp-check').hidden,false,'Saved files retain a terminal icon');
+assert.equal(left.querySelector('.aio-fp-check').hidden,true,'Saved files clear the green check and retain the saved label');
 assert.equal(left.querySelector('.aio-fp-check').textContent,'✓');
 assert.equal(left.querySelector('.aio-cv__file').dataset.aioFpState,'saved');
 progress.finishTargets({runId:'v13',partial:true,files:[{fileId:'1',state:'skipped',

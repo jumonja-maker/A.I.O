@@ -10,6 +10,14 @@ import os
 from pathlib import Path
 import threading
 import secrets
+import stat
+
+
+def path_is_link(path):
+    # pathlib.Path.is_junction is Python 3.12+, while packaged A.I.O uses
+    # 3.11. Reject Windows reparse points as well as POSIX symbolic links.
+    return path.is_symlink() or bool(getattr(path.lstat(),'st_file_attributes',0) &
+                                     getattr(stat,'FILE_ATTRIBUTE_REPARSE_POINT',0x400))
 
 
 def data_directory():
@@ -103,7 +111,7 @@ class ResultStore:
             'startedMs': task.started_ms, 'finishedMs': task.finished_ms,
             'durationMs':task.duration_ms,'executionMode':task.execution_mode,
             'nativeTimings':task.native_timings,
-            'exportFilter':task.export_filter,'warnings':task.warnings,
+            'exportFilter':task.export_filter,'warnings':task.warnings,'quality':task.quality,
             'loStarted': task.lo_started}
         for artifact in task.artifacts:
             yield {'kind':'output','transaction':transaction,
@@ -183,7 +191,7 @@ class ResultStore:
         for part in (path, *path.parents):
             if part == self.root.parent:
                 break
-            if part.is_symlink():
+            if path_is_link(part):
                 raise ValueError('Symlink in recovery output')
         if (not path.resolve(strict=True).is_relative_to(self.root.resolve())
                 or not path.is_file() or path.stat().st_size != size):

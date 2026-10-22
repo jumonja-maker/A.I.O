@@ -9,7 +9,7 @@ from ..libreoffice_catalog import catalog
 from ..libreoffice_engine import LibreOfficeError, convert_path, engine_binary, validated_outputs
 from .errors import GuardError
 from .routes import registry
-from .csv_import import csv_import_hint
+from .csv_import import csv_import_hint, inspect_csv_stream
 from .export_recipe import native_export_recipe
 from .native_observation import NativeObservation
 from .native_metrics import clean_timings
@@ -209,6 +209,11 @@ class LibreOfficeAdapter:
         office = batch[1] if batch else None
         native = self._registry()
         hint = csv_import_hint(source, native)
+        # One streaming scan, only for a content-confirmed text hint. Large or
+        # ambiguous inputs retain an explicit incomplete status, never a veto.
+        csv_profile = (inspect_csv_stream(source, delimiter=chr(int(hint['options'].split(',')[0])),
+                                         cancel=cancel, seconds=min(.15, timeout or .15),
+                                         analyze_values=False) if hint else None)
         if office and hasattr(office, 'request') and not office.disabled:
             native = self._registry()
             try:
@@ -230,7 +235,8 @@ class LibreOfficeAdapter:
                         'documentServices':services,'typeName':result.get('typeName'),'filterName':selected,
                         'selectedImportFilter':confirmed,
                         'selectedImportOptions':hint['options'] if hint else None,
-                        'csvImportSampleOnly': bool(hint),
+                        'csvImportSampleOnly': bool(hint and not csv_profile.get('complete')),
+                        'csvInspection': csv_profile,
                         'drawPages':result.get('drawPages'),
                         'registryFingerprint':native.fingerprint,'exported':False}
                 return {'state':'undetermined','code':result.get('code') or 'PREFLIGHT_IMPORT_FAILED',
@@ -253,7 +259,8 @@ class LibreOfficeAdapter:
                     and proof.get('documentServices') == ['com.sun.star.sheet.SpreadsheetDocument']
                     and proof.get('registryFingerprint') == native.fingerprint):
                 proof = {**proof, 'requestedImportFilter': hint['filter'],
-                         'requestedImportOptions': hint['options'], 'csvImportSampleOnly': True}
+                         'requestedImportOptions': hint['options'],
+                         'csvImportSampleOnly': not csv_profile.get('complete'), 'csvInspection':csv_profile}
             if office and proof.get('code') in ('PREFLIGHT_TIMEOUT', 'PREFLIGHT_API_UNAVAILABLE',
                                                 'PREFLIGHT_UNO_API_UNAVAILABLE'):
                 office.recycle()

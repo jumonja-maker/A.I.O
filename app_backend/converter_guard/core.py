@@ -24,7 +24,7 @@ from ..libreoffice_catalog import mime_for
 from .adapter import LibreOfficeAdapter
 from .errors import GuardError
 from .policy import GuardLimits, validate_files, validate_plan
-from .result_store import ResultStore
+from .result_store import ResultStore, path_is_link
 from .native_metrics import clean_timings
 from .export_recipe import warning_details, WARNING_TEXT
 
@@ -73,6 +73,7 @@ class _Task:
     native_timings: dict | None = None
     export_filter: str | None = None
     warnings: tuple = ()
+    quality: dict | None = None
 
 
 @dataclass
@@ -159,6 +160,9 @@ class _Job:
     counts: dict | None = None
     pending_journal: dict = field(default_factory=dict)
     journal_lock: object = field(default_factory=threading.Lock)
+    salvage: bool = False
+    quality_check: bool = False
+    quality_compared: bool = False
 
 
 def _source_name(name):
@@ -174,8 +178,9 @@ def _source_name(name):
 
 class _LocalHtmlResources(HTMLParser):
     """Fail closed when isolated HTML contains local assets (including CSS)."""
-    _tags = {'img', 'link', 'script', 'source', 'video', 'audio', 'iframe', 'object'}
-    _attrs = {'src', 'srcset', 'href', 'poster', 'data'}
+    _tags = {'img', 'link', 'script', 'source', 'video', 'audio', 'iframe', 'object',
+             'embed', 'image', 'use', 'input', 'body', 'table', 'td', 'th', 'base'}
+    _attrs = {'src', 'srcset', 'href', 'xlink:href', 'poster', 'data', 'background'}
     _css_refs = re.compile(
         r"""(?is)\burl\(\s*['"]?([^'")\s]+)|@import\s+(?:url\(\s*)?['"]([^'"\s)]+)""")
 
@@ -184,6 +189,7 @@ class _LocalHtmlResources(HTMLParser):
         self.found = False
         self._in_style = False
         self._css_tail = ''
+        self.undetermined = False
 
     @staticmethod
     def _local(value):
@@ -191,11 +197,24 @@ class _LocalHtmlResources(HTMLParser):
         if not value or value.startswith(('#', '//', 'data:')):
             return False
         # /assets/logo.svg is a local resource, not a remote URL.
+        if value.lower().startswith('file:') or re.match(r'^[a-zA-Z]:[\\/]', value):
+            return True
         if re.match(r'(?i)^[a-z][a-z0-9+.-]*:', value):
             return False
         return True
 
     def _scan_css(self, value):
+        # CSS escapes can hide both url() and its path. Decode CSS escapes,
+        # not Python/URL escapes; keep the streaming overlap bounded below.
+        def unescape(match):
+            digits, literal = match.groups()
+            number = int(digits, 16) if digits else None
+            return chr(number) if number and number <= 0x10ffff else literal or '\ufffd'
+        value = re.sub(r'\\(?:([0-9a-fA-F]{1,6})[ \t\r\n\f]?|([^\r\n]))', unescape, value)
+        value = re.sub(r'/\*.*?\*/', ' ', value, flags=re.S)
+        unfinished = re.search(r'(?is)(?:\burl\([^)]*|@import\b[^;]*)\Z', value)
+        if unfinished and len(unfinished.group())>4096:
+            self.undetermined = True
         if any(self._local(first or second)
                for first, second in self._css_refs.findall(value)):
             self.found = True
@@ -212,8 +231,8 @@ class _LocalHtmlResources(HTMLParser):
             if tag not in self._tags or key not in self._attrs:
                 continue
             # Only srcset is a list; a data URL can contain commas.
-            candidates = (re.split(r',\s+(?=\S)', value) if key == 'srcset'
-                          else [value])
+            candidates = (re.findall(r'(?:data:[^\s]+|[^,\s]+)(?:\s+[^,]+)?', value)
+                          if key == 'srcset' else [value])
             urls = (part.strip().split()[0] for part in candidates if part.strip())
             if any(self._local(url) for url in urls):
                 self.found = True
@@ -222,7 +241,7 @@ class _LocalHtmlResources(HTMLParser):
         if self._in_style:
             self._scan_css(self._css_tail + data)
             # A bounded overlap covers a url() split between feed() calls.
-            self._css_tail = (self._css_tail + data)[-512:]
+            self._css_tail = (self._css_tail + data)[-4096:]
 
     def handle_endtag(self, tag):
         if tag == 'style':
@@ -236,18 +255,38 @@ def _html_resource_warning(source):
         return None
     inspector = _LocalHtmlResources()
     inspected = 0
+    import codecs
+    decoder = codecs.getincrementaldecoder('utf-8')('strict')
     with source.open('rb') as stream:
         while not inspector.found:
             block = stream.read(128 * 1024)
             if not block:
                 break
             inspected += len(block)
-            inspector.feed(block.decode('utf-8', errors='replace'))
+            try:
+                if inspected==len(block):
+                    if block.startswith((b'\xff\xfe',b'\xfe\xff')):
+                        decoder = codecs.getincrementaldecoder('utf-16')('strict')
+                    else:
+                        declared = re.search(br'(?is)<meta\b[^>]{0,1024}\bcharset\s*=\s*[\"\']?([a-z0-9_-]+)',block[:4096])
+                        if declared:
+                            encoding = declared[1].decode('ascii')
+                            if encoding.lower() in ('utf-7','unicode-1-1-utf-7'):
+                                return 'HTML_PREFLIGHT_UNDETERMINED'
+                            decoder = codecs.getincrementaldecoder(encoding)('strict')
+                inspector.feed(decoder.decode(block))
+            except (UnicodeError, LookupError):
+                return 'HTML_PREFLIGHT_UNDETERMINED'
             # HTMLParser.feed() retains *all* bytes of an unfinished tag,
             # declaration or comment. An attacker-controlled malformed
             # document must not grow the Python heap indefinitely.
-            if len(inspector.rawdata) > 512 * 1024 or inspected > 32 * 1024 * 1024:
+            if inspector.undetermined or len(inspector.rawdata) > 512 * 1024 or inspected > 32 * 1024 * 1024:
                 return 'HTML_PREFLIGHT_UNDETERMINED'
+    try:
+        inspector.feed(decoder.decode(b'', final=True))
+        inspector.close()
+    except (UnicodeError, ValueError):
+        return 'HTML_PREFLIGHT_UNDETERMINED'
     return 'HTML_LOCAL_RESOURCES_NOT_UPLOADED' if inspector.found else None
 
 
@@ -287,6 +326,7 @@ class ConverterGuard:
         self._preflight_gate = threading.BoundedSemaphore(1)
         self._proof_cache = OrderedDict()
         self._recovery_issues = []
+        self._recovery_pending = []
         self._recovery_loaded = not bool(self._recovery)
         self._recovery_lock = threading.Lock()
 
@@ -297,6 +337,9 @@ class ConverterGuard:
             if not self._recovery_loaded and not self._closed:
                 self._recover_results()
                 self._recovery_loaded = True
+            elif self._recovery_pending and not self._closed and len(self._jobs)<self.limits.max_jobs:
+                pending,self._recovery_pending=self._recovery_pending,[]
+                self._recover_results(pending)
 
     def _batch(self, job, name):
         method = getattr(self.adapter, 'batch', None)
@@ -362,15 +405,22 @@ class ConverterGuard:
             except OSError:
                 job.recovery_error = 'RECOVERY_WRITE_FAILED'
 
-    def _recover_results(self):
-        for root in sorted(self._recovery.glob('aio-guard-*')):
+    def _recover_results(self, roots=None):
+        roots = sorted(self._recovery.glob('aio-guard-*')) if roots is None else roots
+        for root in roots:
+            if len(self._jobs)>=self.limits.max_jobs:
+                self._recovery_pending.append(root)
+                continue
             if root.is_symlink() or not root.is_dir():
+                continue
+            if path_is_link(root):
                 continue
             if not (root/'job.json').is_file():
                 # Crash during initial metadata write: preserve and surface
                 # the otherwise invisible directory for manual inspection.
                 self._recovery_issues.append({'folder': root.name,
                     'code': 'RECOVERY_MANIFEST_MISSING', 'manualRecovery': True})
+                self._salvage_orphan(root)
                 continue
             store = ResultStore(root)
             try:
@@ -420,6 +470,9 @@ class ConverterGuard:
                         task.duration_ms=record.get('durationMs')
                         task.execution_mode=record.get('executionMode')
                         task.native_timings=clean_timings(record.get('nativeTimings'))
+                        task.quality = record.get('quality') if isinstance(record.get('quality'),dict) else None
+                        if task.quality and task.quality.get('qualityCompared'):
+                            job.quality_compared = True
                         task.export_filter=record.get('exportFilter')
                         if task.export_filter is not None and (not isinstance(task.export_filter,str) or
                                                                len(task.export_filter)>256):
@@ -454,7 +507,7 @@ class ConverterGuard:
                         'manualRecovery': True,
                         'bytes':sum(p.stat().st_size for p in root.rglob('*')
                                     if p.is_file() and not p.is_symlink())})
-                    store.close()
+                    self._salvage_orphan(root, store=store)
                     continue
                 indexed={a.path.resolve() for a in job.artifacts}
                 untracked=any(p.resolve() not in indexed for p in root.glob('work/*/output/**/*')
@@ -463,6 +516,8 @@ class ConverterGuard:
                     job.recovery_error='RECOVERY_UNTRACKED_OUTPUTS'
                     self._recovery_issues.append({'folder':root.name,
                         'code':'RECOVERY_UNTRACKED_OUTPUTS', 'jobId':identity})
+                if untracked:
+                    self._salvage_outputs(job, indexed)
                 job.reserved = sum(p.stat().st_size for p in root.rglob('*') if p.is_file() and not p.is_symlink())
                 job.result = {**job.artifacts[0].metadata(), 'jobId':identity}
                 job.packaging_error = 'RECOVERED_RESULTS'
@@ -479,13 +534,89 @@ class ConverterGuard:
                     self._record(job, 'recovered')
             except (OSError, ValueError, TypeError, KeyError, GuardError):
                 store.close()  # Never delete an unreadable recovery directory.
+                self._salvage_orphan(root)
                 self._recovery_issues.append({'folder':root.name,
                     'code':'RECOVERY_METADATA_INVALID', 'manualRecovery': True})
 
+    def _salvage_outputs(self, job, indexed=()):
+        """Rescue only files from the owned native output contract, never inputs.
+
+        No ledger association, native success or quality is inferred. Keep the
+        original directory until an explicit discard, including after export.
+        """
+        indexed = set(indexed)
+        next_index = max((t.index for f in job.files for t in f.targets), default=-1) + 1
+        for output in sorted(job.root.glob('work/*/output')):
+            if output.is_symlink() or path_is_link(output) or not output.is_dir():
+                continue
+            artifacts = []
+            for base, dirs, names in os.walk(output, followlinks=False):
+                dirs[:] = sorted(d for d in dirs if not (Path(base)/d).is_symlink()
+                                 and not path_is_link(Path(base)/d))
+                for name in sorted(names):
+                    candidate = Path(base)/name
+                    try:
+                        if candidate.is_symlink() or candidate.stat().st_nlink != 1:
+                            continue
+                        size = candidate.stat().st_size
+                        relative = candidate.relative_to(job.root).as_posix()
+                        path = job.store.output_path(relative, size)
+                        if path.resolve() in indexed:
+                            continue
+                        archive_name = 'recovered/' + output.parent.name + '/' + path.relative_to(output).as_posix()
+                        artifacts.append(_Artifact(job.id, path, path.name, size,
+                            secrets.token_urlsafe(32), 'rescued-' + str(next_index), 'bin', archive_name))
+                        indexed.add(path.resolve())
+                    except (OSError, ValueError):
+                        continue
+            if artifacts:
+                while 'rescued-' + str(next_index) in job.files_by_id:
+                    next_index += 1
+                task = _Task('bin', next_index, state='ready', stage='recovery',
+                             code='RECOVERED_UNVERIFIED', artifacts=artifacts)
+                task.error = 'Файлы спасены с диска. Исходник, формат и полнота результата не подтверждены.'
+                item = _File('rescued-' + str(next_index), 'Спасённые файлы · ' + output.parent.name,
+                             0, job.root/'input'/'unavailable', [task], state='done')
+                job.files.append(item)
+                job.files_by_id[item.id] = item
+                job.artifacts.extend(artifacts)
+                next_index += 1
+                job.salvage = True
+                job.recovery_error = 'RECOVERY_SALVAGED_UNVERIFIED'
+        return bool(job.artifacts)
+
+    def _salvage_orphan(self, root, store=None):
+        store = store or ResultStore(root)
+        try:
+            if store.owner is None and not store.acquire():
+                return
+            identity = hashlib.sha256(root.name.encode('utf-8')).hexdigest()[:32]
+            job = _Job(identity, root, [], 0, store=store, recovered=True,
+                       state='partial', recovery_error='RECOVERY_SALVAGED_UNVERIFIED')
+            if not self._salvage_outputs(job):
+                store.close()
+                return
+            job.reserved = sum(a.size for a in job.artifacts)
+            job.result = {**job.artifacts[0].metadata(), 'jobId':identity}
+            job.packaging_error = 'RECOVERED_RESULTS'
+            with self._lock:
+                if identity in self._jobs or self._closed:
+                    store.close()
+                    return
+                self._jobs[identity] = job
+                self._reserved += job.reserved
+                for artifact in job.artifacts:
+                    self._tickets[artifact.ticket] = artifact
+                self._record(job, 'recovered')
+        except (OSError, ValueError):
+            store.close()
+
     def recoverable(self):
+        self._prune(reap_saved=True)
         self._load_recovery()
         with self._lock:
-            return {'warnings':list(self._recovery_issues),
+            return {'storage': self.storage_stats(), 'pendingRecoveryFolders':len(self._recovery_pending),
+                    'warnings':list(self._recovery_issues),
                     'jobs': [{'jobId': j.id, 'recovered': j.recovered,
                               'label':j.files[0].name if j.files else 'Результаты',
                               'outputs': len(j.artifacts), 'bytes': sum(a.size for a in j.artifacts),
@@ -493,9 +624,9 @@ class ConverterGuard:
                               'unsavedOutputs': sum(not a.saved for a in j.artifacts),
                               'unsavedBytes': sum(a.size for a in j.artifacts if not a.saved),
                               'recoveryDurable': bool(j.store and not j.recovery_error),
-                              'qualityCompared': False}
+                              'salvaged': j.salvage, 'qualityCompared': False}
                              for j in self._jobs.values() if not j.released
-                             and any(not a.saved for a in j.artifacts)]}
+                             and (j.recovery_error or any(not a.saved for a in j.artifacts))]}
 
     def _cached_proof(self, key):
         # Metadata only: no source bytes, processes, timers or disk copies.
@@ -711,12 +842,13 @@ class ConverterGuard:
         job.touched = time.monotonic()
         return job
 
-    def _prune(self):
+    def _prune(self, *, reap_saved=False):
         with self._lock:
             now = time.monotonic()
             expired = [j for j in self._jobs.values() if j.released or (
-                not j.artifacts and not j.running and not j.io
-                and now - j.touched > self.limits.retention_seconds)]
+                not j.running and not j.io and not j.pending_journal and (
+                    reap_saved and self._saved_all(j) or not j.artifacts and not j.recovery_error
+                    and now - j.touched > self.limits.retention_seconds))]
             for job in expired:
                 job.released = True
                 job.cancel.set()
@@ -739,13 +871,15 @@ class ConverterGuard:
         rows = validate_files(files, self.limits)
         planned = ({row['id']: [] for row in rows} if prepare_only else
                    validate_plan(rows, formats, plan))
-        self._prune()
+        self._prune(reap_saved=True)
         size = sum(row['size'] for row in rows)
         with self._lock:
             if self._closed:
                 raise GuardError('GUARD_CLOSED', 'Guard завершает работу.', status=503)
             if len(self._jobs) >= self.limits.max_jobs:
-                raise GuardError('JOB_LIMIT', 'Освободите предыдущие задания.', status=409)
+                raise GuardError('JOB_LIMIT', 'Заняты все слоты Guard (' + str(self.limits.max_jobs) + '). '
+                    'Откройте «Состояние»: сохраните или явно удалите завершённые результаты. '
+                    'Несохранённые файлы не удаляются автоматически.', status=409)
             maximum = self.limits.max_spool_bytes
             if maximum is not None and self._reserved + size > maximum:
                 raise GuardError('SPOOL_QUOTA', 'Недостаточно настроенной квоты Guard.', status=413)
@@ -978,7 +1112,9 @@ class ConverterGuard:
             self._preflight_gate.release()
 
     def start(self, job_id, *, formats=None, file_ids=None, only_verified=False, plan=None,
-              timeout_seconds=None, archive_mode='auto'):
+              timeout_seconds=None, archive_mode='auto', quality_check=False):
+        if type(quality_check) is not bool:
+            raise GuardError('QUALITY_POLICY', 'Некорректный режим проверки структуры.')
         planning_started = time.monotonic()
         unused = []
         if not isinstance(archive_mode, str) or archive_mode not in ('auto', 'on_demand'):
@@ -1046,6 +1182,7 @@ class ConverterGuard:
                 raise GuardError('JOB_STATE', 'Дождитесь загрузки всех файлов.', status=409)
             job.state, job.running = 'queued', True
             job.archive_mode = archive_mode
+            job.quality_check = quality_check
             job.timings['planMs'] = round((time.monotonic()-planning_started)*1000)
             job.file_timeout = self.limits.file_timeout if timeout_seconds is None else timeout_seconds
             self._record(job, 'job_queued')
@@ -1156,6 +1293,8 @@ class ConverterGuard:
             job.artifacts.extend(artifacts)
             task.artifacts = artifacts
             task.state = 'ready'
+            if task.quality and task.quality.get('qualityCompared'):
+                job.quality_compared = True
             task.finished_ms = completed.finished_ms
             task.duration_ms = completed.duration_ms
             self._record(job, 'result_ready', file_id=item.id, target=task.format,
@@ -1217,6 +1356,14 @@ class ConverterGuard:
             with self._batch(job, 'export-office') as office:
                 for item in job.files:
                     source_failure = None
+                    before_quality = None
+                    if job.quality_check and not job.cancel.is_set() and not item.cancel.is_set():
+                        from .quality import inspect_isolated
+                        try:
+                            before_quality = inspect_isolated(item.source, job.root/'quality-source'/item.id,
+                                cancel=_Cancellation(job.cancel, item.cancel))
+                        except Exception:
+                            before_quality = {'complete':False,'status':'not_checked','reason':'inspection_failed'}
                     prepare_source = getattr(self.adapter, 'prepare_source', None)
                     if prepare_source:
                         prepare_source(item.native_route)
@@ -1313,6 +1460,19 @@ class ConverterGuard:
                                        if routing else {}))
                             finally:
                                 self._capture_native_metrics(job, item, task)
+                            if job.quality_check:
+                                try:
+                                    from .quality import inspect_isolated, compare_documents
+                                    primary = next((p for p in paths if p.suffix.lower()=='.'+task.format), None)
+                                    after_quality = (inspect_isolated(primary, workspace/'quality',
+                                        cancel=_Cancellation(job.cancel,item.cancel)) if primary else
+                                        {'complete':False,'status':'not_checked','reason':'primary_undetermined'})
+                                    task.quality = compare_documents(before_quality or {'complete':False}, after_quality)
+                                except Exception:
+                                    # Diagnostics cannot turn a successful native
+                                    # export into failure or destroy its outputs.
+                                    task.quality = {'schema':1,'status':'not_checked','qualityCompared':False,
+                                                    'reason':'inspection_failed','risks':[]}
                             self._retain_outputs(job, item, task, workspace, paths)
                         except GuardError as error:
                             if error.code in ('ENGINE_TIMEOUT', 'SOURCE_IMPORT_FAILED', 'NATIVE_MODEL_CHANGED',
@@ -1441,10 +1601,12 @@ class ConverterGuard:
                           'durationMs': t.duration_ms,
                           'nativeTimings': clean_timings(t.native_timings),
                           'exportFilter': t.export_filter, 'warnings': warning_details(t.warnings),
+                          'quality':copy.deepcopy(t.quality) if t.quality else None,
                           'outputs': [{'path': a.archive_name, 'size': a.size} for a in t.artifacts],
                           'route': t.route,
                           'libreOfficeStarted': t.lo_started} for t in f.targets]}
-            for f in job.files], 'timings':dict(job.timings),'qualityCompared': False}
+            for f in job.files], 'timings':dict(job.timings),'qualityCheckRequested':job.quality_check,
+            'qualityCompared':job.quality_compared}
 
     def report(self, job_id):
         if job_id not in self._jobs:
@@ -1741,6 +1903,10 @@ class ConverterGuard:
     def owns_path(self, path):
         """Do not confirm a save into a directory our cleanup will remove."""
         resolved=Path(path).resolve()
+        # Production has a fixed private recovery parent. This fast path does
+        # no state-lock acquisition on Qt's GUI thread during live saves.
+        if self._parent is not None:
+            return resolved.is_relative_to(self._parent)
         with self._lock:
             roots=[j.root for j in self._jobs.values()]
             if self._parent:
@@ -1757,6 +1923,7 @@ class ConverterGuard:
                         'executionMode':t.execution_mode,
                         'nativeTimings':clean_timings(t.native_timings),
                         'exportFilter':t.export_filter, 'warnings':warning_details(t.warnings),
+                        'quality':copy.deepcopy(t.quality) if t.quality else None,
                         'startedMs': t.started_ms, 'finishedMs': t.finished_ms,
                         'route': copy.deepcopy(t.route),
                         'percent': 100 if t.state in SUCCESS else None,
@@ -1785,11 +1952,13 @@ class ConverterGuard:
                 'diagnosticBytes':job.diagnostic_bytes,
                 'currentTask': current, 'pauseRequested': job.paused,
                 'fileTimeoutSeconds': job.file_timeout, 'officeStarts': job.office_starts,
-                'recovered': job.recovered, 'recoveryError': job.recovery_error,
+                'recovered': job.recovered, 'salvaged': job.salvage, 'recoveryError': job.recovery_error,
                 'recoveryDurable': bool(job.store and not job.recovery_error),
-                'resultAvailability': ('ready_volatile' if job.artifacts and job.recovery_error else
+                'resultAvailability': ('recovered_unverified' if job.salvage else
+                                       'ready_volatile' if job.artifacts and job.recovery_error else
                                        'ready_retained' if job.artifacts else 'none'),
-                'qualityCompared': False,
+                'qualityCheckRequested':job.quality_check,
+                'qualityCompared': job.quality_compared,
                 'timings':dict(job.timings),
                 'files': rows, **counts, 'preflightChecks':job.preflight_checks,
                 'preflightTotal':len(job.files),
@@ -2021,6 +2190,7 @@ class ConverterGuard:
                 self._tickets.pop(artifact.ticket, None)
             if self._jobs.pop(job.id, None) is not None:
                 self._reserved -= job.reserved
+                self._recovery_issues[:] = [w for w in self._recovery_issues if w.get('folder')!=job.root.name]
 
     def close(self):
         with self._lock:
@@ -2061,6 +2231,10 @@ class ConverterGuard:
             jobs = [job for job in self._jobs.values() if not job.released]
             return {'jobs': len(self._jobs), 'maxJobs': self.limits.max_jobs,
                     'reservedBytes': self._reserved, 'tickets': len(self._tickets),
+                    'availableSlots': max(0, self.limits.max_jobs-len(self._jobs)),
+                    'pendingRecoveryFolders': len(self._recovery_pending),
+                    'reclaimableSavedJobs': sum(self._saved_all(j) and not j.io for j in jobs),
+                    'cleanupPending': sum(j.released for j in self._jobs.values()),
                     'running': sum(j.state in {'checking', 'running', 'packaging'} for j in jobs),
                     'queued': sum(j.state == 'queued' for j in jobs),
                     'retainedJobs': sum(bool(j.artifacts) for j in jobs),

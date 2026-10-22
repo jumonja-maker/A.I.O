@@ -28,7 +28,7 @@ if source.stem == 'hold':
 if source.stem == 'grow':
     (out / ('grow.' + target)).write_bytes(b'x' * (2 * 1024 * 1024))
     time.sleep(60)
-(out / (source.stem + '.' + target)).write_bytes(b'native-fixture')
+(out / (source.stem + '.' + target)).write_bytes(b'%PDF-1.7 native-fixture')
 """
 
 

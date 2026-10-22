@@ -14,6 +14,7 @@
   let prepared = null, preparing = null, inspectionSequence = 0;
   let inspected = null;
   let lastRun = null;
+  let qualityCheck = false;
   const publish = report => {
     if (typeof CustomEvent === 'function' && typeof window.dispatchEvent === 'function')
       window.dispatchEvent(new CustomEvent('aio-guard-state', {detail:report}));
@@ -164,21 +165,37 @@
       request.jobId = created.jobId;
       onCreated?.(created.jobId);
       current();
-      let uploaded=inputs.length-uploads.length;
-      for (const file of uploads) {
+      let uploaded=inputs.length-uploads.length, nextUpload=0, transferError=null, lastUploadPaint=0;
+      const showUpload=file=>{
+        const now=Date.now();
+        if(now-lastUploadPaint<100 && uploaded<inputs.length)return;
+        lastUploadPaint=now;
         publish({jobId:request.jobId,state:'uploading',finished:false,files:[],
           total:0,completed:0,succeeded:0,failed:0,cancelled:0,filtered:0,
           uploadedFiles:uploaded,inputFiles:inputs.length,preparation:true,
           currentTask:{taskId:request.jobId+':upload:'+file.id,fileId:String(file.id),
-            name:file.file.name,format:'',stage:'upload',startedMs:Date.now()}});
-        await payloadOf(await fetch(prefix + '/input?job=' + encodeURIComponent(request.jobId)
-          + '&file=' + encodeURIComponent(String(file.id)), {
-          method:'POST',headers:{...headers,'Content-Type':'application/octet-stream'},
-          body:file.file,cache:'no-store',signal
-        }));
-        current();
-        uploaded++;
-      }
+            name:file.file.name,format:'',stage:'upload',startedMs:now}});
+      };
+      // Bounded local transfers, not parallel LibreOffice operations. Wait for
+      // every in-flight upload before releasing a failed/cancelled preparation.
+      const uploadWorker=async()=>{
+        while(!transferError){
+          current();
+          const file=uploads[nextUpload++];if(!file)return;
+          showUpload(file);
+          try{
+            await payloadOf(await fetch(prefix + '/input?job=' + encodeURIComponent(request.jobId)
+              + '&file=' + encodeURIComponent(String(file.id)), {
+              method:'POST',headers:{...headers,'Content-Type':'application/octet-stream'},
+              body:file.file,cache:'no-store',signal
+            }));
+            current();uploaded++;showUpload(file);
+          }catch(error){transferError=transferError||error;return;}
+        }
+      };
+      const transfers=await Promise.allSettled(Array.from({length:Math.min(4,uploads.length)},uploadWorker));
+      const rejected=transfers.find(result=>result.status==='rejected');
+      if(transferError||rejected)throw transferError||rejected.reason;
       // A released older check can need a short process-tree cleanup. Do not
       // start parallel native imports while it is still shutting down.
       const deadline = Date.now() + 10000;
@@ -260,7 +277,10 @@
   function update(report, op, onProgress) {
     if (!report || op.generation !== generation) return;
     const changed = report.changedFileIds ? new Set(report.changedFileIds) : null;
-    progress?.finishTargets({runId:op.id, partial:Boolean(changed), files:(report.files || []).filter(
+    // Backend snapshots contain planned inputs only; unplanned UI files have
+    // already been marked skipped. Apply this subset without requiring a
+    // full-card count match, including the first and terminal snapshots.
+    progress?.finishTargets({runId:op.id, partial:true, files:(report.files || []).filter(
       row=>!changed || changed.has(String(row.fileId))).map(row => {
       const targets = row.targets || [];
       const failed = targets.some(t => t.state === 'error');
@@ -327,6 +347,7 @@
         try {
           state=await api('/start',{jobId:op.jobId,plan,fileIds:plan.map(f=>f.fileId),onlyVerified:true,
                                   archiveMode:window.AllInOneNativeShell === true ? 'on_demand' : 'auto',
+                                  qualityCheck,
                                   ...(timeoutSeconds ? {timeoutSeconds} : {})});
         } catch(error) {
           op.startRejected=error.httpStatus>=400&&error.httpStatus<500&&error.httpStatus!==408;
@@ -480,6 +501,12 @@
         throw errorOf('Этот файл уже завершён. Очередь могла перейти к следующему файлу.', 'FILE_ALREADY_FINISHED');
       return state;
     },
+    getQualityCheck() {return qualityCheck;},
+    setQualityCheck(enabled) {
+      if(typeof enabled!=='boolean')throw errorOf('Некорректный режим проверки.','QUALITY_POLICY');
+      if(active?.startRequested)throw errorOf('Режим проверки можно изменить перед следующей конвертацией.','QUALITY_BUSY');
+      qualityCheck=enabled;
+    },
     async recoverable() {return api('/recoverable',undefined,'GET');},
     async saveRetained(jobId,mode='folder') {
       let state=await api('/jobs?job='+encodeURIComponent(jobId),undefined,'GET');
@@ -519,8 +546,17 @@
         const targets=byId.get(String(file.id))?.targets||[];
         const findings=targets.flatMap(target=>(target.warnings||[]).map(warning=>({
           level:'risk',formats:[target.format],message:warning.message,advice:'Сохраните исходник.'})));
+        for(const target of targets){
+          const q=target.quality;
+          for(const risk of q?.risks||[])findings.push({level:'risk',formats:[target.format],
+            message:'Проверка структуры: '+({TEXT_DIFFERS:'текст отличается',CELL_VALUES_DIFFER:'значения ячеек отличаются',
+              STRUCTURE_COUNT_DECREASED:'меньше элементов ('+risk.feature+')'}[risk.code]||risk.code)+'. Требуется проверка.',advice:'Сравните с исходником.'});
+          if(q)findings.push({level:q.qualityCompared?'info':'not_checked',formats:[target.format],
+            message:q.qualityCompared?'Проверена часть структуры. Внешний вид и шрифты не проверены.':
+              'Структуру этих форматов не удалось сопоставить.',advice:'Подробности в техническом отчёте.'});
+        }
         return {...file,complete:false,facts:[],fonts:[],findings:[...findings,
-          {level:'not_checked',formats:[],message:'Guard подтверждает маршруты, но не сравнивает полноту содержимого и внешний вид.',advice:''}]};
+          {level:'not_checked',formats:[],message:'Готовность результата не гарантирует сохранение оформления. Проверка структуры включается перед конвертацией в «Состояние».',advice:''}]};
       }),result:{checks:[{state:'not_checked',
           message:'Проверка сохранности оформления и содержимого пока не выполнялась.'}]},
         scope:['Guard использует реестр LibreOffice и реальную native-модель.',

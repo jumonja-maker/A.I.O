@@ -126,6 +126,13 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
                         'diagnosticType': str(detected.get('typeName') or '')[:96]}
             kind = detected.get('kind')
             if (os.name != 'nt' and detected.get('state') == 'detected'
+                    and type(kind) is int and kind == 4 and detected.get('contentClass')=='odf_chart'):
+                chart='com.sun.star.chart2.ChartDocument'
+                if chart in native.import_services:
+                    return {'state':'detected','basis':'native_preflight_chart_content',
+                            'documentServices':[chart],'nativeKind':4,'chartPackage':True,
+                            'registryFingerprint':native.fingerprint,'exported':False}
+            if (os.name != 'nt' and detected.get('state') == 'detected'
                     and type(kind) is int and kind == 4
                     and detected.get('contentClass') == 'mathml'):
                 formula = 'com.sun.star.formula.FormulaProperties'

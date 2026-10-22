@@ -112,7 +112,7 @@
           parts.check.textContent = data.state === 'error' ? '×' :
             data.state === 'cancelled' ? '−' : data.state === 'skipped' ? '⊘' :
             ['partial','partial-saved'].includes(data.state) ? '!' : '✓';
-          parts.check.hidden = !['ready','saved','error','cancelled','skipped','partial','partial-saved'].includes(data.state) &&
+          parts.check.hidden = !['ready','error','cancelled','skipped','partial','partial-saved'].includes(data.state) &&
             !(data.state === 'saving' && !['partial','partial-saved'].includes(data.beforeSave));
           // A single DOCX/LO operation has no measured intermediate percent.
           // No moving fake progress: show green ONLY for confirmed completed
