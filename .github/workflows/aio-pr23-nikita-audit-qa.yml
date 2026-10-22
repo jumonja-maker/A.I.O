@@ -65,7 +65,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: jumonja-maker/A.I.O
-          ref: 7140b7d3297f56f1d5d0d70066ddb9f39d1ce231
+          ref: beddc6361dd427df14eff6b269ddf1e57b681bc4
           path: aio-pr23-audit-${{ github.run_id }}
           fetch-depth: 1
           persist-credentials: false
@@ -112,7 +112,7 @@ jobs:
           if (Test-Path -LiteralPath $script) { throw 'Verifier path collision' }
           try {
             [IO.File]::WriteAllText($script,$verifier,[Text.UTF8Encoding]::new($false))
-            & $python $script '63e040885ec11be2e0333970acd2ccecceeeacfd'
+            & $python $script '705022f26cc9632f0be04bff46e5d567d2407b3c'
             if ($LASTEXITCODE -ne 0) { throw 'Pinned tree verification failed' }
           } finally {
             Remove-Item -LiteralPath $script -Force -ErrorAction SilentlyContinue
@@ -191,7 +191,7 @@ jobs:
       - name: QA verdict (no installation, packaging, FULLTEST or main changes)
         if: always()
         run: |
-          Write-Host 'PINNED_COMMIT=7140b7d3297f56f1d5d0d70066ddb9f39d1ce231'
+          Write-Host 'PINNED_COMMIT=beddc6361dd427df14eff6b269ddf1e57b681bc4'
           Write-Host 'QA_REGRESSIONS=${{ steps.regressions.outcome }}'
           Write-Host 'QA_FULL_SUITE=${{ steps.integrated.outcome }}'
           Write-Host 'BUILD=NOT_RUN; INSTALL=NOT_RUN; RELEASE=NOT_RUN'
