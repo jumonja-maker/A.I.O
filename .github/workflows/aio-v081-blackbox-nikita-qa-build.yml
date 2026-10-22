@@ -1,24 +1,23 @@
-name: "AIO Guard 0.8.1 BLACKBOX NIKITA QA"
+name: "AIO Guard v14 NIKITA pinned Windows QA build"
 on:
   pull_request:
-    types: [labeled]
+    types: [opened, reopened, labeled]
 permissions:
   contents: read
 concurrency:
-  group: aio-v081-blackbox-nikita
+  group: aio-guard-v14-nikita-qa-build
   cancel-in-progress: false
 jobs:
   qa-package:
     if: >-
       github.repository == 'jumonja-maker/A.I.O' &&
-      github.actor == 'jumonja-maker' &&
-      github.event.action == 'labeled' &&
-      github.event.label.name == 'aio-v081-blackbox-build-approved-once' &&
-      github.event.pull_request.number == 15 &&
+      github.event.pull_request.head.sha != '' &&
+      (github.event.action == 'labeled' || github.event.action == 'opened' || github.event.action == 'reopened') &&
+      contains(github.event.pull_request.labels.*.name, 'aio-v081-blackbox-build-approved-once') &&
       github.event.pull_request.user.login == 'jumonja-maker' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
-      github.event.pull_request.head.ref == 'feature/blackbox-deep-telemetry-v01-20261021' &&
-      github.event.pull_request.base.ref == 'fix/guard-v081-audit-f01-f12-20261021'
+      github.event.pull_request.head.ref == 'build/guard-v14-nikita-20261022' &&
+      github.event.pull_request.base.ref == 'qa/guard-v14-build-base-20261022'
     runs-on: [self-hosted, Windows, X64, local-d-manual]
     timeout-minutes: 110
     env:
@@ -61,11 +60,11 @@ jobs:
           }
           Write-Host 'NIKITA_PREFLIGHT=PASS'
 
-      - name: Checkout immutable Guard 0.8.1 plus BLACKBOX snapshot
+      - name: Checkout immutable Guard v14 pinned QA snapshot
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: jumonja-maker/A.I.O
-          ref: 6ea0433ba34554ef9a8e1b1a05879cf601a6048f
+          ref: 7c718e4391ef3a0039386a79938b986711807711
           path: aio-pin-${{ github.run_id }}
           persist-credentials: false
           clean: true
@@ -109,13 +108,15 @@ jobs:
           if (Test-Path -LiteralPath $script) { throw 'Verifier filename collision.' }
           try {
             [IO.File]::WriteAllText($script,$verifier,[Text.UTF8Encoding]::new($false))
-            & $python $script '04a2cf933b4e68aae866886774243d79ee245587'
+            & $python $script 'f0d467010364c6299f9d4f3e24df4cd8a1f107a8'
             if ($LASTEXITCODE -ne 0) { throw 'Source snapshot rejected.' }
           } finally {
             Remove-Item -LiteralPath $script -Force -ErrorAction SilentlyContinue
           }
           & $python -c 'import sys,openpyxl,PyInstaller,PySide6.QtWebEngineWidgets; assert sys.version_info[:2]==(3,11)'
           if ($LASTEXITCODE -ne 0) { throw 'Offline Python dependency missing.' }
+          & $python -c 'import pypdf'
+          if ($LASTEXITCODE -ne 0) { throw 'pypdf required for Guard v14 quality inspection is absent in the approved offline Python environment.' }
           $lo=$null
           foreach ($dir in @('D:\LBR\LibreOffice','D:\LBR','D:\AIO-Lab\LibreOffice',
                'C:\Program Files\LibreOffice')) {
@@ -132,7 +133,7 @@ jobs:
           $compiler=@(Get-ChildItem -LiteralPath $dir -Filter ISCC.exe -File -Recurse -ErrorAction Stop)
           if ($compiler.Count -ne 1) { throw 'Trusted Inno compiler missing.' }
           'AIO_APPROVED_ISCC='+$compiler[0].FullName | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-          Write-Host 'SOURCE_SHA=6ea0433ba34554ef9a8e1b1a05879cf601a6048f'
+          Write-Host 'SOURCE_SHA=7c718e4391ef3a0039386a79938b986711807711'
           Write-Host 'OFFLINE_DEPENDENCIES=PASS'
 
       - name: Compile Python, run all regressions and BLACKBOX stress QA
@@ -166,7 +167,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'NATIVE_PREFLIGHT_V06_FAILED' }
           & $python tools/qa/guard_v07_windows_preflight_gate.py
           if ($LASTEXITCODE -ne 0) { throw 'NATIVE_PREFLIGHT_V07_FAILED' }
-          $evidence=Join-Path $env:GITHUB_WORKSPACE ('aio-v081-evidence-'+$env:GITHUB_RUN_ID)
+          $evidence=Join-Path $env:GITHUB_WORKSPACE ('aio-v14-evidence-'+$env:GITHUB_RUN_ID)
           if (Test-Path -LiteralPath $evidence) { throw 'Evidence dir already exists.' }
           & $python tools/qa/guard_v08_native_acceptance.py --output $evidence --compare-cli
           if ($LASTEXITCODE -ne 0) { throw 'NATIVE_V08_ACCEPTANCE_FAILED' }
@@ -187,7 +188,7 @@ jobs:
               throw ('Component missing: '+$file)
             }
           }
-          $env:PYINSTALLER_CONFIG_DIR=Join-Path $env:RUNNER_TEMP ('aio-v081-pyinst-'+$env:GITHUB_RUN_ID)
+          $env:PYINSTALLER_CONFIG_DIR=Join-Path $env:RUNNER_TEMP ('aio-v14-pyinst-'+$env:GITHUB_RUN_ID)
           New-Item -ItemType Directory -Force -Path $env:PYINSTALLER_CONFIG_DIR | Out-Null
           & $python -m PyInstaller --noconfirm --clean AllInOne.spec
           if ($LASTEXITCODE -ne 0) { throw 'PYINSTALLER_FAILED' }
@@ -203,27 +204,27 @@ jobs:
             throw 'LibreOffice share directory missing.'
           }
           New-Item -ItemType Directory -Force -Path 'build\installer' | Out-Null
-          $portable='build\installer\AIO-Guard-v081-BLACKBOX-QA-PORTABLE.zip'
+          $portable='build\installer\AIO-Guard-v14-QA-PORTABLE.zip'
           Compress-Archive -LiteralPath 'dist\A.I.O' -DestinationPath $portable -CompressionLevel Optimal
           if (-not (Test-Path -LiteralPath $portable -PathType Leaf)) { throw 'Portable missing.' }
           $iss='installer\windows\AIO-Guard-QA.iss'
           $original=Get-Content -LiteralPath $iss -Raw
           $changed=$original.Replace('#define AppVersion "0.7.0-guard-qa"',
-              '#define AppVersion "0.8.1-blackbox-qa"').Replace(
+              '#define AppVersion "0.14.0-guard-qa"').Replace(
               'OutputBaseFilename=AIO-Guard-QA-win-x64',
-              'OutputBaseFilename=AIO-Guard-v081-BLACKBOX-QA-win-x64')
+              'OutputBaseFilename=AIO-Guard-v14-QA-win-x64')
           if ($changed -ceq $original) { throw 'Version metadata not updated.' }
           [IO.File]::WriteAllText((Join-Path (Get-Location).Path $iss),
-              $changed,[Text.UTF8Encoding]::new($false))
+              $changed,[Text.UTF8Encoding]::new($true))
           & $env:AIO_APPROVED_ISCC $iss
           if ($LASTEXITCODE -ne 0) { throw 'INNO_QA_FAILED' }
-          $setup='build\installer\AIO-Guard-v081-BLACKBOX-QA-win-x64.exe'
+          $setup='build\installer\AIO-Guard-v14-QA-win-x64.exe'
           if (-not (Test-Path -LiteralPath $setup -PathType Leaf)) { throw 'Installer missing.' }
           @($setup,$portable) | ForEach-Object {
             (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash.ToLowerInvariant()+
               '  '+[IO.Path]::GetFileName($_)
           } | Set-Content -LiteralPath 'build\installer\SHA256SUMS.txt' -Encoding ascii
-          @('SOURCE=6ea0433ba34554ef9a8e1b1a05879cf601a6048f','TREE=04a2cf933b4e68aae866886774243d79ee245587','GUARD=V0.8.1-PR14',
+          @('SOURCE=7c718e4391ef3a0039386a79938b986711807711','TREE=f0d467010364c6299f9d4f3e24df4cd8a1f107a8','GUARD=V14-PR24',
             'BLACKBOX=TELEMETRY-V0.1-PR15','LIBREOFFICE=BUNDLED',
             'NATIVE_WINDOWS_QA=PASS','INSTALLED=NO;RELEASED=NO;MAIN=UNCHANGED') |
               Set-Content -LiteralPath 'build\installer\BUILD-STATUS.txt' -Encoding utf8
@@ -242,10 +243,10 @@ jobs:
         continue-on-error: true
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: AIO-V081-BLACKBOX-QA-${{ github.run_id }}
+          name: AIO-V14-BLACKBOX-QA-${{ github.run_id }}
           path: |
-            aio-pin-${{ github.run_id }}/build/installer/AIO-Guard-v081-BLACKBOX-QA-win-x64.exe
-            aio-pin-${{ github.run_id }}/build/installer/AIO-Guard-v081-BLACKBOX-QA-PORTABLE.zip
+            aio-pin-${{ github.run_id }}/build/installer/AIO-Guard-v14-QA-win-x64.exe
+            aio-pin-${{ github.run_id }}/build/installer/AIO-Guard-v14-QA-PORTABLE.zip
             aio-pin-${{ github.run_id }}/build/installer/SHA256SUMS.txt
             aio-pin-${{ github.run_id }}/build/installer/BUILD-STATUS.txt
           retention-days: 7
@@ -254,7 +255,7 @@ jobs:
       - name: Report separate test, package and upload outcomes
         if: always()
         run: |
-          Write-Host 'PINNED_SOURCE=6ea0433ba34554ef9a8e1b1a05879cf601a6048f'
+          Write-Host 'PINNED_SOURCE=7c718e4391ef3a0039386a79938b986711807711'
           Write-Host 'TESTS=${{ steps.tests.outcome }}'
           Write-Host 'NATIVE=${{ steps.native.outcome }}'
           Write-Host 'PACKAGE=${{ steps.package.outcome }}'
