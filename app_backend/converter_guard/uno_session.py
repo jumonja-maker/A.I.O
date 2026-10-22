@@ -129,7 +129,7 @@ def main(boot_name):
                         model.storeToURL(target.as_uri(), tuple(export_options))
                     finally:
                         timings['exportMs'] = round((time.monotonic()-export_tick)*1000)
-                    present = target.is_file() and not target.is_symlink()
+                    present = target.is_file() and not target.is_symlink() and target.stat().st_size > 0
                     # Result paths stay on disk. Thousands of HTML sidecars
                     # must not overflow the small control-message channel.
                     result = {'id':request_id,'ok':present and not export_handler.blocked,

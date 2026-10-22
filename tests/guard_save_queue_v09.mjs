@@ -91,7 +91,8 @@ const completed=[];
   await until(()=>f.polled()>0);
   const skip=await f.bridge.skipCurrent('one');
   assert.equal(skip.files[0].cancellationRequested,true);
-  assert.equal(f.calls.some(c=>c.path==='/cancel-file'&&c.body.fileId==='one'),true);
+  assert.equal(f.calls.some(c=>c.path==='/cancel-file'&&c.body.fileId==='one'&&
+    c.body.expectedTaskId===jobId+':1'),true, 'skip must send exact current task identity');
   f.finish();await operation;
   completed.push('fresh skip performs guarded backend cancel-file action');
 }

@@ -90,7 +90,11 @@ class ExportRecipesQA(unittest.TestCase):
 
         def request(value, **_):
             requests.append(value)
-            (Path(value['output']) / ('result.' + value['format'])).write_text('Привет\t123\n')
+            output = Path(value['output']) / ('result.' + value['format'])
+            if value['format'] == 'pdf':
+                output.write_bytes(b'%PDF-1.7\n% synthetic export test\n')
+            else:
+                output.write_text('Привет\t123\n')
             return {'ok': True}
 
         office = SimpleNamespace(disabled=False, ensure_started=lambda *args: None, request=request)

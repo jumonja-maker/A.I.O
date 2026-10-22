@@ -228,7 +228,8 @@ class GuardAPI:
             if path == PREFIX + '/cancel':
                 return self._json(handler,200, self.guard.cancel(identity))
             if path == PREFIX + '/cancel-file':
-                return self._json(handler,200, self.guard.cancel_file(identity, body.get('fileId')))
+                return self._json(handler,200, self.guard.cancel_file(identity, body.get('fileId'),
+                    expected_task_id=body.get('expectedTaskId')))
             if path == PREFIX + '/pause':
                 return self._json(handler,200, self.guard.pause(identity, body.get('paused', True)))
             if path == PREFIX + '/bundle':
