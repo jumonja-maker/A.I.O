@@ -109,7 +109,8 @@
   function resetProgress() {
     generation++;
     cancel().catch(() => {});
-    for (const id of retained.keys()) releaseJob(id).catch(() => {});
+    // Reset/dispose is not consent to discard unsaved conversion outputs.
+    // Retained jobs remain available via /recoverable until explicitly handled.
     progress?.dispose();
     progress = null;
     lastRun = null;
@@ -401,9 +402,12 @@
       // A failed status read is not permission to cancel a live or ambiguously
       // started backend job. Explicit reset and confirmed empty terminal jobs
       // still release their ownership.
-      if (op.jobId && (op.generation !== generation || !op.startRequested || op.startRejected ||
-                      last?.finished && !last.result?.downloadUrl))
+      if (op.jobId && (!op.startRequested || op.startRejected ||
+                      last?.finished && !last.result?.downloadUrl &&
+                      !last.partialResult?.outputsCount))
         await releaseJob(op.jobId);
+      // Losing the UI generation is not proof that a live/cancelled
+      // job has no outputs. Preserve it until explicit acknowledgement.
       if (active === op) active = null;
       if(op.generation===generation && last?.finished)publish(last);
     }
