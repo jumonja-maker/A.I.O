@@ -222,8 +222,7 @@ def convert_path(source: Path, target: str, workspace: Path, *,
     try:
         return validated_outputs(source, target, output, diagnostic)
     except LibreOfficeError as error:
-        source_failed = bool(re.search(r'(?im)^Error:\s*source file could not be loaded\.?\s*
-, diagnostic))
+        source_failed = bool(re.search(r'(?im)^Error:\s*source file could not be loaded\.?\s*\Z', diagnostic))
         if source_failed:
             raise LibreOfficeError('LibreOffice не смог открыть исходный документ.',
                                    'SOURCE_IMPORT_FAILED', diagnostic=diagnostic) from error
