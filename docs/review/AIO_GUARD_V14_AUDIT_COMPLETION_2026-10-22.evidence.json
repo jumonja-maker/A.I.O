@@ -1,0 +1,2627 @@
+{
+  "schema": 1,
+  "date": "2026-10-22",
+  "repository": "jumonja-maker/A.I.O",
+  "baseCommit": "93a5a5a3a975d89c504c7acffd1065e693bb3c7e",
+  "functionalCommit": "cfe590babf7aff2633b01ce2098aaea7dff26efc",
+  "functionalTree": "487253840475246454008f0a98cb23e3184e7a78",
+  "scope": "QA-only large follow-up after PR22+PR23; Windows acceptance pending",
+  "regression": {
+    "discovered": 351,
+    "executed": 349,
+    "passed": 349,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "excluded": [
+      "test_brand_restoration.BrandRestorationTests.test_both_original_pngs_match_owner_digests_and_have_alpha",
+      "test_brand_restoration.BrandRestorationTests.test_spec_bundles_icon_and_approved_sources_and_sets_exe_resource"
+    ],
+    "excludedReason": "Two original master PNGs could not be materialized from GitHub; unchanged remote blobs retained",
+    "seconds": 70.38577216300018,
+    "python": "3.12.14",
+    "python311": "syntax compatibility only; native 3.11 execution NOT_RUN"
+  },
+  "nativePipeline": {
+    "status": "PASS",
+    "platform": "Linux",
+    "engineVersion": "LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5",
+    "scope": "owned generated 4-source / 8-task native pipeline",
+    "visibleQt": "NOT_RUN",
+    "fullVisualFidelity": "NOT_RUN",
+    "userCorpus": "NOT_RUN",
+    "preflightMs": 1964,
+    "queueMs": 108964,
+    "folderSaveMs": 53,
+    "explicitArchiveMs": 25,
+    "succeeded": 8,
+    "outputArtifacts": 8,
+    "automaticArchiveBytes": 0,
+    "sourceBytesUnchanged": true,
+    "checks": {
+      "textCellsAndFormulaValue": "PASS",
+      "officeContainerAndTableMarkers": "PASS",
+      "independentSavedByteReadback": "PASS",
+      "pngHeader": "PASS",
+      "pdfReadback": "PASS",
+      "pdfPageGeometryVsDirectCLI": "PASS",
+      "explicitArchiveContainsEverySavedByte": "PASS"
+    },
+    "officeStarts": 0,
+    "sessionMaxTasks": 2,
+    "nativeModes": [
+      "native_cli"
+    ],
+    "report": {
+      "schemaVersion": 3,
+      "total": 8,
+      "completed": 8,
+      "attempted": 8,
+      "succeeded": 8,
+      "failed": 0,
+      "cancelled": 0,
+      "filtered": 0,
+      "pending": 0,
+      "preflightChecks": 4,
+      "recoveryError": null,
+      "files": [
+        {
+          "fileId": "docx",
+          "name": "document.docx",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.text.TextDocument",
+              "com.sun.star.text.WebDocument",
+              "com.sun.star.text.GlobalDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 0,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": [
+            {
+              "taskId": "a0951fddb9b7d4a5ce311ba48e4166da:0",
+              "format": "pdf",
+              "state": "saved",
+              "code": null,
+              "error": null,
+              "stage": "result",
+              "diagnostic": "",
+              "executionMode": "native_cli",
+              "durationMs": 821,
+              "nativeTimings": {
+                "source": "cli_process",
+                "adapterMs": 604,
+                "processMs": 602,
+                "launchMs": 0
+              },
+              "exportFilter": null,
+              "warnings": [],
+              "quality": {
+                "schema": 1,
+                "status": "not_checked",
+                "qualityCompared": false,
+                "scope": "structural_subset",
+                "before": {
+                  "schema": 1,
+                  "status": "checked_subset",
+                  "complete": true,
+                  "kind": "ooxml",
+                  "counts": {
+                    "words": 5,
+                    "paragraphs": 3,
+                    "tables": 1,
+                    "images": 0,
+                    "formulas": 0,
+                    "charts": 0
+                  },
+                  "textDigest": "f9e53fc4eb1aa5080311f80e383ba23baac94d7ef7606bee4453d8d084b3beda",
+                  "unknown": [
+                    "visual_layout",
+                    "fonts",
+                    "rendered_pixels",
+                    "formula_results"
+                  ],
+                  "documentClass": "text"
+                },
+                "after": {
+                  "schema": 1,
+                  "status": "checked_subset",
+                  "complete": true,
+                  "kind": "pdf",
+                  "counts": {
+                    "pages": 1
+                  },
+                  "textDigest": null,
+                  "unknown": [
+                    "visual_layout",
+                    "fonts",
+                    "rendered_pixels",
+                    "formula_results",
+                    "text",
+                    "tables",
+                    "images",
+                    "formulas"
+                  ],
+                  "documentClass": "rendered"
+                },
+                "risks": [],
+                "formatLimitations": [],
+                "unknown": [
+                  "visual_layout",
+                  "fonts",
+                  "rendered_pixels",
+                  "formula_results",
+                  "no_comparable_structure"
+                ]
+              },
+              "outputs": [
+                {
+                  "path": "0001-pdf/document.pdf",
+                  "size": 18545
+                }
+              ],
+              "route": null,
+              "libreOfficeStarted": true
+            },
+            {
+              "taskId": "a0951fddb9b7d4a5ce311ba48e4166da:1",
+              "format": "html",
+              "state": "saved",
+              "code": null,
+              "error": null,
+              "stage": "result",
+              "diagnostic": "",
+              "executionMode": "native_cli",
+              "durationMs": 669,
+              "nativeTimings": {
+                "source": "cli_process",
+                "adapterMs": 535,
+                "processMs": 534,
+                "launchMs": 1
+              },
+              "exportFilter": "HTML",
+              "warnings": [],
+              "quality": {
+                "schema": 1,
+                "status": "not_checked",
+                "qualityCompared": false,
+                "scope": "structural_subset",
+                "before": {
+                  "schema": 1,
+                  "status": "checked_subset",
+                  "complete": true,
+                  "kind": "ooxml",
+                  "counts": {
+                    "words": 5,
+                    "paragraphs": 3,
+                    "tables": 1,
+                    "images": 0,
+                    "formulas": 0,
+                    "charts": 0
+                  },
+                  "textDigest": "f9e53fc4eb1aa5080311f80e383ba23baac94d7ef7606bee4453d8d084b3beda",
+                  "unknown": [
+                    "visual_layout",
+                    "fonts",
+                    "rendered_pixels",
+                    "formula_results"
+                  ],
+                  "documentClass": "text"
+                },
+                "after": {
+                  "schema": 1,
+                  "status": "not_checked",
+                  "complete": false,
+                  "kind": "unknown",
+                  "counts": {
+                    "words": 0,
+                    "paragraphs": 0,
+                    "tables": 0,
+                    "images": 0,
+                    "formulas": 0,
+                    "charts": 0
+                  },
+                  "textDigest": null,
+                  "unknown": [
+                    "visual_layout",
+                    "fonts",
+                    "rendered_pixels",
+                    "formula_results"
+                  ],
+                  "reason": "unsupported_format"
+                },
+                "risks": [],
+                "formatLimitations": [],
+                "unknown": [
+                  "visual_layout",
+                  "fonts",
+                  "rendered_pixels",
+                  "formula_results"
+                ]
+              },
+              "outputs": [
+                {
+                  "path": "0002-html/document.html",
+                  "size": 990
+                }
+              ],
+              "route": null,
+              "libreOfficeStarted": true
+            },
+            {
+              "taskId": "a0951fddb9b7d4a5ce311ba48e4166da:2",
+              "format": "odt",
+              "state": "saved",
+              "code": null,
+              "error": null,
+              "stage": "result",
+              "diagnostic": "",
+              "executionMode": "native_cli",
+              "durationMs": 944,
+              "nativeTimings": {
+                "source": "cli_process",
+                "adapterMs": 841,
+                "processMs": 839,
+                "launchMs": 1
+              },
+              "exportFilter": null,
+              "warnings": [],
+              "quality": {
+                "schema": 1,
+                "status": "checked_subset",
+                "qualityCompared": true,
+                "scope": "structural_subset",
+                "before": {
+                  "schema": 1,
+                  "status": "checked_subset",
+                  "complete": true,
+                  "kind": "ooxml",
+                  "counts": {
+                    "words": 5,
+                    "paragraphs": 3,
+                    "tables": 1,
+                    "images": 0,
+                    "formulas": 0,
+                    "charts": 0
+                  },
+                  "textDigest": "f9e53fc4eb1aa5080311f80e383ba23baac94d7ef7606bee4453d8d084b3beda",
+                  "unknown": [
+                    "visual_layout",
+                    "fonts",
+                    "rendered_pixels",
+                    "formula_results"
+                  ],
+                  "documentClass": "text"
+                },
+                "after": {
+                  "schema": 1,
+                  "status": "checked_subset",
+                  "complete": true,
+                  "kind": "odf",
+                  "counts": {
+                    "words": 5,
+                    "paragraphs": 3,
+                    "tables": 1,
+                    "images": 0,
+                    "formulas": 0,
+                    "charts": 0,
+                    "embeddedObjects": 0
+                  },
+                  "textDigest": "f9e53fc4eb1aa5080311f80e383ba23baac94d7ef7606bee4453d8d084b3beda",
+                  "unknown": [
+                    "visual_layout",
+                    "fonts",
+                    "rendered_pixels",
+                    "formula_results"
+                  ],
+                  "documentClass": "text"
+                },
+                "risks": [],
+                "formatLimitations": [],
+                "unknown": [
+                  "visual_layout",
+                  "fonts",
+                  "rendered_pixels",
+                  "formula_results"
+                ]
+              },
+              "outputs": [
+                {
+                  "path": "0003-odt/document.odt",
+                  "size": 9376
+                }
+              ],
+              "route": null,
+              "libreOfficeStarted": true
+            }
+          ]
+        },
+        {
+          "fileId": "xlsx",
+          "name": "sheet.xlsx",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.sheet.SpreadsheetDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 1,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": [
+            {
+              "taskId": "a0951fddb9b7d4a5ce311ba48e4166da:3",
+              "format": "csv",
+              "state": "saved",
+              "code": null,
+              "error": null,
+              "stage": "result",
+              "diagnostic": "",
+              "executionMode": "native_cli",
+              "durationMs": 22703,
+              "nativeTimings": {
+                "source": "cli_process",
+                "adapterMs": 22561,
+                "processMs": 22559,
+                "launchMs": 0
+              },
+              "exportFilter": "Text - txt - csv (StarCalc)",
+              "warnings": [],
+              "quality": {
+                "schema": 1,
+                "status": "risks_found",
+                "qualityCompared": true,
+                "scope": "structural_subset",
+                "before": {
+                  "schema": 1,
+                  "status": "checked_subset",
+                  "complete": true,
+                  "kind": "ooxml",
+                  "counts": {
+                    "words": 0,
+                    "paragraphs": 0,
+                    "tables": 0,
+                    "images": 0,
+                    "formulas": 1,
+                    "charts": 0,
+                    "sheets": 1,
+                    "rows": 2,
+                    "columns": 2
+                  },
+                  "textDigest": null,
+                  "unknown": [
+                    "visual_layout",
+                    "fonts",
+                    "rendered_pixels",
+                    "formula_results"
+                  ],
+                  "documentClass": "spreadsheet",
+                  "cellValues": {
+                    "rows": 2,
+                    "columns": 2,
+                    "valuesDigest": "7b4a5dade3817359e8d478aa88bb5863d4ce6221d795011e6a276f30899475d9",
+                    "sheets": 1
+                  }
+                },
+                "after": {
+                  "schema": 1,
+                  "status": "checked_subset",
+                  "complete": true,
+                  "kind": "csv",
+                  "counts": {
+                    "rows": 2,
+                    "columns": 2
+                  },
+                  "textDigest": null,
+                  "unknown": [
+                    "visual_layout",
+                    "fonts",
+                    "rendered_pixels",
+                    "formula_results"
+                  ],
+                  "documentClass": "spreadsheet",
+                  "csv": {
+                    "schema": 1,
+                    "status": "checked",
+                    "complete": true,
+                    "encoding": "utf-8",
+                    "delimiter": ",",
+                    "valuesAnalyzed": true,
+                    "rows": 2,
+                    "columns": 2,
+                    "raggedRows": 0,
+                    "emptyRows": 0,
+                    "typeRisks": {
+                      "leadingZeros": 0,
+                      "formulaLike": 0,
+                      "dateLike": 0,
+                      "scientificLike": 0
+                    },
+                    "valuesDigest": "82d91524260260ca1cb8cce720e8f08342fa7caffa91a77cb91e17896a74ef21",
+                    "durationMs": 1
+                  },
+                  "cellValues": {
+                    "rows": 2,
+                    "columns": 2,
+                    "valuesDigest": "82d91524260260ca1cb8cce720e8f08342fa7caffa91a77cb91e17896a74ef21"
+                  }
+                },
+                "risks": [
+                  {
+                    "code": "CELL_VALUES_DIFFER",
+                    "feature": "cells",
+                    "certainty": "requires_review"
+                  }
+                ],
+                "formatLimitations": [
+                  "FORMULAS_NOT_EDITABLE_IN_TARGET",
+                  "CSV_HAS_ONE_TABLE_AND_NO_WORKBOOK_STYLES"
+                ],
+                "unknown": [
+                  "visual_layout",
+                  "fonts",
+                  "rendered_pixels",
+                  "formula_results"
+                ]
+              },
+              "outputs": [
+                {
+                  "path": "0004-csv/sheet.csv",
+                  "size": 48
+                }
+              ],
+              "route": null,
+              "libreOfficeStarted": true
+            },
+            {
+              "taskId": "a0951fddb9b7d4a5ce311ba48e4166da:4",
+              "format": "tsv",
+              "state": "saved",
+              "code": null,
+              "error": null,
+              "stage": "result",
+              "diagnostic": "",
+              "executionMode": "native_cli",
+              "durationMs": 27081,
+              "nativeTimings": {
+                "source": "cli_process",
+                "adapterMs": 26962,
+                "processMs": 26960,
+                "launchMs": 0
+              },
+              "exportFilter": "Text - txt - csv (StarCalc)",
+              "warnings": [],
+              "quality": {
+                "schema": 1,
+                "status": "risks_found",
+                "qualityCompared": true,
+                "scope": "structural_subset",
+                "before": {
+                  "schema": 1,
+                  "status": "checked_subset",
+                  "complete": true,
+                  "kind": "ooxml",
+                  "counts": {
+                    "words": 0,
+                    "paragraphs": 0,
+                    "tables": 0,
+                    "images": 0,
+                    "formulas": 1,
+                    "charts": 0,
+                    "sheets": 1,
+                    "rows": 2,
+                    "columns": 2
+                  },
+                  "textDigest": null,
+                  "unknown": [
+                    "visual_layout",
+                    "fonts",
+                    "rendered_pixels",
+                    "formula_results"
+                  ],
+                  "documentClass": "spreadsheet",
+                  "cellValues": {
+                    "rows": 2,
+                    "columns": 2,
+                    "valuesDigest": "7b4a5dade3817359e8d478aa88bb5863d4ce6221d795011e6a276f30899475d9",
+                    "sheets": 1
+                  }
+                },
+                "after": {
+                  "schema": 1,
+                  "status": "checked_subset",
+                  "complete": true,
+                  "kind": "csv",
+                  "counts": {
+                    "rows": 2,
+                    "columns": 2
+                  },
+                  "textDigest": null,
+                  "unknown": [
+                    "visual_layout",
+                    "fonts",
+                    "rendered_pixels",
+                    "formula_results"
+                  ],
+                  "documentClass": "spreadsheet",
+                  "csv": {
+                    "schema": 1,
+                    "status": "checked",
+                    "complete": true,
+                    "encoding": "utf-8",
+                    "delimiter": "\t",
+                    "valuesAnalyzed": true,
+                    "rows": 2,
+                    "columns": 2,
+                    "raggedRows": 0,
+                    "emptyRows": 0,
+                    "typeRisks": {
+                      "leadingZeros": 0,
+                      "formulaLike": 0,
+                      "dateLike": 0,
+                      "scientificLike": 0
+                    },
+                    "valuesDigest": "82d91524260260ca1cb8cce720e8f08342fa7caffa91a77cb91e17896a74ef21",
+                    "durationMs": 0
+                  },
+                  "cellValues": {
+                    "rows": 2,
+                    "columns": 2,
+                    "valuesDigest": "82d91524260260ca1cb8cce720e8f08342fa7caffa91a77cb91e17896a74ef21"
+                  }
+                },
+                "risks": [
+                  {
+                    "code": "CELL_VALUES_DIFFER",
+                    "feature": "cells",
+                    "certainty": "requires_review"
+                  }
+                ],
+                "formatLimitations": [
+                  "FORMULAS_NOT_EDITABLE_IN_TARGET",
+                  "CSV_HAS_ONE_TABLE_AND_NO_WORKBOOK_STYLES"
+                ],
+                "unknown": [
+                  "visual_layout",
+                  "fonts",
+                  "rendered_pixels",
+                  "formula_results"
+                ]
+              },
+              "outputs": [
+                {
+                  "path": "0005-tsv/sheet.tsv",
+                  "size": 48
+                }
+              ],
+              "route": null,
+              "libreOfficeStarted": true
+            }
+          ]
+        },
+        {
+          "fileId": "csv",
+          "name": "table.csv",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.sheet.SpreadsheetDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 1,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false,
+            "requestedImportFilter": "Text - txt - csv (StarCalc)",
+            "requestedImportOptions": "44,34,76,1",
+            "csvImportSampleOnly": false,
+            "csvInspection": {
+              "schema": 1,
+              "status": "checked",
+              "complete": true,
+              "encoding": "utf-8",
+              "delimiter": ",",
+              "valuesAnalyzed": false,
+              "rows": 3,
+              "columns": 2,
+              "raggedRows": 0,
+              "emptyRows": 0,
+              "typeRisks": {
+                "leadingZeros": 0,
+                "formulaLike": 0,
+                "dateLike": 0,
+                "scientificLike": 0
+              },
+              "valuesDigest": null,
+              "durationMs": 0
+            }
+          },
+          "warnings": [],
+          "targets": [
+            {
+              "taskId": "a0951fddb9b7d4a5ce311ba48e4166da:5",
+              "format": "pdf",
+              "state": "saved",
+              "code": null,
+              "error": null,
+              "stage": "result",
+              "diagnostic": "",
+              "executionMode": "native_cli",
+              "durationMs": 54077,
+              "nativeTimings": {
+                "source": "cli_process",
+                "adapterMs": 53314,
+                "processMs": 53307,
+                "launchMs": 1
+              },
+              "exportFilter": "calc_pdf_Export",
+              "warnings": [],
+              "quality": {
+                "schema": 1,
+                "status": "not_checked",
+                "qualityCompared": false,
+                "scope": "structural_subset",
+                "before": {
+                  "schema": 1,
+                  "status": "checked_subset",
+                  "complete": true,
+                  "kind": "csv",
+                  "counts": {
+                    "rows": 3,
+                    "columns": 2
+                  },
+                  "textDigest": null,
+                  "unknown": [
+                    "visual_layout",
+                    "fonts",
+                    "rendered_pixels",
+                    "formula_results"
+                  ],
+                  "documentClass": "spreadsheet",
+                  "csv": {
+                    "schema": 1,
+                    "status": "checked",
+                    "complete": true,
+                    "encoding": "utf-8",
+                    "delimiter": ",",
+                    "valuesAnalyzed": true,
+                    "rows": 3,
+                    "columns": 2,
+                    "raggedRows": 0,
+                    "emptyRows": 0,
+                    "typeRisks": {
+                      "leadingZeros": 0,
+                      "formulaLike": 0,
+                      "dateLike": 0,
+                      "scientificLike": 0
+                    },
+                    "valuesDigest": "4c469591139369071d04b560c0c0dbc01a92f57ef6886398c046a659652c1821",
+                    "durationMs": 0
+                  },
+                  "cellValues": {
+                    "rows": 3,
+                    "columns": 2,
+                    "valuesDigest": "4c469591139369071d04b560c0c0dbc01a92f57ef6886398c046a659652c1821"
+                  }
+                },
+                "after": {
+                  "schema": 1,
+                  "status": "checked_subset",
+                  "complete": true,
+                  "kind": "pdf",
+                  "counts": {
+                    "pages": 1
+                  },
+                  "textDigest": null,
+                  "unknown": [
+                    "visual_layout",
+                    "fonts",
+                    "rendered_pixels",
+                    "formula_results",
+                    "text",
+                    "tables",
+                    "images",
+                    "formulas"
+                  ],
+                  "documentClass": "rendered"
+                },
+                "risks": [],
+                "formatLimitations": [],
+                "unknown": [
+                  "visual_layout",
+                  "fonts",
+                  "rendered_pixels",
+                  "formula_results",
+                  "no_comparable_structure"
+                ]
+              },
+              "outputs": [
+                {
+                  "path": "0006-pdf/table.pdf",
+                  "size": 15364
+                }
+              ],
+              "route": null,
+              "libreOfficeStarted": true
+            }
+          ]
+        },
+        {
+          "fileId": "bmp",
+          "name": "picture.bmp",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.drawing.DrawingDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 3,
+            "drawPages": 1,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": [
+            {
+              "taskId": "a0951fddb9b7d4a5ce311ba48e4166da:6",
+              "format": "pdf",
+              "state": "saved",
+              "code": null,
+              "error": null,
+              "stage": "result",
+              "diagnostic": "",
+              "executionMode": "native_cli",
+              "durationMs": 789,
+              "nativeTimings": {
+                "source": "cli_process",
+                "adapterMs": 525,
+                "processMs": 522,
+                "launchMs": 2
+              },
+              "exportFilter": "draw_pdf_Export",
+              "warnings": [],
+              "quality": {
+                "schema": 1,
+                "status": "not_checked",
+                "qualityCompared": false,
+                "scope": "structural_subset",
+                "before": {
+                  "schema": 1,
+                  "status": "checked_subset",
+                  "complete": true,
+                  "kind": "raster",
+                  "counts": {
+                    "images": 1,
+                    "width": 2,
+                    "height": 2
+                  },
+                  "textDigest": null,
+                  "unknown": [
+                    "visual_layout",
+                    "fonts",
+                    "rendered_pixels",
+                    "formula_results"
+                  ],
+                  "documentClass": "image"
+                },
+                "after": {
+                  "schema": 1,
+                  "status": "checked_subset",
+                  "complete": true,
+                  "kind": "pdf",
+                  "counts": {
+                    "pages": 1
+                  },
+                  "textDigest": null,
+                  "unknown": [
+                    "visual_layout",
+                    "fonts",
+                    "rendered_pixels",
+                    "formula_results",
+                    "text",
+                    "tables",
+                    "images",
+                    "formulas"
+                  ],
+                  "documentClass": "rendered"
+                },
+                "risks": [],
+                "formatLimitations": [],
+                "unknown": [
+                  "visual_layout",
+                  "fonts",
+                  "rendered_pixels",
+                  "formula_results",
+                  "no_comparable_structure"
+                ]
+              },
+              "outputs": [
+                {
+                  "path": "0007-pdf/picture.pdf",
+                  "size": 7231
+                }
+              ],
+              "route": null,
+              "libreOfficeStarted": true
+            },
+            {
+              "taskId": "a0951fddb9b7d4a5ce311ba48e4166da:7",
+              "format": "png",
+              "state": "saved",
+              "code": null,
+              "error": null,
+              "stage": "result",
+              "diagnostic": "",
+              "executionMode": "native_cli",
+              "durationMs": 1030,
+              "nativeTimings": {
+                "source": "cli_process",
+                "adapterMs": 874,
+                "processMs": 871,
+                "launchMs": 1
+              },
+              "exportFilter": "draw_png_Export",
+              "warnings": [],
+              "quality": {
+                "schema": 1,
+                "status": "checked_subset",
+                "qualityCompared": true,
+                "scope": "structural_subset",
+                "before": {
+                  "schema": 1,
+                  "status": "checked_subset",
+                  "complete": true,
+                  "kind": "raster",
+                  "counts": {
+                    "images": 1,
+                    "width": 2,
+                    "height": 2
+                  },
+                  "textDigest": null,
+                  "unknown": [
+                    "visual_layout",
+                    "fonts",
+                    "rendered_pixels",
+                    "formula_results"
+                  ],
+                  "documentClass": "image"
+                },
+                "after": {
+                  "schema": 1,
+                  "status": "checked_subset",
+                  "complete": true,
+                  "kind": "raster",
+                  "counts": {
+                    "images": 1,
+                    "width": 794,
+                    "height": 1123
+                  },
+                  "textDigest": null,
+                  "unknown": [
+                    "visual_layout",
+                    "fonts",
+                    "rendered_pixels",
+                    "formula_results"
+                  ],
+                  "documentClass": "image"
+                },
+                "risks": [],
+                "formatLimitations": [],
+                "unknown": [
+                  "visual_layout",
+                  "fonts",
+                  "rendered_pixels",
+                  "formula_results"
+                ]
+              },
+              "outputs": [
+                {
+                  "path": "0008-png/picture.png",
+                  "size": 5100
+                }
+              ],
+              "route": null,
+              "libreOfficeStarted": true
+            }
+          ]
+        }
+      ],
+      "timings": {
+        "journalMs": 33,
+        "preflight_startedMs": 5,
+        "preflight_doneMs": 1968,
+        "planMs": 1,
+        "job_queuedMs": 1969,
+        "job_startedMs": 1973,
+        "engine_startedMs": 2078,
+        "packaging_startedMs": 110923,
+        "job_finishedMs": 110923,
+        "bundle_readyMs": 112016,
+        "archiveMs": 2
+      },
+      "qualityCheckRequested": true,
+      "qualityCompared": true,
+      "jobId": "a0951fddb9b7d4a5ce311ba48e4166da",
+      "state": "ready",
+      "officeStarts": 0,
+      "trace": {
+        "events": [
+          {
+            "sequence": 1,
+            "elapsedMs": 0,
+            "stage": "job_created",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 2,
+            "elapsedMs": 4,
+            "stage": "input_stored",
+            "fileId": "docx",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 3,
+            "elapsedMs": 4,
+            "stage": "input_stored",
+            "fileId": "xlsx",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 4,
+            "elapsedMs": 5,
+            "stage": "input_stored",
+            "fileId": "csv",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 5,
+            "elapsedMs": 5,
+            "stage": "input_stored",
+            "fileId": "bmp",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 6,
+            "elapsedMs": 5,
+            "stage": "preflight_started",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 7,
+            "elapsedMs": 115,
+            "stage": "preflight_file_started",
+            "fileId": "docx",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 8,
+            "elapsedMs": 603,
+            "stage": "preflight_finished",
+            "fileId": "docx",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 9,
+            "elapsedMs": 603,
+            "stage": "preflight_file_started",
+            "fileId": "xlsx",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 10,
+            "elapsedMs": 1061,
+            "stage": "preflight_finished",
+            "fileId": "xlsx",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 11,
+            "elapsedMs": 1061,
+            "stage": "preflight_file_started",
+            "fileId": "csv",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 12,
+            "elapsedMs": 1431,
+            "stage": "preflight_finished",
+            "fileId": "csv",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 13,
+            "elapsedMs": 1431,
+            "stage": "preflight_file_started",
+            "fileId": "bmp",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 14,
+            "elapsedMs": 1837,
+            "stage": "preflight_finished",
+            "fileId": "bmp",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 15,
+            "elapsedMs": 1968,
+            "stage": "preflight_done",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 16,
+            "elapsedMs": 1969,
+            "stage": "job_queued",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 17,
+            "elapsedMs": 1973,
+            "stage": "job_started",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 18,
+            "elapsedMs": 2077,
+            "stage": "route_selected",
+            "fileId": "docx",
+            "format": "pdf",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 19,
+            "elapsedMs": 2078,
+            "stage": "engine_started",
+            "fileId": "docx",
+            "format": "pdf",
+            "code": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 20,
+            "elapsedMs": 2898,
+            "stage": "result_retaining",
+            "fileId": "docx",
+            "format": "pdf",
+            "code": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 21,
+            "elapsedMs": 2901,
+            "stage": "result_ready",
+            "fileId": "docx",
+            "format": "pdf",
+            "code": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 22,
+            "elapsedMs": 2901,
+            "stage": "task_finished",
+            "fileId": "docx",
+            "format": "pdf",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 23,
+            "elapsedMs": 2902,
+            "stage": "route_selected",
+            "fileId": "docx",
+            "format": "html",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 24,
+            "elapsedMs": 2904,
+            "stage": "engine_started",
+            "fileId": "docx",
+            "format": "html",
+            "code": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 25,
+            "elapsedMs": 3571,
+            "stage": "result_retaining",
+            "fileId": "docx",
+            "format": "html",
+            "code": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 26,
+            "elapsedMs": 3573,
+            "stage": "result_ready",
+            "fileId": "docx",
+            "format": "html",
+            "code": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 27,
+            "elapsedMs": 3573,
+            "stage": "task_finished",
+            "fileId": "docx",
+            "format": "html",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 28,
+            "elapsedMs": 3575,
+            "stage": "route_selected",
+            "fileId": "docx",
+            "format": "odt",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 29,
+            "elapsedMs": 3577,
+            "stage": "engine_started",
+            "fileId": "docx",
+            "format": "odt",
+            "code": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 30,
+            "elapsedMs": 4519,
+            "stage": "result_retaining",
+            "fileId": "docx",
+            "format": "odt",
+            "code": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 31,
+            "elapsedMs": 4521,
+            "stage": "result_ready",
+            "fileId": "docx",
+            "format": "odt",
+            "code": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 32,
+            "elapsedMs": 4522,
+            "stage": "task_finished",
+            "fileId": "docx",
+            "format": "odt",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 33,
+            "elapsedMs": 4524,
+            "stage": "input_finished",
+            "fileId": "docx",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 34,
+            "elapsedMs": 4943,
+            "stage": "route_selected",
+            "fileId": "xlsx",
+            "format": "csv",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 35,
+            "elapsedMs": 4945,
+            "stage": "engine_started",
+            "fileId": "xlsx",
+            "format": "csv",
+            "code": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 36,
+            "elapsedMs": 27646,
+            "stage": "result_retaining",
+            "fileId": "xlsx",
+            "format": "csv",
+            "code": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 37,
+            "elapsedMs": 27650,
+            "stage": "result_ready",
+            "fileId": "xlsx",
+            "format": "csv",
+            "code": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 38,
+            "elapsedMs": 27650,
+            "stage": "task_finished",
+            "fileId": "xlsx",
+            "format": "csv",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 39,
+            "elapsedMs": 27652,
+            "stage": "route_selected",
+            "fileId": "xlsx",
+            "format": "tsv",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 40,
+            "elapsedMs": 27653,
+            "stage": "engine_started",
+            "fileId": "xlsx",
+            "format": "tsv",
+            "code": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 41,
+            "elapsedMs": 54733,
+            "stage": "result_retaining",
+            "fileId": "xlsx",
+            "format": "tsv",
+            "code": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 42,
+            "elapsedMs": 54736,
+            "stage": "result_ready",
+            "fileId": "xlsx",
+            "format": "tsv",
+            "code": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 43,
+            "elapsedMs": 54736,
+            "stage": "task_finished",
+            "fileId": "xlsx",
+            "format": "tsv",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 44,
+            "elapsedMs": 54745,
+            "stage": "input_finished",
+            "fileId": "xlsx",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 45,
+            "elapsedMs": 54853,
+            "stage": "route_selected",
+            "fileId": "csv",
+            "format": "pdf",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 46,
+            "elapsedMs": 54856,
+            "stage": "engine_started",
+            "fileId": "csv",
+            "format": "pdf",
+            "code": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 47,
+            "elapsedMs": 108930,
+            "stage": "result_retaining",
+            "fileId": "csv",
+            "format": "pdf",
+            "code": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 48,
+            "elapsedMs": 108936,
+            "stage": "result_ready",
+            "fileId": "csv",
+            "format": "pdf",
+            "code": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 49,
+            "elapsedMs": 108936,
+            "stage": "task_finished",
+            "fileId": "csv",
+            "format": "pdf",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 50,
+            "elapsedMs": 108941,
+            "stage": "input_finished",
+            "fileId": "csv",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 51,
+            "elapsedMs": 109094,
+            "stage": "route_selected",
+            "fileId": "bmp",
+            "format": "pdf",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 52,
+            "elapsedMs": 109096,
+            "stage": "engine_started",
+            "fileId": "bmp",
+            "format": "pdf",
+            "code": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 53,
+            "elapsedMs": 109883,
+            "stage": "result_retaining",
+            "fileId": "bmp",
+            "format": "pdf",
+            "code": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 54,
+            "elapsedMs": 109885,
+            "stage": "result_ready",
+            "fileId": "bmp",
+            "format": "pdf",
+            "code": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 55,
+            "elapsedMs": 109885,
+            "stage": "task_finished",
+            "fileId": "bmp",
+            "format": "pdf",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 56,
+            "elapsedMs": 109888,
+            "stage": "route_selected",
+            "fileId": "bmp",
+            "format": "png",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 57,
+            "elapsedMs": 109892,
+            "stage": "engine_started",
+            "fileId": "bmp",
+            "format": "png",
+            "code": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 58,
+            "elapsedMs": 110918,
+            "stage": "result_retaining",
+            "fileId": "bmp",
+            "format": "png",
+            "code": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 59,
+            "elapsedMs": 110920,
+            "stage": "result_ready",
+            "fileId": "bmp",
+            "format": "png",
+            "code": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 60,
+            "elapsedMs": 110920,
+            "stage": "task_finished",
+            "fileId": "bmp",
+            "format": "png",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 61,
+            "elapsedMs": 110923,
+            "stage": "input_finished",
+            "fileId": "bmp",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 62,
+            "elapsedMs": 110923,
+            "stage": "packaging_started",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 63,
+            "elapsedMs": 110923,
+            "stage": "results_available",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 64,
+            "elapsedMs": 110923,
+            "stage": "bundle_deferred",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 65,
+            "elapsedMs": 110923,
+            "stage": "job_finished",
+            "fileId": null,
+            "format": null,
+            "code": "ready",
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 66,
+            "elapsedMs": 110924,
+            "stage": "worker_finished",
+            "fileId": null,
+            "format": null,
+            "code": "ready",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 67,
+            "elapsedMs": 110935,
+            "stage": "save_started",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 68,
+            "elapsedMs": 110986,
+            "stage": "save_confirmed",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 69,
+            "elapsedMs": 110986,
+            "stage": "save_idle",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 70,
+            "elapsedMs": 112012,
+            "stage": "packaging_started",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 71,
+            "elapsedMs": 112013,
+            "stage": "results_available",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 72,
+            "elapsedMs": 112016,
+            "stage": "bundle_ready",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 73,
+            "elapsedMs": 112016,
+            "stage": "job_finished",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          }
+        ],
+        "droppedEvents": 0
+      },
+      "fileTimeoutSeconds": 90
+    },
+    "sourceSHA256": {
+      "docx": "8062cdbf38f4c61a7498b6f1e15b5a0372a03331406096ec56ec2c66dbba025b",
+      "xlsx": "ef567502a315b5cf29d90b38635f0148dcf7ff7d2a5103592bed3c41ccca4195",
+      "csv": "b99c8caf7a613acc9ef45eb0ef958d93e8d17e5ae9ebe44673feeca2d41d8d52",
+      "bmp": "a7beb5056325b28509539b4f84f7444a1333692b32806406fe21d7d6f991ee8b"
+    },
+    "elapsedMs": 112047
+  },
+  "nativeOpenCases": {
+    "status": "completed",
+    "scope": "native control vs Guard; no Windows GUI acceptance",
+    "cases": [
+      {
+        "name": "01_LEVEL_1.odc",
+        "sourceSHA256": "fa488d1cfac1ee4d252e6633ccc57d49c819f231110f364d281041c78cfdcd67",
+        "package": {
+          "mimetype": "application/vnd.oasis.opendocument.chart",
+          "hasParentReference": true,
+          "embeddedPackages": 0
+        },
+        "control": [
+          {
+            "target": "pdf",
+            "guardVerified": false,
+            "state": "error",
+            "code": "ENGINE_TIMEOUT",
+            "durationMs": 12034
+          }
+        ],
+        "preflightMs": 535,
+        "proof": {
+          "state": "detected",
+          "basis": "native_preflight_chart_content",
+          "documentServices": [
+            "com.sun.star.chart2.ChartDocument"
+          ],
+          "nativeKind": 4,
+          "chartPackage": true,
+          "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+          "exported": false
+        },
+        "guardReport": {
+          "nativeExportsStarted": 0,
+          "reason": "no_confirmed_native_route"
+        },
+        "originalUnchanged": true
+      },
+      {
+        "name": "02_LEVEL_2.odc",
+        "sourceSHA256": "06670291d2a46622837b1e995755340ab7c1776ce003fbea27752f511542703b",
+        "package": {
+          "mimetype": "application/vnd.oasis.opendocument.chart",
+          "hasParentReference": true,
+          "embeddedPackages": 0
+        },
+        "control": [
+          {
+            "target": "pdf",
+            "guardVerified": false,
+            "state": "error",
+            "code": "ENGINE_TIMEOUT",
+            "durationMs": 12028
+          }
+        ],
+        "preflightMs": 287,
+        "proof": {
+          "state": "detected",
+          "basis": "native_preflight_chart_content",
+          "documentServices": [
+            "com.sun.star.chart2.ChartDocument"
+          ],
+          "nativeKind": 4,
+          "chartPackage": true,
+          "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+          "exported": false
+        },
+        "guardReport": {
+          "nativeExportsStarted": 0,
+          "reason": "no_confirmed_native_route"
+        },
+        "originalUnchanged": true
+      },
+      {
+        "name": "03_LEVEL_3.odc",
+        "sourceSHA256": "81133912df4a1ac87cfee419fda137b4f843f683749490298ef7647cead6eaaf",
+        "package": {
+          "mimetype": "application/vnd.oasis.opendocument.chart",
+          "hasParentReference": true,
+          "embeddedPackages": 0
+        },
+        "control": [
+          {
+            "target": "pdf",
+            "guardVerified": false,
+            "state": "error",
+            "code": "ENGINE_TIMEOUT",
+            "durationMs": 12079
+          }
+        ],
+        "preflightMs": 578,
+        "proof": {
+          "state": "detected",
+          "basis": "native_preflight_chart_content",
+          "documentServices": [
+            "com.sun.star.chart2.ChartDocument"
+          ],
+          "nativeKind": 4,
+          "chartPackage": true,
+          "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+          "exported": false
+        },
+        "guardReport": {
+          "nativeExportsStarted": 0,
+          "reason": "no_confirmed_native_route"
+        },
+        "originalUnchanged": true
+      },
+      {
+        "name": "03_LEVEL_3.odt",
+        "sourceSHA256": "39ed8c15728f98d96a6ed05460856da9c4a6eeade328ee4f49e8561537a6436f",
+        "package": {
+          "mimetype": "application/vnd.oasis.opendocument.text",
+          "hasParentReference": false,
+          "embeddedPackages": 0
+        },
+        "control": [
+          {
+            "target": "csv",
+            "guardVerified": true,
+            "state": "error",
+            "code": "NATIVE_EXPORT_FILTER_UNAVAILABLE",
+            "durationMs": 796
+          },
+          {
+            "target": "svg",
+            "guardVerified": true,
+            "state": "error",
+            "code": "ENGINE_FAILED",
+            "durationMs": 619
+          },
+          {
+            "target": "epub",
+            "guardVerified": true,
+            "state": "ready",
+            "size": 12599,
+            "outputSHA256": "2942d0b15929f008e6f0c9458626cf2aa6d4e1c692344fe3fa550074404643cb",
+            "structure": {
+              "schema": 1,
+              "status": "checked_subset",
+              "complete": true,
+              "kind": "epub",
+              "counts": {
+                "words": 319,
+                "paragraphs": 101,
+                "tables": 1,
+                "images": 1,
+                "formulas": 0,
+                "charts": 0,
+                "chapters": 4
+              },
+              "textDigest": "eb5003a9bacf18c9a3b98e00cdf7fe69eb0a0ebe61cfd7eddd6d68c196118de4",
+              "unknown": [
+                "visual_layout",
+                "fonts",
+                "rendered_pixels",
+                "formula_results",
+                "epub_reading_order"
+              ],
+              "documentClass": "text"
+            },
+            "durationMs": 979
+          }
+        ],
+        "preflightMs": 590,
+        "proof": {
+          "state": "detected",
+          "documentServices": [
+            "com.sun.star.text.TextDocument",
+            "com.sun.star.text.WebDocument",
+            "com.sun.star.text.GlobalDocument"
+          ],
+          "basis": "native_preflight_document_kind",
+          "nativeKind": 0,
+          "drawPages": null,
+          "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+          "exported": false
+        },
+        "guardReport": {
+          "schemaVersion": 3,
+          "total": 3,
+          "completed": 3,
+          "attempted": 3,
+          "succeeded": 1,
+          "failed": 2,
+          "cancelled": 0,
+          "filtered": 0,
+          "pending": 0,
+          "preflightChecks": 1,
+          "recoveryError": null,
+          "files": [
+            {
+              "fileId": "source",
+              "name": "03_LEVEL_3.odt",
+              "nativeRoute": {
+                "state": "detected",
+                "documentServices": [
+                  "com.sun.star.text.TextDocument",
+                  "com.sun.star.text.WebDocument",
+                  "com.sun.star.text.GlobalDocument"
+                ],
+                "basis": "native_preflight_document_kind",
+                "nativeKind": 0,
+                "drawPages": null,
+                "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+                "exported": false
+              },
+              "warnings": [],
+              "targets": [
+                {
+                  "taskId": "b3434da1b8eedcadff6d60783699a775:0",
+                  "format": "csv",
+                  "state": "error",
+                  "code": "NATIVE_EXPORT_FILTER_UNAVAILABLE",
+                  "error": "LibreOffice не нашёл исполняемый фильтр экспорта для этого документа и формата.",
+                  "stage": "engine",
+                  "diagnostic": "Error: no export filter for [local]/output/03_LEVEL_3.csv found, aborting.\nError: no export filter\n",
+                  "executionMode": "native_cli",
+                  "durationMs": 621,
+                  "nativeTimings": {
+                    "source": "cli_process",
+                    "adapterMs": 621,
+                    "processMs": 617,
+                    "launchMs": 0
+                  },
+                  "exportFilter": null,
+                  "warnings": [],
+                  "quality": null,
+                  "outputs": [],
+                  "route": null,
+                  "libreOfficeStarted": true
+                },
+                {
+                  "taskId": "b3434da1b8eedcadff6d60783699a775:1",
+                  "format": "svg",
+                  "state": "error",
+                  "code": "ENGINE_FAILED",
+                  "error": "LibreOffice завершился с кодом 1.",
+                  "stage": "engine",
+                  "diagnostic": "convert [local] as a Writer document -> [local]/output/03_LEVEL_3.svg using filter : writer_svg_Export\nError: Please verify input parameters... (SfxBaseModel::impl_store <file://[local]/output/03_LEVEL_3.svg> failed: 0xc10(Error Area:Io Class:Write Code:16))\n",
+                  "executionMode": "native_cli",
+                  "durationMs": 638,
+                  "nativeTimings": {
+                    "source": "cli_process",
+                    "adapterMs": 638,
+                    "processMs": 634,
+                    "launchMs": 1
+                  },
+                  "exportFilter": "writer_svg_Export",
+                  "warnings": [
+                    {
+                      "code": "NATIVE_WRITER_SVG_EXPORT_RISK",
+                      "message": "Штатный SVG-фильтр Writer может завершиться без выходного файла. Поддержка зарегистрированного фильтра не гарантирует успешный экспорт. Guard проверяет наличие результата, а при отказе сохраняет диагностику LibreOffice."
+                    }
+                  ],
+                  "quality": null,
+                  "outputs": [],
+                  "route": null,
+                  "libreOfficeStarted": true
+                },
+                {
+                  "taskId": "b3434da1b8eedcadff6d60783699a775:2",
+                  "format": "epub",
+                  "state": "ready",
+                  "code": null,
+                  "error": null,
+                  "stage": "result",
+                  "diagnostic": "",
+                  "executionMode": "native_cli",
+                  "durationMs": 843,
+                  "nativeTimings": {
+                    "source": "cli_process",
+                    "adapterMs": 740,
+                    "processMs": 737,
+                    "launchMs": 1
+                  },
+                  "exportFilter": "EPUB",
+                  "warnings": [],
+                  "quality": {
+                    "schema": 1,
+                    "status": "risks_found",
+                    "qualityCompared": true,
+                    "scope": "structural_subset",
+                    "before": {
+                      "schema": 1,
+                      "status": "checked_subset",
+                      "complete": true,
+                      "kind": "odf",
+                      "counts": {
+                        "words": 309,
+                        "paragraphs": 98,
+                        "tables": 1,
+                        "images": 1,
+                        "formulas": 0,
+                        "charts": 0,
+                        "embeddedObjects": 0
+                      },
+                      "textDigest": "222c86b916551c0f9ffa7522309fac73f8022f8eddf385bf90acb5e1a7e87957",
+                      "unknown": [
+                        "visual_layout",
+                        "fonts",
+                        "rendered_pixels",
+                        "formula_results"
+                      ],
+                      "documentClass": "text"
+                    },
+                    "after": {
+                      "schema": 1,
+                      "status": "checked_subset",
+                      "complete": true,
+                      "kind": "epub",
+                      "counts": {
+                        "words": 319,
+                        "paragraphs": 101,
+                        "tables": 1,
+                        "images": 1,
+                        "formulas": 0,
+                        "charts": 0,
+                        "chapters": 4
+                      },
+                      "textDigest": "eb5003a9bacf18c9a3b98e00cdf7fe69eb0a0ebe61cfd7eddd6d68c196118de4",
+                      "unknown": [
+                        "visual_layout",
+                        "fonts",
+                        "rendered_pixels",
+                        "formula_results",
+                        "epub_reading_order"
+                      ],
+                      "documentClass": "text"
+                    },
+                    "risks": [
+                      {
+                        "code": "TEXT_DIFFERS",
+                        "feature": "text",
+                        "certainty": "requires_review"
+                      }
+                    ],
+                    "formatLimitations": [],
+                    "unknown": [
+                      "visual_layout",
+                      "fonts",
+                      "rendered_pixels",
+                      "formula_results"
+                    ]
+                  },
+                  "outputs": [
+                    {
+                      "path": "0003-epub/03_LEVEL_3.epub",
+                      "size": 12599
+                    }
+                  ],
+                  "route": null,
+                  "libreOfficeStarted": true
+                }
+              ]
+            }
+          ],
+          "timings": {
+            "journalMs": 24,
+            "preflight_startedMs": 12,
+            "preflight_doneMs": 602,
+            "planMs": 0,
+            "job_queuedMs": 3004,
+            "job_startedMs": 3009,
+            "engine_startedMs": 3150,
+            "packaging_startedMs": 5266,
+            "job_finishedMs": 5267
+          },
+          "qualityCheckRequested": true,
+          "qualityCompared": true,
+          "jobId": "b3434da1b8eedcadff6d60783699a775",
+          "state": "partial",
+          "officeStarts": 0,
+          "trace": {
+            "events": [
+              {
+                "sequence": 1,
+                "elapsedMs": 1,
+                "stage": "job_created",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 2,
+                "elapsedMs": 12,
+                "stage": "input_stored",
+                "fileId": "source",
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 3,
+                "elapsedMs": 12,
+                "stage": "preflight_started",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 4,
+                "elapsedMs": 13,
+                "stage": "preflight_file_started",
+                "fileId": "source",
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 5,
+                "elapsedMs": 600,
+                "stage": "preflight_finished",
+                "fileId": "source",
+                "format": null,
+                "code": "NATIVE_KIND_DETECTED",
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 6,
+                "elapsedMs": 602,
+                "stage": "preflight_done",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 7,
+                "elapsedMs": 3004,
+                "stage": "job_queued",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 8,
+                "elapsedMs": 3009,
+                "stage": "job_started",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 9,
+                "elapsedMs": 3147,
+                "stage": "route_selected",
+                "fileId": "source",
+                "format": "csv",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 10,
+                "elapsedMs": 3150,
+                "stage": "engine_started",
+                "fileId": "source",
+                "format": "csv",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 11,
+                "elapsedMs": 3767,
+                "stage": "engine",
+                "fileId": "source",
+                "format": "csv",
+                "code": "NATIVE_EXPORT_FILTER_UNAVAILABLE",
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 12,
+                "elapsedMs": 3771,
+                "stage": "task_finished",
+                "fileId": "source",
+                "format": "csv",
+                "code": "NATIVE_EXPORT_FILTER_UNAVAILABLE",
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 13,
+                "elapsedMs": 3775,
+                "stage": "route_selected",
+                "fileId": "source",
+                "format": "svg",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 14,
+                "elapsedMs": 3779,
+                "stage": "engine_started",
+                "fileId": "source",
+                "format": "svg",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 15,
+                "elapsedMs": 4413,
+                "stage": "engine",
+                "fileId": "source",
+                "format": "svg",
+                "code": "ENGINE_FAILED",
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 16,
+                "elapsedMs": 4414,
+                "stage": "task_finished",
+                "fileId": "source",
+                "format": "svg",
+                "code": "ENGINE_FAILED",
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 17,
+                "elapsedMs": 4416,
+                "stage": "route_selected",
+                "fileId": "source",
+                "format": "epub",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 18,
+                "elapsedMs": 4420,
+                "stage": "engine_started",
+                "fileId": "source",
+                "format": "epub",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 19,
+                "elapsedMs": 5259,
+                "stage": "result_retaining",
+                "fileId": "source",
+                "format": "epub",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 20,
+                "elapsedMs": 5263,
+                "stage": "result_ready",
+                "fileId": "source",
+                "format": "epub",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 21,
+                "elapsedMs": 5263,
+                "stage": "task_finished",
+                "fileId": "source",
+                "format": "epub",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 22,
+                "elapsedMs": 5266,
+                "stage": "input_finished",
+                "fileId": "source",
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 23,
+                "elapsedMs": 5266,
+                "stage": "packaging_started",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 24,
+                "elapsedMs": 5267,
+                "stage": "results_available",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 25,
+                "elapsedMs": 5267,
+                "stage": "bundle_deferred",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 26,
+                "elapsedMs": 5267,
+                "stage": "job_finished",
+                "fileId": null,
+                "format": null,
+                "code": "partial",
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 27,
+                "elapsedMs": 5268,
+                "stage": "worker_finished",
+                "fileId": null,
+                "format": null,
+                "code": "partial",
+                "libreOfficeStarted": false
+              }
+            ],
+            "droppedEvents": 0
+          },
+          "fileTimeoutSeconds": 12.0
+        },
+        "originalUnchanged": true
+      }
+    ],
+    "platform": "linux",
+    "secondsPerNativeCall": 12.0
+  },
+  "syntheticEndurance": {
+    "status": "PASS",
+    "scope": "1000 sources / 7000 tasks; synthetic exports, real Guard/save/journal",
+    "nativeLibreOffice": "NOT_RUN",
+    "engineRss": "NOT_MEASURED",
+    "pauseDuringBlockedSaveMs": 436,
+    "resumeDuringBlockedSaveMs": 515,
+    "controlDuringBlockedSaveMs": 951,
+    "saveCopyAfterResumeMs": 30785,
+    "copyProgressAtJoin": {
+      "current": 7998,
+      "total": 7998
+    },
+    "partialSavedOutputs": 7998,
+    "finalSavedOutputs": 7999,
+    "succeeded": 6999,
+    "failed": 1,
+    "recoveredLateOutput": true,
+    "allSavedHashes": "PASS",
+    "taskOwnership": "PASS",
+    "releasedStorage": {
+      "jobs": 0,
+      "maxJobs": 16,
+      "reservedBytes": 0,
+      "tickets": 0,
+      "availableSlots": 16,
+      "pendingRecoveryFolders": 0,
+      "reclaimableSavedJobs": 0,
+      "cleanupPending": 0,
+      "running": 0,
+      "queued": 0,
+      "retainedJobs": 0,
+      "unsavedJobs": 0,
+      "unsavedOutputs": 0,
+      "unsavedBytes": 0,
+      "recoveryWriteFailures": 0
+    },
+    "pythonAllocations": {
+      "nearComplete": {
+        "currentBytes": 25638640,
+        "peakBytes": 25639320
+      },
+      "closedWithRecovery": {
+        "currentBytes": 24446002,
+        "peakBytes": 44005215
+      },
+      "qaSnapshotsDropped": {
+        "currentBytes": 2524335,
+        "peakBytes": 66577366
+      },
+      "releasedAndClosed": {
+        "currentBytes": 2318175,
+        "peakBytes": 66577366
+      }
+    },
+    "durationMs": 143397
+  },
+  "largeQueueDom": {
+    "status": "PASS",
+    "files": 1000,
+    "tasks": 83000,
+    "queueDomRows": 50,
+    "clockTicks": 100,
+    "clockMs": 13.865946000000008,
+    "noTaskWalksOnClock": true,
+    "noProgressClones": true,
+    "noForcedLayout": true,
+    "unrelatedMutationsIgnored": true,
+    "nativeWarningVisible": true
+  },
+  "httpDomCases": [
+    {
+      "status": "PASS",
+      "scope": "preserved DOM + real Guard HTTP; synthetic native/save",
+      "unknownSelectable": true,
+      "threeFileSelectAll": true,
+      "requestedPairs": 8,
+      "nativeAttempts": 8,
+      "unplannedPairs": 10,
+      "errors": 0,
+      "honestIssues": true,
+      "unknownBlockedBeforeStart": true,
+      "noAutomaticSelection": true,
+      "removalAfterSaveNoPreflight": true,
+      "savedChecksClear": true,
+      "cancelledJobRetainsCompletedOutput": true,
+      "releasedSpool": true
+    },
+    {
+      "status": "PASS",
+      "scope": "1000-file DOM + HTTP; synthetic native exports; dialog state shim",
+      "files": 1000,
+      "tasks": 1000,
+      "pageSize": 50,
+      "search": true,
+      "explicitSelection": true,
+      "nativeArchiveOnDemand": true
+    },
+    {
+      "status": "PASS",
+      "scope": "DOM/HTTP; save acknowledgment simulated",
+      "permanentSearch": [
+        0,
+        1,
+        3
+      ],
+      "imageCategory": true,
+      "anyInputExtension": true,
+      "metadataRequests": 2,
+      "mixedInputs": true,
+      "rowAndCircleSelection": true,
+      "scrollRetention": true,
+      "partialResults": true,
+      "saveCancellationRetry": true,
+      "checksClearedAfterSave": true,
+      "repeat": true,
+      "moreThan100Files": true,
+      "bulkConversionPaint": true
+    }
+  ],
+  "qtSaveBoundary": {
+    "scope": "real Qt Widgets save boundary; WebEngine/Windows NOT_RUN",
+    "status": "PASS",
+    "guiTimerTicks": 25,
+    "queuedProgress": 2,
+    "duplicatePickerRejected": true
+  },
+  "excelMemory": {
+    "base": {
+      "implementation": "base",
+      "rows": 12000,
+      "cells": 96008,
+      "elapsedSeconds": 19.393175258999918,
+      "pythonPeakBytes": 33774363,
+      "pythonCurrentBytes": 26290811,
+      "maxRssReported": 119304,
+      "outputBytes": 392229,
+      "checks": "all row widths, markers and numeric values PASS"
+    },
+    "patched": {
+      "implementation": "patch",
+      "rows": 12000,
+      "cells": 96008,
+      "elapsedSeconds": 20.305156055000225,
+      "pythonPeakBytes": 20523528,
+      "pythonCurrentBytes": 634966,
+      "maxRssReported": 95652,
+      "outputBytes": 433231,
+      "checks": "all row widths, markers and numeric values PASS"
+    },
+    "pythonPeakReductionPercent": 39.23,
+    "note": "Separate Linux processes; tracemalloc enabled; maxRssReported is whole-process ru_maxrss KiB, not Qt/LO tree RSS; no speedup proven"
+  },
+  "preservation": {
+    "mainBefore": "2bab2d0c31fe84a0d07404a33219dd5bdad834b7",
+    "mainChanged": false,
+    "workflowsChanged": false,
+    "brandBinaryChanged": false,
+    "sourceHashesUnchanged": true,
+    "noWindowsRunDispatched": true
+  },
+  "notRun": [
+    "Windows NIKITA execution",
+    "Windows GUI historical freeze reproduction",
+    "installer Cyrillic visual acceptance",
+    "complete 255-source x all-target native corpus",
+    "Qt WebEngine visual acceptance",
+    "full visual/font/pixel fidelity",
+    "RSS/handles of Windows process tree"
+  ],
+  "functionalFiles": [
+    {
+      "path": "addons/file-converter/aio-file-progress.js",
+      "bytes": 14324,
+      "sha256": "4b92736e22e5cc2ef788023855b4dba5b2d583d0032310d1611f43610ce21ab3",
+      "blobSha": "e438d7ae59adcd3481f30d279947e080286c0378"
+    },
+    {
+      "path": "app_backend/converter_guard/adapter.py",
+      "bytes": 25923,
+      "sha256": "d83cd6ac0755bd8c935c5823c56b2c94879b1c8da9413fb8f6b5c9bb38260d4b",
+      "blobSha": "9054aa32f74fef2f15c6754833d9593bbd442f5b"
+    },
+    {
+      "path": "app_backend/converter_guard/core.py",
+      "bytes": 123443,
+      "sha256": "090d05dba16985d8817afed05cf1bc3c7f2495975ff883cf54dd961083a21f1a",
+      "blobSha": "a63e856b129d7fb9f639a919482cd6ea08206f17"
+    },
+    {
+      "path": "app_backend/converter_guard/csv_import.py",
+      "bytes": 7291,
+      "sha256": "30fe36585defb1c6184914c82a63bae6094011841802440e58d1e8e473aab105",
+      "blobSha": "49548d8431f685e0f96453a3ecb5532ec48f4848"
+    },
+    {
+      "path": "app_backend/converter_guard/export_recipe.py",
+      "bytes": 3895,
+      "sha256": "61c8c6b57304a3767c40fb5c776ca3eede66550dfb80b11a64263f6b4f876d88",
+      "blobSha": "9e183095808a56c923b80ab97443c27532661dc0"
+    },
+    {
+      "path": "app_backend/converter_guard/http_api.py",
+      "bytes": 15300,
+      "sha256": "73b8c9e8f5aa63774353008a31b503ed254cba6af52c5737bd696ef77363c40d",
+      "blobSha": "97d473e4efa3e7c4e2ef5fab6cecff13956a0302"
+    },
+    {
+      "path": "app_backend/converter_guard/preflight.py",
+      "bytes": 9481,
+      "sha256": "da50e6145852f9aa9b4501fe60044a4709ec1e194df0fa520f8565743e55db0e",
+      "blobSha": "fde921ec1dbd9a19907de26bd2ec4b5e874a3170"
+    },
+    {
+      "path": "app_backend/converter_guard/preflight_native.py",
+      "bytes": 9388,
+      "sha256": "df204e91e9173a950da5b5e5c583f60cab930854f57e40b08b3c36b603c7210c",
+      "blobSha": "d5fb3b739dec8db2ed055ed6f9ae42e4fa9557a3"
+    },
+    {
+      "path": "app_backend/converter_guard/quality.py",
+      "bytes": 16501,
+      "sha256": "6647566136709c159ae5ea7ce506a4848275485e1c1f05a1d81779bd68ef120e",
+      "blobSha": "4d98e909208bc1a673cd29f0db69e1bc9ef7924f"
+    },
+    {
+      "path": "app_backend/converter_guard/quality_worker.py",
+      "bytes": 1113,
+      "sha256": "fdfe98cdedfc24fe5a78764825ddb3c44d3e12f3210a6f3c4759a16fd550ad59",
+      "blobSha": "9ab94e871322c4375a604b0e3c86d747b4d40b10"
+    },
+    {
+      "path": "app_backend/converter_guard/result_store.py",
+      "bytes": 9058,
+      "sha256": "dce0f53e51236c32472bade1d68d8d29d00c31fa4ab64551e88735a50769a21c",
+      "blobSha": "0991d64371645cc9523ef2afecd7783d1d8c4a1a"
+    },
+    {
+      "path": "app_backend/converter_guard/routes.py",
+      "bytes": 12679,
+      "sha256": "9d2cda7641f805a6e4df203f39ba66761a6dae444d1f1d75534d4e7c823d8927",
+      "blobSha": "18e1e7ffe9fdcc07bf9d54d28401d51ea4615c27"
+    },
+    {
+      "path": "app_backend/converter_transport.py",
+      "bytes": 16026,
+      "sha256": "798181451179ba040a7ddd1959fc6b097b71453bca1d03254acf8478305deb3b",
+      "blobSha": "b9ffc7e2d6d3f865fa26f1a4f60ab9ae07de6840"
+    },
+    {
+      "path": "app_backend/excel.py",
+      "bytes": 16527,
+      "sha256": "02f616a4df92d45e2f832242e737c1e516e91c07e77b8aa98b9df806de937fa9",
+      "blobSha": "3e4dc76d38a164cff85fbb20deb8cc2bc4369cd9"
+    },
+    {
+      "path": "app_backend/libreoffice_engine.py",
+      "bytes": 13234,
+      "sha256": "447aba44082cc5ee4eaa316c579b640f1577311f841000bf7e6e0faaf040765f",
+      "blobSha": "d18c4943788a793c9a589b84b2fd92f94fdd3b7c"
+    },
+    {
+      "path": "launcher.py",
+      "bytes": 561,
+      "sha256": "ffd8967be84faf7bb77aa5196d7843583e9af727d52bc3cfc341d5f85876c5a4",
+      "blobSha": "5c7dc6c9abcb04aef2c064f9c6b04766ac6d92c9"
+    },
+    {
+      "path": "requirements.txt",
+      "bytes": 189,
+      "sha256": "a571e54dede514ec2de2ab4f8fba96471c60c13a358d99450ee7454e4a0b14f5",
+      "blobSha": "b2bebd5d695e749799a6ffb7006a8b1ca491fab6"
+    },
+    {
+      "path": "src/converter-bridge.js",
+      "bytes": 32448,
+      "sha256": "25e0b0fa877a82e961f65858b190a9cb165b2bad2bb32a557e1257418425fc08",
+      "blobSha": "02c2f1c8f310ca9c3f2c09b83b984ad850054ed2"
+    },
+    {
+      "path": "src/guard-queue.css",
+      "bytes": 3262,
+      "sha256": "0cd972222f3040e919f2ca978adbcce1ab78e8bd12b1ff229b872930cc82b964",
+      "blobSha": "6973a7fda693d5659968d0a80bcff16f06dd2379"
+    },
+    {
+      "path": "src/guard-queue.js",
+      "bytes": 20284,
+      "sha256": "5d189d22dd6c699576ab765a474ccce415aaab7b07fece07c0a9c80ba375c671",
+      "blobSha": "6db89ec8c1d3b0c1ed4d28f1eb7b22fb9810cfae"
+    },
+    {
+      "path": "tests/guard_large_ui_v13.mjs",
+      "bytes": 8088,
+      "sha256": "8b8d8b3a143767d60a6dd7e33f2783d4b1797e69b7dc95d6ddb043f3548942ed",
+      "blobSha": "7b9b6fe71f0209f51f111b79e0d26b5ba0c7c4f4"
+    },
+    {
+      "path": "tests/guard_queue_dom_v08.mjs",
+      "bytes": 6407,
+      "sha256": "e3c2578af2b279dc0ba0fef8d817d5414e1b36ff9dbcdcb0c1a7a763b3b425d8",
+      "blobSha": "6d45a18a296b6efe228073b4719df2655cf0cd0e"
+    },
+    {
+      "path": "tests/guard_save_queue_v09.mjs",
+      "bytes": 17042,
+      "sha256": "93b03382b5b9cb829db80e533b1ece2bc5d20d65de424f863d18a5424093898a",
+      "blobSha": "acc5649917b6747e651cf81455e0981b88f926b4"
+    },
+    {
+      "path": "tests/native_ui_dom_smoke.mjs",
+      "bytes": 8499,
+      "sha256": "128577c17db8768fdbb48eb6b19c2061419742f4dd5501fb0e5776172523957d",
+      "blobSha": "637e09f7e963cf4c5afae3526b8e6aed108682c6"
+    },
+    {
+      "path": "tests/test_converter_guard_process_v02.py",
+      "bytes": 5505,
+      "sha256": "f7d8b019040b8d92b827b1f6a4d472c5f41edbb4abcd71c6b2531735b8ab8a01",
+      "blobSha": "643557b396be09f3a16b5e6d7af5c9643fbc8e30"
+    },
+    {
+      "path": "tests/test_converter_guard_v08.py",
+      "bytes": 13138,
+      "sha256": "2388daab9f17dbc1a3d5de533532f10880a9973afda83dc7dcbffded96a448b2",
+      "blobSha": "800ff712215c38c6e160e3bfe37dcdc82630a114"
+    },
+    {
+      "path": "tests/test_guard_audit_v081.py",
+      "bytes": 10314,
+      "sha256": "8067369a4f219d1c6cb030883b0b7450ace196a955ff7609dfa4fdd471e9157a",
+      "blobSha": "551101f6dc9c4bfc14d31e2b94729f5e2ba17bdb"
+    },
+    {
+      "path": "tests/test_guard_complete_patch_v14.py",
+      "bytes": 19395,
+      "sha256": "22635f74be51f6424c1eef87fba29b40687a7a758ab8b369ae91b4a60e51db33",
+      "blobSha": "ecac30b2b951aafd398b91e066c7a3484a32bfc3"
+    },
+    {
+      "path": "tests/test_guard_csv_noninteractive.py",
+      "bytes": 5771,
+      "sha256": "472e3ca0a2bf20172e7ca186ae551084cdda9c733280c5781d186e89741d2c86",
+      "blobSha": "e21f185217317395625a0e9126c1309e9737ce29"
+    },
+    {
+      "path": "tests/test_guard_native_metrics_v11.py",
+      "bytes": 8319,
+      "sha256": "6f2bd1cf00bf5ebf61a5726f2cedd9c3ae6b46ffc518678673aa21fe76c669c0",
+      "blobSha": "f8abf75296a7d7968dc830f13333b4f376065395"
+    },
+    {
+      "path": "tools/qa/guard_v12_native_pipeline_acceptance.py",
+      "bytes": 9080,
+      "sha256": "a0308af02f08c462b599905a1d7ceff842fad9913dd44ec2ca88aef9ca8fe334",
+      "blobSha": "b6b5e4a96bf718dca77b90627660e04aeaac05e4"
+    },
+    {
+      "path": "tools/qa/guard_v13_endurance.py",
+      "bytes": 7936,
+      "sha256": "82dfccc60b2ffae6d16f5482e41c634ef12baa014bf723f65099c4e40576e79e",
+      "blobSha": "9733cb6b86e5c1200c4d61c2084e420152c4a01a"
+    },
+    {
+      "path": "tools/qa/guard_v14_native_cases.py",
+      "bytes": 5456,
+      "sha256": "7ed656c8434d0e6027f31bf3bedcac16fdf7b2bd797ad851211a5b4d51617643",
+      "blobSha": "ff5ff73705bbac664a02391e16d777dbd9e5871d"
+    }
+  ]
+}
