@@ -135,14 +135,25 @@
       const confirmation = window.AllInOneNativeShell
         ? new Promise((resolve, reject) => {
             const sourceUrl = new URL(url, window.location.href).href;
+            let settled = false;
+            // No acknowledgement does NOT mean saved or cancelled. Leave the
+            // Guard ticket intact and allow an explicit retry with a new URL.
+            const watchdog = setTimeout(() => {
+              cleanup();
+              reject(new Error('Нет подтверждения сохранения от приложения AIO. Результаты остаются в очереди; проверьте файл и повторите сохранение.'));
+            }, 30 * 60 * 1000);
             function cleanup() {
+              if (settled) return false;
+              settled = true;
+              clearTimeout(watchdog);
               window.removeEventListener('aio-native-save-result', onResult);
+              return true;
             }
             function onResult(event) {
               const detail = event.detail || {};
               if (detail.sourceUrl !== sourceUrl ||
-                  !['completed', 'cancelled', 'failed'].includes(detail.status)) return;
-              cleanup();
+                  !['completed', 'cancelled', 'failed'].includes(detail.status) ||
+                  !cleanup()) return;
               if (detail.status === 'completed') {
                 resolve({ name: detail.name || result.name, saved: true,
                           savedAll: detail.savedAll === true,
@@ -160,7 +171,7 @@
             }
             window.addEventListener('aio-native-save-result', onResult);
             // Also settle an abandoned promise if anchor.click() throws.
-            disposeConfirmation = () => {cleanup(); resolve({cancelled:true});};
+            disposeConfirmation = () => {if (cleanup()) resolve({cancelled:true});};
           })
         : null;
       try {
