@@ -17,7 +17,7 @@ jobs:
       github.event.pull_request.number == 21 &&
       github.event.pull_request.user.login == 'jumonja-maker' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
-      github.event.pull_request.head.ref == 'patch/guard-v13-native-throughput-20261022' &&
+      github.event.pull_request.head.ref == 'patch/guard-v13-full-reliability-20261022' &&
       github.event.pull_request.base.ref == 'feature/blackbox-deep-telemetry-v01-20261021'
     runs-on: [self-hosted, Windows, X64, local-d-manual]
     timeout-minutes: 75
