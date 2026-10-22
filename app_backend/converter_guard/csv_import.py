@@ -80,4 +80,5 @@ def csv_import_hint(source: Path, native):
     # Native Calc CSV import syntax: separator code, text delimiter code,
     # UTF-8 charset 76, and first data row 1. Never depend on UI dialogs.
     separator = ord(choices[0])
-    return {'filter': selected, 'options': f'{separator},34,76,1'}
+    return {'filter': selected, 'options': f'{separator},34,76,1',
+            'sampleOnly': True, 'sampleBytes': len(sample), 'sampleRows': 8}
