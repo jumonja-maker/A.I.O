@@ -268,7 +268,7 @@
       const queued = targets.some(t => t.state === 'queued');
       const cancelled = targets.some(t => t.state === 'cancelled');
       const skipped = targets.length && targets.every(t => t.state === 'skipped');
-      const state = running ? 'converting' : queued ? 'queued' :
+      const state = !targets.length ? 'skipped' : running ? 'converting' : queued ? 'queued' :
         skipped ? 'skipped' : failed || cancelled ? (successes ? 'partial' : cancelled && !failed ? 'cancelled' : 'error') : 'ready';
       return {fileId:row.fileId, targets, state, succeeded:successes, total:targets.length,
         allCopiesSaved:['ready','partial'].includes(state) && successes>0 && targets.every(t=>t.state!=='ready'),
@@ -298,7 +298,8 @@
     progress = root && window.AIOFileProgress ? window.AIOFileProgress.attach(root) : null;
     let last = null;
     try {
-      for (const id of [...retained.keys()]) await releaseJob(id);
+      // Preserve completed but unsaved jobs during retry/new conversion.
+      // Only explicit save/discard may release their retained artifacts.
       check(op);
       const claim = id => {op.jobId=id;retained.set(id,{ticket:null,saved:new Set()});};
       let stage = contains(prepared,inputs) ? prepared :
@@ -313,7 +314,13 @@
           eligible.get(id)?.has(String(f.id)))})).filter(f=>f.formats.length);
         if (!plan.length) throw errorOf('Нет подтверждённых направлений. Повторите проверку.',
           'PREFLIGHT_ROUTE_UNDETERMINED');
-        progress?.begin({runId:op.id,fileIds:plan.map(f=>f.fileId)});
+        progress?.begin({runId:op.id,fileIds:inputs.map(f=>String(f.id))});
+        // Files with no verified route must not remain visually queued.
+        const plannedIds=new Set(plan.map(f=>f.fileId));
+        const unplanned=inputs.filter(f=>!plannedIds.has(String(f.id)));
+        if(unplanned.length)progress?.finishTargets({runId:op.id,partial:true,
+          files:unplanned.map(f=>({fileId:String(f.id),targets:[],state:'skipped',
+            succeeded:0,total:0}))});
         op.startRequested=true;op.startRejected=false;
         let state;
         try {
@@ -451,9 +458,9 @@
       return control(active,'/pause',{jobId:active.jobId,paused});
     },
     canRetry() {return Boolean(lastRun&&!active);},
-    async skipCurrent() {
+    async skipCurrent(fileIdFromView) {
       const op=active?.snapshot?.currentTask ? active : preparing;
-      const fileId=op?.snapshot?.currentTask?.fileId;
+      const fileId=fileIdFromView ?? op?.snapshot?.currentTask?.fileId;
       if(!op?.jobId || !fileId)
         throw errorOf('Текущая операция ещё не определена или уже завершена. Обновите состояние очереди.', 'NO_CURRENT_TASK');
       const state=await control(op,'/cancel-file',{jobId:op.jobId,fileId});
