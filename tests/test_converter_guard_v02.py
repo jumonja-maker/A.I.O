@@ -474,7 +474,10 @@ class AdapterAndPolicyTests(unittest.TestCase):
         code = ('import threading;from app_backend.server import start_server;'
                 'before={t.ident for t in threading.enumerate()};'
                 's,_=start_server();'
-                'assert s.guard.storage_stats()==dict(jobs=0,reservedBytes=0,tickets=0,running=0,queued=0);'
+                'stats=s.guard.storage_stats();'
+                'assert all(stats[key]==0 for key in ("jobs","reservedBytes","tickets",'
+                '"running","queued","retainedJobs","unsavedJobs","unsavedOutputs",'
+                '"unsavedBytes","recoveryWriteFailures"));'
                 'assert {t.ident for t in threading.enumerate()}==before;'
                 's.server_close()')
         result=subprocess.run([sys.executable,'-c',code],capture_output=True,text=True,timeout=15)
