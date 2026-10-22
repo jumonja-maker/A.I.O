@@ -33,6 +33,52 @@ def source_format(name: str) -> str:
     return Path(name).suffix.lower().lstrip('.')
 
 
+
+def validated_outputs(source: Path, target: str, output: Path, diagnostic: str = '') -> list[Path]:
+    """Require a nonempty native primary; HTML/image sidecars are not results."""
+    results = sorted(p for p in output.rglob('*') if p.is_file() and not p.is_symlink())
+    aliases = {'jpeg': {'jpg', 'jpeg'}, 'jpg': {'jpg', 'jpeg'},
+               'tif': {'tif', 'tiff'}, 'tiff': {'tif', 'tiff'},
+               'htm': {'htm', 'html'}, 'html': {'htm', 'html'}}
+    extensions = aliases.get(target, {target})
+    primaries = [p for p in results if p.parent == output and
+                 p.suffix.lower().lstrip('.') in extensions]
+    if not primaries:
+        raise LibreOfficeError('LibreOffice не создал основной файл запрошенного формата.',
+                               'ENGINE_OUTPUT_MISSING', diagnostic=diagnostic)
+    # Prefer the document's own name. Multiple page images can have
+    # numbered stems, so extension + native output root is authoritative.
+    primary = next((p for p in primaries if p.stem.casefold() == source.stem.casefold()),
+                   primaries[0])
+    try:
+        if primary.stat().st_size == 0:
+            raise LibreOfficeError('LibreOffice создал пустой основной файл.',
+                                   'ENGINE_OUTPUT_EMPTY', diagnostic=diagnostic)
+        with primary.open('rb') as stream:
+            magic = stream.read(32)
+    except OSError as exc:
+        raise LibreOfficeError('Основной результат недоступен для проверки.',
+                               'ENGINE_OUTPUT_MISSING', diagnostic=diagnostic) from exc
+    signatures = {
+        'pdf': (b'%PDF-',), 'png': (b'\x89PNG\r\n\x1a\n',),
+        'jpg': (b'\xff\xd8\xff',), 'jpeg': (b'\xff\xd8\xff',),
+        'gif': (b'GIF87a', b'GIF89a'), 'bmp': (b'BM',),
+        'webp': (b'RIFF',), 'zip': (b'PK\x03\x04', b'PK\x05\x06'),
+        'docx': (b'PK\x03\x04',), 'xlsx': (b'PK\x03\x04',),
+        'pptx': (b'PK\x03\x04',), 'odt': (b'PK\x03\x04',),
+        'ods': (b'PK\x03\x04',), 'odp': (b'PK\x03\x04',),
+        'odg': (b'PK\x03\x04',), 'odc': (b'PK\x03\x04',),
+        'epub': (b'PK\x03\x04',)
+    }
+    if target in signatures and not magic.startswith(signatures[target]):
+        raise LibreOfficeError('Структура основного результата не соответствует формату.',
+                               'ENGINE_OUTPUT_INVALID', diagnostic=diagnostic)
+    if target == 'webp' and magic[8:12] != b'WEBP':
+        raise LibreOfficeError('Некорректный WEBP результат.',
+                               'ENGINE_OUTPUT_INVALID', diagnostic=diagnostic)
+    return results
+
+
 def engine_binary() -> Path | None:
     configured = os.environ.get('AIO_LIBREOFFICE') or os.environ.get('AIO_LIBREOFFICE_ROOT')
     if configured:
@@ -173,12 +219,12 @@ def convert_path(source: Path, target: str, workspace: Path, *,
                                'LibreOffice завершился с кодом ' + str(return_code) + '.',
                                'SOURCE_IMPORT_FAILED' if source_failed else 'ENGINE_FAILED',
                                diagnostic=diagnostic)
-    results = sorted(p for p in output.rglob('*')
-                     if p.is_file() and not p.is_symlink())
-    if not results:
-        source_failed = bool(re.search(r'(?im)^Error:\s*source file could not be loaded\.?\s*$', diagnostic))
-        raise LibreOfficeError('LibreOffice не смог открыть исходный документ.' if source_failed else
-                               'LibreOffice не создал запрошенный результат.',
-                               'SOURCE_IMPORT_FAILED' if source_failed else 'ENGINE_OUTPUT_MISSING',
-                               diagnostic=diagnostic)
-    return results
+    try:
+        return validated_outputs(source, target, output, diagnostic)
+    except LibreOfficeError as error:
+        source_failed = bool(re.search(r'(?im)^Error:\s*source file could not be loaded\.?\s*
+, diagnostic))
+        if source_failed:
+            raise LibreOfficeError('LibreOffice не смог открыть исходный документ.',
+                                   'SOURCE_IMPORT_FAILED', diagnostic=diagnostic) from error
+        raise
