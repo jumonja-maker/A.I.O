@@ -2246,13 +2246,13 @@
             ],
             "droppedEvents": 0
           },
-          "fileTimeoutSeconds": 12.0
+          "fileTimeoutSeconds": 12
         },
         "originalUnchanged": true
       }
     ],
     "platform": "linux",
-    "secondsPerNativeCall": 12.0
+    "secondsPerNativeCall": 12
   },
   "syntheticEndurance": {
     "status": "PASS",
@@ -2413,7 +2413,9 @@
     "workflowsChanged": false,
     "brandBinaryChanged": false,
     "sourceHashesUnchanged": true,
-    "noWindowsRunDispatched": true
+    "noWindowsRunDispatched": true,
+    "mainAfter": "2bab2d0c31fe84a0d07404a33219dd5bdad834b7",
+    "qaAfter": "93a5a5a3a975d89c504c7acffd1065e693bb3c7e"
   },
   "notRun": [
     "Windows NIKITA execution",
@@ -2623,5 +2625,31 @@
       "sha256": "7ed656c8434d0e6027f31bf3bedcac16fdf7b2bd797ad851211a5b4d51617643",
       "blobSha": "ff5ff73705bbac664a02391e16d777dbd9e5871d"
     }
-  ]
+  ],
+  "githubChecks": {
+    "observedHead": "784287f892981e1ee4a34afa46b6abd342941551",
+    "jobs": [
+      {
+        "name": "source-contracts",
+        "status": "completed",
+        "conclusion": "failure",
+        "runnerId": 0,
+        "runnerName": "",
+        "steps": 0,
+        "url": "https://github.com/jumonja-maker/A.I.O/actions/runs/39801924537/job/119904668574"
+      },
+      {
+        "name": "telemetry-contract",
+        "status": "completed",
+        "conclusion": "failure",
+        "runnerId": 0,
+        "runnerName": "",
+        "steps": 0,
+        "url": "https://github.com/jumonja-maker/A.I.O/actions/runs/39801924634/job/119904660005"
+      }
+    ],
+    "testCommandsExecuted": false,
+    "cause": "not_established",
+    "note": "Automatic PR checks failed with no allocated runner and zero steps; local evidence is separate"
+  }
 }
