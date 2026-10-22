@@ -1,7 +1,7 @@
 name: "AIO Guard v14 NIKITA pinned Windows QA build"
 on:
   pull_request:
-    types: [labeled]
+    types: [opened, reopened, labeled]
 permissions:
   contents: read
 concurrency:
@@ -12,13 +12,12 @@ jobs:
     if: >-
       github.repository == 'jumonja-maker/A.I.O' &&
       github.event.pull_request.head.sha != '' &&
-      github.event.action == 'labeled' &&
-      github.event.label.name == 'aio-v081-blackbox-build-approved-once' &&
-      github.event.pull_request.number == 15 &&
+      (github.event.action == 'labeled' || github.event.action == 'opened' || github.event.action == 'reopened') &&
+      contains(github.event.pull_request.labels.*.name, 'aio-v081-blackbox-build-approved-once') &&
       github.event.pull_request.user.login == 'jumonja-maker' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
-      github.event.pull_request.head.ref == 'feature/blackbox-deep-telemetry-v01-20261021' &&
-      github.event.pull_request.base.ref == 'fix/guard-v081-audit-f01-f12-20261021'
+      github.event.pull_request.head.ref == 'build/guard-v14-nikita-20261022' &&
+      github.event.pull_request.base.ref == 'qa/guard-v14-build-base-20261022'
     runs-on: [self-hosted, Windows, X64, local-d-manual]
     timeout-minutes: 110
     env:
