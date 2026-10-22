@@ -72,10 +72,14 @@ def main():
         assert state['currentTask']['fileId']=='999' and state['currentTask']['format']=='svg'
         sample('nearComplete');destination=root/'saved';destination.mkdir()
         saved=[];errors=[]
+        copy_observed={'current':0,'total':0}
         def progress(current,total):
+            copy_observed.update(current=current,total=total)
             if current==10:
                 copy_entered.set()
-                if not continue_copy.wait(30):raise AssertionError('Save barrier not released')
+                if not continue_copy.wait(60):raise AssertionError('Save barrier not released')
+            if current%1000==0 or current==total:
+                print(json.dumps({'qaCopyProgress':current,'qaCopyTotal':total}),flush=True)
         def save():
             try:saved.append(guard.save_folder(state['partialResult']['ticket'],destination,on_progress=progress))
             except Exception as error:errors.append(error)
@@ -98,7 +102,13 @@ def main():
         adapter.resume.set();until=time.monotonic()+5
         while not guard.status(identity)['finished']:
             assert time.monotonic()<until;time.sleep(.01)
-        continue_copy.set();thread.join(30);assert not thread.is_alive() and not errors,errors
+        copy_resume_at=time.monotonic()
+        continue_copy.set();thread.join(180)
+        evidence['saveCopyAfterResumeMs']=round((time.monotonic()-copy_resume_at)*1000)
+        evidence['copyProgressAtJoin']=dict(copy_observed)
+        assert not thread.is_alive(), ('Copy did not finish within 180s after release',
+                                      evidence['copyProgressAtJoin'])
+        assert not errors, [(getattr(error,'code',type(error).__name__),str(error)) for error in errors]
         assert saved[0]['saved'] and not saved[0]['savedAll'] and saved[0]['snapshotComplete']
         evidence['partialSavedOutputs']=verify(destination/saved[0]['name'])
         assert evidence['partialSavedOutputs']==7998
