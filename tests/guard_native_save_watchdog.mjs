@@ -17,7 +17,8 @@ const document={body,createElement:()=>({
   click(){clicked++;},
   remove(){removed++;}
 })};
-const context=vm.createContext({window,document,URL,
+const crypto={getRandomValues:words=>{words[0]=1234;words[1]=5678;return words;}};
+const context=vm.createContext({window,document,URL,crypto,
   setTimeout:(fn,ms)=>{const id=++seq;timers.set(id,{fn,ms});return id;},
   clearTimeout:id=>timers.delete(id)});
 vm.runInContext(script,context);
@@ -47,4 +48,33 @@ assert.equal(result.saved,true);
 assert.equal(listeners.size,0);
 assert.equal(timers.size,0);
 assert.equal(removed,2);
-console.log('PASS F03: bounded native save, safe late event and retry identity');
+const reloadedListeners=new Set(),reloadedAnchors=[];
+const reloadedWindow={
+  AllInOneNativeShell:true,location:{href:window.location.href},
+  addEventListener:(_name,fn)=>reloadedListeners.add(fn),
+  removeEventListener:(_name,fn)=>reloadedListeners.delete(fn)
+};
+const reloadedContext=vm.createContext({window:reloadedWindow,URL,
+  crypto:{getRandomValues:words=>{words[0]=9876;words[1]=5432;return words;}},
+  document:{body,createElement:()=>({
+    click(){},
+    remove(){}
+  })},
+  setTimeout:(fn,ms)=>{const id=++seq;timers.set(id,{fn,ms});return id;},
+  clearTimeout:id=>timers.delete(id)});
+reloadedContext.document.body.append=anchor=>reloadedAnchors.push(anchor);
+vm.runInContext(script,reloadedContext);
+const newPageSave=reloadedWindow.AllInOneBridge.saveExcel({name:'result.pdf',downloadUrl:url});
+const reloadedUrl=new URL(reloadedAnchors[0].href,reloadedWindow.location.href).href;
+assert.notEqual(reloadedUrl,secondUrl,'renderer reload may not reuse a native save acknowledgement URL');
+let resolved=false;newPageSave.then(()=>{resolved=true;});
+for(const listener of reloadedListeners)
+  listener({detail:{sourceUrl:secondUrl,status:'completed'}});
+await Promise.resolve();
+assert.equal(resolved,false,'old page acknowledgement may not claim a new save');
+for(const listener of reloadedListeners)
+  listener({detail:{sourceUrl:reloadedUrl,status:'completed'}});
+assert.equal((await newPageSave).saved,true);
+assert.equal(reloadedListeners.size,0);
+assert.equal(timers.size,0);
+console.log('PASS F03: bounded native save, late ACK, retry and renderer reload identities');
