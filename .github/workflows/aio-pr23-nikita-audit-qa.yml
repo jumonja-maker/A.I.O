@@ -1,0 +1,200 @@
+name: "A.I.O PR23 audit on pinned NIKITA runner"
+# One-shot owner-labeled QA only. No packages, installs, cleanup or FULLTEST.
+on:
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aio-pr23-audit-nikita-once
+  cancel-in-progress: false
+
+jobs:
+  qa-audit:
+    if: >-
+      github.repository == 'jumonja-maker/A.I.O' &&
+      github.actor == 'jumonja-maker' &&
+      github.event.action == 'labeled' &&
+      github.event.label.name == 'aio-pr23-nikita-audit-qa-once' &&
+      github.event.pull_request.number == 23 &&
+      github.event.pull_request.user.login == 'jumonja-maker' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'fix/aio-code-audit-reliability-20261022' &&
+      github.event.pull_request.base.ref == 'fix/aio-guard-bugbag-ui-status-encoding-20261022'
+    runs-on: [self-hosted, Windows, X64, local-d-manual]
+    timeout-minutes: 45
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PIP_NO_INDEX: '1'
+      PIP_NO_INPUT: '1'
+      PIP_DISABLE_PIP_VERSION_CHECK: '1'
+      AIO_BLACKBOX_EVENTS: ''
+      QT_QPA_PLATFORM: offscreen
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - name: Verify restricted NIKITA host before checkout
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          if ($env:RUNNER_NAME -cne 'NIKITA' -or $env:RUNNER_OS -cne 'Windows' -or
+              $env:USERNAME -ine 'aio-runner') { throw 'Unexpected or privileged runner identity' }
+          $principal=New-Object Security.Principal.WindowsPrincipal(
+            [Security.Principal.WindowsIdentity]::GetCurrent())
+          if ($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+            throw 'Admin execution is forbidden'
+          }
+          foreach ($key in @('GITHUB_WORKSPACE','RUNNER_TEMP','TEMP','TMP')) {
+            $value=[Environment]::GetEnvironmentVariable($key)
+            if ([string]::IsNullOrWhiteSpace($value) -or
+                -not [IO.Path]::GetFullPath($value).StartsWith('D:\',[StringComparison]::OrdinalIgnoreCase)) {
+              throw ($key+' must be on restricted D: volume')
+            }
+          }
+          if ((Get-PSDrive -Name D -PSProvider FileSystem).Free -lt 15GB) {
+            throw 'Insufficient D: disk free space for QA'
+          }
+          $path=Join-Path $env:GITHUB_WORKSPACE 'aio-pr23-audit-${{ github.run_id }}'
+          if (Test-Path -LiteralPath $path) { throw 'Checkout target already exists' }
+          Write-Host 'NIKITA_PREFLIGHT=PASS; non-admin, restricted path, sufficient space'
+
+      - name: Checkout immutable reviewed audit patch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: jumonja-maker/A.I.O
+          ref: beddc6361dd427df14eff6b269ddf1e57b681bc4
+          path: aio-pr23-audit-${{ github.run_id }}
+          fetch-depth: 1
+          persist-credentials: false
+          clean: true
+
+      - name: Verify pinned Git tree and offline QA dependencies
+        working-directory: aio-pr23-audit-${{ github.run_id }}
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          $python='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\Scripts\python.exe'
+          $marker='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\.00aio-test-only-venv.txt'
+          if (-not (Test-Path -LiteralPath $python -PathType Leaf) -or
+              -not (Test-Path -LiteralPath $marker -PathType Leaf) -or
+              (Get-Content -LiteralPath $marker -Raw).Trim() -cne
+                '00AIO NIKITA ISOLATED DOCX PDF QA PY311 QT6103') {
+            throw 'Trusted offline QA Python environment missing'
+          }
+          $verifier=@'
+          import hashlib,sys
+          from pathlib import Path
+          def digest(directory):
+              entries=[]
+              for child in directory.iterdir():
+                  if child.name=='.git':continue
+                  name=child.name.encode('utf-8')
+                  if child.is_symlink():raise ValueError('Symlink forbidden')
+                  if child.is_dir():
+                      mode,oid,key=b'40000',digest(child),name+b'/'
+                  elif child.is_file():
+                      raw=child.read_bytes()
+                      mode=b'100644'
+                      oid=hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).digest()
+                      key=name
+                  else:raise ValueError('Unexpected file')
+                  entries.append((key,mode+b' '+name+b'\0'+oid))
+              value=b''.join(row for _,row in sorted(entries,key=lambda x:x[0]))
+              return hashlib.sha1(b'tree '+str(len(value)).encode()+b'\0'+value).digest()
+          actual=digest(Path.cwd()).hex()
+          print('AUDIT_TREE='+actual)
+          if actual!=sys.argv[1]:raise SystemExit('PINNED_SOURCE_TREE_MISMATCH')
+          '@
+          $script=Join-Path $env:RUNNER_TEMP ('aio-pr23-tree-'+$env:GITHUB_RUN_ID+'.py')
+          if (Test-Path -LiteralPath $script) { throw 'Verifier path collision' }
+          try {
+            [IO.File]::WriteAllText($script,$verifier,[Text.UTF8Encoding]::new($false))
+            & $python $script '705022f26cc9632f0be04bff46e5d567d2407b3c'
+            if ($LASTEXITCODE -ne 0) { throw 'Pinned tree verification failed' }
+          } finally {
+            Remove-Item -LiteralPath $script -Force -ErrorAction SilentlyContinue
+          }
+          & $python -c 'import sys,openpyxl,PySide6.QtWebEngineWidgets; assert sys.version_info[:2]==(3,11)'
+          if ($LASTEXITCODE -ne 0) { throw 'Missing approved Python dependencies' }
+          $node=Get-Command node -ErrorAction SilentlyContinue
+          if ($node) { $node=$node.Source }
+          else {
+            $runnerRoot=Split-Path -Parent (Split-Path -Parent $env:RUNNER_TEMP)
+            $candidates=@(
+              (Join-Path $runnerRoot 'externals\node24\bin\node.exe'),
+              (Join-Path $runnerRoot 'externals\node20\bin\node.exe'),
+              'D:\AIO-Lab\nodejs\node.exe')
+            $node=@($candidates | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } |
+              Select-Object -First 1)
+            if ($node.Count -ne 1) { throw 'Offline Node is unavailable' }
+            $node=$node[0]
+          }
+          'AIO_QA_NODE='+$node | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          [IO.File]::AppendAllText($env:GITHUB_PATH,
+            [IO.Path]::GetDirectoryName($node)+[Environment]::NewLine,
+            [Text.UTF8Encoding]::new($false))
+          Write-Host 'APPROVED_PYTHON_AND_NODE=PASS; NO_PIP_OR_INSTALL'
+
+      - name: Run source, Guard, native save, Excel and BLACK.BOX regressions
+        id: regressions
+        working-directory: aio-pr23-audit-${{ github.run_id }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $python='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\Scripts\python.exe'
+          & $python -m compileall -q app_backend tests launcher.py
+          if ($LASTEXITCODE -ne 0) { throw 'PYTHON_COMPILE_FAILED' }
+          foreach($file in @('src/bridge.js','src/converter-bridge.js','src/guard-queue.js',
+                  'tests/guard_native_save_watchdog.mjs','tests/guard_save_queue_v09.mjs')) {
+            & $env:AIO_QA_NODE --check $file
+            if ($LASTEXITCODE -ne 0) { throw ('JS_PARSE_FAILED '+$file) }
+          }
+          foreach ($name in @('test_code_audit_regressions.py','test_libreoffice_direct.py',
+                'test_guard_uno_pipeline_v12.py','test_guard_bridge_save_queue_v09.py',
+                'test_converter_guard_v02.py','test_converter_guard_http_v02.py',
+                'test_excel.py','test_blackbox_telemetry.py','test_blackbox_audit_v02.py')) {
+            & $python -m unittest discover -s tests -p $name -v
+            if ($LASTEXITCODE -ne 0) { throw ('REGRESSION_FAILED '+$name) }
+          }
+          foreach ($test in @('tests/guard_native_save_watchdog.mjs',
+                             'tests/guard_save_queue_v09.mjs')) {
+            & $env:AIO_QA_NODE $test
+            if ($LASTEXITCODE -ne 0) { throw ('JS_REGRESSION_FAILED '+$test) }
+          }
+          Write-Host 'PR23_TARGETED_QA=PASS'
+
+      - name: Run full Python, Qt and available DOM regression suite
+        id: integrated
+        working-directory: aio-pr23-audit-${{ github.run_id }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $python='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\Scripts\python.exe'
+          $env:AIO_QT_SAVE_QA='1'
+          $linkCandidates=@(
+            (Join-Path $env:GITHUB_WORKSPACE 'node_modules\linkedom\esm\index.js'),
+            'D:\AIO-Lab\node_modules\linkedom\esm\index.js',
+            'D:\AIO-Lab\AIO-QA-Env\node_modules\linkedom\esm\index.js',
+            (Join-Path (Split-Path -Parent $env:RUNNER_TEMP) 'node_modules\linkedom\esm\index.js')
+          )
+          $link=@($linkCandidates | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } |
+              Select-Object -First 1)
+          if ($link.Count -eq 1) {
+            $env:AIO_DOM_MODULE=$link[0]
+            Write-Host 'AIO_DOM_MODULE=AVAILABLE'
+          } else { Write-Host 'AIO_DOM_MODULE=UNAVAILABLE; dependent tests may skip' }
+          & $python -m unittest discover -s tests -p 'test_*.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'INTEGRATED_REGRESSION_SUITE_FAILED' }
+          Write-Host 'PR23_FULL_PYTHON_SUITE=PASS'
+
+      - name: QA verdict (no installation, packaging, FULLTEST or main changes)
+        if: always()
+        run: |
+          Write-Host 'PINNED_COMMIT=beddc6361dd427df14eff6b269ddf1e57b681bc4'
+          Write-Host 'QA_REGRESSIONS=${{ steps.regressions.outcome }}'
+          Write-Host 'QA_FULL_SUITE=${{ steps.integrated.outcome }}'
+          Write-Host 'BUILD=NOT_RUN; INSTALL=NOT_RUN; RELEASE=NOT_RUN'
+          Write-Host 'FULLTEST=NOT_RUN; MAIN=UNCHANGED'
+          if ('${{ steps.regressions.outcome }}' -ne 'success' -or
+              '${{ steps.integrated.outcome }}' -ne 'success') { throw 'PR23 QA not approved' }

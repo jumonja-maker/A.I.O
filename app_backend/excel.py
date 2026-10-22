@@ -204,6 +204,11 @@ def merge_xlsx(inputs: list[tuple[str, bytes]], progress=None) -> bytes:
         if (len(collected) + len(rows) + 1) * len(expected) > MAX_GRID_CELLS:
             raise MergeError('Объединённая таблица превысит предел миллиона ячеек.')
         collected.extend(rows)
+    # The final source-local list otherwise pins every row twice during the
+    # output phase, even though collected owns the same immutable tuples.
+    rows = None
+    styles = None
+    first_row = None
     out = Workbook()
     if first_theme:
         out.loaded_theme = first_theme
@@ -265,8 +270,13 @@ def merge_xlsx(inputs: list[tuple[str, bytes]], progress=None) -> bytes:
                 dest.data_type = 'n'
             if number_format and number_format != 'General':
                 ws.cell(row=row_number, column=col_num).number_format = number_format
+        # Each output cell is now independently owned by the output book.
+        # Release the source row immediately; retaining all source rows until
+        # XLSX serialization nearly doubles the large-table memory peak.
+        collected[row_number - 2] = None
         if (row_number - 1) % 1024 == 0 or row_number == count + 1:
             report('write', row_number - 1, count)
+    collected.clear()
     report('save')
     stream = BytesIO()
     out.save(stream)
@@ -277,7 +287,7 @@ def merge_xlsx(inputs: list[tuple[str, bytes]], progress=None) -> bytes:
     check = load_workbook(BytesIO(blob), read_only=True, data_only=False)
     try:
         sheet = check.active
-        if sheet.max_row != len(collected) + 1 or list(next(sheet.values)) != expected:
+        if sheet.max_row != count + 1 or list(next(sheet.values)) != expected:
             raise RuntimeError('Внутренняя ошибка проверки созданного файла.')
     finally:
         check.close()

@@ -1,4 +1,4 @@
-; A.I.O + Converter Guard v0.7 isolated QA. No Advanced.
+﻿; A.I.O + Converter Guard v0.7 isolated QA. No Advanced.
 ; Dedicated test install; never overwrite standalone LibreOffice or Clean QA.
 
 #define AppName "A.I.O (Guard QA)"

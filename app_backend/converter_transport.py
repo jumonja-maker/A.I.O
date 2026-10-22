@@ -51,6 +51,9 @@ class ConverterTransport:
         self.closed = False
 
     def begin(self, identity, connection):
+        # Retry only already-released storage. Unsaved tickets are never
+        # eligible for automatic cleanup.
+        self.retry_cleanup()
         with self.lock:
             if self.closed or identity in self.active:
                 raise LibreOfficeError('Задание недоступно.', 'REQUEST_BUSY')
@@ -257,6 +260,31 @@ class ConverterTransport:
                 else:
                     return False
             return True
+
+    def retry_cleanup(self):
+        """One bounded best-effort reap of previously released leftovers."""
+        with self.lock:
+            released = [ticket for ticket, value in self.results.items()
+                        if value.released and not value.leases]
+            pending = tuple(self.cleanup_pending)
+        for ticket in released:
+            self.release(ticket)
+        for temporary in pending:
+            try:
+                temporary.cleanup()
+            except OSError:
+                continue
+            with self.lock:
+                if temporary in self.cleanup_pending:
+                    self.cleanup_pending.remove(temporary)
+
+    def storage_stats(self):
+        with self.lock:
+            return {'active': len(self.active), 'retainedResults':
+                    sum(not result.released for result in self.results.values()),
+                    'cleanupPending': len(self.cleanup_pending) +
+                    sum(result.released for result in self.results.values()),
+                    'leasedResults': sum(bool(result.leases) for result in self.results.values())}
 
     def close(self):
         with self.lock:

@@ -109,7 +109,8 @@
   function resetProgress() {
     generation++;
     cancel().catch(() => {});
-    for (const id of retained.keys()) releaseJob(id).catch(() => {});
+    // Reset/dispose is not consent to discard unsaved conversion outputs.
+    // Retained jobs remain available via /recoverable until explicitly handled.
     progress?.dispose();
     progress = null;
     lastRun = null;
@@ -268,7 +269,7 @@
       const queued = targets.some(t => t.state === 'queued');
       const cancelled = targets.some(t => t.state === 'cancelled');
       const skipped = targets.length && targets.every(t => t.state === 'skipped');
-      const state = running ? 'converting' : queued ? 'queued' :
+      const state = !targets.length ? 'skipped' : running ? 'converting' : queued ? 'queued' :
         skipped ? 'skipped' : failed || cancelled ? (successes ? 'partial' : cancelled && !failed ? 'cancelled' : 'error') : 'ready';
       return {fileId:row.fileId, targets, state, succeeded:successes, total:targets.length,
         allCopiesSaved:['ready','partial'].includes(state) && successes>0 && targets.every(t=>t.state!=='ready'),
@@ -298,7 +299,8 @@
     progress = root && window.AIOFileProgress ? window.AIOFileProgress.attach(root) : null;
     let last = null;
     try {
-      for (const id of [...retained.keys()]) await releaseJob(id);
+      // Preserve completed but unsaved jobs during retry/new conversion.
+      // Only explicit save/discard may release their retained artifacts.
       check(op);
       const claim = id => {op.jobId=id;retained.set(id,{ticket:null,saved:new Set()});};
       let stage = contains(prepared,inputs) ? prepared :
@@ -311,9 +313,15 @@
         const plan = inputs.map(f=>({fileId:String(f.id),formats:formats.filter(id=>
           (!requested || requested.get(String(f.id))?.has(id)) &&
           eligible.get(id)?.has(String(f.id)))})).filter(f=>f.formats.length);
+        progress?.begin({runId:op.id,fileIds:inputs.map(f=>String(f.id))});
+        // Files with no verified route must not remain visually queued.
+        const plannedIds=new Set(plan.map(f=>f.fileId));
+        const unplanned=inputs.filter(f=>!plannedIds.has(String(f.id)));
+        if(unplanned.length)progress?.finishTargets({runId:op.id,partial:true,
+          files:unplanned.map(f=>({fileId:String(f.id),targets:[],state:'skipped',
+            succeeded:0,total:0}))});
         if (!plan.length) throw errorOf('Нет подтверждённых направлений. Повторите проверку.',
           'PREFLIGHT_ROUTE_UNDETERMINED');
-        progress?.begin({runId:op.id,fileIds:plan.map(f=>f.fileId)});
         op.startRequested=true;op.startRejected=false;
         let state;
         try {
@@ -381,7 +389,8 @@
     } catch (error) {
       if (!error.batchReport) error.batchReport = last;
       if (error.batchReport) update(error.batchReport, op, onProgress);
-      else progress?.failBatch({runId:op.id,cancelled:op.cancelled});
+      else if(error.code!=='PREFLIGHT_ROUTE_UNDETERMINED')
+        progress?.failBatch({runId:op.id,cancelled:op.cancelled});
       if (op.cancelled) {
         const cancelled = errorOf('Конвертация отменена.', 'CANCELLED');
         cancelled.batchReport = error.batchReport;
@@ -394,9 +403,12 @@
       // A failed status read is not permission to cancel a live or ambiguously
       // started backend job. Explicit reset and confirmed empty terminal jobs
       // still release their ownership.
-      if (op.jobId && (op.generation !== generation || !op.startRequested || op.startRejected ||
-                      last?.finished && !last.result?.downloadUrl))
+      if (op.jobId && (!op.startRequested || op.startRejected ||
+                      last?.finished && !last.result?.downloadUrl &&
+                      !last.partialResult?.outputsCount))
         await releaseJob(op.jobId);
+      // Losing the UI generation is not proof that a live/cancelled
+      // job has no outputs. Preserve it until explicit acknowledgement.
       if (active === op) active = null;
       if(op.generation===generation && last?.finished)publish(last);
     }
@@ -451,12 +463,17 @@
       return control(active,'/pause',{jobId:active.jobId,paused});
     },
     canRetry() {return Boolean(lastRun&&!active);},
-    async skipCurrent() {
+    async skipCurrent(fileIdFromView) {
       const op=active?.snapshot?.currentTask ? active : preparing;
-      const fileId=op?.snapshot?.currentTask?.fileId;
+      const fileId=fileIdFromView ?? op?.snapshot?.currentTask?.fileId;
       if(!op?.jobId || !fileId)
         throw errorOf('Текущая операция ещё не определена или уже завершена. Обновите состояние очереди.', 'NO_CURRENT_TASK');
-      const state=await control(op,'/cancel-file',{jobId:op.jobId,fileId});
+      // Verify the current backend task; a stale UI must not cancel a queued input.
+      const latest=await api('/jobs?job='+encodeURIComponent(op.jobId),undefined,'GET');
+      if(String(latest.currentTask?.fileId||'')!==String(fileId))
+        throw errorOf('Очередь перешла к другому файлу. Обновите состояние и повторите действие.', 'STALE_CURRENT_TASK');
+      const state=await control(op,'/cancel-file',{jobId:op.jobId,fileId,
+        expectedTaskId:latest.currentTask.taskId});
       const file=state.files?.find(f=>String(f.fileId)===String(fileId));
       if(file && !file.cancellationRequested && file.targets?.every(t=>
         ['ready','saved','error','cancelled','skipped'].includes(t.state)))

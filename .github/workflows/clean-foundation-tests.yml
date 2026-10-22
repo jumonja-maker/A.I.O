@@ -43,3 +43,7 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_excel.py' -v
       - name: Verify shell, visual designer, Guard boundary and Excel API
         run: python -m unittest discover -s tests -p 'test_clean_foundation.py' -v
+      - name: Run code-audit reliability regressions
+        run: |
+          python -m unittest discover -s tests -p 'test_code_audit_regressions.py' -v
+          node tests/guard_native_save_watchdog.mjs

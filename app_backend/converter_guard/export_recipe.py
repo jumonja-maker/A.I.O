@@ -8,13 +8,18 @@ from dataclasses import dataclass
 
 CALC = 'com.sun.star.sheet.SpreadsheetDocument'
 DRAW = 'com.sun.star.drawing.DrawingDocument'
+WRITER = 'com.sun.star.text.TextDocument'
 CALC_TEXT = 'Text - txt - csv (StarCalc)'
 TEXT_OPTIONS = {'csv': '44,34,76,1,', 'tsv': '9,34,76,1,', 'tab': '9,34,76,1,'}
 WARNING_TEXT = {
     'NATIVE_DRAW_HTML_CONTENT_RISK': (
         'Штатный HTML-фильтр Draw может создавать файл без содержимого рисунка. '
         'Для нескольких страниц расположение в XHTML тоже требует проверки. '
-        'Сохраните исходник; для просмотра предпочтителен PDF.')}
+        'Сохраните исходник; для просмотра предпочтителен PDF.'),
+    'NATIVE_WRITER_SVG_EXPORT_RISK': (
+        'Штатный SVG-фильтр Writer может завершиться без выходного файла. '
+        'Поддержка зарегистрированного фильтра не гарантирует успешный экспорт. '
+        'Guard проверяет наличие результата, а при отказе сохраняет диагностику LibreOffice.')}
 
 
 def warning_details(codes):
@@ -60,5 +65,7 @@ def native_export_recipe(native, target, proof):
     options = (TEXT_OPTIONS.get(target) if selected == CALC_TEXT and item and
                item[0] == CALC and target in item[1] and 'EXPORT' in item[2] else None)
     warnings = (('NATIVE_DRAW_HTML_CONTENT_RISK',)
-                if selected == 'draw_html_Export' and target in ('html', 'htm') else ())
+                if selected == 'draw_html_Export' and target in ('html', 'htm') else
+                ('NATIVE_WRITER_SVG_EXPORT_RISK',)
+                if selected == 'writer_svg_Export' and target == 'svg' and services == [WRITER] else ())
     return ExportRecipe(selected, options, warnings=warnings)

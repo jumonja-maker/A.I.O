@@ -27,7 +27,7 @@ class QtSaveBoundary(unittest.TestCase):
         tree=ast.parse((Path(__file__).parents[1]/'app_backend/desktop.py').read_text())
         signals=next(node for node in tree.body if isinstance(node,ast.ClassDef) and node.name=='FolderSaveSignals')
         desktop=next(node for node in tree.body if isinstance(node,ast.ClassDef) and node.name=='MainWindow')
-        chosen={'_save_folder','_folder_progress','_folder_finished'}
+        chosen={'_save_folder','_folder_progress','_folder_finished','_finish_shutdown'}
         methods=[node for node in desktop.body if isinstance(node,ast.FunctionDef) and node.name in chosen]
         initializer=next(node for node in desktop.body if isinstance(node,ast.FunctionDef) and node.name=='__init__')
         wiring=[node for node in initializer.body if '_folder_saves' in ast.unparse(node) or '_folder_signals' in ast.unparse(node)]

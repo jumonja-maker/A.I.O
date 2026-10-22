@@ -35,7 +35,11 @@ let state={jobId:'a'.repeat(32),revision:1,state:'running',finished:false,files,
   completed:0,succeeded:0,failed:0,cancelled:0,filtered:0,
   currentTask:{fileId:'0',name:'file-0.docx',format:'pdf',stage:'export',startedMs:Date.now()}};
 window.dispatchEvent(new window.CustomEvent('aio-guard-state',{detail:state}));
-const details=document.querySelector('.aio-guard-queue details');details.open=true;details.dispatchEvent(new window.Event('toggle'));
+const stateButton=document.querySelector('.aio-guard-state-button');
+assert.ok(stateButton,'A permanent top-row State control must exist');
+assert.ok(stateButton.closest('.aio-cv__format-head'),'State belongs with Problems and Select All');
+stateButton.click();
+assert.equal(document.querySelector('.aio-guard-popup').open,true,'State opens task dialog');
 await new Promise(r=>setTimeout(r,0));
 assert.equal(document.querySelectorAll('.aio-guard-task').length,50);
 assert.match(document.querySelector('[data-g-page]').textContent,/83000 задач/);
@@ -67,8 +71,14 @@ progress.finishTargets({runId:'v13',partial:true,files:[{...one,state:'ready',su
 assert.equal(left.querySelector('.aio-fp-paint').hidden,true);
 assert.equal(left.querySelector('.aio-fp-check').hidden,false);
 progress.finishTargets({runId:'v13',partial:true,files:[{...one,state:'ready',allCopiesSaved:true,succeeded:2,targets:one.targets.map(t=>({...t,state:'saved'}))}]});
-assert.equal(left.querySelector('.aio-fp-check').hidden,true);
+assert.equal(left.querySelector('.aio-fp-check').hidden,false,'Saved files retain a terminal icon');
+assert.equal(left.querySelector('.aio-fp-check').textContent,'✓');
 assert.equal(left.querySelector('.aio-cv__file').dataset.aioFpState,'saved');
+progress.finishTargets({runId:'v13',partial:true,files:[{fileId:'1',state:'skipped',
+  succeeded:0,total:0,targets:[]},{fileId:'2',state:'error',succeeded:0,total:1,
+  targets:[{format:'epub',state:'error',error:'Native export failed'}]}]});
+assert.equal(left.querySelector('[data-file-id="1"] .aio-fp-check').textContent,'⊘');
+assert.equal(left.querySelector('[data-file-id="2"] .aio-fp-check').textContent,'×');
 const stableLabel=left.querySelector('.aio-fp-label');let paints=0;
 const observer=new window.MutationObserver(records=>{paints+=records.length;});
 observer.observe(stableLabel,{subtree:true,childList:true});

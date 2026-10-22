@@ -46,6 +46,9 @@
     const current = event => !disposed && event && event.runId === runId && runId !== null;
     function label(data) {
       if (data.state === 'queued') return 'В очереди';
+      if (data.state === 'skipped') return 'Не конвертировался: нет подтверждённых направлений Guard';
+      if (data.state === 'partial-saved') return 'Часть результатов сохранена';
+      if (data.state === 'saved') return 'Сохранено';
       // Stages and counts are confirmed by engine events, not estimated time.
       if (data.targetLabel && !['saving','saved'].includes(data.state)) return data.targetLabel;
       if (data.state === 'converting') return data.percent === null ? 'Конвертация…' :
@@ -54,6 +57,7 @@
       if (data.state === 'saving') return 'Сохранение…';
       if (data.state === 'error') return data.error ? 'Ошибка: ' + data.error : 'Не удалось конвертировать';
       if (data.state === 'cancelled') return 'Конвертация отменена';
+      if (data.state === 'partial') return 'Часть результатов готова; см. ошибки';
       return '';
     }
     function restore(row, parts) {
@@ -105,7 +109,11 @@
           row.setAttribute('aria-busy', String(data.state === 'converting' || data.state === 'saving'));
           parts.label.textContent = text; parts.label.hidden = !text;
           parts.label.title = data.targetTitle || data.error || '';
-          parts.check.hidden = data.state !== 'ready' && !(data.state === 'saving' && !['partial','partial-saved'].includes(data.beforeSave));
+          parts.check.textContent = data.state === 'error' ? '×' :
+            data.state === 'cancelled' ? '−' : data.state === 'skipped' ? '⊘' :
+            ['partial','partial-saved'].includes(data.state) ? '!' : '✓';
+          parts.check.hidden = !['ready','saved','error','cancelled','skipped','partial','partial-saved'].includes(data.state) &&
+            !(data.state === 'saving' && !['partial','partial-saved'].includes(data.beforeSave));
           // A single DOCX/LO operation has no measured intermediate percent.
           // No moving fake progress: show green ONLY for confirmed completed
           // targets. On completion the fill gives way to the status/check.

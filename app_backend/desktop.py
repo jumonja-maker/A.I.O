@@ -24,6 +24,7 @@ from .converter_guard.errors import GuardError
 class FolderSaveSignals(QObject):
     progress = Signal(str, int, int)
     finished = Signal(str, object)
+    shutdown_finished = Signal(object)
 
 
 def application_icon():
@@ -72,6 +73,9 @@ class MainWindow(QMainWindow):
         self._folder_signals = FolderSaveSignals(self)
         self._folder_signals.progress.connect(self._folder_progress, Qt.ConnectionType.QueuedConnection)
         self._folder_signals.finished.connect(self._folder_finished, Qt.ConnectionType.QueuedConnection)
+        self._folder_signals.shutdown_finished.connect(self._finish_shutdown, Qt.ConnectionType.QueuedConnection)
+        self._shutdown_started = False
+        self._shutdown_done = False
         self._server = server
         self._gui_observation = None
         if server.telemetry is not None:
@@ -239,15 +243,44 @@ class MainWindow(QMainWindow):
         except ValueError:
             pass
 
+    @Slot(object)
+    def _finish_shutdown(self, error):
+        if error is not None:
+            self._shutdown_started = False
+            self.view.setEnabled(True)
+            self.setWindowTitle('A.I.O — ошибка завершения')
+            QMessageBox.warning(self, 'A.I.O', 'Не удалось завершить фоновые операции. '
+                                'Результаты не удалены автоматически. ' + str(error))
+            return
+        self._shutdown_done = True
+        self.close()
+
     def closeEvent(self, event):
+        # Native worker cleanup, filesystem fsync and server.shutdown() can
+        # legitimately take seconds or minutes. Never run them on Qt's GUI
+        # event loop, and never exit before Guard has preserved its ledger.
+        if self._shutdown_done:
+            return super().closeEvent(event)
+        event.ignore()
+        if self._shutdown_started:
+            return
+        self._shutdown_started = True
         if self._gui_observation is not None:
             self._gui_observation.stop()
         for operation in self._folder_saves.values():
             if operation:
                 operation[0].set()
-        self._server.shutdown()
-        self._server.server_close()
-        super().closeEvent(event)
+        self.view.setEnabled(False)
+        self.setWindowTitle('A.I.O — сохранение состояния и завершение…')
+        def shutdown():
+            error = None
+            try:
+                self._server.shutdown()
+                self._server.server_close()
+            except Exception as exc:
+                error = type(exc).__name__
+            self._folder_signals.shutdown_finished.emit(error)
+        threading.Thread(target=shutdown, daemon=True, name='aio-safe-shutdown').start()
 
 
 def launch_desktop():

@@ -46,7 +46,7 @@ function fixture(options={}){
       json:async()=>JSON.parse(JSON.stringify(value))});
     if(path==='/prepare')return response({jobId});
     if(path.startsWith('/input?'))return response({ok:true});
-    if(path==='/preflight')return response({available:true,files:[],formats:['pdf','html'].map(id=>({id,verifiedFileIds:['one']}))});
+    if(path==='/preflight')return response({available:true,files:[],formats:['pdf','html'].map(id=>({id,verifiedFileIds:options.noVerified?[]:['one']}))});
     if(path==='/start'){started=true;return response(state());}
     if(path.startsWith('/jobs?')){
       if(!started)return response({jobId,revision:1,finished:false,state:'prepared',files:[],result:null});
@@ -73,6 +73,60 @@ function fixture(options={}){
 }
 
 const completed=[];
+{
+  const f=fixture({noVerified:true});
+  await assert.rejects(f.bridge.convertMany({files:input,formatIds:['pdf','html']}),
+    error=>error.code==='PREFLIGHT_ROUTE_UNDETERMINED');
+  assert.equal(f.calls.some(c=>c.path==='/start'),false,'No unverified native route can start');
+  assert.equal(f.events.some(e=>e.type==='finishTargets'&&e.detail.files.some(row=>
+    row.fileId==='one'&&row.state==='skipped')),true,
+    'Every input without any verified direction gets a terminal skipped indicator');
+  assert.equal(f.events.some(e=>e.type==='failBatch'),false,
+    'Preflight exclusion is not a native conversion error');
+  completed.push('all preflight-filtered inputs are visibly skipped without native export');
+}
+{
+  const f=fixture();
+  const operation=f.bridge.convertMany({files:input,formatIds:['pdf','html']});
+  await until(()=>f.polled()>0);
+  const skip=await f.bridge.skipCurrent('one');
+  assert.equal(skip.files[0].cancellationRequested,true);
+  assert.equal(f.calls.some(c=>c.path==='/cancel-file'&&c.body.fileId==='one'&&
+    c.body.expectedTaskId===jobId+':1'),true, 'skip must send exact current task identity');
+  f.finish();await operation;
+  completed.push('fresh skip performs guarded backend cancel-file action');
+}
+{
+  const f=fixture({poll:({path,state})=>path.includes('delta=1')?state:{
+    ...state,currentTask:{...state.currentTask,fileId:'different'}}});
+  const operation=f.bridge.convertMany({files:input,formatIds:['pdf','html']});
+  await until(()=>f.polled()>0);
+  await assert.rejects(f.bridge.skipCurrent('one'),error=>error.code==='STALE_CURRENT_TASK');
+  assert.equal(f.calls.some(c=>c.path==='/cancel-file'),false,
+    'Stale UI must not cancel a non-current file');
+  f.finish();await operation;
+  completed.push('stale skip is rejected before cancel-file API call');
+}
+{
+  const f=fixture();
+  const operation=f.bridge.convertMany({files:input,formatIds:['pdf','html']});
+  await until(()=>f.polled()>0);
+  f.finish();await operation;
+  f.bridge.resetProgress();
+  assert.equal(f.calls.some(c=>c.path==='/release'),false,
+    'Clearing UI must not discard successful unsaved exports');
+  completed.push('UI reset retains completed unsaved outputs');
+}
+{
+  const f=fixture();
+  const operation=f.bridge.convertMany({files:input,formatIds:['pdf','html']});
+  await until(()=>f.polled()>0);
+  f.bridge.resetProgress();
+  await assert.rejects(operation,error=>error.code==='CANCELLED');
+  assert.equal(f.calls.some(c=>c.path==='/release'),false,
+    'Detaching UI while active must leave partial outputs recoverable');
+  completed.push('UI generation change preserves partial live outputs');
+}
 {
   const f=fixture();
   const operation=f.bridge.convertMany({files:input,formatIds:['pdf','html']});

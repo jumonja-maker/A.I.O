@@ -6,7 +6,7 @@ import threading
 import time
 
 from ..libreoffice_catalog import catalog
-from ..libreoffice_engine import LibreOfficeError, convert_path, engine_binary
+from ..libreoffice_engine import LibreOfficeError, convert_path, engine_binary, validated_outputs
 from .errors import GuardError
 from .routes import registry
 from .csv_import import csv_import_hint
@@ -230,6 +230,7 @@ class LibreOfficeAdapter:
                         'documentServices':services,'typeName':result.get('typeName'),'filterName':selected,
                         'selectedImportFilter':confirmed,
                         'selectedImportOptions':hint['options'] if hint else None,
+                        'csvImportSampleOnly': bool(hint),
                         'drawPages':result.get('drawPages'),
                         'registryFingerprint':native.fingerprint,'exported':False}
                 return {'state':'undetermined','code':result.get('code') or 'PREFLIGHT_IMPORT_FAILED',
@@ -252,7 +253,7 @@ class LibreOfficeAdapter:
                     and proof.get('documentServices') == ['com.sun.star.sheet.SpreadsheetDocument']
                     and proof.get('registryFingerprint') == native.fingerprint):
                 proof = {**proof, 'requestedImportFilter': hint['filter'],
-                         'requestedImportOptions': hint['options']}
+                         'requestedImportOptions': hint['options'], 'csvImportSampleOnly': True}
             if office and proof.get('code') in ('PREFLIGHT_TIMEOUT', 'PREFLIGHT_API_UNAVAILABLE',
                                                 'PREFLIGHT_UNO_API_UNAVAILABLE'):
                 office.recycle()
@@ -339,7 +340,10 @@ class LibreOfficeAdapter:
                                        if result.get('stage')=='import' else 'создать выбранный результат.'))
                             raise GuardError(code, message,
                                 stage=result.get('stage','engine'),diagnostic=diagnostic)
-                        return sorted(p for p in output.rglob('*') if p.is_file() and not p.is_symlink())
+                        try:
+                            return validated_outputs(source, target, output)
+                        except LibreOfficeError as error:
+                            raise GuardError(error.code, str(error), stage='result') from error
                     except GuardError as error:
                         # A completed error reply has already closed its model.
                         # Keep that healthy worker for the next task. Transport,

@@ -235,11 +235,15 @@
   height:218px !important;
   min-height:218px !important;
   max-height:218px !important;
-  grid-template-rows:62px 48px 48px 30px;
+  grid-template-rows:62px 48px 32px 48px;
   gap:7px;
 }
 .workspace .aio-cv__footer.aio-guard-has-queue .aio-guard-queue {
-  grid-row:4;
-  min-height:30px;
+  grid-row:3;
+  min-height:32px;
   align-self:center;
 }
+
+/* Guard pause/skip row above conversion/cancel/save buttons. */
+.workspace .aio-cv__footer.aio-guard-has-queue [data-cv-run],
+.workspace .aio-cv__footer.aio-guard-has-queue [data-cv-save]{grid-row:4}

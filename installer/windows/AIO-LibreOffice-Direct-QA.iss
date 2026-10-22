@@ -1,4 +1,4 @@
-; A.I.O direct LibreOffice integration QA. No Guard. No Advanced.
+﻿; A.I.O direct LibreOffice integration QA. No Guard. No Advanced.
 ; Deliberately separate from Clean Excel QA installation for A/B tests.
 
 #define AppName "A.I.O (LibreOffice QA)"

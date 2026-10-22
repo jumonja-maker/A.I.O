@@ -3,7 +3,17 @@
   'use strict';
   const token = document.body.dataset.aioToken;
   if (!token) return; // HTML designer preview can still run without server.
-  let nativeSaveSequence = 0;
+  // The acknowledgement URL must not repeat after a renderer reload.
+  // Previously the counter restarted at 1 and could match a late Qt ACK
+  // from an older page owning the same retained ticket.
+  let nativeSaveSequence = (() => {
+    if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+      const words = crypto.getRandomValues(new Uint32Array(2));
+      return (words[0] % 2_000_000) * 1_000_000 + (words[1] % 1_000_000) + 1;
+    }
+    // Legacy testing/browser context; still avoid a deterministic restart at 1.
+    return ((Date.now() % 2_000_000) * 1_000_000 + Math.floor(Math.random() * 1_000_000) + 1);
+  })();
   function fail(message) { throw new Error(message); }
   window.AllInOneBridge = {
     async mergeExcel(files, onProgress) {
@@ -135,14 +145,25 @@
       const confirmation = window.AllInOneNativeShell
         ? new Promise((resolve, reject) => {
             const sourceUrl = new URL(url, window.location.href).href;
+            let settled = false;
+            // No acknowledgement does NOT mean saved or cancelled. Leave the
+            // Guard ticket intact and allow an explicit retry with a new URL.
+            const watchdog = setTimeout(() => {
+              cleanup();
+              reject(new Error('Нет подтверждения сохранения от приложения AIO. Результаты остаются в очереди; проверьте файл и повторите сохранение.'));
+            }, 30 * 60 * 1000);
             function cleanup() {
+              if (settled) return false;
+              settled = true;
+              clearTimeout(watchdog);
               window.removeEventListener('aio-native-save-result', onResult);
+              return true;
             }
             function onResult(event) {
               const detail = event.detail || {};
               if (detail.sourceUrl !== sourceUrl ||
-                  !['completed', 'cancelled', 'failed'].includes(detail.status)) return;
-              cleanup();
+                  !['completed', 'cancelled', 'failed'].includes(detail.status) ||
+                  !cleanup()) return;
               if (detail.status === 'completed') {
                 resolve({ name: detail.name || result.name, saved: true,
                           savedAll: detail.savedAll === true,
@@ -160,7 +181,7 @@
             }
             window.addEventListener('aio-native-save-result', onResult);
             // Also settle an abandoned promise if anchor.click() throws.
-            disposeConfirmation = () => {cleanup(); resolve({cancelled:true});};
+            disposeConfirmation = () => {if (cleanup()) resolve({cancelled:true});};
           })
         : null;
       try {

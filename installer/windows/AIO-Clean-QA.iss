@@ -1,4 +1,4 @@
-; Clean A.I.O UI+Excel QA installer — does NOT contain LibreOffice engine.
+﻿; Clean A.I.O UI+Excel QA installer — does NOT contain LibreOffice engine.
 ; Never publish as finished converter release until Converter Guard is ready.
 
 #define AppName "A.I.O"
