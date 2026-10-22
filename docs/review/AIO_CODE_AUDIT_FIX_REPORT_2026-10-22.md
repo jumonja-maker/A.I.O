@@ -66,3 +66,13 @@ python -m unittest discover -s tests -p 'test_guard_uno_pipeline_v12.py' -v
 5. Оценить отдельным патчем безопасный просмотр и экспорт **orphan** outputs, UX `JOB_LIMIT`, варианты memory-spool Excel и coverage fidelity; эти части F05/F06/F08/F09/F12/F13 не выдавать за закрытые.
 
 **Итог:** PR #23 пригоден как QA-кандидат на устранение нескольких P1, но **не является доказательством, что все 13 пунктов полностью устранены**. `main` не менялась, массовая конвертация и установщик не запускались этим патчем.
+
+## Self-hosted NIKITA QA — фактическое выполнение
+
+Подключён отдельный **owner-label-only** workflow `.github/workflows/aio-pr23-nikita-audit-qa.yml`. Использует метки `[self-hosted, Windows, X64, local-d-manual]`, проверяет ограниченного не-администратора NIKITA, диск D:, неизменный Git tree и существующее offline QA Python/Node окружение. Нет скачивания pip, установки, упаковки, FULLTEST или слияния.
+
+1. [Первый запуск #39786501335](https://github.com/jumonja-maker/A.I.O/actions/runs/39786501335) — **FAIL** только по старому контракту `test_mounted_guard_is_idle_until_an_explicit_job`: тест сравнивал полный словарь `storage_stats()`, куда аудит добавил корректные диагностические поля. Остальные выполненные к этому моменту серии прошли.
+2. Исправлен исключительно инвариант теста: проверка **нулевых значений всех счётчиков**, без запрета добавлять новые метрики. Node включён в PATH runner, так что мост не пропускается.
+3. [Повторный запуск #39786953523](https://github.com/jumonja-maker/A.I.O/actions/runs/39786953523) — **SUCCESS**, реальный NIKITA. Pinned source commit `5c386559da3786e74c9dce7ffc7ac34b82f7cc0c`, ожидаемый tree `cfb6d3abbc9027f16c79aea71c0047bdd7805b25`. **114 Python unittest методов** по 9 наборам (9 audit, 9 LibreOffice, 9 UNO, 1 bridge, 37 Guard, 17 HTTP, 16 Excel, 13 BLACK.BOX telemetry, 3 BLACK.BOX audit); дополнительные Node scripts `guard_native_save_watchdog.mjs` и `guard_save_queue_v09.mjs` прошли, а также JS syntax/compile.
+
+**Что это подтверждает:** выбранные source- и API-контракты и реальный Windows LibreOffice smoke на этом runner. **Чего не подтверждает:** полный Python/Qt/DOM suite, одновременную работу долгой очереди и GUI, реальный многоформатный FULLTEST, размер RSS/handles, визуальную полноту конвертации. Не трактовать зелёную QA job как закрытие F05/F06/F08/F09/F12/F13.
