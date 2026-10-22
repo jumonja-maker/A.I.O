@@ -147,6 +147,8 @@
     recheck.disabled=state?.state!=='prepared';
     bar.querySelector('[data-g-report]').disabled=!jobs.length&&!state?.jobId&&!warnings.length;
     for(const selector of pendingActions)bar.querySelector(selector).disabled=true;
+    if(state?.files?.some(f=>f.nativeRoute?.csvImportSampleOnly))
+      text('[data-g-warning]','CSV: настройки импорта определены по образцу. Полная сверка ячеек и локали не выполнялась.');
     if(warnings.length)text('[data-g-warning]','Не удалось прочитать журнал '+warnings.length+' заданий. Файлы не удалены. Сохраните технический отчёт для восстановления.');
     if(state?.recoveryError)text('[data-g-warning]','Журнал восстановления записан не полностью. Сохраните результаты перед закрытием.');
     if(state?.statusReadError)text('[data-g-warning]',state.statusReadMessage);
