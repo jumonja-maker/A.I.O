@@ -128,6 +128,11 @@ def main(manifest_name):
         else:
             result = {**model_metadata(model), 'state':'detected','modelLoaded':True,
                       'documentServices':services}
+            if 'com.sun.star.drawing.DrawingDocument' in services:
+                try:
+                    result['drawPages'] = model.getDrawPages().getCount()
+                except Exception:
+                    pass  # Optional metadata must not reject a valid model.
     except Exception:
         result = {'state':'undetermined','code':'PREFLIGHT_INTERACTION_REQUIRED'
                   if handler.blocked else 'PREFLIGHT_IMPORT_FAILED'}

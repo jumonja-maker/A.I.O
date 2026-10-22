@@ -8,7 +8,7 @@ import time
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
-from PySide6.QtCore import QUrl, Qt, QObject, Signal
+from PySide6.QtCore import QUrl, Qt, QObject, Signal, Slot
 from PySide6.QtGui import QIcon, QDesktopServices
 from PySide6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QProgressDialog
 from PySide6.QtWebEngineCore import (
@@ -70,9 +70,13 @@ class MainWindow(QMainWindow):
         self._downloads = []
         self._folder_saves = {}
         self._folder_signals = FolderSaveSignals(self)
-        self._folder_signals.progress.connect(self._folder_progress)
-        self._folder_signals.finished.connect(self._folder_finished)
+        self._folder_signals.progress.connect(self._folder_progress, Qt.ConnectionType.QueuedConnection)
+        self._folder_signals.finished.connect(self._folder_finished, Qt.ConnectionType.QueuedConnection)
         self._server = server
+        self._gui_observation = None
+        if server.telemetry is not None:
+            from .qt_observation import observe_gui
+            self._gui_observation = observe_gui(self, server.telemetry)
         self.setWindowTitle('A.I.O — All in One помощник')
         self.setWindowIcon(application_icon())
         self.resize(1280, 800)
@@ -155,14 +159,18 @@ class MainWindow(QMainWindow):
         item.accept()
 
     def _save_folder(self, url, ticket):
+        if url in self._folder_saves:
+            return  # A duplicate download signal must not replace a live save.
+        self._folder_saves[url] = None  # Reserve before the nested picker loop.
         destination = QFileDialog.getExistingDirectory(self, 'Сохранить все результаты в папку')
         if not destination:
+            self._folder_saves.pop(url, None)
             self._notify_download('cancelled', '', url)
             return
         cancelled = threading.Event()
         dialog = QProgressDialog('Сохранение результатов…', 'Отменить сохранение', 0, 0, self)
         dialog.setWindowTitle('AIO — сохранение результатов')
-        dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        dialog.setWindowModality(Qt.WindowModality.NonModal)
         dialog.setAutoClose(False)
         dialog.setAutoReset(False)
         dialog.canceled.connect(cancelled.set)
@@ -189,6 +197,7 @@ class MainWindow(QMainWindow):
             self._folder_signals.finished.emit(url, result)
         threading.Thread(target=work, daemon=True, name='aio-folder-save').start()
 
+    @Slot(str, int, int)
     def _folder_progress(self, url, current, total):
         operation = self._folder_saves.get(url)
         if operation:
@@ -197,6 +206,7 @@ class MainWindow(QMainWindow):
             dialog.setValue(current)
             dialog.setLabelText('Сохранено файлов: ' + str(current) + ' из ' + str(total))
 
+    @Slot(str, object)
     def _folder_finished(self, url, result):
         operation = self._folder_saves.pop(url, None)
         if operation:
@@ -230,8 +240,11 @@ class MainWindow(QMainWindow):
             pass
 
     def closeEvent(self, event):
-        for cancelled, _dialog in self._folder_saves.values():
-            cancelled.set()
+        if self._gui_observation is not None:
+            self._gui_observation.stop()
+        for operation in self._folder_saves.values():
+            if operation:
+                operation[0].set()
         self._server.shutdown()
         self._server.server_close()
         super().closeEvent(event)

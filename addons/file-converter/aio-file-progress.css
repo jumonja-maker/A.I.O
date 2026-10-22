@@ -31,33 +31,13 @@
 .aio-cv .aio-fp-paint {
   position: absolute;
   inset: 0;
-  z-index: 2;
+  z-index: -1;
   background: var(--aio-fp-ink);
   clip-path: inset(0 calc(100% - var(--aio-fp-progress)) 0 0);
   pointer-events: none;
 }
-/* A single continuous green fill. Progress still follows confirmed targets;
-   the former repeating vertical cell dividers made file cards look striped. */
-.aio-cv .aio-fp-paint-content {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  gap: var(--aio-fp-gap, 8px);
-  padding: var(--aio-fp-padding, 7px);
-  color: var(--aio-fp-on-ink);
-}
-.aio-cv .aio-fp-paint-content :is(
-  .aio-cv__grip, .aio-cv__file-name, .aio-cv__file-meta,
-  .aio-cv__file-note, .aio-cv__icon-btn, .aio-fp-label
-) {
-  color: var(--aio-fp-on-ink) !important;
-}
-.aio-cv .aio-fp-paint-content .aio-cv__thumb {
-  background: transparent;
-  color: var(--aio-fp-on-ink);
-  border-color: color-mix(in srgb, var(--aio-fp-on-ink) 40%, transparent);
-}
+/* Paint is one background layer. The original text, buttons and symbols
+   remain in their original positions; no full-card DOM clones or layout reads. */
 .aio-cv .aio-cv__file[data-aio-fp-state="converting"] .aio-fp-label {
   font-weight: 600;
 }
@@ -67,7 +47,6 @@
 .aio-cv .aio-cv__file[data-aio-fp-state="converting"] {
   background-color: color-mix(in srgb, var(--aio-fp-ink) 9%, var(--surface, transparent));
 }
-.aio-cv .aio-fp-paint-content .aio-fp-check { color: var(--aio-fp-on-ink); }
 .aio-cv .aio-cv__file[data-aio-fp-state="error"] .aio-fp-label {
   color: var(--danger, #d23b48);
   display: block;

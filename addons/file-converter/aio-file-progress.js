@@ -20,12 +20,26 @@
     const scope = root?.matches?.('.aio-cv') ? root : root?.querySelector?.('.aio-cv');
     if (!scope) throw new Error('AIOFileProgress.attach requires a mounted converter.');
     if (controllers.has(scope)) return controllers.get(scope);
-    let runId = null, disposed = false, frame = null;
+    let runId = null, disposed = false, frame = null, structureDirty = false;
+    const pendingRows = new Set();
     const files = new Map();
     const decorations = new Map();
-    const observer = new global.MutationObserver(() => {
-      if (!disposed && frame === null) frame = global.requestAnimationFrame(() => {
-        frame = null; render();
+    const selector = '.aio-cv__file[data-file-id]';
+    const observer = new global.MutationObserver(records => {
+      if (disposed) return;
+      for (const record of records) {
+        const row = record.target.closest?.(selector);
+        if (row) pendingRows.add(String(row.dataset.fileId));
+        else for (const node of [...record.addedNodes, ...record.removedNodes]) {
+          if (node.matches?.(selector) || node.querySelector?.(selector)) structureDirty = true;
+        }
+      }
+      // Queue clocks, status dialogs and format controls are outside cards.
+      // Their mutations must not repaint every source file once per second.
+      if ((structureDirty || pendingRows.size) && frame === null) frame = global.requestAnimationFrame(() => {
+        frame = null;
+        const dirty = structureDirty ? undefined : new Set(pendingRows);
+        structureDirty = false; pendingRows.clear(); render(dirty);
       });
     });
     const observe = () => { if (!disposed) observer.observe(scope, {childList:true, subtree:true}); };
@@ -68,36 +82,10 @@
       const paint = make('div', 'aio-fp-paint');
       paint.hidden = true; paint.setAttribute('role', 'progressbar');
       paint.setAttribute('aria-valuemin', '0'); paint.setAttribute('aria-valuemax', '100');
-      const copy = make('div', 'aio-fp-paint-content');
-      copy.setAttribute('aria-hidden', 'true'); copy.setAttribute('inert', '');
-      paint.append(copy);
-      parts = {label:status, check, paint, copy, signature:null, oldBusy:row.getAttribute('aria-busy')};
+      parts = {label:status, check, paint, oldBusy:row.getAttribute('aria-busy')};
       info.append(status); tools.prepend(check); row.append(paint); row.classList.add('aio-fp-row');
       decorations.set(row, parts);
       return parts;
-    }
-    function snapshot(row, parts) {
-      const style = global.getComputedStyle(row);
-      row.style.setProperty('--aio-fp-gap', style.gap || '8px');
-      row.style.setProperty('--aio-fp-padding', style.padding || '7px');
-      const name = row.querySelector('.aio-cv__file-name')?.textContent || '';
-      const meta = row.querySelector('.aio-cv__file-meta')?.textContent || '';
-      const thumb = row.querySelector('.aio-cv__thumb')?.innerHTML || '';
-      const buttons = [...row.querySelector('.aio-cv__file-tools').querySelectorAll('button')].map(button=>String(button.disabled)).join(',');
-      const signature = name + '\u0000' + meta + '\u0000' + thumb + '\u0000' + buttons + '\u0000' + style.gap + '\u0000' + style.padding;
-      if (parts.signature === signature) return;
-      parts.signature = signature;
-      parts.copy.replaceChildren();
-      for (const child of row.children) {
-        if (child === parts.paint) continue;
-        const clone = child.cloneNode(true);
-        for (const node of [clone, ...clone.querySelectorAll('*')]) {
-          node.removeAttribute('id'); node.removeAttribute('data-file-id'); node.removeAttribute('draggable');
-          if (node.matches('button,input,select,textarea')) node.disabled = true;
-          if (node.matches('a,button,input,select,textarea,[tabindex]')) node.setAttribute('tabindex', '-1');
-        }
-        parts.copy.append(clone);
-      }
     }
     function render(dirtyIds) {
       if (disposed) return;
@@ -120,9 +108,9 @@
           parts.check.hidden = data.state !== 'ready' && !(data.state === 'saving' && !['partial','partial-saved'].includes(data.beforeSave));
           // A single DOCX/LO operation has no measured intermediate percent.
           // No moving fake progress: show green ONLY for confirmed completed
-          // targets, and a full card at the real ready/saved transition.
+          // targets. On completion the fill gives way to the status/check.
           const confirmedFill = data.percent !== null && data.percent > 0 &&
-            ['converting','ready','saving','saved','partial','partial-saved'].includes(data.state);
+            data.state === 'converting';
           parts.paint.hidden = !confirmedFill;
           parts.paint.dataset.indeterminate = 'false';
           parts.paint.setAttribute('aria-label', 'Конвертация ' + (row.querySelector('.aio-cv__file-name')?.textContent || 'файла'));
@@ -132,11 +120,7 @@
           if (data.percent === null) parts.paint.removeAttribute('aria-valuenow');
           else parts.paint.setAttribute('aria-valuenow', String(Math.floor(data.percent)));
           row.style.setProperty('--aio-fp-progress', (data.percent ?? 0) + '%');
-          if (confirmedFill) {
-            snapshot(row, parts);
-            for (const node of parts.copy.querySelectorAll('.aio-fp-label')) { node.textContent = text; node.hidden = !text; }
-            for (const node of parts.copy.querySelectorAll('.aio-fp-check')) node.hidden = parts.check.hidden;
-          }
+
         }
       } finally { observe(); }
     }
@@ -159,7 +143,7 @@
       if (event.state === 'converting' && Number.isFinite(event.percent) && event.percent >= 0 && event.percent <= 100)
         data.percent = Math.max(data.percent ?? 0, event.percent);
       if (event.state === 'ready') data.percent = 100;
-      render(); return true;
+      render(new Set([String(event.fileId)])); return true;
     }
     function completeBatch(event) {
       if (!current(event) || [...files.values()].some(data=>['error','cancelled','saving','saved'].includes(data.state))) return false;
@@ -235,7 +219,7 @@
       if (frame !== null) global.cancelAnimationFrame(frame);
       frame = null; disposed = true;
       for (const [row, parts] of [...decorations]) restore(row, parts);
-      files.clear(); controllers.delete(scope);
+      files.clear(); pendingRows.clear(); controllers.delete(scope);
     }
     const controller = Object.freeze({begin, update, completeBatch, finishBatch, failBatch, finishTargets, beginSave, finishSave, reset, dispose});
     controllers.set(scope, controller); observe(); return controller;

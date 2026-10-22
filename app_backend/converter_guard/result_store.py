@@ -103,6 +103,7 @@ class ResultStore:
             'startedMs': task.started_ms, 'finishedMs': task.finished_ms,
             'durationMs':task.duration_ms,'executionMode':task.execution_mode,
             'nativeTimings':task.native_timings,
+            'exportFilter':task.export_filter,'warnings':task.warnings,
             'loStarted': task.lo_started}
         for artifact in task.artifacts:
             yield {'kind':'output','transaction':transaction,

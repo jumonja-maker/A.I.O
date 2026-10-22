@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import sys
+import zipfile
 
 
 class _Kit(C.Structure):
@@ -17,7 +18,7 @@ class _Kit(C.Structure):
 
 class _Document(C.Structure):
     _fields_ = [('size', C.c_size_t)] + [(n, C.c_void_p) for n in (
-        'destroy', 'save_as', 'document_type')]
+        'destroy', 'save_as', 'document_type', 'parts')]
 
 
 def _table(pointer, structure, member):
@@ -44,16 +45,34 @@ def _stage(work, name):
 
 
 def _mathml_root(source):
-    """Bounded-memory content identification, never filename-based."""
+    """MathML root in XML or an ODF Formula package, never filename-based.
+
+    Called only after a successful native OTHER-model load. Reading the
+    Formula mimetype and embedded MathML root distinguishes it from Chart;
+    opening arbitrary ZIP/CFB data as text is never used as a fallback.
+    """
     from xml.etree.ElementTree import XMLPullParser, ParseError
-    parser = XMLPullParser(events=('start',))
+    def root(stream):
+        parser = XMLPullParser(events=('start',))
+        while chunk := stream.read(65536):
+            parser.feed(chunk)
+            for _event, element in parser.read_events():
+                return element.tag == '{http://www.w3.org/1998/Math/MathML}math'
+        return False
     try:
         with source.open('rb') as stream:
-            while chunk := stream.read(65536):
-                parser.feed(chunk)
-                for _event, element in parser.read_events():
-                    return element.tag == '{http://www.w3.org/1998/Math/MathML}math'
-    except (OSError, ParseError, UnicodeError, ValueError):
+            packed=stream.read(4)==b'PK\x03\x04'
+            stream.seek(0)
+            if not packed:return root(stream)
+        with zipfile.ZipFile(source) as archive:
+            names=archive.namelist()
+            if names.count('mimetype')!=1 or names.count('content.xml')!=1:return False
+            mime=archive.getinfo('mimetype')
+            if mime.file_size>128 or archive.read(mime)!=b'application/vnd.oasis.opendocument.formula':
+                return False
+            with archive.open('content.xml') as stream:return root(stream)
+    except (OSError, ParseError, UnicodeError, ValueError, KeyError,
+            zipfile.BadZipFile, RuntimeError, NotImplementedError):
         return False
     return False
 
@@ -106,7 +125,19 @@ def detect(program, profile, source, work):
     kind = C.CFUNCTYPE(C.c_int, C.c_void_p)(table.document_type)(doc)
     _stage(work, 'document_typed')
     if kind in (0, 1, 2, 3):
-        return {'state':'detected', 'kind':kind}
+        result = {'state':'detected', 'kind':kind}
+        if kind == 3:
+            # Optional ABI member, checked against the native class size.
+            # LibreOffice/core include/LibreOfficeKit/LibreOfficeKit.h getParts.
+            # Counts pages of the loaded Draw model, never filename suffixes.
+            try:
+                parts = _table(doc, _Document, 'parts')
+                count = C.CFUNCTYPE(C.c_int, C.c_void_p)(parts.parts)(doc)
+                if count > 0:
+                    result['drawPages'] = count
+            except ValueError:
+                pass
+        return result
     # LOK OTHER is shared by multiple modules. Never infer FormulaProperties
     # from OTHER alone or the .mml suffix: require a successfully loaded
     # native model AND a MathML XML root read from actual source bytes.
