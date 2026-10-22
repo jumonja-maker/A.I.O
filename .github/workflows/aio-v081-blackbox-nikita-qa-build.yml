@@ -13,7 +13,7 @@ jobs:
       github.repository == 'jumonja-maker/A.I.O' &&
       github.event.pull_request.head.sha != '' &&
       github.event.action == 'labeled' &&
-      github.event.label.name == 'aio-v14-blackbox-build-approved-once' &&
+      github.event.label.name == 'aio-v081-blackbox-build-approved-once' &&
       github.event.pull_request.number == 15 &&
       github.event.pull_request.user.login == 'jumonja-maker' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
