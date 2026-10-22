@@ -230,6 +230,7 @@ class LibreOfficeAdapter:
                         'documentServices':services,'typeName':result.get('typeName'),'filterName':selected,
                         'selectedImportFilter':confirmed,
                         'selectedImportOptions':hint['options'] if hint else None,
+                        'csvImportSampleOnly': bool(hint),
                         'drawPages':result.get('drawPages'),
                         'registryFingerprint':native.fingerprint,'exported':False}
                 return {'state':'undetermined','code':result.get('code') or 'PREFLIGHT_IMPORT_FAILED',
