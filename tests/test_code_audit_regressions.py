@@ -134,5 +134,29 @@ class GuardRaceAndRecoveryAuditTests(unittest.TestCase):
                 guard.close()
 
 
+class DirectTransportAuditTests(unittest.TestCase):
+    def test_explicit_release_retries_cleanup_but_unsaved_tickets_remain(self):
+        from app_backend.converter_transport import ConverterTransport, Result
+        class FailingCleanup:
+            def __init__(self):
+                self.calls = 0
+            def cleanup(self):
+                self.calls += 1
+                if self.calls == 1:
+                    raise OSError('simulated Windows sharing violation')
+        transport = ConverterTransport()
+        temp = FailingCleanup()
+        transport.results['ticket'] = Result(temp, Path('unused'), 'output.pdf',
+                                             'application/pdf')
+        transport.retry_cleanup()
+        self.assertEqual(temp.calls, 0, 'unsaved result must never be reaped')
+        self.assertEqual(transport.storage_stats()['retainedResults'], 1)
+        self.assertFalse(transport.release('ticket'))
+        self.assertEqual(transport.storage_stats()['cleanupPending'], 1)
+        transport.retry_cleanup()
+        self.assertNotIn('ticket', transport.results)
+        self.assertEqual(temp.calls, 2)
+
+
 if __name__ == '__main__':
     unittest.main()
