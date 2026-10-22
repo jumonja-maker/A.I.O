@@ -313,8 +313,6 @@
         const plan = inputs.map(f=>({fileId:String(f.id),formats:formats.filter(id=>
           (!requested || requested.get(String(f.id))?.has(id)) &&
           eligible.get(id)?.has(String(f.id)))})).filter(f=>f.formats.length);
-        if (!plan.length) throw errorOf('Нет подтверждённых направлений. Повторите проверку.',
-          'PREFLIGHT_ROUTE_UNDETERMINED');
         progress?.begin({runId:op.id,fileIds:inputs.map(f=>String(f.id))});
         // Files with no verified route must not remain visually queued.
         const plannedIds=new Set(plan.map(f=>f.fileId));
@@ -322,6 +320,8 @@
         if(unplanned.length)progress?.finishTargets({runId:op.id,partial:true,
           files:unplanned.map(f=>({fileId:String(f.id),targets:[],state:'skipped',
             succeeded:0,total:0}))});
+        if (!plan.length) throw errorOf('Нет подтверждённых направлений. Повторите проверку.',
+          'PREFLIGHT_ROUTE_UNDETERMINED');
         op.startRequested=true;op.startRejected=false;
         let state;
         try {
@@ -389,7 +389,8 @@
     } catch (error) {
       if (!error.batchReport) error.batchReport = last;
       if (error.batchReport) update(error.batchReport, op, onProgress);
-      else progress?.failBatch({runId:op.id,cancelled:op.cancelled});
+      else if(error.code!=='PREFLIGHT_ROUTE_UNDETERMINED')
+        progress?.failBatch({runId:op.id,cancelled:op.cancelled});
       if (op.cancelled) {
         const cancelled = errorOf('Конвертация отменена.', 'CANCELLED');
         cancelled.batchReport = error.batchReport;
@@ -467,6 +468,10 @@
       const fileId=fileIdFromView ?? op?.snapshot?.currentTask?.fileId;
       if(!op?.jobId || !fileId)
         throw errorOf('Текущая операция ещё не определена или уже завершена. Обновите состояние очереди.', 'NO_CURRENT_TASK');
+      // Verify the current backend task; a stale UI must not cancel a queued input.
+      const latest=await api('/jobs?job='+encodeURIComponent(op.jobId),undefined,'GET');
+      if(String(latest.currentTask?.fileId||'')!==String(fileId))
+        throw errorOf('Очередь перешла к другому файлу. Обновите состояние и повторите действие.', 'STALE_CURRENT_TASK');
       const state=await control(op,'/cancel-file',{jobId:op.jobId,fileId});
       const file=state.files?.find(f=>String(f.fileId)===String(fileId));
       if(file && !file.cancellationRequested && file.targets?.every(t=>
