@@ -1876,13 +1876,26 @@ class ConverterGuard:
             self._flush_journal(job)
         return snapshot
 
-    def cancel_file(self, job_id, file_id):
-        """Skip one troublesome source and continue the other files."""
+    def cancel_file(self, job_id, file_id, *, expected_task_id=None):
+        """Atomically skip only the task the user actually saw."""
         with self._lock:
             job = self._get(job_id)
             item = job.files_by_id.get(file_id) if isinstance(file_id, str) else None
             if item is None:
                 raise GuardError('FILE_NOT_FOUND', 'Файл не относится к заданию.', status=404)
+            if expected_task_id is not None:
+                current = job.current
+                task_id = None
+                if current:
+                    current_item, current_task = current
+                    task_id = (job.id + ':preflight:' + current_item.id
+                               if current_task.stage == 'preflight'
+                               else job.id + ':' + str(current_task.index))
+                if (not isinstance(expected_task_id, str) or
+                        not current or current[0] is not item or task_id != expected_task_id):
+                    raise GuardError('STALE_CURRENT_TASK',
+                                     'Очередь уже перешла к другой операции. Обновите состояние.',
+                                     stage='queue', status=409)
             if not job.preparation and all(t.state in DONE for t in item.targets):
                 return self._snapshot(job)
             item.cancel.set()
