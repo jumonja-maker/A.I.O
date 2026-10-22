@@ -1,7 +1,7 @@
 /* Ordinary-mode queue. No automatic selection, export or recovery restart. */
 (() => {
   'use strict';
-  let root=null, bar=null, state=null, jobs=[], warnings=[], page=0, refreshPending=false, clock=null;
+  let root=null, bar=null, stateButton=null, state=null, jobs=[], warnings=[], page=0, refreshPending=false, clock=null;
   let preview=null, previewId=null, previewRequest=0;
   // Only the visible page owns DOM nodes. Keep at most one flattened view;
   // unchanged polls and the elapsed-time clock must never rebuild the queue.
@@ -11,23 +11,46 @@
     error:'Ошибка',cancelled:'Отменено',skipped:'Исключено Guard'};
   const api=()=>window.AllInOneBridge?.converter;
   const text=(selector,value)=>{const n=bar?.querySelector(selector);if(n&&n.textContent!==String(value))n.textContent=String(value);};
+  function attachTopButton() {
+    const header=root?.querySelector('.aio-cv__format-head') ||
+      root?.querySelector('.aio-cv__pane--right .aio-cv__pane-head');
+    if(!header || !bar)return;
+    if(!stateButton){
+      stateButton=document.createElement('button');
+      stateButton.type='button';
+      stateButton.className='aio-guard-state-button';
+      stateButton.textContent='Состояние';
+      stateButton.setAttribute('aria-haspopup','dialog');
+      stateButton.setAttribute('aria-expanded','false');
+      stateButton.addEventListener('click',()=>{
+        const dialog=bar?.querySelector('.aio-guard-popup');
+        if(!dialog||dialog.open)return;
+        dialog.showModal();
+        stateButton.setAttribute('aria-expanded','true');
+        refresh();renderRows();
+      });
+    }
+    if(!stateButton.isConnected)
+      header.insertBefore(stateButton,header.querySelector('[data-cv-select-all-formats]'));
+  }
   function mount() {
     const next=document.querySelector('.aio-cv');
-    if(!next){root=bar=null;rowCache=paintedRows=null;if(clock){clearInterval(clock);clock=null;}return;}
-    if(next===root&&bar?.isConnected)return;
+    if(!next){stateButton?.remove();stateButton=null;root=bar=null;rowCache=paintedRows=null;if(clock){clearInterval(clock);clock=null;}return;}
+    if(next===root&&bar?.isConnected){attachTopButton();return;}
+    stateButton?.remove();stateButton=null;
     root=next;rowCache=paintedRows=null;
     const footer=root.querySelector('.aio-cv__footer');if(!footer)return;
     bar=document.createElement('div');bar.className='aio-guard-queue';bar.hidden=true;
     bar.innerHTML='<div class="aio-guard-current"><span data-g-current></span><button type="button" data-g-pause>Пауза</button><button type="button" data-g-skip>Пропустить файл</button></div>'+
-      '<details><summary>Состояние</summary><dialog class="aio-guard-popup">'+
+      '<dialog class="aio-guard-popup" aria-label="Состояние очереди Guard">'+
       '<div data-g-counts></div><div class="aio-guard-warning" data-g-warning></div>'+
       '<div class="aio-guard-tools"><input type="search" placeholder="Имя файла или формат" aria-label="Поиск в очереди"><select aria-label="Состояние задач"><option value="all">Все задачи</option><option value="error">Ошибки</option><option value="pending">Ожидают</option><option value="ready">Готовые</option></select></div>'+
       '<div class="aio-guard-list" role="list" aria-label="Задачи конвертации"></div>'+
       '<div class="aio-guard-pages"><button type="button" data-g-prev>Назад</button><span data-g-page></span><button type="button" data-g-next>Далее</button></div>'+
       '<div class="aio-guard-save"><select data-g-jobs aria-label="Несохранённое задание"></select><button type="button" data-g-zip>Сохранить ZIP</button><button type="button" data-g-folder>Сохранить в папку</button></div>'+
       '<div class="aio-guard-save"><button type="button" data-g-retry>Повторить ошибки</button><button type="button" data-g-long>Повторить с большим временем</button><button type="button" data-g-check>Повторить проверку дольше</button><button type="button" data-g-report>Технический отчёт</button><button type="button" data-g-discard>Удалить результаты</button></div>'+
-      '</dialog></details>';
-    footer.append(bar);
+      '</dialog>';
+    footer.append(bar);attachTopButton();
     bar.querySelector('[data-g-folder]').hidden=!window.AllInOneNativeShell;
     const action=(selector,work)=>bar.querySelector(selector).addEventListener('click',async event=>{
       if(pendingActions.has(selector))return;
@@ -41,7 +64,7 @@
       finally{pendingActions.delete(selector);button.disabled=false;render();}
     });
     action('[data-g-pause]',()=>api().pause(!state?.pauseRequested));
-    action('[data-g-skip]',()=>api().skipCurrent());
+    action('[data-g-skip]',()=>api().skipCurrent(state?.currentTask?.fileId));
     const selected=()=>bar.querySelector('[data-g-jobs]').value;
     action('[data-g-zip]',()=>api().saveRetained(selected(),'zip'));
     action('[data-g-folder]',()=>api().saveRetained(selected(),'folder'));
@@ -64,12 +87,11 @@
     bar.querySelector('.aio-guard-tools select').addEventListener('change',()=>{page=0;renderRows();});
     bar.querySelector('[data-g-prev]').addEventListener('click',()=>{page=Math.max(0,page-1);renderRows();});
     bar.querySelector('[data-g-next]').addEventListener('click',()=>{page++;renderRows();});
-    const details=bar.querySelector('details'),dialog=bar.querySelector('.aio-guard-popup');
-    details.addEventListener('toggle',()=>{
-      if(details.open&&!dialog.open){dialog.showModal();refresh();renderRows();}
-      else if(!details.open&&dialog.open)dialog.close();
+    const dialog=bar.querySelector('.aio-guard-popup');
+    dialog.addEventListener('close',()=>{
+      stateButton?.setAttribute('aria-expanded','false');
+      if(stateButton?.isConnected)stateButton.focus({preventScroll:true});
     });
-    dialog.addEventListener('close',()=>{if(details.open)details.open=false;});
     bar.querySelector('[data-g-jobs]').addEventListener('change',()=>{page=0;loadPreview();});
     render();refresh();
   }
@@ -81,6 +103,8 @@
   function render() {
     if(!bar)return;
     bar.hidden=!state&&!jobs.length&&!warnings.length;
+    if(stateButton)stateButton.disabled=bar.hidden;
+    if(bar.hidden&&bar.querySelector('.aio-guard-popup').open)bar.querySelector('.aio-guard-popup').close();
     bar.closest('.aio-cv__footer')?.classList.toggle('aio-guard-has-queue',!bar.hidden);
     const active=state?.currentTask;
     renderCurrent();
@@ -115,7 +139,7 @@
     if(warnings.length)text('[data-g-warning]','Не удалось прочитать журнал '+warnings.length+' заданий. Файлы не удалены. Сохраните технический отчёт для восстановления.');
     if(state?.recoveryError)text('[data-g-warning]','Журнал восстановления записан не полностью. Сохраните результаты перед закрытием.');
     if(state?.statusReadError)text('[data-g-warning]',state.statusReadMessage);
-    if(bar.querySelector('details').open)renderRows();
+    if(bar.querySelector('.aio-guard-popup').open)renderRows();
     if(active&&!clock)clock=setInterval(renderCurrent,1000);
     if(!active&&clock){clearInterval(clock);clock=null;}
   }
