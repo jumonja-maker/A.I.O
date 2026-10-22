@@ -18,7 +18,7 @@
 
 
 /* Top-row State control beside Problems and Select All. */
-.aio-cv .aio-cv__format-head .aio-guard-state-button{order:2;flex:0 1 94px;min-width:0;height:34px;padding:0 8px;border:1px solid var(--line,#626b7c);border-radius:9px;background:var(--status-bg,var(--surface,#252b36));color:var(--text,#eef1f7);font-size:12px;font-weight:600;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.aio-cv .aio-cv__format-head .aio-guard-state-button{order:2;flex:0 0 92px;min-width:80px;height:34px;padding:0 8px;border:1px solid var(--line,#626b7c);border-radius:9px;background:var(--status-bg,var(--surface,#252b36));color:var(--text,#eef1f7);font-size:12px;font-weight:600;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
 .aio-cv .aio-cv__format-head .aio-guard-state-button:disabled{opacity:.5;cursor:default}
 .aio-cv .aio-cv__format-head .aio-cv-issues-slot{order:1}
 .aio-cv .aio-cv__format-head [data-cv-select-all-formats]{order:3}
