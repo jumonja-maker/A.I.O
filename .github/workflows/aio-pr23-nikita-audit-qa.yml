@@ -65,7 +65,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: jumonja-maker/A.I.O
-          ref: 5c386559da3786e74c9dce7ffc7ac34b82f7cc0c
+          ref: 7140b7d3297f56f1d5d0d70066ddb9f39d1ce231
           path: aio-pr23-audit-${{ github.run_id }}
           fetch-depth: 1
           persist-credentials: false
@@ -112,7 +112,7 @@ jobs:
           if (Test-Path -LiteralPath $script) { throw 'Verifier path collision' }
           try {
             [IO.File]::WriteAllText($script,$verifier,[Text.UTF8Encoding]::new($false))
-            & $python $script 'cfb6d3abbc9027f16c79aea71c0047bdd7805b25'
+            & $python $script '63e040885ec11be2e0333970acd2ccecceeeacfd'
             if ($LASTEXITCODE -ne 0) { throw 'Pinned tree verification failed' }
           } finally {
             Remove-Item -LiteralPath $script -Force -ErrorAction SilentlyContinue
@@ -165,11 +165,36 @@ jobs:
           }
           Write-Host 'PR23_TARGETED_QA=PASS'
 
+      - name: Run full Python, Qt and available DOM regression suite
+        id: integrated
+        working-directory: aio-pr23-audit-${{ github.run_id }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $python='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\Scripts\python.exe'
+          $env:AIO_QT_SAVE_QA='1'
+          $linkCandidates=@(
+            (Join-Path $env:GITHUB_WORKSPACE 'node_modules\linkedom\esm\index.js'),
+            'D:\AIO-Lab\node_modules\linkedom\esm\index.js',
+            'D:\AIO-Lab\AIO-QA-Env\node_modules\linkedom\esm\index.js',
+            (Join-Path (Split-Path -Parent $env:RUNNER_TEMP) 'node_modules\linkedom\esm\index.js')
+          )
+          $link=@($linkCandidates | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } |
+              Select-Object -First 1)
+          if ($link.Count -eq 1) {
+            $env:AIO_DOM_MODULE=$link[0]
+            Write-Host 'AIO_DOM_MODULE=AVAILABLE'
+          } else { Write-Host 'AIO_DOM_MODULE=UNAVAILABLE; dependent tests may skip' }
+          & $python -m unittest discover -s tests -p 'test_*.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'INTEGRATED_REGRESSION_SUITE_FAILED' }
+          Write-Host 'PR23_FULL_PYTHON_SUITE=PASS'
+
       - name: QA verdict (no installation, packaging, FULLTEST or main changes)
         if: always()
         run: |
-          Write-Host 'PINNED_COMMIT=5c386559da3786e74c9dce7ffc7ac34b82f7cc0c'
+          Write-Host 'PINNED_COMMIT=7140b7d3297f56f1d5d0d70066ddb9f39d1ce231'
           Write-Host 'QA_REGRESSIONS=${{ steps.regressions.outcome }}'
+          Write-Host 'QA_FULL_SUITE=${{ steps.integrated.outcome }}'
           Write-Host 'BUILD=NOT_RUN; INSTALL=NOT_RUN; RELEASE=NOT_RUN'
           Write-Host 'FULLTEST=NOT_RUN; MAIN=UNCHANGED'
-          if ('${{ steps.regressions.outcome }}' -ne 'success') { throw 'PR23 QA not approved' }
+          if ('${{ steps.regressions.outcome }}' -ne 'success' -or
+              '${{ steps.integrated.outcome }}' -ne 'success') { throw 'PR23 QA not approved' }
