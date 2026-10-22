@@ -64,6 +64,35 @@ class DrawRecipes(unittest.TestCase):
         self.assertIsNone(native_export_recipe(self.native,'html',{**self.proof,'registryFingerprint':'stale'}))
 
 
+
+class WriterSvgRecipe(unittest.TestCase):
+    def test_registered_writer_svg_is_warned_not_disallowed(self):
+        # A registered native writer_svg_Export can still produce no output.
+        # Guard must report the risk without overriding the installed LO route.
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'registry.xcd'
+            types = node('svg', Extensions='svg')
+            filters = (node('writer_svg_Export', Type='svg', DocumentService=W, Flags='EXPORT') +
+                       node('writer_test_import', Type='svg', DocumentService=W, Flags='IMPORT'))
+            path.write_text(
+                '<oor:data xmlns:oor="http://openoffice.org/2001/registry">' +
+                component('Types', 'Types', types) +
+                component('Filter', 'Filters', filters) + '</oor:data>')
+            native = Registry(((str(path), 0, path.stat().st_size),), path)
+            proof = {'state': 'detected', 'basis': 'native_preflight_uno_document',
+                     'modelLoaded': True, 'documentServices': [W],
+                     'registryFingerprint': native.fingerprint}
+            recipe = native_export_recipe(native, 'svg', proof)
+            self.assertEqual(recipe.filter_name, 'writer_svg_Export')
+            self.assertEqual(recipe.warnings, ('NATIVE_WRITER_SVG_EXPORT_RISK',))
+            self.assertEqual(recipe.cli_spec('svg'), 'svg:writer_svg_Export')
+            self.assertIsNone(native_export_recipe(
+                native, 'svg', {**proof, 'registryFingerprint': 'wrong'}))
+            # No blanket ban is introduced for Writer or the SVG suffix.
+
+
+
+
 class DrawWorker(unittest.TestCase):
     def test_page_count_is_read_from_loaded_model_and_mismatch_never_exports(self):
         with patch.object(worker_contracts,'W',DRAW):
