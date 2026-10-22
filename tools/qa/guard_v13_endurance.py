@@ -80,9 +80,21 @@ def main():
             try:saved.append(guard.save_folder(state['partialResult']['ticket'],destination,on_progress=progress))
             except Exception as error:errors.append(error)
         thread=threading.Thread(target=save);thread.start();assert copy_entered.wait(5)
-        start=time.monotonic();guard.pause(identity,True);guard.pause(identity,False)
-        evidence['controlDuringBlockedSaveMs']=round((time.monotonic()-start)*1000)
-        assert evidence['controlDuringBlockedSaveMs']<1000,'Shared Guard state lock blocked on copying'
+        # Each command returns a complete 7,000-task snapshot. On Windows,
+        # two sequential snapshots under tracemalloc can exceed 1 second in
+        # aggregate without being blocked by the deliberately stalled copy.
+        # Preserve the 1s responsiveness limit PER command, and separately
+        # prove the save barrier is still held while both return.
+        start=time.monotonic();guard.pause(identity,True)
+        paused_at=time.monotonic();guard.pause(identity,False)
+        resumed_at=time.monotonic()
+        evidence['pauseDuringBlockedSaveMs']=round((paused_at-start)*1000)
+        evidence['resumeDuringBlockedSaveMs']=round((resumed_at-paused_at)*1000)
+        evidence['controlDuringBlockedSaveMs']=round((resumed_at-start)*1000)
+        assert not continue_copy.is_set() and thread.is_alive(),'Save barrier was not held during control'
+        assert max(evidence['pauseDuringBlockedSaveMs'],
+                   evidence['resumeDuringBlockedSaveMs'])<1000,(
+            'A single Guard pause/resume command was blocked while save was stalled')
         adapter.resume.set();until=time.monotonic()+5
         while not guard.status(identity)['finished']:
             assert time.monotonic()<until;time.sleep(.01)
