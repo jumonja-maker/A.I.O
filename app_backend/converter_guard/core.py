@@ -482,7 +482,10 @@ class ConverterGuard:
                               'label':j.files[0].name if j.files else 'Результаты',
                               'outputs': len(j.artifacts), 'bytes': sum(a.size for a in j.artifacts),
                               'state': j.state, 'running': j.running, 'saveInProgress': j.saving,
-                              'unsavedOutputs': sum(not a.saved for a in j.artifacts)}
+                              'unsavedOutputs': sum(not a.saved for a in j.artifacts),
+                              'unsavedBytes': sum(a.size for a in j.artifacts if not a.saved),
+                              'recoveryDurable': bool(j.store and not j.recovery_error),
+                              'qualityCompared': False}
                              for j in self._jobs.values() if not j.released
                              and any(not a.saved for a in j.artifacts)]}
 
@@ -1775,6 +1778,10 @@ class ConverterGuard:
                 'currentTask': current, 'pauseRequested': job.paused,
                 'fileTimeoutSeconds': job.file_timeout, 'officeStarts': job.office_starts,
                 'recovered': job.recovered, 'recoveryError': job.recovery_error,
+                'recoveryDurable': bool(job.store and not job.recovery_error),
+                'resultAvailability': ('ready_volatile' if job.artifacts and job.recovery_error else
+                                       'ready_retained' if job.artifacts else 'none'),
+                'qualityCompared': False,
                 'timings':dict(job.timings),
                 'files': rows, **counts, 'preflightChecks':job.preflight_checks,
                 'preflightTotal':len(job.files),
@@ -2043,7 +2050,13 @@ class ConverterGuard:
 
     def storage_stats(self):
         with self._lock:
-            return {'jobs': len(self._jobs), 'reservedBytes': self._reserved,
-                    'tickets': len(self._tickets),
-                    'running': sum(j.state in {'checking', 'running', 'packaging'} for j in self._jobs.values()),
-                    'queued': sum(j.state == 'queued' for j in self._jobs.values())}
+            jobs = [job for job in self._jobs.values() if not job.released]
+            return {'jobs': len(self._jobs), 'maxJobs': self.limits.max_jobs,
+                    'reservedBytes': self._reserved, 'tickets': len(self._tickets),
+                    'running': sum(j.state in {'checking', 'running', 'packaging'} for j in jobs),
+                    'queued': sum(j.state == 'queued' for j in jobs),
+                    'retainedJobs': sum(bool(j.artifacts) for j in jobs),
+                    'unsavedJobs': sum(any(not a.saved for a in j.artifacts) for j in jobs),
+                    'unsavedOutputs': sum(not a.saved for j in jobs for a in j.artifacts),
+                    'unsavedBytes': sum(a.size for j in jobs for a in j.artifacts if not a.saved),
+                    'recoveryWriteFailures': sum(bool(j.recovery_error) for j in jobs)}
