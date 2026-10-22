@@ -3,7 +3,17 @@
   'use strict';
   const token = document.body.dataset.aioToken;
   if (!token) return; // HTML designer preview can still run without server.
-  let nativeSaveSequence = 0;
+  // The acknowledgement URL must not repeat after a renderer reload.
+  // Previously the counter restarted at 1 and could match a late Qt ACK
+  // from an older page owning the same retained ticket.
+  let nativeSaveSequence = (() => {
+    if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+      const words = crypto.getRandomValues(new Uint32Array(2));
+      return (words[0] % 2_000_000) * 1_000_000 + (words[1] % 1_000_000) + 1;
+    }
+    // Legacy testing/browser context; still avoid a deterministic restart at 1.
+    return ((Date.now() % 2_000_000) * 1_000_000 + Math.floor(Math.random() * 1_000_000) + 1);
+  })();
   function fail(message) { throw new Error(message); }
   window.AllInOneBridge = {
     async mergeExcel(files, onProgress) {
