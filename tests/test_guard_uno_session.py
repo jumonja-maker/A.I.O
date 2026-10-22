@@ -18,16 +18,19 @@ C='com.sun.star.sheet.SpreadsheetDocument'
 
 
 class UnoWorkerContracts(unittest.TestCase):
-    def execute(self, requests, *, fail_first=False):
+    def execute(self, requests, *, fail_first=False, on_export=None):
         namespace={'__name__':'worker_contract'}
         exec(compile(WORKER_SOURCE,'worker_contract','exec'),namespace)
         models=[];loads=[];exports=[]
         class Model:
             closed=False
             def supportsService(self,service):return service==W
-            def getArgs(self):return (SimpleNamespace(Name='FilterName',Value='Actual native import'),)
+            def getArgs(self):return (SimpleNamespace(Name='FilterName',Value='Actual native import'),
+                                     SimpleNamespace(Name='TypeName',Value='Actual native type'))
             def storeToURL(self,url,options):
                 exports.append({p.Name:p.Value for p in options})
+                if on_export:
+                    on_export(exports[-1])
                 from urllib.parse import urlsplit
                 from urllib.request import url2pathname
                 # file:///D:/... must resolve to D:\\... on Windows.

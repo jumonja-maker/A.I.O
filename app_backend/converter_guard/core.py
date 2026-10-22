@@ -128,6 +128,8 @@ class _Job:
     future: object = None
     artifacts: list = field(default_factory=list)
     bundle: object = None
+    archive_mode: str = 'auto'
+    bundle_deferred: bool = False
     result: dict | None = None
     packaging_error: str | None = None
     preparation: bool = False
@@ -916,9 +918,11 @@ class ConverterGuard:
             self._preflight_gate.release()
 
     def start(self, job_id, *, formats=None, file_ids=None, only_verified=False, plan=None,
-              timeout_seconds=None):
+              timeout_seconds=None, archive_mode='auto'):
         planning_started = time.monotonic()
         unused = []
+        if not isinstance(archive_mode, str) or archive_mode not in ('auto', 'on_demand'):
+            raise GuardError('ARCHIVE_POLICY', 'Некорректный режим создания архива.', stage='plan')
         if timeout_seconds is not None and (isinstance(timeout_seconds, bool) or
                 not isinstance(timeout_seconds, (int, float)) or
                 not math.isfinite(timeout_seconds) or timeout_seconds <= 0):
@@ -977,6 +981,7 @@ class ConverterGuard:
                     f.uploading or f.state not in {'queued', 'cancelled'} for f in job.files):
                 raise GuardError('JOB_STATE', 'Дождитесь загрузки всех файлов.', status=409)
             job.state, job.running = 'queued', True
+            job.archive_mode = archive_mode
             job.timings['planMs'] = round((time.monotonic()-planning_started)*1000)
             job.file_timeout = self.limits.file_timeout if timeout_seconds is None else timeout_seconds
             self._record(job, 'job_queued')
@@ -1237,7 +1242,8 @@ class ConverterGuard:
                                 self._capture_native_metrics(job, item, task)
                             self._retain_outputs(job, item, task, workspace, paths)
                         except GuardError as error:
-                            if error.code in ('ENGINE_TIMEOUT', 'SOURCE_IMPORT_FAILED','NATIVE_MODEL_CHANGED'):
+                            if error.code in ('ENGINE_TIMEOUT', 'SOURCE_IMPORT_FAILED', 'NATIVE_MODEL_CHANGED',
+                                              'PREFLIGHT_INTERACTION_REQUIRED'):
                                 source_failure = error.code
                             with self._lock:
                                 self._fail(job, item, task, error)
@@ -1375,7 +1381,7 @@ class ConverterGuard:
                     'officeStarts':job.office_starts,'trace':job.trace.snapshot(),
                     'fileTimeoutSeconds':job.file_timeout,'recoveryError':job.recovery_error}
 
-    def _make_result(self, job):
+    def _make_result(self, job, *, force_archive=False):
         with self._lock:
             if not job.artifacts:
                 return
@@ -1390,6 +1396,15 @@ class ConverterGuard:
             # A single successful artifact needs no duplicate archive at all.
             if len(job.artifacts) == 1 and all(t.state in SUCCESS for f in job.files for t in f.targets):
                 return
+            if job.archive_mode == 'on_demand' and not force_archive:
+                # Folder-save consumes the retained artifacts directly. Do not
+                # copy gigabytes into an unused ZIP or reserve duplicate disk
+                # space before the user explicitly asks for an archive.
+                job.bundle_deferred = True
+                job.result['folderOnly'] = True
+                self._record(job, 'bundle_deferred')
+                return
+            job.bundle_deferred = False
             report_value = self._report(job)
         # Encoding a large report is CPU work, not a shared-state operation.
         report = json.dumps(report_value, ensure_ascii=False, indent=2).encode('utf-8')
@@ -1407,6 +1422,7 @@ class ConverterGuard:
                 self._record(job, 'bundle', code=job.packaging_error)
                 return
         bundle, retained = job.root / ('results-' + secrets.token_hex(6) + '.zip'), False
+        archive_tick = time.monotonic()
         try:
             with zipfile.ZipFile(bundle, 'x', compression=zipfile.ZIP_STORED, allowZip64=True) as archive:
                 for artifact in job.artifacts:
@@ -1441,6 +1457,9 @@ class ConverterGuard:
                 job.packaging_error = error.code if isinstance(error, GuardError) else 'BUNDLE_STORAGE_FAILED'
                 self._record(job, 'bundle', code=job.packaging_error)
         finally:
+            with self._lock:
+                job.timings['archiveMs'] = job.timings.get('archiveMs', 0) + round(
+                    (time.monotonic() - archive_tick) * 1000)
             if not retained:
                 try:
                     bundle.unlink(missing_ok=True)
@@ -1459,21 +1478,23 @@ class ConverterGuard:
             if job.bundle is not None:
                 return self._snapshot(job)
             job.bundle_cancel.clear()
+            terminal_state = job.state
             job.state, job.running = 'packaging', True
             self._record(job, 'packaging_started')
-            job.future = self._executor.submit(self._rebuild_bundle, job)
+            job.future = self._executor.submit(self._rebuild_bundle, job, terminal_state)
             return self._snapshot(job)
 
-    def _rebuild_bundle(self, job):
+    def _rebuild_bundle(self, job, terminal_state):
         try:
-            self._make_result(job)
+            self._make_result(job, force_archive=True)
         except Exception:
             with self._lock:
                 job.packaging_error='BUNDLE_INTERRUPTED'
                 self._record(job,'bundle',code=job.packaging_error)
         finally:
             with self._lock:
-                job.state, job.running = 'partial', False
+                # Creating a ZIP does not change conversion success/failure.
+                job.state, job.running = terminal_state, False
                 self._record(job, 'job_finished')
             self._cleanup(job)
 
@@ -1696,6 +1717,7 @@ class ConverterGuard:
                 'preflightUndetermined':sum(not f.native_route or f.native_route.get('state')!='detected' for f in job.files),
                 'percent': counts['completed'] * 100 / counts['total'] if counts['total'] else None, 'result': result,
                 'trace': job.trace.snapshot() if include_trace else None,
+                'archiveMode': job.archive_mode, 'bundleDeferred': job.bundle_deferred,
                 'packagingError': job.packaging_error, 'saveInProgress': job.saving,
                 'partialResult': ({**job.artifacts[0].metadata(), 'jobId': job.id,
                     'outputsCount': len(job.artifacts), 'folderOnly': True}

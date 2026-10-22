@@ -36,7 +36,7 @@ class NativeMetricsQA(unittest.TestCase):
         self.assertTrue(all(reply['ok'] for reply in replies))
         self.assertEqual(len(exports), 2)
         self.assertEqual(len(models), 3, 'Every export still opens a fresh native model')
-        self.assertEqual(len(calls), 1, 'Only inspection uses the deep detector result')
+        self.assertEqual(len(calls), 0, 'Inspection reads the already loaded native model metadata')
 
     def test_worker_reports_real_import_export_and_close_durations(self):
         _, _, _, replies = worker_contracts.UnoWorkerContracts().execute([{}, {}])

@@ -15,27 +15,12 @@ import sys
 import time
 
 
-def detected_document(detector, descriptor):
-    # queryTypeByDescriptor has an [inout] descriptor. PyUNO returns
-    # (return_value, updated_descriptor), not just the type-name string.
-    response = detector.queryTypeByDescriptor(descriptor, True)
-    if isinstance(response, tuple) and len(response) == 2:
-        type_name, updated = response
-    else:
-        type_name, updated = response, ()
-    if not isinstance(type_name, str) or not type_name:
-        return None
-    result = {'state': 'detected', 'typeName': type_name}
-    # Use LO's chosen import filter to disambiguate shared types (plain
-    # text can belong to Writer or Calc). Never infer it from an extension.
-    if isinstance(updated, (tuple, list)):
-        for value in updated:
-            if getattr(value, 'Name', None) == 'FilterName':
-                name = getattr(value, 'Value', None)
-                if isinstance(name, str) and name:
-                    result['filterName'] = name
-                break
-    return result
+def model_metadata(model):
+    # Report the filter/type used by the model that was actually opened,
+    # rather than performing a second deep content scan for diagnostics.
+    values = {p.Name:p.Value for p in model.getArgs()
+              if p.Name in ('FilterName', 'TypeName')}
+    return {'filterName':values.get('FilterName'), 'typeName':values.get('TypeName')}
 
 
 def stage(folder, name):
@@ -100,35 +85,6 @@ def main(manifest_name):
     if remote is None:
         raise RuntimeError('UNO connection unavailable')
 
-    stage(work, 'uno_type_detection')
-    detector = remote.ServiceManager.createInstanceWithContext(
-        'com.sun.star.document.TypeDetection', remote)
-    if detector is None:
-        raise RuntimeError('UNO TypeDetection service unavailable')
-    prop = uno.createUnoStruct('com.sun.star.beans.PropertyValue')
-    prop.Name = 'URL'
-    prop.Value = source.as_uri()
-    # AllowDeep=true makes LibreOffice inspect bytes, not merely the suffix.
-    try:
-        result = detected_document(detector, (prop,))
-    except Exception:
-        result = None
-    stage(work, 'uno_type_detected')
-    if result is None:
-        # The document TypeDetection service does not classify all graphic
-        # streams. Let the *same native LibreOffice* GraphicProvider inspect
-        # bytes; getType() = PIXEL/VECTOR means decoded graphic, not filename.
-        stage(work, 'uno_graphic_detection')
-        result = {'state': 'undetermined', 'code': 'PREFLIGHT_UNO_TYPE_UNKNOWN'}
-        try:
-            provider = remote.ServiceManager.createInstanceWithContext(
-                'com.sun.star.graphic.GraphicProvider', remote)
-            graphic = provider.queryGraphic((prop,)) if provider else None
-            kind = int(graphic.getType()) if graphic is not None else 0
-            if kind in (1, 2):
-                result = {'state': 'detected', 'graphicType': kind}
-        except Exception:
-            pass
     # A registered type alone does not prove this document can be opened.
     # Load once, without exporting, and obtain the actual native model.
     stage(work, 'uno_document_load')
@@ -154,7 +110,6 @@ def main(manifest_name):
     options = [property_value('Hidden', True), property_value('ReadOnly', True),
                property_value('Silent', True), property_value('MacroExecutionMode', 0),
                property_value('UpdateDocMode', 0), property_value('InteractionHandler', handler)]
-    selected = (result or {}).get('filterName')
     hint = req.get('csvImportHint')
     # A sampled UTF-8 tabular stream plus a uniquely selected *installed*
     # Calc native importer is still only a hint. The live model must prove
@@ -171,9 +126,8 @@ def main(manifest_name):
             result = {'state':'undetermined','code':'PREFLIGHT_INTERACTION_REQUIRED'
                       if handler.blocked else 'PREFLIGHT_IMPORT_FAILED'}
         else:
-            actual_filter = next((p.Value for p in model.getArgs() if p.Name == 'FilterName'),None)
-            result = {**(result or {}), 'state':'detected','modelLoaded':True,'documentServices':services,
-                      'filterName':actual_filter}
+            result = {**model_metadata(model), 'state':'detected','modelLoaded':True,
+                      'documentServices':services}
     except Exception:
         result = {'state':'undetermined','code':'PREFLIGHT_INTERACTION_REQUIRED'
                   if handler.blocked else 'PREFLIGHT_IMPORT_FAILED'}

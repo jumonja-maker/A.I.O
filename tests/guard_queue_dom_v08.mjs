@@ -14,6 +14,11 @@ window.requestAnimationFrame=callback=>setTimeout(callback,1);window.cancelAnima
 window.localStorage={getItem:()=>null,setItem(){}};
 window.HTMLElement.prototype.getBoundingClientRect=()=>({left:0,right:600,top:0,bottom:400,width:600,height:400});
 window.HTMLElement.prototype.focus=function(){};
+// linkedom has no HTMLDialogElement top layer. Model only the open/close
+// state used by this pagination/search test; visible Qt geometry is separate.
+window.HTMLElement.prototype.showModal=function(){assert.equal(this.localName,'dialog');this.open=true;};
+window.HTMLElement.prototype.close=function(){assert.equal(this.localName,'dialog');this.open=false;this.dispatchEvent(new window.Event('close'));};
+window.AllInOneNativeShell=true;
 const plans=[],reports=[],preflights=[],beforeStarts=[],startStates=[];
 const apiFetch=async (url,options={})=>{
   const resolved=new URL(url,base);
@@ -72,5 +77,7 @@ assert.ok(document.querySelector('.aio-guard-task strong').textContent.includes(
 assert.ok(document.querySelector('[data-g-counts]').textContent.includes('успешно 1000'));
 assert.equal(plans.at(-1).plan.length,1000);
 assert.ok(plans.at(-1).plan.every(p=>p.formats.length===1&&p.formats[0]==='pdf'));
-console.log(JSON.stringify({status:'PASS',scope:'1000-file DOM + HTTP; synthetic native exports',files:1000,tasks:1000,pageSize:50,search:true,explicitSelection:true}));
+assert.equal(plans.at(-1).archiveMode,'on_demand');
+assert.ok(reports.some(r=>r.finished&&r.succeeded===1000&&r.bundleDeferred&&r.result.folderOnly));
+console.log(JSON.stringify({status:'PASS',scope:'1000-file DOM + HTTP; synthetic native exports; dialog state shim',files:1000,tasks:1000,pageSize:50,search:true,explicitSelection:true,nativeArchiveOnDemand:true}));
 window.AllInOneBridge.converter.dispose();
