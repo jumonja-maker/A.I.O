@@ -472,7 +472,8 @@
       const latest=await api('/jobs?job='+encodeURIComponent(op.jobId),undefined,'GET');
       if(String(latest.currentTask?.fileId||'')!==String(fileId))
         throw errorOf('Очередь перешла к другому файлу. Обновите состояние и повторите действие.', 'STALE_CURRENT_TASK');
-      const state=await control(op,'/cancel-file',{jobId:op.jobId,fileId});
+      const state=await control(op,'/cancel-file',{jobId:op.jobId,fileId,
+        expectedTaskId:latest.currentTask.taskId});
       const file=state.files?.find(f=>String(f.fileId)===String(fileId));
       if(file && !file.cancellationRequested && file.targets?.every(t=>
         ['ready','saved','error','cancelled','skipped'].includes(t.state)))
