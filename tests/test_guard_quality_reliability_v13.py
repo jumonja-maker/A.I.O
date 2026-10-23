@@ -66,9 +66,9 @@ class DrawRecipes(unittest.TestCase):
 
 
 class WriterSvgRecipe(unittest.TestCase):
-    def test_registered_writer_svg_is_warned_not_disallowed(self):
-        # A registered native writer_svg_Export can still produce no output.
-        # Guard must report the risk without overriding the installed LO route.
+    def test_selection_only_writer_svg_is_unavailable_for_whole_document(self):
+        # LibreOffice's filterWriterOrCalc explicitly requires SelectionOnly.
+        # Selecting a graphic would silently drop the rest of this document.
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'registry.xcd'
             types = node('svg', Extensions='svg')
@@ -83,12 +83,12 @@ class WriterSvgRecipe(unittest.TestCase):
                      'modelLoaded': True, 'documentServices': [W],
                      'registryFingerprint': native.fingerprint}
             recipe = native_export_recipe(native, 'svg', proof)
-            self.assertEqual(recipe.filter_name, 'writer_svg_Export')
-            self.assertEqual(recipe.warnings, ('NATIVE_WRITER_SVG_EXPORT_RISK',))
-            self.assertEqual(recipe.cli_spec('svg'), 'svg:writer_svg_Export')
+            self.assertIsNone(recipe)
+            self.assertEqual(native.observed_decision('svg', proof), 'unavailable')
+            self.assertEqual(native.route_reason('svg', proof), 'NATIVE_SVG_SELECTION_ONLY')
             self.assertIsNone(native_export_recipe(
                 native, 'svg', {**proof, 'registryFingerprint': 'wrong'}))
-            # No blanket ban is introduced for Writer or the SVG suffix.
+            # Draw/Impress SVG is covered separately and remains available.
 
 
 

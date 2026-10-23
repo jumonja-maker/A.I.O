@@ -185,14 +185,16 @@ class GuardAPI:
         try:
             self._authorize(handler)
             handler.connection.settimeout(self.guard.limits.upload_idle_timeout)
-            if path == PREFIX + '/input':
+            if path in (PREFIX + '/input', PREFIX + '/resource'):
                 length = self._length(handler)
                 if handler.headers.get('Content-Type', '').split(';')[0].strip() != 'application/octet-stream':
                     raise GuardError('REQUEST_TYPE', 'Требуется поток файла.')
                 cancelled = threading.Event()
                 with self._transfer(handler):
-                    self.guard.upload(self._identity(self._query(handler, 'job')),
-                        self._query(handler, 'file'),
+                    method = self.guard.upload_resource if path.endswith('/resource') else self.guard.upload
+                    extra = (self._query(handler, 'path'),) if path.endswith('/resource') else ()
+                    method(self._identity(self._query(handler, 'job')),
+                        self._query(handler, 'file'), *extra,
                         _CancelableInput(handler.connection, cancelled), length,
                         interrupt=cancelled.set)
                 return self._json(handler,200, {'ok': True})
@@ -215,6 +217,9 @@ class GuardAPI:
                 return self._json(handler,201, self.guard.create(
                     body.get('files'), formats, plan=body.get('plan')))
             identity = self._identity(body.get('jobId'))
+            if path == PREFIX + '/resources':
+                return self._json(handler,200, self.guard.configure_resources(
+                    identity, body.get('fileId'), body.get('resources')))
             if path == PREFIX + '/prepare-update':
                 return self._json(handler,200, self.guard.update_prepared(identity, body.get('files')))
             if path == PREFIX + '/preflight':

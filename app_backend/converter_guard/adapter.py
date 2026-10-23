@@ -13,6 +13,8 @@ from .csv_import import csv_import_hint, inspect_csv_stream
 from .export_recipe import native_export_recipe
 from .native_observation import NativeObservation
 from .native_metrics import clean_timings
+from .legacy_import import legacy_import_hint, validate_options
+from .postconditions import check_native_output
 
 
 def prepare_profile(profile):
@@ -68,7 +70,7 @@ class LibreOfficeAdapter:
         self._local = threading.local()
 
     @contextmanager
-    def batch(self, workspace, *, max_tasks=128):
+    def batch(self, workspace, *, max_tasks=128, import_timeout=60, close_timeout=15, chart_timeout=60):
         """A snapshot and a private warm process, isolated per calling thread."""
         from .office_session import OfficeSession
         from .uno_session import UnoSession
@@ -82,6 +84,8 @@ class LibreOfficeAdapter:
                    and (self.executable.parent/'python.exe').is_file()
                    else OfficeSession)
         with factory(self.executable, workspace, prepare_profile, max_tasks) as office:
+            office.import_timeout, office.close_timeout = import_timeout, close_timeout
+            office.chart_timeout = chart_timeout
             self._local.batch = (registry(self.executable), office)
             try:
                 yield office
@@ -125,12 +129,7 @@ class LibreOfficeAdapter:
             item[0] in (proof or {}).get('documentServices', ()) else None)
         self._local.import_options = (options
             if self._local.import_filter and
-            isinstance(options, str) and options in
-                {f'{n},34,76,1' for n in (44, 59, 9, 124)}
-            and self._local.import_filter in
-                {key for key,(service,extensions,flags) in native.filters.items()
-                 if service == 'com.sun.star.sheet.SpreadsheetDocument'
-                 and 'csv' in extensions and 'IMPORT' in flags}
+            isinstance(options, str) and validate_options(self._local.import_filter, options, native)
             else None)
 
     @property
@@ -150,7 +149,9 @@ class LibreOfficeAdapter:
                 'description': description, 'mime': mime,
                 # Native compatibility is not a claim of content/visual equivalence.
                 # The existing help-button reads this property in normal mode.
-                'help': ({
+                'help': [{'title':'Формат', 'text':description},
+                    {'title':'Совместимость', 'text':'Маршрут подтверждает установленный LibreOffice; точность результата проверяется отдельно.'},
+                    {'title':'Риски', 'text':({
                     'csv': 'CSV сохраняет только один активный лист и не сохраняет формулы, форматирование и остальные листы.',
                     'tsv': 'TSV сохраняет только один активный лист без оформления и формул.',
                     'tab': 'TAB сохраняет текстовую таблицу без оформления и других листов.',
@@ -160,7 +161,9 @@ class LibreOfficeAdapter:
                     'webp': 'Графический экспорт документа может менять размер полотна и формат представления.',
                     'pdf': 'PDF предназначен для просмотра: структура и редактируемость исходника могут измениться.',
                     'epub': 'EPUB создаётся фильтром экспорта; поддержка экспорта не означает, что EPUB можно открыть как исходник.'
-                }).get(ext, 'Проверка Guard подтверждает маршрут, но не гарантирует отсутствие смысловых или визуальных потерь.'),
+                }).get(ext, 'Проверка Guard подтверждает маршрут, но не гарантирует отсутствие смысловых или визуальных потерь.')}],
+                'unavailableReasons': {f['id']: native.route_reason(ext, (proofs or {}).get(f['id']))
+                                       for f in files if proofs and native.route_reason(ext, proofs.get(f['id']))},
                 'registeredExport': ext in native.exports if native.valid else registered,
                 'enabled': available and proofs is not None and bool(compatible),
                 # Hints and undetermined routes remain visible diagnostics,
@@ -208,12 +211,12 @@ class LibreOfficeAdapter:
         batch = getattr(self._local, 'batch', None)
         office = batch[1] if batch else None
         native = self._registry()
-        hint = csv_import_hint(source, native)
+        hint = csv_import_hint(source, native) or legacy_import_hint(source, native)
         # One streaming scan, only for a content-confirmed text hint. Large or
         # ambiguous inputs retain an explicit incomplete status, never a veto.
         csv_profile = (inspect_csv_stream(source, delimiter=chr(int(hint['options'].split(',')[0])),
                                          cancel=cancel, seconds=min(.15, timeout or .15),
-                                         analyze_values=False) if hint else None)
+                                         analyze_values=False) if hint and hint.get('basis') != 'content_confirmed_legacy' else None)
         if office and hasattr(office, 'request') and not office.disabled:
             native = self._registry()
             try:
@@ -232,10 +235,12 @@ class LibreOfficeAdapter:
                                  services != ['com.sun.star.sheet.SpreadsheetDocument']):
                         return {'state':'undetermined','code':'PREFLIGHT_IMPORT_FILTER_MISMATCH'}
                     return {'state':'detected','basis':'native_preflight_uno_document','modelLoaded':True,
+                        'nativeTextDocument': result.get('nativeTextDocument') is True,
+                        'nativeImportMs': (result.get('timings') or {}).get('importMs'),
                         'documentServices':services,'typeName':result.get('typeName'),'filterName':selected,
                         'selectedImportFilter':confirmed,
                         'selectedImportOptions':hint['options'] if hint else None,
-                        'csvImportSampleOnly': bool(hint and not csv_profile.get('complete')),
+                        'csvImportSampleOnly': bool(csv_profile and not csv_profile.get('complete')),
                         'csvInspection': csv_profile,
                         'drawPages':result.get('drawPages'),
                         'registryFingerprint':native.fingerprint,'exported':False}
@@ -260,7 +265,7 @@ class LibreOfficeAdapter:
                     and proof.get('registryFingerprint') == native.fingerprint):
                 proof = {**proof, 'requestedImportFilter': hint['filter'],
                          'requestedImportOptions': hint['options'],
-                         'csvImportSampleOnly': not csv_profile.get('complete'), 'csvInspection':csv_profile}
+                         'csvImportSampleOnly': bool(csv_profile and not csv_profile.get('complete')), 'csvInspection':csv_profile}
             if office and proof.get('code') in ('PREFLIGHT_TIMEOUT', 'PREFLIGHT_API_UNAVAILABLE',
                                                 'PREFLIGHT_UNO_API_UNAVAILABLE'):
                 office.recycle()
@@ -286,6 +291,19 @@ class LibreOfficeAdapter:
 
     def convert(self, source, target, workspace, *, cancel, timeout,
                 on_started, output_limit=None, on_document_service=None, on_stage=None):
+        paths = self._convert_native(source, target, workspace, cancel=cancel, timeout=timeout,
+            on_started=on_started, output_limit=output_limit,
+            on_document_service=on_document_service, on_stage=on_stage)
+        check = check_native_output(paths, target, source, cancel=cancel)
+        if check:
+            self._local.export_info['resultChecks'] = [check]
+            if check.get('status') == 'not_checked':
+                self._local.export_info['warnings'] = tuple(
+                    self._local.export_info.get('warnings', ())) + ('NATIVE_HTML_CONTENT_NOT_CHECKED',)
+        return paths
+
+    def _convert_native(self, source, target, workspace, *, cancel, timeout,
+                on_started, output_limit=None, on_document_service=None, on_stage=None):
         self._local.execution_mode = None
         self._local.metrics = None
         self._local.export_info = {}
@@ -294,6 +312,11 @@ class LibreOfficeAdapter:
             raise GuardError('ENGINE_NOT_FOUND', 'LibreOffice не найден.', stage='launch', status=503)
         if cancel.is_set():
             raise GuardError('CANCELLED', 'Конвертация отменена.', stage='launch')
+        batch = getattr(self._local, 'batch', None)
+        proof = getattr(self._local, 'proof', None) or {}
+        if 'com.sun.star.chart2.ChartDocument' in proof.get('documentServices', ()):
+            chart_budget = getattr(batch[1], 'chart_timeout', 60) if batch else 60
+            timeout = min(timeout, chart_budget) if timeout is not None else chart_budget
         control = (cancel if timeout is None and output_limit is None else
                    _RunControl(cancel, workspace, timeout, output_limit))
         try:
@@ -305,6 +328,11 @@ class LibreOfficeAdapter:
             # The first requested native export identifies the actual model.
             # Filename hints never veto a file, including renamed/unlisted ones.
             batch = getattr(self._local, 'batch', None)
+            self._local.export_info['executionReason'] = (
+                'native_filter_unresolved' if not recipe else
+                'native_observation_required' if on_document_service else
+                'no_native_session' if not batch or not hasattr(batch[1], 'request') else
+                'native_session_disabled' if batch[1].disabled else 'native_session')
             if batch and on_document_service is None and hasattr(batch[1],'request') and not batch[1].disabled:
                 office, native = batch[1], batch[0]
                 proof = getattr(self._local,'proof',None) or {}
@@ -328,9 +356,16 @@ class LibreOfficeAdapter:
                             'requiredDrawPages':recipe.required_draw_pages,
                             'importFilter':getattr(self._local,'import_filter',None),
                             'importOptions':getattr(self._local,'import_options',None),
+                            'importTimeout': max(getattr(office, 'import_timeout', 60),
+                                min(timeout, max(getattr(office, 'import_timeout', 60),
+                                    (proof.get('nativeImportMs') or 0) / 1000 * 3 + 5)))
+                                if timeout is not None else getattr(office, 'import_timeout', 60),
                             'services':sorted(native.import_services),'expectedServices':services},
                             cancel=control,timeout=timeout,on_stage=on_stage or (lambda stage:None))
                         response_received = True
+                        if result.get('nativeCloseInterrupted'):
+                            self._local.export_info['warnings'] = tuple(
+                                self._local.export_info.get('warnings', ())) + ('NATIVE_CLOSE_INTERRUPTED',)
                         self._local.metrics = {**(clean_timings(result.get('timings')) or
                                                  {'source':'uno_document'}),
                                                'workerStartupMs':startup_ms}

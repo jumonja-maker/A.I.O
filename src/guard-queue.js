@@ -44,9 +44,12 @@
     bar=document.createElement('div');bar.className='aio-guard-queue';bar.hidden=true;
     bar.innerHTML='<div class="aio-guard-current"><span data-g-current></span><button type="button" data-g-pause>Пауза</button><button type="button" data-g-skip>Пропустить файл</button></div>'+
       '<dialog class="aio-guard-popup" aria-label="Состояние очереди Guard">'+
+      '<div class="aio-guard-dialog-head"><strong>Состояние</strong><button type="button" data-g-close aria-label="Закрыть состояние">×</button></div>'+
       '<div data-g-counts></div><div class="aio-guard-warning" data-g-warning></div>'+
       '<div class="aio-guard-tools"><input type="search" placeholder="Имя файла или формат" aria-label="Поиск в очереди"><select aria-label="Состояние задач"><option value="all">Все задачи</option><option value="error">Ошибки</option><option value="pending">Ожидают</option><option value="ready">Готовые</option></select></div>'+
       '<div data-g-storage></div><label class="aio-guard-quality"><input type="checkbox" data-g-quality> Проверить структуру результатов <small>Дольше; без проверки внешнего вида</small></label>'+
+      '<label class="aio-guard-quality"><input type="checkbox" data-g-verify> Проверять сохранённые файлы <small>Дополнительное чтение с диска; без оценки качества конвертации</small></label>'+
+      '<div class="aio-guard-save" data-g-resources><select data-g-html-source aria-label="Исходник HTML"></select><button type="button" data-g-add-resources>Добавить папку ресурсов HTML</button><input type="file" data-g-resource-picker webkitdirectory multiple hidden></div>'+
       '<div class="aio-guard-list" role="list" aria-label="Задачи конвертации"></div>'+
       '<div class="aio-guard-pages"><button type="button" data-g-prev>Назад</button><span data-g-page></span><button type="button" data-g-next>Далее</button></div>'+
       '<div class="aio-guard-save"><select data-g-jobs aria-label="Несохранённое задание"></select><button type="button" data-g-zip>Сохранить ZIP</button><button type="button" data-g-folder>Сохранить в папку</button></div>'+
@@ -86,7 +89,7 @@
     action('[data-g-retry]',()=>api().retryFailed());
     action('[data-g-long]',()=>api().retryFailed({timeoutSeconds:Math.max(3600,(state?.fileTimeoutSeconds||1800)*2)}));
     action('[data-g-check]',()=>new Promise(done=>root.dispatchEvent(new CustomEvent('aio-guard-recheck',
-      {detail:{timeoutSeconds:Math.max(600,(state?.preflightTimeoutSeconds||120)*2),done}}))));
+      {bubbles:true,detail:{timeoutSeconds:Math.max(600,(state?.preflightTimeoutSeconds||120)*2),done}}))));
     action('[data-g-report]',async()=>{
       const path=selected()||state?.jobId;
       const response=await fetch(path?'/api/converter-guard/report?job='+encodeURIComponent(path):'/api/converter-guard/recoverable',
@@ -101,11 +104,37 @@
       try{api()?.setQualityCheck?.(qualityInput.checked);}catch(error){
         qualityInput.checked=api()?.getQualityCheck?.()===true;text('[data-g-warning]',error.message);}
     });
+    const verifyInput=bar.querySelector('[data-g-verify]');
+    verifyInput.checked=api()?.getSaveVerification?.()===true;
+    verifyInput.disabled=!window.AllInOneNativeShell;
+    verifyInput.addEventListener('change',()=>api()?.setSaveVerification?.(verifyInput.checked));
+    const picker=bar.querySelector('[data-g-resource-picker]');
+    bar.querySelector('[data-g-add-resources]').addEventListener('click',()=>picker.click());
+    picker.addEventListener('change',async()=>{
+      const button=bar.querySelector('[data-g-add-resources]');
+      if(!picker.files?.length||button.disabled)return;
+      const fileId=bar.querySelector('[data-g-html-source]').value;
+      button.disabled=true;
+      try{
+        await api().attachHtmlResources({fileId,files:picker.files});
+        root.dispatchEvent(new CustomEvent('aio-guard-resources-ready',{bubbles:true}));
+        text('[data-g-warning]','Ресурсы загружены. Выбор форматов остаётся за вами.');
+      }catch(error){text('[data-g-warning]',error.userMessage||error.message);}
+      finally{picker.value='';button.disabled=false;render();}
+    });
     bar.querySelector('input').addEventListener('input',()=>{page=0;renderRows();});
     bar.querySelector('.aio-guard-tools select').addEventListener('change',()=>{page=0;renderRows();});
     bar.querySelector('[data-g-prev]').addEventListener('click',()=>{page=Math.max(0,page-1);renderRows();});
     bar.querySelector('[data-g-next]').addEventListener('click',()=>{page++;renderRows();});
     const dialog=bar.querySelector('.aio-guard-popup');
+    bar.querySelector('[data-g-close]').addEventListener('click',()=>dialog.close());
+    let backdropDown=false;
+    dialog.addEventListener('pointerdown',event=>{backdropDown=event.target===dialog;});
+    dialog.addEventListener('pointerup',event=>{
+      if(backdropDown&&event.target===dialog)dialog.close();
+      backdropDown=false;
+    });
+    dialog.addEventListener('pointercancel',()=>{backdropDown=false;});
     dialog.addEventListener('close',()=>{
       stateButton?.setAttribute('aria-expanded','false');
       if(stateButton?.isConnected)stateButton.focus({preventScroll:true});
@@ -123,6 +152,17 @@
     bar.hidden=!state&&!jobs.length&&!warnings.length;
     if(stateButton)stateButton.disabled=bar.hidden;
     if(bar.hidden&&bar.querySelector('.aio-guard-popup').open)bar.querySelector('.aio-guard-popup').close();
+    const htmlSources=api()?.getHtmlSources?.()||[],htmlSelect=bar.querySelector('[data-g-html-source]');
+    bar.querySelector('[data-g-resources]').hidden=!htmlSources.length;
+    const htmlSignature=htmlSources.map(f=>f.id+':'+f.name).join('|');
+    if(htmlSelect.dataset.signature!==htmlSignature){
+      const previous=htmlSelect.value;htmlSelect.replaceChildren();
+      const selectedId=htmlSources.some(f=>f.id===previous)?previous:htmlSources[0]?.id;
+      for(const source of htmlSources){const option=document.createElement('option');option.value=source.id;
+        if(source.id===selectedId)option.setAttribute('selected','');
+        option.textContent=source.name;htmlSelect.append(option);}
+      htmlSelect.dataset.signature=htmlSignature;
+    }
     bar.closest('.aio-cv__footer')?.classList.toggle('aio-guard-has-queue',!bar.hidden);
     const active=state?.currentTask;
     text('[data-g-storage]',storage?'Слоты Guard: '+storage.jobs+' / '+storage.maxJobs+

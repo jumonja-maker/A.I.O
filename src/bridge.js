@@ -129,6 +129,8 @@
           fail('Сохранение в папку доступно в приложении AIO. Можно сохранить ZIP.');
         url += '&mode=folder';
       }
+      if (result.verifySaved === true && window.AllInOneNativeShell &&
+          url.startsWith('/api/converter-guard/')) url += '&verify=1';
       // A retained ticket may be saved again after a cancel/timeout. Give
       // EACH attempt a distinct URL; even the same result cannot consume a
       // late acknowledgement from its previous native download.
@@ -172,7 +174,9 @@
                           jobRunning: detail.jobRunning === true,
                           saveId: detail.saveId, outputs: detail.outputs,
                           remainingOutputs: detail.remainingOutputs,
-                          bytesWritten: detail.bytesWritten });
+                          bytesWritten: detail.bytesWritten,
+                          readbackVerified:detail.readbackVerified===true,
+                          verificationScope:detail.verificationScope });
               } else if (detail.status === 'cancelled') {
                 resolve({ cancelled: true });
               } else {

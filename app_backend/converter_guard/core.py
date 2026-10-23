@@ -74,6 +74,8 @@ class _Task:
     export_filter: str | None = None
     warnings: tuple = ()
     quality: dict | None = None
+    result_checks: list = field(default_factory=list)
+    execution_reason: str | None = None
 
 
 @dataclass
@@ -90,6 +92,10 @@ class _File:
     native_route: dict | None = None
     content_digest: str | None = None
     counts: dict | None = None
+    source_released: bool = False
+    resources: dict = field(default_factory=dict)
+    resources_uploading: set = field(default_factory=set)
+    resource_interrupts: dict = field(default_factory=dict)
     cancel: threading.Event = field(default_factory=threading.Event)
 
 
@@ -163,6 +169,7 @@ class _Job:
     salvage: bool = False
     quality_check: bool = False
     quality_compared: bool = False
+    input_accounting: list = field(default_factory=list)
 
 
 def _source_name(name):
@@ -184,12 +191,17 @@ class _LocalHtmlResources(HTMLParser):
     _css_refs = re.compile(
         r"""(?is)\burl\(\s*['"]?([^'")\s]+)|@import\s+(?:url\(\s*)?['"]([^'"\s)]+)""")
 
-    def __init__(self):
+    def __init__(self, resolver=None):
         super().__init__(convert_charrefs=True)
+        self.resolver = resolver
         self.found = False
         self._in_style = False
         self._css_tail = ''
         self.undetermined = False
+
+    def _notice(self, value):
+        if self._local(value) and (self.resolver is None or not self.resolver(value)):
+            self.found = True
 
     @staticmethod
     def _local(value):
@@ -215,9 +227,8 @@ class _LocalHtmlResources(HTMLParser):
         unfinished = re.search(r'(?is)(?:\burl\([^)]*|@import\b[^;]*)\Z', value)
         if unfinished and len(unfinished.group())>4096:
             self.undetermined = True
-        if any(self._local(first or second)
-               for first, second in self._css_refs.findall(value)):
-            self.found = True
+        for first, second in self._css_refs.findall(value):
+            self._notice(first or second)
 
     def handle_starttag(self, tag, attrs):
         if tag == 'style':
@@ -234,8 +245,8 @@ class _LocalHtmlResources(HTMLParser):
             candidates = (re.findall(r'(?:data:[^\s]+|[^,\s]+)(?:\s+[^,]+)?', value)
                           if key == 'srcset' else [value])
             urls = (part.strip().split()[0] for part in candidates if part.strip())
-            if any(self._local(url) for url in urls):
-                self.found = True
+            for url in urls:
+                self._notice(url)
 
     def handle_data(self, data):
         if self._in_style:
@@ -249,45 +260,9 @@ class _LocalHtmlResources(HTMLParser):
             self._css_tail = ''
 
 
-def _html_resource_warning(source):
-    """Return an uncertainty code; never silently approve truncated HTML."""
-    if source.suffix.lower() not in {'.html', '.htm', '.xhtml'}:
-        return None
-    inspector = _LocalHtmlResources()
-    inspected = 0
-    import codecs
-    decoder = codecs.getincrementaldecoder('utf-8')('strict')
-    with source.open('rb') as stream:
-        while not inspector.found:
-            block = stream.read(128 * 1024)
-            if not block:
-                break
-            inspected += len(block)
-            try:
-                if inspected==len(block):
-                    if block.startswith((b'\xff\xfe',b'\xfe\xff')):
-                        decoder = codecs.getincrementaldecoder('utf-16')('strict')
-                    else:
-                        declared = re.search(br'(?is)<meta\b[^>]{0,1024}\bcharset\s*=\s*[\"\']?([a-z0-9_-]+)',block[:4096])
-                        if declared:
-                            encoding = declared[1].decode('ascii')
-                            if encoding.lower() in ('utf-7','unicode-1-1-utf-7'):
-                                return 'HTML_PREFLIGHT_UNDETERMINED'
-                            decoder = codecs.getincrementaldecoder(encoding)('strict')
-                inspector.feed(decoder.decode(block))
-            except (UnicodeError, LookupError):
-                return 'HTML_PREFLIGHT_UNDETERMINED'
-            # HTMLParser.feed() retains *all* bytes of an unfinished tag,
-            # declaration or comment. An attacker-controlled malformed
-            # document must not grow the Python heap indefinitely.
-            if inspector.undetermined or len(inspector.rawdata) > 512 * 1024 or inspected > 32 * 1024 * 1024:
-                return 'HTML_PREFLIGHT_UNDETERMINED'
-    try:
-        inspector.feed(decoder.decode(b'', final=True))
-        inspector.close()
-    except (UnicodeError, ValueError):
-        return 'HTML_PREFLIGHT_UNDETERMINED'
-    return 'HTML_LOCAL_RESOURCES_NOT_UPLOADED' if inspector.found else None
+def _html_resource_warning(source, *, cancel=None, missing=None, seconds=2):
+    from .html_resources import inspect_dependencies
+    return inspect_dependencies(source, _LocalHtmlResources, cancel=cancel, missing=missing, seconds=seconds)
 
 
 def _missing_html_resources(source):
@@ -343,7 +318,14 @@ class ConverterGuard:
 
     def _batch(self, job, name):
         method = getattr(self.adapter, 'batch', None)
-        return (method(job.root / name, max_tasks=self.limits.session_max_tasks)
+        extra = ({'import_timeout':self.limits.native_import_timeout,
+                  'close_timeout':self.limits.native_close_timeout,
+                  'chart_timeout':self.limits.native_chart_timeout}
+                 if type(self.adapter) is LibreOfficeAdapter else {})
+        if extra and job.file_timeout and job.file_timeout != self.limits.file_timeout:
+            extra['import_timeout'] = max(extra['import_timeout'], job.file_timeout)
+            extra['chart_timeout'] = max(extra['chart_timeout'], job.file_timeout)
+        return (method(job.root / name, max_tasks=self.limits.session_max_tasks, **extra)
                 if method else nullcontext())
 
     def _journal(self, job, item, task):
@@ -445,6 +427,7 @@ class ConverterGuard:
                     files.append(_File(**row, source=root/'input'/'unavailable', targets=tasks, state='done',
                                        native_route=original.get('nativeRoute')))
                 job = _Job(identity, root, files, 0, store=store, recovered=True)
+                job.input_accounting = header.get('inputAccounting', [])
                 if integrity != 'complete':
                     job.recovery_error = 'RECOVERY_LEDGER_INCOMPLETE'
                     self._recovery_issues.append({'folder':root.name,
@@ -469,6 +452,8 @@ class ConverterGuard:
                             raise ValueError('Invalid recovery timing')
                         task.duration_ms=record.get('durationMs')
                         task.execution_mode=record.get('executionMode')
+                        task.execution_reason=record.get('executionReason')
+                        task.result_checks=record.get('resultChecks', [])[:4]
                         task.native_timings=clean_timings(record.get('nativeTimings'))
                         task.quality = record.get('quality') if isinstance(record.get('quality'),dict) else None
                         if task.quality and task.quality.get('qualityCompared'):
@@ -972,12 +957,91 @@ class ConverterGuard:
                 self._io_drained.notify_all()
             self._cleanup(job)
 
+    def configure_resources(self, job_id, file_id, resources):
+        from .html_resources import resource_manifest
+        with self._lock:
+            job = self._get(job_id)
+            item = job.files_by_id.get(file_id) if isinstance(file_id, str) else None
+            if item is None:
+                raise GuardError('FILE_NOT_FOUND', 'Исходник не относится к заданию.', status=404)
+            if (not job.preparation or job.running or job.io or job.state not in ('uploading', 'prepared')
+                    or item.source.suffix.lower() not in ('.html', '.htm', '.xhtml')):
+                raise GuardError('RESOURCE_STATE', 'Дождитесь проверки HTML.', status=409)
+            manifest = resource_manifest(resources, item.source.name)
+            if item.resources:
+                # Immutable ownership: retrying the same manifest is allowed;
+                # replacing companions requires an explicit new preparation.
+                if {p:r['size'] for p,r in manifest.items()} != {p:r['size'] for p,r in item.resources.items()}:
+                    raise GuardError('RESOURCE_STATE', 'Папка ресурсов уже назначена. Выберите исходник заново.', status=409)
+                return self._snapshot(job)
+            self._reserve(job, sum(r['size'] for r in manifest.values()))
+            item.resources = manifest
+            item.native_route, item.state, job.state = None, 'queued', 'uploading'
+            self._record(job, 'resources_configured', file_id=item.id)
+            return self._snapshot(job)
+
+    def upload_resource(self, job_id, file_id, path, stream, length, *, interrupt=None):
+        from .html_resources import resource_path
+        path = resource_path(path)
+        with self._lock:
+            job = self._get(job_id)
+            item = job.files_by_id.get(file_id) if isinstance(file_id, str) else None
+            resource = item.resources.get(path) if item else None
+            if resource is None:
+                raise GuardError('RESOURCE_NOT_FOUND', 'Ресурс не объявлен в задании.', status=404)
+            if (not job.preparation or job.running or job.state != 'uploading' or resource['ready']
+                    or path in item.resources_uploading):
+                raise GuardError('RESOURCE_STATE', 'Этот ресурс уже загружен или используется.', status=409)
+            if type(length) is not int or length != resource['size']:
+                raise GuardError('UPLOAD_LENGTH', 'Размер ресурса не совпадает.')
+            item.resources_uploading.add(path)
+            if interrupt:
+                item.resource_interrupts[path] = interrupt
+            job.io += 1
+        target = item.source.parent / path
+        part = item.source.parent / ('.aio-resource-' + secrets.token_hex(12))
+        digest = hashlib.sha256()
+        try:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            with part.open('xb') as output:
+                remaining = length
+                while remaining:
+                    if job.cancel.is_set() or item.cancel.is_set():
+                        raise GuardError('CANCELLED', 'Загрузка ресурсов отменена.', stage='upload')
+                    block = stream.read(min(CHUNK, remaining))
+                    if not block or len(block) > remaining:
+                        raise GuardError('UPLOAD_TRUNCATED', 'Загрузка ресурса прервана.', stage='upload')
+                    output.write(block)
+                    digest.update(block)
+                    remaining -= len(block)
+            with self._lock:
+                if job.cancel.is_set() or item.cancel.is_set():
+                    raise GuardError('CANCELLED', 'Загрузка ресурсов отменена.', stage='upload')
+                if target.exists():
+                    raise GuardError('RESOURCE_COLLISION', 'Ресурс перезаписывает другой файл.')
+                part.replace(target)
+                resource.update(ready=True, digest=digest.hexdigest())
+                self._record(job, 'resource_stored', file_id=item.id)
+        except OSError as error:
+            raise GuardError('INPUT_STORAGE_FAILED', 'Не удалось записать ресурс HTML.',
+                             stage='upload', status=507) from error
+        finally:
+            try:
+                part.unlink(missing_ok=True)
+            finally:
+                with self._lock:
+                    item.resources_uploading.discard(path)
+                    item.resource_interrupts.pop(path, None)
+                    job.io -= 1
+                    self._io_drained.notify_all()
+                self._cleanup(job)
+
     def update_prepared(self, job_id, files):
         """Reuse immutable stored files/proofs; upload and inspect only additions."""
         rows = validate_files(files, self.limits)
         with self._lock:
             job = self._get(job_id)
-            if not job.preparation or job.state != 'prepared' or job.running:
+            if not job.preparation or job.state != 'prepared' or job.running or job.io:
                 raise GuardError('JOB_STATE', 'Предыдущая проверка ещё не завершена.', status=409)
             for row in rows:
                 item = job.files_by_id.get(row['id'])
@@ -1020,7 +1084,8 @@ class ConverterGuard:
             with self._lock:
                 job = self._get(job_id)
                 if (not job.preparation or job.state not in {'uploading', 'prepared'} or job.running or
-                        any(f.uploading or f.state not in {'queued','prepared'} for f in job.files)):
+                        any(f.uploading or f.resources_uploading or any(not r['ready'] for r in f.resources.values())
+                            or f.state not in {'queued','prepared'} for f in job.files)):
                     job = None
                     raise GuardError('JOB_STATE', 'Дождитесь загрузки исходников.', status=409)
                 job.state, job.running = 'checking', True
@@ -1042,7 +1107,9 @@ class ConverterGuard:
                         continue
                     if recheck:
                         item.cancel.clear()
-                    key = (identity, item.content_digest, item.source.name) if identity and item.content_digest else None
+                    resources_digest = hashlib.sha256(json.dumps(sorted(
+                        (p, r['size'], r.get('digest')) for p, r in item.resources.items())).encode()).hexdigest()
+                    key = (identity, item.content_digest, item.source.name, resources_digest) if identity and item.content_digest else None
                     with self._lock:
                         proof = None if recheck else self._cached_proof(key)
                         if proof is not None:
@@ -1058,10 +1125,13 @@ class ConverterGuard:
                             stage='preflight', started_ms=round(time.time()*1000)))
                         self._record(job, 'preflight_file_started', file_id=item.id)
                     try:
-                        html_warning = _html_resource_warning(item.source)
+                        missing = []
+                        html_warning = _html_resource_warning(item.source,
+                            cancel=_Cancellation(job.cancel, item.cancel), missing=missing,
+                            seconds=max(2, native_timeout / 60))
                         if html_warning:
                             proof = {'state':'undetermined', 'code':html_warning,
-                                     'exported':False}
+                                     'missingResources':missing, 'exported':False}
                         else:
                             proof = self.adapter.preflight(item.source, work, cancel=_Cancellation(job.cancel,item.cancel),
                                                            timeout=native_timeout)
@@ -1140,6 +1210,12 @@ class ConverterGuard:
                         or len(set(file_ids)) != len(file_ids)):
                     raise GuardError('CONVERSION_PLAN', 'Выберите подготовленные исходники.', stage='plan')
                 selected = [job.files_by_id[i] for i in file_ids]
+                selected_ids = set(file_ids)
+                job.input_accounting = [
+                    {'fileId':f.id, 'name':f.name, 'planned':f.id in selected_ids,
+                     'preflightState':(f.native_route or {}).get('state'),
+                     'code':(f.native_route or {}).get('code')}
+                    for f in job.files]
                 planned = validate_plan([{'id': f.id, 'name': f.name, 'size': f.size} for f in selected],
                                         formats, plan)
                 selected_ids = set(file_ids)
@@ -1166,7 +1242,7 @@ class ConverterGuard:
                             task.error = ('HTML ссылается на локальные файлы, но AIO получил только основной HTML. '
                                           'Чтобы не потерять изображения/стили, экспорт не запускается.'
                                           if html_issue == 'HTML_LOCAL_RESOURCES_NOT_UPLOADED' else
-                                          'HTML слишком велик или содержит незавершённый тег. Нельзя подтвердить безопасность автономного экспорта.'
+                                          'Проверка зависимостей HTML не завершена из-за синтаксиса или времени анализа. Можно повторить проверку дольше.'
                                           if html_issue else 'У определённого LibreOffice типа нет этого экспорта.'
                                           if decision == 'unavailable' else
                                           'Направление не подтверждено; экспорт не запускается.')
@@ -1237,6 +1313,9 @@ class ConverterGuard:
             task.native_timings = value
             task.export_filter = selected
             task.warnings = warnings
+            task.result_checks = copy.deepcopy(export.get('resultChecks', []))[:4]
+            reason = export.get('executionReason')
+            task.execution_reason = reason if isinstance(reason, str) and len(reason) <= 64 else None
         if value and self.telemetry is not None:
             for key, phase in (('workerStartupMs','launch'), ('importMs','import'),
                                ('exportMs','export'), ('processMs','engine')):
@@ -1318,8 +1397,10 @@ class ConverterGuard:
                 self._record(job, 'cleanup_deferred', code='WORK_CLEANUP_RETRY')
 
     def _drop_source(self, job, item):
+        if item.source_released:
+            return
         try:
-            item.source.unlink()
+            shutil.rmtree(item.source.parent)
         except FileNotFoundError:
             pass
         except OSError:
@@ -1327,11 +1408,8 @@ class ConverterGuard:
                 self._record(job, 'cleanup_deferred', file_id=item.id, code='INPUT_CLEANUP_RETRY')
             return
         with self._lock:
-            self._unreserve(job, item.size)
-        try:
-            item.source.parent.rmdir()
-        except OSError:
-            pass
+            self._unreserve(job, item.size + sum(r['size'] for r in item.resources.values()))
+            item.source_released = True
 
     @staticmethod
     def _file_state(item):
@@ -1445,7 +1523,7 @@ class ConverterGuard:
 
                             needs_observation = getattr(self.adapter, 'observation_needed', lambda proof: True)
                             def stage_changed(stage):
-                                if stage in ('import','export'):
+                                if stage in ('import','export','close'):
                                     with self._lock:
                                         task.stage=stage
                                         self._record(job,'native_stage',file_id=item.id,target=task.format)
@@ -1475,8 +1553,9 @@ class ConverterGuard:
                                                     'reason':'inspection_failed','risks':[]}
                             self._retain_outputs(job, item, task, workspace, paths)
                         except GuardError as error:
-                            if error.code in ('ENGINE_TIMEOUT', 'SOURCE_IMPORT_FAILED', 'NATIVE_MODEL_CHANGED',
-                                              'PREFLIGHT_INTERACTION_REQUIRED'):
+                            if (error.code in ('SOURCE_IMPORT_FAILED', 'NATIVE_MODEL_CHANGED',
+                                               'PREFLIGHT_INTERACTION_REQUIRED')
+                                    or error.code == 'ENGINE_TIMEOUT' and error.stage not in ('export', 'close')):
                                 source_failure = error.code
                             with self._lock:
                                 self._fail(job, item, task, error)
@@ -1591,6 +1670,9 @@ class ConverterGuard:
 
     def _report(self, job):
         return {'schemaVersion': 3, **self._counts(job), 'preflightChecks':job.preflight_checks,
+                'inputsUploaded':len(job.input_accounting or job.files),
+                'inputsPlanned':len(job.files),
+                'inputsWithoutTasks':[row for row in job.input_accounting if not row['planned']],
                 'recoveryError':job.recovery_error, 'files': [
             {'fileId': f.id, 'name': f.name, 'nativeRoute': f.native_route, 'warnings': (
                 ['SOURCE_NAME_NORMALIZED'] if f.name_normalized else []),
@@ -1598,6 +1680,7 @@ class ConverterGuard:
                           'error': t.error, 'stage': t.stage,
                           'diagnostic': t.diagnostic,
                           'executionMode': t.execution_mode,
+                          'executionReason': t.execution_reason, 'resultChecks':copy.deepcopy(t.result_checks),
                           'durationMs': t.duration_ms,
                           'nativeTimings': clean_timings(t.native_timings),
                           'exportFilter': t.export_filter, 'warnings': warning_details(t.warnings),
@@ -1644,9 +1727,13 @@ class ConverterGuard:
             report_value = self._report(job)
         # Encoding a large report is CPU work, not a shared-state operation.
         report = json.dumps(report_value, ensure_ascii=False, indent=2).encode('utf-8')
+        manifest_budget = len(json.dumps({'schema':2, 'jobId':job.id, 'outputs':[
+            {'path':a.archive_name, 'size':a.size, 'sha256':'0'*64,
+             'fileId':a.file_id, 'format':a.format} for a in job.artifacts]},
+            ensure_ascii=False).encode('utf-8'))
         with self._lock:
             budget = (sum(a.size + 512 + 2 * len(a.archive_name.encode('utf-8')) for a in job.artifacts)
-                      + len(report) + 4096)
+                      + len(report) + manifest_budget + 4096)
             if job.bundle_cancel.is_set():
                 job.packaging_error = 'BUNDLE_CANCELLED'
                 self._record(job, 'bundle', code=job.packaging_error)
@@ -1661,7 +1748,9 @@ class ConverterGuard:
         archive_tick = time.monotonic()
         try:
             with zipfile.ZipFile(bundle, 'x', compression=zipfile.ZIP_STORED, allowZip64=True) as archive:
+                manifest = []
                 for artifact in job.artifacts:
+                    digest, written = hashlib.sha256(), 0
                     info = zipfile.ZipInfo.from_file(artifact.path, arcname=artifact.archive_name)
                     # Force ZIP64 even when the stream length was not given to
                     # ZipFile.open: no hidden 2 GiB failure half-way through.
@@ -1671,7 +1760,19 @@ class ConverterGuard:
                             if job.bundle_cancel.is_set():
                                 raise GuardError('BUNDLE_CANCELLED', 'Упаковка отменена.')
                             output.write(block)
-                archive.writestr('AIO-conversion-report.json', report)
+                            digest.update(block)
+                            written += len(block)
+                    if written != artifact.size:
+                        raise GuardError('SAVE_CHANGED', 'Размер результата изменился при упаковке.')
+                    manifest.append({'path':artifact.archive_name, 'size':written,
+                                     'sha256':digest.hexdigest(), 'fileId':artifact.file_id,
+                                     'format':artifact.format})
+                with archive.open('AIO-conversion-report.json', 'w', force_zip64=True) as output:
+                    output.write(report)
+                with archive.open('AIO-results-manifest.json', 'w', force_zip64=True) as output:
+                    output.write(json.dumps(
+                    {'schema':2, 'jobId':job.id, 'readbackVerified':False,
+                     'verificationScope':'hashes_during_zip', 'outputs':manifest}, ensure_ascii=False).encode('utf-8'))
             with self._lock:
                 actual = bundle.stat().st_size
                 delta = actual - budget
@@ -1766,13 +1867,17 @@ class ConverterGuard:
                     'remainingOutputs': sum(not a.saved for a in job.artifacts),
                     'outputs': len(copies)}
 
-    def save_folder(self, ticket, destination, *, cancel=None, on_progress=lambda current, total: None):
+    def save_folder(self, ticket, destination, *, cancel=None, on_progress=lambda current, total: None,
+                    verify=False, on_verifying=lambda: None):
         """Copy one immutable snapshot of completed outputs, including a live job.
 
         New outputs stay unsaved; saving never cancels or releases a queue.
         Destination paths are accepted only from the native desktop host.
         """
         from .result_store import atomic_json
+        from .save_verification import verify_folder
+        if type(verify) is not bool:
+            raise GuardError('SAVE_VERIFY_POLICY', 'Неверный режим проверки сохранения.', stage='save')
         cancel = cancel or threading.Event()
         with self._lock:
             anchor = self._tickets.get(ticket)
@@ -1793,11 +1898,13 @@ class ConverterGuard:
         save_id = secrets.token_hex(16)
         folder, manifest = None, []
         bytes_written = 0
+        verification = {'readbackVerified':False, 'verificationScope':'hashes_during_copy',
+                        'outputsVerified':0}
         def save_status(state, code=None):
             return {'schema': 1, 'jobId': job.id, 'saveId': save_id,
                     'snapshotRevision': snapshot_revision, 'state': state, 'code': code,
                     'outputsExpected': len(copies), 'outputsWritten': len(manifest),
-                    'bytesWritten': bytes_written, 'readbackVerified': False}
+                    'bytesWritten': bytes_written, **verification}
         try:
             destination = Path(destination).resolve(strict=True)
             if self.owns_path(destination):
@@ -1864,9 +1971,20 @@ class ConverterGuard:
                     pass  # A detached GUI observer cannot interrupt a disk save.
             atomic_json(folder / 'AIO-conversion-report.json', report)
             atomic_json(folder / 'AIO-results-manifest.json', {
+                'schema':2, 'jobId':job.id, 'saveId':save_id,
+                'snapshotRevision':snapshot_revision, 'jobStateAtStart':state_at_start,
+                **verification, 'outputs':manifest})
+            if verify:
+                atomic_json(folder / 'AIO-save-status.json', save_status('verifying'))
+                try:
+                    on_verifying()
+                except Exception:
+                    pass
+                verification = verify_folder(folder, manifest, cancel=cancel, on_progress=on_progress)
+            atomic_json(folder / 'AIO-results-manifest.json', {
                 'schema': 2, 'jobId': job.id, 'saveId': save_id,
                 'snapshotRevision': snapshot_revision, 'jobStateAtStart': state_at_start,
-                'readbackVerified': False, 'outputs': manifest})
+                **verification, 'outputs': manifest})
             if cancel.is_set():
                 raise GuardError('SAVE_CANCELLED', 'Сохранение отменено. Результаты остаются в AIO.', stage='save')
             # Complete the external snapshot before acknowledging or releasing
@@ -1876,7 +1994,7 @@ class ConverterGuard:
             outcome = self._acknowledge_outputs(job, copies)
             return {**outcome, 'saveId': save_id, 'snapshotComplete': True,
                     'snapshotRevision': snapshot_revision, 'bytesWritten': bytes_written,
-                    'readbackVerified': False, 'name': folder.name}
+                    **verification, 'name': folder.name}
         except Exception as error:
             code = error.code if isinstance(error, GuardError) else 'SAVE_STORAGE_FAILED'
             if folder is not None:
@@ -1900,6 +2018,22 @@ class ConverterGuard:
                 self._io_drained.notify_all()
             self._cleanup(job)
 
+    def verify_saved_download(self, ticket, destination, *, cancel=None):
+        from .save_verification import sha256_stream
+        cancel = cancel or threading.Event()
+        if self.owns_path(destination):
+            raise GuardError('SAVE_OWNED_STORAGE', 'Выберите папку вне хранилища AIO.', stage='save')
+        with self.open_result(ticket) as (stream, _name, _size):
+            expected = sha256_stream(stream, cancel=cancel)
+            path = Path(destination)
+            if path_is_link(path):
+                raise GuardError('SAVE_VERIFY_FAILED', 'Ссылка вместо сохранённого файла.', stage='save')
+            with path.open('rb') as stream:
+                actual = sha256_stream(stream, cancel=cancel)
+            if expected != actual:
+                raise GuardError('SAVE_VERIFY_FAILED', 'Сохранённые байты отличаются от результата Guard.', stage='save')
+            return {'readbackVerified':True, 'verificationScope':'download_bytes', 'bytesVerified':actual[0]}
+
     def owns_path(self, path):
         """Do not confirm a save into a directory our cleanup will remove."""
         resolved=Path(path).resolve()
@@ -1921,6 +2055,7 @@ class ConverterGuard:
             targets = [{'taskId': job.id + ':' + str(t.index), 'format': t.format, 'state': t.state, 'code': t.code, 'error': t.error,
                         'stage': t.stage, 'libreOfficeStarted': t.lo_started,
                         'executionMode':t.execution_mode,
+                        'executionReason':t.execution_reason, 'resultChecks':copy.deepcopy(t.result_checks),
                         'nativeTimings':clean_timings(t.native_timings),
                         'exportFilter':t.export_filter, 'warnings':warning_details(t.warnings),
                         'quality':copy.deepcopy(t.quality) if t.quality else None,
@@ -2037,7 +2172,8 @@ class ConverterGuard:
                         self._fail(job, item, task, GuardError('CANCELLED', 'Загрузка отменена.', stage='upload'))
                 item.state = 'cancelled'
             job.state = 'cancelled'
-        return [f.interrupt for f in job.files if f.interrupt is not None]
+        return ([f.interrupt for f in job.files if f.interrupt is not None] +
+                [callback for f in job.files for callback in f.resource_interrupts.values()])
 
     @staticmethod
     def _interrupt(callbacks):
@@ -2089,6 +2225,7 @@ class ConverterGuard:
             if item.state in {'awaiting_upload', 'queued'}:
                 item.state = 'cancelled'
             callbacks = [item.interrupt] if item.interrupt is not None else []
+            callbacks.extend(item.resource_interrupts.values())
             self._record(job, 'file_cancel_requested', file_id=item.id)
             snapshot = self._snapshot(job)
         self._interrupt(callbacks)

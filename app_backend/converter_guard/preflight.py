@@ -31,8 +31,9 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
                    native=None, office_session=None):
     from .routes import registry
     from .csv_import import csv_import_hint
+    from .legacy_import import legacy_import_hint
     native = native if native is not None else registry(executable)
-    hint = csv_import_hint(source, native)
+    hint = csv_import_hint(source, native) or legacy_import_hint(source, native)
     if not native.valid:
         return {'state': 'undetermined', 'code': 'PREFLIGHT_REGISTRY_UNAVAILABLE'}
     work = work.resolve()
@@ -105,6 +106,7 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
                                  sorted(set(services)) != ['com.sun.star.sheet.SpreadsheetDocument']):
                         return {'state':'undetermined','code':'PREFLIGHT_IMPORT_FILTER_MISMATCH'}
                     return {'state':'detected','basis':'native_preflight_uno_document','modelLoaded':True,
+                            'nativeTextDocument': detected.get('nativeTextDocument') is True,
                             'documentServices':sorted(set(services)), 'typeName':detected.get('typeName'),
                             'filterName':selected, 'selectedImportFilter':import_filter,
                             'selectedImportOptions':hint['options'] if hint else None,

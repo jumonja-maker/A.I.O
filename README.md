@@ -104,3 +104,10 @@ python -m unittest discover -s tests -p 'test_converter_native_stream.py' -v
 Архив предыдущей разработки: `jumonja-maker/All-in-One-`. В актуальную базу не возвращаются прежние конвертерные обработчики, старые разрешающие списки и Advanced. Перед подключением нового Guard его совместимость с действующим `main` нужно проверить отдельно.
 
 Технические подробности: [область миграции](docs/MIGRATION_SCOPE.md) и [результаты прямого LibreOffice и UI](docs/review/NATIVE_LIBREOFFICE_UI_PATCH_2026-10-19.md).
+
+## Guard v15 — FULLTEST patch
+
+Изолированный патч поверх QA Guard v14: нативные фильтры, защита от пустого HTML,
+управляемые тайм-ауты, ресурсы HTML и необязательный readback сохранения.
+[Отчёт, ограничения и инструкция для 00AIO](docs/review/AIO_GUARD_V15_FULLTEST_PATCH_2026-10-23.md).
+Статус Draft: ODC, Windows GUI и полная повторная матрица ещё не приняты.

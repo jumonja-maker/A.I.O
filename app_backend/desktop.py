@@ -129,7 +129,7 @@ class MainWindow(QMainWindow):
         query = parse_qs(urlsplit(url).query)
         if query.get('mode') == ['folder']:
             item.cancel()
-            return self._save_folder(url, query['ticket'][0])
+            return self._save_folder(url, query['ticket'][0], verify=query.get('verify') == ['1'])
         destination, _ = QFileDialog.getSaveFileName(
             self, 'Сохранить результат', name, dialog_filter)
         if not destination:
@@ -162,7 +162,7 @@ class MainWindow(QMainWindow):
             self._on_download_state(d, state, u, p))
         item.accept()
 
-    def _save_folder(self, url, ticket):
+    def _save_folder(self, url, ticket, *, verify=False):
         if url in self._folder_saves:
             return  # A duplicate download signal must not replace a live save.
         self._folder_saves[url] = None  # Reserve before the nested picker loop.
@@ -193,7 +193,8 @@ class MainWindow(QMainWindow):
                     self._folder_signals.progress.emit(url, current, total)
             try:
                 result = self._server.guard.save_folder(ticket, destination, cancel=cancelled,
-                    on_progress=progress)
+                    on_progress=progress, verify=verify,
+                    on_verifying=lambda:self._folder_signals.progress.emit(url, -1, 0))
             except GuardError as error:
                 result = {'cancelled':error.code == 'SAVE_CANCELLED', 'error':error.message}
             except Exception:
@@ -206,9 +207,15 @@ class MainWindow(QMainWindow):
         operation = self._folder_saves.get(url)
         if operation:
             dialog = operation[1]
+            if current < 0:
+                dialog.setProperty('aioVerifying', True)
+                dialog.setValue(0)
+                dialog.setLabelText('Проверка сохранённых файлов…')
+                return
             dialog.setMaximum(total)
             dialog.setValue(current)
-            dialog.setLabelText('Сохранено файлов: ' + str(current) + ' из ' + str(total))
+            dialog.setLabelText(('Проверено файлов: ' if dialog.property('aioVerifying')
+                                 else 'Сохранено файлов: ') + str(current) + ' из ' + str(total))
 
     @Slot(str, object)
     def _folder_finished(self, url, result):
@@ -224,14 +231,42 @@ class MainWindow(QMainWindow):
                               jobRunning=result.get('jobRunning',False),
                               saveId=result.get('saveId'), outputs=result.get('outputs',0),
                               remainingOutputs=result.get('remainingOutputs',0),
+                              readbackVerified=result.get('readbackVerified',False),
+                              verificationScope=result.get('verificationScope'),
                               bytesWritten=result.get('bytesWritten',0))
+
+    def _verify_download(self, source_url, path):
+        if source_url in self._folder_saves:
+            return
+        cancel = threading.Event()
+        dialog = QProgressDialog('Проверка сохранённых байтов…', 'Отменить проверку', 0, 0, self)
+        dialog.setWindowModality(Qt.WindowModality.NonModal)
+        dialog.setAutoClose(False)
+        dialog.canceled.connect(cancel.set)
+        dialog.show()
+        self._folder_saves[source_url] = (cancel, dialog)
+        ticket = parse_qs(urlsplit(source_url).query)['ticket'][0]
+        def work():
+            try:
+                result = {'saved':True, 'name':path.name,
+                          **self._server.guard.verify_saved_download(ticket, path, cancel=cancel)}
+            except GuardError as error:
+                result = {'cancelled':error.code == 'SAVE_CANCELLED', 'error':error.message}
+            except Exception:
+                result = {'error':'Не удалось проверить сохранённый файл. Результаты остаются в AIO.'}
+            self._folder_signals.finished.emit(source_url, result)
+        threading.Thread(target=work, daemon=True, name='aio-save-readback').start()
 
     def _on_download_state(self, item, state, source_url, path):
         if state == QWebEngineDownloadRequest.DownloadState.DownloadInProgress:
             return
         if state == QWebEngineDownloadRequest.DownloadState.DownloadCompleted:
             if path.exists() and path.is_file():
-                self._notify_download('completed', path.name, source_url)
+                if (urlsplit(source_url).path == '/api/converter-guard/result'
+                        and parse_qs(urlsplit(source_url).query).get('verify') == ['1']):
+                    self._verify_download(source_url, path)
+                else:
+                    self._notify_download('completed', path.name, source_url)
             else:
                 self._notify_download('failed', path.name, source_url)
         elif state == QWebEngineDownloadRequest.DownloadState.DownloadCancelled:

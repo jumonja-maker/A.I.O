@@ -70,6 +70,7 @@ class ResultStore:
 
     def initialize(self, job):
         value = {'schema': 1, 'jobId': job.id,
+            'inputAccounting':job.input_accounting,
             'files': [{'id': f.id, 'name': f.name, 'size': f.size,'nativeRoute':f.native_route,
                        'targets': [{'index': t.index, 'format': t.format} for t in f.targets]}
                       for f in job.files]}
@@ -111,6 +112,7 @@ class ResultStore:
             'startedMs': task.started_ms, 'finishedMs': task.finished_ms,
             'durationMs':task.duration_ms,'executionMode':task.execution_mode,
             'nativeTimings':task.native_timings,
+            'resultChecks':task.result_checks, 'executionReason':task.execution_reason,
             'exportFilter':task.export_filter,'warnings':task.warnings,'quality':task.quality,
             'loStarted': task.lo_started}
         for artifact in task.artifacts:

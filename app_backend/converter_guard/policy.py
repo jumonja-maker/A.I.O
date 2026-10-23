@@ -24,6 +24,9 @@ class GuardLimits:
     upload_idle_timeout: float = 30
     preflight_timeout: float = 120
     session_max_tasks: int = 128
+    native_import_timeout: float = 60
+    native_close_timeout: float = 15
+    native_chart_timeout: float = 60
 
     def __post_init__(self):
         for key in ('max_jobs', 'max_metadata_bytes', 'session_max_tasks'):
@@ -34,7 +37,8 @@ class GuardLimits:
             value = getattr(self, key)
             if value is not None and (type(value) is not int or value <= 0):
                 raise ValueError(key + ' must be None or a positive integer')
-        for key in ('file_timeout', 'retention_seconds', 'upload_idle_timeout', 'preflight_timeout'):
+        for key in ('file_timeout', 'retention_seconds', 'upload_idle_timeout', 'preflight_timeout',
+                    'native_import_timeout', 'native_close_timeout', 'native_chart_timeout'):
             value = getattr(self, key)
             if value is None and key == 'file_timeout':
                 continue

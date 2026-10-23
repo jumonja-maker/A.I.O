@@ -18,6 +18,7 @@ class Registry:
     def __init__(self, files, executable):
         self.imports, self.exports, self.filters, self.type_services = {}, {}, {}, {}
         self.filter_types = {}
+        self.primary_extensions = {}
         self.external_filters = False
         # Export targets touched by load-order-dependent extensions must stay
         # UNKNOWN rather than disabling the unaffected native registry.
@@ -94,6 +95,8 @@ class Registry:
                           if EXTENSION.fullmatch(e.lower())}
             self.filters[identity] = (service, frozenset(extensions), frozenset(flags))
             self.filter_types[identity] = item.get('Type')
+            ordered = types.get(item.get('Type'), {}).get('Extensions', '').split()
+            self.primary_extensions[identity] = ordered[0].lower() if ordered else None
             if 'IMPORT' in flags and item.get('Type'):
                 self.type_services.setdefault(item['Type'], set()).add(service)
             for flag, mapping in (('IMPORT', self.imports), ('EXPORT', self.exports)):
@@ -113,10 +116,45 @@ class Registry:
         if not self.valid or target in self.uncertain_extensions:
             return None
         candidates = set().union(*(self.export_candidates.get((target,service),set()) for service in services))
+        if any(name not in self.filters for name in candidates):
+            return None
+        primary = {name for name in candidates if self.primary_extensions.get(name) == target}
+        if primary:
+            candidates = primary
+        defaults = {name for name in candidates if 'DEFAULT' in self.filters[name][2]}
+        if len(defaults) == 1:
+            return next(iter(defaults))
         preferred = candidates.intersection(self.preferred_filters.get(target, ()))
         if len(preferred) == 1:
             return next(iter(preferred))
+        # LibreOffice ships multiple OOXML variants with the same suffix and
+        # no unique DEFAULT. These are its standard native output filters.
+        standard = {'docx': 'MS Word 2007 XML', 'xlsx': 'Calc MS Excel 2007 XML',
+                    'pptx': 'Impress MS PowerPoint 2007 XML'}.get(target)
+        if standard in candidates:
+            return standard
         return next(iter(candidates)) if len(candidates) == 1 else None
+
+    @staticmethod
+    def export_services(proof):
+        services = list(proof.get('documentServices') or [proof.get('documentService')])
+        # Writer/Web supports Writer exporters only when the live model proves
+        # XTextDocument. A filename or an unresolved TypeDetection union cannot.
+        if (proof.get('nativeTextDocument') is True
+                and 'com.sun.star.text.WebDocument' in services
+                and 'com.sun.star.text.TextDocument' not in services):
+            services.append('com.sun.star.text.TextDocument')
+        return services
+
+    def route_reason(self, target, proof):
+        if target != 'svg' or not proof:
+            return None
+        services = self.export_services(proof)
+        if target == 'svg':
+            candidates = set().union(*(self.export_candidates.get((target, s), ()) for s in services))
+            if candidates and candidates <= {'writer_svg_Export', 'calc_svg_Export'}:
+                return 'NATIVE_SVG_SELECTION_ONLY'
+        return None
 
     def services_for_type(self, type_name, filter_name=None):
         # A verified UNO TypeDetection name, not a file suffix, is mapped
@@ -150,7 +188,14 @@ class Registry:
             return 'unavailable' if target in self.types else 'undetermined'
         if not services:
             return 'undetermined'
-        return 'registered' if exports.intersection(services) else 'unavailable'
+        shared = exports.intersection(services)
+        if target == 'svg' and shared:
+            candidates = set().union(*(self.export_candidates.get((target, s), ()) for s in shared))
+            # LO's Writer/Calc SVG filter requires a graphics selection. This
+            # converter exports the whole document, not an arbitrary selection.
+            if candidates and candidates <= {'writer_svg_Export', 'calc_svg_Export'}:
+                return 'unavailable'
+        return 'registered' if shared else 'unavailable'
 
     def proof(self, filter_name, target):
         item = self.filters.get(filter_name)
@@ -185,7 +230,7 @@ class Registry:
             services = proof.get('documentServices')
             installed = self.import_services
             if isinstance(services, list) and services and all(s in installed for s in services):
-                return self.decide(target, set(services))
+                return self.decide(target, set(self.export_services(proof)))
             return 'undetermined'
         if (proof and proof.get('basis') == 'native_preflight_uno_graphic'
                 and proof.get('state') == 'detected'

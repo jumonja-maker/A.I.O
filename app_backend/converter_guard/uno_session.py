@@ -102,8 +102,14 @@ def main(boot_name):
                              if p.Name in ('FilterName', 'TypeName')}
                 actual_filter = arguments.get('FilterName')
                 if req['operation'] == 'inspect':
+                    try:
+                        text_document = bool(model.queryInterface(
+                            uno.getTypeByName('com.sun.star.text.XTextDocument')))
+                    except Exception:
+                        text_document = False
                     result = {'id':request_id,'ok':True,'services':services,
-                              'typeName':arguments.get('TypeName'), 'filterName':actual_filter}
+                              'typeName':arguments.get('TypeName'), 'filterName':actual_filter,
+                              'nativeTextDocument':text_document}
                     if 'com.sun.star.drawing.DrawingDocument' in services:
                         try:
                             result['drawPages'] = model.getDrawPages().getCount()
@@ -147,6 +153,12 @@ def main(boot_name):
             if import_tick is not None and 'importMs' not in timings:
                 timings['importMs'] = round((time.monotonic()-import_tick)*1000)
             if model is not None:
+                # A successful storeToURL is a commit point, independent from
+                # model.close(). The controller can recover only these outputs
+                # after killing its owned process on a close-only timeout.
+                if result is not None and result.get('ok') and stage == 'export':
+                    send({'id':request_id,'nativeResult':dict(result, timings=dict(timings))})
+                send({'id':request_id,'stage':'close'})
                 close_tick = time.monotonic()
                 try:
                     if hasattr(model,'close'): model.close(True)
@@ -178,6 +190,7 @@ class UnoSession:
         self.responses = queue.Queue(maxsize=8)
         self.profile = self.pipe = None
         self.disabled = False
+        self.import_timeout, self.close_timeout = 60, 15
 
     def _read(self, stream, responses=None):
         # Bind to this generation; a late dying reader must not feed a newly
@@ -196,13 +209,20 @@ class UnoSession:
         finally:
             stream.close()
 
-    def _receive(self, identity, cancel, timeout, on_stage=lambda stage:None):
+    def _receive(self, identity, cancel, timeout, on_stage=lambda stage:None, *, stage_budgets=None):
         until = None if timeout is None else time.monotonic() + timeout
+        stage, sequence, committed = 'import', -1, None
+        budgets = stage_budgets or {}
+        stage_until = (time.monotonic() + budgets['import']) if 'import' in budgets else None
         while True:
             if cancel.is_set():
                 raise GuardError('CANCELLED','Операция отменена.',stage='engine')
-            if until is not None and time.monotonic() >= until:
-                raise GuardError('ENGINE_TIMEOUT','Превышено время операции LibreOffice.',stage='engine')
+            now = time.monotonic()
+            if (until is not None and now >= until) or (stage_until is not None and now >= stage_until):
+                if stage == 'close' and committed is not None:
+                    return {**committed, 'recycle':True, 'nativeCloseInterrupted':True}
+                raise GuardError('ENGINE_TIMEOUT','Превышено время операции LibreOffice.',
+                                 stage=stage if stage_budgets else 'engine')
             try:
                 result = self.responses.get(timeout=.05)
             except queue.Empty:
@@ -214,8 +234,25 @@ class UnoSession:
                 continue
             if not isinstance(result,dict) or result.get('id') != identity:
                 raise GuardError('UNO_PROTOCOL','Получен ответ другого задания.',stage='engine')
+            if 'nativeResult' in result:
+                value = result['nativeResult']
+                if (stage != 'export' or not isinstance(value, dict) or value.get('id') != identity
+                        or value.get('ok') is not True or value.get('stage') != 'export'):
+                    raise GuardError('UNO_PROTOCOL','Недопустимое подтверждение экспорта.',stage='engine')
+                committed = value
+                continue
             if 'stage' in result and 'ok' not in result:
-                on_stage(result['stage'])
+                next_stage = result['stage']
+                order = {'import':0, 'export':1, 'close':2}.get(next_stage)
+                if order is None or order < sequence:
+                    raise GuardError('UNO_PROTOCOL','Недопустимая последовательность стадий.',stage='engine')
+                if order > sequence:
+                    # Duplicate stage notifications cannot renew a deadline.
+                    first_import = order == 0 and sequence < 0
+                    sequence, stage = order, next_stage
+                    if not first_import:
+                        stage_until = time.monotonic() + budgets[stage] if stage in budgets else None
+                    on_stage(stage)
                 continue
             return result
 
@@ -257,11 +294,18 @@ class UnoSession:
 
     def request(self, value, *, cancel, timeout, on_stage=lambda stage:None):
         try:
+            tick = time.monotonic()
             self.ensure_started(cancel,min(45,timeout) if timeout is not None else 45)
+            remaining = None if timeout is None else max(.001, timeout-(time.monotonic()-tick))
             identity = secrets.token_hex(16)
             self.tree.process.stdin.write((json.dumps({**value,'id':identity},ensure_ascii=True)+'\n').encode())
             self.tree.process.stdin.flush()
-            result = self._receive(identity,cancel,timeout,on_stage)
+            # Inspection already has its explicit preflight budget. Exports
+            # additionally bound import/close so an ODC cannot occupy every
+            # remaining target for the full 30-minute file budget.
+            budgets = ({'import':value.get('importTimeout', self.import_timeout),
+                        'close':self.close_timeout} if value.get('operation') == 'export' else None)
+            result = self._receive(identity,cancel,remaining,on_stage,stage_budgets=budgets)
             self.completed += 1
             if result.get('recycle'):
                 self.recycle()

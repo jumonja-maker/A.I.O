@@ -48,7 +48,7 @@ class PlanAndRevisionTests(unittest.TestCase):
             ('image.bmp','png'),('sheet.xlsx','xlsx'),('sheet.xlsx','csv')])
         with self.guard.open_result(ticket(state['result'])) as (stream,_,_):
             with zipfile.ZipFile(stream) as archive:
-                self.assertEqual(archive.namelist()[:-1],[
+                self.assertEqual(archive.namelist()[:-2],[
                     '0001-pdf/word.pdf','0002-odt/word.odt','0003-png/image.png',
                     '0004-xlsx/sheet.xlsx','0005-csv/sheet.csv'])
 
