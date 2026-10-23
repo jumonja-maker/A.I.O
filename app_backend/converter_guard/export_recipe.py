@@ -12,6 +12,21 @@ WRITER = 'com.sun.star.text.TextDocument'
 CALC_TEXT = 'Text - txt - csv (StarCalc)'
 TEXT_OPTIONS = {'csv': '44,34,76,1,', 'tsv': '9,34,76,1,', 'tab': '9,34,76,1,'}
 WARNING_TEXT = {
+    'NATIVE_HTML_CONTENT_NOT_CHECKED': (
+        'Файл создан, но ограниченная проверка содержимого HTML не завершена. '
+        'Наличие всего содержимого и точность внешнего вида не подтверждены.'),
+    'NATIVE_DRAW_XHTML_VIEW': (
+        'Рисунок сохранён штатным XHTML-фильтром LibreOffice. Анимация, '
+        'редактируемость и точность отображения отдельно не сравнивались.'),
+    'NATIVE_WRITER_TEXT_ONLY': (
+        'Writer сохраняет CSV/TAB/TSV как обычный текст UTF-8. Это не таблица Calc: '
+        'оформление, изображения и табличная структура не сохраняются.'),
+    'NATIVE_TABLE_FORMAT_LIMITS': (
+        'DBF/DIF имеют ограничения структуры, типов и оформления. '
+        'Наличие нативного маршрута не подтверждает сохранность всех данных.'),
+    'NATIVE_CLOSE_INTERRUPTED': (
+        'Нативный экспорт завершён, но закрытие модели зависло. Собственный '
+        'процесс LibreOffice завершён; выходные файлы проверены на наличие.'),
     'NATIVE_DRAW_HTML_CONTENT_RISK': (
         'Штатный HTML-фильтр Draw может создавать файл без содержимого рисунка. '
         'Для нескольких страниц расположение в XHTML тоже требует проверки. '
@@ -43,20 +58,39 @@ def native_export_recipe(native, target, proof):
             proof.get('registryFingerprint') != native.fingerprint or
             native.observed_decision(target, proof) != 'registered'):
         return None
-    services = proof.get('documentServices') or [proof.get('documentService')]
+    services = native.export_services(proof)
     if not isinstance(services, list) or not services or any(not isinstance(s, str) for s in services):
         return None
     selected = native.export_filter(target, services)
+    if proof.get('basis') == 'native_preflight_uno_document':
+        observed = proof.get('selectedImportFilter')
+        item = native.filters.get(observed)
+        if (item and item[0] in services and 'EXPORT' in item[2]
+                and native.primary_extensions.get(observed) == target
+                and target not in native.uncertain_extensions):
+            selected = observed
     # draw_html_Export can emit an empty HTML shell. The installed XHTML
     # exporter preserves a single Draw page and is valid HTML syntax as well.
     # Do not apply this to multi-page drawings: native absolute positioning
     # can overlap pages. No custom renderer or suffix-based input admission.
-    if (selected == 'draw_html_Export' and target in ('html', 'htm') and services == [DRAW]
+    if (target in ('html', 'htm') and services == [DRAW]
             and type(proof.get('drawPages')) is int and proof['drawPages'] == 1
             and 'xhtml' not in native.uncertain_extensions):
-        alternative = native.export_filter('xhtml', services)
-        if alternative == 'XHTML Draw File':
-            return ExportRecipe(alternative, required_draw_pages=1)
+        alternative = native.filters.get('XHTML Draw File')
+        candidates = native.export_candidates.get(('xhtml', DRAW), ())
+        if (alternative and alternative[0] == DRAW and 'EXPORT' in alternative[2]
+                and 'XHTML Draw File' in candidates and all(n in native.filters for n in candidates)):
+            return ExportRecipe('XHTML Draw File', required_draw_pages=1,
+                                warnings=('NATIVE_DRAW_XHTML_VIEW',))
+    if target in ('csv', 'tab', 'tsv', 'txt') and WRITER in services:
+        item = native.filters.get('Text (encoded)')
+        if item and item[0] == WRITER and 'EXPORT' in item[2]:
+            return ExportRecipe('Text (encoded)', 'UTF8', warnings=('NATIVE_WRITER_TEXT_ONLY',))
+    if (target in ('png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif', 'tif', 'tiff')
+            and WRITER in services):
+        alternative = native.export_filter(target, [WRITER])
+        if alternative:
+            selected = alternative
     if not selected:
         return None
     item = native.filters.get(selected)
@@ -64,6 +98,8 @@ def native_export_recipe(native, target, proof):
     # filter or third-party filter with similar extensions does not inherit it.
     options = (TEXT_OPTIONS.get(target) if selected == CALC_TEXT and item and
                item[0] == CALC and target in item[1] and 'EXPORT' in item[2] else None)
+    if selected in ('DIF', 'dBase') and item and item[0] == CALC and 'EXPORT' in item[2]:
+        return ExportRecipe(selected, '76', warnings=('NATIVE_TABLE_FORMAT_LIMITS',))
     warnings = (('NATIVE_DRAW_HTML_CONTENT_RISK',)
                 if selected == 'draw_html_Export' and target in ('html', 'htm') else
                 ('NATIVE_WRITER_SVG_EXPORT_RISK',)

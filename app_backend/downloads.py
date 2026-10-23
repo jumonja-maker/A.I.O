@@ -19,7 +19,9 @@ def download_filter(url: str, name: str, port: int) -> str | None:
     except ValueError:
         return None
     query = parse_qs(parsed.query, keep_blank_values=True)
-    if set(query) - {'ticket', 'aioSave', 'mode'} or len(query.get('ticket', [])) != 1:
+    if set(query) - {'ticket', 'aioSave', 'mode', 'verify'} or len(query.get('ticket', [])) != 1:
+        return None
+    if 'verify' in query and (parsed.path != '/api/converter-guard/result' or query['verify'] != ['1']):
         return None
     if 'mode' in query and (parsed.path != '/api/converter-guard/result' or query['mode'] != ['folder']):
         return None

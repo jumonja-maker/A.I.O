@@ -1,0 +1,255 @@
+{
+  "schema": 1,
+  "date": "2026-10-23",
+  "baseCommit": "a5c2599fdb82ec2b830e4c0d8b740330050b93fe",
+  "baseTree": "252e472c02b793f1ce4e3c688f0b87cf65b606d0",
+  "engineVersion": "LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5",
+  "platform": "linux",
+  "windowsGuiTested": false,
+  "qualityCertified": false,
+  "historicalFulltest": {
+    "taskCounts": {
+      "total": 7326,
+      "ready": 6926,
+      "failed": 397,
+      "cancelled": 3,
+      "filtered": 0,
+      "pending": 0
+    },
+    "omittedSources": 13,
+    "falseReadyBlankHtml": 66,
+    "oldSavedOutputs": 7067,
+    "oldIndependentReadback": 8,
+    "aioCommitAndLibreOfficeVersion": "unknown in BlackBox environment"
+  },
+  "nativeSuites": [
+    {
+      "suite": "html",
+      "inputs": 66,
+      "tasks": 63,
+      "succeeded": 63,
+      "failed": 0,
+      "cancelled": 0,
+      "unplannedPairs": 3,
+      "unplannedReasons": [
+        "PREFLIGHT_IMPORT_UNDETERMINED"
+      ],
+      "durationMs": 39213,
+      "outputsReadbackVerified": 63,
+      "independentContainerChecks": 0,
+      "originalsUnchanged": true
+    },
+    {
+      "suite": "tables",
+      "inputs": 9,
+      "tasks": 36,
+      "succeeded": 36,
+      "failed": 0,
+      "cancelled": 0,
+      "unplannedPairs": 0,
+      "unplannedReasons": [],
+      "durationMs": 365452,
+      "outputsReadbackVerified": 36,
+      "independentContainerChecks": 18,
+      "originalsUnchanged": true
+    },
+    {
+      "suite": "writer",
+      "inputs": 3,
+      "tasks": 12,
+      "succeeded": 12,
+      "failed": 0,
+      "cancelled": 0,
+      "unplannedPairs": 3,
+      "unplannedReasons": [
+        "NATIVE_SVG_SELECTION_ONLY"
+      ],
+      "durationMs": 5333,
+      "outputsReadbackVerified": 12,
+      "independentContainerChecks": 3,
+      "originalsUnchanged": true
+    },
+    {
+      "suite": "web",
+      "inputs": 9,
+      "tasks": 15,
+      "succeeded": 15,
+      "failed": 0,
+      "cancelled": 0,
+      "unplannedPairs": 12,
+      "unplannedReasons": [
+        "HTML_LOCAL_RESOURCES_NOT_UPLOADED"
+      ],
+      "durationMs": 6727,
+      "outputsReadbackVerified": 15,
+      "independentContainerChecks": 10,
+      "originalsUnchanged": true
+    },
+    {
+      "suite": "odc",
+      "inputs": 3,
+      "tasks": 3,
+      "succeeded": 0,
+      "failed": 3,
+      "cancelled": 0,
+      "unplannedPairs": 0,
+      "unplannedReasons": [],
+      "durationMs": 60753,
+      "outputsReadbackVerified": 0,
+      "independentContainerChecks": 0,
+      "originalsUnchanged": true
+    },
+    {
+      "suite": "epub",
+      "inputs": 3,
+      "tasks": 0,
+      "succeeded": 0,
+      "failed": 0,
+      "cancelled": 0,
+      "unplannedPairs": 3,
+      "unplannedReasons": [
+        "PREFLIGHT_IMPORT_UNDETERMINED"
+      ],
+      "durationMs": 856,
+      "outputsReadbackVerified": 0,
+      "independentContainerChecks": 0,
+      "originalsUnchanged": true
+    }
+  ],
+  "nativeTotals": {
+    "tasks": 129,
+    "succeeded": 126,
+    "failed": 3,
+    "outputsReadbackVerified": 126
+  },
+  "finalHtmlRecheck": {
+    "inputs": 66,
+    "tasks": 63,
+    "succeeded": 63,
+    "durationMs": 40728,
+    "apngUnconfirmed": 3
+  },
+  "independentHtmlMedia": {
+    "outputs": 63,
+    "withDecodedMedia": 63,
+    "byteIdenticalPayloads": 33,
+    "rasterPayloads": 51,
+    "svgPayloads": 12,
+    "qualityCertified": false
+  },
+  "regression": {
+    "fullDiscovery": 376,
+    "fullFailures": 1,
+    "fullSubtestErrors": 2,
+    "fullSkips": 2,
+    "blockedMethods": [
+      "test_brand_restoration.BrandRestorationTests.test_both_original_pngs_match_owner_digests_and_have_alpha",
+      "test_brand_restoration.BrandRestorationTests.test_spec_bundles_icon_and_approved_sources_and_sets_exe_resource"
+    ],
+    "blockedReason": "Two original brand PNGs larger than 1MB unavailable in local materialization. Tests unchanged; remote base tree preserves both.",
+    "qualifiedTestsRun": 374,
+    "qualifiedPass": 372,
+    "qualifiedSkip": 2,
+    "qualifiedFail": 0,
+    "qualifiedErrors": 0,
+    "skipReason": "PySide6/Qt unavailable",
+    "newV15Tests": 25
+  },
+  "syntheticBenchmarks": [
+    {
+      "scope": "1000-file Guard queue; synthetic native boundary",
+      "files": 1000,
+      "succeeded": 1000,
+      "pythonHeapPeakMiB": 11.11,
+      "elapsedSecondsWithTracemalloc": 2.705
+    },
+    {
+      "status": "PASS",
+      "files": 1000,
+      "tasks": 83000,
+      "queueDomRows": 50,
+      "clockTicks": 100,
+      "clockMs": 7.3071230000000185,
+      "noTaskWalksOnClock": true,
+      "noProgressClones": true,
+      "noForcedLayout": true,
+      "unrelatedMutationsIgnored": true,
+      "nativeWarningVisible": true
+    }
+  ],
+  "sourceFiles": {
+    "addons/file-converter/aio-converter-issues.js": "a57495ef6c8a4fee38ad995849cfbca6936e931058397a1dc5130dcbfc43d8d8",
+    "app_backend/converter_guard/adapter.py": "3ebd13737d012b1d457cd6356fbb4f5874845072df4c8877731ea592cc42c6d5",
+    "app_backend/converter_guard/core.py": "0090ff497156a421bdf1247fa7f5193f85ef00e1ee820da03fcbad3be4beb9bf",
+    "app_backend/converter_guard/export_recipe.py": "00c70094fde3bad28164d78cbac4b5c9b94c87993e2c7b9f09c9d1ef60a5e75e",
+    "app_backend/converter_guard/html_resources.py": "c833133da858370e08a03536e7ea40fb9275b2426e02c87554202d21be3fa064",
+    "app_backend/converter_guard/http_api.py": "e64c4471bd50d844b1500ee788dc93d43325ceffaa912909326f3e7b88c749a5",
+    "app_backend/converter_guard/legacy_import.py": "01656434532628414f3bb566cd0cb771876c6286f947a5d1bd2181f77ec34348",
+    "app_backend/converter_guard/policy.py": "0546c0ad2282548887f7bda467faa7a6622cbba9c5a8cbfdbba4f90b3d4ffacf",
+    "app_backend/converter_guard/postconditions.py": "d0f54f4cded2ada6d346347f70fcbacc033cbd302ad9a06461dd28f888e75069",
+    "app_backend/converter_guard/preflight.py": "070dc45710df80de3ed4e64ee3041dc43d0f2a7a27d18b824ac219fc151b2115",
+    "app_backend/converter_guard/preflight_uno.py": "2df9f1248152e38aef2c07c40838e35c72443616561307798032cfd21b5e20eb",
+    "app_backend/converter_guard/result_store.py": "ef414dacca596152c136ce82a50fce66d8f5d2a883b6430f9666e4e2f5278a51",
+    "app_backend/converter_guard/routes.py": "77166e18db9e62f8b882380c18653fcbcc01920976739f3be3ceaca61a76011d",
+    "app_backend/converter_guard/save_verification.py": "10f708c4054518b9d016c72aa92d9bed95b99225424be0ca7c2f559fb10bbe06",
+    "app_backend/converter_guard/uno_session.py": "6f1e27b21474e36505b314fe163cdd17b81b410b1610207819c486fa55217af8",
+    "app_backend/converter_native_ui_patch.py": "22925af15f837f5d3d5733994707bdbf6697fb15a671bbc18bec0adefb10f751",
+    "app_backend/desktop.py": "d76fb60461a40a85b03d5d2e7bd7819f280dd7f91fdb1e9e35b437f8bd082449",
+    "app_backend/downloads.py": "4e57adf303b7367a88b56b1abbc7dc8838d83316ec496f3ce1d046639216bd5c",
+    "src/bridge.js": "20493cea1bb7e7fb55b00a9dfac3bf9c8fd9b2db3a912f4fd817262d77f6e37a",
+    "src/converter-bridge.js": "82062898644379415f4e035e3bea247bbbc99ef40d8aca5bfe1c0a72e9988c3a",
+    "src/guard-queue.css": "928a13db7e286b06d3e0546791411d9ac1341b812402c299775f3f0f9cb0a824",
+    "src/guard-queue.js": "8a6ccb55418dd313d4c4a06f6c24f286611d500681aa264b475578e17da3b218",
+    "tests/guard_resources_ui_v15.mjs": "7dc9d54ee49ae93f9a78a926ffa6026161c5b33652df6ce2a96ede8e1adc5220",
+    "tests/test_converter_guard_http_v02.py": "f33ea94eeb3a70db24e351ea18df473a6e049c5d0442012d56a45ed4a0d5f0aa",
+    "tests/test_converter_guard_v03.py": "c5b3817a75b7124688916825480e9c395d40430437e67b9cfcf5d11c67e756ca",
+    "tests/test_converter_guard_v08.py": "21937e6bbf8de578022e6db34a995ebabadc7a69759a203d567e6692615e618b",
+    "tests/test_guard_fulltest_v15.py": "ce24e0b82c32f2df822f69adcc97dc30e1d8ac5350723c13400bfad51d385772",
+    "tests/test_guard_quality_reliability_v13.py": "f135b401b3289ac49436ee15d7522aef3215fe516748914c64ba16a3994d8415",
+    "tests/test_guard_resources_dom_v15.py": "ff0905a269e37371f402af05def5ff19e6115174e2d9fc3b549a138523f2916b",
+    "tools/qa/guard_v15_fulltest_acceptance.py": "fa6f02659caa353a75bdc0522205c5f911aaadc6534e69e610d1b8e19468513a",
+    "tools/qa/verify_saved_results.py": "5164606f73266bac2a5bb9f1437a81533a9d72ae2f4cc854c056c4ae729cd3e9"
+  },
+  "unforcedNativeBmpHtml": {
+    "source": "BMP level 1",
+    "mode": "unforced native CLI",
+    "bytes": 432,
+    "sha256": "82bd2f39fd0d4166f6a14969d8e4d896c055fdb0b57b9e22b717f32c1a76f506",
+    "containsImageTag": false,
+    "containsEmptyH1": true
+  },
+  "externalManifestReadback": [
+    {
+      "suite": "html",
+      "status": "PASS",
+      "readbackVerified": true,
+      "verificationScope": "manifest_outputs",
+      "outputsVerified": 63,
+      "qualityCertified": false
+    },
+    {
+      "suite": "tables",
+      "status": "PASS",
+      "readbackVerified": true,
+      "verificationScope": "manifest_outputs",
+      "outputsVerified": 36,
+      "qualityCertified": false
+    },
+    {
+      "suite": "writer",
+      "status": "PASS",
+      "readbackVerified": true,
+      "verificationScope": "manifest_outputs",
+      "outputsVerified": 12,
+      "qualityCertified": false
+    },
+    {
+      "suite": "web",
+      "status": "PASS",
+      "readbackVerified": true,
+      "verificationScope": "manifest_outputs",
+      "outputsVerified": 15,
+      "qualityCertified": false
+    }
+  ]
+}

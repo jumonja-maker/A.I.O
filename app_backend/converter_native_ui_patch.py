@@ -22,6 +22,7 @@ def apply_native_ui(raw: bytes) -> bytes:
          "    enabled: value?.enabled === true,\n"
          "    nativeDecision:['native_decision','native_registry_hint','native_preflight'].includes(value?.compatibility),\n"
          "    compatibility:value?.compatibility,\n"
+         "    unavailableReasons:value?.unavailableReasons||{},\n"
          "    selectableFileIds:Array.isArray(value?.selectableFileIds)?value.selectableFileIds.map(String):"
          "(Array.isArray(value?.verifiedFileIds)?value.verifiedFileIds.map(String):[]),\n"
          "    incompatibleFileIds:Array.isArray(value?.incompatibleFileIds)?value.incompatibleFileIds.map(String):[],\n"
@@ -156,11 +157,14 @@ def apply_native_ui(raw: bytes) -> bytes:
     once('const eligible=fmt.selectableFileIds.filter(id=>inputs.some(f=>f.id===id));',
          'const chosenIds=new Set(inputs.map(f=>f.id));const eligible=fmt.selectableFileIds.filter(id=>chosenIds.has(id));')
     once('async function inspect({force=false,preserveFormats=false}={})',
-         'async function inspect({force=false,preserveFormats=false,timeoutSeconds,onlyUndetermined=false}={})')
+         'async function inspect({force=false,preserveFormats=false,timeoutSeconds,onlyUndetermined=false,preserveQueue=false}={})')
+    once('      adapter.resetProgress?.();\n      const token = ++inspectionToken;',
+         '      if(!preserveQueue)adapter.resetProgress?.();\n      const token = ++inspectionToken;')
     once('await adapter.inspectFiles({ files:filePayload(),force })',
          'await adapter.inspectFiles({ files:filePayload(),force,timeoutSeconds,onlyUndetermined })')
     once('    typeFilter.sync();\n    render();\n    inspect();',
-         "    root.addEventListener('aio-guard-recheck',event=>{inspect({force:true,timeoutSeconds:event.detail?.timeoutSeconds||600,onlyUndetermined:true}).finally(()=>event.detail?.done?.());});\n"
+         "    root.addEventListener('aio-guard-recheck',event=>{inspect({force:true,preserveQueue:true,timeoutSeconds:event.detail?.timeoutSeconds||600,onlyUndetermined:true}).finally(()=>event.detail?.done?.());});\n"
+         "    root.addEventListener('aio-guard-resources-ready',()=>{inspect({preserveFormats:true,preserveQueue:true});});\n"
          '    typeFilter.sync();\n    render();\n    inspect();')
     # Shared save-confirmation contract: queue and main controller must agree
     # on the exact job ID, without resetting an unrelated new conversion.

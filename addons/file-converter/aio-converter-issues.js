@@ -5,6 +5,9 @@
   const limitText = (value, max = 1600) => String(value || '').slice(0, max);
   const riskPattern = /экспериментально|только текст|не восстанавливаются|могут .*сохраниться|могут измениться|не остаются редактируемыми|один слайд|извлечение таблиц/i;
   const preflightReasons = {
+    HTML_LOCAL_RESOURCES_NOT_UPLOADED:'HTML ссылается на отсутствующие локальные файлы. Добавьте папку ресурсов HTML через «Состояние».',
+    HTML_PREFLIGHT_UNDETERMINED:'Проверка зависимостей HTML не завершена из-за синтаксиса или времени анализа.',
+    NATIVE_IMPORT_UNAVAILABLE:'Эта установка LibreOffice не подтвердила нативный импорт содержимого.',
     PREFLIGHT_TIMEOUT:'LibreOffice не завершил распознавание за отведённое время.',
     ENGINE_NOT_FOUND:'LibreOffice не найден.',
     PREFLIGHT_REGISTRY_UNAVAILABLE:'Не удалось прочитать реестр фильтров LibreOffice.',
@@ -82,6 +85,7 @@
         reason:(preflightReasons[proof.code] || 'Направления конвертации пока не подтверждены.') +
           (proof.code ? ' Код: '+limitText(proof.code,80)+'.' : '') +
           (proof.diagnosticStage ? ' Этап: '+limitText(proof.diagnosticStage,64)+'.' : '') +
+          (proof.missingResources?.length ? ' Не найдены: '+proof.missingResources.slice(0,8).map(p=>limitText(p,160)).join(', ')+'.' : '') +
           ' Форматы пока недоступны. Можно повторить проверку направлений.'});
     }
     const candidates = selected.length ? selected : snapshot.formats.filter(f => !f.enabled || f.undeterminedFileIds?.length);
@@ -98,7 +102,9 @@
         } else if (incompatible.has(id)) {
           rows.push({source: file.name, target: fmt.label || fmt.id,
             kind: 'Нет зарегистрированного маршрута',
-            reason: fmt.compatibility==='native_preflight'
+            reason: fmt.unavailableReasons?.[id]==='NATIVE_SVG_SELECTION_ONLY'
+              ? 'Нативный SVG-фильтр Writer/Calc экспортирует выбранную графику. Экспорт всего документа этим маршрутом не поддерживается.'
+              : fmt.compatibility==='native_preflight'
               ? 'Предварительная проверка определила тип содержимого. У этого типа в реестре LibreOffice нет выбранного экспорта.'
               : 'Для расширения исходника реестр LibreOffice не показывает экспорт в этот формат. '
                 + 'Это предварительная подсказка, а не проверка содержимого.'});

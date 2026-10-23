@@ -10,11 +10,13 @@
   const headers = Object.freeze({'X-AIO-Token': token});
   const retained = new Map();
   const savingJobs = new Set();
+  const htmlCompanions = new WeakMap();
   let active = null, progress = null, generation = 0;
   let prepared = null, preparing = null, inspectionSequence = 0;
   let inspected = null;
   let lastRun = null;
   let qualityCheck = false;
+  let verifySaved = false;
   const publish = report => {
     if (typeof CustomEvent === 'function' && typeof window.dispatchEvent === 'function')
       window.dispatchEvent(new CustomEvent('aio-guard-state', {detail:report}));
@@ -133,6 +135,28 @@
     const previous=new Map(stage.inputs.map(p=>[String(p.id),p.file]));
     return inputs.every(f=>previous.get(String(f.id))===f.file);
   };
+  async function uploadCompanions(jobId, input, entries, {signal, current=()=>{}}={}) {
+    await api('/resources', {jobId,fileId:String(input.id),
+      resources:entries.map(e=>({path:e.path,size:e.file.size}))});
+    let next=0, failed=null;
+    const worker=async()=>{
+      while(!failed) {
+        current();
+        const entry=entries[next++];if(!entry)return;
+        try{
+          await payloadOf(await fetch(prefix+'/resource?job='+encodeURIComponent(jobId)+
+            '&file='+encodeURIComponent(String(input.id))+'&path='+encodeURIComponent(entry.path), {
+              method:'POST',headers:{...headers,'Content-Type':'application/octet-stream'},
+              body:entry.file,cache:'no-store',signal}));
+        }catch(error){failed=error;return;}
+      }
+    };
+    const transfers=await Promise.allSettled(Array.from({length:Math.min(4,entries.length)},worker));
+    const rejected=transfers.find(r=>r.status==='rejected');
+    if(failed||rejected)throw failed||rejected.reason;
+    current();
+  }
+
   async function prepareInputs(inputs, {signal, onCreated, validate = () => {}, force = false,
                                        timeoutSeconds,onlyUndetermined=false} = {}) {
     if (!force && prepared && prepared.inputs.length === inputs.length && contains(prepared, inputs))
@@ -196,6 +220,10 @@
       const transfers=await Promise.allSettled(Array.from({length:Math.min(4,uploads.length)},uploadWorker));
       const rejected=transfers.find(result=>result.status==='rejected');
       if(transferError||rejected)throw transferError||rejected.reason;
+      for(const input of uploads) {
+        const companions=htmlCompanions.get(input.file);
+        if(companions)await uploadCompanions(request.jobId,input,companions,{signal,current});
+      }
       // A released older check can need a short process-tree cleanup. Do not
       // start parallel native imports while it is still shutting down.
       const deadline = Date.now() + 10000;
@@ -221,13 +249,16 @@
         }
       }
       } finally {observing=false;await observation;}
+      let finalState=null;
       if(typeof CustomEvent==='function' && typeof window.dispatchEvent==='function') {
-        try{publish(await api('/jobs?job='+encodeURIComponent(request.jobId),undefined,'GET'));}catch(_){}
+        try{finalState=await api('/jobs?job='+encodeURIComponent(request.jobId),undefined,'GET');}catch(_){}
       }
       current();
       prepared = {jobId:request.jobId,inputs:[...inputs],inspection,used:false};
       inspected = {inputs:[...inputs],inspection};
       accepted = true;
+      if(preparing===request)preparing=null;
+      if(finalState)publish(finalState);
       return prepared;
     } finally {
       if (preparing === request) preparing = null;
@@ -449,8 +480,10 @@
     try {
       const folder = mode === 'folder' || (mode !== 'zip' && (result.folderOnly ||
         result.packagingError && result.outputs?.length > 1));
-      const outcome = await bridge.saveExcel({...result, ...(folder ? {saveMode:'folder'} : {})});
+      const outcome = await bridge.saveExcel({...result, verifySaved, ...(folder ? {saveMode:'folder'} : {})});
       if (outcome?.saved !== true) return outcome;
+      if (verifySaved && window.AllInOneNativeShell && outcome.readbackVerified !== true)
+        throw errorOf('Приложение не подтвердило проверку сохранённых байтов. Результаты оставлены в Guard.', 'SAVE_VERIFY_MISSING');
       if (folder && (outcome.incompleteRecovery || outcome.savedAll !== true && !outcome.snapshotComplete))
         throw errorOf('Восстановленный журнал неполон. Доступные файлы скопированы, но в AIO могут оставаться другие результаты. Не удаляйте служебную папку.', 'SAVE_INCOMPLETE_ACK');
       const acknowledgement = folder ? outcome : await api('/saved', {jobId,ticket:result.ticket,compact:true});
@@ -467,7 +500,7 @@
       const detail={...acknowledgement,jobId,runId:result.progressRunId||null,released};
       if (typeof CustomEvent === 'function') {
         if (released) document.querySelector('.aio-cv')?.dispatchEvent?.(
-          new CustomEvent('aio-guard-saved',{detail}));
+          new CustomEvent('aio-guard-saved',{detail,bubbles:true}));
         window.dispatchEvent?.(new CustomEvent('aio-guard-save-confirmed',{detail}));
       }
       return {...acknowledgement,saved:true};
@@ -506,6 +539,38 @@
       if(typeof enabled!=='boolean')throw errorOf('Некорректный режим проверки.','QUALITY_POLICY');
       if(active?.startRequested)throw errorOf('Режим проверки можно изменить перед следующей конвертацией.','QUALITY_BUSY');
       qualityCheck=enabled;
+    },
+    setSaveVerification(enabled) { verifySaved = enabled === true; },
+    getSaveVerification() { return verifySaved; },
+    getHtmlSources() {
+      if(active||preparing)return [];
+      return (prepared?.inputs||[]).filter(f=>/\.(x?html?|htm)$/i.test(f.file.name))
+        .map(f=>({id:String(f.id),name:f.file.name}));
+    },
+    async attachHtmlResources({fileId, files}={}) {
+      if(active||preparing||!prepared)throw errorOf('Дождитесь проверки исходников.', 'RESOURCE_STATE');
+      const input=prepared.inputs.find(f=>String(f.id)===String(fileId));
+      if(!input||!/\.(x?html?|htm)$/i.test(input.file.name))throw errorOf('Выберите исходник HTML.', 'RESOURCE_SOURCE');
+      const picked=Array.from(files||[]);
+      const matches=picked.filter(f=>f.name===input.file.name&&f.size===input.file.size&&f.webkitRelativePath);
+      if(matches.length!==1)throw errorOf('Выберите папку, содержащую исходный HTML и его изображения/стили.', 'RESOURCE_SOURCE');
+      const original=matches[0], base=original.webkitRelativePath.slice(0,-original.name.length);
+      const entries=picked.filter(f=>f!==original&&f.webkitRelativePath.startsWith(base))
+        .map(file=>({path:file.webkitRelativePath.slice(base.length),file}));
+      if(!entries.length)throw errorOf('В папке не найдены дополнительные файлы.', 'RESOURCE_EMPTY');
+      const stage=prepared;
+      htmlCompanions.set(input.file,entries);
+      try {
+        await uploadCompanions(stage.jobId,input,entries);
+        const inspection=await api('/preflight',{jobId:stage.jobId});
+        if(prepared!==stage)throw errorOf('Выбор исходников изменён.', 'CANCELLED');
+        stage.inspection=inspection;inspected={inputs:[...stage.inputs],inspection};
+        publish(await api('/jobs?job='+encodeURIComponent(stage.jobId),undefined,'GET'));
+        return inspection;
+      } catch(error) {
+        await releaseJob(stage.jobId);if(prepared===stage)prepared=null;inspected=null;
+        throw error;
+      }
     },
     async recoverable() {return api('/recoverable',undefined,'GET');},
     async saveRetained(jobId,mode='folder') {

@@ -126,8 +126,13 @@ def main(manifest_name):
             result = {'state':'undetermined','code':'PREFLIGHT_INTERACTION_REQUIRED'
                       if handler.blocked else 'PREFLIGHT_IMPORT_FAILED'}
         else:
+            try:
+                text_document = bool(model.queryInterface(
+                    uno.getTypeByName('com.sun.star.text.XTextDocument')))
+            except Exception:
+                text_document = False
             result = {**model_metadata(model), 'state':'detected','modelLoaded':True,
-                      'documentServices':services}
+                      'documentServices':services, 'nativeTextDocument':text_document}
             if 'com.sun.star.drawing.DrawingDocument' in services:
                 try:
                     result['drawPages'] = model.getDrawPages().getCount()

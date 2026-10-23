@@ -119,7 +119,7 @@ class GuardHTTPTests(unittest.TestCase):
         with self.request(state['result']['downloadUrl'].removeprefix(PREFIX+'/'),auth=False) as response:
             self.assertEqual(response.headers['Content-Type'],'application/zip')
             with zipfile.ZipFile(io.BytesIO(response.read())) as archive:
-                self.assertEqual(len(archive.namelist()),5)
+                self.assertEqual(len(archive.namelist()),6)  # four outputs + report + hash manifest
 
     def test_actual_download_does_not_confirm_saved_and_can_be_retried(self):
         state=self.job([('Договор.docx',b'x')],['txt'])
