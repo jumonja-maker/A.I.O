@@ -52,7 +52,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: jumonja-maker/A.I.O
-          ref: 6bb3d95aa1a16333051381ca052c99c2f9eeae9c
+          ref: 7a4a5446b635e860c49b61594eedccc7f2248c69
           path: aio-final-${{ github.run_id }}-${{ github.run_attempt }}
           persist-credentials: false
           clean: true
@@ -87,7 +87,7 @@ jobs:
           print('PINNED_TREE='+found)
           if found!=sys.argv[1]:raise SystemExit('GIT_TREE_MISMATCH')
           '@
-          & $python -c $verify 'a45e278393859ca4fd48ff3cf007fd1996792965'
+          & $python -c $verify 'a8dc1dc977855523dd7400208868152a4bc9e7ce'
           if ($LASTEXITCODE -ne 0) { throw 'Reviewed source tree mismatch' }
           & $python -c 'import sys,openpyxl,pypdf,PySide6.QtWebEngineWidgets; assert sys.version_info[:2]==(3,11)'
           if ($LASTEXITCODE -ne 0) { throw 'Approved offline Python dependency unavailable' }
@@ -124,7 +124,7 @@ jobs:
             New-Item -ItemType Directory -Path $path -Force | Out-Null
             ($entry[0]+'='+$path) | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           }
-          Write-Host 'VERIFIED_SOURCE=6bb3d95aa1a16333051381ca052c99c2f9eeae9c'
+          Write-Host 'VERIFIED_SOURCE=7a4a5446b635e860c49b61594eedccc7f2248c69'
           Write-Host ('NATIVE_ENGINE='+$engine)
       - name: Checkout immutable offline corpus DOM and Pillow QA data
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -244,7 +244,7 @@ jobs:
           $ErrorActionPreference='Stop'
           if ((Get-PSDrive -Name D -PSProvider FileSystem).Free -lt 30GB -or (Get-PSDrive -Name C -PSProvider FileSystem).Free -lt 10GB) { throw 'Insufficient free disk before full matrix' }
           $dir=Join-Path $env:GITHUB_WORKSPACE ('aio-final-fulltest-'+$env:GITHUB_RUN_ID+'-'+$env:GITHUB_RUN_ATTEMPT)
-          $arguments=@('tools/qa/guard_v16_full_corpus_matrix.py','--corpus',$env:AIO_QA_CORPUS,'--output',$dir,'--executable',$env:AIO_QA_ENGINE,'--expected-sources','510','--task-seconds','180','--preflight-seconds','120','--max-seconds','13800','--min-free-gb','30','--quality-check')
+          $arguments=@('tools/qa/guard_v16_full_corpus_matrix.py','--corpus',$env:AIO_QA_CORPUS,'--output',$dir,'--executable',$env:AIO_QA_ENGINE,'--expected-sources','510','--task-seconds','180','--preflight-seconds','120','--max-seconds','13800','--min-free-gb','30','--quality-check','--require-complete-preflight')
           $negatives='tools/qa/fulltest-510-known-invalid.json'
           if (Test-Path -LiteralPath $negatives -PathType Leaf) { $arguments+=@('--fixture-negatives',$negatives) }
           & $env:AIO_QA_PYTHON @arguments
@@ -255,7 +255,7 @@ jobs:
       - name: Final acceptance verdict
         if: always()
         run: |
-          Write-Host 'PINNED_SOURCE=6bb3d95aa1a16333051381ca052c99c2f9eeae9c'
+          Write-Host 'PINNED_SOURCE=7a4a5446b635e860c49b61594eedccc7f2248c69'
           Write-Host 'TEST_STATUS=${{ steps.tests.outcome }}'
           Write-Host 'QT_RENDER_STATUS=${{ steps.render.outcome }}'
           Write-Host 'FIXTURE_STATUS=${{ steps.fixtures.outcome }}'
