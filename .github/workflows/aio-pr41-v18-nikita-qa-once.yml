@@ -14,8 +14,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  AIO_QA_SOURCE_SHA: 0e96707573903f0f96175efa546afa6d96cf41e1
-  AIO_QA_TREE_SHA: f409408998be9071555bb8fe11e401253d2aa2f6
+  AIO_QA_SOURCE_SHA: ee4dffaa8ba8f4467684d3f2591529693735658e
+  AIO_QA_TREE_SHA: 8326394ebacb32d09a845df03998683a2ba91463
   PYTHONDONTWRITEBYTECODE: '1'
   PYTHONUTF8: '1'
   PYTHONIOENCODING: utf-8
@@ -67,7 +67,7 @@ jobs:
           GIT_CONFIG_VALUE_0: 'false'
         with:
           repository: jumonja-maker/A.I.O
-          ref: 0e96707573903f0f96175efa546afa6d96cf41e1
+          ref: ee4dffaa8ba8f4467684d3f2591529693735658e
           path: aio-pr41-v18-source-${{ github.run_id }}-${{ github.run_attempt }}
           persist-credentials: false
           clean: true
