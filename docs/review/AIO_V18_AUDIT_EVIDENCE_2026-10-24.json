@@ -1,0 +1,739 @@
+{
+  "schemaVersion": 1,
+  "status": "LOCAL_SOURCE_AND_TARGETED_NATIVE_PASS",
+  "scope": "A.I.O v18 separate QA patch; not Windows acceptance, release or full visual-fidelity certification",
+  "baseline": {
+    "qaCommit": "a6b0861be1c5f9b67130627527dfbafe64fbd0f3",
+    "qaTree": "7594781ac9c0b9b3e94ceed36229fe256bb4bccc",
+    "mainUnchanged": "2bab2d0c31fe84a0d07404a33219dd5bdad834b7"
+  },
+  "candidateCode": {
+    "sha256ByPath": {
+      "app_backend/converter_guard/adapter.py": "cca34b4a599e70e7cef0c71ec288e877215ec601351bd94fc9a538f2510ff5b5",
+      "app_backend/converter_guard/content_invariants.py": "9defd39ac3d6a8fd77be831d5c96e43f2deaf670fb3b112b786330a592115c6b",
+      "app_backend/converter_guard/core.py": "05d207d6aacd535ef987ce9bb9d0a6bea4f8b52dd08d1d68abc7b7b1c5b95575",
+      "app_backend/converter_guard/http_api.py": "f0eeb2b5c53a69569db97e5b893ba9523a619fe822f577eb6ebde6ddda8e8e71",
+      "app_backend/converter_guard/media_fidelity.py": "ccab367622f5c9159583b827c691f010e9b41d69792e4ab6da24892471f27e8b",
+      "app_backend/converter_guard/odf_table_import.py": "e1eccbf5d37d5fe1c3e7f635a224d54f667fd2f5189184f79409d7f1457e5bac",
+      "app_backend/converter_guard/office_session.py": "9690cf2a5d3c20781bb21e9e6009c0767163fc72bb4660b98fc741cec3ea455f",
+      "app_backend/converter_guard/postconditions.py": "2726bab9587507e10ed2146342950667612365ed1473841b30934086380d7ca5",
+      "app_backend/converter_guard/preflight.py": "082ef39c3d15091c309822e584aa688fc082ddc002ba64391bbdf162a3a616a1",
+      "app_backend/converter_guard/quality.py": "7dcb87d7c85e24168b824e5e492c783a0c1f9a8d66a51866f7b0594d56422901",
+      "app_backend/converter_guard/result_store.py": "8a66e1ee88f2e4113a10341750bf450823565f76bb9ba6c716b14c940703d2ef",
+      "app_backend/converter_guard/uno_session.py": "94e779e06be381f8eb0336952eaa62f427222446e122120d03e01730ba0c4043",
+      "app_backend/converter_transport.py": "18ed1e66169a4bd9d9420b00fda0214a8460e89c34dd269a21fda3f495388eea",
+      "app_backend/converter_upload_stream.py": "0d7a9bd44b30a0164534a85d1014c385717442994cd18b0cc7c292ded6070058",
+      "app_backend/desktop.py": "13f61930f1eb839d3aae4cadf36211b402122f84eccdb5d4e8fd3d1d086ffc73",
+      "app_backend/native_process.py": "e3a262f49f3bc33e6a94ac1dfbdf356f69572bb38206527e18222444db58ba8c",
+      "app_backend/server.py": "08fcaa3f2bca4cc1bc50068632db710ca098d84b359571d8f67885942241017f",
+      "src/converter-bridge.js": "1656fb85741459615ee514fce4ac6beb93ff9a175b53e6d4b36ce2e93443706d",
+      "src/guard-queue.js": "00e550303881e1d4f7279cb57c50c5604c58d1b694de5c877f17cb743c5d7a99",
+      "tests/guard_audit_v18.mjs": "d0626bf9ef6a1ed60ac56e8458ccdd8d315a72a0cff867f096912a7a584c8ac2",
+      "tests/test_guard_http_delta_v18.py": "2ac7fcd1282436293f7ec2bc3e69789847c5e245c234e73bc10c47a59fb3fe5e",
+      "tests/test_guard_integrity_audit_v18.py": "efff5d27bb20017a671ba02615ff1b5ca3c969240e453a7c3085eda54b8e1228",
+      "tests/test_guard_native_audit_v18.py": "6e9fe7efd9d813b4a94eb39498b6a87af6af7ec1c1c106d76413e8e3e506ab7c",
+      "tests/test_guard_queue_audit_v18.py": "4e34062fec61d0929b8661689651dbacda35ec36780162d95c96e8148a0776e7",
+      "tests/test_guard_ui_audit_v18.py": "4e4eed5959e2f2f835488b478057edba89ccbb2598ddfa354a1af6a49d7dc7fb",
+      "tests/test_transport_audit_v18.py": "e40c9c8cb6232b94da8e223dfa490f5c182d09c1d4f3671df4deb99da745e3ff",
+      "tools/qa/guard_v18_native_benchmark.py": "854955b070df63f3cdf043f8ae21d72c422f5eaa92cce9ea0f7d2e746434be58",
+      "tools/qa/guard_v18_status_benchmark.py": "0cb4a94071ade908026610ecf971837b2af32183cf803bae482cb6527fa2a1f6"
+    },
+    "aggregateSha256": "0bbb7e9253985a5ea3a49b48483df8f7fad8b971c635b5d8affc498505628aec",
+    "unchangedThroughFinalChecks": true,
+    "scope": "modified/new Python and JavaScript; documentation not part of executable code identity"
+  },
+  "environment": {
+    "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+    "platform": "Linux-6.18.55-x86_64-with-glibc2.39",
+    "qt": "6.10.3",
+    "openpyxl": "3.1.5",
+    "pypdf": "6.10.0",
+    "dom": "linkedom 0.18.12; repository pinned offline bundle"
+  },
+  "sourceTests": {
+    "status": "PASS",
+    "tests": 635,
+    "passed": 635,
+    "skipped": 0,
+    "failed": 0,
+    "errors": 0,
+    "newTests": 53,
+    "seconds": 52.012,
+    "command": "QT_QPA_PLATFORM=offscreen AIO_QT_SAVE_QA=1 AIO_DOM_MODULE=<pinned linkedom>/esm/index.js python -m unittest discover -s tests -v",
+    "log": "evidence/v18/source-tests.txt",
+    "logSha256": "4654172a34dca5752ae4e361be08f2bdc84fa60f13e718d32cc45ac4dfed5a15"
+  },
+  "staticChecks": {
+    "pythonCompile": "PASS",
+    "javascriptSyntax": "PASS",
+    "gitDiffCheck": "PASS"
+  },
+  "nativeAcceptance": {
+    "schema": 1,
+    "status": "PASS",
+    "scope": "v17 real Guard native targeted routes",
+    "missingSources": [],
+    "checks": [
+      {
+        "source": "missing-columns.odt",
+        "target": "docx",
+        "method": "independent_document_text",
+        "markers": 48,
+        "spineOrder": true,
+        "status": "PASS"
+      },
+      {
+        "source": "missing-columns.odt",
+        "target": "txt",
+        "method": "independent_document_text",
+        "markers": 48,
+        "spineOrder": true,
+        "status": "PASS"
+      },
+      {
+        "source": "missing-columns.odt",
+        "target": "pdf",
+        "method": "independent_document_text",
+        "markers": 48,
+        "spineOrder": true,
+        "status": "PASS"
+      },
+      {
+        "source": "ordered-spine.epub",
+        "target": "docx",
+        "method": "independent_document_text",
+        "markers": 2,
+        "spineOrder": true,
+        "embeddedImages": 1,
+        "status": "PASS"
+      },
+      {
+        "source": "ordered-spine.epub",
+        "target": "odt",
+        "method": "independent_document_text",
+        "markers": 2,
+        "spineOrder": true,
+        "status": "PASS"
+      },
+      {
+        "source": "ordered-spine.epub",
+        "target": "pdf",
+        "method": "independent_document_text",
+        "markers": 2,
+        "spineOrder": true,
+        "status": "PASS"
+      },
+      {
+        "source": "ordered-spine.epub",
+        "target": "txt",
+        "method": "independent_document_text",
+        "markers": 2,
+        "spineOrder": true,
+        "status": "PASS"
+      },
+      {
+        "source": "three-sheets.fods",
+        "target": "dbf",
+        "method": "independent_native_fods_reimport_per_sheet",
+        "sheets": [
+          {
+            "sheet": 1,
+            "stringMarkers": 2,
+            "numericValues": 2,
+            "numericReadback": [
+              {
+                "marker": "AIO_SHEET_1_FIRST",
+                "expected": "10",
+                "actual": "10",
+                "valueType": "float",
+                "displayText": "10",
+                "typeCoercion": null,
+                "typedRecovery": null
+              },
+              {
+                "marker": "AIO_SHEET_1_LAST",
+                "expected": "11",
+                "actual": "11",
+                "valueType": "float",
+                "displayText": "11",
+                "typeCoercion": null,
+                "typedRecovery": null
+              }
+            ],
+            "allFound": true
+          },
+          {
+            "sheet": 2,
+            "stringMarkers": 2,
+            "numericValues": 2,
+            "numericReadback": [
+              {
+                "marker": "AIO_SHEET_2_FIRST",
+                "expected": "20",
+                "actual": "20",
+                "valueType": "float",
+                "displayText": "20",
+                "typeCoercion": null,
+                "typedRecovery": null
+              },
+              {
+                "marker": "AIO_SHEET_2_LAST",
+                "expected": "21",
+                "actual": "21",
+                "valueType": "float",
+                "displayText": "21",
+                "typeCoercion": null,
+                "typedRecovery": null
+              }
+            ],
+            "allFound": true
+          },
+          {
+            "sheet": 3,
+            "stringMarkers": 2,
+            "numericValues": 2,
+            "numericReadback": [
+              {
+                "marker": "AIO_SHEET_3_FIRST",
+                "expected": "30",
+                "actual": "30",
+                "valueType": "float",
+                "displayText": "30",
+                "typeCoercion": null,
+                "typedRecovery": null
+              },
+              {
+                "marker": "AIO_SHEET_3_LAST",
+                "expected": "31",
+                "actual": "31",
+                "valueType": "float",
+                "displayText": "31",
+                "typeCoercion": null,
+                "typedRecovery": null
+              }
+            ],
+            "allFound": true
+          }
+        ],
+        "companionFiles": [],
+        "status": "PASS"
+      },
+      {
+        "source": "three-sheets.fods",
+        "target": "dif",
+        "method": "independent_native_fods_reimport_per_sheet",
+        "sheets": [
+          {
+            "sheet": 1,
+            "stringMarkers": 2,
+            "numericValues": 2,
+            "numericReadback": [
+              {
+                "marker": "AIO_SHEET_1_FIRST",
+                "expected": "10",
+                "actual": "10",
+                "valueType": "float",
+                "displayText": "10",
+                "typeCoercion": null,
+                "typedRecovery": null
+              },
+              {
+                "marker": "AIO_SHEET_1_LAST",
+                "expected": "11",
+                "actual": "11",
+                "valueType": "float",
+                "displayText": "11",
+                "typeCoercion": null,
+                "typedRecovery": null
+              }
+            ],
+            "allFound": true
+          },
+          {
+            "sheet": 2,
+            "stringMarkers": 2,
+            "numericValues": 2,
+            "numericReadback": [
+              {
+                "marker": "AIO_SHEET_2_FIRST",
+                "expected": "20",
+                "actual": "20",
+                "valueType": "float",
+                "displayText": "20",
+                "typeCoercion": null,
+                "typedRecovery": null
+              },
+              {
+                "marker": "AIO_SHEET_2_LAST",
+                "expected": "21",
+                "actual": "21",
+                "valueType": "float",
+                "displayText": "21",
+                "typeCoercion": null,
+                "typedRecovery": null
+              }
+            ],
+            "allFound": true
+          },
+          {
+            "sheet": 3,
+            "stringMarkers": 2,
+            "numericValues": 2,
+            "numericReadback": [
+              {
+                "marker": "AIO_SHEET_3_FIRST",
+                "expected": "30",
+                "actual": "30",
+                "valueType": "float",
+                "displayText": "30",
+                "typeCoercion": null,
+                "typedRecovery": null
+              },
+              {
+                "marker": "AIO_SHEET_3_LAST",
+                "expected": "31",
+                "actual": "31",
+                "valueType": "float",
+                "displayText": "31",
+                "typeCoercion": null,
+                "typedRecovery": null
+              }
+            ],
+            "allFound": true
+          }
+        ],
+        "companionFiles": [],
+        "status": "PASS"
+      },
+      {
+        "source": "05_LEVEL_2.odt",
+        "target": "docx",
+        "method": "independent_document_text",
+        "markers": 48,
+        "spineOrder": true,
+        "status": "PASS"
+      },
+      {
+        "source": "05_LEVEL_2.odt",
+        "target": "txt",
+        "method": "independent_document_text",
+        "markers": 48,
+        "spineOrder": true,
+        "status": "PASS"
+      },
+      {
+        "source": "05_LEVEL_2.odt",
+        "target": "pdf",
+        "method": "independent_document_text",
+        "markers": 48,
+        "spineOrder": true,
+        "status": "PASS"
+      },
+      {
+        "source": "05_LEVEL_2.epub",
+        "target": "odt",
+        "method": "independent_document_text",
+        "markers": 1,
+        "spineOrder": true,
+        "status": "PASS"
+      },
+      {
+        "source": "05_LEVEL_2.epub",
+        "target": "pdf",
+        "method": "independent_document_text",
+        "markers": 1,
+        "spineOrder": true,
+        "status": "PASS"
+      },
+      {
+        "source": "05_LEVEL_2.gif",
+        "target": "png",
+        "method": "independent_container_structure",
+        "sourceMedia": {
+          "format": "gif",
+          "width": 800,
+          "height": 540,
+          "frames": 4,
+          "pages": 1,
+          "alpha": true,
+          "durationsMs": [
+            150,
+            150,
+            150,
+            150
+          ],
+          "orientation": 1,
+          "loopCount": 0
+        },
+        "resultMedia": {
+          "format": "png",
+          "width": 800,
+          "height": 540,
+          "frames": 4,
+          "pages": 1,
+          "alpha": true,
+          "durationsMs": [
+            150.0,
+            150.0,
+            150.0,
+            150.0
+          ],
+          "orientation": 1,
+          "animationContainer": true,
+          "loopCount": 0,
+          "bitDepth": 8
+        },
+        "status": "PASS"
+      },
+      {
+        "source": "05_LEVEL_2.gif",
+        "target": "webp",
+        "method": "independent_container_structure",
+        "sourceMedia": {
+          "format": "gif",
+          "width": 800,
+          "height": 540,
+          "frames": 4,
+          "pages": 1,
+          "alpha": true,
+          "durationsMs": [
+            150,
+            150,
+            150,
+            150
+          ],
+          "orientation": 1,
+          "loopCount": 0
+        },
+        "resultMedia": {
+          "format": "webp",
+          "width": 800,
+          "height": 540,
+          "frames": 4,
+          "pages": 1,
+          "alpha": true,
+          "durationsMs": [
+            150,
+            150,
+            150,
+            150
+          ],
+          "orientation": 1,
+          "loopCount": 0
+        },
+        "status": "PASS"
+      },
+      {
+        "source": "05_LEVEL_2.png",
+        "target": "webp",
+        "method": "independent_container_structure",
+        "sourceMedia": {
+          "format": "png",
+          "width": 800,
+          "height": 540,
+          "frames": 1,
+          "pages": 1,
+          "alpha": true,
+          "durationsMs": [],
+          "orientation": 1,
+          "animationContainer": false,
+          "loopCount": 1,
+          "bitDepth": 8
+        },
+        "resultMedia": {
+          "format": "webp",
+          "width": 800,
+          "height": 540,
+          "frames": 1,
+          "pages": 1,
+          "alpha": true,
+          "durationsMs": [],
+          "orientation": 1,
+          "loopCount": 1
+        },
+        "status": "PASS"
+      },
+      {
+        "source": "05_LEVEL_2.png",
+        "target": "emz",
+        "method": "independent_full_gzip_and_native_records",
+        "files": [
+          {
+            "format": "emf",
+            "bytes": 1303712,
+            "records": 24,
+            "declaredRecords": 23,
+            "nativeHeaderCountExcludesHeader": true,
+            "sha256": "d58fc1ae8714437ec0e3ac4b792a02ed21cc2f776c39f1301e2d9fd06b84a408"
+          }
+        ],
+        "status": "PASS"
+      },
+      {
+        "source": "05_LEVEL_2.png",
+        "target": "wmz",
+        "method": "independent_full_gzip_and_native_records",
+        "files": [
+          {
+            "format": "wmf",
+            "bytes": 3040186,
+            "records": 183,
+            "sha256": "c13489fd36c420b242c9eb80fb78da8a1cc4344a0f9c35ef427046cbbcc5be50"
+          }
+        ],
+        "status": "PASS"
+      },
+      {
+        "source": "05_LEVEL_2.ods",
+        "target": "dbf",
+        "method": "independent_native_fods_reimport_per_sheet",
+        "sheets": [
+          {
+            "sheet": 1,
+            "stringMarkers": 48,
+            "numericValues": 0,
+            "numericReadback": [],
+            "allFound": true
+          },
+          {
+            "sheet": 2,
+            "stringMarkers": 5,
+            "numericValues": 3,
+            "numericReadback": [
+              {
+                "marker": "Уровень",
+                "expected": "2",
+                "actual": "2",
+                "valueType": "string",
+                "displayText": "2",
+                "typeCoercion": "native_DBF_mixed_column_preserves_source_display",
+                "typedRecovery": null
+              },
+              {
+                "marker": "Строки",
+                "expected": "24",
+                "actual": "24",
+                "valueType": "string",
+                "displayText": "24",
+                "typeCoercion": "native_DBF_mixed_column_preserves_source_display",
+                "typedRecovery": null
+              },
+              {
+                "marker": "Сумма",
+                "expected": "5622.13",
+                "actual": "5622.13",
+                "valueType": "string",
+                "displayText": "5622.13",
+                "typeCoercion": "native_DBF_mixed_column_preserves_source_display",
+                "typedRecovery": null
+              }
+            ],
+            "allFound": true
+          }
+        ],
+        "companionFiles": [],
+        "status": "PASS"
+      },
+      {
+        "source": "05_LEVEL_2.ods",
+        "target": "dif",
+        "method": "independent_native_fods_reimport_per_sheet",
+        "sheets": [
+          {
+            "sheet": 1,
+            "stringMarkers": 48,
+            "numericValues": 0,
+            "numericReadback": [],
+            "allFound": true
+          },
+          {
+            "sheet": 2,
+            "stringMarkers": 5,
+            "numericValues": 3,
+            "numericReadback": [
+              {
+                "marker": "Уровень",
+                "expected": "2",
+                "actual": "2",
+                "valueType": "float",
+                "displayText": "2",
+                "typeCoercion": null,
+                "typedRecovery": null
+              },
+              {
+                "marker": "Строки",
+                "expected": "24",
+                "actual": "24",
+                "valueType": "float",
+                "displayText": "24",
+                "typeCoercion": null,
+                "typedRecovery": null
+              },
+              {
+                "marker": "Сумма",
+                "expected": "5622.13",
+                "actual": "5622.13",
+                "valueType": "float",
+                "displayText": "5622.13",
+                "typeCoercion": null,
+                "typedRecovery": null
+              }
+            ],
+            "allFound": true
+          }
+        ],
+        "companionFiles": [],
+        "status": "PASS"
+      }
+    ],
+    "unplannedPairs": [],
+    "platformUnsupported": [
+      {
+        "source": "05_LEVEL_2.png",
+        "target": "svm",
+        "status": "platform_not_applicable",
+        "reason": "NATIVE_FORMAT_IMPORT_ONLY",
+        "requiredPlatform": "Windows native UNO graphic-export acceptance"
+      }
+    ],
+    "fulltest510": "NOT_RUN",
+    "visibleGui": "NOT_RUN",
+    "counts": {
+      "total": 21,
+      "completed": 21,
+      "succeeded": 21,
+      "failed": 0,
+      "cancelled": 0
+    },
+    "savedByteReadback": "PASS",
+    "originalsUnchanged": true
+  },
+  "nativeLogSha256": "c6bba857b0da481c4d1f889f197e1228c62d660db400febdab8bf19af14fcecc",
+  "nativeTool": "tools/qa/guard_v17_native_acceptance.py unchanged; invoked against v18 candidate",
+  "statusBenchmark": {
+    "schema": 1,
+    "scope": "synthetic Guard status benchmark; no LibreOffice, conversion, native output bytes, total conversion time or app RSS measured",
+    "baselineQaSha": "a6b0861be1c5f9b67130627527dfbafe64fbd0f3",
+    "source": {
+      "status": "AVAILABLE",
+      "head": "3e6ad4130733d6b1535bd6fc7499b977626d3dc2",
+      "headTree": "7594781ac9c0b9b3e94ceed36229fe256bb4bccc",
+      "workingTreeAtStart": "0127b0396a380225bc0dc93c8f526fd49625b54d",
+      "dirtyAtStart": true,
+      "statusAtStartSha256": "59c2dbf03efd0fc5dec0e5867b3840f2f7e385569d5c9f4a14635b32d643b7f6",
+      "captureScope": "start only; no claim about source changes during/after measurement"
+    },
+    "environment": {
+      "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+      "platform": "Linux-6.18.55-x86_64-with-glibc2.39",
+      "implementation": "CPython"
+    },
+    "inputs": 1000,
+    "targetsPerInput": 7,
+    "outputs": 7000,
+    "iterations": 12,
+    "modes": {
+      "legacy_delta": {
+        "bytes": 2764912,
+        "medianMs": 29.671252000000003,
+        "p95Ms": 32.71894,
+        "peakAllocatedBytes": 5918644,
+        "samplesMs": [
+          59.269173,
+          30.20708,
+          30.666111,
+          30.501253,
+          32.025521,
+          32.71894,
+          28.73369,
+          28.463321,
+          28.219734,
+          29.135424,
+          28.60052,
+          28.459726
+        ]
+      },
+      "negotiated_delta": {
+        "bytes": 1819,
+        "medianMs": 0.1651435,
+        "p95Ms": 0.272171,
+        "peakAllocatedBytes": 5504,
+        "samplesMs": [
+          0.238119,
+          0.146631,
+          0.272952,
+          0.111027,
+          0.272171,
+          0.109485,
+          0.209857,
+          0.120322,
+          0.183656,
+          0.115794,
+          0.213051,
+          0.123476
+        ]
+      }
+    },
+    "semanticReconstruction": {
+      "status": "PASS",
+      "outputsCompared": 7000,
+      "outputInventorySha256": "e03df8346438d1420de5cf6602e59ec3b04adbd276f549c75445e0ad37951971",
+      "scope": "all response fields and complete retained output metadata; no output bytes"
+    },
+    "measurementScope": "packaging-only status response plus UTF-8 JSON serialization; peakAllocatedBytes is one request allocation measured by tracemalloc, not process RSS"
+  },
+  "preparationBenchmark": {
+    "scope": "Local Linux microbenchmarks; preparation and parser allocations only, not end-to-end conversion/RSS/Windows.",
+    "knownQaBase": "a6b0861be1c5f9b67130627527dfbafe64fbd0f3",
+    "baselineRef": "HEAD",
+    "resolvedBaselineCommit": "3e6ad4130733d6b1535bd6fc7499b977626d3dc2",
+    "baselineComponentBlob": "f418c0863dfcb4e6489f75a62fc460dcd210235e",
+    "componentMatchesVerifiedV17": true,
+    "measuredHead": "3e6ad4130733d6b1535bd6fc7499b977626d3dc2",
+    "measuredHeadTree": "7594781ac9c0b9b3e94ceed36229fe256bb4bccc",
+    "workingTreeDirty": true,
+    "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+    "preparation": {
+      "targets": 20,
+      "rows": 3000,
+      "opaqueResourceBytes": 2097152,
+      "sourceBytes": 2099446,
+      "sourceSha256": "ac37ae9b2c1086de5dfefc1ebfa15c2c2988379c193f5cf507bc76d648e1e3b0",
+      "baselineSeconds": 1.5383085400007985,
+      "cachedSeconds": 0.07761384400146198,
+      "speedupPreparationOnly": 19.82002772561841,
+      "sourceUnchanged": true,
+      "allPreparedMembersByteEqual": true,
+      "distinctPreparedCopiesBefore": 20,
+      "distinctPreparedCopiesAfter": 1
+    },
+    "odfRowInspection": [
+      {
+        "label": "baseline_v17",
+        "seconds": 2.8683863329988526,
+        "peakTracedBytes": 716972,
+        "rows": 60000,
+        "xmlBytes": 6540268
+      },
+      {
+        "label": "patched_v18",
+        "seconds": 2.9624083429989696,
+        "peakTracedBytes": 282085,
+        "rows": 60000,
+        "xmlBytes": 6540268
+      }
+    ]
+  },
+  "benchmarkScope": "Stage-specific local Linux measurements; status compares legacy and negotiated modes on current code, not two checkouts. Raw capture metadata retained; no end-to-end conversion/RSS/Windows speedup claimed.",
+  "notRun": [
+    "Windows NIKITA new patch",
+    "real Windows QWebEngine GUI",
+    "EXE and installer build of new patch",
+    "full FULLTEST-510",
+    "long RSS/handle soak",
+    "whole-conversion baseline/candidate A/B",
+    "system-wide clipboard issue #27 reproduction"
+  ],
+  "integrationGate": "Review complete patch against stated QA base; new Windows and long-queue acceptance before release/main integration.",
+  "nativeLog": "evidence/v18/native-acceptance.txt"
+}

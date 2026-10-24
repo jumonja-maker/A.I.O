@@ -26,7 +26,7 @@ from .libreoffice_engine import LibreOfficeError, inspect_metadata
 from .libreoffice_catalog import EXTENSION
 from .converter_transport import ConverterTransport
 from .blackbox_telemetry import from_environment
-from .converter_upload_stream import MultipartUpload, content_length
+from .converter_upload_stream import MultipartUpload, content_length, MAX_METADATA_BYTES
 from .converter_guard import ConverterGuard
 from .converter_guard.http_api import GuardAPI
 from .converter_guard.result_store import data_directory
@@ -118,6 +118,8 @@ def start_server(port: int = 0, *, guard_recovery_parent=None):
             self.send_response(code)
             self.send_header('Content-Type', content_type)
             self.send_header('Content-Length', str(size))
+            if self.close_connection:
+                self.send_header('Connection', 'close')
             self.send_header('Cache-Control', 'no-store')
             self.send_header('X-Content-Type-Options', 'nosniff')
             self.send_header('X-Frame-Options', 'DENY')
@@ -301,7 +303,12 @@ def start_server(port: int = 0, *, guard_recovery_parent=None):
         def _read_converter_json(self):
             if self.headers.get('Content-Type', '').split(';')[0] != 'application/json':
                 raise LibreOfficeError('Нужен JSON-запрос.', 'INVALID_REQUEST')
-            value = json.loads(self._read_exact(content_length(self.headers)))
+            length = content_length(self.headers)
+            if length > MAX_METADATA_BYTES:
+                # Reject control metadata before reading or allocating its
+                # advertised body. This never applies to streamed documents.
+                raise LibreOfficeError('Превышен лимит метаданных запроса.', 'INVALID_REQUEST')
+            value = json.loads(self._read_exact(length))
             if not isinstance(value, dict):
                 raise LibreOfficeError('Некорректные параметры.', 'INVALID_REQUEST')
             return value
@@ -324,6 +331,7 @@ def start_server(port: int = 0, *, guard_recovery_parent=None):
                     value = self._read_converter_json()
                     cancelled = self.server.converter.cancel(value.get('requestId'))
                     return self._json(200, {'ok': True, 'cancelled': cancelled})
+                length = content_length(self.headers)
                 if not self.server.converter_gate.acquire(blocking=False):
                     return self._json(409, {'code': 'ENGINE_BUSY', 'error': 'Уже выполняется другое задание.'})
                 acquired = True
@@ -333,7 +341,7 @@ def start_server(port: int = 0, *, guard_recovery_parent=None):
                 request = self.server.converter.begin(identity, self.connection)
                 files, fields = MultipartUpload(
                     CancellableSocketUpload(self.connection, request.cancel),
-                    content_length(self.headers),
+                    length,
                     self.headers.get('Content-Type', ''),
                     request.cancel).read(request.root / 'inputs')
                 try:
@@ -352,6 +360,10 @@ def start_server(port: int = 0, *, guard_recovery_parent=None):
                 retained = True
                 return self._json(200, outcome)
             except LibreOfficeError as exc:
+                if exc.code == 'INVALID_REQUEST':
+                    # Invalid framing/oversized metadata can leave an unread
+                    # body; it must never be parsed as another HTTP request.
+                    self.close_connection = True
                 data = {'code': exc.code, 'error': str(exc)}
                 if getattr(exc, 'batch_report', None):
                     data['batchReport'] = exc.batch_report

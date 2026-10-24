@@ -264,7 +264,7 @@ def _output_text(path, target, matcher, cancel):
                 matcher.feed(text)
 
 
-def check_content_invariants(paths, target, source, *, cancel):
+def check_content_invariants(paths, target, source, *, cancel, source_evidence=None):
     """Reject missing table text only where both sides can be inspected.
 
     Unsupported output families (including PDF and legacy binary Office) are
@@ -274,7 +274,9 @@ def check_content_invariants(paths, target, source, *, cancel):
     if not source.is_file():
         return None
     try:
-        expected = _source_cells(source, cancel)
+        expected = (_source_cells(source, cancel) if source_evidence is None else
+                    source_evidence.get('odf_table_text', source,
+                                        lambda: _source_cells(source, cancel)))
     except _InspectionLimited as error:
         return {'check': 'odf_table_text', 'status': 'not_checked',
                 'reason': 'source_inspection_budget', 'inspectionLimit': str(error),

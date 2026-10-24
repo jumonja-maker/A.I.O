@@ -15,6 +15,43 @@ from .content_invariants import check_content_invariants
 from .media_fidelity import check_media_preservation
 
 
+class SourceEvidence:
+    """One batch's bounded structural source metadata, never output evidence.
+
+    Each key retains only the existing bounded inspectors' summaries. A new
+    source or changed file identity discards both summaries; every output is
+    still independently traversed. No global cache, document bytes or native
+    model is retained by this helper.
+    """
+    def __init__(self, source):
+        self.identity = self._identity(source)
+        self.values = {}
+
+    @staticmethod
+    def _identity(source):
+        path = Path(source).resolve(strict=True)
+        info = path.stat()
+        return (str(path), info.st_dev, info.st_ino, info.st_size,
+                info.st_mtime_ns, info.st_ctime_ns)
+
+    def get(self, key, source, loader):
+        if key not in ('odf_table_text', 'media_profile'):
+            raise ValueError('unknown_source_evidence_key')
+        identity = self._identity(source)
+        if identity != self.identity:
+            self.values.clear()
+            self.identity = identity
+        if key not in self.values:
+            value = loader()
+            if self._identity(source) != identity:
+                self.values.clear()
+                raise GuardError('SOURCE_CHANGED_DURING_VALIDATION',
+                    'Исходный файл изменился во время проверки. Результат не подтверждён.',
+                    stage='result')
+            self.values[key] = value
+        return self.values[key]
+
+
 class _Body(HTMLParser):
     def __init__(self):
         super().__init__(convert_charrefs=True)
@@ -233,15 +270,17 @@ def _check_html(paths, source, *, cancel, budget):
                      stage='result')
 
 
-def check_native_output(paths, target, source, *, cancel, budget=None):
+def check_native_output(paths, target, source, *, cancel, budget=None, source_evidence=None):
     """Validate complete containers/content before the adapter commits outputs.
 
     ``budget`` is an explicit caller-provided inspection quota, not a default
     file-size veto.  Exhaustion fails closed instead of returning ``ready``.
     """
     _cancelled(cancel)
-    invariant = check_content_invariants(paths, target, source, cancel=cancel)
-    media = check_media_preservation(paths, target, source, cancel=cancel)
+    invariant = check_content_invariants(paths, target, source, cancel=cancel,
+                                         source_evidence=source_evidence)
+    media = check_media_preservation(paths, target, source, cancel=cancel,
+                                     source_evidence=source_evidence)
     if media is not None:
         result = media
     elif target in ('emz', 'wmz'):

@@ -169,6 +169,13 @@ class ResultStore:
                         if record.get('kind') == 'task' and type(record.get('index')) is int:
                             records[record['index']] = record
                         elif record.get('kind') == 'task_begin':
+                            # append_many serializes whole transactions. A new
+                            # begin before the prior commit is evidence of an
+                            # interrupted append, even if later transactions
+                            # are valid. Keep recovering them, but never erase
+                            # that evidence and allow routine cleanup.
+                            if pending and integrity == 'complete':
+                                integrity = 'incomplete_transaction'
                             pending={record['transaction']:{**record,'outputs':[]}}
                         elif record.get('kind') == 'output' and record.get('transaction') in pending:
                             pending[record['transaction']]['outputs'].append(record['output'])

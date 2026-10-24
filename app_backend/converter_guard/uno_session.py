@@ -521,6 +521,8 @@ class UnoSession:
             return result
 
     def ensure_started(self, cancel, timeout=45):
+        if cancel.is_set():
+            raise GuardError('CANCELLED', 'Операция отменена.', stage='launch')
         if self.tree and (self.completed >= self.max_tasks or self.tree.process.poll() is not None):
             self.recycle()
         if self.tree:
@@ -605,5 +607,8 @@ class UnoSession:
 
     def __enter__(self):return self
     def __exit__(self,*_):
-        self.recycle();shutil.rmtree(self.workspace,ignore_errors=True)
+        try:
+            self.recycle()
+        finally:
+            shutil.rmtree(self.workspace,ignore_errors=True)
 

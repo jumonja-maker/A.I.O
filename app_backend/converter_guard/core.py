@@ -5,6 +5,7 @@ from collections import deque, OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager, nullcontext
 import copy
+import errno
 import hashlib
 from dataclasses import dataclass, field
 from html.parser import HTMLParser
@@ -34,6 +35,44 @@ DONE = SUCCESS | {'error', 'cancelled', 'skipped'}
 TERMINAL = {'ready', 'partial', 'failed', 'cancelled'}
 COUNT_KEYS = ('total', 'completed', 'attempted', 'succeeded',
               'failed', 'cancelled', 'filtered', 'pending')
+
+
+def _publish_saved_copy(part, target, cancel):
+    """Create a final filename without overwriting an unrelated writer."""
+    if os.name == 'nt':
+        os.rename(part, target)  # Windows rename fails if target exists.
+        return
+    try:
+        os.link(part, target, follow_symlinks=False)
+        return
+    except OSError as error:
+        if error.errno not in {errno.EPERM, errno.EXDEV, errno.ENOSYS,
+                               errno.ENOTSUP, errno.EOPNOTSUPP}:
+            raise
+    # FAT/exFAT and some mounted/FUSE destinations do not support hard links.
+    # O_EXCL retains the same no-overwrite guarantee there. The ordinary
+    # save path independently hashes this final file before acknowledging it.
+    if cancel.is_set():
+        raise GuardError('SAVE_CANCELLED', 'Сохранение отменено. Результаты остаются в AIO.', stage='save')
+    with part.open('rb') as source:
+        descriptor = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL |
+                             getattr(os, 'O_BINARY', 0), 0o600)
+        try:
+            output = os.fdopen(descriptor, 'wb')
+            descriptor = None
+            with output:
+                while block := source.read(CHUNK):
+                    if cancel.is_set():
+                        raise GuardError('SAVE_CANCELLED', 'Сохранение отменено. Результаты остаются в AIO.',
+                                         stage='save')
+                    output.write(block)
+                output.flush()
+                os.fsync(output.fileno())
+        finally:
+            if descriptor is not None:
+                os.close(descriptor)
+    # On failure leave any partial final file in the failed save folder. Do
+    # not perform a stat-then-unlink that could delete an intervening writer.
 
 
 class GuardTrace:
@@ -191,7 +230,8 @@ class _LocalHtmlResources(HTMLParser):
              'embed', 'image', 'use', 'input', 'body', 'table', 'td', 'th', 'base'}
     _attrs = {'src', 'srcset', 'href', 'xlink:href', 'poster', 'data', 'background'}
     _css_refs = re.compile(
-        r"""(?is)\burl\(\s*['"]?([^'")\s]+)|@import\s+(?:url\(\s*)?['"]([^'"\s)]+)""")
+        r"""(?is)\burl\(\s*(?:"([^"]*)"|'([^']*)'|([^'"\s)]+))\s*\)"""
+        r"""|@import\s+(?:"([^"]*)"|'([^']*)')""")
 
     def __init__(self, resolver=None):
         super().__init__(convert_charrefs=True)
@@ -223,14 +263,19 @@ class _LocalHtmlResources(HTMLParser):
         def unescape(match):
             digits, literal = match.groups()
             number = int(digits, 16) if digits else None
-            return chr(number) if number and number <= 0x10ffff else literal or '\ufffd'
+            character = chr(number) if number and number <= 0x10ffff else literal or '\ufffd'
+            # Keep an escaped whitespace character within a valid unquoted
+            # url() token. The dependency resolver decodes URL escapes later;
+            # raw whitespace here would make the tokenizer drop the resource.
+            return ('%' + format(ord(character), '02X')
+                    if character in ' \t\r\n\f' else character)
         value = re.sub(r'\\(?:([0-9a-fA-F]{1,6})[ \t\r\n\f]?|([^\r\n]))', unescape, value)
         value = re.sub(r'/\*.*?\*/', ' ', value, flags=re.S)
         unfinished = re.search(r'(?is)(?:\burl\([^)]*|@import\b[^;]*)\Z', value)
         if unfinished and len(unfinished.group())>4096:
             self.undetermined = True
-        for first, second in self._css_refs.findall(value):
-            self._notice(first or second)
+        for candidates in self._css_refs.findall(value):
+            self._notice(next((candidate for candidate in candidates if candidate), ''))
 
     def handle_starttag(self, tag, attrs):
         if tag == 'style':
@@ -246,7 +291,10 @@ class _LocalHtmlResources(HTMLParser):
             # Only srcset is a list; a data URL can contain commas.
             candidates = (re.findall(r'(?:data:[^\s]+|[^,\s]+)(?:\s+[^,]+)?', value)
                           if key == 'srcset' else [value])
-            urls = (part.strip().split()[0] for part in candidates if part.strip())
+            # Descriptors follow whitespace only in srcset. Whitespace within
+            # an ordinary quoted src/href is part of the resource filename.
+            urls = ((part.strip().split()[0] if key == 'srcset' else part.strip())
+                    for part in candidates if part.strip())
             for url in urls:
                 self._notice(url)
 
@@ -665,7 +713,8 @@ class ConverterGuard:
         job.trace.add(stage, **details)
         job.revision += 1
         changed = details.get('file_id')
-        if stage in {'job_queued', 'save_confirmed', 'job_finished', 'recovered'} and changed is None:
+        if stage in {'job_queued', 'save_confirmed', 'job_finished', 'recovered',
+                     'results_available', 'job_failed'} and changed is None:
             changed = '*'
         job.changes.append((job.revision, changed))
         if stage in ('preflight_started','preflight_done','job_queued','job_started',
@@ -1981,7 +2030,15 @@ class ConverterGuard:
                     if (written != artifact.size or target.exists() or
                             artifact.sha256 and digest.hexdigest() != artifact.sha256):
                         raise GuardError('SAVE_CHANGED', 'Результат изменён или имя уже занято.', stage='save')
-                    part.replace(target)
+                    try:
+                        # The earlier exists() check is advisory: another
+                        # process can create this name before publication.
+                        # Never replace such a file. Both operations below
+                        # fail atomically when the final name already exists.
+                        _publish_saved_copy(part, target, cancel)
+                    except FileExistsError as error:
+                        raise GuardError('SAVE_CHANGED', 'Имя результата уже занято. Файл не заменён.',
+                                         stage='save') from error
                 finally:
                     part.unlink(missing_ok=True)
                 bytes_written += written
@@ -2093,11 +2150,14 @@ class ConverterGuard:
                 roots.append(self._parent)
         return any(resolved.is_relative_to(root.resolve()) for root in roots)
 
-    def _snapshot(self, job, include_trace=False, only_files=None):
+    def _snapshot(self, job, include_trace=False, only_files=None, result_delta=False):
         rows = []
-        for item in job.files:
-            if only_files is not None and item.id not in only_files:
-                continue
+        # Delta readers merge by immutable file ID. Do not walk all admitted
+        # inputs to find one changed row in a long-running batch.
+        selected = (job.files if only_files is None else
+                    [job.files_by_id[identity] for identity in only_files
+                     if identity in job.files_by_id])
+        for item in selected:
             targets = [{'taskId': job.id + ':' + str(t.index), 'format': t.format, 'state': t.state, 'code': t.code, 'error': t.error,
                         'stage': t.stage, 'libreOfficeStarted': t.lo_started,
                         'executionMode':t.execution_mode,
@@ -2116,8 +2176,15 @@ class ConverterGuard:
                              ['SOURCE_NAME_NORMALIZED'] if item.name_normalized else [])})
         counts = self._counts(job)
         result = copy.deepcopy(job.result)
+        outputs_delta = bool(result_delta and only_files is not None and result is not None)
         if result is not None:
-            result['outputs'] = [a.metadata() for a in job.artifacts]
+            # This negotiated wire representation avoids repeatedly allocating
+            # and serializing every retained output during packaging/status
+            # changes. Legacy clients and full/resync snapshots still receive
+            # the complete inventory. Artifact tickets survive ready -> saved.
+            artifacts = (job.artifacts if not outputs_delta else
+                         (a for item in selected for task in item.targets for a in task.artifacts))
+            result['outputs'] = [a.metadata() for a in artifacts]
         finished = not job.running and job.state in TERMINAL
         current = None
         if job.current:
@@ -2128,7 +2195,7 @@ class ConverterGuard:
             if task.stage == 'preflight':
                 current['taskId']=job.id+':preflight:'+item.id
                 current['position']=-task.index
-        return {'schemaVersion': 3, 'jobId': job.id, 'revision': job.revision,
+        snapshot = {'schemaVersion': 3, 'jobId': job.id, 'revision': job.revision,
                 'state': job.state, 'finished': finished,
                 'diagnosticBytes':job.diagnostic_bytes,
                 'currentTask': current, 'pauseRequested': job.paused,
@@ -2154,12 +2221,18 @@ class ConverterGuard:
                 'partialResult': ({**job.artifacts[0].metadata(), 'jobId': job.id,
                     'outputsCount': len(job.artifacts), 'folderOnly': True}
                     if job.artifacts else None)}
+        if outputs_delta:
+            snapshot['resultOutputsDelta'] = True
+        return snapshot
 
-    def status(self, job_id, *, include_trace=False, since_revision=None, delta=False):
+    def status(self, job_id, *, include_trace=False, since_revision=None, delta=False,
+               result_delta=False):
         if job_id not in self._jobs:
             self._load_recovery()
         if since_revision is not None and (type(since_revision) is not int or since_revision < 0):
             raise GuardError('STATUS_REVISION', 'Некорректная версия состояния.')
+        if type(result_delta) is not bool:
+            raise GuardError('STATUS_RESULT_DELTA', 'Некорректный режим состояния результатов.')
         self._prune()
         with self._lock:
             job = self._get(job_id)
@@ -2169,7 +2242,7 @@ class ConverterGuard:
                     and job.changes[0][0] <= since_revision + 1 <= job.revision):
                 changes = {file_id for revision, file_id in job.changes if revision > since_revision}
                 if '*' not in changes:
-                    return {**self._snapshot(job, only_files=changes), 'delta': True,
+                    return {**self._snapshot(job, only_files=changes, result_delta=result_delta), 'delta': True,
                             'baseRevision': since_revision}
             return self._snapshot(job, include_trace)
 

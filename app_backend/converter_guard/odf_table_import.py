@@ -65,7 +65,8 @@ def _insertions(data, cancel):
         if name == _key('table'):
             if len(completed) + len(tables) >= MAX_TABLES:
                 raise _Uninspectable('table_budget')
-            tables.append({'depth':len(stack), 'columns':False, 'widths':[],
+            tables.append({'depth':len(stack), 'columns':False, 'width':None,
+                           'rows':0, 'uniform':True,
                            'row':None, 'insert':None, 'ambiguous':False})
         elif tables:
             table = tables[-1]
@@ -99,7 +100,11 @@ def _insertions(data, cancel):
             table = tables[-1]
             if name == _key('table-row'):
                 if table['row'] is not None:
-                    table['widths'].append(table['row'])
+                    if table['rows'] == 0:
+                        table['width'] = table['row']
+                    elif table['width'] != table['row']:
+                        table['uniform'] = False
+                    table['rows'] += 1
                 table['row'] = None
             elif name == _key('table'):
                 completed.append(tables.pop())
@@ -120,16 +125,16 @@ def _insertions(data, cancel):
         return []
     insertions = []
     for table in completed:
-        widths = table['widths']
-        if (table['columns'] or table['ambiguous'] or not widths or
-                not widths[0] or len(set(widths)) != 1 or table['insert'] is None):
+        width = table['width']
+        if (table['columns'] or table['ambiguous'] or not table['rows'] or
+                not width or not table['uniform'] or table['insert'] is None):
             continue
         # A local prefix makes the insertion independent of source prefixes,
         # including documents using a default namespace or shadowing bindings.
         declaration = ('<aio_guard_columns:table-column '
             'xmlns:aio_guard_columns="%s" '
-            'aio_guard_columns:number-columns-repeated="%d"/>' % (TABLE, widths[0])).encode('ascii')
-        insertions.append((table['insert'], declaration, widths[0], len(widths)))
+            'aio_guard_columns:number-columns-repeated="%d"/>' % (TABLE, width)).encode('ascii')
+        insertions.append((table['insert'], declaration, width, table['rows']))
     return sorted(insertions)
 
 

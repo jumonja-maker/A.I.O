@@ -399,19 +399,62 @@ def _tiff(r):
     return result
 
 
-def _jpeg(r):
+def _jpeg_entropy_marker(r):
+    """Find an unstuffed marker without retaining compressed image data.
+
+    Byte stuffing, fill bytes and restart markers may straddle read boundaries.
+    A missing EOI used to pass as soon as a valid SOF declared dimensions.
+    """
+    pending = False
+    while True:
+        _cancel(r.cancel)
+        block = r.file.read(64 * 1024)
+        if not block:
+            raise _Invalid('jpeg_missing_eoi')
+        index = 0
+        while index < len(block):
+            if not pending:
+                position = block.find(b'\xff', index)
+                if position < 0:
+                    break
+                index = position + 1
+            while index < len(block) and block[index] == 0xff:
+                index += 1
+            if index == len(block):
+                pending = True
+                break
+            marker = block[index]
+            index += 1
+            pending = False
+            if marker in (0, 1) or 0xd0 <= marker <= 0xd7:
+                continue
+            r.seek(r.file.tell() - len(block) + index)
+            return marker
+
+
+def _jpeg(r, *, complete=False):
     if r.read(2) != b'\xff\xd8':
         raise _Invalid('jpeg_signature')
     orientation = 1
+    result = None
+    pending_marker = None
+    saw_scan = False
     while True:
         r.record()
-        if r.read(1) != b'\xff':
-            raise _Invalid('jpeg_marker')
-        marker = r.read(1)[0]
-        while marker == 0xff:
+        if pending_marker is None:
+            if r.read(1) != b'\xff':
+                raise _Invalid('jpeg_marker')
             marker = r.read(1)[0]
-        if marker in (0xd9, 0xda):
-            raise _Invalid('jpeg_dimensions')
+            while marker == 0xff:
+                marker = r.read(1)[0]
+        else:
+            marker, pending_marker = pending_marker, None
+        if marker == 0xd9:
+            if result is None or not saw_scan:
+                raise _Invalid('jpeg_scan_missing')
+            return result
+        if marker in (0, 0xd8):
+            raise _Invalid('jpeg_marker')
         if marker in range(0xd0, 0xd8) or marker == 0x01:
             continue
         length = struct.unpack('>H', r.read(2))[0]
@@ -421,10 +464,23 @@ def _jpeg(r):
             if length < 8:
                 raise _Invalid('jpeg_sof')
             depth, height, width = struct.unpack('>BHH', r.read(5))
-            result = _base('jpeg', width, height)
-            result['orientation'] = orientation
-            return result
-        if marker == 0xe1:
+            if result is None:
+                result = _base('jpeg', width, height)
+                result['orientation'] = orientation
+            if not complete:
+                return result
+            components = r.read(length - 7)
+            if not components or not components[0] or len(components) != 1 + 3 * components[0]:
+                raise _Invalid('jpeg_frame_components')
+        elif marker == 0xda:
+            if result is None or length < 6:
+                raise _Invalid('jpeg_scan_header')
+            payload = r.read(length - 2)
+            if not payload or not payload[0] or len(payload) != 4 + 2 * payload[0]:
+                raise _Invalid('jpeg_scan_header')
+            saw_scan = True
+            pending_marker = _jpeg_entropy_marker(r)
+        elif marker == 0xe1:
             payload = r.read(length - 2)
             if payload.startswith(b'Exif\0\0'):
                 orientation = _exif_orientation(payload)
@@ -432,7 +488,7 @@ def _jpeg(r):
             r.skip(length-2)
 
 
-def _bmp(r):
+def _bmp(r, *, complete=False):
     head = r.read(26)
     if head[:2] != b'BM':
         raise _Invalid('bmp_signature')
@@ -443,10 +499,33 @@ def _bmp(r):
         width, height = struct.unpack('<ii', head[18:26])
     else:
         raise _Invalid('bmp_dib')
-    return _base('bmp', abs(width), abs(height))
+    result = _base('bmp', abs(width), abs(height))
+    if complete:
+        pixel_offset = int.from_bytes(head[10:14], 'little')
+        declared = int.from_bytes(head[2:6], 'little')
+        if 14 + dib > r.size or pixel_offset < 14 + dib or pixel_offset >= r.size:
+            raise _Invalid('bmp_pixel_offset')
+        if declared and (declared > r.size or declared < pixel_offset):
+            raise _Invalid('bmp_file_size')
+        if dib == 12:
+            planes, depth = struct.unpack('<HH', head[22:26])
+            compression, image_size = 0, 0
+        else:
+            remaining = r.read(14)
+            planes, depth, compression, image_size = struct.unpack('<HHII', remaining[:12])
+        if planes != 1 or not (0 < depth <= 64 or depth == 0 and compression in (4, 5)):
+            raise _Invalid('bmp_pixel_format')
+        available = (min(declared, r.size) if declared else r.size) - pixel_offset
+        if compression in (0, 3, 6):
+            required = ((abs(width) * depth + 31) // 32) * 4 * abs(height)
+            if required > available:
+                raise _Invalid('bmp_pixels_truncated')
+        elif image_size and image_size > available:
+            raise _Invalid('bmp_compressed_pixels_truncated')
+    return result
 
 
-def inspect_media(path, *, cancel=None):
+def inspect_media(path, *, cancel=None, validate_container=False):
     """Inspect supported raster structure in bounded memory, without decoding pixels."""
     path = Path(path)
     r = _Input(path, cancel)
@@ -463,8 +542,10 @@ def inspect_media(path, *, cancel=None):
                 'bmp' if magic.startswith(b'BM') else None)
         if kind is None:
             return None
-        result = {'png': _png, 'gif': _gif, 'webp': _webp, 'tiff': _tiff,
-                  'jpeg': _jpeg, 'bmp': _bmp}[kind](r)
+        inspector = {'png': _png, 'gif': _gif, 'webp': _webp, 'tiff': _tiff,
+                     'jpeg': _jpeg, 'bmp': _bmp}[kind]
+        result = (inspector(r, complete=True) if validate_container and kind in ('jpeg', 'bmp')
+                  else inspector(r))
         return result
     except (_Invalid, struct.error, OverflowError, IndexError) as error:
         raise GuardError('MEDIA_OUTPUT_INVALID',
@@ -511,13 +592,17 @@ def copy_media_identity(source, output_dir, target, *, cancel=None):
     return [output]
 
 
-def check_media_preservation(paths, target, source, *, cancel):
+def check_media_preservation(paths, target, source, *, cancel, source_evidence=None):
     """Mandatory property check, independent of optional deep fidelity QA."""
     if target not in RASTER and target != 'pdf':
         return None
     source = Path(source)
+    def source_profile():
+        return (inspect_media(source, cancel=cancel) if source_evidence is None else
+                source_evidence.get('media_profile', source,
+                                    lambda: inspect_media(source, cancel=cancel)))
     if target == 'pdf':
-        before = inspect_media(source, cancel=cancel)
+        before = source_profile()
         if before is None or before['format'] != 'tiff':
             return None
         primary = next((Path(p) for p in paths if Path(p).suffix.lower() == '.pdf' and Path(p).stem == source.stem), None)
@@ -542,14 +627,14 @@ def check_media_preservation(paths, target, source, *, cancel):
     if primary is None:
         raise GuardError('MEDIA_INSPECTION_INCOMPLETE',
                          'Не удалось однозначно определить основной результат изображения.', stage='result')
-    after = inspect_media(primary, cancel=cancel)
+    after = inspect_media(primary, cancel=cancel, validate_container=True)
     if after is None or after['format'] != ALIASES.get(target, target):
         raise GuardError('MEDIA_OUTPUT_INVALID',
                          'Контейнер изображения не соответствует выбранному формату результата.', stage='result')
     if target == 'apng' and not after.get('animationContainer'):
         raise GuardError('MEDIA_OUTPUT_INVALID',
                          'Вместо APNG получен PNG без структуры анимации.', stage='result')
-    before = inspect_media(source, cancel=cancel)
+    before = source_profile()
     expected_losses = []
     if before:
         if before.get('bitDepth', 8) > after.get('bitDepth', 8):
