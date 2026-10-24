@@ -1,0 +1,79 @@
+{
+  "schema": 1,
+  "kind": "immutable_original_FULLTEST_corpus",
+  "files": 510,
+  "extensions": 85,
+  "sourceBytes": 57001904,
+  "zipBytes": 8961366,
+  "zipSha256": "f3294f15d6e188209bb7e4897e503f2464419df032712b093d39e15900147253",
+  "parts": [
+    {
+      "path": "part-000.bin",
+      "gitBlobSha": "5b0baee96d480f69564ed2485cfa0552d87e24c0"
+    },
+    {
+      "path": "part-001.bin",
+      "gitBlobSha": "9fb86c9d17f5e41b0f90e56e7045563d94cd5b63"
+    },
+    {
+      "path": "part-002.bin",
+      "gitBlobSha": "266b996f589c60c0a8e1f405d5f892353d91e693"
+    },
+    {
+      "path": "part-003.bin",
+      "gitBlobSha": "76ab62827d83b452f6862fb0d43a329b3e9aa9be"
+    },
+    {
+      "path": "part-004.bin",
+      "gitBlobSha": "ad535a27b5d564adb99f19d7754491acb294e231"
+    },
+    {
+      "path": "part-005.bin",
+      "gitBlobSha": "8f9e6eac55cfccdbec746dc6457eead4ee6920ae"
+    },
+    {
+      "path": "part-006.bin",
+      "gitBlobSha": "4f3e31ddebe4d94c8152bf47c5694ea1502a8218"
+    },
+    {
+      "path": "part-007.bin",
+      "gitBlobSha": "afaeb96746a8a10c7d3b5d4c8d49b5e38671b5ae"
+    },
+    {
+      "path": "part-008.bin",
+      "gitBlobSha": "3fdd865b1fbe1d7f12b04d8b5822e7b5aceb9789"
+    },
+    {
+      "path": "part-009.bin",
+      "gitBlobSha": "1f7893c85d8c953921690f00f955cb434fa05e41"
+    },
+    {
+      "path": "part-010.bin",
+      "gitBlobSha": "c625dcc15a48b50697e74a1ea0ae0dc763aa5eb4"
+    },
+    {
+      "path": "part-011.bin",
+      "gitBlobSha": "1f96955ea914868d4799823e3636c4ce2e54b26f"
+    },
+    {
+      "path": "part-012.bin",
+      "gitBlobSha": "ec6ade45ebad453cb6b5c87dc67498e48f9722bb"
+    },
+    {
+      "path": "part-013.bin",
+      "gitBlobSha": "a440265376cafd021c8e4acd40d5a0621056658f"
+    },
+    {
+      "path": "part-014.bin",
+      "gitBlobSha": "40ab4423356c903715b09feb9f5afff460cb6ceb"
+    }
+  ],
+  "originalsModified": false,
+  "missingHtmlCompanions": [
+    "level_2_htm_2c78dfd0.png",
+    "level_2_html_2c78dfd0.png",
+    "level_3_htm_d43736c5.png",
+    "level_3_html_d43736c5.png"
+  ],
+  "role": "diagnostic original corpus, not all files are positive fixtures"
+}
