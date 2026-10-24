@@ -1548,10 +1548,12 @@ class ConverterGuard:
                         try:
                             def started():
                                 with self._lock:
-                                    task.lo_started = True
                                     task.execution_mode = getattr(self.adapter,'execution_mode',lambda:None)()
+                                    task.lo_started = task.execution_mode not in (
+                                        'qt_media_frames', 'qt_raster_frames', 'qt_media_html',
+                                        'media_identity', 'native_identity')
                                     self._record(job, 'engine_started', file_id=item.id,
-                                                  target=task.format, lo_started=True)
+                                                  target=task.format, lo_started=task.lo_started)
                                     # If the current batch exposes a native worker,
                                     # correlate its *actual* PID with the task.
                                     # In UNO mode this can be the Python/UNO

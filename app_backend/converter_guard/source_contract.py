@@ -13,6 +13,7 @@ from .errors import GuardError
 
 OFFICE = 'urn:oasis:names:tc:opendocument:xmlns:office:1.0'
 LEGACY_OFFICE = 'http://openoffice.org/2000/office'
+WORD_2003 = 'http://schemas.microsoft.com/office/word/2003/wordml'
 WRITER = 'com.sun.star.text.TextDocument'
 CALC = 'com.sun.star.sheet.SpreadsheetDocument'
 IMPRESS = 'com.sun.star.presentation.PresentationDocument'
@@ -163,8 +164,17 @@ def _ooxml_contract(archive, names, *, cancel, budget):
     if (not part or '\\' in part or posixpath.normpath(part) != part
             or part.startswith('../') or names.count(part) != 1):
         return _invalid('ooxml_main_part_missing_or_ambiguous', 'ooxml_package')
+    content_ns = '{http://schemas.openxmlformats.org/package/2006/content-types}'
     declarations = [item.get('ContentType', '') for item in content_types
-                    if item.get('PartName') == '/' + part]
+                    if item.tag == content_ns + 'Override' and item.get('PartName') == '/' + part]
+    if not declarations:
+        # OPC resolves an exact part Override first, then the Default for its
+        # extension. Real Calc packages may use only the latter for workbook.xml.
+        # Extension matching is case insensitive; duplicate matches are ambiguous.
+        extension = posixpath.splitext(part)[1][1:].lower()
+        declarations = [item.get('ContentType', '') for item in content_types
+                        if item.tag == content_ns + 'Default' and extension
+                        and item.get('Extension', '').lower() == extension]
     if len(declarations) != 1:
         return _invalid('ooxml_main_content_type', 'ooxml_package')
     declared = declarations[0]
@@ -189,6 +199,50 @@ def _ooxml_contract(archive, names, *, cancel, budget):
             'mainContentType': declared, 'expectedServices': [service]}
 
 
+def _missing_ooxml_content_types(archive, names, *, cancel, budget):
+    """Identify an incomplete OPC office package without relying on its suffix.
+
+    A generic ZIP is not an office document merely because it contains XML.
+    Require both the package's officeDocument relationship and a content-confirmed
+    Word, Calc or Impress main root before diagnosing the missing declaration.
+    """
+    relationship_part = '_rels/.rels'
+    if names.count(relationship_part) != 1:
+        return None
+    if archive.getinfo(relationship_part).file_size > budget:
+        raise _Budget()
+    data = archive.read(relationship_part)
+    _safe_xml_data(data)
+    relationships = ET.fromstring(data)
+    package_ns = '{http://schemas.openxmlformats.org/package/2006/relationships}'
+    if relationships.tag != package_ns + 'Relationships':
+        return None
+    office_types = {
+        'http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument',
+        'http://purl.oclc.org/ooxml/officeDocument/relationships/officeDocument',
+    }
+    main = [item for item in relationships
+            if item.tag == package_ns + 'Relationship' and item.get('Type') in office_types]
+    if len(main) != 1 or main[0].get('TargetMode', 'Internal') != 'Internal':
+        return None
+    part = main[0].get('Target', '').lstrip('/')
+    if (not part or '%' in part or '\\' in part or posixpath.normpath(part) != part
+            or part.startswith('../') or names.count(part) != 1):
+        return None
+    with archive.open(part) as stream:
+        root = _xml_root(stream, cancel=cancel, budget=budget)
+    known = {
+        '{' + namespace + '}' + local
+        for family, local in (('wordprocessingml', 'document'), ('spreadsheetml', 'workbook'),
+                              ('presentationml', 'presentation'))
+        for namespace in ('http://schemas.openxmlformats.org/' + family + '/2006/main',
+                          'http://purl.oclc.org/ooxml/' + family + '/main')
+    }
+    if root in known:
+        return _invalid('missing_ooxml_content_types', 'ooxml_package')
+    return None
+
+
 def inspect_source_contract(source, *, cancel=None, budget=4 * 1024 * 1024):
     """Return only content-confirmed declarations, independent of filename."""
     recognized = False
@@ -198,10 +252,13 @@ def inspect_source_contract(source, *, cancel=None, budget=4 * 1024 * 1024):
             prefix = stream.read(4096)
             packed = prefix.startswith(b'PK\x03\x04')
             if not packed:
-                if OFFICE.encode() not in prefix:
+                if OFFICE.encode() not in prefix and WORD_2003.encode() not in prefix:
                     return {'state': 'not_applicable'}
                 stream.seek(0)
                 root, body = _root_and_body(stream, cancel=cancel, budget=budget)
+                if root and root[0] == '{' + WORD_2003 + '}wordDocument':
+                    return {'state': 'recognized', 'contentClass': 'word2003_xml',
+                            'expectedServices': [WRITER]}
                 if not root or root[0] != '{' + OFFICE + '}document':
                     return {'state': 'not_applicable'}
                 mime = root[1].get('{' + OFFICE + '}mimetype', '')
@@ -230,6 +287,9 @@ def inspect_source_contract(source, *, cancel=None, budget=4 * 1024 * 1024):
             if '[Content_Types].xml' in names:
                 recognized = True
                 return _ooxml_contract(archive, names, cancel=cancel, budget=budget)
+            incomplete = _missing_ooxml_content_types(archive, names, cancel=cancel, budget=budget)
+            if incomplete:
+                return incomplete
     except _Budget:
         return {'state': 'not_checked', 'reason': 'source_contract_budget'}
     except _UntrustedXML:

@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "baseCommit": "24f8e6bce2f91462ac8ffed25b92be7354c2bd16",
+  "platform": "Linux",
+  "tests": 789,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "qtWidgets": "PASS",
+  "dom": "PASS",
+  "originalBrandingAssets": "PASS",
+  "actualQtWebEngine": "PENDING_WINDOWS",
+  "fulltest510": "PENDING_WINDOWS",
+  "command": "AIO_DOM_MODULE=<offline linkedom> AIO_QT_SAVE_QA=1 QT_QPA_PLATFORM=offscreen python -m unittest discover -s tests -p test_*.py -v"
+}

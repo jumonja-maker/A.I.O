@@ -128,6 +128,20 @@ class ProvenanceTests(unittest.TestCase):
                 self.assertEqual((state['succeeded'],state['failed']),(2,2))
                 self.assertEqual(attempts,[('first','pdf'),('second','pdf'),('second','odt')])
 
+    def test_qt_processing_does_not_claim_libreoffice_was_started(self):
+        class QtBoundary(FakeAdapter):
+            def execution_mode(self):
+                return 'qt_media_frames'
+        guard=ConverterGuard(adapter=QtBoundary(),recovery_parent=self.root/'qt-boundary')
+        self.addCleanup(guard.close)
+        job=guard.create([{'id':'f','name':'image.bin','size':4}],['png'])['jobId']
+        guard.upload(job,'f',io.BytesIO(b'keep'),4);guard.start(job)
+        state=wait_finished(guard,job)
+        self.assertEqual(state['succeeded'],1)
+        target=guard.report(job)['files'][0]['targets'][0]
+        self.assertEqual(target['executionMode'],'qt_media_frames')
+        self.assertFalse(target['libreOfficeStarted'])
+
     def test_same_size_temp_mutation_cannot_be_acknowledged_or_archived(self):
         job,state = self.ready()
         artifact = self.guard._jobs[job].artifacts[0]

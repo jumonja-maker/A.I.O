@@ -45,6 +45,14 @@ def _cancel(cancel):
         raise GuardError('CANCELLED', 'Подготовка EPUB отменена.', stage='preflight')
 
 
+def _hash_file(path, cancel):
+    digest = hashlib.sha256()
+    with Path(path).open('rb') as stream:
+        while block := stream.read(65536):
+            _cancel(cancel); digest.update(block)
+    return digest.hexdigest()
+
+
 def _member(value):
     try:
         result = resource_path(value)
@@ -76,10 +84,12 @@ class _XMLReader:
     def __init__(self, stream, cancel=None, limit=None):
         self.stream, self.cancel, self.limit = stream, cancel, limit
         self.used, self.tail = 0, b''
+        self.digest = hashlib.sha256()
 
     def read(self, size=-1):
         _cancel(self.cancel)
         block = self.stream.read(min(size, 65536) if size >= 0 else 65536)
+        self.digest.update(block)
         self.used += len(block)
         if self.limit is not None and self.used > self.limit:
             _error('package_metadata_complexity', 'EPUB_PACKAGE_COMPLEXITY')
@@ -111,6 +121,11 @@ def _anchor(chapter, fragment=''):
 def _data_uri(archive, target, kind, cancel):
     if kind not in IMAGE_TYPES:
         _error('unhandled_css_image_type', 'EPUB_RESOURCE_TYPE_UNSUPPORTED')
+    # Main chapter images stream directly into the HTML. CSS rewriting needs
+    # one in-memory value, so bound that inspection without limiting book text
+    # or ordinary image resources.
+    if archive.getinfo(target).file_size > MAX_PACKAGE_XML:
+        _error('css_embedded_image_complexity', 'EPUB_PACKAGE_COMPLEXITY')
     parts = ['data:' + kind + ';base64,']
     with archive.open(target) as stream:
         while block := stream.read(3 * 16384):
@@ -147,10 +162,127 @@ def _css(text, base, entries, references, *, prefix='', archive=None, media_type
     return result
 
 
+def _scope_css_ids(text, chapter_ids, cancel=None):
+    """Rewrite simple ID selectors to the same names used by chapter anchors.
+
+    Do not rewrite hexadecimal colours or quoted attribute values. More
+    involved ID scoping is rejected rather than silently losing a style rule.
+    """
+    expansions = 0
+
+    def selectors(value):
+        nonlocal expansions
+        if re.search(r'''(?i)\[\s*(?:href|xlink\:href)\s*[*^$|~]?=\s*["']#''', value):
+            _error('css_fragment_attribute_scope', 'EPUB_CSS_UNSUPPORTED')
+        output = []
+        # Commas inside functions/attribute selectors require a CSS grammar;
+        # they are only unsupported when an ID rewrite is actually required.
+        for selector in value.split(','):
+            positions = []
+            index, quoted, brackets = 0, None, 0
+            while index < len(selector):
+                char = selector[index]
+                if quoted:
+                    if char == quoted: quoted = None
+                elif char in ('"', "'"): quoted = char
+                elif char == '[': brackets += 1
+                elif char == ']': brackets -= 1
+                elif char == '#' and not brackets:
+                    end = index + 1
+                    while end < len(selector) and (selector[end].isalnum() or selector[end] in '_-'):
+                        end += 1
+                    if end > index + 1:
+                        positions.append((index, end, selector[index + 1:end])); index = end - 1
+                index += 1
+            if not positions:
+                output.append(selector); continue
+            matching = [chapter for chapter, identities in chapter_ids.items()
+                        if all(identity in identities for _, _, identity in positions)]
+            if not matching:
+                output.append(selector); continue
+            if '(' in selector or ')' in selector or re.search(r'(?i)href\s*=', selector):
+                _error('complex_css_id_scope', 'EPUB_CSS_UNSUPPORTED')
+            for chapter in matching:
+                _cancel(cancel)
+                expansions += 1
+                if expansions > 16384:
+                    _error('css_selector_complexity', 'EPUB_PACKAGE_COMPLEXITY')
+                rewritten = selector
+                for start, end, identity in reversed(positions):
+                    rewritten = rewritten[:start] + '#' + _anchor(chapter, identity) + rewritten[end:]
+                output.append(rewritten)
+        return ','.join(output)
+
+    def rules(value, depth=0):
+        if depth > 64: _error('css_nesting_complexity', 'EPUB_PACKAGE_COMPLEXITY')
+        result, start, index, quoted = [], 0, 0, None
+        while index < len(value):
+            char = value[index]
+            if quoted:
+                if char == quoted: quoted = None
+            elif char in ('"', "'"): quoted = char
+            elif char == '{':
+                prelude = value[start:index]
+                # Separate an @import preamble from the next ordinary rule.
+                if ';' in prelude:
+                    boundary = prelude.rfind(';') + 1
+                    result.append(prelude[:boundary]); prelude = prelude[boundary:]
+                opening, nesting, inner_quote = index, 1, None
+                index += 1
+                while index < len(value) and nesting:
+                    current = value[index]
+                    if inner_quote:
+                        if current == inner_quote: inner_quote = None
+                    elif current in ('"', "'"): inner_quote = current
+                    elif current == '{': nesting += 1
+                    elif current == '}': nesting -= 1
+                    index += 1
+                if nesting: _error('unbalanced_css', 'EPUB_CSS_UNSUPPORTED')
+                body = value[opening + 1:index - 1]
+                if re.match(r'(?is)\s*@(?:media|supports|layer|container)\b', prelude):
+                    body = rules(body, depth + 1)
+                elif not prelude.lstrip().startswith('@'):
+                    prelude = selectors(prelude)
+                result.extend((prelude, '{', body, '}'))
+                start = index
+                continue
+            index += 1
+        result.append(value[start:])
+        return ''.join(result)
+
+    return rules(text)
+
+
+def _copy_scoped_head(path, output, chapter_ids, cancel):
+    pending, in_style = '', False
+    with path.open(encoding='utf-8') as stream:
+        while block := stream.read(65536):
+            _cancel(cancel); pending += block
+            while True:
+                marker = '</style>' if in_style else '<style>'
+                found = pending.find(marker)
+                if found < 0:
+                    if in_style:
+                        if len(pending.encode('utf-8')) > MAX_PACKAGE_XML:
+                            _error('stylesheet_complexity', 'EPUB_PACKAGE_COMPLEXITY')
+                    elif len(pending) > 7:
+                        output.write(pending[:-7]); pending = pending[-7:]
+                    break
+                before, pending = pending[:found], pending[found + len(marker):]
+                output.write(_scope_css_ids(before, chapter_ids, cancel) if in_style else before)
+                output.write(marker)
+                in_style = not in_style
+    if in_style: _error('incomplete_prepared_style')
+    output.write(pending)
+
+
 class _Chapter(ContentHandler):
     VOID = frozenset(('area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'wbr'))
-    ACTIVE = frozenset(('script', 'iframe', 'object', 'embed', 'form', 'audio', 'video', 'canvas', 'applet'))
-    BLOCKS = frozenset(('section', 'article', 'nav', 'header', 'footer', 'main', 'aside', 'figure', 'figcaption'))
+    ACTIVE = frozenset(('script', 'iframe', 'object', 'embed', 'form', 'audio', 'video', 'canvas', 'applet',
+                        'input', 'button', 'select', 'textarea', 'source'))
+    # Retain element names so source CSS selectors keep their meaning in the
+    # prepared view. Native HTML layout support is reported as an import risk.
+    BLOCKS = frozenset()
 
     def __init__(self, out, head, chapter, entries, spine, references, cancel, archive, media_types):
         super().__init__()
@@ -161,6 +293,10 @@ class _Chapter(ContentHandler):
         self.body_count = self.depth = 0
         self.style = None
         self.namespaces = {}
+        self.ids, self.links = set(), []
+        self.text_digest, self.text_characters = hashlib.sha256(), 0
+        self.style_size = 0
+        self.tag_stack = []
 
     def _style(self, value):
         prefix = '_epub-assets/' + posixpath.dirname(self.chapter) + '/'
@@ -173,6 +309,11 @@ class _Chapter(ContentHandler):
         if self.depth > 256:
             _error('chapter_xml_depth', 'EPUB_PACKAGE_COMPLEXITY')
         tag = name.rsplit(':', 1)[-1].lower()
+        parent = self.tag_stack[-1] if self.tag_stack else None
+        self.tag_stack.append(tag)
+        if self.depth == 1 and tag != 'html' or tag in ('head', 'body') and (
+                parent != 'html' or self.depth != 2):
+            _error('invalid_chapter_structure')
         attributes = dict(attrs)
         for key, value in attributes.items():
             if key.startswith('xmlns:'): self.namespaces[key.split(':', 1)[1]] = value
@@ -193,8 +334,10 @@ class _Chapter(ContentHandler):
                     value = self._style(attributes[key]) if key == 'style' else attributes[key]
                     self.out.write(' ' + key + '="' + html.escape(value, quote=True) + '"')
             self.out.write('>\n')
-            if attributes.get('id'):
-                self.out.write('<a id="' + html.escape(_anchor(self.chapter, attributes['id']), quote=True) + '"></a>')
+            identity = attributes.get('id') or attributes.get('xml:id')
+            if identity:
+                self.ids.add(identity)
+                self.out.write('<a id="' + html.escape(_anchor(self.chapter, identity), quote=True) + '"></a>')
             if attributes.get('background'):
                 _error('body_background_requires_native_support', 'EPUB_CHAPTER_FEATURE_UNSUPPORTED')
             return
@@ -204,14 +347,21 @@ class _Chapter(ContentHandler):
                 if self.media_types.get(target) != 'text/css': _error('stylesheet_media_type_mismatch')
                 self.references.add(target)
                 self.head.write('<link rel="stylesheet" href="_epub-assets/' + quote(target, safe='/.-_~') + '">\n')
-            elif tag == 'style': self.style = []
+            elif tag == 'style': self.style = []; self.style_size = 0
             elif tag == 'base' or tag == 'meta' and attributes.get('http-equiv', '').lower() == 'refresh':
                 _error('active_head_content', 'EPUB_ACTIVE_CONTENT_UNSUPPORTED')
             return
         if not self.in_body: return
+        if tag == 'style':
+            _error('body_stylesheet_requires_native_support', 'EPUB_CHAPTER_FEATURE_UNSUPPORTED')
         if tag in ('svg', 'math', 'picture') or 'srcset' in attributes or 'xml:base' in attributes:
             _error('chapter_feature_requires_native_support', 'EPUB_CHAPTER_FEATURE_UNSUPPORTED')
         output_tag = 'div' if tag in self.BLOCKS else tag
+        identity_keys = ('id', 'xml:id', 'name') if tag == 'a' else ('id', 'xml:id')
+        identities = {attributes[k] for k in identity_keys if attributes.get(k)}
+        if identities & self.ids:
+            _error('duplicate_chapter_anchor')
+        self.ids.update(identities)
         self.out.write('<' + output_tag)
         for key, value in attributes.items():
             if key.startswith('xmlns') or key.startswith('epub:'): continue
@@ -227,6 +377,7 @@ class _Chapter(ContentHandler):
                     if target not in self.spine:
                         _error('hyperlink_to_nonspine_document', 'EPUB_ATTACHMENT_LINK_UNSUPPORTED')
                     value = '#' + _anchor(target, fragment)
+                    self.links.append((target, fragment))
                 else:
                     self.references.add(target)
                     if tag == 'img' and key == 'src':
@@ -255,10 +406,17 @@ class _Chapter(ContentHandler):
         elif self.in_body and tag not in self.VOID:
             self.out.write('</' + ('div' if tag in self.BLOCKS else tag) + '>')
         self.depth -= 1
+        self.tag_stack.pop()
 
     def characters(self, content):
-        if self.style is not None: self.style.append(content)
-        elif self.in_body: self.out.write(html.escape(content))
+        if self.style is not None:
+            self.style_size += len(content.encode('utf-8'))
+            if self.style_size > MAX_PACKAGE_XML:
+                _error('stylesheet_complexity', 'EPUB_PACKAGE_COMPLEXITY')
+            self.style.append(content)
+        elif self.in_body:
+            self.text_digest.update(content.encode('utf-8')); self.text_characters += len(content)
+            self.out.write(html.escape(content))
 
     def processingInstruction(self, target, data):
         _error('chapter_processing_instruction', 'EPUB_ACTIVE_CONTENT_UNSUPPORTED')
@@ -272,9 +430,14 @@ def _chapter(archive, chapter, out, head, entries, spine, references, cancel, me
     handler = _Chapter(out, head, chapter, entries, spine, references, cancel, archive, media_types)
     parser.setContentHandler(handler)
     with archive.open(chapter) as stream:
-        try: parser.parse(_XMLReader(stream, cancel))
+        reader = _XMLReader(stream, cancel)
+        try: parser.parse(reader)
         except xml.sax.SAXException: _error('invalid_chapter_xml')
     if handler.body_count != 1: _error('chapter_body_missing_or_duplicate')
+    return {'archivePath': chapter, 'sourceSha256': reader.digest.hexdigest(),
+            'bodyTextSha256': handler.text_digest.hexdigest(),
+            'bodyTextCharacters': handler.text_characters,
+            'ids': handler.ids, 'links': handler.links}
 
 
 @dataclass(frozen=True)
@@ -287,6 +450,9 @@ def prepare_epub(source, destination, *, cancel=None):
     """Make private HTML and path-free provenance without changing the EPUB."""
     source, destination = Path(source), Path(destination)
     _cancel(cancel)
+    source_stat = source.stat()
+    source_identity = (source_stat.st_size, source_stat.st_mtime_ns, source_stat.st_ctime_ns)
+    source_sha = _hash_file(source, cancel)
     destination.mkdir(parents=True, exist_ok=False)
     try:
         with zipfile.ZipFile(source) as archive:
@@ -338,16 +504,27 @@ def prepare_epub(source, destination, *, cancel=None):
                     _error('fixed_layout_epub', 'EPUB_FIXED_LAYOUT_UNSUPPORTED')
                 chapters.append(item[0])
             if not chapters: _error('empty_spine')
+            spine_count = len(chapters)
+            appendices = [name for name, kind in items.values() if kind in TEXT and name not in chapters]
+            chapters.extend(appendices)
             title = metadata.findtext(DC + 'title') or source.stem
             body_path, head_path = destination / 'body.part', destination / 'head.part'
             references = set()
             media_types = {name: kind for name, kind in items.values()}
+            chapter_records = []
             with body_path.open('w', encoding='utf-8') as body, head_path.open('w', encoding='utf-8') as head:
                 for chapter in chapters:
-                    _chapter(archive, chapter, body, head, entries, set(chapters), references, cancel, media_types)
+                    chapter_records.append(_chapter(archive, chapter, body, head, entries,
+                        set(chapters), references, cancel, media_types))
+            chapter_ids = {record['archivePath']: record['ids'] for record in chapter_records}
+            for record in chapter_records:
+                for target, fragment in record['links']:
+                    if fragment and fragment not in chapter_ids[target]:
+                        _error('missing_chapter_fragment')
             processed = set()
+            resource_records = []
             while references - processed:
-                name = next(iter(references - processed)); processed.add(name)
+                name = min(references - processed); processed.add(name)
                 _cancel(cancel)
                 kind = media_types.get(name, '')
                 if kind not in set(IMAGE_TYPES) | {'text/css', 'font/otf', 'font/ttf', 'font/woff', 'font/woff2',
@@ -356,16 +533,21 @@ def prepare_epub(source, destination, *, cancel=None):
                 target = destination / '_epub-assets' / name
                 target.parent.mkdir(parents=True, exist_ok=True)
                 with archive.open(name) as stream, target.open('xb') as output:
+                    original_hash = hashlib.sha256()
                     if kind == 'text/css':
                         chunks, content_size = [], 0
                         while block := stream.read(65536):
-                            _cancel(cancel); chunks.append(block); content_size += len(block)
+                            _cancel(cancel); chunks.append(block); original_hash.update(block); content_size += len(block)
                             if content_size > MAX_PACKAGE_XML: _error('stylesheet_complexity', 'EPUB_PACKAGE_COMPLEXITY')
-                        output.write(_css(b''.join(chunks).decode('utf-8-sig'), name, entries, references,
-                            archive=archive, media_types=media_types, cancel=cancel).encode('utf-8'))
+                        prepared_css = _css(b''.join(chunks).decode('utf-8-sig'), name, entries, references,
+                            archive=archive, media_types=media_types, cancel=cancel)
+                        output.write(_scope_css_ids(prepared_css, chapter_ids, cancel).encode('utf-8'))
                     else:
                         while block := stream.read(65536):
-                            _cancel(cancel); output.write(block)
+                            _cancel(cancel); original_hash.update(block); output.write(block)
+                resource_records.append({'archivePath': name, 'mediaType': kind,
+                    'sourceSha256': original_hash.hexdigest(),
+                    'preparedSha256': _hash_file(target, cancel), 'bytes': target.stat().st_size})
                 if kind in IMAGE_TYPES:
                     from .media_fidelity import inspect_media
                     try: image = inspect_media(target, cancel=cancel)
@@ -379,14 +561,25 @@ def prepare_epub(source, destination, *, cancel=None):
             result = destination / (source.stem + '.html')
             with result.open('w', encoding='utf-8') as output:
                 output.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + html.escape(title) + '</title>\n')
-                with head_path.open(encoding='utf-8') as stream: shutil.copyfileobj(stream, output, 65536)
+                _copy_scoped_head(head_path, output, chapter_ids, cancel)
                 output.write('</head><body>\n')
                 with body_path.open(encoding='utf-8') as stream: shutil.copyfileobj(stream, output, 65536)
                 output.write('</body></html>')
             body_path.unlink(); head_path.unlink()
-            return PreparedEPUB(result, {'kind': 'epub_spine_html', 'spineItems': len(chapters),
-                'resources': len(processed), 'warnings': ['EPUB_REFLOWED_HTML_IMPORT'],
-                'readingOrder': 'opf_spine', 'externalResources': False})
+            after = source.stat()
+            if source_identity != (after.st_size, after.st_mtime_ns, after.st_ctime_ns):
+                _error('epub_source_changed', 'SOURCE_CHANGED')
+            warnings = ['EPUB_REFLOWED_HTML_IMPORT']
+            if appendices: warnings.append('EPUB_NONSPINE_XHTML_APPENDED')
+            return PreparedEPUB(result, {'kind': 'epub_spine_html', 'spineItems': spine_count,
+                'chapterItems': len(chapters), 'nonSpineItems': len(appendices),
+                'sourceSha256': source_sha, 'preparedSha256': _hash_file(result, cancel),
+                'chapters': [{k: v for k, v in record.items() if k not in ('ids', 'links')}
+                             for record in chapter_records],
+                'resourceManifest': resource_records,
+                'resources': len(processed), 'warnings': warnings,
+                'readingOrder': 'opf_spine', 'externalResources': False,
+                'qualityCompared': False})
     except GuardError:
         shutil.rmtree(destination, ignore_errors=True); raise
     except (OSError, ValueError, KeyError, UnicodeError, zipfile.BadZipFile, RuntimeError, NotImplementedError):

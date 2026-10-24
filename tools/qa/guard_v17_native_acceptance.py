@@ -358,7 +358,8 @@ def check_case(case, target, paths, work, executable, seconds):
     raise AssertionError('Unknown acceptance case')
 
 
-def main(argv=None):
+def main(argv=None, *, case_factory=make_cases, case_checker=check_case,
+         scope='v17 real Guard native targeted routes'):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--executable', type=Path, required=True)
@@ -368,9 +369,9 @@ def main(argv=None):
     if not args.executable.is_file() or args.seconds <= 0 or args.corpus and not args.corpus.is_dir():
         parser.error('Existing native executable/corpus and positive deadline required')
     args.output.mkdir(parents=True, exist_ok=False)
-    cases, missing_sources = make_cases(args.output / 'seeds', args.corpus)
+    cases, missing_sources = case_factory(args.output / 'seeds', args.corpus)
     before = {str(case['source']): digest(case['source']) for case in cases}
-    evidence = {'schema': 1, 'status': 'FAIL', 'scope': 'v17 real Guard native targeted routes',
+    evidence = {'schema': 1, 'status': 'FAIL', 'scope': scope,
                 'missingSources': missing_sources, 'checks': [], 'unplannedPairs': [],
                 'platformUnsupported': [],
                 'fulltest510': 'NOT_RUN', 'visibleGui': 'NOT_RUN'}
@@ -450,7 +451,7 @@ def main(argv=None):
                     work.mkdir()
                     check = {'source': case['source'].name, 'target': target}
                     try:
-                        check.update(check_case(case, target, paths, work, args.executable.resolve(), args.seconds), status='PASS')
+                        check.update(case_checker(case, target, paths, work, args.executable.resolve(), args.seconds), status='PASS')
                     except Exception as error:
                         check.update(status='FAIL', error=type(error).__name__, reason=str(error))
                     evidence['checks'].append(check)

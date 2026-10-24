@@ -11,6 +11,7 @@ from app_backend.converter_guard.adapter import LibreOfficeAdapter
 from app_backend.converter_guard.errors import GuardError
 from app_backend.converter_guard.export_recipe import native_export_recipe
 from app_backend.converter_guard.native_identity import copy_chart_identity
+from app_backend.converter_guard.legacy_import import legacy_import_hint
 from app_backend.converter_guard.routes import Registry
 from app_backend.converter_guard.source_contract import (
     CALC, CHART, DRAW, IMPRESS, OFFICE, WRITER, inspect_source_contract, source_import_hint)
@@ -190,6 +191,58 @@ class SourceContractsV16(unittest.TestCase):
         self.assertEqual(native.route_reason('svm', proof), 'NATIVE_FORMAT_IMPORT_ONLY')
         self.assertEqual(native.route_reason('orp', proof), 'NATIVE_REPORT_EXPORT_UNAVAILABLE')
 
+    def test_report_filter_is_admitted_for_an_actual_report_model_only(self):
+        # ORP is a ReportDefinition exporter, not a generic Writer converter.
+        native = self.registry()
+        report = 'com.sun.star.report.ReportDefinition'
+        native.filters['Native Report'] = (report, frozenset({'orp'}), frozenset({'IMPORT', 'EXPORT'}))
+        native.exports['orp'] = {report}
+        native.import_services = frozenset((*native.import_services, report))
+        native.export_candidates['orp', report] = {'Native Report'}
+        native.primary_extensions['Native Report'] = 'orp'
+        proof = {'state': 'detected', 'basis': 'native_preflight_uno_document', 'modelLoaded': True,
+                 'registryFingerprint': native.fingerprint, 'documentServices': [report]}
+        self.assertEqual(native.observed_decision('orp', proof), 'registered')
+        self.assertEqual(native_export_recipe(native, 'orp', proof).filter_name, 'Native Report')
+        self.assertIsNone(native.route_reason('orp', proof))
+        self.assertEqual(native.observed_decision('orp', {**proof, 'documentServices': [WRITER]}), 'unavailable')
+
+    def test_large_utf8_dif_keeps_explicit_charset_without_one_mib_veto(self):
+        native = SimpleNamespace(filters={'DIF': (CALC, {'dif'}, {'IMPORT'})})
+        path = self.root/'large.dif'
+        with path.open('wb') as stream:
+            stream.write(b'TABLE\n0,1\n"Data"\nVECTORS\n0,1\n""\nTUPLES\n0,40000\n""\nDATA\n0,0\n""\n')
+            for _ in range(40000):
+                stream.write('-1,0\nBOT\n1,0\n"Позиция 123 — Привет"\n'.encode())
+            stream.write(b'-1,0\nEOD\n')
+        self.assertGreater(path.stat().st_size, 1024*1024)
+        self.assertEqual(legacy_import_hint(path, native, cancel=self.cancel)['options'], '76')
+        with path.open('ab') as stream:
+            stream.write(b'\xff')
+        self.assertIsNone(legacy_import_hint(path, native, cancel=self.cancel))
+        self.cancel.set()
+        with self.assertRaises(GuardError) as error:
+            legacy_import_hint(path, native, cancel=self.cancel)
+        self.assertEqual(error.exception.code, 'CANCELLED')
+
+    def test_wordml_xhtml_uses_the_same_resource_preserving_writer_filter_as_html(self):
+        native = self.registry()
+        native.filters['XHTML Writer File'] = (WRITER, frozenset({'xhtml'}), frozenset({'EXPORT'}))
+        for target in ('html', 'htm', 'xhtml'):
+            native.exports[target] = {WRITER}
+            native.export_candidates[target, WRITER] = {'XHTML Writer File'}
+        proof = {'state': 'detected', 'basis': 'native_preflight_uno_document', 'modelLoaded': True,
+                 'registryFingerprint': native.fingerprint, 'documentServices': [WRITER],
+                 'sourceContract': {'contentClass': 'word2003_xml'}}
+        for target in ('html', 'htm', 'xhtml'):
+            recipe = native_export_recipe(native, target, proof)
+            self.assertEqual(recipe.filter_name, 'XHTML Writer File')
+            self.assertIn('NATIVE_WRITER_XHTML_VIEW', recipe.warnings)
+        # A missing installed exporter must never be invented by this repair.
+        del native.filters['XHTML Writer File']
+        fallback = native_export_recipe(native, 'xhtml', proof)
+        self.assertTrue(fallback is None or fallback.filter_name != 'XHTML Writer File')
+
     def test_generic_xml_uses_explicit_native_dialect_and_never_forces_a_missing_filter(self):
         native = self.registry()
         proof = {'state': 'detected', 'basis': 'native_preflight_uno_document', 'modelLoaded': True,
@@ -200,6 +253,29 @@ class SourceContractsV16(unittest.TestCase):
         del native.filters['OpenDocument Spreadsheet Flat XML']
         fallback = native_export_recipe(native, 'xml', proof)
         self.assertTrue(fallback is None or fallback.filter_name != 'OpenDocument Spreadsheet Flat XML')
+
+    def test_live_html_text_interface_uses_installed_ooxml_macro_and_template_filters(self):
+        native = self.registry()
+        web = 'com.sun.star.text.WebDocument'
+        native.import_services = frozenset((*native.import_services, web))
+        for target, names in (
+                ('docm', ('MS Word 2007 XML VBA', 'Office Open XML Text VBA')),
+                ('dotx', ('MS Word 2007 XML Template', 'Office Open XML Text Template'))):
+            native.exports[target] = {WRITER}
+            native.export_candidates[target, WRITER] = set(names)
+            for name in names:
+                native.filters[name] = (WRITER, frozenset({target}), frozenset({'EXPORT'}))
+                native.primary_extensions[name] = target
+        proof = {'state': 'detected', 'basis': 'native_preflight_uno_document', 'modelLoaded': True,
+                 'registryFingerprint': native.fingerprint, 'documentServices': [web],
+                 'nativeTextDocument': True}
+        for target, expected in [('docm', 'MS Word 2007 XML VBA'),
+                                 ('dotx', 'MS Word 2007 XML Template'),
+                                 ('xml', 'OpenDocument Text Flat XML')]:
+            self.assertEqual(native_export_recipe(native, target, proof).filter_name, expected)
+            self.assertIsNone(native_export_recipe(native, target, {**proof, 'nativeTextDocument': False}))
+        native.uncertain_extensions.add('docm')
+        self.assertIsNone(native_export_recipe(native, 'docm', proof))
 
     def test_odc_identity_requires_native_chart_proof_and_full_zip_crc(self):
         source = self.odf('chart', f'<o:document-content xmlns:o="{OFFICE}"><o:body><o:chart/></o:body></o:document-content>')

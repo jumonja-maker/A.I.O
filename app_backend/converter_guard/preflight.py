@@ -39,7 +39,7 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
     if _source_inspection is None:
         contract = inspect_source_contract(source, cancel=cancel)
         source_hint = source_import_hint(contract, native)
-        hint = source_hint or csv_import_hint(source, native) or legacy_import_hint(source, native)
+        hint = source_hint or csv_import_hint(source, native) or legacy_import_hint(source, native, cancel=cancel)
     else:
         # The adapter already inspected these exact source bytes in this call.
         # This is not a cross-file proof cache: native import/model matching

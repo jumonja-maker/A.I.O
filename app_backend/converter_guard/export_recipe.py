@@ -12,6 +12,30 @@ WRITER = 'com.sun.star.text.TextDocument'
 CALC_TEXT = 'Text - txt - csv (StarCalc)'
 TEXT_OPTIONS = {'csv': '44,34,76,1,', 'tsv': '9,34,76,1,', 'tab': '9,34,76,1,'}
 WARNING_TEXT = {
+    'DBF_UNDECLARED_UTF8_IMPORT': (
+        'В DBF не указана кодировка. Все имена и текстовые поля проверены как UTF-8; '
+        'A.I.O использует UTF-8 при импорте. Кодировка выбрана по содержимому, '
+        'её исходное объявление отсутствует.'),
+    'WORDML_PAGE_REGIONS_COMPANION': (
+        'Колонтитулы Word XML сохранены в отдельном HTML с видимой ссылкой из основного результата. '
+        'Текст, ссылки и встроенные ресурсы сохранены; повторение на страницах и исходная геометрия '
+        'колонтитулов заменены непрерывными разделами.'),
+    'NATIVE_DIF_UTF8_IMPORT': (
+        'DIF сохранён в UTF-8 с отдельным описанием кодировки. При открытии в другой программе '
+        'выберите UTF-8: кодировка ANSI по умолчанию может исказить кириллицу и другие символы. '
+        'A.I.O передаёт LibreOffice явную настройку UTF-8 при импорте DIF.'),
+    'NATIVE_VECTOR_PAGE_VIEW': (
+        'Все страницы сохранены штатным SVG-экспортёром LibreOffice и включены в HTML/XHTML. '
+        'Векторные рисунки и встроенные изображения сохранены; анимация, интерактивность '
+        'и редактируемая структура презентации в это представление не переносятся.'),
+    'NATIVE_WRITER_XHTML_VIEW': (
+        'HTML сохранён штатным XHTML-фильтром Writer с включёнными изображениями. '
+        'Для исходного Word 2003 XML этот маршрут сохраняет изображения, '
+        'которые старый HTML-фильтр может пропустить. Вёрстка требует отдельной проверки.'),
+    'QT_GIF_FORMAT_LIMITS': (
+        'GIF ограничен палитрой до 256 цветов и прозрачностью без полутонов. '
+        'Длительности кадров округляются до 10 мс; при необходимости палитра '
+        'подбирается с сохранением всех кадров. Эти ограничения относятся к формату GIF.'),
     'NATIVE_DBF_MIXED_COLUMN_TEXT': (
         'В DBF столбцы со смешанными числами и текстом сохранены как Memo, чтобы не потерять текст. '
         'Числа в этих столбцах представлены отображаемыми строками; исходные значения, типы '
@@ -23,8 +47,8 @@ WARNING_TEXT = {
     'EPUB_REFLOWED_HTML_IMPORT': (
         'EPUB импортирован через встроенный HTML-путь LibreOffice в порядке глав OPF. '
         'Изображения включены в документ; вёрстка при смене формата может измениться.'),
-    'QT_PDF_RASTER_144_DPI': (
-        'Все страницы PDF преобразованы в TIFF штатным Qt с разрешением 144 dpi. '
+    'QT_PDF_RASTER_300_DPI': (
+        'Все страницы PDF преобразованы в TIFF штатным Qt с разрешением 300 dpi. '
         'Векторный текст и рисунки стали растровыми изображениями страниц.'),
     'NATIVE_DRAW_SVM_PAGES': (
         'SVM сохранён нативным графическим экспортёром LibreOffice: '
@@ -93,7 +117,7 @@ def native_export_recipe(native, target, proof):
     services = native.export_services(proof)
     if not isinstance(services, list) or not services or any(not isinstance(s, str) for s in services):
         return None
-    if (target == 'svm' and services == [DRAW]
+    if (target == 'svm' and set(services).intersection((DRAW, 'com.sun.star.presentation.PresentationDocument'))
             and proof.get('basis') == 'native_preflight_uno_document'
             and 'svm' in proof.get('nativeGraphicExports', ())):
         # This is a capability observed on the running GraphicExportFilter,
@@ -107,6 +131,14 @@ def native_export_recipe(native, target, proof):
                 and native.primary_extensions.get(observed) == target
                 and target not in native.uncertain_extensions):
             selected = observed
+    if (target in ('html', 'htm', 'xhtml') and WRITER in services
+            and (proof.get('selectedImportFilter') == 'MS Word 2003 XML'
+                 or proof.get('sourceContract', {}).get('contentClass') == 'word2003_xml')
+            and 'xhtml' not in native.uncertain_extensions):
+        alternative = native.filters.get('XHTML Writer File')
+        if (alternative and alternative[0] == WRITER and 'EXPORT' in alternative[2]
+                and 'xhtml' in alternative[1]):
+            return ExportRecipe('XHTML Writer File', warnings=('NATIVE_WRITER_XHTML_VIEW',))
     # A generic XML target has no selected legacy application dialect. Keep
     # the model in its own native flat-ODF representation instead of choosing
     # Excel/Word 2003 XSLT filters merely because their first suffix is "xml".

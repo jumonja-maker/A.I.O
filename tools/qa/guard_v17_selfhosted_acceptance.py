@@ -15,7 +15,6 @@ import os
 from pathlib import Path
 import platform
 import shutil
-import signal
 import subprocess
 import sys
 import time
@@ -33,25 +32,17 @@ WINDOWS_INAPPLICABLE_REASONS = frozenset({
     'Owned POSIX worker lifecycle; not Windows Job Object QA',
     'POSIX link-unsupported fallback',
 })
-SOURCE_ONLY_NATIVE_REASONS = frozenset({
-    'Opt in with AIO_QT_SAVE_QA=1 and existing Qt bindings',
-    'PySide6 required for native raster frame tests',
-    'Application Qt dependency required',
-    'LibreOffice not installed',
-})
 
 
 def write_json(path, value):
     Path(path).write_text(json.dumps(value, ensure_ascii=False, indent=2), encoding='utf-8')
 
 
-def suite_summary(result, system=None, *, source_only=False):
+def suite_summary(result, system=None):
     system = system or platform.system()
     skipped = [{'test': test.id(), 'reason': reason,
                 'status': ('not_applicable' if system == 'Windows' and
-                           reason in WINDOWS_INAPPLICABLE_REASONS else
-                           'platform_not_applicable' if source_only and system == 'Linux' and
-                           reason in SOURCE_ONLY_NATIVE_REASONS else 'INCOMPLETE')}
+                           reason in WINDOWS_INAPPLICABLE_REASONS else 'INCOMPLETE')}
                for test, reason in result.skipped]
     failed = [{'test': test.id(), 'traceback': trace}
               for test, trace in result.failures + result.errors]
@@ -66,10 +57,10 @@ def suite_summary(result, system=None, *, source_only=False):
             'unexpectedSuccesses': [test.id() for test in result.unexpectedSuccesses]}
 
 
-def unit_child(path, *, source_only=False):
+def unit_child(path):
     suite = unittest.defaultTestLoader.discover(str(ROOT / 'tests'))
     result = unittest.TextTestRunner(verbosity=1).run(suite)
-    summary = suite_summary(result, source_only=source_only or os.environ.get('AIO_QA_SOURCE_ONLY') == '1')
+    summary = suite_summary(result)
     write_json(path, summary)
     print('AIO_UNIT_EVIDENCE=' + json.dumps(summary, ensure_ascii=True), flush=True)
     return 1 if summary['status'] == 'FAIL' else 2 if summary['status'] == 'INCOMPLETE' else 0
@@ -90,14 +81,6 @@ def run_command(name, command, output, *, timeout=1800):
             while tree.process.poll() is None:
                 if time.monotonic() >= until:
                     timed_out = True
-                    if os.name != 'nt':
-                        # Python's SIGINT unwinds native acceptance finally
-                        # blocks, closing LO children that own separate sessions.
-                        try:
-                            os.kill(tree.process.pid, signal.SIGINT)
-                            tree.process.wait(timeout=10)
-                        except (ProcessLookupError, subprocess.TimeoutExpired):
-                            pass
                     break
                 if time.monotonic() - heartbeat >= 30:
                     print('AIO_QA_STAGE_RUNNING=' + json.dumps({'name': name,
@@ -167,8 +150,7 @@ def bundled_corpus(output):
         verified = []
         for row in rows:
             name = row['name']
-            if (not isinstance(name, str) or name in ('', '.', '..') or
-                    any(char in name for char in '/\\\0:') or any(ord(char) < 32 for char in name)):
+            if not isinstance(name, str) or name in ('', '.', '..') or '/' in name or '\\' in name or '\0' in name:
                 raise ValueError('Unsafe bundled corpus filename')
             raw = archive.read(name)
             if len(raw) != row['bytes'] or hashlib.sha256(raw).hexdigest() != row['sha256']:
@@ -219,14 +201,6 @@ def attach_evidence(stage, details):
     stage['status'] = status
 
 
-def dependency_summary(deps, *, source_only=False, system=None):
-    system = system or platform.system()
-    inapplicable = ['PySide6'] if source_only and system == 'Linux' and not deps.get('PySide6') else []
-    missing = [name for name, present in deps.items() if not present and name not in inapplicable]
-    return {'status': 'INCOMPLETE' if missing else 'PASS', 'missing': missing,
-            'platformNotApplicable': inapplicable}
-
-
 def emit_summary(evidence, output):
     write_json(output / 'selfhosted-evidence.json', evidence)
     compact = {key: value for key, value in evidence.items() if key != 'corpusFiles'}
@@ -244,17 +218,12 @@ def main(argv=None):
     parser.add_argument('--executable', type=Path)
     parser.add_argument('--corpus', type=Path)
     parser.add_argument('--require-corpus', action='store_true')
-    parser.add_argument('--source-only', action='store_true',
-                        help='Supplemental Linux source/POSIX/DOM checks; native acceptance remains NOT_RUN')
     parser.add_argument('--seconds', type=float, default=60)
     parser.add_argument('--unit-report', type=Path, help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
     if args.unit_report:
-        return unit_child(args.unit_report, source_only=args.source_only)
-    if args.source_only and platform.system() != 'Linux':
-        parser.error('--source-only is supplemental Linux coverage; Windows requires native acceptance')
-    if (args.output is None or args.seconds <= 0 or
-            (not args.source_only and (args.executable is None or not args.executable.is_file()))):
+        return unit_child(args.unit_report)
+    if args.output is None or args.executable is None or not args.executable.is_file() or args.seconds <= 0:
         parser.error('An existing native executable, new --output and positive --seconds are required')
     output = args.output.resolve()
     if output == ROOT or output.is_relative_to(ROOT):
@@ -263,20 +232,14 @@ def main(argv=None):
         parser.error('Corpus must exist and output must be outside it')
     output.mkdir(parents=True, exist_ok=False)
     os.environ.update(PYTHONDONTWRITEBYTECODE='1', PYTHONUTF8='1', PYTHONIOENCODING='utf-8',
-                      AIO_QT_SAVE_QA='1', AIO_QA_SOURCE_ONLY='1' if args.source_only else '0',
-                      AIO_LO_QA_MUST_HAVE_ENGINE='0' if args.source_only else '1',
-                      AIO_LIBREOFFICE=(str(output / 'native-disabled-in-source-only') if args.source_only else
-                                       str(args.executable.resolve())),
+                      AIO_QT_SAVE_QA='1', AIO_LO_QA_MUST_HAVE_ENGINE='1',
+                      AIO_LIBREOFFICE=str(args.executable.resolve()),
                       QT_QPA_PLATFORM='offscreen', OMP_NUM_THREADS='2', OPENBLAS_NUM_THREADS='2')
     evidence = {'schema': 1, 'sourceSha': os.environ.get('AIO_QA_SOURCE_SHA', 'unspecified'),
                 'workflowSha': os.environ.get('GITHUB_SHA', 'local'), 'platform': platform.system(),
                 'python': platform.python_version(), 'stages': {},
                 'fulltest510': 'NOT_RUN', 'visibleGui': 'NOT_RUN',
-                'scope': 'source_only' if args.source_only else
-                         'offline full source regressions and bounded native conversion; no installation or packaging'}
-    if args.source_only:
-        evidence['native'] = {'status': 'NOT_RUN', 'reason': 'explicit_source_only_mode',
-                              'requiredCoverage': 'Full native acceptance on NIKITA Windows job'}
+                'scope': 'offline full source regressions and bounded native conversion; no installation or packaging'}
     stages = evidence['stages']
     try:
         deps = {name: importlib.util.find_spec(name) is not None
@@ -284,7 +247,8 @@ def main(argv=None):
         deps['node'] = bool(shutil.which('node'))
         deps['DOM'] = bool(os.environ.get('AIO_DOM_MODULE') and Path(os.environ['AIO_DOM_MODULE']).is_file())
         evidence['dependencies'] = deps
-        stages['dependencies'] = dependency_summary(deps, source_only=args.source_only)
+        stages['dependencies'] = {'status': 'PASS' if all(deps.values()) else 'INCOMPLETE',
+                                  'missing': [name for name, present in deps.items() if not present]}
         corpus = args.corpus.resolve() if args.corpus else next((p for p in corpus_candidates() if p.is_dir()), None)
         bundled = False
         if corpus is None:
@@ -306,7 +270,7 @@ def main(argv=None):
             attach_evidence(stages['unittest'], json.loads(unit_path.read_text(encoding='utf-8')))
         else:
             stages['unittest'].update(status='FAIL', reason='No completed unittest evidence')
-        if not args.source_only and deps['pypdf']:
+        if deps['pypdf']:
             native_path = output / 'native-v16'
             command = [sys.executable, ROOT / 'tools/qa/guard_v16_bugbag_acceptance.py',
                        '--output', native_path, '--executable', args.executable.resolve(), '--seconds', str(args.seconds)]
@@ -342,7 +306,7 @@ def main(argv=None):
                 attach_evidence(stages['nativeV17'], native_v17)
             else:
                 stages['nativeV17'].update(status='FAIL', reason='No completed v17 native evidence')
-        elif not args.source_only:
+        else:
             stages['nativeV16'] = {'status': 'INCOMPLETE', 'reason': 'Existing pypdf is required for independent PDF checks'}
         if before is not None:
             after = corpus_inventory(corpus)
