@@ -235,10 +235,14 @@ class RegistryTests(unittest.TestCase):
         self.assertEqual(observed,[])
 
     def test_observation_resource_failure_falls_back_to_native_export(self):
+        # Source ownership is real even though this test mocks the native
+        # exporter. Mandatory postchecks may inspect the original bytes.
+        source = Path(self.temp.name) / 'x.bmp'
+        source.write_bytes(b'native input boundary fixture')
         adapter=LibreOfficeAdapter(self.exe)
         with patch('app_backend.converter_guard.adapter.NativeObservation.__enter__',side_effect=OSError('no pipe')):
             with patch('app_backend.converter_guard.adapter.convert_path',return_value=[]) as engine:
-                adapter.convert(Path('x.bmp'),'pdf',Path(self.temp.name)/'work',
+                adapter.convert(source,'pdf',Path(self.temp.name)/'work',
                     cancel=threading.Event(),timeout=None,on_started=lambda:None,
                     on_document_service=lambda value:None)
         self.assertNotIn('stdout',engine.call_args.kwargs)
@@ -381,3 +385,4 @@ class RuntimeRoutingTests(unittest.TestCase):
 
 
 if __name__=='__main__':unittest.main()
+

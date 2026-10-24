@@ -12,6 +12,24 @@ WRITER = 'com.sun.star.text.TextDocument'
 CALC_TEXT = 'Text - txt - csv (StarCalc)'
 TEXT_OPTIONS = {'csv': '44,34,76,1,', 'tsv': '9,34,76,1,', 'tab': '9,34,76,1,'}
 WARNING_TEXT = {
+    'NATIVE_DBF_MIXED_COLUMN_TEXT': (
+        'В DBF столбцы со смешанными числами и текстом сохранены как Memo, чтобы не потерять текст. '
+        'Числа в этих столбцах представлены отображаемыми строками; исходные значения, типы '
+        'и заголовки сохранены в сопровождающем файле .aio-columns.jsonl. '
+        'Остальные числовые столбцы сохраняют свой тип.'),
+    'ODF_IMPLICIT_COLUMNS_EXPLICIT': (
+        'Перед импортом во временной копии ODF явно указаны столбцы прямоугольной таблицы. '
+        'Тексты ячеек и исходный файл сохранены без изменений.'),
+    'EPUB_REFLOWED_HTML_IMPORT': (
+        'EPUB импортирован через встроенный HTML-путь LibreOffice в порядке глав OPF. '
+        'Изображения включены в документ; вёрстка при смене формата может измениться.'),
+    'QT_PDF_RASTER_144_DPI': (
+        'Все страницы PDF преобразованы в TIFF штатным Qt с разрешением 144 dpi. '
+        'Векторный текст и рисунки стали растровыми изображениями страниц.'),
+    'NATIVE_DRAW_SVM_PAGES': (
+        'SVM сохранён нативным графическим экспортёром LibreOffice: '
+        'каждая страница рисунка находится в отдельном файле. '
+        'Это метафайл для просмотра, редактируемая структура Draw не сохраняется.'),
     'NATIVE_OUTPUT_NOT_CHECKED': (
         'Файл создан, но одна из дополнительных проверок результата не завершена. '
         'Отчёт содержит её причину; полная точность содержимого не подтверждена.'),
@@ -32,7 +50,9 @@ WARNING_TEXT = {
         'оформление, изображения и табличная структура не сохраняются.'),
     'NATIVE_TABLE_FORMAT_LIMITS': (
         'DBF/DIF имеют ограничения структуры, типов и оформления. '
-        'Наличие нативного маршрута не подтверждает сохранность всех данных.'),
+        'Наличие нативного маршрута не подтверждает сохранность всех данных. '
+        'В пакетном UNO-режиме каждый лист сохраняется отдельным файлом; '
+        'формулы становятся вычисленными значениями, оформление ограничено форматом.'),
     'NATIVE_CLOSE_INTERRUPTED': (
         'Нативный экспорт завершён, но закрытие модели зависло. Собственный '
         'процесс LibreOffice завершён; выходные файлы проверены на наличие.'),
@@ -70,6 +90,12 @@ def native_export_recipe(native, target, proof):
     services = native.export_services(proof)
     if not isinstance(services, list) or not services or any(not isinstance(s, str) for s in services):
         return None
+    if (target == 'svm' and services == [DRAW]
+            and proof.get('basis') == 'native_preflight_uno_document'
+            and 'svm' in proof.get('nativeGraphicExports', ())):
+        # This is a capability observed on the running GraphicExportFilter,
+        # not the import-only SVM document filter or a CLI format guess.
+        return ExportRecipe('svm_Export', warnings=('NATIVE_DRAW_SVM_PAGES',))
     selected = native.export_filter(target, services)
     if proof.get('basis') == 'native_preflight_uno_document':
         observed = proof.get('selectedImportFilter')

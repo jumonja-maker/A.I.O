@@ -1,0 +1,18 @@
+{
+  "scope": "isolated Linux source, actual Qt and DOM regressions",
+  "run": 546,
+  "failures": 0,
+  "errors": 0,
+  "skipped": [],
+  "notRunMissingUnchangedBrandAssets": [
+    "test_brand_restoration.BrandRestorationTests.test_both_original_pngs_match_owner_digests_and_have_alpha",
+    "test_brand_restoration.BrandRestorationTests.test_spec_bundles_icon_and_approved_sources_and_sets_exe_resource"
+  ],
+  "success": true,
+  "postReviewQuotaRegressions": {
+    "run": 3,
+    "passed": 3,
+    "failed": 0,
+    "scope": "explicit staging spool quota, preserved deadline, no-quota all-sheet path"
+  }
+}

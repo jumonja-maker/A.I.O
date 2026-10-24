@@ -26,6 +26,173 @@ PREFIX = 'AIO_GUARD_RPC '
 def send(value):
     print(PREFIX + json.dumps(value, ensure_ascii=True), flush=True)
 
+def dbf_mixed_columns(sheet, area):
+    """Find columns native dBase's first-record type inference would truncate."""
+    first = tuple(sheet.getCellRangeByPosition(0, 0, area.EndColumn, 0).getDataArray()[0])
+    header = bool(first) and all(isinstance(value, str) and value != '' for value in first)
+    kinds = [set() for _ in first]
+    for row in range(1 if header else 0, area.EndRow + 1, 128):
+        last_row = min(area.EndRow, row + 127)
+        for column in range(0, area.EndColumn + 1, 128):
+            last_column = min(area.EndColumn, column + 127)
+            values = sheet.getCellRangeByPosition(column, row, last_column, last_row).getDataArray()
+            for record in values:
+                for offset, value in enumerate(record):
+                    if value is None:
+                        kinds[column + offset].add('text')
+                    elif isinstance(value, str):
+                        if value:
+                            kinds[column + offset].add('text')
+                    else:
+                        kinds[column + offset].add('number')
+    mixed = []
+    for column, observed in enumerate(kinds):
+        declared = str(first[column]).split(',')[1:2] if header else []
+        if len(observed) > 1 or ('text' in observed and declared and declared[0].strip().upper() in ('N', 'D', 'L')):
+            mixed.append(column)
+    return {'header': header, 'originalHeaders': list(first) if header else None, 'mixed': mixed}
+
+def export_table_sheets(model, desktop, prop, target, export_options):
+    """One native legacy file per sheet, without approving a lossy dialog.
+
+    DIF's native exporter always starts at sheet zero; it warns and drops all
+    later sheets. Copy each sheet to a private Calc model instead. ImportSheet
+    preserves number formats; restoring the already evaluated data array keeps
+    formulas from changing when references to other sheets are absent. No
+    calculation, update-links or macro permission is enabled on the copy.
+    """
+    sheets = model.getSheets()
+    count = sheets.getCount()
+    is_dbf = any(p.Name == 'FilterName' and p.Value == 'dBase' for p in export_options)
+    profiles = []
+    for index in range(count):
+        sheet = sheets.getByIndex(index)
+        cursor = sheet.createCursor()
+        cursor.gotoEndOfUsedArea(False)
+        area = cursor.getRangeAddress()
+        profiles.append((area, dbf_mixed_columns(sheet, area) if is_dbf else {'mixed': []}))
+    if count <= 1 and not profiles[0][1]['mixed']:
+        model.storeToURL(target.as_uri(), tuple(export_options))
+        return [target]
+    outputs = []
+    for index in range(count):
+        source_sheet = sheets.getByIndex(index)
+        temporary = desktop.loadComponentFromURL('private:factory/scalc', '_blank', 0,
+            (prop('Hidden', True), prop('Silent', True), prop('MacroExecutionMode', 0),
+             prop('UpdateDocMode', 0), prop('InteractionHandler',
+                 next(p.Value for p in export_options if p.Name == 'InteractionHandler'))))
+        if temporary is None:
+            raise RuntimeError('LEGACY_SHEET_COPY_UNAVAILABLE')
+        try:
+            temporary.enableAutomaticCalculation(False)
+            copied_sheets = temporary.getSheets()
+            # Native Calc forbids duplicate sheet names. Rename its factory
+            # defaults before importing a source commonly called "Sheet1".
+            for default_index in range(copied_sheets.getCount()):
+                default = copied_sheets.getByIndex(default_index)
+                if hasattr(default, 'setName'):
+                    default.setName('aio_empty_' + str(time.monotonic_ns()) + '_' + str(default_index))
+            imported = copied_sheets.importSheet(model, source_sheet.getName(), 0)
+            copied = copied_sheets.getByIndex(imported)
+            keep_name = copied.getName()
+            for name in tuple(copied_sheets.getElementNames()):
+                if name != keep_name:
+                    copied_sheets.removeByName(name)
+            area, profile = profiles[index]
+            path = target if index == 0 else target.with_name(
+                target.stem + '__sheet_%03d' % (index + 1) + target.suffix)
+            mapping = None
+            if profile['mixed']:
+                mapping = path.with_name(path.name + '.aio-columns.jsonl').open('x', encoding='utf-8')
+                mapping.write(json.dumps({'schemaVersion': 1, 'format': 'dBase',
+                    'sheetName': source_sheet.getName(), 'sourceRows': area.EndRow + 1,
+                    'sourceColumns': area.EndColumn + 1, 'sourceHasHeader': profile['header'],
+                    'originalHeaders': profile['originalHeaders'], 'memoColumns': profile['mixed'],
+                    'numericColumnsRemainTyped': True, 'warning': 'NATIVE_DBF_MIXED_COLUMN_TEXT'},
+                    ensure_ascii=True, allow_nan=False) + '\n')
+            # Bounded bridge messages, including on very wide worksheets.
+            for row in range(0, area.EndRow + 1, 128):
+                last_row = min(area.EndRow, row + 127)
+                for column in range(0, area.EndColumn + 1, 128):
+                    last_column = min(area.EndColumn, column + 127)
+                    values = source_sheet.getCellRangeByPosition(
+                        column, row, last_column, last_row).getDataArray()
+                    # XCellRangeData returns formula errors as void (None).
+                    # Preserve their displayed error string rather than
+                    # turning those cells into blanks in the value snapshot.
+                    values = tuple(tuple(value if value is not None else
+                        source_sheet.getCellByPosition(column + offset, row + row_offset).getString()
+                        for offset, value in enumerate(record))
+                        for row_offset, record in enumerate(values))
+                    if profile['mixed']:
+                        changed = [list(record) for record in values]
+                        for row_offset, record in enumerate(values):
+                            source_row = row + row_offset
+                            if profile['header'] and source_row == 0:
+                                continue
+                            for source_column in profile['mixed']:
+                                if not column <= source_column <= last_column:
+                                    continue
+                                offset = source_column - column
+                                original = record[offset]
+                                text = source_sheet.getCellByPosition(source_column, source_row).getString()
+                                changed[row_offset][offset] = text
+                                mapping.write(json.dumps({'row': source_row, 'column': source_column,
+                                    'sourceType': 'string' if isinstance(original, str) else 'number',
+                                    'sourceValue': original, 'exportedText': text},
+                                    ensure_ascii=True, allow_nan=False) + '\n')
+                        values = tuple(tuple(record) for record in changed)
+                    copied.getCellRangeByPosition(
+                        column, row, last_column, last_row).setDataArray(values)
+            if profile['mixed']:
+                if not profile['header']:
+                    copied.getRows().insertByIndex(0, 1)
+                    for column in range(area.EndColumn + 1):
+                        copied.getCellByPosition(column, 0).setString('FIELD' + str(column + 1))
+                for column in profile['mixed']:
+                    header_name = (str(profile['originalHeaders'][column]).split(',')[0]
+                                   if profile['header'] else 'FIELD' + str(column + 1))
+                    copied.getCellByPosition(column, 0).setString(header_name + ',M')
+                mapping.close()
+                mapping = None
+            temporary.storeToURL(path.as_uri(), tuple(export_options))
+            outputs.append(path)
+        finally:
+            if 'mapping' in locals() and mapping is not None:
+                mapping.close()
+            if hasattr(temporary, 'close'):
+                temporary.close(True)
+            else:
+                temporary.dispose()
+    return outputs
+
+
+def export_draw_svm(model, remote, prop, target):
+    """Use LO's graphic encoder per page, never its import-only doc filter."""
+    pages = model.getDrawPages()
+    if pages.getCount() < 1:
+        raise RuntimeError('NATIVE_DRAW_PAGES_MISSING')
+    exporter = remote.ServiceManager.createInstanceWithContext(
+        'com.sun.star.drawing.GraphicExportFilter', remote)
+    if exporter is None or not exporter.supportsMimeType('image/x-svm'):
+        raise RuntimeError('NATIVE_GRAPHIC_SVM_UNAVAILABLE')
+    outputs = []
+    for index in range(pages.getCount()):
+        path = target if index == 0 else target.with_name(
+            target.stem + '__page_%03d' % (index + 1) + target.suffix)
+        exporter.setSourceDocument(pages.getByIndex(index))
+        if not exporter.filter((prop('URL', path.as_uri()), prop('MediaType', 'image/x-svm'),
+                                prop('FilterName', 'svm'), prop('Overwrite', False))):
+            raise RuntimeError('NATIVE_GRAPHIC_EXPORT_FAILED')
+        if not path.is_file() or path.is_symlink() or path.stat().st_size == 0:
+            raise RuntimeError('NATIVE_GRAPHIC_OUTPUT_MISSING')
+        with path.open('rb') as stream:
+            if stream.read(6) != b'VCLMTF':
+                raise RuntimeError('NATIVE_GRAPHIC_SVM_INVALID')
+        outputs.append(path)
+    return outputs
+
+
 def main(boot_name):
     boot = json.loads(Path(boot_name).read_text(encoding='utf-8'))
     until = time.monotonic() + 20
@@ -131,6 +298,13 @@ def main(boot_name):
                             result['drawPages'] = model.getDrawPages().getCount()
                         except Exception:
                             pass
+                        try:
+                            graphic = remote.ServiceManager.createInstanceWithContext(
+                                'com.sun.star.drawing.GraphicExportFilter', remote)
+                            if graphic is not None and graphic.supportsMimeType('image/x-svm'):
+                                result['nativeGraphicExports'] = ['svm']
+                        except Exception:
+                            pass  # A document route does not require a graphic encoder.
                 elif not set(services).intersection(req['expectedServices']):
                     result = {'id':request_id,'ok':False,'code':'NATIVE_MODEL_CHANGED','stage':'import'}
                 elif req.get('expectedImportFilter') and actual_filter != req['expectedImportFilter']:
@@ -149,17 +323,28 @@ def main(boot_name):
                     if req.get('exportOptions') is not None:
                         export_options.append(prop('FilterOptions', req['exportOptions']))
                     export_tick = time.monotonic()
+                    exported_paths = [target]
                     try:
-                        model.storeToURL(target.as_uri(), tuple(export_options))
+                        if (req.get('graphicExport') == 'svm' and req['format'] == 'svm'
+                                and 'com.sun.star.drawing.DrawingDocument' in services):
+                            exported_paths = export_draw_svm(model, remote, prop, target)
+                        elif (req['exportFilter'] in ('DIF', 'dBase')
+                                and 'com.sun.star.sheet.SpreadsheetDocument' in services):
+                            exported_paths = export_table_sheets(model, desktop, prop, target, export_options)
+                        else:
+                            model.storeToURL(target.as_uri(), tuple(export_options))
                     finally:
                         timings['exportMs'] = round((time.monotonic()-export_tick)*1000)
-                    present = target.is_file() and not target.is_symlink() and target.stat().st_size > 0
+                    present = all(p.is_file() and not p.is_symlink() and p.stat().st_size > 0
+                                  for p in exported_paths)
                     # Result paths stay on disk. Thousands of HTML sidecars
                     # must not overflow the small control-message channel.
                     result = {'id':request_id,'ok':present and not export_handler.blocked,
                               'primary':target.name,'stage':'export',
                               'code':('EXPORT_INTERACTION_REQUIRED' if export_handler.blocked else
                                       'ENGINE_OUTPUT_MISSING' if not present else None)}
+                    if req['exportFilter'] == 'dBase' and list(Path(req['output']).glob('*.aio-columns.jsonl')):
+                        result['warnings'] = ['NATIVE_DBF_MIXED_COLUMN_TEXT']
         except Exception as error:
             result = {'id':request_id,'ok':False,'code':('PREFLIGHT_INTERACTION_REQUIRED'
                       if stage == 'import' and handler is not None and handler.blocked else

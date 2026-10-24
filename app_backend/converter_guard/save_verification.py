@@ -22,6 +22,47 @@ def sha256_stream(stream, *, cancel=None):
     return size, digest.hexdigest()
 
 
+def readback_fingerprint(path, *, cancel=None):
+    """Read a final disk path and report whether it still names those bytes.
+
+    A blocked Windows replacement or another read/stat error is a failed
+    verification, never an acknowledgement. Cancellation keeps its own code.
+    """
+    path = Path(path)
+    descriptor = None
+    try:
+        if path_is_link(path):
+            raise GuardError('SAVE_VERIFY_FAILED', 'Ссылка вместо сохранённого файла.', stage='save')
+        descriptor = os.open(path, os.O_RDONLY | getattr(os, 'O_BINARY', 0) |
+                             getattr(os, 'O_NOFOLLOW', 0))
+        stream = os.fdopen(descriptor, 'rb')
+        descriptor = None  # The stream now owns and closes the descriptor.
+        with stream:
+            before = os.fstat(stream.fileno())
+            if (not stat.S_ISREG(before.st_mode) or
+                    getattr(before, 'st_file_attributes', 0) &
+                    getattr(stat, 'FILE_ATTRIBUTE_REPARSE_POINT', 0x400)):
+                raise GuardError('SAVE_VERIFY_FAILED', 'Результат не является обычным файлом.', stage='save')
+            size, digest = sha256_stream(stream, cancel=cancel)
+            after = os.fstat(stream.fileno())
+        current = path.stat(follow_symlinks=False)
+        def identity(info):
+            return (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+        unchanged = (not path_is_link(path) and
+                     identity(before) == identity(after) == identity(current))
+        return size, digest, unchanged
+    except OSError as error:
+        raise GuardError('SAVE_VERIFY_FAILED',
+                         'Не удалось независимо прочитать сохранённый файл. Результат оставлен в AIO.',
+                         stage='save') from error
+    finally:
+        if descriptor is not None:
+            try:
+                os.close(descriptor)
+            except OSError:
+                pass  # Preserve the verification error from the failed open.
+
+
 def verify_folder(folder, entries, *, cancel=None, on_progress=lambda current, total: None):
     """Read saved files independently; retain each observed hash in the manifest.
 
@@ -30,9 +71,12 @@ def verify_folder(folder, entries, *, cancel=None, on_progress=lambda current, t
     failed stage without discarding the application-owned original results.
     """
     folder = Path(folder)
-    if path_is_link(folder):
-        raise GuardError('SAVE_VERIFY_FAILED', 'Ссылка вместо папки сохранения.', stage='save')
-    folder = folder.resolve(strict=True)
+    try:
+        if path_is_link(folder):
+            raise GuardError('SAVE_VERIFY_FAILED', 'Ссылка вместо папки сохранения.', stage='save')
+        folder = folder.resolve(strict=True)
+    except OSError as error:
+        raise GuardError('SAVE_VERIFY_FAILED', 'Папка сохранения недоступна для проверки.', stage='save') from error
     seen = set()
     bytes_verified = 0
     for number, entry in enumerate(entries, 1):
@@ -48,31 +92,20 @@ def verify_folder(folder, entries, *, cancel=None, on_progress=lambda current, t
         if (type(entry.get('size')) is not int or entry['size'] < 0
                 or not re.fullmatch(r'[0-9a-f]{64}', str(entry.get('sha256')))):
             raise GuardError('SAVE_VERIFY_FAILED', 'Недопустимое описание результата.', stage='save')
+        entry['readbackVerified'] = False
         path = folder / relative
-        for part in (path, *path.parents):
-            if part == folder.parent:
-                break
-            if path_is_link(part):
-                raise GuardError('SAVE_VERIFY_FAILED', 'Ссылка вместо сохранённого файла.', stage='save')
-        if not path.resolve(strict=True).is_relative_to(folder):
-            raise GuardError('SAVE_VERIFY_FAILED', 'Результат вне папки сохранения.', stage='save')
-        # O_NOFOLLOW closes the final-component race on platforms supporting it;
-        # Windows links/reparse points are rejected above and through fstat.
-        descriptor = os.open(path, os.O_RDONLY | getattr(os, 'O_BINARY', 0) |
-                             getattr(os, 'O_NOFOLLOW', 0))
-        with os.fdopen(descriptor, 'rb') as stream:
-            before = os.fstat(stream.fileno())
-            if (not stat.S_ISREG(before.st_mode) or
-                    getattr(before, 'st_file_attributes', 0) &
-                    getattr(stat, 'FILE_ATTRIBUTE_REPARSE_POINT', 0x400)):
-                raise GuardError('SAVE_VERIFY_FAILED', 'Результат не является обычным файлом.', stage='save')
-            size, digest = sha256_stream(stream, cancel=cancel)
-            after = os.fstat(stream.fileno())
-        current = path.stat(follow_symlinks=False)
-        unchanged = (not path_is_link(path) and
-                     (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns, before.st_ctime_ns) ==
-                     (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns, after.st_ctime_ns) ==
-                     (current.st_dev, current.st_ino, current.st_size, current.st_mtime_ns, current.st_ctime_ns))
+        try:
+            for part in (path, *path.parents):
+                if part == folder.parent:
+                    break
+                if path_is_link(part):
+                    raise GuardError('SAVE_VERIFY_FAILED', 'Ссылка вместо сохранённого файла.', stage='save')
+            if not path.resolve(strict=True).is_relative_to(folder):
+                raise GuardError('SAVE_VERIFY_FAILED', 'Результат вне папки сохранения.', stage='save')
+            size, digest, unchanged = readback_fingerprint(path, cancel=cancel)
+        except OSError as error:
+            raise GuardError('SAVE_VERIFY_FAILED', 'Не удалось проверить путь сохранённого файла.',
+                             stage='save') from error
         matches = unchanged and size == entry['size'] and digest == entry['sha256']
         entry.update(readbackSize=size, readbackSha256=digest, readbackVerified=matches)
         if not matches:

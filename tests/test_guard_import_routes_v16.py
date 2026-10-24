@@ -237,9 +237,12 @@ class SourceContractsV16(unittest.TestCase):
             self.assertEqual(paths[0].read_bytes(), source.read_bytes())
             self.assertEqual(adapter.execution_mode(), 'native_identity')
             self.assertEqual(adapter.export_info()['resultChecks'][0]['status'], 'byte_preserved')
-            with self.assertRaises(GuardError) as error:
+            # Windows clocks may report the same tick repeatedly; expire the
+            # configured deadline deterministically instead of using 1 ns.
+            with patch('app_backend.converter_guard.adapter.time.monotonic', side_effect=[10, 11]), \
+                    self.assertRaises(GuardError) as error:
                 adapter.convert(source, 'odc', self.root / 'timeout', cancel=self.cancel,
-                                timeout=1e-9, on_started=lambda: None)
+                                timeout=.5, on_started=lambda: None)
             self.assertEqual(error.exception.code, 'ENGINE_TIMEOUT')
 
 

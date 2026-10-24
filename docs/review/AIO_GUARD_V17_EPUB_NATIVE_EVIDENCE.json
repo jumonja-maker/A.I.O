@@ -1,0 +1,566 @@
+{
+  "status": "pass",
+  "platform": "Linux LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5",
+  "source": "generated 2 chapter OCF with raster and reversed lexical order",
+  "sourceUnchanged": true,
+  "report": {
+    "schemaVersion": 3,
+    "total": 4,
+    "completed": 4,
+    "attempted": 4,
+    "succeeded": 4,
+    "failed": 0,
+    "cancelled": 0,
+    "filtered": 0,
+    "pending": 0,
+    "preflightChecks": 1,
+    "inputsUploaded": 1,
+    "inputsPlanned": 1,
+    "inputsWithoutTasks": [],
+    "recoveryError": null,
+    "files": [
+      {
+        "fileId": "epub",
+        "name": "spine.epub",
+        "sourceSha256": "5abce5e131b271c7e109cbc1af6f583a86181b6af442be72966577407d381f2c",
+        "nativeRoute": {
+          "state": "detected",
+          "documentServices": [
+            "com.sun.star.text.TextDocument",
+            "com.sun.star.text.WebDocument",
+            "com.sun.star.text.GlobalDocument"
+          ],
+          "basis": "native_preflight_document_kind",
+          "nativeKind": 0,
+          "drawPages": null,
+          "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+          "exported": false,
+          "sourceContract": {
+            "state": "recognized",
+            "contentClass": "epub_package",
+            "mimetype": "application/epub+zip",
+            "expectedServices": [
+              "com.sun.star.text.TextDocument",
+              "com.sun.star.text.WebDocument"
+            ]
+          },
+          "sourcePreparation": {
+            "kind": "epub_spine_html",
+            "spineItems": 2,
+            "resources": 2,
+            "warnings": [
+              "EPUB_REFLOWED_HTML_IMPORT"
+            ],
+            "readingOrder": "opf_spine",
+            "externalResources": false
+          }
+        },
+        "warnings": [],
+        "targets": [
+          {
+            "taskId": "f49a7b89dfe4e653c2a0729ac6e98298:0",
+            "format": "docx",
+            "state": "ready",
+            "code": null,
+            "error": null,
+            "stage": "result",
+            "diagnostic": "",
+            "executionMode": "native_cli",
+            "executionReason": "no_native_session",
+            "resultChecks": [],
+            "durationMs": 322,
+            "nativeTimings": {
+              "source": "cli_process",
+              "adapterMs": 318,
+              "launchMs": 0,
+              "processMs": 317
+            },
+            "exportFilter": "MS Word 2007 XML",
+            "warnings": [],
+            "quality": null,
+            "outputs": [
+              {
+                "path": "0001-docx/spine.docx",
+                "size": 6422,
+                "sha256": "46f84f42dcca47bc6459a35b5084a1aa01e19544e0e433abc95d720ba3652456"
+              }
+            ],
+            "route": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "taskId": "f49a7b89dfe4e653c2a0729ac6e98298:1",
+            "format": "odt",
+            "state": "ready",
+            "code": null,
+            "error": null,
+            "stage": "result",
+            "diagnostic": "",
+            "executionMode": "native_cli",
+            "executionReason": "no_native_session",
+            "resultChecks": [],
+            "durationMs": 337,
+            "nativeTimings": {
+              "source": "cli_process",
+              "adapterMs": 334,
+              "launchMs": 0,
+              "processMs": 333
+            },
+            "exportFilter": "writer8",
+            "warnings": [],
+            "quality": null,
+            "outputs": [
+              {
+                "path": "0002-odt/spine.odt",
+                "size": 11090,
+                "sha256": "4d4c5d25d955757ab674862875723c157e3ea4db09deaf1730a6bb2826b3481e"
+              }
+            ],
+            "route": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "taskId": "f49a7b89dfe4e653c2a0729ac6e98298:2",
+            "format": "pdf",
+            "state": "ready",
+            "code": null,
+            "error": null,
+            "stage": "result",
+            "diagnostic": "",
+            "executionMode": "native_cli",
+            "executionReason": "native_filter_unresolved",
+            "resultChecks": [],
+            "durationMs": 338,
+            "nativeTimings": {
+              "source": "cli_process",
+              "adapterMs": 334,
+              "launchMs": 0,
+              "processMs": 333
+            },
+            "exportFilter": null,
+            "warnings": [],
+            "quality": null,
+            "outputs": [
+              {
+                "path": "0003-pdf/spine.pdf",
+                "size": 23652,
+                "sha256": "626437b54e392ad2b2a40ed06ecbf647778326a79d39280f1fb22bf7d9aa1002"
+              }
+            ],
+            "route": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "taskId": "f49a7b89dfe4e653c2a0729ac6e98298:3",
+            "format": "txt",
+            "state": "ready",
+            "code": null,
+            "error": null,
+            "stage": "result",
+            "diagnostic": "",
+            "executionMode": "native_cli",
+            "executionReason": "no_native_session",
+            "resultChecks": [],
+            "durationMs": 306,
+            "nativeTimings": {
+              "source": "cli_process",
+              "adapterMs": 302,
+              "launchMs": 0,
+              "processMs": 301
+            },
+            "exportFilter": "Text (encoded)",
+            "warnings": [
+              {
+                "code": "NATIVE_WRITER_TEXT_ONLY",
+                "message": "Writer сохраняет CSV/TAB/TSV как обычный текст UTF-8. Это не таблица Calc: оформление, изображения и табличная структура не сохраняются."
+              }
+            ],
+            "quality": null,
+            "outputs": [
+              {
+                "path": "0004-txt/spine.txt",
+                "size": 124,
+                "sha256": "3e8c10980409b2eceb76280edfee289776519317137dc77d1057312d6502b2d8"
+              }
+            ],
+            "route": null,
+            "libreOfficeStarted": true
+          }
+        ]
+      }
+    ],
+    "timings": {
+      "journalMs": 11,
+      "preflight_startedMs": 5,
+      "preflight_doneMs": 530,
+      "planMs": 1,
+      "job_queuedMs": 530,
+      "job_startedMs": 533,
+      "engine_startedMs": 538,
+      "packaging_startedMs": 1847,
+      "job_finishedMs": 1847
+    },
+    "qualityCheckRequested": false,
+    "qualityCompared": false,
+    "jobId": "f49a7b89dfe4e653c2a0729ac6e98298",
+    "state": "ready",
+    "officeStarts": 0,
+    "trace": {
+      "events": [
+        {
+          "sequence": 1,
+          "elapsedMs": 0,
+          "stage": "job_created",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 2,
+          "elapsedMs": 5,
+          "stage": "input_stored",
+          "fileId": "epub",
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 3,
+          "elapsedMs": 5,
+          "stage": "preflight_started",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 4,
+          "elapsedMs": 82,
+          "stage": "preflight_file_started",
+          "fileId": "epub",
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 5,
+          "elapsedMs": 444,
+          "stage": "preflight_finished",
+          "fileId": "epub",
+          "format": null,
+          "code": "NATIVE_KIND_DETECTED",
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 6,
+          "elapsedMs": 530,
+          "stage": "preflight_done",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 7,
+          "elapsedMs": 530,
+          "stage": "job_queued",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 8,
+          "elapsedMs": 533,
+          "stage": "job_started",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 9,
+          "elapsedMs": 533,
+          "stage": "route_selected",
+          "fileId": "epub",
+          "format": "docx",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 10,
+          "elapsedMs": 538,
+          "stage": "engine_started",
+          "fileId": "epub",
+          "format": "docx",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 11,
+          "elapsedMs": 856,
+          "stage": "result_retaining",
+          "fileId": "epub",
+          "format": "docx",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 12,
+          "elapsedMs": 857,
+          "stage": "result_ready",
+          "fileId": "epub",
+          "format": "docx",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 13,
+          "elapsedMs": 857,
+          "stage": "task_finished",
+          "fileId": "epub",
+          "format": "docx",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 14,
+          "elapsedMs": 859,
+          "stage": "route_selected",
+          "fileId": "epub",
+          "format": "odt",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 15,
+          "elapsedMs": 862,
+          "stage": "engine_started",
+          "fileId": "epub",
+          "format": "odt",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 16,
+          "elapsedMs": 1195,
+          "stage": "result_retaining",
+          "fileId": "epub",
+          "format": "odt",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 17,
+          "elapsedMs": 1196,
+          "stage": "result_ready",
+          "fileId": "epub",
+          "format": "odt",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 18,
+          "elapsedMs": 1196,
+          "stage": "task_finished",
+          "fileId": "epub",
+          "format": "odt",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 19,
+          "elapsedMs": 1198,
+          "stage": "route_selected",
+          "fileId": "epub",
+          "format": "pdf",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 20,
+          "elapsedMs": 1202,
+          "stage": "engine_started",
+          "fileId": "epub",
+          "format": "pdf",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 21,
+          "elapsedMs": 1535,
+          "stage": "result_retaining",
+          "fileId": "epub",
+          "format": "pdf",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 22,
+          "elapsedMs": 1536,
+          "stage": "result_ready",
+          "fileId": "epub",
+          "format": "pdf",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 23,
+          "elapsedMs": 1536,
+          "stage": "task_finished",
+          "fileId": "epub",
+          "format": "pdf",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 24,
+          "elapsedMs": 1538,
+          "stage": "route_selected",
+          "fileId": "epub",
+          "format": "txt",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 25,
+          "elapsedMs": 1543,
+          "stage": "engine_started",
+          "fileId": "epub",
+          "format": "txt",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 26,
+          "elapsedMs": 1844,
+          "stage": "result_retaining",
+          "fileId": "epub",
+          "format": "txt",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 27,
+          "elapsedMs": 1845,
+          "stage": "result_ready",
+          "fileId": "epub",
+          "format": "txt",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 28,
+          "elapsedMs": 1845,
+          "stage": "task_finished",
+          "fileId": "epub",
+          "format": "txt",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 29,
+          "elapsedMs": 1847,
+          "stage": "input_finished",
+          "fileId": "epub",
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 30,
+          "elapsedMs": 1847,
+          "stage": "packaging_started",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 31,
+          "elapsedMs": 1847,
+          "stage": "results_available",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 32,
+          "elapsedMs": 1847,
+          "stage": "bundle_deferred",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 33,
+          "elapsedMs": 1847,
+          "stage": "job_finished",
+          "fileId": null,
+          "format": null,
+          "code": "ready",
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 34,
+          "elapsedMs": 1848,
+          "stage": "worker_finished",
+          "fileId": null,
+          "format": null,
+          "code": "ready",
+          "libreOfficeStarted": false
+        }
+      ],
+      "droppedEvents": 0
+    },
+    "fileTimeoutSeconds": 60
+  },
+  "checks": [
+    {
+      "target": "docx",
+      "markers": true,
+      "ordered": true,
+      "imageEmbeddedExactly": true,
+      "danglingExternalImage": false
+    },
+    {
+      "target": "pdf",
+      "markers": true,
+      "ordered": true,
+      "imageCount": 1
+    },
+    {
+      "target": "txt",
+      "markers": true,
+      "ordered": true
+    },
+    {
+      "target": "odt",
+      "markers": true,
+      "ordered": true,
+      "imageEmbeddedExactly": true
+    }
+  ],
+  "save": {
+    "jobId": "f49a7b89dfe4e653c2a0729ac6e98298",
+    "saved": true,
+    "savedAll": true,
+    "incompleteRecovery": false,
+    "jobRunning": false,
+    "remainingOutputs": 0,
+    "outputs": 4,
+    "saveId": "dfa78afdce07686daa334b4874824411",
+    "snapshotComplete": true,
+    "snapshotRevision": 34,
+    "bytesWritten": 41288,
+    "readbackVerified": true,
+    "verificationScope": "manifest_outputs",
+    "verificationMethod": "independent_read_sha256",
+    "outputsVerified": 4,
+    "bytesVerified": 41288,
+    "name": "AIO_Results_f49a7b89"
+  }
+}

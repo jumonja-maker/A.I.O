@@ -2,6 +2,7 @@
 import hashlib
 import io
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -12,7 +13,7 @@ import unittest
 from unittest.mock import patch
 
 from app_backend.converter_guard import ConverterGuard, GuardError
-from app_backend.converter_guard.save_verification import verify_folder, sha256_stream
+from app_backend.converter_guard.save_verification import verify_folder, sha256_stream, readback_fingerprint
 from test_converter_guard_v02 import FakeAdapter, wait_finished
 
 
@@ -63,15 +64,84 @@ class SaveReadbackV16(unittest.TestCase):
     def test_file_replaced_during_readback_is_not_verified(self):
         path=self.root/'page.html'
         entry=self.entry(path,b'<body>good</body>')
+        outcomes=[]
         def replace_after_read(stream,**kwargs):
             actual=sha256_stream(stream,**kwargs)
             replacement=self.root/'replacement'
             replacement.write_bytes(b'<body>evil</body>')
-            replacement.replace(path)
+            try:
+                replacement.replace(path)
+                outcomes.append('replaced')
+            except PermissionError:
+                outcomes.append('blocked')
+                raise
             return actual
-        with patch('app_backend.converter_guard.save_verification.sha256_stream',replace_after_read),self.assertRaises(GuardError):
+        with patch('app_backend.converter_guard.save_verification.sha256_stream',replace_after_read),self.assertRaises(GuardError) as err:
             verify_folder(self.root,[entry])
+        self.assertEqual(err.exception.code,'SAVE_VERIFY_FAILED')
+        self.assertIn(outcomes,[['replaced'],['blocked']])
         self.assertFalse(entry['readbackVerified'])
+        if outcomes==['blocked']:
+            self.assertIsInstance(err.exception.__cause__,PermissionError)
+            self.assertEqual(path.read_bytes(),b'<body>good</body>')
+        else:
+            self.assertEqual(path.read_bytes(),b'<body>evil</body>')
+        path.unlink()  # The read descriptor is closed even on blocked replacement.
+
+    def test_blocked_replacement_is_failed_readback_and_preserves_manifest(self):
+        guard,job,state=self.guard_ready()
+        def blocked_after_read(stream,**kwargs):
+            result=sha256_stream(stream,**kwargs)
+            if isinstance(stream.name,int):
+                raise PermissionError(13,'Replacement blocked while file is open')
+            return result
+        with patch('app_backend.converter_guard.save_verification.sha256_stream',blocked_after_read),self.assertRaises(GuardError) as err:
+            guard.save_folder(state['result']['ticket'],self.root)
+        self.assertEqual(err.exception.code,'SAVE_VERIFY_FAILED')
+        folder=next(self.root.glob('AIO_Results_*'))
+        status=json.loads((folder/'AIO-save-status.json').read_text())
+        manifest=json.loads((folder/'AIO-results-manifest.json').read_text())
+        self.assertEqual((status['state'],status['code']),('failed','SAVE_VERIFY_FAILED'))
+        self.assertFalse(manifest['readbackVerified'])
+        self.assertTrue(any(e.get('readbackVerified') is False for e in manifest['outputs']))
+        self.assertTrue(all(not a.saved and a.path.exists() for a in guard._jobs[job].artifacts))
+        next(folder.rglob('*.pdf')).unlink()
+
+    def test_open_and_stat_errors_are_failed_verification_with_closed_descriptor(self):
+        path=self.root/'page.html'
+        entry=self.entry(path,b'<body>good</body>')
+        with patch('app_backend.converter_guard.save_verification.os.open',side_effect=PermissionError(13,'blocked')):
+            with self.assertRaises(GuardError) as err:
+                verify_folder(self.root,[entry])
+        self.assertEqual(err.exception.code,'SAVE_VERIFY_FAILED')
+        self.assertFalse(entry['readbackVerified'])
+        opened=[]
+        real_open=os.open
+        def record_descriptor(*args,**kwargs):
+            descriptor=real_open(*args,**kwargs);opened.append(descriptor);return descriptor
+        with patch('app_backend.converter_guard.save_verification.os.open',side_effect=record_descriptor), \
+                patch('app_backend.converter_guard.save_verification.os.fdopen',side_effect=PermissionError(13,'stream open blocked')):
+            with self.assertRaises(GuardError) as err:
+                readback_fingerprint(path)
+        self.assertEqual(err.exception.code,'SAVE_VERIFY_FAILED')
+        with self.assertRaises(OSError):os.fstat(opened[0])
+        with patch('app_backend.converter_guard.save_verification.os.fstat',side_effect=OSError('stat failed')):
+            with self.assertRaises(GuardError) as err:
+                readback_fingerprint(path)
+        self.assertEqual(err.exception.code,'SAVE_VERIFY_FAILED')
+        actual_stat=Path.stat
+        path_stats=[]
+        def fail_final_path_stat(candidate,*args,**kwargs):
+            if candidate==path:
+                path_stats.append(True)
+                if len(path_stats)==2:
+                    raise PermissionError(13,'Final path stat blocked')
+            return actual_stat(candidate,*args,**kwargs)
+        with patch.object(Path,'stat',fail_final_path_stat):
+            with self.assertRaises(GuardError) as err:
+                readback_fingerprint(path)
+        self.assertEqual(err.exception.code,'SAVE_VERIFY_FAILED')
+        path.unlink()
 
     def test_cancel_before_readback_retains_originals_and_does_not_acknowledge(self):
         guard,job,state=self.guard_ready()

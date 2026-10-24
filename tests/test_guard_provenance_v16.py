@@ -4,6 +4,7 @@ import io
 import json
 from pathlib import Path
 import tempfile
+import threading
 import unittest
 from unittest.mock import patch
 
@@ -46,15 +47,65 @@ class ProvenanceTests(unittest.TestCase):
         download.write_bytes(artifact.path.read_bytes())
         replacement = self.root/'replacement'
         replacement.write_bytes(b'evil')
+        outcomes=[]
         def replace_after_read(stream, **kwargs):
             result = sha256_stream(stream, **kwargs)
             if isinstance(stream.name, int):
-                replacement.replace(download)
+                try:
+                    replacement.replace(download)
+                    outcomes.append('replaced')
+                except PermissionError:
+                    outcomes.append('blocked')
+                    raise
             return result
         with patch('app_backend.converter_guard.save_verification.sha256_stream', side_effect=replace_after_read):
             with self.assertRaises(GuardError) as error:
                 self.guard.verify_saved_download(artifact.ticket,download)
         self.assertEqual(error.exception.code,'SAVE_VERIFY_FAILED')
+        self.assertIn(outcomes,[['replaced'],['blocked']])
+        if outcomes==['blocked']:
+            self.assertIsInstance(error.exception.__cause__,PermissionError)
+            self.assertEqual(download.read_bytes(),b'data')
+        else:
+            self.assertEqual(download.read_bytes(),b'evil')
+        self.assertFalse(artifact.saved)
+        download.unlink()
+
+    def test_download_blocked_replace_and_stat_failure_cannot_acknowledge(self):
+        from app_backend.converter_guard.save_verification import sha256_stream
+        job,_state=self.ready()
+        artifact=self.guard._jobs[job].artifacts[0]
+        download=self.root/'external.pdf'
+        download.write_bytes(artifact.path.read_bytes())
+        for failure in (PermissionError(13,'Windows replacement blocked'),OSError('file stat/read failed')):
+            with self.subTest(failure=type(failure).__name__):
+                def failed_after_read(stream,**kwargs):
+                    result=sha256_stream(stream,**kwargs)
+                    if isinstance(stream.name,int):raise failure
+                    return result
+                with patch('app_backend.converter_guard.save_verification.sha256_stream',side_effect=failed_after_read):
+                    with self.assertRaises(GuardError) as error:
+                        self.guard.verify_saved_download(artifact.ticket,download)
+                self.assertEqual(error.exception.code,'SAVE_VERIFY_FAILED')
+                self.assertFalse(artifact.saved)
+        download.unlink()
+
+    def test_download_cancellation_is_not_reclassified_as_read_error(self):
+        from app_backend.converter_guard.save_verification import sha256_stream
+        job,_state=self.ready()
+        artifact=self.guard._jobs[job].artifacts[0]
+        download=self.root/'external.pdf'
+        download.write_bytes(artifact.path.read_bytes())
+        cancel=threading.Event()
+        def cancel_destination_read(stream,**kwargs):
+            if isinstance(stream.name,int):cancel.set()
+            return sha256_stream(stream,**kwargs)
+        with patch('app_backend.converter_guard.save_verification.sha256_stream',side_effect=cancel_destination_read):
+            with self.assertRaises(GuardError) as error:
+                self.guard.verify_saved_download(artifact.ticket,download,cancel=cancel)
+        self.assertEqual(error.exception.code,'SAVE_CANCELLED')
+        self.assertFalse(artifact.saved)
+        download.unlink()
 
     def test_changed_import_does_not_repeat_siblings_or_block_next_file(self):
         for code in ('SOURCE_MODEL_MISMATCH','NATIVE_IMPORT_FILTER_CHANGED'):

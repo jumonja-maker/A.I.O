@@ -16,8 +16,8 @@ ALIASES = {'apng': 'png', 'tif': 'tiff', 'jpg': 'jpeg', 'jpe': 'jpeg',
            'jfif': 'jpeg', 'jif': 'jpeg'}
 RASTER = frozenset(('png', 'apng', 'gif', 'webp', 'tiff', 'tif', 'jpeg',
                     'jpg', 'jpe', 'jfif', 'jif', 'bmp'))
-ANIMATED_TARGETS = frozenset(('gif', 'apng', 'webp'))
-ALPHA_TARGETS = frozenset(('png', 'apng', 'webp', 'tiff', 'tif'))
+ANIMATED_TARGETS = frozenset(('png', 'gif', 'apng', 'webp'))
+ALPHA_TARGETS = frozenset(('png', 'apng', 'gif', 'webp', 'tiff', 'tif'))
 MAX_RECORDS = 65536
 
 
@@ -68,15 +68,56 @@ def _base(kind, width, height, *, frames=1, pages=1, alpha=False, durations=None
     if not (width > 0 and height > 0 and frames > 0 and pages > 0):
         raise _Invalid('dimensions_or_count')
     return {'format': kind, 'width': width, 'height': height, 'frames': frames,
-            'pages': pages, 'alpha': bool(alpha), 'durationsMs': durations or []}
+            'pages': pages, 'alpha': bool(alpha), 'durationsMs': durations or [], 'orientation': 1}
 
+
+
+def _exif_orientation(data):
+    """Read only the bounded IFD0 orientation from Exif TIFF bytes."""
+    if data.startswith(b'Exif\0\0'):
+        data = data[6:]
+    if len(data) < 8 or data[:2] not in (b'II', b'MM'):
+        return 1
+    endian = '<' if data[:2] == b'II' else '>'
+    try:
+        if struct.unpack_from(endian + 'H', data, 2)[0] != 42:
+            return 1
+        offset = struct.unpack_from(endian + 'I', data, 4)[0]
+        count = struct.unpack_from(endian + 'H', data, offset)[0]
+        if count > MAX_RECORDS or offset + 2 + count * 12 > len(data):
+            return 1
+        for index in range(count):
+            position = offset + 2 + index * 12
+            tag, typ, amount = struct.unpack_from(endian + 'HHI', data, position)
+            if tag == 274 and typ == 3 and amount == 1:
+                orientation = struct.unpack_from(endian + 'H', data, position + 8)[0]
+                return orientation if 1 <= orientation <= 8 else 1
+    except (struct.error, OverflowError):
+        return 1
+    return 1
+
+
+def display_dimensions(info):
+    width, height = info['width'], info['height']
+    return (height, width) if info.get('orientation', 1) >= 5 else (width, height)
+
+
+def display_page_dimensions(info):
+    dimensions = info.get('pageDimensions')
+    if not dimensions:
+        return None
+    orientations = info.get('pageOrientations', [1] * len(dimensions))
+    return [[height, width] if orientation >= 5 else [width, height]
+            for (width, height), orientation in zip(dimensions, orientations)]
 
 def _png(r):
     if r.read(8) != b'\x89PNG\r\n\x1a\n':
         raise _Invalid('png_signature')
     width = height = 0
+    orientation = 1
     alpha = False
     declared = None
+    loops = 1
     durations = []
     saw_data = False
     sequence = 0
@@ -92,8 +133,9 @@ def _png(r):
         remaining = length
         while remaining:
             block = r.read(min(65536, remaining))
-            if len(head) < 32:
-                head += block[:32-len(head)]
+            head_limit = 65536 if kind == b'eXIf' else 32
+            if len(head) < head_limit:
+                head += block[:head_limit-len(head)]
             crc = zlib.crc32(block, crc)
             remaining -= len(block)
         if (crc & 0xffffffff) != struct.unpack('>I', r.read(4))[0]:
@@ -105,12 +147,14 @@ def _png(r):
             if colour not in (0, 2, 3, 4, 6) or comp or filt or interlace > 1:
                 raise _Invalid('png_encoding')
             alpha = colour in (4, 6)
+        elif kind == b'eXIf':
+            orientation = _exif_orientation(head)
         elif kind == b'tRNS':
             alpha = True
         elif kind == b'acTL':
             if declared is not None or saw_data or length != 8:
                 raise _Invalid('apng_control')
-            declared = struct.unpack('>I', head[:4])[0]
+            declared, loops = struct.unpack('>II', head[:8])
             if not 0 < declared <= MAX_RECORDS:
                 raise _Invalid('apng_count')
         elif kind == b'fcTL':
@@ -136,6 +180,9 @@ def _png(r):
             result = _base('png', width, height, frames=declared or 1,
                            alpha=alpha, durations=durations)
             result['animationContainer'] = declared is not None
+            result['loopCount'] = loops
+            result['bitDepth'] = depth
+            result['orientation'] = orientation
             return result
 
 
@@ -159,13 +206,16 @@ def _gif(r):
     durations = []
     alpha = False
     delay = 0
+    loops = 1
     while True:
         r.record()
         block = r.read(1)
         if block == b';':
             if not durations:
                 raise _Invalid('gif_frames')
-            return _base('gif', width, height, frames=len(durations), alpha=alpha, durations=durations)
+            result = _base('gif', width, height, frames=len(durations), alpha=alpha, durations=durations)
+            result['loopCount'] = loops
+            return result
         if block == b'!':
             label = r.read(1)
             if label == b'\xf9':
@@ -176,6 +226,19 @@ def _gif(r):
                     raise _Invalid('gif_control')
                 delay = ticks * 10
                 alpha |= bool(flags & 1)
+            elif label == b'\xff':
+                name_size = r.read(1)[0]
+                name = r.read(name_size)
+                if name in (b'NETSCAPE2.0', b'ANIMEXTS1.0'):
+                    size = r.read(1)[0]
+                    payload = r.read(size)
+                    if size != 3 or payload[0] != 1:
+                        raise _Invalid('gif_loop')
+                    repeats = struct.unpack('<H', payload[1:])[0]
+                    loops = repeats + 1 if repeats else 0
+                    _subblocks(r)
+                else:
+                    _subblocks(r)
             else:
                 _subblocks(r)
         elif block == b',':
@@ -201,13 +264,15 @@ def _webp(r):
         raise _Invalid('webp_riff_size')
     width = height = 0
     alpha = animation = False
+    orientation = 1
+    loops = 1
     durations = []
     image = False
     while r.file.tell() < r.size:
         r.record()
         kind, length = struct.unpack('<4sI', r.read(8))
         start = r.file.tell()
-        head = r.read(min(length, 16))
+        head = r.read(min(length, 65536 if kind == b'EXIF' else 16))
         r.seek(start + length + (length & 1))
         if kind == b'VP8X':
             if length != 10:
@@ -229,6 +294,12 @@ def _webp(r):
             width = width or (int.from_bytes(head[6:8], 'little') & 0x3fff)
             height = height or (int.from_bytes(head[8:10], 'little') & 0x3fff)
             image = True
+        elif kind == b'EXIF':
+            orientation = _exif_orientation(head)
+        elif kind == b'ANIM':
+            if length != 6 or not animation:
+                raise _Invalid('webp_anim')
+            loops = struct.unpack('<H', head[4:6])[0]
         elif kind == b'ANMF':
             if not animation or length < 24:
                 raise _Invalid('webp_frame')
@@ -239,7 +310,10 @@ def _webp(r):
             durations.append(int.from_bytes(head[12:15], 'little'))
     if animation and not durations or not animation and not image:
         raise _Invalid('webp_frames')
-    return _base('webp', width, height, frames=len(durations) or 1, alpha=alpha, durations=durations)
+    result = _base('webp', width, height, frames=len(durations) or 1, alpha=alpha, durations=durations)
+    result['loopCount'] = loops
+    result['orientation'] = orientation
+    return result
 
 
 def _tiff(r):
@@ -259,8 +333,12 @@ def _tiff(r):
     offset = struct.unpack(endian+offset_code, r.read(inline_size))[0]
     seen = set()
     dimensions = []
+    depths = []
+    page_indexes = []
+    page_orientations = []
+    page_dpi = []
     alpha = False
-    sizes = {1: 1, 3: 2, 4: 4, 16: 8}
+    sizes = {1: 1, 3: 2, 4: 4, 5: 8, 16: 8}
     codes = {1: 'B', 3: 'H', 4: 'I', 16: 'Q'}
     while offset:
         r.record()
@@ -276,7 +354,7 @@ def _tiff(r):
             r.record()
             entry = r.read(entry_size)
             tag, typ = struct.unpack(endian+'HH', entry[:4])
-            if tag not in (254, 256, 257, 277, 338):
+            if tag not in (254, 256, 257, 258, 274, 277, 282, 283, 296, 338):
                 continue
             n = struct.unpack(endian+('I' if version == 42 else 'Q'), entry[4:entry_size-inline_size])[0]
             if typ not in sizes or not 0 < n <= 16:
@@ -288,7 +366,11 @@ def _tiff(r):
                 r.seek(struct.unpack(endian+offset_code, payload)[0])
                 payload = r.read(amount)
                 r.seek(saved)
-            values[tag] = struct.unpack(endian+codes[typ]*n, payload[:amount])
+            if typ == 5:
+                numerator, denominator = struct.unpack(endian+'II', payload[:8])
+                values[tag] = (numerator / denominator if denominator else 0,)
+            else:
+                values[tag] = struct.unpack(endian+codes[typ]*n, payload[:amount])
         offset = struct.unpack(endian+offset_code, r.read(inline_size))[0]
         if values.get(254, (0,))[0] & 1:  # Reduced-resolution thumbnails are not pages.
             continue
@@ -296,17 +378,31 @@ def _tiff(r):
         if not width or not height:
             raise _Invalid('tiff_dimensions')
         dimensions.append([width, height])
+        depths.append(max(values.get(258, (8,))))
+        page_indexes.append(len(seen) - 1)
+        orientation = values.get(274, (1,))[0]
+        page_orientations.append(orientation if 1 <= orientation <= 8 else 1)
+        unit = values.get(296, (2,))[0]
+        factor = 1 if unit == 2 else 2.54 if unit == 3 else 0
+        dx, dy = values.get(282, (0,))[0] * factor, values.get(283, (0,))[0] * factor
+        page_dpi.append([dx, dy] if dx > 0 and dy > 0 else None)
         alpha |= any(v in (1, 2) for v in values.get(338, ()))
     if not dimensions:
         raise _Invalid('tiff_pages')
     result = _base('tiff', *dimensions[0], pages=len(dimensions), alpha=alpha)
     result['pageDimensions'] = dimensions
+    result['bitDepth'] = max(depths)
+    result['pageImageIndexes'] = page_indexes
+    result['pageOrientations'] = page_orientations
+    result['orientation'] = page_orientations[0]
+    result['pageDpi'] = page_dpi
     return result
 
 
 def _jpeg(r):
     if r.read(2) != b'\xff\xd8':
         raise _Invalid('jpeg_signature')
+    orientation = 1
     while True:
         r.record()
         if r.read(1) != b'\xff':
@@ -325,8 +421,15 @@ def _jpeg(r):
             if length < 8:
                 raise _Invalid('jpeg_sof')
             depth, height, width = struct.unpack('>BHH', r.read(5))
-            return _base('jpeg', width, height)
-        r.skip(length-2)
+            result = _base('jpeg', width, height)
+            result['orientation'] = orientation
+            return result
+        if marker == 0xe1:
+            payload = r.read(length - 2)
+            if payload.startswith(b'Exif\0\0'):
+                orientation = _exif_orientation(payload)
+        else:
+            r.skip(length-2)
 
 
 def _bmp(r):
@@ -410,9 +513,30 @@ def copy_media_identity(source, output_dir, target, *, cancel=None):
 
 def check_media_preservation(paths, target, source, *, cancel):
     """Mandatory property check, independent of optional deep fidelity QA."""
-    if target not in RASTER:
+    if target not in RASTER and target != 'pdf':
         return None
     source = Path(source)
+    if target == 'pdf':
+        before = inspect_media(source, cancel=cancel)
+        if before is None or before['format'] != 'tiff':
+            return None
+        primary = next((Path(p) for p in paths if Path(p).suffix.lower() == '.pdf' and Path(p).stem == source.stem), None)
+        if primary is None:
+            raise GuardError('MEDIA_INSPECTION_INCOMPLETE', 'Не удалось определить основной PDF.', stage='result')
+        try:
+            from pypdf import PdfReader
+            _cancel(cancel)
+            with primary.open('rb') as stream:
+                count = len(PdfReader(stream, strict=False).pages)
+            _cancel(cancel)
+        except GuardError:
+            raise
+        except Exception as error:
+            raise GuardError('MEDIA_INSPECTION_INCOMPLETE', 'Не удалось проверить число страниц PDF.', stage='result') from error
+        if count != before['pages']:
+            raise GuardError('MEDIA_PAGE_LOSS', 'Экспорт TIFF в PDF изменил число страниц.', stage='result')
+        return {'check': 'media_properties', 'status': 'checked_subset', 'qualityCompared': False,
+                'source': before, 'result': {'format': 'pdf', 'pages': count}, 'expectedLosses': []}
     candidates = [Path(p) for p in paths if Path(p).suffix.lower() == '.'+target]
     primary = next((p for p in candidates if p.stem == source.stem), None)
     if primary is None:
@@ -428,29 +552,50 @@ def check_media_preservation(paths, target, source, *, cancel):
     before = inspect_media(source, cancel=cancel)
     expected_losses = []
     if before:
+        if before.get('bitDepth', 8) > after.get('bitDepth', 8):
+            if target in ('png', 'apng', 'tif', 'tiff'):
+                raise GuardError('MEDIA_BIT_DEPTH_LOSS', 'Экспорт уменьшил глубину цвета изображения.', stage='result')
+            expected_losses.append('bit_depth')
+        if target == 'gif' and before['format'] != 'gif':
+            expected_losses.append('gif_palette_and_binary_alpha')
         if before['frames'] > 1:
             if target in ANIMATED_TARGETS:
                 if after['frames'] != before['frames']:
                     raise GuardError('MEDIA_ANIMATION_LOSS',
                                      'Экспорт изменил число кадров анимации. Результат не отмечен готовым.', stage='result')
+                if before.get('loopCount', 1) != after.get('loopCount', 1):
+                    raise GuardError('MEDIA_ANIMATION_LOOP_LOSS',
+                                     'Экспорт изменил число повторов анимации.', stage='result')
                 old, new = before['durationsMs'], after['durationsMs']
                 if len(old) == len(new) and any(abs(a-b) > max(20, a*0.05) for a, b in zip(old, new)):
                     raise GuardError('MEDIA_ANIMATION_TIMING_LOSS',
                                      'Экспорт изменил длительности кадров анимации.', stage='result')
             else:
                 expected_losses.append('animation')
-        if target in ('tif', 'tiff') and before['pages'] != after['pages']:
+        expected_pages = max(before['pages'], before['frames'])
+        if target in ('tif', 'tiff') and expected_pages != after['pages']:
             raise GuardError('MEDIA_PAGE_LOSS', 'Экспорт изменил число страниц TIFF.', stage='result')
-        if before['alpha'] and target in ALPHA_TARGETS and not after['alpha']:
+        alpha_loss = before['alpha'] and target in ALPHA_TARGETS and not after['alpha']
+        if alpha_loss and target == 'gif':
+            # GIF can represent 256 opaque colours or 255 plus transparency.
+            # RGBA channel presence alone does not prove transparent pixels.
+            from .qt_media import has_transparent_pixels
+            alpha_loss = has_transparent_pixels(source, cancel=cancel)
+        if alpha_loss:
             raise GuardError('MEDIA_ALPHA_LOSS',
                              'Экспорт удалил прозрачность в формате, поддерживающем альфа-канал.', stage='result')
         if before['alpha'] and target not in ALPHA_TARGETS:
             expected_losses.append('alpha')
-        if (before['width'], before['height']) != (after['width'], after['height']):
+        if display_dimensions(before) != display_dimensions(after):
             raise GuardError('MEDIA_CANVAS_CHANGED',
                              'Экспорт изменил размер холста изображения.', stage='result')
+        if before['pages'] > 1 and target not in ('tif', 'tiff'):
+            if target in ANIMATED_TARGETS and after['frames'] == before['pages']:
+                expected_losses.append('page_semantics_as_frames')
+            else:
+                expected_losses.append('pages')
         if before.get('pageDimensions') and target in ('tif', 'tiff'):
-            if before['pageDimensions'] != after.get('pageDimensions'):
+            if display_page_dimensions(before) != display_page_dimensions(after):
                 raise GuardError('MEDIA_CANVAS_CHANGED', 'Экспорт изменил размеры страниц TIFF.', stage='result')
     elif source.suffix.lower() == '.pdf' and target in ('tif', 'tiff'):
         try:

@@ -149,6 +149,8 @@ class Registry:
     def route_reason(self, target, proof):
         if not proof:
             return None
+        if (target == 'svm' and self.observed_decision(target, proof) == 'registered'):
+            return None
         services = self.export_services(proof)
         if self.valid and target not in self.uncertain_extensions:
             if target in self.imports and target not in self.exports:
@@ -238,6 +240,10 @@ class Registry:
             services = proof.get('documentServices')
             installed = self.import_services
             if isinstance(services, list) and services and all(s in installed for s in services):
+                if (target == 'svm' and services == ['com.sun.star.drawing.DrawingDocument']
+                        and 'svm' in proof.get('nativeGraphicExports', ())
+                        and target not in self.uncertain_extensions):
+                    return 'registered'
                 return self.decide(target, set(self.export_services(proof)))
             return 'undetermined'
         if (proof and proof.get('basis') == 'native_preflight_uno_graphic'

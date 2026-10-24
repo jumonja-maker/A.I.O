@@ -2061,7 +2061,7 @@ class ConverterGuard:
             self._cleanup(job)
 
     def verify_saved_download(self, ticket, destination, *, cancel=None):
-        from .save_verification import sha256_stream
+        from .save_verification import sha256_stream, readback_fingerprint
         cancel = cancel or threading.Event()
         if self.owns_path(destination):
             raise GuardError('SAVE_OWNED_STORAGE', 'Выберите папку вне хранилища AIO.', stage='save')
@@ -2074,21 +2074,8 @@ class ConverterGuard:
             if retained_fingerprint is not None and expected != retained_fingerprint:
                 raise GuardError('SAVE_CHANGED',
                     'Байты результата изменились после проверки, до скачивания.', stage='save')
-            path = Path(destination)
-            if path_is_link(path):
-                raise GuardError('SAVE_VERIFY_FAILED', 'Ссылка вместо сохранённого файла.', stage='save')
-            descriptor = os.open(path, os.O_RDONLY | getattr(os, 'O_BINARY', 0) |
-                                 getattr(os, 'O_NOFOLLOW', 0))
-            with os.fdopen(descriptor, 'rb') as stream:
-                before = os.fstat(stream.fileno())
-                actual = sha256_stream(stream, cancel=cancel)
-                after = os.fstat(stream.fileno())
-            current = path.stat(follow_symlinks=False)
-            def identity(info):
-                return (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
-            import stat
-            unchanged = (stat.S_ISREG(before.st_mode) and not path_is_link(path) and
-                         identity(before) == identity(after) == identity(current))
+            size, digest, unchanged = readback_fingerprint(destination, cancel=cancel)
+            actual = size, digest
             if expected != actual or not unchanged:
                 raise GuardError('SAVE_VERIFY_FAILED', 'Сохранённые байты отличаются от результата Guard.', stage='save')
             return {'readbackVerified':True, 'verificationScope':'download_bytes', 'bytesVerified':actual[0]}
