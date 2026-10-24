@@ -31,6 +31,7 @@ WINDOWS_INAPPLICABLE_REASONS = frozenset({
     'POSIX test fixture; real Windows Job Object needs Windows acceptance',
     'Executable generated fixture uses a POSIX shebang',
     'Owned POSIX worker lifecycle; not Windows Job Object QA',
+    'POSIX link-unsupported fallback',
 })
 SOURCE_ONLY_NATIVE_REASONS = frozenset({
     'Opt in with AIO_QT_SAVE_QA=1 and existing Qt bindings',
