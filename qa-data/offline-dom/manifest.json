@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "kind": "offline_existing_test_dependency",
+  "zipSha256": "d9ad7038af496b846a1d1cfe8d05a6dd305c86dd90a90f0154217b80aa78462e",
+  "zipBytes": 1005732,
+  "parts": [
+    {
+      "path": "part-000.bin",
+      "gitBlobSha": "98cf854abbe06f4f43ec07f56326601249a72608"
+    },
+    {
+      "path": "part-001.bin",
+      "gitBlobSha": "9597afbb1fff75e2abd0f8723a023b6c663c22f8"
+    },
+    {
+      "path": "part-002.bin",
+      "gitBlobSha": "af8500f87d0a9a9b8127fc599e90c8f4f76c8a83"
+    }
+  ],
+  "entry": "node_modules/linkedom/cjs/index.js",
+  "licenses": "Original package LICENSE and package metadata are retained; QA-only, no production dependency or installation."
+}
