@@ -6,14 +6,15 @@ permissions:
   contents: read
 concurrency:
   group: aio-final-fulltest-pinned-nikita
-  cancel-in-progress: false
+  # The explicit replacement label cancels only obsolete runs in this QA group.
+  cancel-in-progress: ${{ github.event.action == 'labeled' && github.event.label.name == 'aio-final-replace-obsolete-once' }}
 jobs:
   windows-qa:
     if: >-
       github.repository == 'jumonja-maker/A.I.O' &&
       github.actor == 'jumonja-maker' &&
       github.event.action == 'labeled' &&
-      github.event.label.name == 'aio-final-fulltest-510-once' &&
+      (github.event.label.name == 'aio-final-fulltest-510-once' || github.event.label.name == 'aio-final-replace-obsolete-once') &&
       github.event.pull_request.number == 46 &&
       github.event.pull_request.user.login == 'jumonja-maker' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
