@@ -116,51 +116,69 @@ class MainWindow(QMainWindow):
             data + "}));")
 
     def on_download(self, item):
-        url = item.url().toString()
-        name = item.downloadFileName() or 'Объединённая_таблица.xlsx'
-        # Native Save supports only outputs produced by the independent
-        # Excel/LibreOffice workflow. Never accept remote download URLs.
-        extension = Path(name).suffix.lower().lstrip('.')
-        dialog_filter = download_filter(url, name, self._server.server_port)
-        if not dialog_filter:
-            item.cancel()
-            self._notify_download('failed', name, url)
-            return
-        query = parse_qs(urlsplit(url).query)
-        if query.get('mode') == ['folder']:
-            item.cancel()
-            return self._save_folder(url, query['ticket'][0], verify=True)
-        destination, _ = QFileDialog.getSaveFileName(
-            self, 'Сохранить результат', name, dialog_filter)
-        if not destination:
-            item.cancel()
-            self._notify_download('cancelled', name, url)
-            return
-        path = Path(destination)
-        if urlsplit(url).path == '/api/converter-guard/result' and self._server.guard.owns_path(path):
-            item.cancel()
-            self._notify_download('failed',name,url,error='Выберите папку вне служебного хранилища AIO.')
-            return
-        if path.suffix.lower() != '.' + extension:
-            self._notify_download('cancelled', name, url)
-            item.cancel()
-            return
-        if path.exists():
-            # Avoid silent overwrite; the file picker may already confirm this
-            # on some platforms, but keep the actual decision explicit.
-            answer = QMessageBox.question(self, 'Заменить файл?',
-                'Файл уже существует. Заменить его?',
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-            if answer != QMessageBox.StandardButton.Yes:
+        accepted = registered = False
+        try:
+            url = item.url().toString()
+            name = item.downloadFileName() or 'Объединённая_таблица.xlsx'
+            # Native Save supports only outputs produced by the independent
+            # Excel/LibreOffice workflow. Never accept remote download URLs.
+            extension = Path(name).suffix.lower().lstrip('.')
+            dialog_filter = download_filter(url, name, self._server.server_port)
+            if not dialog_filter:
+                item.cancel()
+                self._notify_download('failed', name, url)
+                return
+            query = parse_qs(urlsplit(url).query)
+            if query.get('mode') == ['folder']:
+                item.cancel()
+                return self._save_folder(url, query['ticket'][0], verify=True)
+            destination, _ = QFileDialog.getSaveFileName(
+                self, 'Сохранить результат', name, dialog_filter)
+            if not destination:
                 item.cancel()
                 self._notify_download('cancelled', name, url)
                 return
-        item.setDownloadDirectory(str(path.parent))
-        item.setDownloadFileName(path.name)
-        self._downloads.append(item)
-        item.stateChanged.connect(lambda state, d=item, u=url, p=path:
-            self._on_download_state(d, state, u, p))
-        item.accept()
+            path = Path(destination)
+            if urlsplit(url).path == '/api/converter-guard/result' and self._server.guard.owns_path(path):
+                item.cancel()
+                self._notify_download('failed',name,url,error='Выберите папку вне служебного хранилища AIO.')
+                return
+            if path.suffix.lower() != '.' + extension:
+                self._notify_download('cancelled', name, url)
+                item.cancel()
+                return
+            if path.exists():
+                # Avoid silent overwrite; the file picker may already confirm this
+                # on some platforms, but keep the actual decision explicit.
+                answer = QMessageBox.question(self, 'Заменить файл?',
+                    'Файл уже существует. Заменить его?',
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+                if answer != QMessageBox.StandardButton.Yes:
+                    item.cancel()
+                    self._notify_download('cancelled', name, url)
+                    return
+            item.setDownloadDirectory(str(path.parent))
+            item.setDownloadFileName(path.name)
+            self._downloads.append(item)
+            item.stateChanged.connect(lambda state, d=item, u=url, p=path:
+                self._on_download_state(d, state, u, p))
+            registered = True
+            item.accept()
+            accepted = True
+        finally:
+            if not accepted:
+                # Rejected requests and folder-save redirects never connect a
+                # terminal observer, but the profile still owns their QObject.
+                # Exceptions in a picker/notification must also release it.
+                try:
+                    self._downloads.remove(item)
+                except ValueError:
+                    pass
+                try:
+                    if registered:
+                        item.stateChanged.disconnect()
+                finally:
+                    item.deleteLater()
 
     def _save_folder(self, url, ticket, *, verify=True):
         if url in self._folder_saves:
@@ -261,24 +279,33 @@ class MainWindow(QMainWindow):
         threading.Thread(target=work, daemon=True, name='aio-save-readback').start()
 
     def _on_download_state(self, item, state, source_url, path):
-        if state == QWebEngineDownloadRequest.DownloadState.DownloadInProgress:
+        terminal = QWebEngineDownloadRequest.DownloadState
+        if state not in (terminal.DownloadCompleted, terminal.DownloadCancelled,
+                         terminal.DownloadInterrupted):
             return
-        if state == QWebEngineDownloadRequest.DownloadState.DownloadCompleted:
-            if path.exists() and path.is_file():
-                if urlsplit(source_url).path == '/api/converter-guard/result':
-                    self._verify_download(source_url, path)
+        try:
+            if state == terminal.DownloadCompleted:
+                if path.exists() and path.is_file():
+                    if urlsplit(source_url).path == '/api/converter-guard/result':
+                        self._verify_download(source_url, path)
+                    else:
+                        self._notify_download('completed', path.name, source_url)
                 else:
-                    self._notify_download('completed', path.name, source_url)
+                    self._notify_download('failed', path.name, source_url)
+            elif state == terminal.DownloadCancelled:
+                self._notify_download('cancelled', path.name, source_url)
             else:
                 self._notify_download('failed', path.name, source_url)
-        elif state == QWebEngineDownloadRequest.DownloadState.DownloadCancelled:
-            self._notify_download('cancelled', path.name, source_url)
-        else:
-            self._notify_download('failed', path.name, source_url)
-        try:
-            self._downloads.remove(item)
-        except ValueError:
-            pass
+        finally:
+            try:
+                self._downloads.remove(item)
+            except ValueError:
+                pass
+            # The profile owns the QObject even after Python's list drops
+            # it. Release the terminal request and the closure capturing this
+            # window; verification now owns only the URL/path, never the item.
+            item.stateChanged.disconnect()
+            item.deleteLater()
 
     @Slot(object)
     def _finish_shutdown(self, error):

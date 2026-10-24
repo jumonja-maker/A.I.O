@@ -3,7 +3,7 @@
   'use strict';
   let root=null, bar=null, stateButton=null, state=null, jobs=[], warnings=[], storage=null, page=0, refreshPending=false, clock=null;
   let preview=null, previewId=null, previewRequest=0;
-  // Only the visible page owns DOM nodes. Keep at most one flattened view;
+  // Only the visible page owns DOM nodes. Keep one bounded view per file;
   // unchanged polls and the elapsed-time clock must never rebuild the queue.
   let rowCache=null, paintedRows=null;
   const pendingActions=new Set();
@@ -184,7 +184,7 @@
     bar.querySelector('[data-g-pause]').disabled=!state||state.finished||['checking','prepared','packaging','uploading'].includes(state.state);
     bar.querySelector('[data-g-skip]').disabled=!active||active.stage==='upload';
     const select=bar.querySelector('[data-g-jobs]'),selected=select.value;
-    const signature=jobs.map(j=>j.jobId+':'+j.outputs).join('|');
+    const signature=jobs.map(j=>j.jobId+':'+j.outputs+':'+j.unsavedOutputs+':'+j.state+':'+j.saveInProgress).join('|');
     if(select.dataset.signature!==signature){
       select.replaceChildren();for(const job of jobs){const option=document.createElement('option');
         option.value=job.jobId;option.textContent=(job.salvaged?'Спасено без журнала · ':job.recovered?'Восстановлено · ':'')+(job.label||'Результаты')+' · '+job.outputs+' файлов';
@@ -252,18 +252,34 @@
     const files=shown?.files||[];
     const sameFiles=rowCache&&rowCache.files.length===files.length&&rowCache.files.every((file,i)=>file===files[i]);
     if(!sameFiles||rowCache.search!==search||rowCache.filter!==filter||rowCache.jobId!==shown?.jobId){
-      const rows=[];
-      for(const file of files)for(const task of file.targets||[]){
-        if(search&&!(file.name+' '+task.format).toLowerCase().includes(search))continue;
-        if(filter==='error'&&task.state!=='error'||filter==='pending'&&!['queued','converting'].includes(task.state)||
-           filter==='ready'&&!['ready','saved'].includes(task.state))continue;
-        rows.push({file,task});
+      const reusable=rowCache&&rowCache.search===search&&rowCache.filter===filter&&rowCache.jobId===shown?.jobId;
+      const previous=new Map(reusable?rowCache.chunks.map(chunk=>[chunk.file,chunk]):[]);
+      const chunks=[];let count=0;
+      for(const file of files){
+        let chunk=previous.get(file);
+        if(!chunk){
+          const rows=[];
+          for(const task of file.targets||[]){
+            if(search&&!(file.name+' '+task.format).toLowerCase().includes(search))continue;
+            if(filter==='error'&&task.state!=='error'||filter==='pending'&&!['queued','converting'].includes(task.state)||
+               filter==='ready'&&!['ready','saved'].includes(task.state))continue;
+            rows.push({file,task});
+          }
+          chunk={file,rows};
+        }
+        chunks.push(chunk);count+=chunk.rows.length;
       }
-      rowCache={files,rows,search,filter,jobId:shown?.jobId};
+      // A one-file status delta must not allocate/walk every other task in
+      // an 83,000-task queue. Retain unchanged chunks and page over them.
+      rowCache={files,chunks,count,search,filter,jobId:shown?.jobId};
     }
-    const rows=rowCache.rows;
-    const pages=Math.max(1,Math.ceil(rows.length/50));page=Math.min(page,pages-1);
-    const visible=rows.slice(page*50,page*50+50);
+    const pages=Math.max(1,Math.ceil(rowCache.count/50));page=Math.min(page,pages-1);
+    const visible=[];let skip=page*50;
+    for(const chunk of rowCache.chunks){
+      if(skip>=chunk.rows.length){skip-=chunk.rows.length;continue;}
+      visible.push(...chunk.rows.slice(skip,skip+50-visible.length));skip=0;
+      if(visible.length===50)break;
+    }
     const unchanged=paintedRows&&paintedRows.length===visible.length&&paintedRows.every((row,i)=>
       row.file===visible[i].file&&row.task===visible[i].task);
     if(!unchanged){
@@ -282,7 +298,7 @@
       paintedRows=visible;
     }
     text('[data-g-page]',(shown?.jobId?'Пакет '+shown.jobId.slice(0,8)+' · ':'')+
-      rows.length+' задач · '+(page+1)+' / '+pages);
+      rowCache.count+' задач · '+(page+1)+' / '+pages);
     bar.querySelector('[data-g-prev]').disabled=page===0;bar.querySelector('[data-g-next]').disabled=page>=pages-1;
   }
   window.addEventListener('aio-guard-state',event=>{
@@ -301,6 +317,11 @@
       if(id===state?.jobId)state=null;
       if(id===previewId){preview=null;previewId=null;}
       jobs=jobs.filter(j=>j.jobId!==id);
+    }else if(id===previewId){
+      // A partial save changes ready/saved states without changing output
+      // count. Reload the selected retained job instead of keeping its old
+      // full snapshot indefinitely while another queue is being observed.
+      preview=null;rowCache=paintedRows=null;loadPreview();
     }
     if(bar)bar.querySelector('[data-g-jobs]').dataset.signature='';
     refresh();render();

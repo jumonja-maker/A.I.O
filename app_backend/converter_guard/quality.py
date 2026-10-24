@@ -41,7 +41,9 @@ class _Budget:
                 block = stream.read(min(65536, size) if size >= 0 else 65536)
                 budget.check(len(block))
                 # Reject entities/DTDs including declarations split by reads.
-                test=(self.tail+block).upper()
+                # Inspection-only normalization catches UTF-16/32 declarations
+                # as well as ASCII, including markers split across reads.
+                test=(self.tail+block).replace(b'\0', b'').upper()
                 self.tail=test[-32:]
                 if b'<!DOCTYPE' in test or b'<!ENTITY' in test:
                     raise _Limited('xml_entities_not_inspected')
@@ -51,7 +53,8 @@ class _Budget:
 
 
 def _add_text(result, digest, text):
-    for word in WORD.findall(text):
+    for match in WORD.finditer(text):
+        word = match.group()
         digest.update(word.encode('utf-8')+b'\0')
         result['counts']['words'] += 1
 
@@ -97,6 +100,36 @@ def _xml(stream, result, digest, budget, family):
 
 def _xlsx_values(source, budget):
     from openpyxl import load_workbook
+    budget.check()
+    # read_only limits worksheet rows, but openpyxl eagerly retains shared
+    # strings and styles. Account for these parts before invoking its parser;
+    # a small compressed XLSX must not bypass the optional inspection budget.
+    with zipfile.ZipFile(source) as archive:
+        # OPC content types may legally name a nonstandard shared-strings part.
+        # Read that declaration under the same budget before resolving names.
+        declared_strings = set()
+        if '[Content_Types].xml' in archive.namelist():
+            with archive.open('[Content_Types].xml') as stream:
+                for _, item in ET.iterparse(budget.wrap(stream), events=('end',)):
+                    if item.get('ContentType') == ('application/vnd.openxmlformats-officedocument.'
+                                                    'spreadsheetml.sharedStrings+xml'):
+                        declared_strings.add(item.get('PartName', '')[1:])
+                    item.clear()
+        # In read-only mode worksheets stream, whereas styles, strings, theme,
+        # properties and other package metadata may still be read eagerly.
+        metadata = [item for item in archive.infolist()
+                    if item.filename != '[Content_Types].xml'
+                    and (item.filename in declared_strings or
+                         item.filename.lower().endswith(('.xml', '.rels'))
+                         and not item.filename.startswith('xl/worksheets/'))]
+        if sum(item.file_size for item in metadata) > budget.left:
+            raise _Limited('xlsx_metadata_budget')
+        for item in metadata:
+            with archive.open(item) as stream:
+                reader = budget.wrap(stream)
+                while reader.read(65536):
+                    pass
+    budget.check()
     book=load_workbook(source,read_only=True,data_only=False,keep_links=False)
     digest=hashlib.sha256()
     result={'rows':0,'columns':0,'valuesDigest':None,'sheets':len(book.sheetnames)}

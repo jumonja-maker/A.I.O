@@ -30,10 +30,21 @@ class ProcessTree:
                 raise OSError('Cannot contain LibreOffice process')
             on_started()
         except BaseException:
-            if self.process is not None:
-                self.process.kill()
-                self.process.wait()
-            self.close()
+            try:
+                if self.process is not None:
+                    # A launcher may exit between a failing startup callback /
+                    # containment check and kill(). Reap it when possible, but
+                    # still close the owned group/job if that race occurs.
+                    try:
+                        self.process.kill()
+                    except ProcessLookupError:
+                        pass
+                    try:
+                        self.process.wait(timeout=3)
+                    except (ProcessLookupError, subprocess.TimeoutExpired):
+                        pass
+            finally:
+                self.close()
             raise
 
     def _make_windows_job(self):

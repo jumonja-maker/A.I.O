@@ -41,19 +41,24 @@ class OfficeSession:
         self.starts += 1
 
     def recycle(self):
-        if self.tree:
-            self.tree.close()
-            self.tree = None
-        if self.logs:
-            self.logs.finish()
-            self.logs = None
-        if self.profile:
-            shutil.rmtree(self.profile, ignore_errors=True)
-        self.profile = self.pipe = None
+        tree, logs, profile = self.tree, self.logs, self.profile
+        self.tree = self.logs = self.profile = self.pipe = None
+        try:
+            if tree:
+                tree.close()
+        finally:
+            try:
+                if logs:
+                    logs.finish()
+            finally:
+                if profile:
+                    shutil.rmtree(profile, ignore_errors=True)
 
     def __enter__(self):
         return self
 
     def __exit__(self, *_):
-        self.recycle()
-        shutil.rmtree(self.workspace, ignore_errors=True)
+        try:
+            self.recycle()
+        finally:
+            shutil.rmtree(self.workspace, ignore_errors=True)

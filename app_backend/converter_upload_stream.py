@@ -9,18 +9,45 @@ from email.message import Message
 from email.parser import BytesHeaderParser
 from email import policy
 import errno
+import io
 from pathlib import Path
 
 from .libreoffice_engine import LibreOfficeError, source_format
 
 CHUNK = 64 * 1024
+# Protocol metadata is bounded independently of document bytes. Files continue
+# to stream without an implicit size limit through the same parser.
+MAX_METADATA_BYTES = 16 * 1024 * 1024
+
+
+class _MetadataBuffer(io.BytesIO):
+    def __init__(self, upload):
+        super().__init__()
+        self.upload = upload
+
+    def write(self, value):
+        if self.upload.metadata_bytes + len(value) > MAX_METADATA_BYTES:
+            raise LibreOfficeError('Превышен лимит метаданных запроса.', 'INVALID_REQUEST')
+        written = super().write(value)
+        self.upload.metadata_bytes += written
+        return written
 
 
 def content_length(headers):
-    value = headers.get('Content-Length', '')
-    if not value.isdecimal() or int(value) <= 0:
+    values = (headers.get_all('Content-Length', []) if hasattr(headers, 'get_all')
+              else [headers.get('Content-Length', '')])
+    if len(values) != 1 or headers.get('Transfer-Encoding') is not None:
+        raise LibreOfficeError('Требуется однозначный размер HTTP-запроса.', 'INVALID_REQUEST')
+    value = values[0]
+    if not isinstance(value, str) or not value.isascii() or not value.isdecimal():
         raise LibreOfficeError('Не указан размер HTTP-запроса.', 'INVALID_REQUEST')
-    return int(value)
+    try:
+        length = int(value)
+    except ValueError as error:
+        raise LibreOfficeError('Некорректный размер HTTP-запроса.', 'INVALID_REQUEST') from error
+    if length <= 0:
+        raise LibreOfficeError('Не указан размер HTTP-запроса.', 'INVALID_REQUEST')
+    return length
 
 
 class MultipartUpload:
@@ -34,6 +61,7 @@ class MultipartUpload:
         self.stream, self.left, self.cancel = stream, length, cancel
         self.buffer = bytearray()
         self.boundary = boundary.encode('ascii')
+        self.metadata_bytes = 0
 
     def _more(self):
         if self.cancel.is_set():
@@ -85,7 +113,6 @@ class MultipartUpload:
             self._more()
 
     def read(self, directory: Path):
-        import io
         prefix = b'--' + self.boundary + b'\r\n'
         while len(self.buffer) < len(prefix):
             self._more()
@@ -122,9 +149,9 @@ class MultipartUpload:
                 files.append({'path': path, 'name': name, 'size': path.stat().st_size,
                               'warnings': warnings})
             elif key in ('ids', 'format', 'formats') and key not in fields:
-                value = io.BytesIO()
-                finished = self._write_part(value)
-                fields[key] = value.getvalue().decode('utf-8', 'strict')
+                with _MetadataBuffer(self) as value:
+                    finished = self._write_part(value)
+                    fields[key] = value.getvalue().decode('utf-8', 'strict')
             else:
                 raise LibreOfficeError('Некорректное поле запроса.', 'INVALID_REQUEST')
         # Consume the optional MIME epilogue in bounded chunks.

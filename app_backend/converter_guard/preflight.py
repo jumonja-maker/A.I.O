@@ -28,22 +28,32 @@ def _diagnostic_stage(work):
 
 
 def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile,
-                   native=None, office_session=None):
+                   native=None, office_session=None, _source_inspection=None):
     from .routes import registry
     from .csv_import import csv_import_hint
     from .legacy_import import legacy_import_hint
     from .source_contract import inspect_source_contract, source_import_hint, source_model_matches
+    if cancel.is_set():
+        raise GuardError('CANCELLED', 'Предварительная проверка отменена.', stage='preflight')
     native = native if native is not None else registry(executable)
-    contract = inspect_source_contract(source, cancel=cancel)
+    if _source_inspection is None:
+        contract = inspect_source_contract(source, cancel=cancel)
+        source_hint = source_import_hint(contract, native)
+        hint = source_hint or csv_import_hint(source, native) or legacy_import_hint(source, native)
+    else:
+        # The adapter already inspected these exact source bytes in this call.
+        # This is not a cross-file proof cache: native import/model matching
+        # below still establishes compatibility independently.
+        contract, hint = _source_inspection
+        source_hint = source_import_hint(contract, native)
     if contract.get('state') == 'invalid':
         return {'state': 'undetermined', 'code': contract['code'], 'sourceContract': contract, 'exported': False}
-    source_hint = source_import_hint(contract, native)
-    hint = source_hint or csv_import_hint(source, native) or legacy_import_hint(source, native)
     if not native.valid:
         return {'state': 'undetermined', 'code': 'PREFLIGHT_REGISTRY_UNAVAILABLE'}
     work = work.resolve()
     work.mkdir(parents=True, exist_ok=False)
-    prepare_profile(work / 'profile')
+    if office_session is None:
+        prepare_profile(work / 'profile')
     manifest = work / 'request.json'
     request = {'program': str(Path(executable).resolve().parent), 'source': str(source.resolve())}
     request['documentServices'] = sorted({service for services in native.imports.values() for service in services})
@@ -75,7 +85,7 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
                    [sys.executable, str(Path(__file__).with_name('preflight_native.py')), str(manifest)])
         environment['LD_LIBRARY_PATH'] = str(program) + (
             os.pathsep + environment['LD_LIBRARY_PATH'] if environment.get('LD_LIBRARY_PATH') else '')
-    deadline = time.monotonic() + timeout
+    deadline = None if timeout is None else time.monotonic() + timeout
     try:
         with ProcessTree(command, cwd=work, env=environment) as tree:
             if os.name == 'nt':
@@ -84,11 +94,12 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
             while tree.process.poll() is None:
                 if cancel.is_set():
                     raise GuardError('CANCELLED', 'Предварительная проверка отменена.', stage='preflight')
-                if time.monotonic() >= deadline:
+                if deadline is not None and time.monotonic() >= deadline:
                     return {'state': 'undetermined', 'code': 'PREFLIGHT_TIMEOUT',
                             'diagnosticStage': _diagnostic_stage(work)}
                 try:
-                    tree.process.wait(timeout=min(.05, max(0, deadline-time.monotonic())))
+                    tree.process.wait(timeout=.05 if deadline is None else
+                                      min(.05, max(0, deadline-time.monotonic())))
                 except subprocess.TimeoutExpired:
                     pass
             if cancel.is_set():

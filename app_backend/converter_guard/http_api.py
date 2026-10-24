@@ -165,7 +165,9 @@ class GuardAPI:
                                      handler.headers.get('If-None-Match', ''))
                 since = int(match[2]) if match and match[1] == identity else None
                 delta = parse_qs(urlsplit(handler.path).query).get('delta') == ['1']
-                state = self.guard.status(identity, include_trace=trace, since_revision=since, delta=delta)
+                result_delta = parse_qs(urlsplit(handler.path).query).get('resultDelta') == ['1']
+                state = self.guard.status(identity, include_trace=trace, since_revision=since,
+                                          delta=delta, result_delta=result_delta)
                 return self._status_reply(handler, state)
             if path == PREFIX + '/recoverable':
                 return self._json(handler,200, self.guard.recoverable())

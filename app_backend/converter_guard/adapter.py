@@ -1,7 +1,10 @@
 """Use the existing direct native adapter. No second conversion engine."""
 from contextlib import ExitStack, contextmanager
+import copy
 import os
 from pathlib import Path
+import secrets
+import shutil
 import threading
 import time
 
@@ -14,8 +17,79 @@ from .export_recipe import native_export_recipe
 from .native_observation import NativeObservation
 from .native_metrics import clean_timings
 from .legacy_import import legacy_import_hint, validate_options
-from .postconditions import check_native_output
+from .postconditions import SourceEvidence, check_native_output
 from .source_contract import inspect_source_contract, source_import_hint, source_model_matches
+
+
+def _source_identity(source):
+    """Local batch identity, not a persistent content-compatibility proof."""
+    source = Path(source)
+    try:
+        if source.is_symlink() or not source.is_file():
+            return None
+        stamp = source.stat()
+        return (str(source.resolve(strict=True)), stamp.st_dev, stamp.st_ino,
+                stamp.st_size, stamp.st_mtime_ns, stamp.st_ctime_ns)
+    except OSError:
+        return None
+
+
+class _PreparedSourceCache:
+    """Keep one private immutable import copy; never reuse a live LO model.
+
+    Expensive ODF column insertion / EPUB spine staging is target-independent.
+    The previous file's staging is discarded before preparing another source.
+    A locked private copy is left to its owning batch's workspace cleanup.
+    Original and prepared-file identities are checked on every reuse; nothing
+    survives its owning batch or authorizes a new conversion route.
+    """
+    def __init__(self, workspace):
+        self.workspace = Path(workspace)
+        self.current = self.entry = None
+
+    def _clear(self):
+        current = self.current
+        # Detach first: a Windows scanner / native file lock must not poison
+        # every later source or replace the original preparation exception.
+        # Only this helper's generated directory is attempted here. Results
+        # and source files live elsewhere; the batch owns all deferred copies.
+        self.entry = self.current = None
+        if current is not None:
+            try:
+                shutil.rmtree(current)
+            except OSError:
+                pass
+
+    def prepare(self, source, *, epub, cancel):
+        from .odf_table_import import prepare_odf_table_source
+        source = Path(source)
+        if cancel.is_set():
+            raise GuardError('CANCELLED', 'Подготовка исходника отменена.', stage='import')
+        identity = _source_identity(source)
+        if identity is not None and self.entry is not None:
+            old_identity, old_epub, prepared, prepared_identity, summary = self.entry
+            if (identity == old_identity and epub == old_epub and
+                    _source_identity(prepared) == prepared_identity):
+                return prepared, copy.deepcopy(summary)
+        self._clear()
+        self.current = self.workspace / secrets.token_hex(12)
+        try:
+            if epub:
+                from .epub_import import prepare_epub
+                staged = prepare_epub(source, self.current, cancel=cancel)
+                prepared, summary = staged.source, staged.summary
+            else:
+                prepared, summary = prepare_odf_table_source(source, self.current, cancel=cancel)
+            if identity is not None and _source_identity(source) != identity:
+                raise GuardError('SOURCE_CHANGED_DURING_PREPARATION',
+                    'Исходник изменился во время подготовки. Повторите проверку файла.', stage='import')
+            prepared_identity = _source_identity(prepared)
+            if identity is not None and prepared_identity is not None:
+                self.entry = (identity, epub, prepared, prepared_identity, copy.deepcopy(summary))
+            return prepared, summary
+        except BaseException:
+            self._clear()
+            raise
 
 
 def prepare_profile(profile):
@@ -121,6 +195,8 @@ class LibreOfficeAdapter:
         previous = getattr(self._local, 'batch', None)
         previous_source = (getattr(self._local,'proof',None),getattr(self._local,'import_filter',None),
                            getattr(self._local,'import_options',None))
+        previous_preparation = getattr(self._local, 'source_preparation', None)
+        previous_evidence = getattr(self._local, 'source_evidence', None)
         factory = (UnoSession if os.name == 'nt' and os.environ.get('AIO_GUARD_NATIVE_SESSION','1') != '0'
                    and (self.executable.parent/'python.exe').is_file()
                    else OfficeSession)
@@ -128,11 +204,15 @@ class LibreOfficeAdapter:
             office.import_timeout, office.close_timeout = import_timeout, close_timeout
             office.chart_timeout = chart_timeout
             self._local.batch = (registry(self.executable), office)
+            self._local.source_preparation = _PreparedSourceCache(Path(workspace) / 'source-preparation')
+            self._local.source_evidence = None
             try:
                 yield office
             finally:
                 self._local.batch = previous
                 self._local.proof, self._local.import_filter, self._local.import_options = previous_source
+                self._local.source_preparation = previous_preparation
+                self._local.source_evidence = previous_evidence
 
     def _registry(self):
         batch = getattr(self._local, 'batch', None)
@@ -373,7 +453,8 @@ class LibreOfficeAdapter:
         try:
             proof = inspect_source(self.executable, source, workspace, cancel=cancel,
                 timeout=timeout, prepare_profile=prepare_profile, native=self._registry(),
-                office_session=office if os.name == 'nt' and not hasattr(office,'request') else None)
+                office_session=office if os.name == 'nt' and not hasattr(office,'request') else None,
+                _source_inspection=(contract, hint))
             if proof.get('state') == 'detected' and not source_model_matches(contract, proof.get('documentServices')):
                 return {'state': 'undetermined', 'code': 'SOURCE_MODEL_MISMATCH',
                         'sourceContract': contract, 'exported': False}
@@ -425,6 +506,12 @@ class LibreOfficeAdapter:
 
     def convert(self, source, target, workspace, *, cancel, timeout,
                 on_started, output_limit=None, on_document_service=None, on_stage=None):
+        # Preparation, identity-copy and media validation can fail before the
+        # native branch is entered. The queue captures metrics in its finally
+        # block, so clear the previous target's provenance before any work.
+        self._local.execution_mode = None
+        self._local.metrics = None
+        self._local.export_info = {}
         from .media_fidelity import copy_media_identity
         from .native_identity import copy_chart_identity
         from .native_metafile import native_metafile_target, wrap_native_metafiles
@@ -463,7 +550,12 @@ class LibreOfficeAdapter:
         if paths is None:
             native_source = source
             preparation = None
-            if proof.get('sourcePreparation', {}).get('kind') == 'epub_spine_html':
+            source_preparation = getattr(self._local, 'source_preparation', None)
+            epub = proof.get('sourcePreparation', {}).get('kind') == 'epub_spine_html'
+            if source_preparation is not None:
+                native_source, preparation = source_preparation.prepare(
+                    source, epub=epub, cancel=identity_control)
+            elif epub:
                 from .epub_import import prepare_epub
                 prepared = prepare_epub(source, workspace / 'epub-package', cancel=identity_control)
                 native_source, preparation = prepared.source, prepared.summary
@@ -495,7 +587,14 @@ class LibreOfficeAdapter:
                      *preparation.get('warnings', ()),
                      *(['ODF_IMPLICIT_COLUMNS_EXPLICIT'] if preparation.get('state') == 'prepared'
                        and preparation.get('kind') == 'odf_explicit_table_columns' else []))))
-        check = check_native_output(paths, target, source, cancel=identity_control)
+        source_evidence = None
+        if getattr(self._local, 'batch', None) is not None:
+            source_evidence = getattr(self._local, 'source_evidence', None)
+            if source_evidence is None:
+                source_evidence = SourceEvidence(source)
+                self._local.source_evidence = source_evidence
+        check = check_native_output(paths, target, source, cancel=identity_control,
+                                    source_evidence=source_evidence)
         if check:
             checks = [{key: value for key, value in check.items() if key != 'additionalChecks'}]
             checks.extend(check.get('additionalChecks', []))

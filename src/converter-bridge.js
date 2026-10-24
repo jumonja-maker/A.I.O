@@ -51,7 +51,7 @@
     return payloadOf(response);
   }
   async function poll(operation, full = false) {
-    const response = await fetch(prefix + '/jobs?job=' + encodeURIComponent(operation.jobId) + (full ? '' : '&delta=1'), {
+    const response = await fetch(prefix + '/jobs?job=' + encodeURIComponent(operation.jobId) + (full ? '' : '&delta=1&resultDelta=1'), {
       headers:{...headers, ...(!full && operation.etag ? {'If-None-Match':operation.etag} : {})},
       cache:'no-store'
     });
@@ -69,6 +69,32 @@
         throw errorOf('Не удалось восстановить состояние очереди.', 'STATUS_REVISION');
       }
       const changed = new Map(state.files.map(f=>[String(f.fileId),f]));
+      if (state.resultOutputsDelta === true && state.result) {
+        if (!operation.snapshot.result || !Array.isArray(operation.snapshot.result.outputs)) {
+          // A result wrapper can appear during packaging, after its files
+          // already appeared in earlier snapshots. An incremental inventory
+          // cannot establish that initial complete set; resync it once.
+          operation.etag = null;
+          if (!full) return poll(operation, true);
+          throw errorOf('Не удалось восстановить список результатов.', 'STATUS_REVISION');
+        }
+        // Outputs grow throughout a large batch. Guard sends only changed
+        // tickets when this client explicitly negotiates the delta contract.
+        // Keep old tickets (including saved ones), replace updated metadata,
+        // and never merge into the anchor-only partialResult descriptor.
+        const previous = operation.snapshot.result.outputs;
+        const additions = state.result.outputs || [];
+        if (additions.length) {
+          const outputs = previous.slice();
+          const indexes = new Map(outputs.map((output, i)=>[output.ticket,i]));
+          for (const output of additions) {
+            const index = indexes.get(output.ticket);
+            if (index === undefined) {indexes.set(output.ticket,outputs.length);outputs.push(output);}
+            else outputs[index] = output;
+          }
+          state = {...state,result:{...state.result,outputs}};
+        } else state = {...state,result:{...state.result,outputs:previous}};
+      }
       state = {...state,files:operation.snapshot.files.map(f=>changed.get(String(f.fileId)) || f),
                changedFileIds:[...changed.keys()]};
     }

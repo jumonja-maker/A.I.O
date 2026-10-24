@@ -9,10 +9,12 @@ import secrets
 import tempfile
 import threading
 import time
-from zipfile import ZipFile, ZIP_STORED
+from zipfile import ZipFile, ZipInfo, ZIP_STORED
 
 from .libreoffice_catalog import mime_for
 from .libreoffice_engine import LibreOfficeError, convert_path
+
+ARCHIVE_CHUNK = 128 * 1024
 
 
 @dataclass
@@ -21,6 +23,8 @@ class Request:
     connection: object
     temporary: object
     cancel: threading.Event = field(default_factory=threading.Event)
+    packaging_cancel: threading.Event = field(default_factory=threading.Event)
+    packaging: bool = False
     done: threading.Event = field(default_factory=threading.Event)
     files: list = field(default_factory=list)
     completed: int = 0
@@ -95,6 +99,8 @@ class ConverterTransport:
             request = self.active.get(identity)
             if request:
                 request.cancel.set()
+                if request.packaging:
+                    request.packaging_cancel.set()
                 self._telemetry('cancel_requested', request_id=identity,
                                 stage='cancel', status='cancelled')
                 # Polling wakes stalled uploads on cancellation without
@@ -213,19 +219,36 @@ class ConverterTransport:
             name, mime = path.name, mime_for(path.suffix.lower().lstrip('.'))
         else:
             path = request.root / 'Конвертированные_файлы.zip'
+            with self.lock:
+                request.packaging = True
             self._telemetry('archive_started', request_id=request.identity,
                             stage='packaging', status='started')
-            with ZipFile(path, 'w', compression=ZIP_STORED, allowZip64=True) as archive:
-                for archive_name, output in artifacts:
-                    archive.write(output, archive_name)
-                if report['failed']:
-                    archive.writestr('AIO-conversion-report.json',
-                                     json.dumps(report, ensure_ascii=False, indent=2).encode())
+            try:
+                with ZipFile(path, 'w', compression=ZIP_STORED, allowZip64=True) as archive:
+                    for archive_name, output in artifacts:
+                        self._check_packaging_cancel(request)
+                        info = ZipInfo.from_file(output, archive_name)
+                        with output.open('rb') as source, archive.open(info, 'w', force_zip64=True) as target:
+                            while True:
+                                self._check_packaging_cancel(request)
+                                chunk = source.read(ARCHIVE_CHUNK)
+                                if not chunk:
+                                    break
+                                target.write(chunk)
+                    self._check_packaging_cancel(request)
+                    if report['failed']:
+                        archive.writestr('AIO-conversion-report.json',
+                                         json.dumps(report, ensure_ascii=False, indent=2).encode())
+                    self._check_packaging_cancel(request)
+            finally:
+                with self.lock:
+                    request.packaging = False
             name, mime = path.name, 'application/zip'
             self._telemetry('archive_ready', request_id=request.identity,
                             stage='bundle', status='ready')
         ticket = secrets.token_urlsafe(32)
         with self.lock:
+            self._check_packaging_cancel(request)
             if self.closed:
                 raise LibreOfficeError('Программа закрывается.', 'CANCELLED')
             self.results[ticket] = Result(request.temporary, path, name, mime)
@@ -234,6 +257,13 @@ class ConverterTransport:
                 'targetReport': report, 'formatIds': formats},
                 'message': ('Готово преобразований: ' + str(report['succeeded']) +
                             '. Ошибок: ' + str(report['failed']) + '. Можно сохранить результат.')}
+
+    @staticmethod
+    def _check_packaging_cancel(request):
+        # Cancelling native conversion deliberately retains already converted
+        # outputs. A second/explicit cancel while packaging cancels the ZIP.
+        if request.packaging_cancel.is_set():
+            raise LibreOfficeError('Упаковка результатов отменена.', 'CANCELLED')
 
     @contextmanager
     def lease(self, ticket):
@@ -331,6 +361,7 @@ class ConverterTransport:
             tickets = list(self.results)
         for request in active:
             request.cancel.set()
+            request.packaging_cancel.set()
         for request in active:
             request.done.wait(3)
         for ticket in tickets:
