@@ -17,6 +17,15 @@ PILLOW_WINDOWS_SHA256 = '1a992e86b0dd7aeb1f053cd506508c0999d710a8f07b4c791c63843
 PILLOW_WINDOWS_WHEEL = 'pillow-11.3.0-cp311-cp311-win_amd64.whl'
 
 
+def _archive_name(entry):
+    # ZipInfo normalizes native separators on Windows and truncates at NUL.
+    # Validate the name actually stored in the ZIP, before that normalization.
+    name = entry.orig_filename
+    if name != entry.filename:
+        raise ValueError('Unsafe archive name changed during ZIP parsing')
+    return name
+
+
 def _assemble(parts, destination, expected_sha256):
     parts, destination = Path(parts), Path(destination)
     if destination.exists() or destination.is_symlink():
@@ -72,7 +81,7 @@ def materialize(parts, destination, *, expected_sha256=ORIGINAL_ZIP_SHA256):
         if sum(entry.file_size for entry in entries) != manifest.get('sourceBytes'):
             raise ValueError('Unexpected corpus expanded size')
         for entry in entries:
-            name = entry.filename
+            name = _archive_name(entry)
             if (not name or '/' in name or '\\' in name or name in ('.','..') or
                     '\0' in name or name.casefold() in extracted or entry.is_dir() or
                     stat.S_ISLNK(entry.external_attr >> 16)):
@@ -109,6 +118,7 @@ def materialize_dom(parts,destination):
         if len(entries)>5000 or sum(e.file_size for e in entries)>32*1024*1024:
             raise ValueError('Unexpected DOM dependency size')
         for entry in entries:
+            _archive_name(entry)
             path=Path(entry.filename)
             if (path.is_absolute() or '..' in path.parts or '\\' in entry.filename or
                     not entry.filename.startswith('node_modules/') or
@@ -152,7 +162,7 @@ def materialize_pillow_windows(parts, destination):
         if not 0 < len(entries) <= 1024 or sum(e.file_size for e in entries) > 64*1024*1024:
             raise ValueError('Unexpected Windows Pillow QA expanded size')
         for entry in entries:
-            name = entry.filename
+            name = _archive_name(entry)
             segments = name.rstrip('/').split('/')
             if (not name or '\\' in name or '\0' in name or name.startswith('/') or
                     any(part in ('', '.', '..') or ':' in part or part != part.rstrip(' .')

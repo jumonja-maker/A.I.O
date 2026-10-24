@@ -92,14 +92,22 @@ def media_preflight(source, *, cancel=None):
             document.close()
         return {'source': info, 'targets': ['tif', 'tiff'], 'decoder': 'qt_pdf_pages',
                 'decoderAvailable': True, 'exported': False}
-    reader = gui.QImageReader(str(source))
-    reader.setFormat(core.QByteArray(info['format'].encode('ascii')))
-    reader.setDecideFormatFromContent(True)
-    can_read = reader.canRead()
-    del reader
     decoder = 'manual_apng_qt_png' if info.get('animationContainer') else 'qt_image_reader'
-    if info['format'] == 'tiff' and not can_read and _tiff_support(source, cancel):
+    # Match the conversion iterator: a first-page Qt canRead() result does not
+    # prove that its optional TIFF plugin can seek every later IFD.
+    if info['format'] == 'tiff' and _tiff_support(source, cancel):
         can_read, decoder = True, 'bounded_tiff_strips'
+    else:
+        reader = gui.QImageReader(str(source))
+        try:
+            reader.setFormat(core.QByteArray(info['format'].encode('ascii')))
+            reader.setDecideFormatFromContent(True)
+            can_read = reader.canRead()
+        finally:
+            device = reader.device()
+            if device is not None:
+                device.close()
+            del reader
     targets = supported_media_targets(info, source=source, cancel=cancel)
     if not can_read:
         kind = info['format']

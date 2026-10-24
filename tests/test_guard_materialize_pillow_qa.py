@@ -33,7 +33,14 @@ class PillowQaTransportTests(unittest.TestCase):
         buffer = io.BytesIO()
         with zipfile.ZipFile(buffer, 'w') as package:
             for name, data in [*files, *extra]:
-                package.writestr(name, data)
+                if isinstance(name, str):
+                    # Preserve deliberately invalid raw names even on Windows,
+                    # where the constructor normally canonicalizes backslashes.
+                    entry = zipfile.ZipInfo(name)
+                    entry.filename = entry.orig_filename = name
+                else:
+                    entry = name
+                package.writestr(entry, data)
         data = buffer.getvalue()
         parts = self.root/'parts'
         parts.mkdir()
@@ -78,6 +85,18 @@ class PillowQaTransportTests(unittest.TestCase):
         parts = self.archive(extra=[(linked, b'../../outside')])
         with self.assertRaisesRegex(ValueError, 'Unsafe'):
             qa.materialize_pillow_windows(parts, self.root/'out')
+
+    def test_windows_separator_normalization_cannot_hide_raw_archive_name(self):
+        parts = self.archive(extra=[('PIL\\outside', b'forbidden')])
+        # Exercise the Windows ZipInfo parsing rule on every QA platform.
+        with patch.object(zipfile.os, 'sep', '\\'):
+            with zipfile.ZipFile(parts/'part-000.bin') as archive:
+                entry = archive.infolist()[-1]
+                self.assertEqual(entry.orig_filename, 'PIL\\outside')
+                self.assertEqual(entry.filename, 'PIL/outside')
+            with self.assertRaisesRegex(ValueError, 'ZIP parsing'):
+                qa.materialize_pillow_windows(parts, self.root/'out')
+        self.assertFalse((self.root/'out/PIL').exists())
 
     def test_rejects_part_mutation_before_package_extraction(self):
         parts = self.archive()

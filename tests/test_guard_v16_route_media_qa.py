@@ -149,6 +149,53 @@ class TargetedAcceptanceReaders(unittest.TestCase):
             'DATA\n0,0\n""\n-1,0\nBOT\n1,0\n"comma, text"\n0,123.5\nV\n-1,0\nEOD\n')
         self.assertEqual(qa.dif_records(path), [['comma, text', qa.Decimal('123.5')]])
 
+    def test_malformed_dif_numeric_reports_exact_raw_line_without_locale_guessing(self):
+        path = self.root / 'localized.dif'
+        path.write_text('TABLE\n0,1\n"Sheet"\nDATA\n0,0\n""\n-1,0\nBOT\n0,123,5\nV\n-1,0\nEOD\n')
+        with self.assertRaisesRegex(AssertionError, "DIF file='localized.dif'.*pair='0,123,5'.*rawHex="):
+            qa.dif_records(path)
+
+    def test_malformed_dbf_numeric_reports_field_offset_and_bytes(self):
+        data = bytearray(65 + 8 + 1); data[0] = 3
+        struct.pack_into('<IHH', data, 4, 1, 65, 8)
+        data[32:38] = b'AMOUNT'; data[43] = ord('N'); data[48] = 7; data[49] = 2
+        data[64] = 13; data[65:73] = b' 123,50 '; data[73] = 26
+        path = self.root / 'localized.dbf'; path.write_bytes(data)
+        with self.assertRaisesRegex(AssertionError, "DBF file='localized.dbf'.*field='AMOUNT'.*offset=66.*rawHex="):
+            qa.dbf_records(path)
+
+    def test_canonical_native_numbers_ignore_localized_display_but_reject_localized_values(self):
+        path = self.root / 'control.fods'
+        office = 'urn:oasis:names:tc:opendocument:xmlns:office:1.0'
+        table = 'urn:oasis:names:tc:opendocument:xmlns:table:1.0'
+        text = 'urn:oasis:names:tc:opendocument:xmlns:text:1.0'
+        xml = '<office:document xmlns:office="' + office + '" xmlns:table="' + table + '" xmlns:text="' + text + '">' + \
+            '<office:body><office:spreadsheet><table:table><table:table-row>' + \
+            '<table:table-cell office:value-type="string"><text:p>ALPHA</text:p></table:table-cell>' + \
+            '<table:table-cell office:value-type="float" office:value="123.5"><text:p>123,50</text:p></table:table-cell>' + \
+            '<table:table-cell table:number-columns-repeated="16382"/></table:table-row>' + \
+            '<table:table-row table:number-rows-repeated="1048575"><table:table-cell/></table:table-row>' + \
+            '</table:table></office:spreadsheet></office:body></office:document>'
+        path.write_text(xml)
+        self.assertEqual(qa.canonical_fods_rows(path), [['ALPHA', qa.Decimal('123.5')]])
+        path.write_text(xml.replace('office:value="123.5"', 'office:value="123,5"'))
+        with self.assertRaisesRegex(AssertionError, 'not canonical'):
+            qa.canonical_fods_rows(path)
+
+    def test_native_and_raw_table_comparison_uses_numeric_values_not_decimal_repr(self):
+        path = self.root / 'table.dif'; path.write_bytes(b'controlled')
+        expected = [['NAME', 'AMOUNT'], ['ALPHA', qa.Decimal('123.5')]]
+        raw = [['NAME', 'AMOUNT'], ['ALPHA', qa.Decimal('123.50')]]
+        flat = self.root / 'table.fods'
+        with patch.object(qa, 'dif_records', return_value=raw), patch.object(
+                qa, 'native_table_rows', return_value=([expected], [flat])), patch(
+                'guard_v17_native_acceptance.check_native_table_readback', return_value={'allFound': True}):
+            result = qa.table_check([path], 'dif', [expected], native_work=self.root / 'readback')
+            self.assertEqual(result['sheets'], 1)
+            raw[1][1] = qa.Decimal('123.51')
+            with self.assertRaisesRegex(AssertionError, 'disagrees'):
+                qa.table_check([path], 'dif', [expected], native_work=self.root / 'changed')
+
     def test_dif_charset_declaration_covers_exact_saved_unicode_outputs(self):
         path = self.root / 'table.dif'
         path.write_bytes('TABLE\n0,1\n"Проверка"\nDATA\n0,0\n""\n-1,0\nEOD\n'.encode('utf-8'))

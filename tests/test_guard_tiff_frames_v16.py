@@ -1,5 +1,6 @@
 """TIFF fallback compared against an independent encoder/decoder in dev QA."""
 import io
+import os
 from pathlib import Path
 import random
 import struct
@@ -159,7 +160,8 @@ class TiffFallback(unittest.TestCase):
 
     def test_real_fulltest_raw_rgba_and_three_lzw_rgb_pages(self):
         evidence = Path(__file__).resolve().parents[2]/'evidence'
-        paths = [evidence/'05_LEVEL_2.tiff', evidence/'06_LEVEL_3.tiff']
+        corpus = Path(os.environ.get('AIO_QA_CORPUS', evidence))
+        paths = [corpus/'05_LEVEL_2.tiff', corpus/'06_LEVEL_3.tiff']
         if not all(path.is_file() for path in paths):
             self.skipTest('external FULLTEST evidence unavailable')
         self.assertEqual(len(self.compare(paths[0])), 1)

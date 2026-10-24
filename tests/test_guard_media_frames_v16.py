@@ -152,15 +152,23 @@ class QtFrameConversion(unittest.TestCase):
             capture_output=True,text=True,check=True,timeout=20)
         self.assertEqual(completed.stdout.strip(),'native_fallback')
 
-    def test_tiff_fallback_preserves_all_pages_when_qt_codec_is_absent(self):
-        # The bounded standard strip reader preserves every page if the
-        # platform's optional Qt TIFF plugin cannot be loaded.
-        supported = {bytes(v).decode() for v in QImageReader.supportedImageFormats()}
-        if 'tiff' in supported or 'tif' in supported:
-            self.skipTest('Qt TIFF codec present; covered by native Windows QA')
+    def test_tiff_standard_reader_preserves_all_pages_even_with_a_broken_qt_plugin(self):
+        # A plugin accepting the first page must not become a prerequisite for
+        # the standard RGB/RGBA strip layouts. Run this on Windows as well.
+        class BrokenImageReader:
+            allocationLimit = staticmethod(QImageReader.allocationLimit)
+            supportedImageFormats = staticmethod(QImageReader.supportedImageFormats)
+            def __init__(self, *args, **kwargs):
+                raise AssertionError('Supported TIFF must not use the optional Qt decoder')
         from test_guard_media_fidelity_v16 import tiff
+        from app_backend.converter_guard.qt_media import media_preflight
         source = self.source('tiff',tiff(pages=3))
-        output,proof = self.convert(source,'apng')
+        with patch('PySide6.QtGui.QImageReader', BrokenImageReader):
+            admission = media_preflight(source, cancel=self.cancel)
+            self.assertTrue(admission['decoderAvailable'])
+            self.assertEqual(admission['decoder'], 'bounded_tiff_strips')
+            self.assertIn('apng', admission['targets'])
+            output,proof = self.convert(source,'apng')
         self.assertEqual(proof['result']['frames'],3)
         self.assertTrue(proof['result']['alpha'])
         self.assertIn('page_semantics_as_frames',proof['expectedLosses'])

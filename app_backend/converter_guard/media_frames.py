@@ -195,32 +195,48 @@ def iter_media_frames(source, info=None, *, cancel=None):
     if info['format'] == 'png' and info.get('animationContainer'):
         yield from _apng_frames(source, info, cancel)
         return
+    if info['format'] == 'tiff':
+        from .tiff_frames import inspect_tiff_decode_support, iter_tiff_frames
+        # canRead() only confirms the first IFD. Some installed Qt TIFF plugins
+        # fail at later pages despite accepting the container. Validate every
+        # page's layout before yielding, then consistently use the bounded strip
+        # reader for its supported layouts on every platform, including BigTIFF.
+        if inspect_tiff_decode_support(source, cancel=cancel)['supported']:
+            frames = iter_tiff_frames(source, cancel=cancel)
+            try:
+                for index, image in enumerate(frames):
+                    orientations = info.get('pageOrientations', [])
+                    image = _orient(image, orientations[index] if index < len(orientations) else 1)
+                    yield _rgba(image), 100
+            finally:
+                frames.close()
+            return
     core, gui = _qt()
     reader = gui.QImageReader(str(source))
-    reader.setFormat(core.QByteArray(info['format'].encode('ascii')))
-    reader.setDecideFormatFromContent(True)
-    reader.setAutoTransform(True)
-    if info['format'] == 'tiff' and not reader.canRead():
+    try:
+        reader.setFormat(core.QByteArray(info['format'].encode('ascii')))
+        reader.setDecideFormatFromContent(True)
+        reader.setAutoTransform(True)
+        count = max(info['frames'], info['pages'])
+        animation = reader.supportsAnimation()
+        for index in range(count):
+            _cancel(cancel)
+            native_index = info.get('pageImageIndexes',list(range(count)))[index]
+            if index and not animation and not reader.jumpToImage(native_index):
+                raise _codec_error('Штатный модуль Qt не смог открыть все страницы изображения.', reader.errorString())
+            image = reader.read()
+            if image.isNull():
+                raise _codec_error('Штатный модуль Qt не смог прочитать все кадры изображения.', reader.errorString())
+            durations = info.get('durationsMs', [])
+            yield _rgba(image), durations[index] if index < len(durations) else 100
+    finally:
+        # This reader owns a filename-backed QFile. Explicitly close it even if
+        # iteration is cancelled or a consumer stops after the first frame;
+        # traceback references must not retain a Windows source-file lock.
+        device = reader.device()
+        if device is not None:
+            device.close()
         del reader
-        from .tiff_frames import iter_tiff_frames
-        for index,image in enumerate(iter_tiff_frames(source,cancel=cancel)):
-            orientations = info.get('pageOrientations',[])
-            image = _orient(image,orientations[index] if index < len(orientations) else 1)
-            yield _rgba(image),100
-        return
-    count = max(info['frames'], info['pages'])
-    animation = reader.supportsAnimation()
-    for index in range(count):
-        _cancel(cancel)
-        native_index = info.get('pageImageIndexes',list(range(count)))[index]
-        if index and not animation and not reader.jumpToImage(native_index):
-            raise _codec_error('Штатный модуль Qt не смог открыть все страницы изображения.', reader.errorString())
-        image = reader.read()
-        if image.isNull():
-            raise _codec_error('Штатный модуль Qt не смог прочитать все кадры изображения.', reader.errorString())
-        durations = info.get('durationsMs', [])
-        yield _rgba(image), durations[index] if index < len(durations) else 100
-    del reader
 
 
 def _pdf_frames(source, *, cancel):

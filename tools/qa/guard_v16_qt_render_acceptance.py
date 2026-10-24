@@ -77,26 +77,79 @@ class HeldAdapter:
         return [path]
 
 
+def _dispose_window(app, window):
+    """Destroy the page before its profile while the Qt dispatcher is alive."""
+    from PySide6.QtCore import QCoreApplication, QEvent
+    from shiboken6 import isValid
+    profile, page = window.profile, window.page
+    # MainWindow intentionally parents the profile to its page. Retain it
+    # explicitly during QA teardown so the profile outlives page destruction.
+    profile.setParent(None)
+    window.view.stop()
+    window._shutdown_done = True  # The owned server is already closed below.
+    window.close()
+    window.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    app.processEvents()
+    require(not isValid(window) and not isValid(page),
+            'Owned Qt window/page did not finish deferred destruction')
+    profile.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    app.processEvents()
+    require(not isValid(profile), 'Owned Qt profile did not finish deferred destruction')
+    return {'windowDestroyed': True, 'pageDestroyed': True, 'profileDestroyed': True}
+
+
+def _run_in_event_loop(app, callback):
+    """Run checks inside the real application loop, then quit normally."""
+    from PySide6.QtCore import QTimer
+    values, errors = [], []
+
+    def perform():
+        try:
+            values.append(callback())
+        except BaseException as error:
+            errors.append(error)
+        finally:
+            # Give WebEngine's destruction messages one ordinary event-loop
+            # turn before normal QApplication shutdown; no forced process exit.
+            QTimer.singleShot(50, app.quit)
+
+    QTimer.singleShot(0, perform)
+    code = app.exec()
+    require(code == 0, 'Qt application event loop returned ' + str(code))
+    if errors:
+        raise errors[0]
+    require(len(values) == 1, 'Qt application exited before render checks completed')
+    return values[0]
+
+
 def run_render(output, seconds):
+    # Load WebEngine before constructing QApplication, as in the real shell.
+    from PySide6.QtWebEngineWidgets import QWebEngineView  # noqa: F401
+    from PySide6.QtWidgets import QApplication
+    app = QApplication.instance() or QApplication(['aio-state-render-qa'])
+    app.setApplicationName('AIO-State-Render-QA')
+    app.setQuitOnLastWindowClosed(False)
+    return _run_in_event_loop(app, lambda: _run_render_checks(output, seconds, app))
+
+
+def _run_render_checks(output, seconds, app):
     # Imports occur after per-process QA paths are redirected by main(). A
     # missing system library produces INCOMPLETE, never a simulated PASS.
     from PySide6.QtCore import QPoint, QEventLoop, Qt, qVersion
     from PySide6.QtTest import QTest
-    from PySide6.QtWidgets import QApplication
     from PySide6.QtWebEngineWidgets import QWebEngineView  # noqa: F401
     from app_backend.desktop import MainWindow
     from app_backend.server import start_server
 
-    app = QApplication.instance() or QApplication(['aio-state-render-qa'])
-    app.setApplicationName('AIO-State-Render-QA')
-    app.setQuitOnLastWindowClosed(False)
     deadline = time.monotonic() + seconds
     server = window = job = None
     adapter = HeldAdapter()
     facts = {'schema': 1, 'status': 'FAIL', 'platform': platform.system(), 'qtVersion': qVersion(),
              'scope': 'actual MainWindow/QtWebEngine/server; controlled engine only',
              'controlledTasks': 1000, 'themes': [], 'nativeEvents': True,
-             'queueCancelledByDialog': None, 'screenshots': []}
+             'queueCancelledByDialog': None, 'screenshots': [], 'mainEventLoop': True}
 
     def pump():
         require(time.monotonic() < deadline, 'Global render acceptance deadline exceeded')
@@ -268,10 +321,7 @@ def run_render(output, seconds):
             server.shutdown()
             server.server_close()
         if window is not None:
-            window._shutdown_done = True  # Teardown already closed the owned server.
-            window.close()
-            window.deleteLater()
-            app.processEvents()
+            facts['teardown'] = _dispose_window(app, window)
 
 
 def main(argv=None):

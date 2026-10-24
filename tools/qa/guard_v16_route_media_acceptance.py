@@ -8,7 +8,7 @@ separately from actual conversion tests. This is not FULLTEST or GUI approval.
 import argparse
 import base64
 import csv
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 import hashlib
 from html.parser import HTMLParser
 import importlib.util
@@ -25,6 +25,7 @@ import subprocess
 import sys
 import threading
 import time
+import traceback
 from urllib.parse import unquote, unquote_to_bytes, urlsplit
 import zipfile
 import zlib
@@ -112,15 +113,21 @@ def dbf_records(path):
                     if start >= len(memo) or end < start: raise ValueError('Missing or truncated DBF memo block')
                     text = memo[start:end].decode('utf-8')
                 else: text = ''
-            row.append(Decimal(text) if kind in ('N', 'F') and text else text)
+            if kind in ('N', 'F') and text:
+                context = 'DBF file=%r record=%d field=%r type=%r offset=%d rawHex=%s raw=%r' % (
+                    Path(path).name, number, name, kind, header + number * width + position - length,
+                    raw.hex(), raw)
+                row.append(canonical_number(text, context=context))
+            else:
+                row.append(text)
         rows.append(row)
     return rows
 
 
-def dbf_import_rows(path):
+def dbf_import_rows(path, *, data_rows=None):
     """Calc exposes native DBF field metadata in its first-row labels."""
     data, records, header, width, fields = dbf_descriptor(path)
-    rows = dbf_records(path)
+    rows = dbf_records(path) if data_rows is None else [[], *data_rows]
     rows[0] = [name + ',' + kind + (',' + str(length) if kind in ('C', 'N', 'F') else '') +
         (',' + str(decimals) if kind in ('N', 'F') else '') for name, kind, length, decimals in fields]
     return rows
@@ -147,10 +154,23 @@ def dif_records(path):
             current.append(next(csv.reader([value], strict=True))[0])
         elif kind == '0':
             if current is None: raise ValueError('DIF number before BOT')
-            current.append(Decimal(numeric))
+            current.append(canonical_number(numeric, context='DIF file=%r line=%d pair=%r rawHex=%s' % (
+                Path(path).name, position - 1, type_value, type_value.encode('utf-8').hex())))
         else:
             raise ValueError('Unsupported DIF cell type')
     raise ValueError('Missing DIF EOD')
+
+
+def canonical_number(text, *, context):
+    """DIF/DBF numeric bytes use canonical ASCII syntax, not desktop locale."""
+    if not re.fullmatch(r'[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?', text):
+        raise AssertionError('Noncanonical numeric literal: ' + context + '; text=%r' % text)
+    try:
+        value = Decimal(text)
+    except InvalidOperation as error:
+        raise AssertionError('Invalid numeric literal: ' + context + '; text=%r' % text) from error
+    if not value.is_finite(): raise AssertionError('Nonfinite numeric literal: ' + context)
+    return value
 
 
 def xlsx_records(path):
@@ -172,25 +192,107 @@ def normalize_rows(rows):
     return result
 
 
-def table_check(paths, target, expected):
+def canonical_fods_rows(path):
+    """Read typed XML scalar values without guessing display-text locale."""
+    from guard_v17_native_acceptance import OFFICE, TABLE, cell_display, odf_xml
+    tables = odf_xml(path).findall('.//{%s}table' % TABLE)
+    if len(tables) != 1: raise AssertionError('Native table reimport did not contain exactly one sheet')
+    rows, pending_rows = [], 0
+    for row in tables[0].findall('.//{%s}table-row' % TABLE):
+        values, pending_cells = [], 0
+        for cell in row:
+            if cell.tag not in ('{%s}table-cell' % TABLE, '{%s}covered-table-cell' % TABLE): continue
+            kind = cell.get('{%s}value-type' % OFFICE)
+            if kind in ('float', 'currency', 'percentage'):
+                raw = cell.get('{%s}value' % OFFICE)
+                if not isinstance(raw, str) or not re.fullmatch(r'[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?', raw):
+                    raise AssertionError('Native typed numeric value is not canonical: type=%r value=%r display=%r' %
+                                         (kind, raw, cell_display(cell)))
+                value = Decimal(raw)
+                if not value.is_finite(): raise AssertionError('Native typed numeric value is not finite')
+            elif kind in (None, 'string'):
+                value = cell_display(cell)
+            else:
+                raise AssertionError('Unexpected native scalar type in controlled table: ' + str(kind))
+            repeat = int(cell.get('{%s}number-columns-repeated' % TABLE, '1'))
+            if repeat < 1: raise AssertionError('Invalid native column repetition')
+            if value == '':
+                pending_cells += repeat
+            else:
+                if len(values) + pending_cells + repeat > 1024:
+                    raise AssertionError('Native control table exceeds the column budget')
+                values.extend([''] * pending_cells); values.extend([value] * repeat); pending_cells = 0
+        repeat = int(row.get('{%s}number-rows-repeated' % TABLE, '1'))
+        if repeat < 1: raise AssertionError('Invalid native row repetition')
+        if not values:
+            pending_rows += repeat
+        else:
+            if len(rows) + pending_rows + repeat > 10000:
+                raise AssertionError('Native control table exceeds the row budget')
+            rows.extend([[] for _ in range(pending_rows)]); rows.extend([list(values) for _ in range(repeat)])
+            pending_rows = 0
+    return rows
+
+
+def native_table_rows(paths, target, work, executable, seconds):
+    """Reopen with the explicit matching native charset, then inspect typed XML."""
+    from app_backend.converter_guard.adapter import _RunControl, prepare_profile
+    from app_backend.libreoffice_engine import convert_path
+    rows, flats = [], []
+    for index, path in enumerate(paths):
+        folder = work / ('sheet-%d' % index)
+        prepare_profile(folder / 'profile')
+        outputs = convert_path(path, 'fods', folder, executable=executable,
+            convert_spec='fods:OpenDocument Spreadsheet Flat XML',
+            import_filter='dBase:76' if target == 'dbf' else 'DIF:76',
+            cancel=_RunControl(threading.Event(), folder, seconds, None))
+        flat = next(p for p in outputs if p.suffix.lower() == '.fods')
+        actual = canonical_fods_rows(flat)
+        if target == 'dbf':
+            expected_header = dbf_import_rows(path, data_rows=[])[0]
+            if not actual or actual[0] != expected_header:
+                raise AssertionError('Native DBF header metadata differs from independent field descriptors')
+            actual[0] = [f[0] for f in dbf_descriptor(path)[4]]
+        rows.append(actual); flats.append(flat)
+    return rows, flats
+
+
+def table_check(paths, target, expected, *, native_work=None, executable=None, seconds=120):
+    flats = None
     if target == 'xlsx':
         actual = [rows for p in paths for rows in xlsx_records(p)]
+    elif native_work is not None:
+        parser = dbf_records if target == 'dbf' else dif_records
+        raw_actual = [parser(p) for p in paths]
+        actual, flats = native_table_rows(paths, target, native_work, executable, seconds)
+        if [normalize_rows(sheet) for sheet in raw_actual] != [normalize_rows(sheet) for sheet in actual]:
+            raise AssertionError('Native typed readback disagrees with independent raw ' + target + ' records')
     else:
         parser = dbf_records if target == 'dbf' else dif_records
         actual = [parser(p) for p in paths]
     normalized_actual = [normalize_rows(rows) for rows in actual]
     normalized_expected = [normalize_rows(rows) for rows in expected]
     # Fan-out filenames and native sheet order are not content identity.
-    remaining = list(normalized_actual)
+    remaining = list(enumerate(normalized_actual))
+    readbacks = []
     for sheet in normalized_expected:
-        if sheet not in remaining:
+        matches = [entry for entry in remaining if entry[1] == sheet]
+        if not matches:
             raise AssertionError('Missing or changed table cells in ' + target)
-        remaining.remove(sheet)
+        index, _ = matches[0]; remaining.remove(matches[0])
+        if flats is not None:
+            from guard_v17_native_acceptance import check_native_table_readback
+            markers = [v for row in sheet[1:] for v in row if isinstance(v, str) and v]
+            pairs = [(row[0], row[1]) for row in sheet[1:] if len(row) > 1 and
+                     isinstance(row[0], str) and isinstance(row[1], Decimal)]
+            readbacks.append(check_native_table_readback(flats[index], markers, pairs))
     if remaining:
         raise AssertionError('Unexpected extra table output in ' + target)
     return {'status': 'pass', 'sheets': len(actual), 'rowsPerSheet': [len(r) for r in actual],
             'columnsPerSheet': [len(r[0]) if r else 0 for r in actual],
-            'method': 'independent_DBF_DIF_records_or_openpyxl_cells'}
+            'method': 'native_FODS_typed_values_and_independent_exact_cells' if flats is not None else
+                      'independent_DBF_DIF_records_or_openpyxl_cells',
+            **({'nativeTypedReadback': readbacks} if flats is not None else {})}
 
 
 def dif_charset_check(paths):
@@ -222,9 +324,9 @@ def dif_charset_check(paths):
             'encodingNativeFilterOptions': '76'}
 
 
-def mixed_dbf_check(paths, expected, source_values):
+def mixed_dbf_check(paths, expected, source_values, *, native_work=None, executable=None, seconds=120):
     primary = [p for p in paths if p.suffix.lower() == '.dbf']
-    check = table_check(primary, 'dbf', [expected])
+    check = table_check(primary, 'dbf', [expected], native_work=native_work, executable=executable, seconds=seconds)
     dbf = primary[0]
     if not any(kind == 'M' for name, kind, length, decimals in dbf_descriptor(dbf)[4]):
         raise AssertionError('Mixed column was not represented by a DBF memo')
@@ -812,9 +914,10 @@ def prepare(root, executable, seconds, suite='all'):
     for ext, fil in [('dbf', 'dBase:76'), ('dif', 'DIF:76')]:
         paths = native_export(table, ext, root / ('make-' + ext), executable, seconds, fil)
         path = next(p for p in paths if p.suffix.lower() == '.' + ext)
-        table_check([path], ext, [TABLE_ROWS])
+        table_check([path], ext, [TABLE_ROWS], native_work=root / ('make-' + ext + '-readback'),
+                    executable=executable, seconds=seconds)
         sources[ext] = {'path': path, 'targets': ['xlsx', 'dif' if ext == 'dbf' else 'dbf'],
-                        'kind': 'table', 'expected': [dbf_import_rows(path) if ext == 'dbf' else TABLE_ROWS]}
+                        'kind': 'table', 'expected': [dbf_import_rows(path, data_rows=TABLE_ROWS[1:]) if ext == 'dbf' else TABLE_ROWS]}
     if suite != 'routes': sources.update(_raster_sources(fixtures, helper))
     image = base64.b64encode(helper.png(width=3, height=5)).decode('ascii')
     xml = writer_seed().replace('xmlns:table=',
@@ -910,9 +1013,11 @@ def run(root, sources, executable, seconds):
                 source = sources[key]
                 try:
                     if source['kind'] == 'table':
-                        check = table_check(primary, target, source['expected'])
+                        check = table_check(primary, target, source['expected'],
+                            native_work=root / ('table-readback-' + key + '-' + target), executable=executable, seconds=seconds)
                         if target == 'dif': check.update(dif_charset_check(paths))
-                    elif source['kind'] == 'mixed_dbf': check = mixed_dbf_check(paths, source['expected'], source['sourceValues'])
+                    elif source['kind'] == 'mixed_dbf': check = mixed_dbf_check(paths, source['expected'], source['sourceValues'],
+                        native_work=root / ('table-readback-' + key + '-' + target), executable=executable, seconds=seconds)
                     elif source['kind'] == 'media': check = media_check(source['path'], primary, target)
                     elif target == 'svm': check = svm_check(paths, root / ('svm-control-' + key), executable, seconds,
                         expected_pages=len(source['pageMarkers']))
@@ -923,7 +1028,8 @@ def run(root, sources, executable, seconds):
                     row['checks'].append({'source': key, 'target': target, **check})
                 except Exception as error:
                     row['checks'].append({'source': key, 'target': target, 'status': 'fail',
-                                          'reason': type(error).__name__ + ':' + str(error)})
+                                          'reason': type(error).__name__ + ':' + str(error),
+                                          'traceback': traceback.format_exc()})
         row['originalsUnchanged'] = all(digest(s['path']) == before[k] for k, s in sources.items())
         expected = row['requestedPairs']
         row['status'] = ('pass' if not row['unplannedPairs'] and state['failed'] == state['cancelled'] == 0
@@ -963,9 +1069,11 @@ def main():
         'status': 'required_two_slide_HTML_HTM_XHTML' if os.name == 'nt' else 'NOT_RUN',
         'reason': None if os.name == 'nt' else 'requires_observed_UNO_per_page_SVG_graphic_export_proof'}
     try:
+        evidence['phase'] = 'fixture_generation_and_direct_native_baseline'
         sources = prepare(args.output, args.executable, args.seconds, args.suite)
         evidence['fixtures'] = {key: {'name': s['path'].name, 'sha256': digest(s['path']),
             'kind': s['kind'], 'targets': s['targets']} for key, s in sources.items()}
+        evidence['phase'] = 'Guard_queue_save_and_output_readback'
         evidence['acceptance'] = run(args.output, sources, args.executable, args.seconds)
         evidence['status'] = evidence['acceptance']['status']
         for target in ('txt', 'svm'):
@@ -975,7 +1083,8 @@ def main():
                     status='pass' if all(c['status'] == 'pass' for c in checked) else 'fail',
                     actualContentChecks=len(checked), reason=None)
     except Exception as error:
-        evidence['error'] = {'type': type(error).__name__, 'code': getattr(error, 'code', None), 'message': str(error)}
+        evidence['error'] = {'type': type(error).__name__, 'code': getattr(error, 'code', None),
+                             'message': str(error), 'traceback': traceback.format_exc()}
     finally:
         evidence['elapsedMs'] = round((time.monotonic() - started) * 1000)
         (args.output / 'evidence.json').write_text(json.dumps(evidence, ensure_ascii=False, indent=2, default=str), encoding='utf-8')

@@ -5,6 +5,7 @@ import random
 import tempfile
 import threading
 import unittest
+from unittest.mock import patch
 
 from app_backend.converter_guard.errors import GuardError
 from app_backend.converter_guard.media_fidelity import inspect_media
@@ -45,18 +46,55 @@ class GifQtCompositing(unittest.TestCase):
             write_gif(path, [(first, 100), (second, 200)], width=2, height=2,
                       reserve_transparency=True)
             reader = QImageReader(str(path))
-            self.assertFalse(reader.read().isNull())
-            actual = reader.read().convertToFormat(QImage.Format.Format_RGBA8888)
-            self.assertFalse(actual.isNull())
-            for y in range(2):
-                for x in range(2):
-                    observed, expected = actual.pixelColor(x, y), second.pixelColor(x, y)
-                    self.assertEqual(observed.alpha(), expected.alpha())
-                    if expected.alpha():
-                        self.assertEqual(observed.getRgb(), expected.getRgb())
+            try:
+                self.assertFalse(reader.read().isNull())
+                actual = reader.read().convertToFormat(QImage.Format.Format_RGBA8888)
+                self.assertFalse(actual.isNull())
+                for y in range(2):
+                    for x in range(2):
+                        observed, expected = actual.pixelColor(x, y), second.pixelColor(x, y)
+                        self.assertEqual(observed.alpha(), expected.alpha())
+                        if expected.alpha():
+                            self.assertEqual(observed.getRgb(), expected.getRgb())
+            finally:
+                reader.device().close()
+                del reader
             # Transparency is announced on the first opaque frame as well.
             data = path.read_bytes()
             self.assertEqual(data[data.index(b'!\xf9\x04')+3] & 1, 1)
+
+    def test_product_iterator_closes_qt_source_device_on_early_close_and_cancel(self):
+        from app_backend.converter_guard.media_frames import iter_media_frames
+        for mode in ('early_close', 'cancel'):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
+                path = Path(directory)/'source.gif'
+                image = qimage([(255, 0, 0, 255)]*4, 2, 2)
+                write_gif(path, [(image, 100), (image, 200)], width=2, height=2)
+                readers = []
+                def capture_reader(*args, **kwargs):
+                    reader = QImageReader(*args, **kwargs)
+                    readers.append(reader)
+                    return reader
+                cancelled = threading.Event()
+                with patch('PySide6.QtGui.QImageReader', side_effect=capture_reader):
+                    frames = iter_media_frames(path, cancel=cancelled)
+                    try:
+                        next(frames)
+                        self.assertEqual(len(readers), 1)
+                        device = readers[0].device()
+                        self.assertTrue(device.isOpen())
+                        if mode == 'cancel':
+                            cancelled.set()
+                            with self.assertRaises(GuardError) as error:
+                                next(frames)
+                            self.assertEqual(error.exception.code, 'CANCELLED')
+                        else:
+                            frames.close()
+                        self.assertFalse(device.isOpen())
+                    finally:
+                        frames.close()
+                        for reader in readers:
+                            reader.device().close()
 
 
 @unittest.skipIf(QImage is None or Image is None, 'Qt and independent Pillow decoder required')

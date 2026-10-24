@@ -6,7 +6,7 @@ import threading
 from types import SimpleNamespace
 import unittest
 import xml.etree.ElementTree as ET
-from urllib.parse import urlsplit, unquote
+from urllib.parse import urlsplit
 
 from app_backend.converter_guard.errors import GuardError
 from app_backend.converter_guard.native_draw_html import (
@@ -159,7 +159,8 @@ class NativeDrawHtml(unittest.TestCase):
             def filter(self, properties):
                 values = {p.Name: p.Value for p in properties}
                 self_outer.assertEqual(values['MediaType'], 'image/svg+xml')
-                path = Path(unquote(urlsplit(values['URL']).path))
+                from urllib.request import url2pathname
+                path = Path(url2pathname(urlsplit(values['URL']).path))
                 path.write_text('<svg xmlns="http://www.w3.org/2000/svg" width="210mm" height="297mm" '
                     'viewBox="0 0 21000 29700"><text x="10" y="20">' + MARKERS[self.page.index] +
                     '</text><image href="data:image/png;base64,' + base64.b64encode(PNG).decode() + '"/></svg>')
