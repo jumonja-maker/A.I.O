@@ -1,0 +1,156 @@
+{
+  "schema": 1,
+  "reviewDate": "2026-10-24",
+  "originalFiles": 510,
+  "originalBytes": 57001904,
+  "acquisitionManifestSha256": "c1f22eccb01dfcd6822e634e1513e03c5edc012ef338477df77c6c5f4a70b2b1",
+  "negativeManifestSha256": "63f16a4a7204493ce25866b2b956bad86b1ceef56937b70e383a4957ae3bc51e",
+  "independence": "The review script imported only Python standard-library ZIP, XML, HTML, gzip and hashing modules. It did not import converter_guard, consume its diagnoses, invoke its preflight, or use previous conversion failures to grant exclusions. Raw original bytes were opened read-only.",
+  "checks": {
+    "exactOriginalSHA256AndSizeMatches": 510,
+    "zipContainersWithAllMemberCRCsValid": 168,
+    "xmlDocumentsAndPartsFullyParsedWithoutSyntaxError": 2352,
+    "gzipOriginalsFullyDecompressedWithoutCRCOrISIZEError": 18
+  },
+  "reviewedNegatives": 12,
+  "negativeCounts": {
+    "HTML_LOCAL_RESOURCES_NOT_UPLOADED": 4,
+    "SOURCE_CONTAINER_INCONSISTENT": 8
+  },
+  "findings": [
+    {
+      "relativePath": "02_LEVEL_2.htm",
+      "sha256": "8420358555d0b8dcd74442975a14db9061e146f3fd43cd1a394a98cc331ecb9b",
+      "evidence": {
+        "method": "stdlib HTMLParser img src extraction and exact original inventory/path lookup",
+        "localImageReference": "level_2_htm_2c78dfd0.png",
+        "presentInOriginal510Inventory": false,
+        "presentRelativeToHTML": false
+      }
+    },
+    {
+      "relativePath": "02_LEVEL_2.html",
+      "sha256": "a5f2e05074d7c0b1488f80b7e408fca351d06457bf4345a9ee246daa8888e1eb",
+      "evidence": {
+        "method": "stdlib HTMLParser img src extraction and exact original inventory/path lookup",
+        "localImageReference": "level_2_html_2c78dfd0.png",
+        "presentInOriginal510Inventory": false,
+        "presentRelativeToHTML": false
+      }
+    },
+    {
+      "relativePath": "03_LEVEL_3.htm",
+      "sha256": "c8076ae14c86cddecae2948845376c3bb06dd14932c649e2b71afa07013661b5",
+      "evidence": {
+        "method": "stdlib HTMLParser img src extraction and exact original inventory/path lookup",
+        "localImageReference": "level_3_htm_d43736c5.png",
+        "presentInOriginal510Inventory": false,
+        "presentRelativeToHTML": false
+      }
+    },
+    {
+      "relativePath": "03_LEVEL_3.html",
+      "sha256": "3ede38433128d8392195cefe9590f7a755364bc780bc3970efb043b7e07f3644",
+      "evidence": {
+        "method": "stdlib HTMLParser img src extraction and exact original inventory/path lookup",
+        "localImageReference": "level_3_html_d43736c5.png",
+        "presentInOriginal510Inventory": false,
+        "presentRelativeToHTML": false
+      }
+    },
+    {
+      "relativePath": "04_LEVEL_1.sxw",
+      "sha256": "3289a78b8c6f3a90992b0dc1300e04488996ce44c3c0d6f39a024f7979e10680",
+      "evidence": {
+        "method": "stdlib ZIP read and ElementTree full XML parse",
+        "mimetype": "application/vnd.sun.xml.writer",
+        "contentXmlRoot": "{urn:oasis:names:tc:opendocument:xmlns:office:1.0}document-content",
+        "requiredStarOfficeRoot": "{http://openoffice.org/2000/office}document-content"
+      }
+    },
+    {
+      "relativePath": "04_LEVEL_1.xlsm",
+      "sha256": "778fbfc5df8e9916cb5c67eff1969958d6fb9097e5253acb328a51d0ae468c81",
+      "evidence": {
+        "method": "stdlib ZIP member list, full relationship XML and workbook XML parse",
+        "missingPart": "[Content_Types].xml",
+        "relationshipType": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument",
+        "mainTarget": "xl/workbook.xml",
+        "mainRoot": "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}workbook"
+      }
+    },
+    {
+      "relativePath": "05_LEVEL_2.fodp",
+      "sha256": "8e6caf1aa7a0397c2de17041454577b5ebe042d2f42cb3fb2902d83e8e1c34c6",
+      "evidence": {
+        "method": "stdlib ElementTree full XML parse",
+        "root": "{urn:oasis:names:tc:opendocument:xmlns:office:1.0}document",
+        "officeMimetype": "application/vnd.oasis.opendocument.presentation-flat-xml",
+        "bodyChild": "{urn:oasis:names:tc:opendocument:xmlns:office:1.0}presentation",
+        "requiredDocumentFamilyMimetype": "application/vnd.oasis.opendocument.presentation"
+      }
+    },
+    {
+      "relativePath": "05_LEVEL_2.fodt",
+      "sha256": "ef9b6b9ffc47f3517136259c86d0686431ebb699d03afe2b29ca03eef0c1cf08",
+      "evidence": {
+        "method": "stdlib ElementTree full XML parse",
+        "root": "{urn:oasis:names:tc:opendocument:xmlns:office:1.0}document",
+        "officeMimetype": "application/vnd.oasis.opendocument.text-flat-xml",
+        "bodyChild": "{urn:oasis:names:tc:opendocument:xmlns:office:1.0}text",
+        "requiredDocumentFamilyMimetype": "application/vnd.oasis.opendocument.text"
+      }
+    },
+    {
+      "relativePath": "05_LEVEL_2.sxw",
+      "sha256": "0898890a4d8592258ec9a2da5bafe789a43bc93630a230b2354bce58418d9d34",
+      "evidence": {
+        "method": "stdlib ZIP read and ElementTree full XML parse",
+        "mimetype": "application/vnd.sun.xml.writer",
+        "contentXmlRoot": "{urn:oasis:names:tc:opendocument:xmlns:office:1.0}document-content",
+        "requiredStarOfficeRoot": "{http://openoffice.org/2000/office}document-content"
+      }
+    },
+    {
+      "relativePath": "06_LEVEL_3.fodp",
+      "sha256": "b41f18e9a845a4c8695b2dc3748ca80a0b08f9612829232f21cb9a8b3f0265b7",
+      "evidence": {
+        "method": "stdlib ElementTree full XML parse",
+        "root": "{urn:oasis:names:tc:opendocument:xmlns:office:1.0}document",
+        "officeMimetype": "application/vnd.oasis.opendocument.presentation-flat-xml",
+        "bodyChild": "{urn:oasis:names:tc:opendocument:xmlns:office:1.0}presentation",
+        "requiredDocumentFamilyMimetype": "application/vnd.oasis.opendocument.presentation"
+      }
+    },
+    {
+      "relativePath": "06_LEVEL_3.fodt",
+      "sha256": "87586ed829b7a0c8b986894b105999bd364c43bb31eaea84f2b4ec164a085d01",
+      "evidence": {
+        "method": "stdlib ElementTree full XML parse",
+        "root": "{urn:oasis:names:tc:opendocument:xmlns:office:1.0}document",
+        "officeMimetype": "application/vnd.oasis.opendocument.text-flat-xml",
+        "bodyChild": "{urn:oasis:names:tc:opendocument:xmlns:office:1.0}text",
+        "requiredDocumentFamilyMimetype": "application/vnd.oasis.opendocument.text"
+      }
+    },
+    {
+      "relativePath": "06_LEVEL_3.sxw",
+      "sha256": "4e83cf13b9d354df636c955274d1ccbe4a1a3cae4ece1862194e17b8c9246f2d",
+      "evidence": {
+        "method": "stdlib ZIP read and ElementTree full XML parse",
+        "mimetype": "application/vnd.sun.xml.writer",
+        "contentXmlRoot": "{urn:oasis:names:tc:opendocument:xmlns:office:1.0}document-content",
+        "requiredStarOfficeRoot": "{http://openoffice.org/2000/office}document-content"
+      }
+    }
+  ],
+  "notWaived": [
+    "The 18 OOXML native import failures described in the bugbag are not independently proven malformed by these bounded checks. Their relevant main roots match the declared document families; ns0 prefixes in Content_Types XML are legal. No exception is granted for native import failure alone.",
+    "All six XLSX files use a Default xml content type for their workbook main part. OPC Default declarations are legal; absence of an Override for that part is not an invalid fixture.",
+    "ODF tables with implicit columns are not declared invalid here. They must preserve their content in actual conversion.",
+    "Absence of VBA parts in macro-capable containers does not by itself make a document malformed. No macro absence waiver is granted.",
+    "Protection, interaction requests, format availability, unknown content and exhausted budgets are not treated as independently invalid fixtures.",
+    "The two transient LibreOffice lock files found alongside originals are not original acquisition files, are not included in this review, and were not modified."
+  ],
+  "limits": "Full XML parsing establishes syntax only. The 12 exceptions rely on additional explicit MIME/namespace or missing-part/resource contradictions recorded above. This is not a complete OOXML/ODF schema conformance certification or a universal fidelity claim."
+}

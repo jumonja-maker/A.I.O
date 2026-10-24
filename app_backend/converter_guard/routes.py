@@ -129,7 +129,8 @@ class Registry:
             return next(iter(preferred))
         # LibreOffice ships multiple OOXML variants with the same suffix and
         # no unique DEFAULT. These are its standard native output filters.
-        standard = {'docx': 'MS Word 2007 XML', 'xlsx': 'Calc MS Excel 2007 XML',
+        standard = {'docx': 'MS Word 2007 XML', 'docm': 'MS Word 2007 XML VBA',
+                    'dotx': 'MS Word 2007 XML Template', 'xlsx': 'Calc MS Excel 2007 XML',
                     'pptx': 'Impress MS PowerPoint 2007 XML'}.get(target)
         if standard in candidates:
             return standard
@@ -267,7 +268,8 @@ class Registry:
             services = proof.get('documentServices')
             installed = self.import_services
             if isinstance(services, list) and services and all(s in installed for s in services):
-                if (target == 'svm' and services == ['com.sun.star.drawing.DrawingDocument']
+                if (target == 'svm' and set(services).intersection(('com.sun.star.drawing.DrawingDocument',
+                                                                'com.sun.star.presentation.PresentationDocument'))
                         and 'svm' in proof.get('nativeGraphicExports', ())
                         and target not in self.uncertain_extensions):
                     return 'registered'

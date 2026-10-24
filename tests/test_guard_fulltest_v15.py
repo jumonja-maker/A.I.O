@@ -144,6 +144,7 @@ class BugBag(unittest.TestCase):
         p.write_bytes(b'BM not DIF');self.assertIsNone(legacy_import_hint(p,native))
         header = bytearray(65);header[0]=3
         struct.pack_into('<IHH',header,4,1,65,2);header[32:34]=b'ID';header[64]=13
+        header[43]=ord('C');header[48]=1
         p.write_bytes(header+b' A')
         self.assertEqual(legacy_import_hint(p,native)['filter'],'dBase')
         p.write_bytes(header+b' \xff');self.assertIsNone(legacy_import_hint(p,native))

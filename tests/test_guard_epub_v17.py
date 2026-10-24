@@ -1,5 +1,6 @@
 """EPUB spine/resources and hostile-package regressions, without another engine."""
 import base64
+import hashlib
 from html.parser import HTMLParser
 from pathlib import Path
 import tempfile
@@ -92,7 +93,7 @@ class EPUBPreparationV17(unittest.TestCase):
         self.root.joinpath('private').mkdir()
         self.root.joinpath('private').rmdir()
         source = create_epub(self.root / 'safe.epub', replacement={'EPUB/z.xhtml':
-            '<html><head/><body><a href="https://example.org/">Link</a></body></html>'})
+            '<html><head/><body id="part"><a href="https://example.org/">Link</a></body></html>'})
         prepared = prepare_epub(source, self.root / 'safe', cancel=self.cancel)
         self.assertIn('href="https://example.org/"', prepared.source.read_text())
 
@@ -151,6 +152,68 @@ class EPUBPreparationV17(unittest.TestCase):
             prepare_epub(source, self.root / 'private', cancel=self.cancel)
         self.assertEqual(error.exception.code, 'CANCELLED')
         self.assertFalse((self.root / 'private').exists())
+
+    def test_source_prepared_chapter_and_resource_hashes_are_independent(self):
+        source, prepared = self.prepare()
+        summary = prepared.summary
+        self.assertEqual(summary['sourceSha256'], hashlib.sha256(source.read_bytes()).hexdigest())
+        self.assertEqual(summary['preparedSha256'], hashlib.sha256(prepared.source.read_bytes()).hexdigest())
+        self.assertFalse(summary['qualityCompared'])
+        with zipfile.ZipFile(source) as archive:
+            for chapter in summary['chapters']:
+                self.assertEqual(chapter['sourceSha256'], hashlib.sha256(archive.read(chapter['archivePath'])).hexdigest())
+            for resource in summary['resourceManifest']:
+                self.assertEqual(resource['sourceSha256'], hashlib.sha256(archive.read(resource['archivePath'])).hexdigest())
+                local = prepared.source.parent / '_epub-assets' / resource['archivePath']
+                self.assertEqual(resource['preparedSha256'], hashlib.sha256(local.read_bytes()).hexdigest())
+
+    def test_missing_fragment_is_rejected_before_native_import(self):
+        source = create_epub(self.root / 'seed.epub')
+        with zipfile.ZipFile(source) as archive: chapter = archive.read('EPUB/a.xhtml').decode()
+        error = self.rejected({'EPUB/a.xhtml': chapter.replace('z.xhtml#part', 'z.xhtml#absent')})
+        self.assertEqual(error.diagnostic, 'missing_chapter_fragment')
+
+    def test_nonspine_xhtml_footnotes_are_appended_and_linked(self):
+        source = create_epub(self.root / 'seed.epub')
+        with zipfile.ZipFile(source) as archive:
+            package = archive.read('EPUB/book.opf').decode()
+            chapter = archive.read('EPUB/a.xhtml').decode()
+        package = package.replace('</manifest>', '<item id="notes" href="notes.xhtml" media-type="application/xhtml+xml"/></manifest>')
+        chapter = chapter.replace('</body>', '<a href="notes.xhtml#n1">Footnote</a></body>')
+        _, prepared = self.prepare({'EPUB/book.opf': package, 'EPUB/a.xhtml': chapter},
+            {'EPUB/notes.xhtml': '<html><head/><body><p id="n1">AIO_NONSPINE_FOOTNOTE_017</p></body></html>'})
+        content = prepared.source.read_text()
+        self.assertLess(content.index(MARKERS[1]), content.index('AIO_NONSPINE_FOOTNOTE_017'))
+        self.assertIn('href="#' + _anchor('EPUB/notes.xhtml', 'n1') + '"', content)
+        self.assertEqual(prepared.summary['nonSpineItems'], 1)
+        self.assertIn('EPUB_NONSPINE_XHTML_APPENDED', prepared.summary['warnings'])
+
+    def test_simple_css_id_selectors_follow_renamed_anchors(self):
+        _, prepared = self.prepare({'EPUB/styles/main.css':
+            '#part {color: #184088;} @media print { h1#part { font-weight: bold; } }'})
+        css = (prepared.source.parent / '_epub-assets/EPUB/styles/main.css').read_text()
+        self.assertIn('#' + _anchor('EPUB/z.xhtml', 'part'), css)
+        self.assertIn('#' + _anchor('EPUB/a.xhtml', 'part'), css)
+        self.assertIn('color: #184088', css)
+        self.assertNotIn('h1#part', css)
+
+    def test_complex_css_id_scoping_fails_instead_of_changing_meaning(self):
+        for css in ('p:not(#part) {color:red;}', 'a[href="#part"] {color:red;}'):
+            with self.subTest(css=css):
+                self.rejected({'EPUB/styles/main.css': css}, code='EPUB_CSS_UNSUPPORTED')
+
+    def test_unmatched_complex_selector_does_not_block_other_content(self):
+        _, prepared = self.prepare({'EPUB/styles/main.css':
+            '#TOC a:not(:hover) {color: #184088;} #part {font-weight:bold;}'})
+        css = (prepared.source.parent / '_epub-assets/EPUB/styles/main.css').read_text()
+        self.assertIn('#TOC a:not(:hover)', css)
+        self.assertIn('#' + _anchor('EPUB/a.xhtml', 'part'), css)
+
+    def test_body_styles_and_controls_are_not_silently_ignored(self):
+        for content in ('<style>p {background:url(https://remote.invalid/p.png)}</style>',
+                        '<input value="important user value"/>'):
+            with self.subTest(content=content):
+                self.rejected({'EPUB/z.xhtml': '<html><head/><body>' + content + '</body></html>'})
 
 
 if __name__ == '__main__': unittest.main()

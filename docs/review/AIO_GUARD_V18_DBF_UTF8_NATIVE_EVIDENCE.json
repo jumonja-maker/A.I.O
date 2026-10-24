@@ -1,0 +1,160 @@
+{
+  "schema": 1,
+  "status": "pass",
+  "scope": "native-generated codepage-zero UTF-8 DBF reimport controls",
+  "machine": {
+    "platform": "Linux-6.18.55-x86_64-with-glibc2.39",
+    "osName": "posix",
+    "machine": "x86_64",
+    "python": "3.12.14",
+    "sourceCommit": null,
+    "sourceTree": null,
+    "engineVersion": "LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5",
+    "sourceWorkingTreeDirty": null,
+    "runnerName": null,
+    "runnerOS": null,
+    "windowsNativeTested": false,
+    "windowsGuiTested": false,
+    "fulltest510": "NOT_RUN",
+    "qt": {
+      "version": "6.10.3",
+      "readFormats": [
+        "bmp",
+        "cur",
+        "gif",
+        "icns",
+        "ico",
+        "jfif",
+        "jpeg",
+        "jpg",
+        "pbm",
+        "pdf",
+        "pgm",
+        "png",
+        "ppm",
+        "svg",
+        "svgz",
+        "tga",
+        "wbmp",
+        "webp",
+        "xbm",
+        "xpm"
+      ],
+      "writeFormats": [
+        "bmp",
+        "cur",
+        "icns",
+        "ico",
+        "jfif",
+        "jpeg",
+        "jpg",
+        "pbm",
+        "pgm",
+        "png",
+        "ppm",
+        "wbmp",
+        "webp",
+        "xbm",
+        "xpm"
+      ]
+    }
+  },
+  "source": {
+    "name": "single.dbf",
+    "sha256": "3ca6764aa49dc5809821e057cf35888d907c7b4228f363edda6610db253bc327"
+  },
+  "sourceUnchanged": true,
+  "checks": [
+    {
+      "source": "native_dbf",
+      "target": "xlsx",
+      "status": "pass",
+      "sheets": 1,
+      "rowsPerSheet": [
+        4
+      ],
+      "columnsPerSheet": [
+        3
+      ],
+      "method": "independent_DBF_DIF_records_or_openpyxl_cells"
+    },
+    {
+      "source": "native_dbf",
+      "target": "dif",
+      "status": "pass",
+      "sheets": 1,
+      "rowsPerSheet": [
+        4
+      ],
+      "columnsPerSheet": [
+        3
+      ],
+      "method": "independent_DBF_DIF_records_or_openpyxl_cells",
+      "encoding": "UTF-8",
+      "encodingDeclaration": "pass",
+      "encodingDeclaredFiles": 1,
+      "encodingNativeFilterOptions": "76"
+    }
+  ],
+  "requestedPairs": 2,
+  "unplannedPairs": [],
+  "counts": {
+    "total": 2,
+    "completed": 2,
+    "succeeded": 2,
+    "failed": 0,
+    "cancelled": 0
+  },
+  "savedByteReadback": {
+    "jobId": "34cc537167dcfcdb00b550fe896dffd1",
+    "saved": true,
+    "savedAll": true,
+    "incompleteRecovery": false,
+    "jobRunning": false,
+    "remainingOutputs": 0,
+    "outputs": 3,
+    "saveId": "f8ed08c461424c8d985a9edc5b9acea6",
+    "snapshotComplete": true,
+    "snapshotRevision": 25,
+    "bytesWritten": 6898,
+    "readbackVerified": true,
+    "verificationScope": "manifest_outputs",
+    "verificationMethod": "independent_read_sha256",
+    "outputsVerified": 3,
+    "bytesVerified": 6898,
+    "name": "AIO_Results_34cc5371"
+  },
+  "encodingChoice": {
+    "codepageMark": 0,
+    "encoding": "UTF-8",
+    "basis": "complete classic DBF field and record inspection; all character fields strict UTF-8",
+    "nonAsciiEncodingInferred": true,
+    "declaredCharsetPresent": false
+  },
+  "limitations": [
+    "The author charset cannot be proven from valid UTF-8 bytes with an unset DBF codepage; the UI/report warns about the inference.",
+    "Explicit nonzero DBF codepage marks and unsupported Memo/binary layouts do not receive this override.",
+    "This run was Linux native acceptance; Windows acceptance is separate."
+  ],
+  "encodingWarningObserved": {
+    "preflight": [
+      "DBF_UNDECLARED_UTF8_IMPORT"
+    ],
+    "encoding": {
+      "encoding": "UTF-8",
+      "encodingBasis": "undefined_codepage_complete_utf8_character_fields",
+      "encodingInferred": true,
+      "codepageMark": 0
+    },
+    "perTarget": {
+      "xlsx": [
+        "DBF_UNDECLARED_UTF8_IMPORT"
+      ],
+      "dif": [
+        "DBF_UNDECLARED_UTF8_IMPORT",
+        "NATIVE_DIF_UTF8_IMPORT",
+        "NATIVE_TABLE_FORMAT_LIMITS"
+      ]
+    }
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "review": "Independent read-only validation of FULLTEST-510 originals; no Guard verdict used to decide invalidity. An exclusion applies only when the exact SHA and expected code match and no conversion target is admitted.",
+  "files": [
+    {
+      "relativePath": "02_LEVEL_2.htm",
+      "sha256": "8420358555d0b8dcd74442975a14db9061e146f3fd43cd1a394a98cc331ecb9b",
+      "code": "HTML_LOCAL_RESOURCES_NOT_UPLOADED",
+      "reason": "HTML img src references the local companion 'level_2_htm_2c78dfd0.png', which is absent from the exact 510-file original acquisition and corpus. This is an incomplete input package; no replacement image is invented."
+    },
+    {
+      "relativePath": "02_LEVEL_2.html",
+      "sha256": "a5f2e05074d7c0b1488f80b7e408fca351d06457bf4345a9ee246daa8888e1eb",
+      "code": "HTML_LOCAL_RESOURCES_NOT_UPLOADED",
+      "reason": "HTML img src references the local companion 'level_2_html_2c78dfd0.png', which is absent from the exact 510-file original acquisition and corpus. This is an incomplete input package; no replacement image is invented."
+    },
+    {
+      "relativePath": "03_LEVEL_3.htm",
+      "sha256": "c8076ae14c86cddecae2948845376c3bb06dd14932c649e2b71afa07013661b5",
+      "code": "HTML_LOCAL_RESOURCES_NOT_UPLOADED",
+      "reason": "HTML img src references the local companion 'level_3_htm_d43736c5.png', which is absent from the exact 510-file original acquisition and corpus. This is an incomplete input package; no replacement image is invented."
+    },
+    {
+      "relativePath": "03_LEVEL_3.html",
+      "sha256": "3ede38433128d8392195cefe9590f7a755364bc780bc3970efb043b7e07f3644",
+      "code": "HTML_LOCAL_RESOURCES_NOT_UPLOADED",
+      "reason": "HTML img src references the local companion 'level_3_html_d43736c5.png', which is absent from the exact 510-file original acquisition and corpus. This is an incomplete input package; no replacement image is invented."
+    },
+    {
+      "relativePath": "04_LEVEL_1.sxw",
+      "sha256": "3289a78b8c6f3a90992b0dc1300e04488996ce44c3c0d6f39a024f7979e10680",
+      "code": "SOURCE_CONTAINER_INCONSISTENT",
+      "reason": "Package mimetype declares StarOffice Writer application/vnd.sun.xml.writer, while content.xml uses the OpenDocument office namespace urn:oasis:names:tc:opendocument:xmlns:office:1.0 rather than the StarOffice namespace http://openoffice.org/2000/office."
+    },
+    {
+      "relativePath": "04_LEVEL_1.xlsm",
+      "sha256": "778fbfc5df8e9916cb5c67eff1969958d6fb9097e5253acb328a51d0ae468c81",
+      "code": "SOURCE_CONTAINER_INCONSISTENT",
+      "reason": "An OPC officeDocument relationship points to an actual SpreadsheetML workbook, but the ZIP has no required [Content_Types].xml package declaration."
+    },
+    {
+      "relativePath": "05_LEVEL_2.fodp",
+      "sha256": "8e6caf1aa7a0397c2de17041454577b5ebe042d2f42cb3fb2902d83e8e1c34c6",
+      "code": "SOURCE_CONTAINER_INCONSISTENT",
+      "reason": "Flat OpenDocument office:mimetype is 'application/vnd.oasis.opendocument.presentation-flat-xml', but its ODF presentation document root/body requires the document-family MIME 'application/vnd.oasis.opendocument.presentation'; the -flat-xml value is not that family MIME."
+    },
+    {
+      "relativePath": "05_LEVEL_2.fodt",
+      "sha256": "ef9b6b9ffc47f3517136259c86d0686431ebb699d03afe2b29ca03eef0c1cf08",
+      "code": "SOURCE_CONTAINER_INCONSISTENT",
+      "reason": "Flat OpenDocument office:mimetype is 'application/vnd.oasis.opendocument.text-flat-xml', but its ODF text document root/body requires the document-family MIME 'application/vnd.oasis.opendocument.text'; the -flat-xml value is not that family MIME."
+    },
+    {
+      "relativePath": "05_LEVEL_2.sxw",
+      "sha256": "0898890a4d8592258ec9a2da5bafe789a43bc93630a230b2354bce58418d9d34",
+      "code": "SOURCE_CONTAINER_INCONSISTENT",
+      "reason": "Package mimetype declares StarOffice Writer application/vnd.sun.xml.writer, while content.xml uses the OpenDocument office namespace urn:oasis:names:tc:opendocument:xmlns:office:1.0 rather than the StarOffice namespace http://openoffice.org/2000/office."
+    },
+    {
+      "relativePath": "06_LEVEL_3.fodp",
+      "sha256": "b41f18e9a845a4c8695b2dc3748ca80a0b08f9612829232f21cb9a8b3f0265b7",
+      "code": "SOURCE_CONTAINER_INCONSISTENT",
+      "reason": "Flat OpenDocument office:mimetype is 'application/vnd.oasis.opendocument.presentation-flat-xml', but its ODF presentation document root/body requires the document-family MIME 'application/vnd.oasis.opendocument.presentation'; the -flat-xml value is not that family MIME."
+    },
+    {
+      "relativePath": "06_LEVEL_3.fodt",
+      "sha256": "87586ed829b7a0c8b986894b105999bd364c43bb31eaea84f2b4ec164a085d01",
+      "code": "SOURCE_CONTAINER_INCONSISTENT",
+      "reason": "Flat OpenDocument office:mimetype is 'application/vnd.oasis.opendocument.text-flat-xml', but its ODF text document root/body requires the document-family MIME 'application/vnd.oasis.opendocument.text'; the -flat-xml value is not that family MIME."
+    },
+    {
+      "relativePath": "06_LEVEL_3.sxw",
+      "sha256": "4e83cf13b9d354df636c955274d1ccbe4a1a3cae4ece1862194e17b8c9246f2d",
+      "code": "SOURCE_CONTAINER_INCONSISTENT",
+      "reason": "Package mimetype declares StarOffice Writer application/vnd.sun.xml.writer, while content.xml uses the OpenDocument office namespace urn:oasis:names:tc:opendocument:xmlns:office:1.0 rather than the StarOffice namespace http://openoffice.org/2000/office."
+    }
+  ]
+}

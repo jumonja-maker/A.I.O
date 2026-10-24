@@ -1,0 +1,527 @@
+{
+  "schema": 1,
+  "platform": "Linux",
+  "qt": "6.10.3",
+  "cases": [
+    {
+      "source": "05_LEVEL_2.apng",
+      "target": "html",
+      "state": "PASS",
+      "htmlImageRows": 1,
+      "postcondition": {
+        "check": "html_body",
+        "status": "content_present",
+        "qualityCompared": false,
+        "inspectedBytes": 861,
+        "localResourcesChecked": true
+      },
+      "seconds": 0.003,
+      "sidecarSha256": "435b14a7d01d243e31e09b9dddb6d77d80f9bd522a8d825e098c08c95c83e499",
+      "sourceSha256": "435b14a7d01d243e31e09b9dddb6d77d80f9bd522a8d825e098c08c95c83e499",
+      "allSourceBytesPreserved": true,
+      "frames": 3,
+      "canvas": [
+        800,
+        540
+      ],
+      "alpha": true
+    },
+    {
+      "source": "05_LEVEL_2.apng",
+      "target": "htm",
+      "state": "PASS",
+      "htmlImageRows": 1,
+      "postcondition": {
+        "check": "html_body",
+        "status": "content_present",
+        "qualityCompared": false,
+        "inspectedBytes": 861,
+        "localResourcesChecked": true
+      },
+      "seconds": 0.002,
+      "sidecarSha256": "435b14a7d01d243e31e09b9dddb6d77d80f9bd522a8d825e098c08c95c83e499",
+      "sourceSha256": "435b14a7d01d243e31e09b9dddb6d77d80f9bd522a8d825e098c08c95c83e499",
+      "allSourceBytesPreserved": true,
+      "frames": 3,
+      "canvas": [
+        800,
+        540
+      ],
+      "alpha": true
+    },
+    {
+      "source": "05_LEVEL_2.apng",
+      "target": "xhtml",
+      "state": "PASS",
+      "htmlImageRows": 1,
+      "postcondition": {
+        "check": "html_body",
+        "status": "content_present",
+        "qualityCompared": false,
+        "inspectedBytes": 937,
+        "localResourcesChecked": true
+      },
+      "seconds": 0.002,
+      "sidecarSha256": "435b14a7d01d243e31e09b9dddb6d77d80f9bd522a8d825e098c08c95c83e499",
+      "sourceSha256": "435b14a7d01d243e31e09b9dddb6d77d80f9bd522a8d825e098c08c95c83e499",
+      "allSourceBytesPreserved": true,
+      "frames": 3,
+      "canvas": [
+        800,
+        540
+      ],
+      "alpha": true
+    },
+    {
+      "source": "05_LEVEL_2.gif",
+      "target": "html",
+      "state": "PASS",
+      "htmlImageRows": 1,
+      "postcondition": {
+        "check": "html_body",
+        "status": "content_present",
+        "qualityCompared": false,
+        "inspectedBytes": 861,
+        "localResourcesChecked": true
+      },
+      "seconds": 0.002,
+      "sidecarSha256": "6dbdf8bf3aae3c4f71f87a151c288767cd4cd4b1c59c43acb8c9452b6644350a",
+      "sourceSha256": "6dbdf8bf3aae3c4f71f87a151c288767cd4cd4b1c59c43acb8c9452b6644350a",
+      "allSourceBytesPreserved": true,
+      "frames": 4,
+      "canvas": [
+        800,
+        540
+      ],
+      "alpha": true
+    },
+    {
+      "source": "05_LEVEL_2.gif",
+      "target": "htm",
+      "state": "PASS",
+      "htmlImageRows": 1,
+      "postcondition": {
+        "check": "html_body",
+        "status": "content_present",
+        "qualityCompared": false,
+        "inspectedBytes": 861,
+        "localResourcesChecked": true
+      },
+      "seconds": 0.002,
+      "sidecarSha256": "6dbdf8bf3aae3c4f71f87a151c288767cd4cd4b1c59c43acb8c9452b6644350a",
+      "sourceSha256": "6dbdf8bf3aae3c4f71f87a151c288767cd4cd4b1c59c43acb8c9452b6644350a",
+      "allSourceBytesPreserved": true,
+      "frames": 4,
+      "canvas": [
+        800,
+        540
+      ],
+      "alpha": true
+    },
+    {
+      "source": "05_LEVEL_2.gif",
+      "target": "xhtml",
+      "state": "PASS",
+      "htmlImageRows": 1,
+      "postcondition": {
+        "check": "html_body",
+        "status": "content_present",
+        "qualityCompared": false,
+        "inspectedBytes": 937,
+        "localResourcesChecked": true
+      },
+      "seconds": 0.002,
+      "sidecarSha256": "6dbdf8bf3aae3c4f71f87a151c288767cd4cd4b1c59c43acb8c9452b6644350a",
+      "sourceSha256": "6dbdf8bf3aae3c4f71f87a151c288767cd4cd4b1c59c43acb8c9452b6644350a",
+      "allSourceBytesPreserved": true,
+      "frames": 4,
+      "canvas": [
+        800,
+        540
+      ],
+      "alpha": true
+    },
+    {
+      "source": "05_LEVEL_2.png",
+      "target": "html",
+      "state": "PASS",
+      "htmlImageRows": 1,
+      "postcondition": {
+        "check": "html_body",
+        "status": "content_present",
+        "qualityCompared": false,
+        "inspectedBytes": 861,
+        "localResourcesChecked": true
+      },
+      "seconds": 0.001,
+      "sidecarSha256": "6b24375fc7fe89d38a2ccf678a67722f1a4d3e2e779ad3f29cc57f7a7b408a25",
+      "sourceSha256": "6b24375fc7fe89d38a2ccf678a67722f1a4d3e2e779ad3f29cc57f7a7b408a25",
+      "allSourceBytesPreserved": true,
+      "frames": 1,
+      "canvas": [
+        800,
+        540
+      ],
+      "alpha": true
+    },
+    {
+      "source": "05_LEVEL_2.png",
+      "target": "htm",
+      "state": "PASS",
+      "htmlImageRows": 1,
+      "postcondition": {
+        "check": "html_body",
+        "status": "content_present",
+        "qualityCompared": false,
+        "inspectedBytes": 861,
+        "localResourcesChecked": true
+      },
+      "seconds": 0.002,
+      "sidecarSha256": "6b24375fc7fe89d38a2ccf678a67722f1a4d3e2e779ad3f29cc57f7a7b408a25",
+      "sourceSha256": "6b24375fc7fe89d38a2ccf678a67722f1a4d3e2e779ad3f29cc57f7a7b408a25",
+      "allSourceBytesPreserved": true,
+      "frames": 1,
+      "canvas": [
+        800,
+        540
+      ],
+      "alpha": true
+    },
+    {
+      "source": "05_LEVEL_2.png",
+      "target": "xhtml",
+      "state": "PASS",
+      "htmlImageRows": 1,
+      "postcondition": {
+        "check": "html_body",
+        "status": "content_present",
+        "qualityCompared": false,
+        "inspectedBytes": 937,
+        "localResourcesChecked": true
+      },
+      "seconds": 0.002,
+      "sidecarSha256": "6b24375fc7fe89d38a2ccf678a67722f1a4d3e2e779ad3f29cc57f7a7b408a25",
+      "sourceSha256": "6b24375fc7fe89d38a2ccf678a67722f1a4d3e2e779ad3f29cc57f7a7b408a25",
+      "allSourceBytesPreserved": true,
+      "frames": 1,
+      "canvas": [
+        800,
+        540
+      ],
+      "alpha": true
+    },
+    {
+      "source": "05_LEVEL_2.tiff",
+      "target": "html",
+      "state": "PASS",
+      "htmlImageRows": 1,
+      "postcondition": {
+        "check": "html_body",
+        "status": "content_present",
+        "qualityCompared": false,
+        "inspectedBytes": 890,
+        "localResourcesChecked": true
+      },
+      "seconds": 0.028,
+      "allPagesPixelEqual": true,
+      "pages": 1,
+      "independentDecoder": "Pillow12.3"
+    },
+    {
+      "source": "05_LEVEL_2.tiff",
+      "target": "htm",
+      "state": "PASS",
+      "htmlImageRows": 1,
+      "postcondition": {
+        "check": "html_body",
+        "status": "content_present",
+        "qualityCompared": false,
+        "inspectedBytes": 890,
+        "localResourcesChecked": true
+      },
+      "seconds": 0.017,
+      "allPagesPixelEqual": true,
+      "pages": 1,
+      "independentDecoder": "Pillow12.3"
+    },
+    {
+      "source": "05_LEVEL_2.tiff",
+      "target": "xhtml",
+      "state": "PASS",
+      "htmlImageRows": 1,
+      "postcondition": {
+        "check": "html_body",
+        "status": "content_present",
+        "qualityCompared": false,
+        "inspectedBytes": 966,
+        "localResourcesChecked": true
+      },
+      "seconds": 0.017,
+      "allPagesPixelEqual": true,
+      "pages": 1,
+      "independentDecoder": "Pillow12.3"
+    },
+    {
+      "source": "05_LEVEL_2.webp",
+      "target": "html",
+      "state": "PASS",
+      "htmlImageRows": 1,
+      "postcondition": {
+        "check": "html_body",
+        "status": "content_present",
+        "qualityCompared": false,
+        "inspectedBytes": 863,
+        "localResourcesChecked": true
+      },
+      "seconds": 0.002,
+      "sidecarSha256": "cd40860941c0f1fa8d17145ba41d5fb300ef2606fc649c4e9bd0e8ebd9d48572",
+      "sourceSha256": "cd40860941c0f1fa8d17145ba41d5fb300ef2606fc649c4e9bd0e8ebd9d48572",
+      "allSourceBytesPreserved": true,
+      "frames": 1,
+      "canvas": [
+        800,
+        540
+      ],
+      "alpha": true
+    },
+    {
+      "source": "05_LEVEL_2.webp",
+      "target": "htm",
+      "state": "PASS",
+      "htmlImageRows": 1,
+      "postcondition": {
+        "check": "html_body",
+        "status": "content_present",
+        "qualityCompared": false,
+        "inspectedBytes": 863,
+        "localResourcesChecked": true
+      },
+      "seconds": 0.001,
+      "sidecarSha256": "cd40860941c0f1fa8d17145ba41d5fb300ef2606fc649c4e9bd0e8ebd9d48572",
+      "sourceSha256": "cd40860941c0f1fa8d17145ba41d5fb300ef2606fc649c4e9bd0e8ebd9d48572",
+      "allSourceBytesPreserved": true,
+      "frames": 1,
+      "canvas": [
+        800,
+        540
+      ],
+      "alpha": true
+    },
+    {
+      "source": "05_LEVEL_2.webp",
+      "target": "xhtml",
+      "state": "PASS",
+      "htmlImageRows": 1,
+      "postcondition": {
+        "check": "html_body",
+        "status": "content_present",
+        "qualityCompared": false,
+        "inspectedBytes": 939,
+        "localResourcesChecked": true
+      },
+      "seconds": 0.001,
+      "sidecarSha256": "cd40860941c0f1fa8d17145ba41d5fb300ef2606fc649c4e9bd0e8ebd9d48572",
+      "sourceSha256": "cd40860941c0f1fa8d17145ba41d5fb300ef2606fc649c4e9bd0e8ebd9d48572",
+      "allSourceBytesPreserved": true,
+      "frames": 1,
+      "canvas": [
+        800,
+        540
+      ],
+      "alpha": true
+    },
+    {
+      "source": "06_LEVEL_3.apng",
+      "target": "html",
+      "state": "PASS",
+      "htmlImageRows": 1,
+      "postcondition": {
+        "check": "html_body",
+        "status": "content_present",
+        "qualityCompared": false,
+        "inspectedBytes": 862,
+        "localResourcesChecked": true
+      },
+      "seconds": 0.002,
+      "sidecarSha256": "cf66d7b58721254373bf575da68bdd042a845aaab1a7e4dff83571d8a563c375",
+      "sourceSha256": "cf66d7b58721254373bf575da68bdd042a845aaab1a7e4dff83571d8a563c375",
+      "allSourceBytesPreserved": true,
+      "frames": 3,
+      "canvas": [
+        1200,
+        850
+      ],
+      "alpha": true
+    },
+    {
+      "source": "06_LEVEL_3.apng",
+      "target": "htm",
+      "state": "PASS",
+      "htmlImageRows": 1,
+      "postcondition": {
+        "check": "html_body",
+        "status": "content_present",
+        "qualityCompared": false,
+        "inspectedBytes": 862,
+        "localResourcesChecked": true
+      },
+      "seconds": 0.002,
+      "sidecarSha256": "cf66d7b58721254373bf575da68bdd042a845aaab1a7e4dff83571d8a563c375",
+      "sourceSha256": "cf66d7b58721254373bf575da68bdd042a845aaab1a7e4dff83571d8a563c375",
+      "allSourceBytesPreserved": true,
+      "frames": 3,
+      "canvas": [
+        1200,
+        850
+      ],
+      "alpha": true
+    },
+    {
+      "source": "06_LEVEL_3.apng",
+      "target": "xhtml",
+      "state": "PASS",
+      "htmlImageRows": 1,
+      "postcondition": {
+        "check": "html_body",
+        "status": "content_present",
+        "qualityCompared": false,
+        "inspectedBytes": 938,
+        "localResourcesChecked": true
+      },
+      "seconds": 0.002,
+      "sidecarSha256": "cf66d7b58721254373bf575da68bdd042a845aaab1a7e4dff83571d8a563c375",
+      "sourceSha256": "cf66d7b58721254373bf575da68bdd042a845aaab1a7e4dff83571d8a563c375",
+      "allSourceBytesPreserved": true,
+      "frames": 3,
+      "canvas": [
+        1200,
+        850
+      ],
+      "alpha": true
+    },
+    {
+      "source": "06_LEVEL_3.gif",
+      "target": "html",
+      "state": "PASS",
+      "htmlImageRows": 1,
+      "postcondition": {
+        "check": "html_body",
+        "status": "content_present",
+        "qualityCompared": false,
+        "inspectedBytes": 862,
+        "localResourcesChecked": true
+      },
+      "seconds": 0.003,
+      "sidecarSha256": "95318cad3c921ebaa3e133076e29374124f7cb40f6372f7ad23364b04708a7e0",
+      "sourceSha256": "95318cad3c921ebaa3e133076e29374124f7cb40f6372f7ad23364b04708a7e0",
+      "allSourceBytesPreserved": true,
+      "frames": 4,
+      "canvas": [
+        1200,
+        850
+      ],
+      "alpha": true
+    },
+    {
+      "source": "06_LEVEL_3.gif",
+      "target": "htm",
+      "state": "PASS",
+      "htmlImageRows": 1,
+      "postcondition": {
+        "check": "html_body",
+        "status": "content_present",
+        "qualityCompared": false,
+        "inspectedBytes": 862,
+        "localResourcesChecked": true
+      },
+      "seconds": 0.003,
+      "sidecarSha256": "95318cad3c921ebaa3e133076e29374124f7cb40f6372f7ad23364b04708a7e0",
+      "sourceSha256": "95318cad3c921ebaa3e133076e29374124f7cb40f6372f7ad23364b04708a7e0",
+      "allSourceBytesPreserved": true,
+      "frames": 4,
+      "canvas": [
+        1200,
+        850
+      ],
+      "alpha": true
+    },
+    {
+      "source": "06_LEVEL_3.gif",
+      "target": "xhtml",
+      "state": "PASS",
+      "htmlImageRows": 1,
+      "postcondition": {
+        "check": "html_body",
+        "status": "content_present",
+        "qualityCompared": false,
+        "inspectedBytes": 938,
+        "localResourcesChecked": true
+      },
+      "seconds": 0.003,
+      "sidecarSha256": "95318cad3c921ebaa3e133076e29374124f7cb40f6372f7ad23364b04708a7e0",
+      "sourceSha256": "95318cad3c921ebaa3e133076e29374124f7cb40f6372f7ad23364b04708a7e0",
+      "allSourceBytesPreserved": true,
+      "frames": 4,
+      "canvas": [
+        1200,
+        850
+      ],
+      "alpha": true
+    },
+    {
+      "source": "06_LEVEL_3.tiff",
+      "target": "html",
+      "state": "PASS",
+      "htmlImageRows": 3,
+      "postcondition": {
+        "check": "html_body",
+        "status": "content_present",
+        "qualityCompared": false,
+        "inspectedBytes": 1237,
+        "localResourcesChecked": true
+      },
+      "seconds": 0.224,
+      "allPagesPixelEqual": true,
+      "pages": 3,
+      "independentDecoder": "Pillow12.3"
+    },
+    {
+      "source": "06_LEVEL_3.tiff",
+      "target": "htm",
+      "state": "PASS",
+      "htmlImageRows": 3,
+      "postcondition": {
+        "check": "html_body",
+        "status": "content_present",
+        "qualityCompared": false,
+        "inspectedBytes": 1237,
+        "localResourcesChecked": true
+      },
+      "seconds": 0.219,
+      "allPagesPixelEqual": true,
+      "pages": 3,
+      "independentDecoder": "Pillow12.3"
+    },
+    {
+      "source": "06_LEVEL_3.tiff",
+      "target": "xhtml",
+      "state": "PASS",
+      "htmlImageRows": 3,
+      "postcondition": {
+        "check": "html_body",
+        "status": "content_present",
+        "qualityCompared": false,
+        "inspectedBytes": 1313,
+        "localResourcesChecked": true
+      },
+      "seconds": 0.223,
+      "allPagesPixelEqual": true,
+      "pages": 3,
+      "independentDecoder": "Pillow12.3"
+    }
+  ],
+  "summary": {
+    "passed": 24,
+    "failed": 0
+  }
+}

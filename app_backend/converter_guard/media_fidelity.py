@@ -643,6 +643,10 @@ def check_media_preservation(paths, target, source, *, cancel, source_evidence=N
             expected_losses.append('bit_depth')
         if target == 'gif' and before['format'] != 'gif':
             expected_losses.append('gif_palette_and_binary_alpha')
+        if target == 'gif' and any(abs(round(value/10)*10-value) > .001 for value in before['durationsMs']):
+            expected_losses.append('gif_timing_quantisation_10ms')
+        if ALIASES.get(target,target) == 'jpeg':
+            expected_losses.append('jpeg_lossy_compression')
         if before['frames'] > 1:
             if target in ANIMATED_TARGETS:
                 if after['frames'] != before['frames']:
@@ -665,7 +669,7 @@ def check_media_preservation(paths, target, source, *, cancel, source_evidence=N
             # GIF can represent 256 opaque colours or 255 plus transparency.
             # RGBA channel presence alone does not prove transparent pixels.
             from .qt_media import has_transparent_pixels
-            alpha_loss = has_transparent_pixels(source, cancel=cancel)
+            alpha_loss = has_transparent_pixels(source, cancel=cancel, alpha_threshold=128)
         if alpha_loss:
             raise GuardError('MEDIA_ALPHA_LOSS',
                              'Экспорт удалил прозрачность в формате, поддерживающем альфа-канал.', stage='result')
@@ -675,7 +679,9 @@ def check_media_preservation(paths, target, source, *, cancel, source_evidence=N
             raise GuardError('MEDIA_CANVAS_CHANGED',
                              'Экспорт изменил размер холста изображения.', stage='result')
         if before['pages'] > 1 and target not in ('tif', 'tiff'):
-            if target in ANIMATED_TARGETS and after['frames'] == before['pages']:
+            if target in ANIMATED_TARGETS:
+                if after['frames'] != before['pages']:
+                    raise GuardError('MEDIA_PAGE_LOSS','Экспорт изменил число страниц, представленных кадрами.',stage='result')
                 expected_losses.append('page_semantics_as_frames')
             else:
                 expected_losses.append('pages')

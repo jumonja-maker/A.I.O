@@ -1,0 +1,1038 @@
+{
+  "schema": 1,
+  "sourceCommit": "6bb3d95aa1a16333051381ca052c99c2f9eeae9c",
+  "platform": "Linux",
+  "status": "pass",
+  "requestedPairs": 32,
+  "checks": [
+    {
+      "source": "table",
+      "target": "dbf",
+      "status": "pass",
+      "sheets": 1,
+      "rowsPerSheet": [
+        4
+      ],
+      "columnsPerSheet": [
+        3
+      ],
+      "method": "independent_DBF_DIF_records_or_openpyxl_cells"
+    },
+    {
+      "source": "table",
+      "target": "dif",
+      "status": "pass",
+      "sheets": 1,
+      "rowsPerSheet": [
+        4
+      ],
+      "columnsPerSheet": [
+        3
+      ],
+      "method": "independent_DBF_DIF_records_or_openpyxl_cells",
+      "encoding": "UTF-8",
+      "encodingDeclaration": "pass",
+      "encodingDeclaredFiles": 1,
+      "encodingNativeFilterOptions": "76"
+    },
+    {
+      "source": "multisheet",
+      "target": "dbf",
+      "status": "pass",
+      "sheets": 2,
+      "rowsPerSheet": [
+        4,
+        4
+      ],
+      "columnsPerSheet": [
+        3,
+        3
+      ],
+      "method": "independent_DBF_DIF_records_or_openpyxl_cells"
+    },
+    {
+      "source": "multisheet",
+      "target": "dif",
+      "status": "pass",
+      "sheets": 2,
+      "rowsPerSheet": [
+        4,
+        4
+      ],
+      "columnsPerSheet": [
+        3,
+        3
+      ],
+      "method": "independent_DBF_DIF_records_or_openpyxl_cells",
+      "encoding": "UTF-8",
+      "encodingDeclaration": "pass",
+      "encodingDeclaredFiles": 2,
+      "encodingNativeFilterOptions": "76"
+    },
+    {
+      "source": "mixed",
+      "target": "dbf",
+      "status": "pass",
+      "sheets": 1,
+      "rowsPerSheet": [
+        4
+      ],
+      "columnsPerSheet": [
+        2
+      ],
+      "method": "independent_DBF_DIF_records_or_openpyxl_cells",
+      "memoSidecar": "pass",
+      "sourceTypeMapping": "pass",
+      "reconstructedStringValues": 0,
+      "longUnicodeBytes": 1200
+    },
+    {
+      "source": "dbf",
+      "target": "xlsx",
+      "status": "pass",
+      "sheets": 1,
+      "rowsPerSheet": [
+        4
+      ],
+      "columnsPerSheet": [
+        3
+      ],
+      "method": "independent_DBF_DIF_records_or_openpyxl_cells"
+    },
+    {
+      "source": "dbf",
+      "target": "dif",
+      "status": "pass",
+      "sheets": 1,
+      "rowsPerSheet": [
+        4
+      ],
+      "columnsPerSheet": [
+        3
+      ],
+      "method": "independent_DBF_DIF_records_or_openpyxl_cells",
+      "encoding": "UTF-8",
+      "encodingDeclaration": "pass",
+      "encodingDeclaredFiles": 1,
+      "encodingNativeFilterOptions": "76"
+    },
+    {
+      "source": "dif",
+      "target": "xlsx",
+      "status": "pass",
+      "sheets": 1,
+      "rowsPerSheet": [
+        4
+      ],
+      "columnsPerSheet": [
+        3
+      ],
+      "method": "independent_DBF_DIF_records_or_openpyxl_cells"
+    },
+    {
+      "source": "dif",
+      "target": "dbf",
+      "status": "pass",
+      "sheets": 1,
+      "rowsPerSheet": [
+        4
+      ],
+      "columnsPerSheet": [
+        3
+      ],
+      "method": "independent_DBF_DIF_records_or_openpyxl_cells"
+    },
+    {
+      "source": {
+        "format": "png",
+        "width": 3,
+        "height": 5,
+        "frames": 1,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [],
+        "orientation": 1,
+        "animationContainer": false,
+        "loopCount": 1,
+        "bitDepth": 8
+      },
+      "target": "png",
+      "status": "pass",
+      "result": {
+        "format": "png",
+        "width": 3,
+        "height": 5,
+        "frames": 1,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [],
+        "orientation": 1,
+        "animationContainer": false,
+        "loopCount": 1,
+        "bitDepth": 8
+      },
+      "byteIdentity": true,
+      "decodedSource": {
+        "status": "pass",
+        "rgbaSha256": "71ae4dacd99587df5817a1051f6cc418f0df8d2ca4a3c7fddc0215336bf4e4c3",
+        "width": 3,
+        "height": 5,
+        "alpha": true,
+        "decoder": "QImageReader"
+      },
+      "decodedResult": {
+        "status": "pass",
+        "rgbaSha256": "71ae4dacd99587df5817a1051f6cc418f0df8d2ca4a3c7fddc0215336bf4e4c3",
+        "width": 3,
+        "height": 5,
+        "alpha": true,
+        "decoder": "QImageReader"
+      },
+      "decodedFrameCount": 1,
+      "method": "whole_file_identity_or_properties_and_decoded_RGBA"
+    },
+    {
+      "source": {
+        "format": "png",
+        "width": 3,
+        "height": 5,
+        "frames": 1,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [],
+        "orientation": 1,
+        "animationContainer": false,
+        "loopCount": 1,
+        "bitDepth": 8
+      },
+      "target": "webp",
+      "status": "pass",
+      "result": {
+        "format": "webp",
+        "width": 3,
+        "height": 5,
+        "frames": 1,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [],
+        "orientation": 1,
+        "loopCount": 1
+      },
+      "byteIdentity": false,
+      "decodedSource": {
+        "status": "pass",
+        "rgbaSha256": "71ae4dacd99587df5817a1051f6cc418f0df8d2ca4a3c7fddc0215336bf4e4c3",
+        "width": 3,
+        "height": 5,
+        "alpha": true,
+        "decoder": "QImageReader"
+      },
+      "decodedResult": {
+        "status": "pass",
+        "rgbaSha256": "71ae4dacd99587df5817a1051f6cc418f0df8d2ca4a3c7fddc0215336bf4e4c3",
+        "width": 3,
+        "height": 5,
+        "alpha": true,
+        "decoder": "QImageReader"
+      },
+      "decodedFrameCount": 1,
+      "method": "whole_file_identity_or_properties_and_decoded_RGBA"
+    },
+    {
+      "source": {
+        "format": "png",
+        "width": 3,
+        "height": 5,
+        "frames": 1,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [],
+        "orientation": 1,
+        "animationContainer": false,
+        "loopCount": 1,
+        "bitDepth": 8
+      },
+      "target": "tiff",
+      "status": "pass",
+      "result": {
+        "format": "tiff",
+        "width": 3,
+        "height": 5,
+        "frames": 1,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [],
+        "orientation": 1,
+        "pageDimensions": [
+          [
+            3,
+            5
+          ]
+        ],
+        "bitDepth": 8,
+        "pageImageIndexes": [
+          0
+        ],
+        "pageOrientations": [
+          1
+        ],
+        "pageDpi": [
+          [
+            96.012,
+            96.012
+          ]
+        ]
+      },
+      "byteIdentity": false,
+      "decodedSource": {
+        "status": "pass",
+        "rgbaSha256": "71ae4dacd99587df5817a1051f6cc418f0df8d2ca4a3c7fddc0215336bf4e4c3",
+        "width": 3,
+        "height": 5,
+        "alpha": true,
+        "decoder": "QImageReader"
+      },
+      "decodedResult": {
+        "status": "pass",
+        "rgbaSha256": "71ae4dacd99587df5817a1051f6cc418f0df8d2ca4a3c7fddc0215336bf4e4c3",
+        "width": 3,
+        "height": 5,
+        "alpha": true,
+        "decoder": "independent_uncompressed_TIFF"
+      },
+      "decodedFrameCount": 1,
+      "method": "whole_file_identity_or_properties_and_decoded_RGBA"
+    },
+    {
+      "source": {
+        "format": "gif",
+        "width": 1,
+        "height": 1,
+        "frames": 8,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          150,
+          150,
+          150,
+          150,
+          150,
+          150,
+          150,
+          150
+        ],
+        "orientation": 1,
+        "loopCount": 1
+      },
+      "target": "gif",
+      "status": "pass",
+      "result": {
+        "format": "gif",
+        "width": 1,
+        "height": 1,
+        "frames": 8,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          150,
+          150,
+          150,
+          150,
+          150,
+          150,
+          150,
+          150
+        ],
+        "orientation": 1,
+        "loopCount": 1
+      },
+      "byteIdentity": true,
+      "decodedSource": {
+        "status": "pass",
+        "rgbaSha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+        "width": 1,
+        "height": 1,
+        "alpha": true,
+        "decoder": "QImageReader"
+      },
+      "decodedResult": {
+        "status": "pass",
+        "rgbaSha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+        "width": 1,
+        "height": 1,
+        "alpha": true,
+        "decoder": "QImageReader"
+      },
+      "decodedFrameCount": 8,
+      "method": "whole_file_identity_or_properties_and_decoded_RGBA"
+    },
+    {
+      "source": {
+        "format": "gif",
+        "width": 1,
+        "height": 1,
+        "frames": 8,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          150,
+          150,
+          150,
+          150,
+          150,
+          150,
+          150,
+          150
+        ],
+        "orientation": 1,
+        "loopCount": 1
+      },
+      "target": "apng",
+      "status": "pass",
+      "result": {
+        "format": "png",
+        "width": 1,
+        "height": 1,
+        "frames": 8,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          150.0,
+          150.0,
+          150.0,
+          150.0,
+          150.0,
+          150.0,
+          150.0,
+          150.0
+        ],
+        "orientation": 1,
+        "animationContainer": true,
+        "loopCount": 1,
+        "bitDepth": 8
+      },
+      "byteIdentity": false,
+      "decodedSource": {
+        "status": "pass",
+        "rgbaSha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+        "width": 1,
+        "height": 1,
+        "alpha": true,
+        "decoder": "QImageReader"
+      },
+      "decodedResult": {
+        "status": "pass",
+        "rgbaSha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+        "width": 1,
+        "height": 1,
+        "alpha": true,
+        "decoder": "QImageReader"
+      },
+      "decodedFrameCount": 8,
+      "method": "whole_file_identity_or_properties_and_decoded_RGBA"
+    },
+    {
+      "source": {
+        "format": "gif",
+        "width": 1,
+        "height": 1,
+        "frames": 8,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          150,
+          150,
+          150,
+          150,
+          150,
+          150,
+          150,
+          150
+        ],
+        "orientation": 1,
+        "loopCount": 1
+      },
+      "target": "webp",
+      "status": "pass",
+      "result": {
+        "format": "webp",
+        "width": 1,
+        "height": 1,
+        "frames": 8,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          150,
+          150,
+          150,
+          150,
+          150,
+          150,
+          150,
+          150
+        ],
+        "orientation": 1,
+        "loopCount": 1
+      },
+      "byteIdentity": false,
+      "decodedSource": {
+        "status": "pass",
+        "rgbaSha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+        "width": 1,
+        "height": 1,
+        "alpha": true,
+        "decoder": "QImageReader"
+      },
+      "decodedResult": {
+        "status": "pass",
+        "rgbaSha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+        "width": 1,
+        "height": 1,
+        "alpha": true,
+        "decoder": "QImageReader"
+      },
+      "decodedFrameCount": 8,
+      "method": "whole_file_identity_or_properties_and_decoded_RGBA"
+    },
+    {
+      "source": {
+        "format": "png",
+        "width": 3,
+        "height": 5,
+        "frames": 8,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          150.0,
+          150.0,
+          150.0,
+          150.0,
+          150.0,
+          150.0,
+          150.0,
+          150.0
+        ],
+        "orientation": 1,
+        "animationContainer": true,
+        "loopCount": 0,
+        "bitDepth": 8
+      },
+      "target": "apng",
+      "status": "pass",
+      "result": {
+        "format": "png",
+        "width": 3,
+        "height": 5,
+        "frames": 8,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          150.0,
+          150.0,
+          150.0,
+          150.0,
+          150.0,
+          150.0,
+          150.0,
+          150.0
+        ],
+        "orientation": 1,
+        "animationContainer": true,
+        "loopCount": 0,
+        "bitDepth": 8
+      },
+      "byteIdentity": true,
+      "decodedSource": {
+        "status": "pass",
+        "rgbaSha256": "71ae4dacd99587df5817a1051f6cc418f0df8d2ca4a3c7fddc0215336bf4e4c3",
+        "width": 3,
+        "height": 5,
+        "alpha": true,
+        "decoder": "QImageReader"
+      },
+      "decodedResult": {
+        "status": "pass",
+        "rgbaSha256": "71ae4dacd99587df5817a1051f6cc418f0df8d2ca4a3c7fddc0215336bf4e4c3",
+        "width": 3,
+        "height": 5,
+        "alpha": true,
+        "decoder": "QImageReader"
+      },
+      "decodedFrameCount": 8,
+      "method": "whole_file_identity_or_properties_and_decoded_RGBA"
+    },
+    {
+      "source": {
+        "format": "png",
+        "width": 3,
+        "height": 5,
+        "frames": 8,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          150.0,
+          150.0,
+          150.0,
+          150.0,
+          150.0,
+          150.0,
+          150.0,
+          150.0
+        ],
+        "orientation": 1,
+        "animationContainer": true,
+        "loopCount": 0,
+        "bitDepth": 8
+      },
+      "target": "webp",
+      "status": "pass",
+      "result": {
+        "format": "webp",
+        "width": 3,
+        "height": 5,
+        "frames": 8,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          150,
+          150,
+          150,
+          150,
+          150,
+          150,
+          150,
+          150
+        ],
+        "orientation": 1,
+        "loopCount": 0
+      },
+      "byteIdentity": false,
+      "decodedSource": {
+        "status": "pass",
+        "rgbaSha256": "71ae4dacd99587df5817a1051f6cc418f0df8d2ca4a3c7fddc0215336bf4e4c3",
+        "width": 3,
+        "height": 5,
+        "alpha": true,
+        "decoder": "QImageReader"
+      },
+      "decodedResult": {
+        "status": "pass",
+        "rgbaSha256": "71ae4dacd99587df5817a1051f6cc418f0df8d2ca4a3c7fddc0215336bf4e4c3",
+        "width": 3,
+        "height": 5,
+        "alpha": true,
+        "decoder": "QImageReader"
+      },
+      "decodedFrameCount": 8,
+      "method": "whole_file_identity_or_properties_and_decoded_RGBA"
+    },
+    {
+      "source": {
+        "format": "webp",
+        "width": 2,
+        "height": 2,
+        "frames": 3,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          100,
+          100,
+          100
+        ],
+        "orientation": 1,
+        "loopCount": 0
+      },
+      "target": "webp",
+      "status": "pass",
+      "result": {
+        "format": "webp",
+        "width": 2,
+        "height": 2,
+        "frames": 3,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          100,
+          100,
+          100
+        ],
+        "orientation": 1,
+        "loopCount": 0
+      },
+      "byteIdentity": true,
+      "decodedSource": {
+        "status": "pass",
+        "rgbaSha256": "b3e8dfecac02c2dddca7d7f8135393b646983b31668323216240a64706bf6182",
+        "width": 2,
+        "height": 2,
+        "alpha": true,
+        "decoder": "QImageReader"
+      },
+      "decodedResult": {
+        "status": "pass",
+        "rgbaSha256": "b3e8dfecac02c2dddca7d7f8135393b646983b31668323216240a64706bf6182",
+        "width": 2,
+        "height": 2,
+        "alpha": true,
+        "decoder": "QImageReader"
+      },
+      "decodedFrameCount": 3,
+      "method": "whole_file_identity_or_properties_and_decoded_RGBA"
+    },
+    {
+      "source": {
+        "format": "webp",
+        "width": 2,
+        "height": 2,
+        "frames": 3,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          100,
+          100,
+          100
+        ],
+        "orientation": 1,
+        "loopCount": 0
+      },
+      "target": "apng",
+      "status": "pass",
+      "result": {
+        "format": "png",
+        "width": 2,
+        "height": 2,
+        "frames": 3,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          100.0,
+          100.0,
+          100.0
+        ],
+        "orientation": 1,
+        "animationContainer": true,
+        "loopCount": 0,
+        "bitDepth": 8
+      },
+      "byteIdentity": false,
+      "decodedSource": {
+        "status": "pass",
+        "rgbaSha256": "b3e8dfecac02c2dddca7d7f8135393b646983b31668323216240a64706bf6182",
+        "width": 2,
+        "height": 2,
+        "alpha": true,
+        "decoder": "QImageReader"
+      },
+      "decodedResult": {
+        "status": "pass",
+        "rgbaSha256": "b3e8dfecac02c2dddca7d7f8135393b646983b31668323216240a64706bf6182",
+        "width": 2,
+        "height": 2,
+        "alpha": true,
+        "decoder": "QImageReader"
+      },
+      "decodedFrameCount": 3,
+      "method": "whole_file_identity_or_properties_and_decoded_RGBA"
+    },
+    {
+      "source": {
+        "format": "tiff",
+        "width": 3,
+        "height": 5,
+        "frames": 1,
+        "pages": 3,
+        "alpha": true,
+        "durationsMs": [],
+        "orientation": 1,
+        "pageDimensions": [
+          [
+            3,
+            5
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            3,
+            5
+          ]
+        ],
+        "bitDepth": 8,
+        "pageImageIndexes": [
+          0,
+          1,
+          2
+        ],
+        "pageOrientations": [
+          1,
+          1,
+          1
+        ],
+        "pageDpi": [
+          null,
+          null,
+          null
+        ]
+      },
+      "target": "tiff",
+      "status": "pass",
+      "result": {
+        "format": "tiff",
+        "width": 3,
+        "height": 5,
+        "frames": 1,
+        "pages": 3,
+        "alpha": true,
+        "durationsMs": [],
+        "orientation": 1,
+        "pageDimensions": [
+          [
+            3,
+            5
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            3,
+            5
+          ]
+        ],
+        "bitDepth": 8,
+        "pageImageIndexes": [
+          0,
+          1,
+          2
+        ],
+        "pageOrientations": [
+          1,
+          1,
+          1
+        ],
+        "pageDpi": [
+          null,
+          null,
+          null
+        ]
+      },
+      "byteIdentity": true,
+      "decodedSource": {
+        "status": "pass",
+        "rgbaSha256": "34e837a9796ced853faa60e0e1e33679ca96db040d5ff62c46394ab664996520",
+        "width": 3,
+        "height": 5,
+        "alpha": true,
+        "decoder": "independent_uncompressed_TIFF"
+      },
+      "decodedResult": {
+        "status": "pass",
+        "rgbaSha256": "34e837a9796ced853faa60e0e1e33679ca96db040d5ff62c46394ab664996520",
+        "width": 3,
+        "height": 5,
+        "alpha": true,
+        "decoder": "independent_uncompressed_TIFF"
+      },
+      "decodedFrameCount": 1,
+      "method": "whole_file_identity_or_properties_and_decoded_RGBA"
+    },
+    {
+      "source": "pdf_pages",
+      "target": "tiff",
+      "status": "pass",
+      "pages": 3,
+      "pageDimensions": [
+        [
+          300,
+          400
+        ],
+        [
+          300,
+          400
+        ],
+        [
+          300,
+          400
+        ]
+      ],
+      "pageRgbaSha256": [
+        "2fdbf5cb0951c1fd07d507b990de47c3b9176811bdb341fbda3501ff4ffcbace",
+        "140d90badb38e441f45198a09f50ff056f36b4222505bb06f4f6f659ac07effa",
+        "264d28c49cabe0468c1f2d8a65b6982cb4236aa68dfe0573f3be939aa97d6557"
+      ],
+      "method": "independent_BigTIFF_all_page_pixel_hashes_300_DPI"
+    },
+    {
+      "source": "writer",
+      "target": "txt",
+      "status": "pass",
+      "markers": 48,
+      "images": 0,
+      "tableCells": null,
+      "method": "independent_visible_body_table_cells_and_referenced_image_pixels"
+    },
+    {
+      "source": "writer",
+      "target": "epub",
+      "status": "pass",
+      "markers": 48,
+      "images": 1,
+      "tableCells": 48,
+      "method": "independent_visible_body_table_cells_and_referenced_image_pixels"
+    },
+    {
+      "source": "epub",
+      "target": "odt",
+      "status": "pass",
+      "markers": 48,
+      "images": 1,
+      "tableCells": 48,
+      "method": "independent_visible_body_table_cells_and_referenced_image_pixels"
+    },
+    {
+      "source": "epub",
+      "target": "pdf",
+      "status": "pass",
+      "markers": 48,
+      "images": 1,
+      "tableCells": null,
+      "method": "independent_visible_body_table_cells_and_referenced_image_pixels"
+    },
+    {
+      "source": "epub",
+      "target": "html",
+      "status": "pass",
+      "markers": 48,
+      "images": 1,
+      "tableCells": 48,
+      "method": "independent_visible_body_table_cells_and_referenced_image_pixels"
+    },
+    {
+      "source": "html_writer",
+      "target": "docm",
+      "status": "pass",
+      "markers": 48,
+      "images": 0,
+      "tableCells": 48,
+      "method": "independent_visible_body_table_cells_and_referenced_image_pixels"
+    },
+    {
+      "source": "html_writer",
+      "target": "dotx",
+      "status": "pass",
+      "markers": 48,
+      "images": 0,
+      "tableCells": 48,
+      "method": "independent_visible_body_table_cells_and_referenced_image_pixels"
+    },
+    {
+      "source": "html_writer",
+      "target": "xml",
+      "status": "pass",
+      "markers": 48,
+      "images": 0,
+      "tableCells": 48,
+      "method": "independent_visible_body_table_cells_and_referenced_image_pixels"
+    },
+    {
+      "source": "drawing",
+      "target": "html",
+      "status": "pass",
+      "pages": 2,
+      "pageChecks": [
+        {
+          "marker": "AIO_VECTOR_PAGE_ONE_018",
+          "svgSha256": "5833bc46dc669bcf4fa2adff719921b03f5873f27fd1337ba268e76cc0a4d005",
+          "embeddedOriginalPngs": 1,
+          "embeddedPngSha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+        },
+        {
+          "marker": "AIO_VECTOR_PAGE_TWO_018",
+          "svgSha256": "3778c4b1f1ae16b6871dde7f465ae81d65d6f4f4d02cd958b8b11f37e6729920",
+          "embeddedOriginalPngs": 1,
+          "embeddedPngSha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+        }
+      ],
+      "method": "independent_SVG_page_order_text_original_PNG_decode_and_local_dependency_checks"
+    },
+    {
+      "source": "drawing",
+      "target": "htm",
+      "status": "pass",
+      "pages": 2,
+      "pageChecks": [
+        {
+          "marker": "AIO_VECTOR_PAGE_ONE_018",
+          "svgSha256": "5833bc46dc669bcf4fa2adff719921b03f5873f27fd1337ba268e76cc0a4d005",
+          "embeddedOriginalPngs": 1,
+          "embeddedPngSha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+        },
+        {
+          "marker": "AIO_VECTOR_PAGE_TWO_018",
+          "svgSha256": "3778c4b1f1ae16b6871dde7f465ae81d65d6f4f4d02cd958b8b11f37e6729920",
+          "embeddedOriginalPngs": 1,
+          "embeddedPngSha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+        }
+      ],
+      "method": "independent_SVG_page_order_text_original_PNG_decode_and_local_dependency_checks"
+    },
+    {
+      "source": "drawing",
+      "target": "xhtml",
+      "status": "pass",
+      "pages": 2,
+      "pageChecks": [
+        {
+          "marker": "AIO_VECTOR_PAGE_ONE_018",
+          "svgSha256": "5833bc46dc669bcf4fa2adff719921b03f5873f27fd1337ba268e76cc0a4d005",
+          "embeddedOriginalPngs": 1,
+          "embeddedPngSha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+        },
+        {
+          "marker": "AIO_VECTOR_PAGE_TWO_018",
+          "svgSha256": "3778c4b1f1ae16b6871dde7f465ae81d65d6f4f4d02cd958b8b11f37e6729920",
+          "embeddedOriginalPngs": 1,
+          "embeddedPngSha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+        }
+      ],
+      "method": "independent_SVG_page_order_text_original_PNG_decode_and_local_dependency_checks"
+    }
+  ],
+  "outputs": 46,
+  "bytesVerified": 1653177,
+  "readbackVerified": true,
+  "originalsUnchanged": true,
+  "elapsedMs": 204319,
+  "nativeExportCoverage": {
+    "txt": {
+      "registeredServices": [
+        "com.sun.star.sheet.SpreadsheetDocument",
+        "com.sun.star.text.GlobalDocument",
+        "com.sun.star.text.TextDocument",
+        "com.sun.star.text.WebDocument"
+      ],
+      "status": "pass",
+      "reason": null,
+      "actualContentChecks": 1
+    },
+    "svm": {
+      "registeredServices": [],
+      "status": "NOT_RUN",
+      "reason": "NATIVE_EXPORT_FILTER_ABSENT",
+      "graphicExport": "requires_live_UNO_GraphicExportFilter_image/x-svm_proof",
+      "acceptance": "NOT_RUN_Linux_LOK_has_no_graphic_encoder_proof"
+    },
+    "orp": {
+      "registeredServices": [],
+      "status": "unavailable",
+      "reason": "NATIVE_EXPORT_FILTER_ABSENT"
+    },
+    "presentationHtml": {
+      "status": "NOT_RUN",
+      "reason": "requires_observed_UNO_per_page_SVG_graphic_export_proof"
+    }
+  },
+  "windowsNativeTested": false,
+  "fulltest510": "NOT_RUN"
+}

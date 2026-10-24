@@ -19,7 +19,7 @@ from .errors import GuardError
 from .native_logs import NativeLogs
 
 WORKER_SOURCE = r'''
-import json, os, sys, time, subprocess
+import json, os, sys, time, subprocess, struct
 from pathlib import Path
 
 PREFIX = 'AIO_GUARD_RPC '
@@ -52,6 +52,18 @@ def dbf_mixed_columns(sheet, area):
             mixed.append(column)
     return {'header': header, 'originalHeaders': list(first) if header else None, 'mixed': mixed}
 
+def table_content_area(sheet):
+    cursor = sheet.createCursor()
+    cursor.gotoEndOfUsedArea(False)
+    area = cursor.getRangeAddress()
+    if hasattr(sheet, 'queryContentCells'):
+        # Formatting an entire row/column is not billions of data cells.
+        # VALUE|DATETIME|STRING|FORMULA excludes attributes and annotations.
+        content = sheet.queryContentCells(23).getRangeAddresses()
+        area.EndRow = max((item.EndRow for item in content), default=0)
+        area.EndColumn = max((item.EndColumn for item in content), default=0)
+    return area
+
 def export_table_sheets(model, desktop, prop, target, export_options):
     """One native legacy file per sheet, without approving a lossy dialog.
 
@@ -67,9 +79,7 @@ def export_table_sheets(model, desktop, prop, target, export_options):
     profiles = []
     for index in range(count):
         sheet = sheets.getByIndex(index)
-        cursor = sheet.createCursor()
-        cursor.gotoEndOfUsedArea(False)
-        area = cursor.getRangeAddress()
+        area = table_content_area(sheet)
         profiles.append((area, dbf_mixed_columns(sheet, area) if is_dbf else {'mixed': []}))
     if count <= 1 and not profiles[0][1]['mixed']:
         model.storeToURL(target.as_uri(), tuple(export_options))
@@ -105,6 +115,7 @@ def export_table_sheets(model, desktop, prop, target, export_options):
             if profile['mixed']:
                 mapping = path.with_name(path.name + '.aio-columns.jsonl').open('x', encoding='utf-8')
                 mapping.write(json.dumps({'schemaVersion': 1, 'format': 'dBase',
+                    'encoding': 'UTF-8', 'nativeFilterOptions': '76',
                     'sheetName': source_sheet.getName(), 'sourceRows': area.EndRow + 1,
                     'sourceColumns': area.EndColumn + 1, 'sourceHasHeader': profile['header'],
                     'originalHeaders': profile['originalHeaders'], 'memoColumns': profile['mixed'],
@@ -117,6 +128,7 @@ def export_table_sheets(model, desktop, prop, target, export_options):
                     last_column = min(area.EndColumn, column + 127)
                     values = source_sheet.getCellRangeByPosition(
                         column, row, last_column, last_row).getDataArray()
+                    original_values = values
                     # XCellRangeData returns formula errors as void (None).
                     # Preserve their displayed error string rather than
                     # turning those cells into blanks in the value snapshot.
@@ -134,11 +146,12 @@ def export_table_sheets(model, desktop, prop, target, export_options):
                                 if not column <= source_column <= last_column:
                                     continue
                                 offset = source_column - column
-                                original = record[offset]
+                                original = original_values[row_offset][offset]
                                 text = source_sheet.getCellByPosition(source_column, source_row).getString()
                                 changed[row_offset][offset] = text
                                 mapping.write(json.dumps({'row': source_row, 'column': source_column,
-                                    'sourceType': 'string' if isinstance(original, str) else 'number',
+                                    'sourceType': ('error' if original is None else
+                                                   'string' if isinstance(original, str) else 'number'),
                                     'sourceValue': original, 'exportedText': text},
                                     ensure_ascii=True, allow_nan=False) + '\n')
                         values = tuple(tuple(record) for record in changed)
@@ -156,6 +169,23 @@ def export_table_sheets(model, desktop, prop, target, export_options):
                 mapping.close()
                 mapping = None
             temporary.storeToURL(path.as_uri(), tuple(export_options))
+            if profile['mixed'] and path.is_file():
+                # Record the actual native header (normalised names and field
+                # types), rather than guessing how the dBase driver named it.
+                fields = []
+                with path.open('rb') as stream:
+                    header = stream.read(32)
+                    header_size = struct.unpack_from('<H', header, 8)[0]
+                    for field_index in range(max(0, (header_size - 33) // 32)):
+                        field = stream.read(32)
+                        if len(field) != 32:
+                            raise RuntimeError('NATIVE_DBF_HEADER_INVALID')
+                        fields.append({'column': field_index,
+                            'name': field[:11].split(b'\0', 1)[0].decode('ascii', 'strict'),
+                            'type': chr(field[11]), 'length': field[16], 'decimals': field[17]})
+                with path.with_name(path.name + '.aio-columns.jsonl').open('a', encoding='utf-8') as stream:
+                    stream.write(json.dumps({'kind': 'native_field_mapping', 'fields': fields},
+                                            ensure_ascii=True, allow_nan=False) + '\n')
             outputs.append(path)
         finally:
             if 'mapping' in locals() and mapping is not None:
@@ -191,6 +221,34 @@ def export_draw_svm(model, remote, prop, target):
                 raise RuntimeError('NATIVE_GRAPHIC_SVM_INVALID')
         outputs.append(path)
     return outputs
+
+
+def export_draw_svg_pages(model, remote, prop, target):
+    """Static native XDrawPage vectors, including presentation masters/fields."""
+    pages = model.getDrawPages()
+    if pages.getCount() < 1:
+        raise RuntimeError('NATIVE_DRAW_PAGES_MISSING')
+    exporter = remote.ServiceManager.createInstanceWithContext(
+        'com.sun.star.drawing.GraphicExportFilter', remote)
+    if exporter is None or not exporter.supportsMimeType('image/svg+xml'):
+        raise RuntimeError('NATIVE_GRAPHIC_SVG_UNAVAILABLE')
+    outputs = []
+    manifest = target.with_suffix('.aio-svg-pages.jsonl')
+    with manifest.open('x', encoding='utf-8') as metadata:
+        for index in range(pages.getCount()):
+            path = target if index == 0 else target.with_name(
+                target.stem + '__page_%04d' % (index + 1) + target.suffix)
+            page = pages.getByIndex(index)
+            exporter.setSourceDocument(page)
+            if not exporter.filter((prop('URL', path.as_uri()), prop('MediaType', 'image/svg+xml'),
+                                    prop('FilterName', 'svg'), prop('Overwrite', False))):
+                raise RuntimeError('NATIVE_GRAPHIC_EXPORT_FAILED')
+            if not path.is_file() or path.is_symlink() or path.stat().st_size == 0:
+                raise RuntimeError('NATIVE_GRAPHIC_OUTPUT_MISSING')
+            metadata.write(json.dumps({'page': index + 1, 'file': path.name,
+                'contentExpected': page.getCount() > 0}, ensure_ascii=True) + '\n')
+            outputs.append(path)
+    return outputs, manifest
 
 
 def inspect_native_text_export(remote, text_document, services):
@@ -341,7 +399,8 @@ def main(boot_name):
                         result['nativeExportFilters'] = text_exports
                     if text_document:
                         result['nativeExportInspection'] = {'txt': text_export_reason}
-                    if 'com.sun.star.drawing.DrawingDocument' in services:
+                    if set(services).intersection(('com.sun.star.drawing.DrawingDocument',
+                                                  'com.sun.star.presentation.PresentationDocument')):
                         try:
                             result['drawPages'] = model.getDrawPages().getCount()
                         except Exception:
@@ -349,8 +408,12 @@ def main(boot_name):
                         try:
                             graphic = remote.ServiceManager.createInstanceWithContext(
                                 'com.sun.star.drawing.GraphicExportFilter', remote)
+                            exports = []
                             if graphic is not None and graphic.supportsMimeType('image/x-svm'):
-                                result['nativeGraphicExports'] = ['svm']
+                                exports.append('svm')
+                            if graphic is not None and graphic.supportsMimeType('image/svg+xml'):
+                                exports.append('svg')
+                            result['nativeGraphicExports'] = exports
                         except Exception:
                             pass  # A document route does not require a graphic encoder.
                 elif not set(services).intersection(req['expectedServices']):
@@ -358,7 +421,9 @@ def main(boot_name):
                 elif req.get('expectedImportFilter') and actual_filter != req['expectedImportFilter']:
                     result = {'id':request_id,'ok':False,'code':'NATIVE_IMPORT_FILTER_CHANGED','stage':'import'}
                 elif req.get('requiredDrawPages') is not None and (
-                        'com.sun.star.drawing.DrawingDocument' not in services or
+                        not ('com.sun.star.drawing.DrawingDocument' in services or
+                             req.get('graphicExport') == 'svg_pages' and
+                             'com.sun.star.presentation.PresentationDocument' in services) or
                         model.getDrawPages().getCount() != req['requiredDrawPages']):
                     result = {'id':request_id,'ok':False,'code':'NATIVE_MODEL_CHANGED','stage':'import'}
                 else:
@@ -372,6 +437,7 @@ def main(boot_name):
                         export_options.append(prop('FilterOptions', req['exportOptions']))
                     export_tick = time.monotonic()
                     exported_paths = [target]
+                    svg_manifest = None
                     try:
                         if req['format'] == 'txt' and req['exportFilter'] == 'Text (encoded)':
                             try:
@@ -383,8 +449,13 @@ def main(boot_name):
                             if text_exports.get('txt') != 'Text (encoded)':
                                 raise RuntimeError('NATIVE_TEXT_EXPORT_CAPABILITY_CHANGED:' + text_reason)
                         if (req.get('graphicExport') == 'svm' and req['format'] == 'svm'
-                                and 'com.sun.star.drawing.DrawingDocument' in services):
+                                and set(services).intersection(('com.sun.star.drawing.DrawingDocument',
+                                                               'com.sun.star.presentation.PresentationDocument'))):
                             exported_paths = export_draw_svm(model, remote, prop, target)
+                        elif (req.get('graphicExport') == 'svg_pages' and req['format'] == 'svg'
+                                and set(services).intersection(('com.sun.star.drawing.DrawingDocument',
+                                                               'com.sun.star.presentation.PresentationDocument'))):
+                            exported_paths, svg_manifest = export_draw_svg_pages(model, remote, prop, target)
                         elif (req['exportFilter'] in ('DIF', 'dBase')
                                 and 'com.sun.star.sheet.SpreadsheetDocument' in services):
                             exported_paths = export_table_sheets(model, desktop, prop, target, export_options)
@@ -400,6 +471,9 @@ def main(boot_name):
                               'primary':target.name,'stage':'export',
                               'code':('EXPORT_INTERACTION_REQUIRED' if export_handler.blocked else
                                       'ENGINE_OUTPUT_MISSING' if not present else None)}
+                    if svg_manifest is not None:
+                        result['svgPageManifest'] = svg_manifest.name
+                        result['drawPagesCount'] = len(exported_paths)
                     if req['exportFilter'] == 'dBase' and list(Path(req['output']).glob('*.aio-columns.jsonl')):
                         result['warnings'] = ['NATIVE_DBF_MIXED_COLUMN_TEXT']
         except Exception as error:

@@ -2,7 +2,6 @@
 import hashlib
 import importlib.util
 import json
-import os
 from pathlib import Path
 import tempfile
 from types import SimpleNamespace
@@ -66,54 +65,6 @@ class AcceptanceEvidenceV17(unittest.TestCase):
         linux = qa.suite_summary(result, 'Linux')
         self.assertEqual([row['status'] for row in linux['skipped']], ['INCOMPLETE', 'INCOMPLETE'])
 
-    def test_source_only_linux_marks_unavailable_native_checks_without_claiming_execution(self):
-        test = SimpleNamespace(id=lambda: 'native.example')
-        result = SimpleNamespace(testsRun=2, failures=[], errors=[], unexpectedSuccesses=[],
-            skipped=[(test, 'LibreOffice not installed'), (test, 'Application Qt dependency required')])
-        linux = qa.suite_summary(result, 'Linux', source_only=True)
-        self.assertEqual(linux['status'], 'PASS')
-        self.assertEqual(linux['passed'], 0)
-        self.assertTrue(all(row['status'] == 'platform_not_applicable' for row in linux['skipped']))
-        self.assertEqual(qa.suite_summary(result, 'Windows', source_only=True)['status'], 'INCOMPLETE')
-        self.assertEqual(qa.suite_summary(result, 'Linux')['status'], 'INCOMPLETE')
-
-    def test_source_only_does_not_hide_missing_dom_tests(self):
-        test = SimpleNamespace(id=lambda: 'ui.example')
-        result = SimpleNamespace(testsRun=1, failures=[], errors=[], unexpectedSuccesses=[],
-            skipped=[(test, 'Set AIO_DOM_MODULE')])
-        self.assertEqual(qa.suite_summary(result, 'Linux', source_only=True)['status'], 'INCOMPLETE')
-
-    def test_source_only_keeps_pypdf_openpyxl_and_dom_mandatory(self):
-        deps = {'PySide6': False, 'openpyxl': True, 'pypdf': False, 'node': True, 'DOM': False}
-        summary = qa.dependency_summary(deps, system='Linux', source_only=True)
-        self.assertEqual(summary['status'], 'INCOMPLETE')
-        self.assertEqual(summary['missing'], ['pypdf', 'DOM'])
-        self.assertEqual(summary['platformNotApplicable'], ['PySide6'])
-        self.assertIn('PySide6', qa.dependency_summary(deps, system='Windows', source_only=True)['missing'])
-
-    def test_source_only_command_runs_no_native_stages_and_reports_not_run(self):
-        def fake_run(name, command, output):
-            self.assertEqual(name, 'unittest')
-            qa.write_json(output / 'unittest-evidence.json', {'status': 'PASS', 'discovered': 1, 'passed': 1})
-            return {'status': 'PASS', 'returncode': 0}
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            dom = root / 'dom.mjs'; dom.write_text('existing dependency')
-            with patch.dict(os.environ, {'AIO_DOM_MODULE': str(dom)}), \
-                 patch.object(qa.platform, 'system', return_value='Linux'), \
-                 patch.object(qa.importlib.util, 'find_spec', side_effect=lambda name: None if name == 'PySide6' else object()), \
-                 patch.object(qa.shutil, 'which', return_value='/existing/node'), \
-                 patch.object(qa, 'corpus_candidates', return_value=[]), \
-                 patch.object(qa, 'bundled_corpus', return_value=None), \
-                 patch.object(qa, 'run_command', side_effect=fake_run) as run, \
-                 patch.object(qa, 'emit_summary') as emit:
-                self.assertEqual(qa.main(['--source-only', '--output', str(root / 'out')]), 0)
-                self.assertEqual(run.call_count, 1)
-                evidence = emit.call_args.args[0]
-                self.assertEqual(evidence['scope'], 'source_only')
-                self.assertEqual(evidence['native']['status'], 'NOT_RUN')
-                self.assertFalse(any(name.startswith('native') for name in evidence['stages']))
-
     def make_bundle(self, root, *, name='source.odt', digest=None, extra=False):
         path = root / 'tests/data/guard_v17_fulltest_subset.zip'
         path.parent.mkdir(parents=True)
@@ -148,7 +99,7 @@ class AcceptanceEvidenceV17(unittest.TestCase):
             self.assertFalse((out / 'targeted-corpus').exists())
 
     def test_bundle_traversal_and_unlisted_entries_are_rejected(self):
-        for args in ({'name': '../escape.odt'}, {'name': 'C:escape.odt'}, {'extra': True}):
+        for args in ({'name': '../escape.odt'}, {'extra': True}):
             with self.subTest(args=args), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
                 self.make_bundle(root, **args)

@@ -1,0 +1,270 @@
+name: "AIO final pinned NIKITA FULLTEST-510 acceptance"
+on:
+  pull_request:
+    types: [labeled]
+permissions:
+  contents: read
+concurrency:
+  group: aio-final-fulltest-pinned-nikita
+  # The explicit replacement label cancels only obsolete runs in this QA group.
+  cancel-in-progress: ${{ github.event.action == 'labeled' && github.event.label.name == 'aio-final-replace-obsolete-once' }}
+jobs:
+  windows-qa:
+    if: >-
+      github.repository == 'jumonja-maker/A.I.O' &&
+      github.actor == 'jumonja-maker' &&
+      github.event.action == 'labeled' &&
+      (github.event.label.name == 'aio-final-fulltest-510-once' || github.event.label.name == 'aio-final-replace-obsolete-once') &&
+      github.event.pull_request.number == 46 &&
+      github.event.pull_request.user.login == 'jumonja-maker' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'patch/aio-master-bugbag-final-20261025' &&
+      github.event.pull_request.base.ref == 'feature/blackbox-deep-telemetry-v01-20261021'
+    runs-on: [self-hosted, Windows, X64, local-d-manual]
+    timeout-minutes: 300
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: utf-8
+      OMP_NUM_THREADS: '2'
+      OPENBLAS_NUM_THREADS: '2'
+      PIP_NO_INDEX: '1'
+      PIP_NO_INPUT: '1'
+      AIO_BLACKBOX_EVENTS: ''
+      QT_QPA_PLATFORM: offscreen
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - name: Check restricted NIKITA host
+        id: host
+        run: |
+          $ErrorActionPreference='Stop'
+          if ($env:RUNNER_NAME -cne 'NIKITA' -or $env:RUNNER_OS -cne 'Windows' -or $env:USERNAME -ine 'aio-runner') { throw 'Untrusted runner' }
+          $principal=New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+          if ($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Elevation forbidden' }
+          foreach ($key in @('GITHUB_WORKSPACE','RUNNER_TEMP','TEMP','TMP')) {
+            $value=[Environment]::GetEnvironmentVariable($key)
+            if ([string]::IsNullOrWhiteSpace($value) -or -not [IO.Path]::GetFullPath($value).StartsWith('D:\',[StringComparison]::OrdinalIgnoreCase)) { throw ($key+' outside D:') }
+          }
+          if ((Get-PSDrive -Name D -PSProvider FileSystem).Free -lt 30GB -or (Get-PSDrive -Name C -PSProvider FileSystem).Free -lt 10GB) { throw 'Insufficient free disk space' }
+          Write-Host 'RESTRICTED_NIKITA=PASS'
+      - name: Checkout exact reviewed application source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: jumonja-maker/A.I.O
+          ref: 7a4a5446b635e860c49b61594eedccc7f2248c69
+          path: aio-final-${{ github.run_id }}-${{ github.run_attempt }}
+          persist-credentials: false
+          clean: true
+      - name: Verify exact tree and approved offline tools
+        id: tools
+        working-directory: aio-final-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $python='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\Scripts\python.exe'
+          $marker='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\.00aio-test-only-venv.txt'
+          if (-not (Test-Path -LiteralPath $python -PathType Leaf) -or -not (Test-Path -LiteralPath $marker -PathType Leaf) -or (Get-Content -LiteralPath $marker -Raw).Trim() -cne '00AIO NIKITA ISOLATED DOCX PDF QA PY311 QT6103') { throw 'Approved QA Python unavailable' }
+          $verify=@'
+          import hashlib, sys
+          from pathlib import Path
+          def tree(folder):
+              entries=[]
+              for child in folder.iterdir():
+                  if child.name=='.git':continue
+                  key=child.name.encode('utf-8')
+                  if child.is_symlink():raise ValueError('Symlink not permitted')
+                  if child.is_dir():mode,sha,sort=b'40000',tree(child),key+b'/'
+                  elif child.is_file():
+                      data=child.read_bytes()
+                      mode=b'100644'
+                      sha=hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).digest()
+                      sort=key
+                  else:raise ValueError('Bad file type')
+                  entries.append((sort,mode+b' '+key+b'\0'+sha))
+              raw=b''.join(row for _,row in sorted(entries,key=lambda x:x[0]))
+              return hashlib.sha1(b'tree '+str(len(raw)).encode()+b'\0'+raw).digest()
+          found=tree(Path.cwd()).hex()
+          print('PINNED_TREE='+found)
+          if found!=sys.argv[1]:raise SystemExit('GIT_TREE_MISMATCH')
+          '@
+          & $python -c $verify 'a8dc1dc977855523dd7400208868152a4bc9e7ce'
+          if ($LASTEXITCODE -ne 0) { throw 'Reviewed source tree mismatch' }
+          & $python -c 'import sys,openpyxl,pypdf,PySide6.QtWebEngineWidgets; assert sys.version_info[:2]==(3,11)'
+          if ($LASTEXITCODE -ne 0) { throw 'Approved offline Python dependency unavailable' }
+          $node=Get-Command node -ErrorAction SilentlyContinue
+          if ($node) {$node=$node.Source}
+          else {
+            $runnerRoot=Split-Path -Parent (Split-Path -Parent $env:RUNNER_TEMP)
+            $candidates=@((Join-Path $runnerRoot 'externals\node24\bin\node.exe'),(Join-Path $runnerRoot 'externals\node20\bin\node.exe'),'D:\AIO-Lab\nodejs\node.exe')
+            $node=@($candidates | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1)
+            if ($node.Count -ne 1) { throw 'Offline Node unavailable' }
+            $node=$node[0]
+          }
+          [IO.Path]::GetDirectoryName($node) | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          'AIO_QA_PYTHON='+$python | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          'AIO_QA_NODE='+$node | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $engine=$null
+          foreach($base in @('D:\LBR\LibreOffice','D:\LBR','D:\AIO-Lab\LibreOffice','C:\Program Files\LibreOffice')) {
+            foreach($app in @('program\soffice.com','program\soffice.exe')) {
+              $bin=Join-Path $base $app
+              if ((Test-Path -LiteralPath $bin -PathType Leaf) -and
+                  (Test-Path -LiteralPath (Join-Path $base 'program\soffice.bin') -PathType Leaf) -and
+                  (Test-Path -LiteralPath (Join-Path $base 'share') -PathType Container)) {
+                  $engine=$bin; break
+              }
+            }
+            if ($engine) { break }
+          }
+          if (-not $engine) { throw 'Complete native LibreOffice missing' }
+          'AIO_LIBREOFFICE='+$engine | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          'AIO_QA_ENGINE='+$engine | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $qaTemp=Join-Path $env:RUNNER_TEMP ('aio-final-'+$env:GITHUB_RUN_ID+'-'+$env:GITHUB_RUN_ATTEMPT)
+          foreach($entry in @(@('TEMP','temp'),@('TMP','temp'),@('LOCALAPPDATA','local-data'),@('APPDATA','roaming-data'),@('XDG_CACHE_HOME','cache'),@('XDG_DATA_HOME','data'),@('AIO_GUARD_DATA_DIR','guard-data'))) {
+            $path=Join-Path $qaTemp $entry[1]
+            New-Item -ItemType Directory -Path $path -Force | Out-Null
+            ($entry[0]+'='+$path) | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          }
+          Write-Host 'VERIFIED_SOURCE=7a4a5446b635e860c49b61594eedccc7f2248c69'
+          Write-Host ('NATIVE_ENGINE='+$engine)
+      - name: Checkout immutable offline corpus DOM and Pillow QA data
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: jumonja-maker/A.I.O
+          ref: b546071cde770fdc410126b3d7c3b07a86051b19
+          path: aio-final-data-${{ github.run_id }}-${{ github.run_attempt }}
+          persist-credentials: false
+          clean: true
+      - name: Verify and materialize all offline QA data
+        id: data
+        working-directory: aio-final-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $data=Join-Path $env:GITHUB_WORKSPACE 'aio-final-data-${{ github.run_id }}-${{ github.run_attempt }}'
+          $corpus=Join-Path $env:GITHUB_WORKSPACE 'aio-final-corpus-${{ github.run_id }}-${{ github.run_attempt }}'
+          $dom=Join-Path $env:GITHUB_WORKSPACE 'aio-final-dom-${{ github.run_id }}-${{ github.run_attempt }}'
+          $pillow=Join-Path $env:GITHUB_WORKSPACE 'aio-final-pillow-${{ github.run_id }}-${{ github.run_attempt }}'
+          & $env:AIO_QA_PYTHON tools/qa/materialize_fulltest_corpus.py --parts (Join-Path $data 'qa-data\fulltest-510') --output $corpus
+          if ($LASTEXITCODE -ne 0) {throw 'IMMUTABLE_CORPUS_VERIFICATION_FAILED'}
+          & $env:AIO_QA_PYTHON tools/qa/materialize_fulltest_corpus.py --kind dom --parts (Join-Path $data 'qa-data\offline-dom') --output $dom
+          if ($LASTEXITCODE -ne 0) {throw 'OFFLINE_DOM_VERIFICATION_FAILED'}
+          & $env:AIO_QA_PYTHON tools/qa/materialize_fulltest_corpus.py --kind pillow-windows --parts (Join-Path $data 'qa-data\offline-pillow-windows') --output $pillow
+          if ($LASTEXITCODE -ne 0) {throw 'OFFLINE_PINNED_PILLOW_VERIFICATION_FAILED'}
+          $pythonPath=$pillow
+          if ($env:PYTHONPATH) { $pythonPath+=';'+$env:PYTHONPATH }
+          $env:PYTHONPATH=$pythonPath
+          'PYTHONPATH='+$pythonPath | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          'AIO_QA_PILLOW='+$pillow | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          $verifyPillow=@'
+          import sys
+          from pathlib import Path
+          import PIL
+          from PIL import Image
+          expected=Path(sys.argv[1]).resolve()
+          assert PIL.__version__=='11.3.0'
+          assert Path(PIL.__file__).resolve().is_relative_to(expected)
+          assert Image.new('RGBA',(1,1),(1,2,3,4)).getpixel((0,0))==(1,2,3,4)
+          print('PINNED_OFFLINE_WINDOWS_PILLOW=PASS')
+          '@
+          & $env:AIO_QA_PYTHON -c $verifyPillow $pillow
+          if ($LASTEXITCODE -ne 0) {throw 'PINNED_WINDOWS_PILLOW_IMPORT_FAILED'}
+          'AIO_QA_CORPUS='+(Join-Path $corpus 'original') | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          'AIO_DOM_MODULE='+(Join-Path $dom 'node_modules\linkedom\cjs\index.js') | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Complete source Qt DOM and JS regressions
+        id: tests
+        working-directory: aio-final-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:AIO_QT_SAVE_QA='1'
+          & $env:AIO_QA_PYTHON -m compileall -q app_backend tests tools/qa
+          if ($LASTEXITCODE -ne 0) {throw 'SOURCE_COMPILE_FAILED'}
+          & $env:AIO_QA_PYTHON -c 'import shutil,sys;sys.exit(shutil.which(sys.argv[1]) is None)' node
+          if ($LASTEXITCODE -ne 0) {throw 'NODE_PATH_FAILED'}
+          & $env:AIO_QA_PYTHON -m unittest discover -s tests -p 'test_*.py' -v
+          if ($LASTEXITCODE -ne 0) {throw 'SOURCE_QT_DOM_SUITE_FAILED'}
+          foreach($name in @('src/converter-bridge.js','src/guard-queue.js','src/bridge.js','addons/file-converter/aio-converter-issues.js')) {
+            & $env:AIO_QA_NODE --check $name
+            if ($LASTEXITCODE -ne 0) {throw ('JS_PARSE_FAILED '+$name)}
+          }
+          Write-Host 'FINAL_COMPLETE_SOURCE=PASS'
+      - name: Actual QtWebEngine State dialog in both themes
+        id: render
+        if: ${{ !cancelled() && steps.tools.outcome == 'success' && steps.data.outcome == 'success' }}
+        working-directory: aio-final-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $dir=Join-Path $env:GITHUB_WORKSPACE ('aio-final-qt-render-'+$env:GITHUB_RUN_ID+'-'+$env:GITHUB_RUN_ATTEMPT)
+          & $env:AIO_QA_PYTHON tools/qa/guard_v16_qt_render_acceptance.py --output $dir --deadline 180 --offscreen
+          $code=$LASTEXITCODE
+          Write-Host ('QT_RENDER_PROCESS_EXIT='+$code)
+          $report=Join-Path $dir 'qt-render-evidence.json'
+          if (Test-Path -LiteralPath $report -PathType Leaf) { Get-Content -LiteralPath $report -Raw | Write-Host }
+          if ($code -ne 0) {throw 'ACTUAL_QTWEBENGINE_RENDER_NOT_PASS'}
+          Write-Host 'FINAL_ACTUAL_QTWEBENGINE_RENDER=PASS'
+      - name: Real native baseline and source-negative controls
+        id: fixtures
+        if: ${{ !cancelled() && steps.tools.outcome == 'success' && steps.data.outcome == 'success' }}
+        working-directory: aio-final-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $dir=Join-Path $env:GITHUB_WORKSPACE ('aio-final-native-fixtures-'+$env:GITHUB_RUN_ID+'-'+$env:GITHUB_RUN_ATTEMPT)
+          & $env:AIO_QA_PYTHON tools/qa/guard_v16_bugbag_acceptance.py --output $dir --corpus $env:AIO_QA_CORPUS --executable $env:AIO_QA_ENGINE --seconds 60
+          $code=$LASTEXITCODE
+          $report=Join-Path $dir 'evidence.json'
+          if (Test-Path -LiteralPath $report -PathType Leaf) { Get-Content -LiteralPath $report -Raw | Write-Host }
+          if ($code -ne 0) {throw 'NATIVE_BASELINE_FIXTURES_FAILED'}
+      - name: Real routes frames pages tables and content checks
+        id: routes
+        if: ${{ !cancelled() && steps.tools.outcome == 'success' && steps.data.outcome == 'success' }}
+        working-directory: aio-final-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $dir=Join-Path $env:GITHUB_WORKSPACE ('aio-final-native-routes-'+$env:GITHUB_RUN_ID+'-'+$env:GITHUB_RUN_ATTEMPT)
+          & $env:AIO_QA_PYTHON tools/qa/guard_v16_route_media_acceptance.py --output $dir --executable $env:AIO_QA_ENGINE --seconds 120
+          $code=$LASTEXITCODE
+          $report=Join-Path $dir 'evidence.json'
+          if (Test-Path -LiteralPath $report -PathType Leaf) { Get-Content -LiteralPath $report -Raw | Write-Host }
+          if ($code -ne 0) {throw 'NATIVE_ROUTE_MEDIA_CONTENT_FAILED'}
+      - name: Original WordML body images tables and page-region preservation
+        id: wordml
+        if: ${{ !cancelled() && steps.tools.outcome == 'success' && steps.data.outcome == 'success' }}
+        working-directory: aio-final-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $dir=Join-Path $env:GITHUB_WORKSPACE ('aio-final-wordml-'+$env:GITHUB_RUN_ID+'-'+$env:GITHUB_RUN_ATTEMPT)
+          & $env:AIO_QA_PYTHON tools/qa/guard_v18_wordml_acceptance.py --corpus $env:AIO_QA_CORPUS --output $dir --executable $env:AIO_QA_ENGINE --seconds 90
+          $code=$LASTEXITCODE
+          $report=Join-Path $dir 'evidence.json'
+          if (Test-Path -LiteralPath $report -PathType Leaf) { Get-Content -LiteralPath $report -Raw | Write-Host }
+          if ($code -ne 0) {throw 'WORDML_BODY_IMAGES_TABLES_REGIONS_FAILED'}
+      - name: Complete FULLTEST-510 matrix and saved-byte readback
+        id: fulltest
+        if: ${{ !cancelled() && steps.tests.outcome == 'success' && steps.fixtures.outcome == 'success' && steps.routes.outcome == 'success' && steps.wordml.outcome == 'success' }}
+        working-directory: aio-final-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          if ((Get-PSDrive -Name D -PSProvider FileSystem).Free -lt 30GB -or (Get-PSDrive -Name C -PSProvider FileSystem).Free -lt 10GB) { throw 'Insufficient free disk before full matrix' }
+          $dir=Join-Path $env:GITHUB_WORKSPACE ('aio-final-fulltest-'+$env:GITHUB_RUN_ID+'-'+$env:GITHUB_RUN_ATTEMPT)
+          $arguments=@('tools/qa/guard_v16_full_corpus_matrix.py','--corpus',$env:AIO_QA_CORPUS,'--output',$dir,'--executable',$env:AIO_QA_ENGINE,'--expected-sources','510','--task-seconds','180','--preflight-seconds','120','--max-seconds','13800','--min-free-gb','30','--quality-check','--require-complete-preflight')
+          $negatives='tools/qa/fulltest-510-known-invalid.json'
+          if (Test-Path -LiteralPath $negatives -PathType Leaf) { $arguments+=@('--fixture-negatives',$negatives) }
+          & $env:AIO_QA_PYTHON @arguments
+          $code=$LASTEXITCODE
+          $report=Join-Path $dir 'matrix-status.json'
+          if (Test-Path -LiteralPath $report -PathType Leaf) { Get-Content -LiteralPath $report -Raw | Write-Host }
+          if ($code -ne 0) {throw 'FULLTEST_MATRIX_HAS_OPEN_FAILURES_SEE_EVIDENCE'}
+      - name: Final acceptance verdict
+        if: always()
+        run: |
+          Write-Host 'PINNED_SOURCE=7a4a5446b635e860c49b61594eedccc7f2248c69'
+          Write-Host 'TEST_STATUS=${{ steps.tests.outcome }}'
+          Write-Host 'QT_RENDER_STATUS=${{ steps.render.outcome }}'
+          Write-Host 'FIXTURE_STATUS=${{ steps.fixtures.outcome }}'
+          Write-Host 'ROUTE_STATUS=${{ steps.routes.outcome }}'
+          Write-Host 'WORDML_STATUS=${{ steps.wordml.outcome }}'
+          Write-Host 'FULLTEST_STATUS=${{ steps.fulltest.outcome }}'
+          Write-Host 'PACKAGE=NOT_RUN; INSTALL=NOT_RUN; RELEASE=NOT_RUN; MAIN=UNCHANGED'
+          Write-Host 'SCREENSHOTS=INTERNAL_D_ONLY; ARTIFACT_UPLOAD=NONE'
+          foreach($result in @('${{ steps.tests.outcome }}','${{ steps.render.outcome }}','${{ steps.fixtures.outcome }}','${{ steps.routes.outcome }}','${{ steps.wordml.outcome }}','${{ steps.fulltest.outcome }}')) {
+            if ($result -ne 'success') {throw 'Final acceptance incomplete or failed'}
+          }

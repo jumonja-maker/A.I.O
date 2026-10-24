@@ -156,6 +156,8 @@ class _LegacySheetControl:
             roots = [self.workspace / 'output',
                      self.workspace / 'legacy-native-snapshot' / 'output',
                      self.workspace / 'legacy-sheet-inputs']
+            roots.extend(path for path in self.workspace.glob('legacy-memo-*')
+                         if path.is_dir() and not path.is_symlink())
             roots.extend(path / 'output' for path in self.workspace.glob('legacy-export-*')
                          if path.is_dir() and not path.is_symlink())
             used = 0
@@ -219,7 +221,8 @@ class LibreOfficeAdapter:
         return batch[0] if batch else registry(self.executable)
 
     def route_decider(self):
-        return self.route_decision
+        native = self._registry()
+        return lambda target, proof: self._route_for(native, target, proof)
 
     def execution_mode(self):
         return getattr(self._local,'execution_mode',None)
@@ -280,7 +283,7 @@ class LibreOfficeAdapter:
             if ext == 'xml':
                 description = 'XML — нативное представление документа'
             states = {f['id']: (native.hint(f['name'], ext) if proofs is None else
-                               self.route_decision(ext, proofs.get(f['id']))) for f in files}
+                               self._route_for(native, ext, proofs.get(f['id']))) for f in files}
             compatible = [i for i, state in states.items() if state == 'registered']
             unknown = [i for i, state in states.items() if state == 'undetermined']
             formats.append({'id': ext, 'label': ext.upper(), 'category': category,
@@ -293,6 +296,7 @@ class LibreOfficeAdapter:
                     'csv': 'CSV сохраняет только один активный лист и не сохраняет формулы, форматирование и остальные листы.',
                     'tsv': 'TSV сохраняет только один активный лист без оформления и формул.',
                     'tab': 'TAB сохраняет текстовую таблицу без оформления и других листов.',
+                    'dif': 'Каждый лист сохраняется отдельным DIF в UTF-8. При импорте в другую программу выберите UTF-8; описание кодировки включается в результат.',
                     'png': 'Из документов и рисунков LibreOffice может создавать изображение страницы, а не исходную пиксельную копию.',
                     'jpg': 'JPEG — формат с потерями; экспорт может менять качество изображения и геометрию страницы.',
                     'jpeg': 'JPEG — формат с потерями; экспорт может менять качество изображения и геометрию страницы.',
@@ -302,7 +306,8 @@ class LibreOfficeAdapter:
                     'xml': 'Для Writer/Calc/Impress/Draw используется установленный штатный фильтр Flat OpenDocument XML. Это не Excel/Word 2003 XML; точный фильтр указан в отчёте.'
                 }).get(ext, 'Проверка Guard подтверждает маршрут, но не гарантирует отсутствие смысловых или визуальных потерь.')}],
                 'unavailableReasons': {f['id']: native.route_reason(ext, (proofs or {}).get(f['id']))
-                                       for f in files if proofs and native.route_reason(ext, proofs.get(f['id']))},
+                                       for f in files if proofs and states[f['id']] != 'registered'
+                                       and native.route_reason(ext, proofs.get(f['id']))},
                 'registeredExport': (ext in native.exports or ext in media_targets or ext in live_targets or
                                      ext == 'svm' and bool(compatible)) if native.valid else registered,
                 'enabled': available and proofs is not None and bool(compatible),
@@ -397,7 +402,7 @@ class LibreOfficeAdapter:
             return {**result, 'sourceContract': {**contract, 'expectedServices': [WRITER, WEB]},
                     'sourcePreparation': prepared.summary, 'exported': False}
         source_hint = source_import_hint(contract, native)
-        hint = source_hint or csv_import_hint(source, native) or legacy_import_hint(source, native)
+        hint = source_hint or csv_import_hint(source, native) or legacy_import_hint(source, native, cancel=cancel)
         # One streaming scan, only for a content-confirmed text hint. Large or
         # ambiguous inputs retain an explicit incomplete status, never a veto.
         csv_profile = (inspect_csv_stream(source, delimiter=chr(int(hint['options'].split(',')[0])),
@@ -431,6 +436,10 @@ class LibreOfficeAdapter:
                         'documentServices':services,'typeName':result.get('typeName'),'filterName':selected,
                         'selectedImportFilter':confirmed,
                         'selectedImportOptions':hint['options'] if hint else None,
+                        'selectedImportWarnings': list((hint or {}).get('warnings', ())),
+                        'selectedImportEncoding': {key: hint[key] for key in
+                            ('encoding', 'encodingBasis', 'encodingInferred', 'codepageMark')
+                            if hint and key in hint},
                         'sourceContract':contract,
                         'csvImportSampleOnly': bool(csv_profile and not csv_profile.get('complete')),
                         'csvInspection': csv_profile,
@@ -475,6 +484,11 @@ class LibreOfficeAdapter:
             if office and proof.get('code') in ('PREFLIGHT_TIMEOUT', 'PREFLIGHT_API_UNAVAILABLE',
                                                 'PREFLIGHT_UNO_API_UNAVAILABLE'):
                 office.recycle()
+            if hint and proof.get('state') == 'detected':
+                proof = {**proof, 'selectedImportWarnings': list(hint.get('warnings', ())),
+                         'selectedImportEncoding': {key: hint[key] for key in
+                             ('encoding', 'encodingBasis', 'encodingInferred', 'codepageMark')
+                             if key in hint}}
             return proof
         except BaseException:
             if office:
@@ -485,11 +499,17 @@ class LibreOfficeAdapter:
                 office.completed += 1
 
     def route_decision(self, target, proof):
-        native = self._registry()
+        return self._route_for(self._registry(), target, proof)
+
+    @staticmethod
+    def _route_for(native, target, proof):
+        from .native_draw_html import native_draw_html_plan
         if (proof and proof.get('state') == 'detected'
                 and proof.get('registryFingerprint') == native.fingerprint
                 and isinstance(proof.get('mediaProfile'), dict)
                 and target in proof.get('qtMediaTargets', ())):
+            return 'registered'
+        if native_draw_html_plan(native, proof, target) is not None:
             return 'registered'
         return native.observed_decision(target, proof)
 
@@ -515,8 +535,11 @@ class LibreOfficeAdapter:
         from .media_fidelity import copy_media_identity
         from .native_identity import copy_chart_identity
         from .native_metafile import native_metafile_target, wrap_native_metafiles
+        from .native_alias import native_alias_target, wrap_native_aliases
         from .odf_table_import import prepare_odf_table_source
         from .qt_media import convert_media_frames, convert_document_pages
+        from .media_html import convert_media_html
+        from .native_draw_html import native_draw_html_plan, convert_native_draw_html
         proof = getattr(self._local, 'proof', None) or {}
         paths = None
         identity_control = (cancel if timeout is None and output_limit is None else
@@ -532,8 +555,26 @@ class LibreOfficeAdapter:
                 self._local.metrics = None
                 self._local.export_info = {'executionReason': 'validated_' + identity,
                     'resultChecks': [{'check': identity, 'status': 'byte_preserved', 'qualityCompared': False}]}
+            if (paths is None and target in ('html', 'htm', 'xhtml')
+                    and target in proof.get('qtMediaTargets', ()) and proof.get('mediaProfile')):
+                tick = time.monotonic()
+                self._local.execution_mode = 'qt_media_html'
+                self._local.metrics = None
+                self._local.export_info = {}
+                paths = convert_media_html(source, workspace / 'output', target,
+                    cancel=identity_control, media_profile=proof['mediaProfile'])
+                if paths:
+                    self._local.metrics = {'source': 'qt_media',
+                        'adapterMs': round((time.monotonic() - tick) * 1000)}
+                    self._local.export_info = {'executionReason': 'browser_media_html',
+                        'mediaCodec': 'existing_application_Qt_and_original_bytes',
+                        'resultChecks': [{'check': 'media_html', 'status': 'all_media_included',
+                                          'qualityCompared': False}]}
             if paths is None and target in proof.get('qtMediaTargets', ()):
                 tick = time.monotonic()
+                self._local.execution_mode = 'qt_media_frames'
+                self._local.metrics = None
+                self._local.export_info = {}
                 paths = convert_document_pages(source, workspace / 'output', target,
                     cancel=identity_control, on_started=on_started)
                 if paths is None:
@@ -544,9 +585,14 @@ class LibreOfficeAdapter:
                     self._local.metrics = {'source': 'qt_media',
                         'adapterMs': round((time.monotonic() - tick) * 1000)}
                     self._local.export_info = {'executionReason': 'qt_media_frames',
-                        'warnings': ('QT_PDF_RASTER_144_DPI',) if
+                        'warnings': ('QT_PDF_RASTER_300_DPI',) if
                             proof.get('mediaProfile', {}).get('format') == 'pdf' else (),
                         'mediaCodec': 'existing_application_Qt', 'resultChecks': []}
+                    profile = proof.get('mediaProfile', {})
+                    if (target == 'gif' and (profile.get('format') != 'gif' or
+                            any(value % 10 for value in profile.get('durationsMs', ())))):
+                        self._local.export_info['warnings'] = tuple(
+                            self._local.export_info.get('warnings', ())) + ('QT_GIF_FORMAT_LIMITS',)
         if paths is None:
             native_source = source
             preparation = None
@@ -563,16 +609,37 @@ class LibreOfficeAdapter:
                 native_source, preparation = prepare_odf_table_source(
                     source, workspace, cancel=identity_control)
             plain = native_metafile_target(self._registry(), target, proof)
+            alias = native_alias_target(self._registry(), target, proof)
             remaining = (None if timeout is None else
                          max(.001, identity_control.deadline - time.monotonic()))
             batch = getattr(self._local, 'batch', None)
             live_uno = (batch and hasattr(batch[1], 'request') and not batch[1].disabled)
-            if (target in ('dbf', 'dif') and not live_uno and
+            draw_plan = native_draw_html_plan(self._registry(), proof, target)
+            if draw_plan is not None:
+                self._local.execution_mode = 'native_uno' if live_uno else 'native_cli'
+                self._local.metrics = None
+                self._local.export_info = {}
+                hint = getattr(self._local, 'import_filter', None)
+                options = getattr(self._local, 'import_options', None)
+                if hint and options:
+                    hint += ':' + options
+                paths, draw_check, draw_timing = convert_native_draw_html(native_source,
+                    target, workspace, native=self._registry(), proof=proof, executable=self.executable,
+                    prepare_profile=prepare_profile, cancel=identity_control, on_started=on_started,
+                    import_filter=hint, office=batch[1] if live_uno else None,
+                    on_stage=on_stage or (lambda stage: None))
+                self._local.metrics = draw_timing
+                self._local.execution_mode = ('native_uno' if draw_timing.get('source') == 'uno_document'
+                                              else 'native_cli')
+                self._local.export_info = {'filter': draw_plan['svgFilter'],
+                    'executionReason': 'native_vector_pages_html',
+                    'warnings': ('NATIVE_VECTOR_PAGE_VIEW',), 'resultChecks': [draw_check]}
+            elif (target in ('dbf', 'dif') and not live_uno and
                     proof.get('documentServices') == ['com.sun.star.sheet.SpreadsheetDocument']):
                 paths = self._convert_legacy_sheets(native_source, target, workspace,
                     control=identity_control, on_started=on_started, on_stage=on_stage)
             else:
-                paths = self._convert_native(native_source, plain or target, workspace,
+                paths = self._convert_native(native_source, plain or alias or target, workspace,
                     cancel=identity_control, timeout=remaining,
                     on_started=on_started, output_limit=output_limit,
                     on_document_service=on_document_service, on_stage=on_stage)
@@ -580,6 +647,11 @@ class LibreOfficeAdapter:
                 paths, metafile_check = wrap_native_metafiles(paths, target, cancel=identity_control)
                 self._local.export_info['executionReason'] = 'native_plain_metafile_gzip'
                 self._local.export_info['resultChecks'] = [metafile_check]
+            if alias:
+                paths, alias_check = wrap_native_aliases(paths, target, cancel=identity_control)
+                self._local.export_info['executionReason'] = 'native_canonical_image_alias'
+                self._local.export_info['resultChecks'] = list(
+                    self._local.export_info.get('resultChecks', ())) + [alias_check]
             if preparation:
                 self._local.export_info['sourcePreparation'] = preparation
                 self._local.export_info['warnings'] = tuple(dict.fromkeys(
@@ -587,6 +659,33 @@ class LibreOfficeAdapter:
                      *preparation.get('warnings', ()),
                      *(['ODF_IMPLICIT_COLUMNS_EXPLICIT'] if preparation.get('state') == 'prepared'
                        and preparation.get('kind') == 'odf_explicit_table_columns' else []))))
+        import_warnings = proof.get('selectedImportWarnings', ())
+        if import_warnings:
+            self._local.export_info['warnings'] = tuple(dict.fromkeys(
+                (*self._local.export_info.get('warnings', ()), *import_warnings)))
+            self._local.export_info['resultChecks'] = list(
+                self._local.export_info.get('resultChecks', ())) + [{
+                    'check': 'source_dbf_encoding', 'status': 'inferred_from_complete_content',
+                    **proof.get('selectedImportEncoding', {}), 'qualityCompared': False}]
+        if target == 'dif' and self._local.export_info.get('filter') == 'DIF':
+            from .dif_encoding import describe_dif_encoding
+            paths, encoding_check = describe_dif_encoding(paths, cancel=identity_control)
+            if encoding_check:
+                self._local.export_info['resultChecks'] = list(
+                    self._local.export_info.get('resultChecks', ())) + [encoding_check]
+                self._local.export_info['warnings'] = tuple(
+                    self._local.export_info.get('warnings', ())) + ('NATIVE_DIF_UTF8_IMPORT',)
+        if (target in ('html', 'htm', 'xhtml')
+                and self._local.export_info.get('filter') == 'XHTML Writer File'
+                and (proof.get('sourceContract', {}).get('contentClass') == 'word2003_xml'
+                     or proof.get('selectedImportFilter') == 'MS Word 2003 XML')):
+            from .wordml_page_regions import restore_wordml_page_regions
+            paths, region_check = restore_wordml_page_regions(source, paths, target, cancel=identity_control)
+            if region_check:
+                self._local.export_info['resultChecks'] = list(
+                    self._local.export_info.get('resultChecks', ())) + [region_check]
+                self._local.export_info['warnings'] = tuple(
+                    self._local.export_info.get('warnings', ())) + ('WORDML_PAGE_REGIONS_COMPANION',)
         source_evidence = None
         if getattr(self._local, 'batch', None) is not None:
             source_evidence = getattr(self._local, 'source_evidence', None)
@@ -614,6 +713,7 @@ class LibreOfficeAdapter:
         """Use native FODS cached values to preserve every CLI Calc sheet."""
         from .legacy_sheets import prepare_calc_sheet_snapshots
         control = _LegacySheetControl(control, workspace)
+        from .dbf_memo_snapshot import prepare_dbf_memo_snapshot, append_native_dbf_mapping
         native = self._registry()
         flat = 'OpenDocument Spreadsheet Flat XML'
         item = native.filters.get(flat)
@@ -645,15 +745,35 @@ class LibreOfficeAdapter:
         output = workspace / 'output'
         output.mkdir(parents=True, exist_ok=False)
         paths = []
+        memo_columns = 0
         try:
             self._local.import_filter, self._local.import_options = flat, None
             for index, snapshot in enumerate(snapshots):
+                sidecar = None
+                if target == 'dbf':
+                    snapshot, sidecar, memo_check = prepare_dbf_memo_snapshot(snapshot,
+                        workspace / ('legacy-memo-%04d' % index), cancel=control)
+                    if memo_check:
+                        memo_columns += memo_check['memoColumnCount']
+                    control.check_now()
+                native_dbf = None
                 for result in export(snapshot, target, workspace / ('legacy-export-%04d' % index)):
                     control.is_set()
                     destination = output / result.name
                     if destination.exists():
                         raise GuardError('ENGINE_OUTPUT_COLLISION', 'Совпали имена результатов листов.', stage='result')
                     result.replace(destination)
+                    paths.append(destination)
+                    if destination.suffix.lower() == '.dbf':
+                        native_dbf = destination
+                if sidecar is not None:
+                    if native_dbf is None:
+                        raise GuardError('ENGINE_OUTPUT_MISSING', 'Не создан основной DBF.', stage='result')
+                    append_native_dbf_mapping(native_dbf, sidecar, cancel=control)
+                    destination = output / sidecar.name
+                    if destination.exists():
+                        raise GuardError('ENGINE_OUTPUT_COLLISION', 'Совпали имена схемы DBF.', stage='result')
+                    sidecar.replace(destination)
                     paths.append(destination)
         finally:
             self._local.import_filter, self._local.import_options = saved
@@ -664,7 +784,10 @@ class LibreOfficeAdapter:
         self._local.export_info = {'filter': native.export_filter(target,
             ['com.sun.star.sheet.SpreadsheetDocument']),
             'executionReason': 'native_cli_all_calc_sheets',
-            'warnings': ('NATIVE_TABLE_FORMAT_LIMITS',), 'resultChecks': [check]}
+            'warnings': ('NATIVE_TABLE_FORMAT_LIMITS',) +
+                (('NATIVE_DBF_MIXED_COLUMN_TEXT',) if memo_columns else ()),
+            'resultChecks': [check] + ([{'check': 'native_dbf_memo_columns', 'status': 'prepared',
+                'memoColumnCount': memo_columns, 'qualityCompared': False}] if memo_columns else [])}
         control.check_now()
         return paths
 

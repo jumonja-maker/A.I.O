@@ -1,0 +1,125 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "scope": "six original FULLTEST WordML HTML HTM XHTML routes with regional content",
+  "missingSources": [],
+  "checks": [
+    {
+      "source": "02_LEVEL_2.xml",
+      "target": "html",
+      "method": "independent_WordML_text_ordered_cells_exact_images_and_region_companions",
+      "textMarkers": 35,
+      "tableCells": 28,
+      "originalImageSha256": [
+        "f17ca94cb86f29fca2dbaa279cd143b1c3143640a1f08c14907764986ca202a1"
+      ],
+      "pageRegions": 1,
+      "visibleCompanionLink": true,
+      "paginationCertified": false,
+      "status": "PASS"
+    },
+    {
+      "source": "02_LEVEL_2.xml",
+      "target": "htm",
+      "method": "independent_WordML_text_ordered_cells_exact_images_and_region_companions",
+      "textMarkers": 35,
+      "tableCells": 28,
+      "originalImageSha256": [
+        "f17ca94cb86f29fca2dbaa279cd143b1c3143640a1f08c14907764986ca202a1"
+      ],
+      "pageRegions": 1,
+      "visibleCompanionLink": true,
+      "paginationCertified": false,
+      "status": "PASS"
+    },
+    {
+      "source": "02_LEVEL_2.xml",
+      "target": "xhtml",
+      "method": "independent_WordML_text_ordered_cells_exact_images_and_region_companions",
+      "textMarkers": 35,
+      "tableCells": 28,
+      "originalImageSha256": [
+        "f17ca94cb86f29fca2dbaa279cd143b1c3143640a1f08c14907764986ca202a1"
+      ],
+      "pageRegions": 1,
+      "visibleCompanionLink": true,
+      "paginationCertified": false,
+      "status": "PASS"
+    },
+    {
+      "source": "03_LEVEL_3.xml",
+      "target": "html",
+      "method": "independent_WordML_text_ordered_cells_exact_images_and_region_companions",
+      "textMarkers": 102,
+      "tableCells": 76,
+      "originalImageSha256": [
+        "9646c156e171acc785a6851764c3c77d979804adacf2fddc088bcd015b0071ac"
+      ],
+      "pageRegions": 2,
+      "visibleCompanionLink": true,
+      "paginationCertified": false,
+      "status": "PASS"
+    },
+    {
+      "source": "03_LEVEL_3.xml",
+      "target": "htm",
+      "method": "independent_WordML_text_ordered_cells_exact_images_and_region_companions",
+      "textMarkers": 102,
+      "tableCells": 76,
+      "originalImageSha256": [
+        "9646c156e171acc785a6851764c3c77d979804adacf2fddc088bcd015b0071ac"
+      ],
+      "pageRegions": 2,
+      "visibleCompanionLink": true,
+      "paginationCertified": false,
+      "status": "PASS"
+    },
+    {
+      "source": "03_LEVEL_3.xml",
+      "target": "xhtml",
+      "method": "independent_WordML_text_ordered_cells_exact_images_and_region_companions",
+      "textMarkers": 102,
+      "tableCells": 76,
+      "originalImageSha256": [
+        "9646c156e171acc785a6851764c3c77d979804adacf2fddc088bcd015b0071ac"
+      ],
+      "pageRegions": 2,
+      "visibleCompanionLink": true,
+      "paginationCertified": false,
+      "status": "PASS"
+    }
+  ],
+  "unplannedPairs": [],
+  "platformUnsupported": [],
+  "fulltest510": "NOT_RUN",
+  "visibleGui": "NOT_RUN",
+  "counts": {
+    "total": 6,
+    "completed": 6,
+    "succeeded": 6,
+    "failed": 0,
+    "cancelled": 0
+  },
+  "savedByteReadback": "PASS",
+  "originalsUnchanged": true,
+  "machine": {
+    "platform": "Linux-6.18.55-x86_64-with-glibc2.39",
+    "osName": "posix",
+    "windowsNativeTested": false,
+    "engine": "LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5"
+  },
+  "originals": [
+    {
+      "name": "02_LEVEL_2.xml",
+      "bytes": 76239,
+      "sha256": "dd535259fe87bf825d3d0177551b84f3ee64a8f128834264ba83beba41c5240d"
+    },
+    {
+      "name": "03_LEVEL_3.xml",
+      "bytes": 110077,
+      "sha256": "7f680d8c70dedf798e6234c42b7a62a69435ed05bcce3998665ebee53da29013"
+    }
+  ],
+  "acceptanceTool": "tools/qa/guard_v18_wordml_acceptance.py",
+  "acceptanceToolSha256": "00397e6cbdbf3dc4b7a1061f5cf513d14c8748a906b36e01970453ada3155f84"
+}

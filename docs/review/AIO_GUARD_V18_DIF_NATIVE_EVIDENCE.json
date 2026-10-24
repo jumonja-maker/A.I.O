@@ -1,0 +1,89 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "scope": "original FULLTEST ODS two/three-sheet DIF UTF-8 native reimport",
+  "missingSources": [],
+  "checks": [
+    {
+      "source": "05_LEVEL_2.ods",
+      "target": "dif",
+      "method": "independent_native_csv_reimport_per_sheet",
+      "sheets": [
+        {
+          "sheet": 1,
+          "stringMarkers": 48,
+          "numericValues": 0,
+          "allFound": true
+        },
+        {
+          "sheet": 2,
+          "stringMarkers": 5,
+          "numericValues": 0,
+          "allFound": true
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "source": "06_LEVEL_3.ods",
+      "target": "dif",
+      "method": "independent_native_csv_reimport_per_sheet",
+      "sheets": [
+        {
+          "sheet": 1,
+          "stringMarkers": 170,
+          "numericValues": 0,
+          "allFound": true
+        },
+        {
+          "sheet": 2,
+          "stringMarkers": 5,
+          "numericValues": 0,
+          "allFound": true
+        },
+        {
+          "sheet": 3,
+          "stringMarkers": 6,
+          "numericValues": 0,
+          "allFound": true
+        }
+      ],
+      "status": "PASS"
+    }
+  ],
+  "unplannedPairs": [],
+  "platformUnsupported": [],
+  "fulltest510": "NOT_RUN",
+  "visibleGui": "NOT_RUN",
+  "counts": {
+    "total": 2,
+    "completed": 2,
+    "succeeded": 2,
+    "failed": 0,
+    "cancelled": 0
+  },
+  "savedByteReadback": "PASS",
+  "originalsUnchanged": true,
+  "machine": {
+    "platform": "Linux-6.18.55-x86_64-with-glibc2.39",
+    "osName": "posix",
+    "windowsNativeTested": false,
+    "engine": "LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5"
+  },
+  "originals": [
+    {
+      "name": "05_LEVEL_2.ods",
+      "bytes": 19950,
+      "sha256": "51eaa32b964737d25a2e4ea6e47594fa268390f51e6d5da2f5b46ee07aea30a6"
+    },
+    {
+      "name": "06_LEVEL_3.ods",
+      "bytes": 22963,
+      "sha256": "a04a64c15fbe106b82b9de23abd708867ad288c75c983557c525257b968fbf34"
+    }
+  ],
+  "limitations": [
+    "Original numeric/formula values not semantically compared by this check; source string markers of all five sheets and native UTF-8 reimport were checked.",
+    "Windows native acceptance still required."
+  ]
+}
