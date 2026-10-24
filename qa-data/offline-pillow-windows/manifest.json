@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "kind": "offline_windows_pillow_qa_only",
+  "wheel": "pillow-11.3.0-cp311-cp311-win_amd64.whl",
+  "zipSha256": "1a992e86b0dd7aeb1f053cd506508c0999d710a8f07b4c791c63843fc6a807ac",
+  "zipBytes": 6986055,
+  "parts": [
+    {
+      "path": "part-000.bin",
+      "gitBlobSha": "e28b5019e441c3ae0d07ffc2e137fb69cf1e4852"
+    },
+    {
+      "path": "part-001.bin",
+      "gitBlobSha": "4dd648321756cc6158c643aa56eb84880ecc568e"
+    },
+    {
+      "path": "part-002.bin",
+      "gitBlobSha": "a0246b535c16ece2862d98b22194d469fa35ce44"
+    },
+    {
+      "path": "part-003.bin",
+      "gitBlobSha": "06c4b7d96dd32a2a6c557ac3449971418278ecaf"
+    },
+    {
+      "path": "part-004.bin",
+      "gitBlobSha": "4229156b896fa72acfd22dd0d454fbb0686d3b81"
+    },
+    {
+      "path": "part-005.bin",
+      "gitBlobSha": "568b740eed4e1bf64042564d954b26fd7422a68d"
+    },
+    {
+      "path": "part-006.bin",
+      "gitBlobSha": "c82b7551e29a7ef1e68486124ab836b2028b0c9e"
+    },
+    {
+      "path": "part-007.bin",
+      "gitBlobSha": "326f76dd0d2ad8f67594717957fbc86de5fa12ad"
+    },
+    {
+      "path": "part-008.bin",
+      "gitBlobSha": "616b76796ec8623cd41c25fa64941115942eb06c"
+    },
+    {
+      "path": "part-009.bin",
+      "gitBlobSha": "f2cf4bce59034c8bf96f7bc55e642ccbf99ed3ae"
+    },
+    {
+      "path": "part-010.bin",
+      "gitBlobSha": "6fcc287ebf7303206e84563a315e21d197209508"
+    },
+    {
+      "path": "part-011.bin",
+      "gitBlobSha": "56301df26b7ab6a4dbde73179a793c9237788981"
+    }
+  ],
+  "scope": "Independent regression tests only; not shipped with A.I.O and not a conversion engine dependency."
+}
