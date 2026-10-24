@@ -14,8 +14,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  AIO_QA_SOURCE_SHA: cb5d5bc332fa6d4008d38dac5ac1882668aea72a
-  AIO_QA_TREE_SHA: f0fedd93f8cd3c1e6e6818207f5d51fff512838d
+  AIO_QA_SOURCE_SHA: f44ff2f70bb65a7de720b6f36111533264c60cdc
+  AIO_QA_TREE_SHA: 6a7e295901fdde5c8c8e0c46aed1633844813a1e
   PYTHONDONTWRITEBYTECODE: '1'
   PYTHONUTF8: '1'
   PYTHONIOENCODING: utf-8
@@ -67,7 +67,7 @@ jobs:
           GIT_CONFIG_VALUE_0: 'false'
         with:
           repository: jumonja-maker/A.I.O
-          ref: cb5d5bc332fa6d4008d38dac5ac1882668aea72a
+          ref: f44ff2f70bb65a7de720b6f36111533264c60cdc
           path: aio-pr40-v17-source-${{ github.run_id }}-${{ github.run_attempt }}
           persist-credentials: false
           clean: true
@@ -122,6 +122,13 @@ jobs:
           }
           if (-not $engine) {throw 'Existing complete native LibreOffice unavailable'}
           'AIO_QA_ENGINE='+$engine | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Prepare verified offline test-only dependencies
+        working-directory: aio-pr40-v17-source-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $target=Join-Path $env:RUNNER_TEMP 'aio-pr40-v17-deps-${{ github.run_id }}-${{ github.run_attempt }}-windows'
+          & $env:AIO_QA_PYTHON tools/qa/guard_v17_test_dependencies.py --output $target --github-env
+          if ($LASTEXITCODE -ne 0) {throw 'Offline test dependency preparation failed'}
       - name: Full source Qt DOM and real Windows native acceptance
         id: acceptance
         working-directory: aio-pr40-v17-source-${{ github.run_id }}-${{ github.run_attempt }}
@@ -178,7 +185,7 @@ jobs:
           GIT_CONFIG_VALUE_0: 'false'
         with:
           repository: jumonja-maker/A.I.O
-          ref: cb5d5bc332fa6d4008d38dac5ac1882668aea72a
+          ref: f44ff2f70bb65a7de720b6f36111533264c60cdc
           path: aio-pr40-v17-source-${{ github.run_id }}-${{ github.run_attempt }}
           persist-credentials: false
           clean: true
@@ -229,15 +236,29 @@ jobs:
           for candidate in /usr/lib/libreoffice/program/soffice /opt/libreoffice/program/soffice /home/aio-runner/AIO-Lab/LibreOffice/program/soffice; do
             if test -f "$candidate"; then engine="$candidate"; break; fi
           done
-          test -n "$engine"
           printf 'AIO_QA_ENGINE=%s\n' "$engine" >> "$GITHUB_ENV"
-      - name: Full source Qt DOM and real Linux native acceptance
+          if test -z "$engine"; then
+            printf 'AIO_QA_SOURCE_ONLY=1\n' >> "$GITHUB_ENV"
+            printf '%s\n' 'Linux native engine unavailable; explicit source-only acceptance will run'
+          fi
+      - name: Prepare verified offline Linux test-only dependencies
+        working-directory: aio-pr40-v17-source-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          "$AIO_QA_PYTHON" tools/qa/guard_v17_test_dependencies.py --output "$RUNNER_TEMP/aio-pr40-v17-deps-${{ github.run_id }}-${{ github.run_attempt }}-linux" --github-env
+      - name: Linux source acceptance and available native coverage
         id: acceptance
         working-directory: aio-pr40-v17-source-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           set -euo pipefail
           export TMPDIR="$RUNNER_TEMP"
-          "$AIO_QA_PYTHON" tools/qa/guard_v17_selfhosted_acceptance.py --output "$GITHUB_WORKSPACE/aio-pr40-v17-evidence-${{ github.run_id }}-${{ github.run_attempt }}" --executable "$AIO_QA_ENGINE" --seconds 60
+          qa_args=(--output "$GITHUB_WORKSPACE/aio-pr40-v17-evidence-${{ github.run_id }}-${{ github.run_attempt }}" --seconds 60)
+          if test "${AIO_QA_SOURCE_ONLY:-0}" = 1; then
+            qa_args+=(--source-only)
+          else
+            qa_args+=(--executable "$AIO_QA_ENGINE")
+          fi
+          "$AIO_QA_PYTHON" tools/qa/guard_v17_selfhosted_acceptance.py "${qa_args[@]}"
       - name: Record local evidence and no artifact upload
         if: always()
         run: |
