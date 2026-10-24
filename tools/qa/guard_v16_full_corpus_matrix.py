@@ -96,6 +96,7 @@ def build_plan(inspection, inventory, reviewed_negatives=None):
             reviewed['classification'] if approved_negative else 'unresolved_input')
         accounting.append({'fileId': key, 'relativePath': source['relativePath'],
             'preflightState': proof.get('state'), 'code': code, 'classification': classification,
+            'stage': proof.get('stage') or 'preflight', 'contractReason': contract.get('reason'),
             'reportedFixtureClass': reported_class if not targets else None,
             'reviewedFixtureNegative': approved_negative,
             **({'reviewReason': reviewed['reason']} if approved_negative else {}),
@@ -128,6 +129,7 @@ def run_matrix(args):
         'windowsGuiTested': False, 'supervisorSeconds': args.max_seconds,
         'perTaskSeconds': args.task_seconds, 'preflightSeconds': args.preflight_seconds,
         'reviewedFixtureNegatives': len(reviewed_negatives),
+        'requireCompletePreflight': bool(getattr(args, 'require_complete_preflight', False)),
         'fixtureNegativesSha256': digest(negatives_path) if negatives_path else None}
     atomic_json(args.output / 'reviewed-fixture-negatives.json', {'schema': 1,
         'files': list(reviewed_negatives.values()), 'sha256': evidence['fixtureNegativesSha256']})
@@ -210,6 +212,15 @@ def run_matrix(args):
             inputClassifications=dict(sorted(Counter(r['classification'] for r in accounting).items())))
         atomic_json(args.output / 'input-accounting.json', {'schema': 1, 'inputs': accounting})
         atomic_json(args.output / 'conversion-plan.json', {'schema': 1, 'pairs': pairs, 'plan': plan})
+        unresolved_inputs = [{key: row.get(key) for key in
+            ('relativePath', 'code', 'stage', 'contractReason', 'preflightState')}
+            for row in accounting if row['classification'] == 'unresolved_input']
+        evidence['unresolvedInputs'] = unresolved_inputs
+        if evidence['requireCompletePreflight'] and unresolved_inputs:
+            evidence.update(status='preflight_unresolved', acceptancePassed=False)
+            progress('preflight_unresolved', force=True, acceptancePassed=False,
+                     unresolvedInputs=unresolved_inputs)
+            return evidence
         if not plan:
             evidence['status'] = 'no_admitted_tasks'; return evidence
         guard.start(job, file_ids=[p['fileId'] for p in plan], plan=plan, only_verified=True,
@@ -310,6 +321,8 @@ def main():
     parser.add_argument('--progress-seconds', type=float, default=30)
     parser.add_argument('--min-free-gb', type=float, default=5)
     parser.add_argument('--quality-check', action='store_true')
+    parser.add_argument('--require-complete-preflight', action='store_true',
+        help='Fail before starting conversions if any original has an unreviewed unresolved preflight result')
     parser.add_argument('--fixture-negatives', type=Path,
         help='Optional independently reviewed exclusions JSON: schema 1, files with relativePath, sha256, code, reason')
     args = parser.parse_args()

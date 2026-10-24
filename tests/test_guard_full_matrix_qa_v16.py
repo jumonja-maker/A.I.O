@@ -94,10 +94,37 @@ class FullMatrixPlanning(unittest.TestCase):
             args.fixture_negatives.write_text(json.dumps({'schema': 1, 'files': [{
                 'relativePath': 'bad-fixture.bin', 'sha256': qa.digest(args.corpus / 'bad-fixture.bin'),
                 'code': 'SOURCE_CONTAINER_INCONSISTENT', 'reason': 'Controlled independently reviewed invalid fixture'}]}))
+            args.require_complete_preflight = True
             evidence = self.run_control(args, Negative())
             self.assertTrue(evidence['acceptancePassed'], evidence)
             self.assertEqual(evidence['status'], 'completed_with_fixture_negatives')
             self.assertTrue(evidence['uploadsMatchInventory'])
+
+    def test_complete_preflight_mode_never_starts_a_partial_conversion_queue(self):
+        class Unresolved(OneRoute):
+            def preflight(self, source, workspace, **kwargs):
+                return ({'state': 'undetermined', 'code': 'SOURCE_IMPORT_FAILED', 'stage': 'native_probe',
+                         'sourceContract': {'state': 'unresolved', 'reason': 'native_model_unconfirmed'}}
+                        if source.name.startswith('unresolved') else super().preflight(source, workspace, **kwargs))
+        with tempfile.TemporaryDirectory() as folder:
+            args = self.arguments(Path(folder), ('source.bin', 'unresolved.bin'))
+            args.require_complete_preflight = True
+            with patch.object(qa.ConverterGuard, 'start', autospec=True) as start:
+                evidence = self.run_control(args, Unresolved())
+            start.assert_not_called()
+            self.assertEqual(evidence['status'], 'preflight_unresolved')
+            self.assertFalse(evidence['acceptancePassed'])
+            self.assertEqual(evidence['sources'], 2)
+            self.assertEqual(evidence['inputsPlanned'], 1)
+            self.assertEqual(evidence['unresolvedInputs'], [{
+                'relativePath': 'unresolved.bin', 'code': 'SOURCE_IMPORT_FAILED', 'stage': 'native_probe',
+                'contractReason': 'native_model_unconfirmed', 'preflightState': 'undetermined'}])
+            self.assertTrue(evidence['uploadsMatchInventory'])
+            self.assertTrue(evidence['sourcesUnchanged'])
+            self.assertNotIn('save', evidence)
+            self.assertFalse(list(args.output.rglob('source.pdf')))
+            persisted = json.loads((args.output / 'matrix-status.json').read_text())
+            self.assertEqual(persisted['unresolvedInputs'], evidence['unresolvedInputs'])
 
     def test_rejecting_good_originals_as_bad_fixtures_does_not_pass_acceptance(self):
         class Regressed(OneRoute):
