@@ -195,6 +195,7 @@ jobs:
           $dir=Join-Path $env:GITHUB_WORKSPACE ('aio-final-qt-render-'+$env:GITHUB_RUN_ID+'-'+$env:GITHUB_RUN_ATTEMPT)
           & $env:AIO_QA_PYTHON tools/qa/guard_v16_qt_render_acceptance.py --output $dir --deadline 180 --offscreen
           $code=$LASTEXITCODE
+          Write-Host ('QT_RENDER_PROCESS_EXIT='+$code)
           $report=Join-Path $dir 'qt-render-evidence.json'
           if (Test-Path -LiteralPath $report -PathType Leaf) { Get-Content -LiteralPath $report -Raw | Write-Host }
           if ($code -ne 0) {throw 'ACTUAL_QTWEBENGINE_RENDER_NOT_PASS'}
