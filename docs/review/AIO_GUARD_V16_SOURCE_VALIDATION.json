@@ -1,0 +1,100 @@
+{
+  "schema": 1,
+  "date": "2026-10-24",
+  "platform": "linux",
+  "python": "3.12.14",
+  "scope": "all discovered source tests except two unavailable unchanged >1MiB branding-source PNG methods",
+  "discovered": 462,
+  "testsRun": 460,
+  "passed": 453,
+  "failures": [],
+  "errors": [],
+  "skipped": [
+    {
+      "test": "test_converter_native_dom.NativeUIDOMAcceptance.test_guard_unknown_and_renamed_file_selection",
+      "reason": "Set AIO_DOM_MODULE to an existing linkedom package"
+    },
+    {
+      "test": "test_converter_native_dom.NativeUIDOMAcceptance.test_thousand_file_queue_controls",
+      "reason": "Set AIO_DOM_MODULE to an existing linkedom package"
+    },
+    {
+      "test": "test_converter_native_dom.NativeUIDOMAcceptance.test_ui_contract",
+      "reason": "Set AIO_DOM_MODULE to an existing linkedom package"
+    },
+    {
+      "test": "test_guard_large_ui_v13.LargeUI.test_real_ui_modules_keep_large_queues_bounded_and_show_native_risks",
+      "reason": "Set AIO_DOM_MODULE to an existing linkedom package"
+    },
+    {
+      "test": "test_guard_qt_observation_v13.QtObservation.test_no_timer_without_opt_in_and_delay_measurement_does_not_throw",
+      "reason": "Opt in with AIO_QT_SAVE_QA=1 and existing Qt bindings"
+    },
+    {
+      "test": "test_guard_qt_save_v13.QtSaveBoundary.test_save_signals_are_queued_nonmodal_and_duplicate_picker_is_rejected",
+      "reason": "Opt in with AIO_QT_SAVE_QA=1 and existing Qt bindings"
+    },
+    {
+      "test": "test_guard_resources_dom_v15.HtmlResourceDOM.test_explicit_companion_upload_rechecks_without_selecting_or_closing",
+      "reason": "Set AIO_DOM_MODULE"
+    }
+  ],
+  "notRun": [
+    {
+      "test": "test_brand_restoration.BrandRestorationTests.test_both_original_pngs_match_owner_digests_and_have_alpha",
+      "reason": "unchanged binary source PNG exceeds GitHub Contents connector inline limit; content empty"
+    },
+    {
+      "test": "test_brand_restoration.BrandRestorationTests.test_spec_bundles_icon_and_approved_sources_and_sets_exe_resource",
+      "reason": "unchanged binary source PNG exceeds GitHub Contents connector inline limit; content empty"
+    }
+  ],
+  "elapsedSeconds": 25.608,
+  "status": "PASS",
+  "fullDiscovery": "NOT_PASS_missing_unchanged_binary_sources",
+  "windowsNikita": "NOT_RUN",
+  "fulltest510": "NOT_RUN",
+  "testedCodeBlobShas": {
+    "addons/file-converter/aio-converter-issues.js": "9a31105e5bc340ddd4c362691fb0335f653719cc",
+    "app_backend/converter_guard/adapter.py": "911b5a3a16dfac6f7f45b371a34d7be498e2a3f3",
+    "app_backend/converter_guard/content_invariants.py": "3340fa478b96b6760f5436690b0b45d20a7f09fe",
+    "app_backend/converter_guard/core.py": "91c942f8862c6b4c864fb2576818870381a62e69",
+    "app_backend/converter_guard/export_recipe.py": "d8504b8026153aebd8fea50c93c7a9f46c53ef0a",
+    "app_backend/converter_guard/html_resources.py": "4adfe2b3fa13bfe1fc8447054d33017c5f14050e",
+    "app_backend/converter_guard/media_fidelity.py": "2acfdb32c2067629d3f6fc084de3ef16f00c18f4",
+    "app_backend/converter_guard/native_identity.py": "a2f74481b852367e03eb81de02705591900a08be",
+    "app_backend/converter_guard/postconditions.py": "6b25e4985d4dcfd331078f3c9d0a67339da7a964",
+    "app_backend/converter_guard/preflight.py": "8186ece0401db024efcde5ff9421745c49469cee",
+    "app_backend/converter_guard/preflight_uno.py": "ae726d4f28b38f7517ead5e07672e1f5a6d155f8",
+    "app_backend/converter_guard/result_store.py": "0097e2fe39d0b885a4b1f95f4639a006e7ebdb7e",
+    "app_backend/converter_guard/routes.py": "8920b89b0025fbd384ff2abbe15d26a4bcf9fa2a",
+    "app_backend/converter_guard/save_verification.py": "76745f02bc2382340e31d4e63eef0de473f8583b",
+    "app_backend/converter_guard/source_contract.py": "822da66f835593230595d11e319e431c78a67159",
+    "app_backend/converter_guard/uno_session.py": "789a8be235cd1230ea9c2077acdc0b5f3d0bca6e",
+    "app_backend/desktop.py": "5863963b218313756e630a95d1fcb644ca826e8a",
+    "src/bridge.js": "5e312bd39dedcaadfecb454d57b5e4c12208c0e7",
+    "src/converter-bridge.js": "71ea86d1686c33b05a5e5b82305bf41bacb09a90",
+    "src/guard-queue.js": "9378ec8b662a4293dbb10194c84169cdf67bb20c",
+    "tests/guard_resources_ui_v15.mjs": "959691859c4472a0c96dd4a0c970a52733be8fc3",
+    "tests/guard_save_queue_v09.mjs": "5d5f70fab3f1759e77403c22e6b53f187b8ffe6c",
+    "tests/guard_state_modal_v16.mjs": "517bfc574ba1a48c23a506928108077bcecf8bbf",
+    "tests/test_guard_content_invariants_v16.py": "fd945f515c46d4c8d7aff922d405ebf75a834b45",
+    "tests/test_guard_fulltest_v15.py": "9e48e82d977c459fd98262d7d23568c7c022252c",
+    "tests/test_guard_import_routes_v16.py": "b94b70e946af93d725292da75bdddc6cddf1eb24",
+    "tests/test_guard_media_fidelity_v16.py": "3fced8f2374578443e9d254712e282a66f27c2da",
+    "tests/test_guard_output_integrity_v16.py": "88d86afbc00a11095208ee150965ba80ee08dcbb",
+    "tests/test_guard_provenance_v16.py": "21b544aa1110183cafe1df883781ba750ddde1c4",
+    "tests/test_guard_save_queue_v09.py": "e8f23c1125effea80c2c5a00ee5cc48178161008",
+    "tests/test_guard_save_readback_v16.py": "62777437d4f2abf62971a7c4d24eb0471d5e8f77",
+    "tests/test_guard_v16_fixtures.py": "3cd9dd822d7a640149c2aad01ba29e0788033cb6",
+    "tools/qa/guard_v16_bugbag_acceptance.py": "3bf6f61cc94f22fcb09d0b9e79c8191f965e3a4d"
+  },
+  "additionalChecks": {
+    "pythonCompileall": "PASS",
+    "changedJavaScriptNodeCheck": "PASS",
+    "gitDiffCheck": "PASS",
+    "nativeAdmittedTasks": "7/7 PASS",
+    "nativeNegativeControls": "6 PASS",
+    "apngLinuxPreflight": "PREFLIGHT_IMPORT_UNDETERMINED"
+  }
+}

@@ -146,10 +146,45 @@ class Registry:
             services.append('com.sun.star.text.TextDocument')
         return services
 
+    def runtime_export_filter(self, target, proof):
+        """One exact exporter proved by the loaded model's live FilterFactory.
+
+        This resolves static text-overlay uncertainty only for a confirmed
+        XTextDocument and the same installation fingerprint. Other extensions
+        and filename hints keep their usual static registry decisions.
+        """
+        if (target != 'txt' or not proof
+                or proof.get('basis') != 'native_preflight_uno_document'
+                or proof.get('state') != 'detected' or proof.get('modelLoaded') is not True
+                or proof.get('nativeTextDocument') is not True
+                or proof.get('registryFingerprint') != self.fingerprint):
+            return None
+        services = proof.get('documentServices')
+        exports = proof.get('nativeExportFilters')
+        if (not isinstance(services, list) or not services
+                or not all(isinstance(service, str) and service in self.import_services for service in services)
+                or 'com.sun.star.text.TextDocument' not in self.export_services(proof)
+                or not isinstance(exports, dict) or len(exports) > 8
+                or exports.get('txt') != 'Text (encoded)'):
+            return None
+        return 'Text (encoded)'
+
     def route_reason(self, target, proof):
-        if target != 'svg' or not proof:
+        if not proof:
+            return None
+        if self.runtime_export_filter(target, proof):
+            return None
+        if (target == 'svm' and self.observed_decision(target, proof) == 'registered'):
             return None
         services = self.export_services(proof)
+        if self.valid and target not in self.uncertain_extensions:
+            if target in self.imports and target not in self.exports:
+                return 'NATIVE_FORMAT_IMPORT_ONLY'
+            if target == 'orp' and not self.exports.get(target):
+                return 'NATIVE_REPORT_EXPORT_UNAVAILABLE'
+            if (proof.get('state') == 'detected' and any(isinstance(s, str) for s in services)
+                    and self.exports.get(target) and not set(services).intersection(self.exports[target])):
+                return 'NATIVE_DOCUMENT_SERVICE_MISMATCH'
         if target == 'svg':
             candidates = set().union(*(self.export_candidates.get((target, s), ()) for s in services))
             if candidates and candidates <= {'writer_svg_Export', 'calc_svg_Export'}:
@@ -206,6 +241,8 @@ class Registry:
                 'registryFingerprint': self.fingerprint, 'basis': 'native_selected_export_filter'}
 
     def observed_decision(self, target, proof):
+        if self.runtime_export_filter(target, proof):
+            return 'registered'
         if (proof and proof.get('basis')=='native_preflight_chart_content'
                 and proof.get('state')=='detected' and type(proof.get('nativeKind')) is int
                 and proof['nativeKind']==4 and proof.get('chartPackage') is True
@@ -230,6 +267,10 @@ class Registry:
             services = proof.get('documentServices')
             installed = self.import_services
             if isinstance(services, list) and services and all(s in installed for s in services):
+                if (target == 'svm' and services == ['com.sun.star.drawing.DrawingDocument']
+                        and 'svm' in proof.get('nativeGraphicExports', ())
+                        and target not in self.uncertain_extensions):
+                    return 'registered'
                 return self.decide(target, set(self.export_services(proof)))
             return 'undetermined'
         if (proof and proof.get('basis') == 'native_preflight_uno_graphic'
@@ -278,3 +319,4 @@ def registry(executable):
     except OSError:
         files = ()
     return _load(files, str(executable))
+

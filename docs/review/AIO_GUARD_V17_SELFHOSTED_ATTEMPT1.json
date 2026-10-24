@@ -1,0 +1,503 @@
+{
+  "schema": 1,
+  "sourceSha": "cb5d5bc332fa6d4008d38dac5ac1882668aea72a",
+  "workflowSha": "d6add8d51d5a8942f726c561c0060057ec931ee4",
+  "platform": "Windows",
+  "python": "3.11.9",
+  "stages": {
+    "dependencies": {
+      "status": "INCOMPLETE",
+      "missing": [
+        "DOM"
+      ]
+    },
+    "unittest": {
+      "status": "INCOMPLETE",
+      "returncode": 2,
+      "timedOut": false,
+      "durationMs": 53000,
+      "log": "unittest.log",
+      "discovered": 550,
+      "passed": 540,
+      "failed": 0,
+      "errors": 0,
+      "skipped": [
+        {
+          "test": "test_converter_guard_process_v02.ControlledProcessTests.test_deadline_kills_own_process_tree_and_next_file_runs",
+          "reason": "POSIX test fixture; real Windows Job Object needs Windows acceptance",
+          "status": "not_applicable"
+        },
+        {
+          "test": "test_converter_guard_process_v02.ControlledProcessTests.test_live_output_quota_stops_only_the_growing_process",
+          "reason": "POSIX test fixture; real Windows Job Object needs Windows acceptance",
+          "status": "not_applicable"
+        },
+        {
+          "test": "test_converter_guard_process_v02.ControlledProcessTests.test_slow_cleanup_does_not_hold_the_global_metadata_lock",
+          "reason": "POSIX test fixture; real Windows Job Object needs Windows acceptance",
+          "status": "not_applicable"
+        },
+        {
+          "test": "test_converter_native_dom.NativeUIDOMAcceptance.test_guard_unknown_and_renamed_file_selection",
+          "reason": "Set AIO_DOM_MODULE to an existing linkedom package",
+          "status": "INCOMPLETE"
+        },
+        {
+          "test": "test_converter_native_dom.NativeUIDOMAcceptance.test_thousand_file_queue_controls",
+          "reason": "Set AIO_DOM_MODULE to an existing linkedom package",
+          "status": "INCOMPLETE"
+        },
+        {
+          "test": "test_converter_native_dom.NativeUIDOMAcceptance.test_ui_contract",
+          "reason": "Set AIO_DOM_MODULE to an existing linkedom package",
+          "status": "INCOMPLETE"
+        },
+        {
+          "test": "test_guard_large_ui_v13.LargeUI.test_real_ui_modules_keep_large_queues_bounded_and_show_native_risks",
+          "reason": "Set AIO_DOM_MODULE to an existing linkedom package",
+          "status": "INCOMPLETE"
+        },
+        {
+          "test": "test_guard_native_metrics_v11.NativeMetricsQA.test_cli_measures_process_time_without_inventing_import_or_export_times",
+          "reason": "Executable generated fixture uses a POSIX shebang",
+          "status": "not_applicable"
+        },
+        {
+          "test": "test_guard_native_metrics_v11.NativeMetricsQA.test_twenty_worker_recycles_leave_no_live_readers_profiles_or_pipe_descriptors",
+          "reason": "Owned POSIX worker lifecycle; not Windows Job Object QA",
+          "status": "not_applicable"
+        },
+        {
+          "test": "test_guard_resources_dom_v15.HtmlResourceDOM.test_explicit_companion_upload_rechecks_without_selecting_or_closing",
+          "reason": "Set AIO_DOM_MODULE",
+          "status": "INCOMPLETE"
+        }
+      ],
+      "failureDetails": [],
+      "expectedFailures": [],
+      "unexpectedSuccesses": []
+    },
+    "nativeV16": {
+      "status": "INCOMPLETE",
+      "returncode": 0,
+      "timedOut": false,
+      "durationMs": 122234,
+      "log": "native-v16.log",
+      "generated": {
+        "pass": 9,
+        "not_run": 1
+      },
+      "guard": "partial_native_coverage",
+      "counts": {
+        "total": 7,
+        "succeeded": 7,
+        "failed": 0,
+        "cancelled": 0
+      },
+      "unplannedPairs": [
+        {
+          "source": "writer.odt",
+          "target": "txt",
+          "reason": "NATIVE_ROUTE_UNDETERMINED"
+        }
+      ],
+      "notRun": [],
+      "unsupportedFixtureGeneration": [
+        {
+          "target": "sxw",
+          "service": "com.sun.star.text.TextDocument",
+          "producer": "native_LibreOffice_export",
+          "filter": null,
+          "status": "not_run",
+          "reason": "installed_native_export_filter_unavailable"
+        }
+      ],
+      "negativeControls": {
+        "pass": 4
+      },
+      "fulltest510": "NOT_RUN",
+      "windowsGuiTested": false
+    },
+    "native11Routes": {
+      "status": "PASS",
+      "returncode": 0,
+      "timedOut": false,
+      "durationMs": 41156,
+      "log": "native-v08.log",
+      "quality": {
+        "officeContainers": "PASS",
+        "textAndTableMarkers": "PASS",
+        "sourceBytesUnchanged": "PASS",
+        "pdfText": "PASS",
+        "pdfPageGeometryMatchesCLI": "PASS",
+        "csvMatchesNativeCLI": "PASS"
+      }
+    },
+    "nativeV17": {
+      "status": "FAIL",
+      "returncode": 1,
+      "timedOut": false,
+      "durationMs": 92328,
+      "log": "native-v17.log",
+      "schema": 1,
+      "scope": "v17 real Guard native targeted routes",
+      "missingSources": [],
+      "checks": [
+        {
+          "source": "missing-columns.odt",
+          "target": "docx",
+          "method": "independent_document_text",
+          "markers": 48,
+          "spineOrder": true,
+          "status": "PASS"
+        },
+        {
+          "source": "missing-columns.odt",
+          "target": "pdf",
+          "method": "independent_document_text",
+          "markers": 48,
+          "spineOrder": true,
+          "status": "PASS"
+        },
+        {
+          "source": "ordered-spine.epub",
+          "target": "docx",
+          "method": "independent_document_text",
+          "markers": 2,
+          "spineOrder": true,
+          "embeddedImages": 1,
+          "status": "PASS"
+        },
+        {
+          "source": "ordered-spine.epub",
+          "target": "odt",
+          "method": "independent_document_text",
+          "markers": 2,
+          "spineOrder": true,
+          "status": "PASS"
+        },
+        {
+          "source": "ordered-spine.epub",
+          "target": "pdf",
+          "method": "independent_document_text",
+          "markers": 2,
+          "spineOrder": true,
+          "status": "PASS"
+        },
+        {
+          "source": "three-sheets.fods",
+          "target": "dbf",
+          "method": "independent_native_csv_reimport_per_sheet",
+          "sheets": [
+            {
+              "sheet": 1,
+              "stringMarkers": 2,
+              "numericValues": 2,
+              "allFound": true
+            },
+            {
+              "sheet": 2,
+              "stringMarkers": 2,
+              "numericValues": 2,
+              "allFound": true
+            },
+            {
+              "sheet": 3,
+              "stringMarkers": 2,
+              "numericValues": 2,
+              "allFound": true
+            }
+          ],
+          "status": "PASS"
+        },
+        {
+          "source": "three-sheets.fods",
+          "target": "dif",
+          "method": "independent_native_csv_reimport_per_sheet",
+          "sheets": [
+            {
+              "sheet": 1,
+              "stringMarkers": 2,
+              "numericValues": 2,
+              "allFound": true
+            },
+            {
+              "sheet": 2,
+              "stringMarkers": 2,
+              "numericValues": 2,
+              "allFound": true
+            },
+            {
+              "sheet": 3,
+              "stringMarkers": 2,
+              "numericValues": 2,
+              "allFound": true
+            }
+          ],
+          "status": "PASS"
+        },
+        {
+          "source": "05_LEVEL_2.odt",
+          "target": "docx",
+          "method": "independent_document_text",
+          "markers": 48,
+          "spineOrder": true,
+          "status": "PASS"
+        },
+        {
+          "source": "05_LEVEL_2.odt",
+          "target": "pdf",
+          "method": "independent_document_text",
+          "markers": 48,
+          "spineOrder": true,
+          "status": "PASS"
+        },
+        {
+          "source": "05_LEVEL_2.epub",
+          "target": "odt",
+          "method": "independent_document_text",
+          "markers": 1,
+          "spineOrder": true,
+          "status": "PASS"
+        },
+        {
+          "source": "05_LEVEL_2.epub",
+          "target": "pdf",
+          "method": "independent_document_text",
+          "markers": 1,
+          "spineOrder": true,
+          "status": "PASS"
+        },
+        {
+          "source": {
+            "format": "gif",
+            "width": 800,
+            "height": 540,
+            "frames": 4,
+            "pages": 1,
+            "alpha": true,
+            "durationsMs": [
+              150,
+              150,
+              150,
+              150
+            ],
+            "orientation": 1,
+            "loopCount": 0
+          },
+          "target": "png",
+          "method": "independent_container_structure",
+          "result": {
+            "format": "png",
+            "width": 800,
+            "height": 540,
+            "frames": 4,
+            "pages": 1,
+            "alpha": true,
+            "durationsMs": [
+              150,
+              150,
+              150,
+              150
+            ],
+            "orientation": 1,
+            "animationContainer": true,
+            "loopCount": 0,
+            "bitDepth": 8
+          },
+          "status": "PASS"
+        },
+        {
+          "source": {
+            "format": "gif",
+            "width": 800,
+            "height": 540,
+            "frames": 4,
+            "pages": 1,
+            "alpha": true,
+            "durationsMs": [
+              150,
+              150,
+              150,
+              150
+            ],
+            "orientation": 1,
+            "loopCount": 0
+          },
+          "target": "webp",
+          "method": "independent_container_structure",
+          "result": {
+            "format": "webp",
+            "width": 800,
+            "height": 540,
+            "frames": 4,
+            "pages": 1,
+            "alpha": true,
+            "durationsMs": [
+              150,
+              150,
+              150,
+              150
+            ],
+            "orientation": 1,
+            "loopCount": 0
+          },
+          "status": "PASS"
+        },
+        {
+          "source": {
+            "format": "png",
+            "width": 800,
+            "height": 540,
+            "frames": 1,
+            "pages": 1,
+            "alpha": true,
+            "durationsMs": [],
+            "orientation": 1,
+            "animationContainer": false,
+            "loopCount": 1,
+            "bitDepth": 8
+          },
+          "target": "webp",
+          "method": "independent_container_structure",
+          "result": {
+            "format": "webp",
+            "width": 800,
+            "height": 540,
+            "frames": 1,
+            "pages": 1,
+            "alpha": true,
+            "durationsMs": [],
+            "orientation": 1,
+            "loopCount": 1
+          },
+          "status": "PASS"
+        },
+        {
+          "source": "05_LEVEL_2.png",
+          "target": "emz",
+          "method": "independent_full_gzip_and_native_records",
+          "files": [
+            {
+              "format": "emf",
+              "bytes": 1303712,
+              "records": 24,
+              "declaredRecords": 23,
+              "nativeHeaderCountExcludesHeader": true,
+              "sha256": "d7341e1738ed9186c418270f477e6078e90b7ee3c79952c4f30bcc2f2c0360ba"
+            }
+          ],
+          "status": "PASS"
+        },
+        {
+          "source": "05_LEVEL_2.png",
+          "target": "wmz",
+          "method": "independent_full_gzip_and_native_records",
+          "files": [
+            {
+              "format": "wmf",
+              "bytes": 3040186,
+              "records": 183,
+              "sha256": "a66f27154d024c0def77b4e981e68b55a83cff6b147f684e6817590040ed5eda"
+            }
+          ],
+          "status": "PASS"
+        },
+        {
+          "source": "05_LEVEL_2.png",
+          "target": "svm",
+          "method": "native_svm_signature",
+          "pages": 1,
+          "status": "PASS"
+        },
+        {
+          "source": "05_LEVEL_2.ods",
+          "target": "dbf",
+          "status": "FAIL",
+          "error": "AssertionError",
+          "reason": "Expected 2 sheet exports, received 4"
+        },
+        {
+          "source": "05_LEVEL_2.ods",
+          "target": "dif",
+          "status": "FAIL",
+          "error": "InvalidOperation",
+          "reason": "[<class 'decimal.ConversionSyntax'>]"
+        }
+      ],
+      "unplannedPairs": [
+        {
+          "source": "missing-columns.odt",
+          "target": "txt",
+          "status": "INCOMPLETE",
+          "reason": "NATIVE_ROUTE_UNDETERMINED"
+        },
+        {
+          "source": "ordered-spine.epub",
+          "target": "txt",
+          "status": "INCOMPLETE",
+          "reason": "NATIVE_ROUTE_UNDETERMINED"
+        },
+        {
+          "source": "05_LEVEL_2.odt",
+          "target": "txt",
+          "status": "INCOMPLETE",
+          "reason": "NATIVE_ROUTE_UNDETERMINED"
+        }
+      ],
+      "platformUnsupported": [],
+      "fulltest510": "NOT_RUN",
+      "visibleGui": "NOT_RUN",
+      "counts": {
+        "total": 19,
+        "completed": 19,
+        "succeeded": 19,
+        "failed": 0,
+        "cancelled": 0
+      },
+      "savedByteReadback": "PASS",
+      "originalsUnchanged": true
+    },
+    "originalsUnchanged": {
+      "status": "PASS",
+      "before": "6f13a05d595d8aaa65c1b1d79198f8fadc4a2fb217832e49ede6433ba1d4dc19",
+      "after": "6f13a05d595d8aaa65c1b1d79198f8fadc4a2fb217832e49ede6433ba1d4dc19"
+    }
+  },
+  "fulltest510": "NOT_RUN",
+  "visibleGui": "NOT_RUN",
+  "scope": "offline full source regressions and bounded native conversion; no installation or packaging",
+  "dependencies": {
+    "openpyxl": true,
+    "PySide6": true,
+    "pypdf": true,
+    "node": true,
+    "DOM": false
+  },
+  "corpus": {
+    "count": 20,
+    "bytes": 2299288,
+    "extensions": {
+      ".apng": 2,
+      ".dbf": 1,
+      ".dif": 1,
+      ".emz": 1,
+      ".epub": 1,
+      ".fodp": 1,
+      ".fodt": 1,
+      ".gif": 2,
+      ".odc": 1,
+      ".ods": 1,
+      ".odt": 2,
+      ".png": 1,
+      ".sxw": 1,
+      ".tiff": 2,
+      ".webp": 1,
+      ".wmz": 1
+    },
+    "inventorySha256": "6f13a05d595d8aaa65c1b1d79198f8fadc4a2fb217832e49ede6433ba1d4dc19",
+    "status": "enumerated_read_only",
+    "scope": "targeted_original_FULLTEST_subset"
+  },
+  "status": "FAIL"
+}

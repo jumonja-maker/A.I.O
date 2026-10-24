@@ -129,7 +129,7 @@ class MainWindow(QMainWindow):
         query = parse_qs(urlsplit(url).query)
         if query.get('mode') == ['folder']:
             item.cancel()
-            return self._save_folder(url, query['ticket'][0], verify=query.get('verify') == ['1'])
+            return self._save_folder(url, query['ticket'][0], verify=True)
         destination, _ = QFileDialog.getSaveFileName(
             self, 'Сохранить результат', name, dialog_filter)
         if not destination:
@@ -162,7 +162,7 @@ class MainWindow(QMainWindow):
             self._on_download_state(d, state, u, p))
         item.accept()
 
-    def _save_folder(self, url, ticket, *, verify=False):
+    def _save_folder(self, url, ticket, *, verify=True):
         if url in self._folder_saves:
             return  # A duplicate download signal must not replace a live save.
         self._folder_saves[url] = None  # Reserve before the nested picker loop.
@@ -233,6 +233,9 @@ class MainWindow(QMainWindow):
                               remainingOutputs=result.get('remainingOutputs',0),
                               readbackVerified=result.get('readbackVerified',False),
                               verificationScope=result.get('verificationScope'),
+                              verificationMethod=result.get('verificationMethod'),
+                              outputsVerified=result.get('outputsVerified',0),
+                              bytesVerified=result.get('bytesVerified',0),
                               bytesWritten=result.get('bytesWritten',0))
 
     def _verify_download(self, source_url, path):
@@ -262,8 +265,7 @@ class MainWindow(QMainWindow):
             return
         if state == QWebEngineDownloadRequest.DownloadState.DownloadCompleted:
             if path.exists() and path.is_file():
-                if (urlsplit(source_url).path == '/api/converter-guard/result'
-                        and parse_qs(urlsplit(source_url).query).get('verify') == ['1']):
+                if urlsplit(source_url).path == '/api/converter-guard/result':
                     self._verify_download(source_url, path)
                 else:
                     self._notify_download('completed', path.name, source_url)
@@ -328,3 +330,4 @@ def launch_desktop():
     window = MainWindow(server, server.server_port)
     window.show()
     return app.exec()
+

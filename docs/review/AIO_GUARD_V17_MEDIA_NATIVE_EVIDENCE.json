@@ -1,0 +1,1065 @@
+{
+  "scope": "Direct media helper native checks; not full Guard admission/save, not Windows acceptance",
+  "qt": "existing PySide6 shipped dependency",
+  "independentOracle": "Pillow 12.3.0 test environment only; no Pillow production dependency",
+  "cases": [
+    {
+      "source": "05_LEVEL_2.gif",
+      "target": "webp",
+      "state": "pass",
+      "sourceSummary": {
+        "format": "gif",
+        "width": 800,
+        "height": 540,
+        "frames": 4,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          150,
+          150,
+          150,
+          150
+        ],
+        "orientation": 1,
+        "loopCount": 0
+      },
+      "resultSummary": {
+        "format": "webp",
+        "width": 800,
+        "height": 540,
+        "frames": 4,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          150,
+          150,
+          150,
+          150
+        ],
+        "orientation": 1,
+        "loopCount": 0
+      },
+      "independentPixelSHA256": [
+        "c7e5bec8271564b04f884b39b02cfbef1999d2a9be17cc19370943431bace015",
+        "b6f929b743907e18de6557256be7c82c1787b7020b6bf6d79a4447904a185a39",
+        "b4bc86e0dace5caa8d5e49470868e1e529248effb9ba72bb61f43dd627b4c541",
+        "dc6d291e266df8ed9d618524518610773ab84db876ec2bfd2077ac1c758c0eee"
+      ],
+      "sourcePixelSHA256": [
+        "c7e5bec8271564b04f884b39b02cfbef1999d2a9be17cc19370943431bace015",
+        "b6f929b743907e18de6557256be7c82c1787b7020b6bf6d79a4447904a185a39",
+        "b4bc86e0dace5caa8d5e49470868e1e529248effb9ba72bb61f43dd627b4c541",
+        "dc6d291e266df8ed9d618524518610773ab84db876ec2bfd2077ac1c758c0eee"
+      ],
+      "size": 22022,
+      "elapsedMs": 219,
+      "sourceSHA256": "6dbdf8bf3aae3c4f71f87a151c288767cd4cd4b1c59c43acb8c9452b6644350a",
+      "outputSHA256": "5e0a6a378d457d36687cfeafebaff09f11ef0d03117b7fcf92d14458ea120b90"
+    },
+    {
+      "source": "05_LEVEL_2.gif",
+      "target": "apng",
+      "state": "pass",
+      "sourceSummary": {
+        "format": "gif",
+        "width": 800,
+        "height": 540,
+        "frames": 4,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          150,
+          150,
+          150,
+          150
+        ],
+        "orientation": 1,
+        "loopCount": 0
+      },
+      "resultSummary": {
+        "format": "png",
+        "width": 800,
+        "height": 540,
+        "frames": 4,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          150.0,
+          150.0,
+          150.0,
+          150.0
+        ],
+        "orientation": 1,
+        "animationContainer": true,
+        "loopCount": 0,
+        "bitDepth": 8
+      },
+      "independentPixelSHA256": [
+        "c7e5bec8271564b04f884b39b02cfbef1999d2a9be17cc19370943431bace015",
+        "b6f929b743907e18de6557256be7c82c1787b7020b6bf6d79a4447904a185a39",
+        "b4bc86e0dace5caa8d5e49470868e1e529248effb9ba72bb61f43dd627b4c541",
+        "dc6d291e266df8ed9d618524518610773ab84db876ec2bfd2077ac1c758c0eee"
+      ],
+      "sourcePixelSHA256": [
+        "c7e5bec8271564b04f884b39b02cfbef1999d2a9be17cc19370943431bace015",
+        "b6f929b743907e18de6557256be7c82c1787b7020b6bf6d79a4447904a185a39",
+        "b4bc86e0dace5caa8d5e49470868e1e529248effb9ba72bb61f43dd627b4c541",
+        "dc6d291e266df8ed9d618524518610773ab84db876ec2bfd2077ac1c758c0eee"
+      ],
+      "size": 59190,
+      "elapsedMs": 126,
+      "sourceSHA256": "6dbdf8bf3aae3c4f71f87a151c288767cd4cd4b1c59c43acb8c9452b6644350a",
+      "outputSHA256": "e34d024959fd69ed44825910726a1a0e542a5cd25218e7d4989c253a55e8f961"
+    },
+    {
+      "source": "05_LEVEL_2.gif",
+      "target": "tiff",
+      "state": "pass",
+      "sourceSummary": {
+        "format": "gif",
+        "width": 800,
+        "height": 540,
+        "frames": 4,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          150,
+          150,
+          150,
+          150
+        ],
+        "orientation": 1,
+        "loopCount": 0
+      },
+      "resultSummary": {
+        "format": "tiff",
+        "width": 800,
+        "height": 540,
+        "frames": 1,
+        "pages": 4,
+        "alpha": true,
+        "durationsMs": [],
+        "orientation": 1,
+        "pageDimensions": [
+          [
+            800,
+            540
+          ],
+          [
+            800,
+            540
+          ],
+          [
+            800,
+            540
+          ],
+          [
+            800,
+            540
+          ]
+        ],
+        "bitDepth": 8,
+        "pageImageIndexes": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "pageOrientations": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "pageDpi": [
+          [
+            99.9998,
+            99.9998
+          ],
+          [
+            99.9998,
+            99.9998
+          ],
+          [
+            99.9998,
+            99.9998
+          ],
+          [
+            99.9998,
+            99.9998
+          ]
+        ]
+      },
+      "independentPixelSHA256": [
+        "c7e5bec8271564b04f884b39b02cfbef1999d2a9be17cc19370943431bace015",
+        "b6f929b743907e18de6557256be7c82c1787b7020b6bf6d79a4447904a185a39",
+        "b4bc86e0dace5caa8d5e49470868e1e529248effb9ba72bb61f43dd627b4c541",
+        "dc6d291e266df8ed9d618524518610773ab84db876ec2bfd2077ac1c758c0eee"
+      ],
+      "sourcePixelSHA256": [
+        "c7e5bec8271564b04f884b39b02cfbef1999d2a9be17cc19370943431bace015",
+        "b6f929b743907e18de6557256be7c82c1787b7020b6bf6d79a4447904a185a39",
+        "b4bc86e0dace5caa8d5e49470868e1e529248effb9ba72bb61f43dd627b4c541",
+        "dc6d291e266df8ed9d618524518610773ab84db876ec2bfd2077ac1c758c0eee"
+      ],
+      "size": 6912800,
+      "elapsedMs": 99,
+      "sourceSHA256": "6dbdf8bf3aae3c4f71f87a151c288767cd4cd4b1c59c43acb8c9452b6644350a",
+      "outputSHA256": "57b726dd194cec2f78515e4b47b0a020da468179e95934c681b6e409c553b7ef"
+    },
+    {
+      "source": "06_LEVEL_3.gif",
+      "target": "webp",
+      "state": "pass",
+      "sourceSummary": {
+        "format": "gif",
+        "width": 1200,
+        "height": 850,
+        "frames": 4,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          150,
+          150,
+          150,
+          150
+        ],
+        "orientation": 1,
+        "loopCount": 0
+      },
+      "resultSummary": {
+        "format": "webp",
+        "width": 1200,
+        "height": 850,
+        "frames": 4,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          150,
+          150,
+          150,
+          150
+        ],
+        "orientation": 1,
+        "loopCount": 0
+      },
+      "independentPixelSHA256": [
+        "33c2fbf82d05c84cf101c6b25f1e7159a91dd19befd449e41e3417d221666e00",
+        "5a89277052a81366549ed865c393d5c4980e9fa252e0dd18510a4469c16b6005",
+        "ec20b921fb57d4e093fc71d039fb1cf1dea6087019ea7a6d5a1cb7c6c9c5a412",
+        "d8e71873c2fd4100525123655a839c11fd99e954a619047155bb9ed0204f2258"
+      ],
+      "sourcePixelSHA256": [
+        "33c2fbf82d05c84cf101c6b25f1e7159a91dd19befd449e41e3417d221666e00",
+        "5a89277052a81366549ed865c393d5c4980e9fa252e0dd18510a4469c16b6005",
+        "ec20b921fb57d4e093fc71d039fb1cf1dea6087019ea7a6d5a1cb7c6c9c5a412",
+        "d8e71873c2fd4100525123655a839c11fd99e954a619047155bb9ed0204f2258"
+      ],
+      "size": 31866,
+      "elapsedMs": 348,
+      "sourceSHA256": "95318cad3c921ebaa3e133076e29374124f7cb40f6372f7ad23364b04708a7e0",
+      "outputSHA256": "b6ebe8ce5cef0e3a509bdba0c3b1d24c867a9b91d8f2bb0644deecfddb9dcc38"
+    },
+    {
+      "source": "06_LEVEL_3.gif",
+      "target": "apng",
+      "state": "pass",
+      "sourceSummary": {
+        "format": "gif",
+        "width": 1200,
+        "height": 850,
+        "frames": 4,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          150,
+          150,
+          150,
+          150
+        ],
+        "orientation": 1,
+        "loopCount": 0
+      },
+      "resultSummary": {
+        "format": "png",
+        "width": 1200,
+        "height": 850,
+        "frames": 4,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          150.0,
+          150.0,
+          150.0,
+          150.0
+        ],
+        "orientation": 1,
+        "animationContainer": true,
+        "loopCount": 0,
+        "bitDepth": 8
+      },
+      "independentPixelSHA256": [
+        "33c2fbf82d05c84cf101c6b25f1e7159a91dd19befd449e41e3417d221666e00",
+        "5a89277052a81366549ed865c393d5c4980e9fa252e0dd18510a4469c16b6005",
+        "ec20b921fb57d4e093fc71d039fb1cf1dea6087019ea7a6d5a1cb7c6c9c5a412",
+        "d8e71873c2fd4100525123655a839c11fd99e954a619047155bb9ed0204f2258"
+      ],
+      "sourcePixelSHA256": [
+        "33c2fbf82d05c84cf101c6b25f1e7159a91dd19befd449e41e3417d221666e00",
+        "5a89277052a81366549ed865c393d5c4980e9fa252e0dd18510a4469c16b6005",
+        "ec20b921fb57d4e093fc71d039fb1cf1dea6087019ea7a6d5a1cb7c6c9c5a412",
+        "d8e71873c2fd4100525123655a839c11fd99e954a619047155bb9ed0204f2258"
+      ],
+      "size": 96441,
+      "elapsedMs": 325,
+      "sourceSHA256": "95318cad3c921ebaa3e133076e29374124f7cb40f6372f7ad23364b04708a7e0",
+      "outputSHA256": "c20141587d075c47926708a1ebc0a368f88d5517ad17051c90039a615342a0ec"
+    },
+    {
+      "source": "06_LEVEL_3.gif",
+      "target": "tiff",
+      "state": "pass",
+      "sourceSummary": {
+        "format": "gif",
+        "width": 1200,
+        "height": 850,
+        "frames": 4,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          150,
+          150,
+          150,
+          150
+        ],
+        "orientation": 1,
+        "loopCount": 0
+      },
+      "resultSummary": {
+        "format": "tiff",
+        "width": 1200,
+        "height": 850,
+        "frames": 1,
+        "pages": 4,
+        "alpha": true,
+        "durationsMs": [],
+        "orientation": 1,
+        "pageDimensions": [
+          [
+            1200,
+            850
+          ],
+          [
+            1200,
+            850
+          ],
+          [
+            1200,
+            850
+          ],
+          [
+            1200,
+            850
+          ]
+        ],
+        "bitDepth": 8,
+        "pageImageIndexes": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "pageOrientations": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "pageDpi": [
+          [
+            99.9998,
+            99.9998
+          ],
+          [
+            99.9998,
+            99.9998
+          ],
+          [
+            99.9998,
+            99.9998
+          ],
+          [
+            99.9998,
+            99.9998
+          ]
+        ]
+      },
+      "independentPixelSHA256": [
+        "33c2fbf82d05c84cf101c6b25f1e7159a91dd19befd449e41e3417d221666e00",
+        "5a89277052a81366549ed865c393d5c4980e9fa252e0dd18510a4469c16b6005",
+        "ec20b921fb57d4e093fc71d039fb1cf1dea6087019ea7a6d5a1cb7c6c9c5a412",
+        "d8e71873c2fd4100525123655a839c11fd99e954a619047155bb9ed0204f2258"
+      ],
+      "sourcePixelSHA256": [
+        "33c2fbf82d05c84cf101c6b25f1e7159a91dd19befd449e41e3417d221666e00",
+        "5a89277052a81366549ed865c393d5c4980e9fa252e0dd18510a4469c16b6005",
+        "ec20b921fb57d4e093fc71d039fb1cf1dea6087019ea7a6d5a1cb7c6c9c5a412",
+        "d8e71873c2fd4100525123655a839c11fd99e954a619047155bb9ed0204f2258"
+      ],
+      "size": 16320800,
+      "elapsedMs": 257,
+      "sourceSHA256": "95318cad3c921ebaa3e133076e29374124f7cb40f6372f7ad23364b04708a7e0",
+      "outputSHA256": "7a5a927649aaa67a7308b2b22425d9e2cf846ed79532ebf7260c3b195d828a84"
+    },
+    {
+      "source": "05_LEVEL_2.apng",
+      "target": "webp",
+      "state": "pass",
+      "sourceSummary": {
+        "format": "png",
+        "width": 800,
+        "height": 540,
+        "frames": 3,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          200.0,
+          300.0,
+          250.0
+        ],
+        "orientation": 1,
+        "animationContainer": true,
+        "loopCount": 0,
+        "bitDepth": 8
+      },
+      "resultSummary": {
+        "format": "webp",
+        "width": 800,
+        "height": 540,
+        "frames": 3,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          200,
+          300,
+          250
+        ],
+        "orientation": 1,
+        "loopCount": 0
+      },
+      "independentPixelSHA256": [
+        "650207d5dbc2fcb8f0c19dec5eaaddfec72fb664f0213623530d2d539e98f4e2",
+        "319f9451a2e96947794a55bbd76bdc032a3f270a1427e23adf1a1ae388552ee9",
+        "bc798bee79aa2169508c66bfd8888bd67b5127de274cdeb6f0b387cdcfa130e1"
+      ],
+      "sourcePixelSHA256": [
+        "650207d5dbc2fcb8f0c19dec5eaaddfec72fb664f0213623530d2d539e98f4e2",
+        "319f9451a2e96947794a55bbd76bdc032a3f270a1427e23adf1a1ae388552ee9",
+        "bc798bee79aa2169508c66bfd8888bd67b5127de274cdeb6f0b387cdcfa130e1"
+      ],
+      "size": 19104,
+      "elapsedMs": 163,
+      "sourceSHA256": "435b14a7d01d243e31e09b9dddb6d77d80f9bd522a8d825e098c08c95c83e499",
+      "outputSHA256": "92a554c8fcf69d1d6aca6a5ff615b71724a940a50fe88d845b315c008ec763f0"
+    },
+    {
+      "source": "05_LEVEL_2.apng",
+      "target": "apng",
+      "state": "pass",
+      "sourceSummary": {
+        "format": "png",
+        "width": 800,
+        "height": 540,
+        "frames": 3,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          200.0,
+          300.0,
+          250.0
+        ],
+        "orientation": 1,
+        "animationContainer": true,
+        "loopCount": 0,
+        "bitDepth": 8
+      },
+      "resultSummary": {
+        "format": "png",
+        "width": 800,
+        "height": 540,
+        "frames": 3,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          200.0,
+          300.0,
+          250.0
+        ],
+        "orientation": 1,
+        "animationContainer": true,
+        "loopCount": 0,
+        "bitDepth": 8
+      },
+      "independentPixelSHA256": [
+        "650207d5dbc2fcb8f0c19dec5eaaddfec72fb664f0213623530d2d539e98f4e2",
+        "319f9451a2e96947794a55bbd76bdc032a3f270a1427e23adf1a1ae388552ee9",
+        "bc798bee79aa2169508c66bfd8888bd67b5127de274cdeb6f0b387cdcfa130e1"
+      ],
+      "sourcePixelSHA256": [
+        "650207d5dbc2fcb8f0c19dec5eaaddfec72fb664f0213623530d2d539e98f4e2",
+        "319f9451a2e96947794a55bbd76bdc032a3f270a1427e23adf1a1ae388552ee9",
+        "bc798bee79aa2169508c66bfd8888bd67b5127de274cdeb6f0b387cdcfa130e1"
+      ],
+      "size": 41589,
+      "elapsedMs": 118,
+      "sourceSHA256": "435b14a7d01d243e31e09b9dddb6d77d80f9bd522a8d825e098c08c95c83e499",
+      "outputSHA256": "4bba22a4ba2299333f808907f259dcc4fab38dcaac60911d7980cfaf6c98bfb9"
+    },
+    {
+      "source": "05_LEVEL_2.apng",
+      "target": "tiff",
+      "state": "pass",
+      "sourceSummary": {
+        "format": "png",
+        "width": 800,
+        "height": 540,
+        "frames": 3,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          200.0,
+          300.0,
+          250.0
+        ],
+        "orientation": 1,
+        "animationContainer": true,
+        "loopCount": 0,
+        "bitDepth": 8
+      },
+      "resultSummary": {
+        "format": "tiff",
+        "width": 800,
+        "height": 540,
+        "frames": 1,
+        "pages": 3,
+        "alpha": true,
+        "durationsMs": [],
+        "orientation": 1,
+        "pageDimensions": [
+          [
+            800,
+            540
+          ],
+          [
+            800,
+            540
+          ],
+          [
+            800,
+            540
+          ]
+        ],
+        "bitDepth": 8,
+        "pageImageIndexes": [
+          0,
+          1,
+          2
+        ],
+        "pageOrientations": [
+          1,
+          1,
+          1
+        ],
+        "pageDpi": [
+          [
+            99.9998,
+            99.9998
+          ],
+          [
+            99.9998,
+            99.9998
+          ],
+          [
+            99.9998,
+            99.9998
+          ]
+        ]
+      },
+      "independentPixelSHA256": [
+        "650207d5dbc2fcb8f0c19dec5eaaddfec72fb664f0213623530d2d539e98f4e2",
+        "319f9451a2e96947794a55bbd76bdc032a3f270a1427e23adf1a1ae388552ee9",
+        "bc798bee79aa2169508c66bfd8888bd67b5127de274cdeb6f0b387cdcfa130e1"
+      ],
+      "sourcePixelSHA256": [
+        "650207d5dbc2fcb8f0c19dec5eaaddfec72fb664f0213623530d2d539e98f4e2",
+        "319f9451a2e96947794a55bbd76bdc032a3f270a1427e23adf1a1ae388552ee9",
+        "bc798bee79aa2169508c66bfd8888bd67b5127de274cdeb6f0b387cdcfa130e1"
+      ],
+      "size": 5184602,
+      "elapsedMs": 94,
+      "sourceSHA256": "435b14a7d01d243e31e09b9dddb6d77d80f9bd522a8d825e098c08c95c83e499",
+      "outputSHA256": "34bbfc280f9b79312753b3c0ef3859c23ecfd380392224d3ef60e2ca89c7daf1"
+    },
+    {
+      "source": "06_LEVEL_3.apng",
+      "target": "webp",
+      "state": "pass",
+      "sourceSummary": {
+        "format": "png",
+        "width": 1200,
+        "height": 850,
+        "frames": 3,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          200.0,
+          300.0,
+          250.0
+        ],
+        "orientation": 1,
+        "animationContainer": true,
+        "loopCount": 0,
+        "bitDepth": 8
+      },
+      "resultSummary": {
+        "format": "webp",
+        "width": 1200,
+        "height": 850,
+        "frames": 3,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          200,
+          300,
+          250
+        ],
+        "orientation": 1,
+        "loopCount": 0
+      },
+      "independentPixelSHA256": [
+        "0c2ab3e75d32c7426c8204b94b68e6fdcd99469010de653775dfcd42bae3a6eb",
+        "a53f04184de25f3b5d2869232266ed0fe514515a56506fe339a525c2db4f9019",
+        "d43357038ef114e9ebd7f5649c21e941456042964479b90e3c4369c237cbe3f9"
+      ],
+      "sourcePixelSHA256": [
+        "0c2ab3e75d32c7426c8204b94b68e6fdcd99469010de653775dfcd42bae3a6eb",
+        "a53f04184de25f3b5d2869232266ed0fe514515a56506fe339a525c2db4f9019",
+        "d43357038ef114e9ebd7f5649c21e941456042964479b90e3c4369c237cbe3f9"
+      ],
+      "size": 28754,
+      "elapsedMs": 266,
+      "sourceSHA256": "cf66d7b58721254373bf575da68bdd042a845aaab1a7e4dff83571d8a563c375",
+      "outputSHA256": "7bae8da124ef90c27e41a9f643053f4556dc312a55abf7a65776a62c77877e00"
+    },
+    {
+      "source": "06_LEVEL_3.apng",
+      "target": "apng",
+      "state": "pass",
+      "sourceSummary": {
+        "format": "png",
+        "width": 1200,
+        "height": 850,
+        "frames": 3,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          200.0,
+          300.0,
+          250.0
+        ],
+        "orientation": 1,
+        "animationContainer": true,
+        "loopCount": 0,
+        "bitDepth": 8
+      },
+      "resultSummary": {
+        "format": "png",
+        "width": 1200,
+        "height": 850,
+        "frames": 3,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          200.0,
+          300.0,
+          250.0
+        ],
+        "orientation": 1,
+        "animationContainer": true,
+        "loopCount": 0,
+        "bitDepth": 8
+      },
+      "independentPixelSHA256": [
+        "0c2ab3e75d32c7426c8204b94b68e6fdcd99469010de653775dfcd42bae3a6eb",
+        "a53f04184de25f3b5d2869232266ed0fe514515a56506fe339a525c2db4f9019",
+        "d43357038ef114e9ebd7f5649c21e941456042964479b90e3c4369c237cbe3f9"
+      ],
+      "sourcePixelSHA256": [
+        "0c2ab3e75d32c7426c8204b94b68e6fdcd99469010de653775dfcd42bae3a6eb",
+        "a53f04184de25f3b5d2869232266ed0fe514515a56506fe339a525c2db4f9019",
+        "d43357038ef114e9ebd7f5649c21e941456042964479b90e3c4369c237cbe3f9"
+      ],
+      "size": 72550,
+      "elapsedMs": 267,
+      "sourceSHA256": "cf66d7b58721254373bf575da68bdd042a845aaab1a7e4dff83571d8a563c375",
+      "outputSHA256": "7ef870bf33e75c9573694b111b8321ad1f483bc65b9719f8bbccfb2fe9d29e9d"
+    },
+    {
+      "source": "06_LEVEL_3.apng",
+      "target": "tiff",
+      "state": "pass",
+      "sourceSummary": {
+        "format": "png",
+        "width": 1200,
+        "height": 850,
+        "frames": 3,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          200.0,
+          300.0,
+          250.0
+        ],
+        "orientation": 1,
+        "animationContainer": true,
+        "loopCount": 0,
+        "bitDepth": 8
+      },
+      "resultSummary": {
+        "format": "tiff",
+        "width": 1200,
+        "height": 850,
+        "frames": 1,
+        "pages": 3,
+        "alpha": true,
+        "durationsMs": [],
+        "orientation": 1,
+        "pageDimensions": [
+          [
+            1200,
+            850
+          ],
+          [
+            1200,
+            850
+          ],
+          [
+            1200,
+            850
+          ]
+        ],
+        "bitDepth": 8,
+        "pageImageIndexes": [
+          0,
+          1,
+          2
+        ],
+        "pageOrientations": [
+          1,
+          1,
+          1
+        ],
+        "pageDpi": [
+          [
+            99.9998,
+            99.9998
+          ],
+          [
+            99.9998,
+            99.9998
+          ],
+          [
+            99.9998,
+            99.9998
+          ]
+        ]
+      },
+      "independentPixelSHA256": [
+        "0c2ab3e75d32c7426c8204b94b68e6fdcd99469010de653775dfcd42bae3a6eb",
+        "a53f04184de25f3b5d2869232266ed0fe514515a56506fe339a525c2db4f9019",
+        "d43357038ef114e9ebd7f5649c21e941456042964479b90e3c4369c237cbe3f9"
+      ],
+      "sourcePixelSHA256": [
+        "0c2ab3e75d32c7426c8204b94b68e6fdcd99469010de653775dfcd42bae3a6eb",
+        "a53f04184de25f3b5d2869232266ed0fe514515a56506fe339a525c2db4f9019",
+        "d43357038ef114e9ebd7f5649c21e941456042964479b90e3c4369c237cbe3f9"
+      ],
+      "size": 12240602,
+      "elapsedMs": 193,
+      "sourceSHA256": "cf66d7b58721254373bf575da68bdd042a845aaab1a7e4dff83571d8a563c375",
+      "outputSHA256": "d6132107c02359093343bbf7fdf78c2b2b39f2f5a68e0b956b5408d3b54fd4cf"
+    },
+    {
+      "source": "05_LEVEL_2.webp",
+      "target": "webp",
+      "state": "pass",
+      "sourceSummary": {
+        "format": "webp",
+        "width": 800,
+        "height": 540,
+        "frames": 1,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [],
+        "orientation": 1,
+        "loopCount": 1
+      },
+      "resultSummary": {
+        "format": "webp",
+        "width": 800,
+        "height": 540,
+        "frames": 1,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [],
+        "orientation": 1,
+        "loopCount": 1
+      },
+      "independentPixelSHA256": [
+        "ee226139647d3ca6dd75b0a872a3b89b1ce0cdf5b8568cd1339f9f452ef4e003"
+      ],
+      "sourcePixelSHA256": [
+        "ee226139647d3ca6dd75b0a872a3b89b1ce0cdf5b8568cd1339f9f452ef4e003"
+      ],
+      "size": 46370,
+      "elapsedMs": 173,
+      "sourceSHA256": "cd40860941c0f1fa8d17145ba41d5fb300ef2606fc649c4e9bd0e8ebd9d48572",
+      "outputSHA256": "a56bc456e593c8ac694c89335b45276377e9d8e0ffb7b57dff8bda4432c7c82d"
+    },
+    {
+      "source": "05_LEVEL_2.webp",
+      "target": "apng",
+      "state": "pass",
+      "sourceSummary": {
+        "format": "webp",
+        "width": 800,
+        "height": 540,
+        "frames": 1,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [],
+        "orientation": 1,
+        "loopCount": 1
+      },
+      "resultSummary": {
+        "format": "png",
+        "width": 800,
+        "height": 540,
+        "frames": 1,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          0.0
+        ],
+        "orientation": 1,
+        "animationContainer": true,
+        "loopCount": 1,
+        "bitDepth": 8
+      },
+      "independentPixelSHA256": [
+        "ee226139647d3ca6dd75b0a872a3b89b1ce0cdf5b8568cd1339f9f452ef4e003"
+      ],
+      "sourcePixelSHA256": [
+        "ee226139647d3ca6dd75b0a872a3b89b1ce0cdf5b8568cd1339f9f452ef4e003"
+      ],
+      "size": 70890,
+      "elapsedMs": 38,
+      "sourceSHA256": "cd40860941c0f1fa8d17145ba41d5fb300ef2606fc649c4e9bd0e8ebd9d48572",
+      "outputSHA256": "c423a8e53aed7711a5784d16de80d220309f2a0c6801f9e5865d70573e8a2fdc"
+    },
+    {
+      "source": "05_LEVEL_2.webp",
+      "target": "tiff",
+      "state": "pass",
+      "sourceSummary": {
+        "format": "webp",
+        "width": 800,
+        "height": 540,
+        "frames": 1,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [],
+        "orientation": 1,
+        "loopCount": 1
+      },
+      "resultSummary": {
+        "format": "tiff",
+        "width": 800,
+        "height": 540,
+        "frames": 1,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [],
+        "orientation": 1,
+        "pageDimensions": [
+          [
+            800,
+            540
+          ]
+        ],
+        "bitDepth": 8,
+        "pageImageIndexes": [
+          0
+        ],
+        "pageOrientations": [
+          1
+        ],
+        "pageDpi": [
+          [
+            99.9998,
+            99.9998
+          ]
+        ]
+      },
+      "independentPixelSHA256": [
+        "ee226139647d3ca6dd75b0a872a3b89b1ce0cdf5b8568cd1339f9f452ef4e003"
+      ],
+      "sourcePixelSHA256": [
+        "ee226139647d3ca6dd75b0a872a3b89b1ce0cdf5b8568cd1339f9f452ef4e003"
+      ],
+      "size": 1728206,
+      "elapsedMs": 25,
+      "sourceSHA256": "cd40860941c0f1fa8d17145ba41d5fb300ef2606fc649c4e9bd0e8ebd9d48572",
+      "outputSHA256": "7af527b5bc27bc70aa01402cf9db07f16f20374ce320ac5c561004c948ef16c9"
+    },
+    {
+      "source": "05_LEVEL_2.png",
+      "target": "webp",
+      "state": "pass",
+      "sourceSummary": {
+        "format": "png",
+        "width": 800,
+        "height": 540,
+        "frames": 1,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [],
+        "orientation": 1,
+        "animationContainer": false,
+        "loopCount": 1,
+        "bitDepth": 8
+      },
+      "resultSummary": {
+        "format": "webp",
+        "width": 800,
+        "height": 540,
+        "frames": 1,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [],
+        "orientation": 1,
+        "loopCount": 1
+      },
+      "independentPixelSHA256": [
+        "650207d5dbc2fcb8f0c19dec5eaaddfec72fb664f0213623530d2d539e98f4e2"
+      ],
+      "sourcePixelSHA256": [
+        "650207d5dbc2fcb8f0c19dec5eaaddfec72fb664f0213623530d2d539e98f4e2"
+      ],
+      "size": 5386,
+      "elapsedMs": 44,
+      "sourceSHA256": "6b24375fc7fe89d38a2ccf678a67722f1a4d3e2e779ad3f29cc57f7a7b408a25",
+      "outputSHA256": "68b38c8b13c636a571c7daf0b3219f590f518084bc66c5fe5a4afec1c3de8eec"
+    },
+    {
+      "source": "05_LEVEL_2.png",
+      "target": "apng",
+      "state": "pass",
+      "sourceSummary": {
+        "format": "png",
+        "width": 800,
+        "height": 540,
+        "frames": 1,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [],
+        "orientation": 1,
+        "animationContainer": false,
+        "loopCount": 1,
+        "bitDepth": 8
+      },
+      "resultSummary": {
+        "format": "png",
+        "width": 800,
+        "height": 540,
+        "frames": 1,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          0.0
+        ],
+        "orientation": 1,
+        "animationContainer": true,
+        "loopCount": 1,
+        "bitDepth": 8
+      },
+      "independentPixelSHA256": [
+        "650207d5dbc2fcb8f0c19dec5eaaddfec72fb664f0213623530d2d539e98f4e2"
+      ],
+      "sourcePixelSHA256": [
+        "650207d5dbc2fcb8f0c19dec5eaaddfec72fb664f0213623530d2d539e98f4e2"
+      ],
+      "size": 12345,
+      "elapsedMs": 33,
+      "sourceSHA256": "6b24375fc7fe89d38a2ccf678a67722f1a4d3e2e779ad3f29cc57f7a7b408a25",
+      "outputSHA256": "11a4e0f26681f87ec4ea6962d9b61a4ac70a5b128de08e9ef75bac4b20760e27"
+    },
+    {
+      "source": "05_LEVEL_2.png",
+      "target": "tiff",
+      "state": "pass",
+      "sourceSummary": {
+        "format": "png",
+        "width": 800,
+        "height": 540,
+        "frames": 1,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [],
+        "orientation": 1,
+        "animationContainer": false,
+        "loopCount": 1,
+        "bitDepth": 8
+      },
+      "resultSummary": {
+        "format": "tiff",
+        "width": 800,
+        "height": 540,
+        "frames": 1,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [],
+        "orientation": 1,
+        "pageDimensions": [
+          [
+            800,
+            540
+          ]
+        ],
+        "bitDepth": 8,
+        "pageImageIndexes": [
+          0
+        ],
+        "pageOrientations": [
+          1
+        ],
+        "pageDpi": [
+          [
+            99.9998,
+            99.9998
+          ]
+        ]
+      },
+      "independentPixelSHA256": [
+        "650207d5dbc2fcb8f0c19dec5eaaddfec72fb664f0213623530d2d539e98f4e2"
+      ],
+      "sourcePixelSHA256": [
+        "650207d5dbc2fcb8f0c19dec5eaaddfec72fb664f0213623530d2d539e98f4e2"
+      ],
+      "size": 1728206,
+      "elapsedMs": 26,
+      "sourceSHA256": "6b24375fc7fe89d38a2ccf678a67722f1a4d3e2e779ad3f29cc57f7a7b408a25",
+      "outputSHA256": "f3be3f7bbe7439cc80b518d941dff4e63f7ffc727f1c0c5424891d13b89f5370"
+    }
+  ]
+}

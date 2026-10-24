@@ -3,7 +3,7 @@ import math
 
 KEYS = frozenset({'adapterMs', 'processMs', 'launchMs', 'workerStartupMs',
                   'importMs', 'exportMs', 'closeMs', 'operationMs'})
-SOURCES = frozenset({'cli_process', 'uno_document'})
+SOURCES = frozenset({'cli_process', 'uno_document', 'qt_media'})
 
 
 def clean_timings(value):
@@ -16,3 +16,4 @@ def clean_timings(value):
         if type(number) in (int, float) and 0 <= number <= 2 ** 53 and math.isfinite(number):
             result[key] = round(number)
     return result
+

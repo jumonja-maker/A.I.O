@@ -72,6 +72,7 @@ class ResultStore:
         value = {'schema': 1, 'jobId': job.id,
             'inputAccounting':job.input_accounting,
             'files': [{'id': f.id, 'name': f.name, 'size': f.size,'nativeRoute':f.native_route,
+                       'sourceSha256':getattr(f,'content_digest',None),
                        'targets': [{'index': t.index, 'format': t.format} for t in f.targets]}
                       for f in job.files]}
         value['checksum'] = self._digest(value)
@@ -118,7 +119,8 @@ class ResultStore:
         for artifact in task.artifacts:
             yield {'kind':'output','transaction':transaction,
                        'output':{'path':artifact.path.relative_to(self.root).as_posix(),
-                                 'archiveName':artifact.archive_name,'name':artifact.name,'size':artifact.size}}
+                                 'archiveName':artifact.archive_name,'name':artifact.name,'size':artifact.size,
+                                 'sha256':getattr(artifact,'sha256',None)}}
         yield {'kind':'task_commit','transaction':transaction}
 
     def saved(self, artifacts):
@@ -199,3 +201,4 @@ class ResultStore:
                 or not path.is_file() or path.stat().st_size != size):
             raise ValueError('Output is missing or changed')
         return path
+

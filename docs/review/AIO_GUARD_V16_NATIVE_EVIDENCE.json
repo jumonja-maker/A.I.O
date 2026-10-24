@@ -1,0 +1,3279 @@
+{
+  "schema": 1,
+  "platform": "linux",
+  "engineVersion": "LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5",
+  "qualityCertified": false,
+  "windowsGuiTested": false,
+  "fulltest510": "NOT_RUN",
+  "macroRetention": {
+    "status": "NOT_RUN",
+    "reason": "requires_a_fixture_with_actual_VBA"
+  },
+  "originalFixtures": [
+    {
+      "source": {
+        "name": "05_LEVEL_2.dotm",
+        "size": 52099,
+        "sha256": "13321a779f254fdfb15f2c66641b1ba090bbdfe314471e2fb92383e351a9c610",
+        "zipCRC": "pass",
+        "hasVbaProject": false,
+        "tableCells": 28,
+        "mainContentTypes": {
+          "/word/document.xml": "application/vnd.ms-word.template.macroEnabledTemplate.main+xml"
+        }
+      },
+      "role": "diagnostic_original",
+      "originalUnchanged": true,
+      "warning": "cannot_test_VBA_retention_without_actual_VBA"
+    },
+    {
+      "source": {
+        "name": "05_LEVEL_2.fodp",
+        "size": 2885,
+        "sha256": "8e6caf1aa7a0397c2de17041454577b5ebe042d2f42cb3fb2902d83e8e1c34c6",
+        "mimetype": "application/vnd.oasis.opendocument.presentation-flat-xml",
+        "bodyKinds": [
+          "presentation"
+        ]
+      },
+      "role": "negative_inconsistent_fixture",
+      "originalUnchanged": true,
+      "reason": "flat_xml_mimetype_inconsistent"
+    },
+    {
+      "source": {
+        "name": "05_LEVEL_2.fodt",
+        "size": 6940,
+        "sha256": "ef9b6b9ffc47f3517136259c86d0686431ebb699d03afe2b29ca03eef0c1cf08",
+        "mimetype": "application/vnd.oasis.opendocument.text-flat-xml",
+        "bodyKinds": [
+          "text"
+        ]
+      },
+      "role": "negative_inconsistent_fixture",
+      "originalUnchanged": true,
+      "reason": "flat_xml_mimetype_inconsistent"
+    },
+    {
+      "source": {
+        "name": "05_LEVEL_2.odt",
+        "size": 2197,
+        "sha256": "9c40dbefb524b830c6e77e1fda093c3776cee2a271ee283b2f12da37f89e9d60",
+        "zipCRC": "pass",
+        "hasVbaProject": false,
+        "mimetype": "application/vnd.oasis.opendocument.text",
+        "contentNamespace": "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
+        "tableCells": 48,
+        "tableColumnDeclarations": 0
+      },
+      "role": "diagnostic_original",
+      "originalUnchanged": true,
+      "warning": "table_columns_undeclared_direct_native_loss_requires_content_check"
+    },
+    {
+      "source": {
+        "name": "05_LEVEL_2.sxw",
+        "size": 2089,
+        "sha256": "0898890a4d8592258ec9a2da5bafe789a43bc93630a230b2354bce58418d9d34",
+        "zipCRC": "pass",
+        "hasVbaProject": false,
+        "mimetype": "application/vnd.sun.xml.writer",
+        "contentNamespace": "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
+        "tableCells": 48,
+        "tableColumnDeclarations": 0
+      },
+      "role": "negative_inconsistent_fixture",
+      "originalUnchanged": true,
+      "reason": "staroffice_mime_with_odf_namespaces"
+    },
+    {
+      "source": {
+        "name": "06_LEVEL_3.fodp",
+        "size": 6119,
+        "sha256": "b41f18e9a845a4c8695b2dc3748ca80a0b08f9612829232f21cb9a8b3f0265b7",
+        "mimetype": "application/vnd.oasis.opendocument.presentation-flat-xml",
+        "bodyKinds": [
+          "presentation"
+        ]
+      },
+      "role": "negative_inconsistent_fixture",
+      "originalUnchanged": true,
+      "reason": "flat_xml_mimetype_inconsistent"
+    },
+    {
+      "source": {
+        "name": "06_LEVEL_3.fodt",
+        "size": 12527,
+        "sha256": "87586ed829b7a0c8b986894b105999bd364c43bb31eaea84f2b4ec164a085d01",
+        "mimetype": "application/vnd.oasis.opendocument.text-flat-xml",
+        "bodyKinds": [
+          "text"
+        ]
+      },
+      "role": "negative_inconsistent_fixture",
+      "originalUnchanged": true,
+      "reason": "flat_xml_mimetype_inconsistent"
+    },
+    {
+      "source": {
+        "name": "06_LEVEL_3.odt",
+        "size": 2513,
+        "sha256": "544acfb2c749b2ab9cc991934f098be4953eac394dd0af23fd11b937377cef80",
+        "zipCRC": "pass",
+        "hasVbaProject": false,
+        "mimetype": "application/vnd.oasis.opendocument.text",
+        "contentNamespace": "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
+        "tableCells": 64,
+        "tableColumnDeclarations": 0
+      },
+      "role": "diagnostic_original",
+      "originalUnchanged": true,
+      "warning": "table_columns_undeclared_direct_native_loss_requires_content_check"
+    },
+    {
+      "source": {
+        "name": "06_LEVEL_3.sxw",
+        "size": 2405,
+        "sha256": "4e83cf13b9d354df636c955274d1ccbe4a1a3cae4ece1862194e17b8c9246f2d",
+        "zipCRC": "pass",
+        "hasVbaProject": false,
+        "mimetype": "application/vnd.sun.xml.writer",
+        "contentNamespace": "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
+        "tableCells": 64,
+        "tableColumnDeclarations": 0
+      },
+      "role": "negative_inconsistent_fixture",
+      "originalUnchanged": true,
+      "reason": "staroffice_mime_with_odf_namespaces"
+    }
+  ],
+  "generatedFixtures": [
+    {
+      "target": "odt",
+      "service": "com.sun.star.text.TextDocument",
+      "producer": "native_LibreOffice_export",
+      "filter": "writer8",
+      "fixture": {
+        "name": "writer.odt",
+        "size": 15099,
+        "sha256": "08546ebcdb9467946fbf1b9db466e6e6ad22de60057dca78f3cf8e01775eb353",
+        "zipCRC": "pass",
+        "hasVbaProject": false,
+        "mimetype": "application/vnd.oasis.opendocument.text",
+        "contentNamespace": "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
+        "tableCells": 48,
+        "tableColumnDeclarations": 2
+      },
+      "directNativeReimport": {
+        "status": "pass",
+        "expectedMarkers": 48,
+        "missingMarkers": [],
+        "method": "independent_content_extraction"
+      },
+      "status": "pass"
+    },
+    {
+      "target": "docx",
+      "service": "com.sun.star.text.TextDocument",
+      "producer": "native_LibreOffice_export",
+      "filter": "MS Word 2007 XML",
+      "fixture": {
+        "name": "writer.docx",
+        "size": 5329,
+        "sha256": "137e02bd06c643e7ab94709b623a3bebefe7af8a40d61b26ba537d73de951558",
+        "zipCRC": "pass",
+        "hasVbaProject": false,
+        "tableCells": 48,
+        "mainContentTypes": {
+          "/word/document.xml": "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"
+        }
+      },
+      "directNativeReimport": {
+        "status": "pass",
+        "expectedMarkers": 48,
+        "missingMarkers": [],
+        "method": "independent_content_extraction"
+      },
+      "status": "pass"
+    },
+    {
+      "target": "dotx",
+      "service": "com.sun.star.text.TextDocument",
+      "producer": "native_LibreOffice_export",
+      "filter": "Office Open XML Text Template",
+      "fixture": {
+        "name": "writer.dotx",
+        "size": 5332,
+        "sha256": "415bb2d1d0e2bc6b92177ce143b364c87f6c713f7fac55fb46196ffd73c7acfc",
+        "zipCRC": "pass",
+        "hasVbaProject": false,
+        "tableCells": 48,
+        "mainContentTypes": {
+          "/word/document.xml": "application/vnd.openxmlformats-officedocument.wordprocessingml.template.main+xml"
+        }
+      },
+      "directNativeReimport": {
+        "status": "pass",
+        "expectedMarkers": 48,
+        "missingMarkers": [],
+        "method": "independent_content_extraction"
+      },
+      "status": "pass"
+    },
+    {
+      "target": "fodt",
+      "service": "com.sun.star.text.TextDocument",
+      "producer": "native_LibreOffice_export",
+      "filter": "OpenDocument Text Flat XML",
+      "fixture": {
+        "name": "writer.fodt",
+        "size": 35911,
+        "sha256": "6759bd2597932452c0d8d36d9ac3d41693167a6b2d4063a703c47999566c9089",
+        "mimetype": "application/vnd.oasis.opendocument.text",
+        "bodyKinds": [
+          "text"
+        ]
+      },
+      "directNativeReimport": {
+        "status": "pass",
+        "expectedMarkers": 48,
+        "missingMarkers": [],
+        "method": "independent_content_extraction"
+      },
+      "status": "pass"
+    },
+    {
+      "target": "sxw",
+      "service": "com.sun.star.text.TextDocument",
+      "producer": "native_LibreOffice_export",
+      "filter": null,
+      "status": "not_run",
+      "reason": "installed_native_export_filter_unavailable"
+    },
+    {
+      "target": "odp",
+      "service": "com.sun.star.presentation.PresentationDocument",
+      "producer": "native_LibreOffice_export",
+      "filter": "impress8",
+      "fixture": {
+        "name": "slides.odp",
+        "size": 11398,
+        "sha256": "2992d9b3aa4123bcb166f5508f53152384c2b2d3aedbee728c57341fa3312811",
+        "zipCRC": "pass",
+        "hasVbaProject": false,
+        "mimetype": "application/vnd.oasis.opendocument.presentation",
+        "contentNamespace": "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
+        "tableCells": 0,
+        "tableColumnDeclarations": 0
+      },
+      "directNativeReimport": {
+        "status": "pass",
+        "expectedMarkers": 1,
+        "missingMarkers": [],
+        "method": "independent_content_extraction"
+      },
+      "status": "pass"
+    },
+    {
+      "target": "pptx",
+      "service": "com.sun.star.presentation.PresentationDocument",
+      "producer": "native_LibreOffice_export",
+      "filter": "Impress MS PowerPoint 2007 XML",
+      "fixture": {
+        "name": "slides.pptx",
+        "size": 8174,
+        "sha256": "8cab1ac52e4547b3d94d40b1187928d0ff8b80d9536ea835b7ecdbb24f1155cf",
+        "zipCRC": "pass",
+        "hasVbaProject": false,
+        "mainContentTypes": {
+          "/ppt/presentation.xml": "application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"
+        }
+      },
+      "directNativeReimport": {
+        "status": "pass",
+        "expectedMarkers": 1,
+        "missingMarkers": [],
+        "method": "independent_content_extraction"
+      },
+      "status": "pass"
+    },
+    {
+      "target": "potx",
+      "service": "com.sun.star.presentation.PresentationDocument",
+      "producer": "native_LibreOffice_export",
+      "filter": "Impress MS PowerPoint 2007 XML Template",
+      "fixture": {
+        "name": "slides.potx",
+        "size": 8178,
+        "sha256": "b17cc46b76a8d0b8c967456a6d16cfaaef9b42923989ff8751e2320c65bc70da",
+        "zipCRC": "pass",
+        "hasVbaProject": false,
+        "mainContentTypes": {
+          "/ppt/presentation.xml": "application/vnd.openxmlformats-officedocument.presentationml.template.main+xml"
+        }
+      },
+      "directNativeReimport": {
+        "status": "pass",
+        "expectedMarkers": 1,
+        "missingMarkers": [],
+        "method": "independent_content_extraction"
+      },
+      "status": "pass"
+    },
+    {
+      "target": "ppsx",
+      "service": "com.sun.star.presentation.PresentationDocument",
+      "producer": "native_LibreOffice_export",
+      "filter": "Impress MS PowerPoint 2007 XML AutoPlay",
+      "fixture": {
+        "name": "slides.ppsx",
+        "size": 8173,
+        "sha256": "a5ce02607cf8250a56470dd7fc78add267741f61c4c621d3774694c27efd9a00",
+        "zipCRC": "pass",
+        "hasVbaProject": false,
+        "mainContentTypes": {
+          "/ppt/presentation.xml": "application/vnd.openxmlformats-officedocument.presentationml.slideshow.main+xml"
+        }
+      },
+      "directNativeReimport": {
+        "status": "pass",
+        "expectedMarkers": 1,
+        "missingMarkers": [],
+        "method": "independent_content_extraction"
+      },
+      "status": "pass"
+    },
+    {
+      "target": "fodp",
+      "service": "com.sun.star.presentation.PresentationDocument",
+      "producer": "native_LibreOffice_export",
+      "filter": "OpenDocument Presentation Flat XML",
+      "fixture": {
+        "name": "slides.fodp",
+        "size": 64967,
+        "sha256": "fe40ee7d7a9add23dd62b19e890133b9bb9905acfc88c7eb86683d8afe94e98c",
+        "mimetype": "application/vnd.oasis.opendocument.presentation",
+        "bodyKinds": [
+          "presentation"
+        ]
+      },
+      "directNativeReimport": {
+        "status": "pass",
+        "expectedMarkers": 1,
+        "missingMarkers": [],
+        "method": "independent_content_extraction"
+      },
+      "status": "pass"
+    }
+  ],
+  "guardAcceptance": {
+    "preflight": [
+      {
+        "id": "source0",
+        "name": "writer.odt",
+        "size": 15099,
+        "compatibility": "native_decision",
+        "preflight": {
+          "state": "detected",
+          "documentServices": [
+            "com.sun.star.text.TextDocument",
+            "com.sun.star.text.WebDocument",
+            "com.sun.star.text.GlobalDocument"
+          ],
+          "basis": "native_preflight_document_kind",
+          "nativeKind": 0,
+          "drawPages": null,
+          "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+          "exported": false,
+          "sourceContract": {
+            "state": "recognized",
+            "contentClass": "odf_package",
+            "mimetype": "application/vnd.oasis.opendocument.text",
+            "expectedServices": [
+              "com.sun.star.text.TextDocument"
+            ],
+            "bodyObserved": true
+          }
+        }
+      },
+      {
+        "id": "source1",
+        "name": "slides.fodp",
+        "size": 64967,
+        "compatibility": "native_decision",
+        "preflight": {
+          "state": "detected",
+          "documentServices": [
+            "com.sun.star.presentation.PresentationDocument"
+          ],
+          "basis": "native_preflight_document_kind",
+          "nativeKind": 2,
+          "drawPages": null,
+          "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+          "exported": false,
+          "sourceContract": {
+            "state": "recognized",
+            "contentClass": "flat_odf",
+            "mimetype": "application/vnd.oasis.opendocument.presentation",
+            "expectedServices": [
+              "com.sun.star.presentation.PresentationDocument"
+            ],
+            "bodyObserved": true
+          },
+          "requestedImportFilter": "OpenDocument Presentation Flat XML"
+        }
+      },
+      {
+        "id": "source2",
+        "name": "05_LEVEL_2.png",
+        "size": 15595,
+        "compatibility": "native_decision",
+        "preflight": {
+          "state": "detected",
+          "documentServices": [
+            "com.sun.star.drawing.DrawingDocument"
+          ],
+          "basis": "native_preflight_document_kind",
+          "nativeKind": 3,
+          "drawPages": 1,
+          "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+          "exported": false
+        }
+      },
+      {
+        "id": "source3",
+        "name": "06_LEVEL_3.gif",
+        "size": 92379,
+        "compatibility": "native_decision",
+        "preflight": {
+          "state": "detected",
+          "documentServices": [
+            "com.sun.star.drawing.DrawingDocument"
+          ],
+          "basis": "native_preflight_document_kind",
+          "nativeKind": 3,
+          "drawPages": 1,
+          "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+          "exported": false
+        }
+      },
+      {
+        "id": "source4",
+        "name": "06_LEVEL_3.apng",
+        "size": 91742,
+        "compatibility": "native_decision",
+        "preflight": {
+          "state": "undetermined",
+          "code": "PREFLIGHT_IMPORT_UNDETERMINED"
+        }
+      },
+      {
+        "id": "source5",
+        "name": "06_LEVEL_3.tiff",
+        "size": 175792,
+        "compatibility": "native_decision",
+        "preflight": {
+          "state": "detected",
+          "documentServices": [
+            "com.sun.star.drawing.DrawingDocument"
+          ],
+          "basis": "native_preflight_document_kind",
+          "nativeKind": 3,
+          "drawPages": 3,
+          "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+          "exported": false
+        }
+      },
+      {
+        "id": "source6",
+        "name": "05_LEVEL_2.odc",
+        "size": 1487,
+        "compatibility": "native_decision",
+        "preflight": {
+          "state": "detected",
+          "basis": "native_preflight_chart_content",
+          "documentServices": [
+            "com.sun.star.chart2.ChartDocument"
+          ],
+          "nativeKind": 4,
+          "chartPackage": true,
+          "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+          "exported": false,
+          "sourceContract": {
+            "state": "recognized",
+            "contentClass": "odf_package",
+            "mimetype": "application/vnd.oasis.opendocument.chart",
+            "expectedServices": [
+              "com.sun.star.chart2.ChartDocument"
+            ],
+            "bodyObserved": true
+          }
+        }
+      }
+    ],
+    "unplannedPairs": [
+      {
+        "source": "06_LEVEL_3.apng",
+        "target": "apng",
+        "reason": "NATIVE_DOCUMENT_SERVICE_MISMATCH"
+      }
+    ],
+    "contentChecks": [
+      {
+        "path": "0001-docx/writer.docx",
+        "status": "pass",
+        "expectedMarkers": 48,
+        "missingMarkers": [],
+        "method": "independent_content_extraction"
+      },
+      {
+        "path": "0003-pdf/slides.pdf",
+        "status": "pass",
+        "expectedMarkers": 1,
+        "missingMarkers": [],
+        "method": "independent_content_extraction"
+      },
+      {
+        "path": "0002-txt/writer.txt",
+        "status": "pass",
+        "expectedMarkers": 48,
+        "missingMarkers": [],
+        "method": "independent_content_extraction"
+      }
+    ],
+    "identityChecks": [
+      {
+        "source": "05_LEVEL_2.png",
+        "path": "0004-png/05_LEVEL_2.png",
+        "status": "pass",
+        "sourceSha256": "6b24375fc7fe89d38a2ccf678a67722f1a4d3e2e779ad3f29cc57f7a7b408a25",
+        "resultSha256": "6b24375fc7fe89d38a2ccf678a67722f1a4d3e2e779ad3f29cc57f7a7b408a25",
+        "method": "independent_whole_file_sha256"
+      },
+      {
+        "source": "06_LEVEL_3.gif",
+        "path": "0005-gif/06_LEVEL_3.gif",
+        "status": "pass",
+        "sourceSha256": "95318cad3c921ebaa3e133076e29374124f7cb40f6372f7ad23364b04708a7e0",
+        "resultSha256": "95318cad3c921ebaa3e133076e29374124f7cb40f6372f7ad23364b04708a7e0",
+        "method": "independent_whole_file_sha256"
+      },
+      {
+        "source": "06_LEVEL_3.tiff",
+        "path": "0006-tiff/06_LEVEL_3.tiff",
+        "status": "pass",
+        "sourceSha256": "83b0d8c31796b0adf80312beb54d015ad15b3dc8ef86c0137cd0d509454ac05a",
+        "resultSha256": "83b0d8c31796b0adf80312beb54d015ad15b3dc8ef86c0137cd0d509454ac05a",
+        "method": "independent_whole_file_sha256"
+      },
+      {
+        "source": "05_LEVEL_2.odc",
+        "path": "0007-odc/05_LEVEL_2.odc",
+        "status": "pass",
+        "sourceSha256": "f99c4c4fb52c671eadc8511cb09ec564b057793a09436bb1c7c71ed37c0c4d2d",
+        "resultSha256": "f99c4c4fb52c671eadc8511cb09ec564b057793a09436bb1c7c71ed37c0c4d2d",
+        "method": "independent_whole_file_sha256"
+      }
+    ],
+    "report": {
+      "schemaVersion": 3,
+      "total": 7,
+      "completed": 7,
+      "attempted": 3,
+      "succeeded": 7,
+      "failed": 0,
+      "cancelled": 0,
+      "filtered": 0,
+      "pending": 0,
+      "preflightChecks": 7,
+      "inputsUploaded": 7,
+      "inputsPlanned": 6,
+      "inputsWithoutTasks": [
+        {
+          "fileId": "source4",
+          "name": "06_LEVEL_3.apng",
+          "planned": false,
+          "preflightState": "undetermined",
+          "code": "PREFLIGHT_IMPORT_UNDETERMINED"
+        }
+      ],
+      "recoveryError": null,
+      "files": [
+        {
+          "fileId": "source0",
+          "name": "writer.odt",
+          "sourceSha256": "08546ebcdb9467946fbf1b9db466e6e6ad22de60057dca78f3cf8e01775eb353",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.text.TextDocument",
+              "com.sun.star.text.WebDocument",
+              "com.sun.star.text.GlobalDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 0,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false,
+            "sourceContract": {
+              "state": "recognized",
+              "contentClass": "odf_package",
+              "mimetype": "application/vnd.oasis.opendocument.text",
+              "expectedServices": [
+                "com.sun.star.text.TextDocument"
+              ],
+              "bodyObserved": true
+            }
+          },
+          "warnings": [],
+          "targets": [
+            {
+              "taskId": "b0d5061a9346f32074a61bc6c7ed658c:0",
+              "format": "docx",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": "result",
+              "diagnostic": "",
+              "executionMode": "native_cli",
+              "executionReason": "no_native_session",
+              "resultChecks": [],
+              "durationMs": 369,
+              "nativeTimings": {
+                "source": "cli_process",
+                "launchMs": 0,
+                "processMs": 365,
+                "adapterMs": 367
+              },
+              "exportFilter": "MS Word 2007 XML",
+              "warnings": [],
+              "quality": null,
+              "outputs": [
+                {
+                  "path": "0001-docx/writer.docx",
+                  "size": 5456,
+                  "sha256": "8509556b59ff4220ba6fbc57fbe2effdf6a15ea1af4cc03433093cbf653666e6"
+                }
+              ],
+              "route": null,
+              "libreOfficeStarted": true
+            },
+            {
+              "taskId": "b0d5061a9346f32074a61bc6c7ed658c:1",
+              "format": "txt",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": "result",
+              "diagnostic": "",
+              "executionMode": "native_cli",
+              "executionReason": "no_native_session",
+              "resultChecks": [],
+              "durationMs": 335,
+              "nativeTimings": {
+                "source": "cli_process",
+                "launchMs": 0,
+                "processMs": 333,
+                "adapterMs": 334
+              },
+              "exportFilter": "Text (encoded)",
+              "warnings": [
+                {
+                  "code": "NATIVE_WRITER_TEXT_ONLY",
+                  "message": "Writer сохраняет CSV/TAB/TSV как обычный текст UTF-8. Это не таблица Calc: оформление, изображения и табличная структура не сохраняются."
+                }
+              ],
+              "quality": null,
+              "outputs": [
+                {
+                  "path": "0002-txt/writer.txt",
+                  "size": 673,
+                  "sha256": "efce2c433f0dcf1dc2a86ea38af5e62fd5d27558d34547dd91e6c20af2cf0db0"
+                }
+              ],
+              "route": null,
+              "libreOfficeStarted": true
+            }
+          ]
+        },
+        {
+          "fileId": "source1",
+          "name": "slides.fodp",
+          "sourceSha256": "fe40ee7d7a9add23dd62b19e890133b9bb9905acfc88c7eb86683d8afe94e98c",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.presentation.PresentationDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 2,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false,
+            "sourceContract": {
+              "state": "recognized",
+              "contentClass": "flat_odf",
+              "mimetype": "application/vnd.oasis.opendocument.presentation",
+              "expectedServices": [
+                "com.sun.star.presentation.PresentationDocument"
+              ],
+              "bodyObserved": true
+            },
+            "requestedImportFilter": "OpenDocument Presentation Flat XML"
+          },
+          "warnings": [],
+          "targets": [
+            {
+              "taskId": "b0d5061a9346f32074a61bc6c7ed658c:2",
+              "format": "pdf",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": "result",
+              "diagnostic": "",
+              "executionMode": "native_cli",
+              "executionReason": "no_native_session",
+              "resultChecks": [],
+              "durationMs": 307,
+              "nativeTimings": {
+                "source": "cli_process",
+                "launchMs": 0,
+                "processMs": 301,
+                "adapterMs": 307
+              },
+              "exportFilter": "impress_pdf_Export",
+              "warnings": [],
+              "quality": null,
+              "outputs": [
+                {
+                  "path": "0003-pdf/slides.pdf",
+                  "size": 16432,
+                  "sha256": "b165b45e798815d949bfa1e4346eb9b3e3fd5c9e503753a0afbacb6cf53905b2"
+                }
+              ],
+              "route": null,
+              "libreOfficeStarted": true
+            }
+          ]
+        },
+        {
+          "fileId": "source2",
+          "name": "05_LEVEL_2.png",
+          "sourceSha256": "6b24375fc7fe89d38a2ccf678a67722f1a4d3e2e779ad3f29cc57f7a7b408a25",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.drawing.DrawingDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 3,
+            "drawPages": 1,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": [
+            {
+              "taskId": "b0d5061a9346f32074a61bc6c7ed658c:3",
+              "format": "png",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": "result",
+              "diagnostic": "",
+              "executionMode": null,
+              "executionReason": "validated_media_identity",
+              "resultChecks": [
+                {
+                  "check": "media_properties",
+                  "status": "checked_subset",
+                  "qualityCompared": false,
+                  "source": {
+                    "format": "png",
+                    "width": 800,
+                    "height": 540,
+                    "frames": 1,
+                    "pages": 1,
+                    "alpha": true,
+                    "durationsMs": []
+                  },
+                  "result": {
+                    "format": "png",
+                    "width": 800,
+                    "height": 540,
+                    "frames": 1,
+                    "pages": 1,
+                    "alpha": true,
+                    "durationsMs": []
+                  },
+                  "expectedLosses": []
+                }
+              ],
+              "durationMs": 2,
+              "nativeTimings": null,
+              "exportFilter": null,
+              "warnings": [],
+              "quality": null,
+              "outputs": [
+                {
+                  "path": "0004-png/05_LEVEL_2.png",
+                  "size": 15595,
+                  "sha256": "6b24375fc7fe89d38a2ccf678a67722f1a4d3e2e779ad3f29cc57f7a7b408a25"
+                }
+              ],
+              "route": null,
+              "libreOfficeStarted": false
+            }
+          ]
+        },
+        {
+          "fileId": "source3",
+          "name": "06_LEVEL_3.gif",
+          "sourceSha256": "95318cad3c921ebaa3e133076e29374124f7cb40f6372f7ad23364b04708a7e0",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.drawing.DrawingDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 3,
+            "drawPages": 1,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": [
+            {
+              "taskId": "b0d5061a9346f32074a61bc6c7ed658c:4",
+              "format": "gif",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": "result",
+              "diagnostic": "",
+              "executionMode": null,
+              "executionReason": "validated_media_identity",
+              "resultChecks": [
+                {
+                  "check": "media_properties",
+                  "status": "checked_subset",
+                  "qualityCompared": false,
+                  "source": {
+                    "format": "gif",
+                    "width": 1200,
+                    "height": 850,
+                    "frames": 4,
+                    "pages": 1,
+                    "alpha": true,
+                    "durationsMs": [
+                      150,
+                      150,
+                      150,
+                      150
+                    ]
+                  },
+                  "result": {
+                    "format": "gif",
+                    "width": 1200,
+                    "height": 850,
+                    "frames": 4,
+                    "pages": 1,
+                    "alpha": true,
+                    "durationsMs": [
+                      150,
+                      150,
+                      150,
+                      150
+                    ]
+                  },
+                  "expectedLosses": [
+                    "alpha"
+                  ]
+                }
+              ],
+              "durationMs": 3,
+              "nativeTimings": null,
+              "exportFilter": null,
+              "warnings": [],
+              "quality": null,
+              "outputs": [
+                {
+                  "path": "0005-gif/06_LEVEL_3.gif",
+                  "size": 92379,
+                  "sha256": "95318cad3c921ebaa3e133076e29374124f7cb40f6372f7ad23364b04708a7e0"
+                }
+              ],
+              "route": null,
+              "libreOfficeStarted": false
+            }
+          ]
+        },
+        {
+          "fileId": "source5",
+          "name": "06_LEVEL_3.tiff",
+          "sourceSha256": "83b0d8c31796b0adf80312beb54d015ad15b3dc8ef86c0137cd0d509454ac05a",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.drawing.DrawingDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 3,
+            "drawPages": 3,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": [
+            {
+              "taskId": "b0d5061a9346f32074a61bc6c7ed658c:5",
+              "format": "tiff",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": "result",
+              "diagnostic": "",
+              "executionMode": null,
+              "executionReason": "validated_media_identity",
+              "resultChecks": [
+                {
+                  "check": "media_properties",
+                  "status": "checked_subset",
+                  "qualityCompared": false,
+                  "source": {
+                    "format": "tiff",
+                    "width": 1200,
+                    "height": 850,
+                    "frames": 1,
+                    "pages": 3,
+                    "alpha": false,
+                    "durationsMs": [],
+                    "pageDimensions": [
+                      [
+                        1200,
+                        850
+                      ],
+                      [
+                        1200,
+                        850
+                      ],
+                      [
+                        1200,
+                        850
+                      ]
+                    ]
+                  },
+                  "result": {
+                    "format": "tiff",
+                    "width": 1200,
+                    "height": 850,
+                    "frames": 1,
+                    "pages": 3,
+                    "alpha": false,
+                    "durationsMs": [],
+                    "pageDimensions": [
+                      [
+                        1200,
+                        850
+                      ],
+                      [
+                        1200,
+                        850
+                      ],
+                      [
+                        1200,
+                        850
+                      ]
+                    ]
+                  },
+                  "expectedLosses": []
+                }
+              ],
+              "durationMs": 2,
+              "nativeTimings": null,
+              "exportFilter": null,
+              "warnings": [],
+              "quality": null,
+              "outputs": [
+                {
+                  "path": "0006-tiff/06_LEVEL_3.tiff",
+                  "size": 175792,
+                  "sha256": "83b0d8c31796b0adf80312beb54d015ad15b3dc8ef86c0137cd0d509454ac05a"
+                }
+              ],
+              "route": null,
+              "libreOfficeStarted": false
+            }
+          ]
+        },
+        {
+          "fileId": "source6",
+          "name": "05_LEVEL_2.odc",
+          "sourceSha256": "f99c4c4fb52c671eadc8511cb09ec564b057793a09436bb1c7c71ed37c0c4d2d",
+          "nativeRoute": {
+            "state": "detected",
+            "basis": "native_preflight_chart_content",
+            "documentServices": [
+              "com.sun.star.chart2.ChartDocument"
+            ],
+            "nativeKind": 4,
+            "chartPackage": true,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false,
+            "sourceContract": {
+              "state": "recognized",
+              "contentClass": "odf_package",
+              "mimetype": "application/vnd.oasis.opendocument.chart",
+              "expectedServices": [
+                "com.sun.star.chart2.ChartDocument"
+              ],
+              "bodyObserved": true
+            }
+          },
+          "warnings": [],
+          "targets": [
+            {
+              "taskId": "b0d5061a9346f32074a61bc6c7ed658c:6",
+              "format": "odc",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": "result",
+              "diagnostic": "",
+              "executionMode": null,
+              "executionReason": "validated_native_identity",
+              "resultChecks": [
+                {
+                  "check": "native_identity",
+                  "status": "byte_preserved",
+                  "qualityCompared": false
+                }
+              ],
+              "durationMs": 1,
+              "nativeTimings": null,
+              "exportFilter": null,
+              "warnings": [],
+              "quality": null,
+              "outputs": [
+                {
+                  "path": "0007-odc/05_LEVEL_2.odc",
+                  "size": 1487,
+                  "sha256": "f99c4c4fb52c671eadc8511cb09ec564b057793a09436bb1c7c71ed37c0c4d2d"
+                }
+              ],
+              "route": null,
+              "libreOfficeStarted": false
+            }
+          ]
+        }
+      ],
+      "timings": {
+        "journalMs": 12,
+        "preflight_startedMs": 6,
+        "preflight_doneMs": 2059,
+        "planMs": 1,
+        "job_queuedMs": 2060,
+        "job_startedMs": 2063,
+        "engine_startedMs": 2066,
+        "packaging_startedMs": 3092,
+        "job_finishedMs": 3092
+      },
+      "qualityCheckRequested": false,
+      "qualityCompared": false,
+      "jobId": "b0d5061a9346f32074a61bc6c7ed658c",
+      "state": "ready",
+      "officeStarts": 0,
+      "trace": {
+        "events": [
+          {
+            "sequence": 1,
+            "elapsedMs": 0,
+            "stage": "job_created",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 2,
+            "elapsedMs": 3,
+            "stage": "input_stored",
+            "fileId": "source0",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 3,
+            "elapsedMs": 3,
+            "stage": "input_stored",
+            "fileId": "source1",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 4,
+            "elapsedMs": 4,
+            "stage": "input_stored",
+            "fileId": "source2",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 5,
+            "elapsedMs": 4,
+            "stage": "input_stored",
+            "fileId": "source3",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 6,
+            "elapsedMs": 5,
+            "stage": "input_stored",
+            "fileId": "source4",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 7,
+            "elapsedMs": 5,
+            "stage": "input_stored",
+            "fileId": "source5",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 8,
+            "elapsedMs": 6,
+            "stage": "input_stored",
+            "fileId": "source6",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 9,
+            "elapsedMs": 6,
+            "stage": "preflight_started",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 10,
+            "elapsedMs": 77,
+            "stage": "preflight_file_started",
+            "fileId": "source0",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 11,
+            "elapsedMs": 384,
+            "stage": "preflight_finished",
+            "fileId": "source0",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 12,
+            "elapsedMs": 384,
+            "stage": "preflight_file_started",
+            "fileId": "source1",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 13,
+            "elapsedMs": 645,
+            "stage": "preflight_finished",
+            "fileId": "source1",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 14,
+            "elapsedMs": 646,
+            "stage": "preflight_file_started",
+            "fileId": "source2",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 15,
+            "elapsedMs": 881,
+            "stage": "preflight_finished",
+            "fileId": "source2",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 16,
+            "elapsedMs": 881,
+            "stage": "preflight_file_started",
+            "fileId": "source3",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 17,
+            "elapsedMs": 1192,
+            "stage": "preflight_finished",
+            "fileId": "source3",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 18,
+            "elapsedMs": 1192,
+            "stage": "preflight_file_started",
+            "fileId": "source4",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 19,
+            "elapsedMs": 1446,
+            "stage": "preflight_finished",
+            "fileId": "source4",
+            "format": null,
+            "code": "PREFLIGHT_IMPORT_UNDETERMINED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 20,
+            "elapsedMs": 1446,
+            "stage": "preflight_file_started",
+            "fileId": "source5",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 21,
+            "elapsedMs": 1732,
+            "stage": "preflight_finished",
+            "fileId": "source5",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 22,
+            "elapsedMs": 1732,
+            "stage": "preflight_file_started",
+            "fileId": "source6",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 23,
+            "elapsedMs": 1968,
+            "stage": "preflight_finished",
+            "fileId": "source6",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 24,
+            "elapsedMs": 2059,
+            "stage": "preflight_done",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 25,
+            "elapsedMs": 2060,
+            "stage": "job_queued",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 26,
+            "elapsedMs": 2063,
+            "stage": "job_started",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 27,
+            "elapsedMs": 2063,
+            "stage": "route_selected",
+            "fileId": "source0",
+            "format": "docx",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 28,
+            "elapsedMs": 2066,
+            "stage": "engine_started",
+            "fileId": "source0",
+            "format": "docx",
+            "code": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 29,
+            "elapsedMs": 2432,
+            "stage": "result_retaining",
+            "fileId": "source0",
+            "format": "docx",
+            "code": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 30,
+            "elapsedMs": 2434,
+            "stage": "result_ready",
+            "fileId": "source0",
+            "format": "docx",
+            "code": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 31,
+            "elapsedMs": 2434,
+            "stage": "task_finished",
+            "fileId": "source0",
+            "format": "docx",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 32,
+            "elapsedMs": 2435,
+            "stage": "route_selected",
+            "fileId": "source0",
+            "format": "txt",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 33,
+            "elapsedMs": 2437,
+            "stage": "engine_started",
+            "fileId": "source0",
+            "format": "txt",
+            "code": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 34,
+            "elapsedMs": 2770,
+            "stage": "result_retaining",
+            "fileId": "source0",
+            "format": "txt",
+            "code": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 35,
+            "elapsedMs": 2771,
+            "stage": "result_ready",
+            "fileId": "source0",
+            "format": "txt",
+            "code": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 36,
+            "elapsedMs": 2771,
+            "stage": "task_finished",
+            "fileId": "source0",
+            "format": "txt",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 37,
+            "elapsedMs": 2772,
+            "stage": "input_finished",
+            "fileId": "source0",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 38,
+            "elapsedMs": 2772,
+            "stage": "route_selected",
+            "fileId": "source1",
+            "format": "pdf",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 39,
+            "elapsedMs": 2778,
+            "stage": "engine_started",
+            "fileId": "source1",
+            "format": "pdf",
+            "code": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 40,
+            "elapsedMs": 3080,
+            "stage": "result_retaining",
+            "fileId": "source1",
+            "format": "pdf",
+            "code": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 41,
+            "elapsedMs": 3080,
+            "stage": "result_ready",
+            "fileId": "source1",
+            "format": "pdf",
+            "code": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 42,
+            "elapsedMs": 3080,
+            "stage": "task_finished",
+            "fileId": "source1",
+            "format": "pdf",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 43,
+            "elapsedMs": 3082,
+            "stage": "input_finished",
+            "fileId": "source1",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 44,
+            "elapsedMs": 3082,
+            "stage": "route_selected",
+            "fileId": "source2",
+            "format": "png",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 45,
+            "elapsedMs": 3083,
+            "stage": "result_retaining",
+            "fileId": "source2",
+            "format": "png",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 46,
+            "elapsedMs": 3084,
+            "stage": "result_ready",
+            "fileId": "source2",
+            "format": "png",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 47,
+            "elapsedMs": 3084,
+            "stage": "task_finished",
+            "fileId": "source2",
+            "format": "png",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 48,
+            "elapsedMs": 3084,
+            "stage": "input_finished",
+            "fileId": "source2",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 49,
+            "elapsedMs": 3084,
+            "stage": "route_selected",
+            "fileId": "source3",
+            "format": "gif",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 50,
+            "elapsedMs": 3087,
+            "stage": "result_retaining",
+            "fileId": "source3",
+            "format": "gif",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 51,
+            "elapsedMs": 3088,
+            "stage": "result_ready",
+            "fileId": "source3",
+            "format": "gif",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 52,
+            "elapsedMs": 3088,
+            "stage": "task_finished",
+            "fileId": "source3",
+            "format": "gif",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 53,
+            "elapsedMs": 3088,
+            "stage": "input_finished",
+            "fileId": "source3",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 54,
+            "elapsedMs": 3088,
+            "stage": "route_selected",
+            "fileId": "source5",
+            "format": "tiff",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 55,
+            "elapsedMs": 3090,
+            "stage": "result_retaining",
+            "fileId": "source5",
+            "format": "tiff",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 56,
+            "elapsedMs": 3090,
+            "stage": "result_ready",
+            "fileId": "source5",
+            "format": "tiff",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 57,
+            "elapsedMs": 3090,
+            "stage": "task_finished",
+            "fileId": "source5",
+            "format": "tiff",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 58,
+            "elapsedMs": 3090,
+            "stage": "input_finished",
+            "fileId": "source5",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 59,
+            "elapsedMs": 3090,
+            "stage": "route_selected",
+            "fileId": "source6",
+            "format": "odc",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 60,
+            "elapsedMs": 3091,
+            "stage": "result_retaining",
+            "fileId": "source6",
+            "format": "odc",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 61,
+            "elapsedMs": 3092,
+            "stage": "result_ready",
+            "fileId": "source6",
+            "format": "odc",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 62,
+            "elapsedMs": 3092,
+            "stage": "task_finished",
+            "fileId": "source6",
+            "format": "odc",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 63,
+            "elapsedMs": 3092,
+            "stage": "input_finished",
+            "fileId": "source6",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 64,
+            "elapsedMs": 3092,
+            "stage": "packaging_started",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 65,
+            "elapsedMs": 3092,
+            "stage": "results_available",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 66,
+            "elapsedMs": 3092,
+            "stage": "bundle_deferred",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 67,
+            "elapsedMs": 3092,
+            "stage": "job_finished",
+            "fileId": null,
+            "format": null,
+            "code": "ready",
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 68,
+            "elapsedMs": 3093,
+            "stage": "worker_finished",
+            "fileId": null,
+            "format": null,
+            "code": "ready",
+            "libreOfficeStarted": false
+          }
+        ],
+        "droppedEvents": 0
+      },
+      "fileTimeoutSeconds": 30
+    },
+    "save": {
+      "jobId": "b0d5061a9346f32074a61bc6c7ed658c",
+      "saved": true,
+      "savedAll": true,
+      "incompleteRecovery": false,
+      "jobRunning": false,
+      "remainingOutputs": 0,
+      "outputs": 7,
+      "saveId": "0bf253979cd89a6a9e30baac7da6cf40",
+      "snapshotComplete": true,
+      "snapshotRevision": 68,
+      "bytesWritten": 307814,
+      "readbackVerified": true,
+      "verificationScope": "manifest_outputs",
+      "verificationMethod": "independent_read_sha256",
+      "outputsVerified": 7,
+      "bytesVerified": 307814,
+      "name": "AIO_Results_b0d5061a"
+    },
+    "status": "partial_native_coverage"
+  },
+  "negativeControls": [
+    {
+      "source": "05_LEVEL_2.fodt",
+      "check": "source_contract",
+      "status": "pass",
+      "proof": {
+        "state": "invalid",
+        "code": "SOURCE_CONTAINER_INCONSISTENT",
+        "reason": "unknown_odf_mimetype",
+        "contentClass": "odf",
+        "expectedServices": []
+      }
+    },
+    {
+      "source": "05_LEVEL_2.fodp",
+      "check": "source_contract",
+      "status": "pass",
+      "proof": {
+        "state": "invalid",
+        "code": "SOURCE_CONTAINER_INCONSISTENT",
+        "reason": "unknown_odf_mimetype",
+        "contentClass": "odf",
+        "expectedServices": []
+      }
+    },
+    {
+      "source": "05_LEVEL_2.sxw",
+      "check": "source_contract",
+      "status": "pass",
+      "proof": {
+        "state": "invalid",
+        "code": "SOURCE_CONTAINER_INCONSISTENT",
+        "reason": "legacy_mimetype_namespace_mismatch",
+        "contentClass": "staroffice_package",
+        "expectedServices": []
+      }
+    },
+    {
+      "source": "14404-emz-06_LEVEL_3.emz",
+      "check": "corrupt_gzip_rejected",
+      "code": "ENGINE_OUTPUT_CONTAINER_INVALID",
+      "status": "pass"
+    },
+    {
+      "source": "14415-wmz-06_LEVEL_3.wmz",
+      "check": "corrupt_gzip_rejected",
+      "code": "ENGINE_OUTPUT_CONTAINER_INVALID",
+      "status": "pass"
+    },
+    {
+      "source": "05_LEVEL_2.odt",
+      "check": "undeclared_odf_columns_direct_native_control",
+      "expectedOutcome": "preserve cell text or reject content loss",
+      "sourceFacts": {
+        "name": "05_LEVEL_2.odt",
+        "size": 2197,
+        "sha256": "9c40dbefb524b830c6e77e1fda093c3776cee2a271ee283b2f12da37f89e9d60",
+        "zipCRC": "pass",
+        "hasVbaProject": false,
+        "mimetype": "application/vnd.oasis.opendocument.text",
+        "contentNamespace": "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
+        "tableCells": 48,
+        "tableColumnDeclarations": 0
+      },
+      "outputFacts": {
+        "name": "05_LEVEL_2.docx",
+        "size": 6125,
+        "sha256": "de57567947c6c32b87698f92edfc39f0f3a98caf427572bc690bc3489c685d81",
+        "zipCRC": "pass",
+        "hasVbaProject": false,
+        "tableCells": 12,
+        "mainContentTypes": {
+          "/word/document.xml": "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"
+        }
+      },
+      "postconditionCode": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "status": "pass",
+      "postconditionDiagnostic": "odf_table_missing_unique_cell_texts:36"
+    }
+  ],
+  "scope": "Bounded Linux native controls and 7 Guard export tasks; not a repaired 510-file corpus or Windows acceptance",
+  "generatedCorpus": "tools/qa/guard_v16_bugbag_acceptance.py generates positive files separately; binaries are not committed",
+  "finalRecheck": {
+    "guardAcceptance": {
+      "preflight": [
+        {
+          "id": "source0",
+          "name": "writer.odt",
+          "size": 15099,
+          "compatibility": "native_decision",
+          "preflight": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.text.TextDocument",
+              "com.sun.star.text.WebDocument",
+              "com.sun.star.text.GlobalDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 0,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false,
+            "sourceContract": {
+              "state": "recognized",
+              "contentClass": "odf_package",
+              "mimetype": "application/vnd.oasis.opendocument.text",
+              "expectedServices": [
+                "com.sun.star.text.TextDocument"
+              ],
+              "bodyObserved": true
+            }
+          }
+        },
+        {
+          "id": "source1",
+          "name": "slides.fodp",
+          "size": 64967,
+          "compatibility": "native_decision",
+          "preflight": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.presentation.PresentationDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 2,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false,
+            "sourceContract": {
+              "state": "recognized",
+              "contentClass": "flat_odf",
+              "mimetype": "application/vnd.oasis.opendocument.presentation",
+              "expectedServices": [
+                "com.sun.star.presentation.PresentationDocument"
+              ],
+              "bodyObserved": true
+            },
+            "requestedImportFilter": "OpenDocument Presentation Flat XML"
+          }
+        },
+        {
+          "id": "source2",
+          "name": "05_LEVEL_2.png",
+          "size": 15595,
+          "compatibility": "native_decision",
+          "preflight": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.drawing.DrawingDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 3,
+            "drawPages": 1,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          }
+        },
+        {
+          "id": "source3",
+          "name": "06_LEVEL_3.gif",
+          "size": 92379,
+          "compatibility": "native_decision",
+          "preflight": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.drawing.DrawingDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 3,
+            "drawPages": 1,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          }
+        },
+        {
+          "id": "source4",
+          "name": "06_LEVEL_3.apng",
+          "size": 91742,
+          "compatibility": "native_decision",
+          "preflight": {
+            "state": "undetermined",
+            "code": "PREFLIGHT_IMPORT_UNDETERMINED"
+          }
+        },
+        {
+          "id": "source5",
+          "name": "06_LEVEL_3.tiff",
+          "size": 175792,
+          "compatibility": "native_decision",
+          "preflight": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.drawing.DrawingDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 3,
+            "drawPages": 3,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          }
+        },
+        {
+          "id": "source6",
+          "name": "05_LEVEL_2.odc",
+          "size": 1487,
+          "compatibility": "native_decision",
+          "preflight": {
+            "state": "detected",
+            "basis": "native_preflight_chart_content",
+            "documentServices": [
+              "com.sun.star.chart2.ChartDocument"
+            ],
+            "nativeKind": 4,
+            "chartPackage": true,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false,
+            "sourceContract": {
+              "state": "recognized",
+              "contentClass": "odf_package",
+              "mimetype": "application/vnd.oasis.opendocument.chart",
+              "expectedServices": [
+                "com.sun.star.chart2.ChartDocument"
+              ],
+              "bodyObserved": true
+            }
+          }
+        }
+      ],
+      "unplannedPairs": [
+        {
+          "source": "06_LEVEL_3.apng",
+          "target": "apng",
+          "reason": "PREFLIGHT_IMPORT_UNDETERMINED"
+        }
+      ],
+      "contentChecks": [
+        {
+          "path": "0001-docx/writer.docx",
+          "status": "pass",
+          "expectedMarkers": 48,
+          "missingMarkers": [],
+          "method": "independent_content_extraction"
+        },
+        {
+          "path": "0003-pdf/slides.pdf",
+          "status": "pass",
+          "expectedMarkers": 1,
+          "missingMarkers": [],
+          "method": "independent_content_extraction"
+        },
+        {
+          "path": "0002-txt/writer.txt",
+          "status": "pass",
+          "expectedMarkers": 48,
+          "missingMarkers": [],
+          "method": "independent_content_extraction"
+        }
+      ],
+      "identityChecks": [
+        {
+          "source": "05_LEVEL_2.png",
+          "path": "0004-png/05_LEVEL_2.png",
+          "status": "pass",
+          "sourceSha256": "6b24375fc7fe89d38a2ccf678a67722f1a4d3e2e779ad3f29cc57f7a7b408a25",
+          "resultSha256": "6b24375fc7fe89d38a2ccf678a67722f1a4d3e2e779ad3f29cc57f7a7b408a25",
+          "method": "independent_whole_file_sha256"
+        },
+        {
+          "source": "06_LEVEL_3.gif",
+          "path": "0005-gif/06_LEVEL_3.gif",
+          "status": "pass",
+          "sourceSha256": "95318cad3c921ebaa3e133076e29374124f7cb40f6372f7ad23364b04708a7e0",
+          "resultSha256": "95318cad3c921ebaa3e133076e29374124f7cb40f6372f7ad23364b04708a7e0",
+          "method": "independent_whole_file_sha256"
+        },
+        {
+          "source": "06_LEVEL_3.tiff",
+          "path": "0006-tiff/06_LEVEL_3.tiff",
+          "status": "pass",
+          "sourceSha256": "83b0d8c31796b0adf80312beb54d015ad15b3dc8ef86c0137cd0d509454ac05a",
+          "resultSha256": "83b0d8c31796b0adf80312beb54d015ad15b3dc8ef86c0137cd0d509454ac05a",
+          "method": "independent_whole_file_sha256"
+        },
+        {
+          "source": "05_LEVEL_2.odc",
+          "path": "0007-odc/05_LEVEL_2.odc",
+          "status": "pass",
+          "sourceSha256": "f99c4c4fb52c671eadc8511cb09ec564b057793a09436bb1c7c71ed37c0c4d2d",
+          "resultSha256": "f99c4c4fb52c671eadc8511cb09ec564b057793a09436bb1c7c71ed37c0c4d2d",
+          "method": "independent_whole_file_sha256"
+        }
+      ],
+      "report": {
+        "schemaVersion": 3,
+        "total": 7,
+        "completed": 7,
+        "attempted": 3,
+        "succeeded": 7,
+        "failed": 0,
+        "cancelled": 0,
+        "filtered": 0,
+        "pending": 0,
+        "preflightChecks": 7,
+        "inputsUploaded": 7,
+        "inputsPlanned": 6,
+        "inputsWithoutTasks": [
+          {
+            "fileId": "source4",
+            "name": "06_LEVEL_3.apng",
+            "planned": false,
+            "preflightState": "undetermined",
+            "code": "PREFLIGHT_IMPORT_UNDETERMINED"
+          }
+        ],
+        "recoveryError": null,
+        "files": [
+          {
+            "fileId": "source0",
+            "name": "writer.odt",
+            "sourceSha256": "08546ebcdb9467946fbf1b9db466e6e6ad22de60057dca78f3cf8e01775eb353",
+            "nativeRoute": {
+              "state": "detected",
+              "documentServices": [
+                "com.sun.star.text.TextDocument",
+                "com.sun.star.text.WebDocument",
+                "com.sun.star.text.GlobalDocument"
+              ],
+              "basis": "native_preflight_document_kind",
+              "nativeKind": 0,
+              "drawPages": null,
+              "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+              "exported": false,
+              "sourceContract": {
+                "state": "recognized",
+                "contentClass": "odf_package",
+                "mimetype": "application/vnd.oasis.opendocument.text",
+                "expectedServices": [
+                  "com.sun.star.text.TextDocument"
+                ],
+                "bodyObserved": true
+              }
+            },
+            "warnings": [],
+            "targets": [
+              {
+                "taskId": "c5844ad7c17e70092ca6c146cdf1da89:0",
+                "format": "docx",
+                "state": "ready",
+                "code": null,
+                "error": null,
+                "stage": "result",
+                "diagnostic": "",
+                "executionMode": "native_cli",
+                "executionReason": "no_native_session",
+                "resultChecks": [],
+                "durationMs": 368,
+                "nativeTimings": {
+                  "source": "cli_process",
+                  "launchMs": 0,
+                  "processMs": 365,
+                  "adapterMs": 366
+                },
+                "exportFilter": "MS Word 2007 XML",
+                "warnings": [],
+                "quality": null,
+                "outputs": [
+                  {
+                    "path": "0001-docx/writer.docx",
+                    "size": 5456,
+                    "sha256": "b005139e9f620fed05f0d921a66df271fbc536bc231420b2e47d0b4039cb9bdf"
+                  }
+                ],
+                "route": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "taskId": "c5844ad7c17e70092ca6c146cdf1da89:1",
+                "format": "txt",
+                "state": "ready",
+                "code": null,
+                "error": null,
+                "stage": "result",
+                "diagnostic": "",
+                "executionMode": "native_cli",
+                "executionReason": "no_native_session",
+                "resultChecks": [],
+                "durationMs": 367,
+                "nativeTimings": {
+                  "source": "cli_process",
+                  "launchMs": 0,
+                  "processMs": 365,
+                  "adapterMs": 366
+                },
+                "exportFilter": "Text (encoded)",
+                "warnings": [
+                  {
+                    "code": "NATIVE_WRITER_TEXT_ONLY",
+                    "message": "Writer сохраняет CSV/TAB/TSV как обычный текст UTF-8. Это не таблица Calc: оформление, изображения и табличная структура не сохраняются."
+                  }
+                ],
+                "quality": null,
+                "outputs": [
+                  {
+                    "path": "0002-txt/writer.txt",
+                    "size": 673,
+                    "sha256": "efce2c433f0dcf1dc2a86ea38af5e62fd5d27558d34547dd91e6c20af2cf0db0"
+                  }
+                ],
+                "route": null,
+                "libreOfficeStarted": true
+              }
+            ]
+          },
+          {
+            "fileId": "source1",
+            "name": "slides.fodp",
+            "sourceSha256": "fe40ee7d7a9add23dd62b19e890133b9bb9905acfc88c7eb86683d8afe94e98c",
+            "nativeRoute": {
+              "state": "detected",
+              "documentServices": [
+                "com.sun.star.presentation.PresentationDocument"
+              ],
+              "basis": "native_preflight_document_kind",
+              "nativeKind": 2,
+              "drawPages": null,
+              "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+              "exported": false,
+              "sourceContract": {
+                "state": "recognized",
+                "contentClass": "flat_odf",
+                "mimetype": "application/vnd.oasis.opendocument.presentation",
+                "expectedServices": [
+                  "com.sun.star.presentation.PresentationDocument"
+                ],
+                "bodyObserved": true
+              },
+              "requestedImportFilter": "OpenDocument Presentation Flat XML"
+            },
+            "warnings": [],
+            "targets": [
+              {
+                "taskId": "c5844ad7c17e70092ca6c146cdf1da89:2",
+                "format": "pdf",
+                "state": "ready",
+                "code": null,
+                "error": null,
+                "stage": "result",
+                "diagnostic": "",
+                "executionMode": "native_cli",
+                "executionReason": "no_native_session",
+                "resultChecks": [],
+                "durationMs": 302,
+                "nativeTimings": {
+                  "source": "cli_process",
+                  "launchMs": 0,
+                  "processMs": 301,
+                  "adapterMs": 302
+                },
+                "exportFilter": "impress_pdf_Export",
+                "warnings": [],
+                "quality": null,
+                "outputs": [
+                  {
+                    "path": "0003-pdf/slides.pdf",
+                    "size": 16432,
+                    "sha256": "5126b883e19cc299a5e6105fc61f16795c9f6eafcb4f6edb9559afa753899de2"
+                  }
+                ],
+                "route": null,
+                "libreOfficeStarted": true
+              }
+            ]
+          },
+          {
+            "fileId": "source2",
+            "name": "05_LEVEL_2.png",
+            "sourceSha256": "6b24375fc7fe89d38a2ccf678a67722f1a4d3e2e779ad3f29cc57f7a7b408a25",
+            "nativeRoute": {
+              "state": "detected",
+              "documentServices": [
+                "com.sun.star.drawing.DrawingDocument"
+              ],
+              "basis": "native_preflight_document_kind",
+              "nativeKind": 3,
+              "drawPages": 1,
+              "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+              "exported": false
+            },
+            "warnings": [],
+            "targets": [
+              {
+                "taskId": "c5844ad7c17e70092ca6c146cdf1da89:3",
+                "format": "png",
+                "state": "ready",
+                "code": null,
+                "error": null,
+                "stage": "result",
+                "diagnostic": "",
+                "executionMode": "media_identity",
+                "executionReason": "validated_media_identity",
+                "resultChecks": [
+                  {
+                    "check": "media_identity",
+                    "status": "byte_preserved",
+                    "qualityCompared": false
+                  },
+                  {
+                    "check": "media_properties",
+                    "status": "checked_subset",
+                    "qualityCompared": false,
+                    "source": {
+                      "format": "png",
+                      "width": 800,
+                      "height": 540,
+                      "frames": 1,
+                      "pages": 1,
+                      "alpha": true,
+                      "durationsMs": [],
+                      "animationContainer": false
+                    },
+                    "result": {
+                      "format": "png",
+                      "width": 800,
+                      "height": 540,
+                      "frames": 1,
+                      "pages": 1,
+                      "alpha": true,
+                      "durationsMs": [],
+                      "animationContainer": false
+                    },
+                    "expectedLosses": []
+                  }
+                ],
+                "durationMs": 1,
+                "nativeTimings": null,
+                "exportFilter": null,
+                "warnings": [],
+                "quality": null,
+                "outputs": [
+                  {
+                    "path": "0004-png/05_LEVEL_2.png",
+                    "size": 15595,
+                    "sha256": "6b24375fc7fe89d38a2ccf678a67722f1a4d3e2e779ad3f29cc57f7a7b408a25"
+                  }
+                ],
+                "route": null,
+                "libreOfficeStarted": false
+              }
+            ]
+          },
+          {
+            "fileId": "source3",
+            "name": "06_LEVEL_3.gif",
+            "sourceSha256": "95318cad3c921ebaa3e133076e29374124f7cb40f6372f7ad23364b04708a7e0",
+            "nativeRoute": {
+              "state": "detected",
+              "documentServices": [
+                "com.sun.star.drawing.DrawingDocument"
+              ],
+              "basis": "native_preflight_document_kind",
+              "nativeKind": 3,
+              "drawPages": 1,
+              "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+              "exported": false
+            },
+            "warnings": [],
+            "targets": [
+              {
+                "taskId": "c5844ad7c17e70092ca6c146cdf1da89:4",
+                "format": "gif",
+                "state": "ready",
+                "code": null,
+                "error": null,
+                "stage": "result",
+                "diagnostic": "",
+                "executionMode": "media_identity",
+                "executionReason": "validated_media_identity",
+                "resultChecks": [
+                  {
+                    "check": "media_identity",
+                    "status": "byte_preserved",
+                    "qualityCompared": false
+                  },
+                  {
+                    "check": "media_properties",
+                    "status": "checked_subset",
+                    "qualityCompared": false,
+                    "source": {
+                      "format": "gif",
+                      "width": 1200,
+                      "height": 850,
+                      "frames": 4,
+                      "pages": 1,
+                      "alpha": true,
+                      "durationsMs": [
+                        150,
+                        150,
+                        150,
+                        150
+                      ]
+                    },
+                    "result": {
+                      "format": "gif",
+                      "width": 1200,
+                      "height": 850,
+                      "frames": 4,
+                      "pages": 1,
+                      "alpha": true,
+                      "durationsMs": [
+                        150,
+                        150,
+                        150,
+                        150
+                      ]
+                    },
+                    "expectedLosses": [
+                      "alpha"
+                    ]
+                  }
+                ],
+                "durationMs": 2,
+                "nativeTimings": null,
+                "exportFilter": null,
+                "warnings": [],
+                "quality": null,
+                "outputs": [
+                  {
+                    "path": "0005-gif/06_LEVEL_3.gif",
+                    "size": 92379,
+                    "sha256": "95318cad3c921ebaa3e133076e29374124f7cb40f6372f7ad23364b04708a7e0"
+                  }
+                ],
+                "route": null,
+                "libreOfficeStarted": false
+              }
+            ]
+          },
+          {
+            "fileId": "source5",
+            "name": "06_LEVEL_3.tiff",
+            "sourceSha256": "83b0d8c31796b0adf80312beb54d015ad15b3dc8ef86c0137cd0d509454ac05a",
+            "nativeRoute": {
+              "state": "detected",
+              "documentServices": [
+                "com.sun.star.drawing.DrawingDocument"
+              ],
+              "basis": "native_preflight_document_kind",
+              "nativeKind": 3,
+              "drawPages": 3,
+              "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+              "exported": false
+            },
+            "warnings": [],
+            "targets": [
+              {
+                "taskId": "c5844ad7c17e70092ca6c146cdf1da89:5",
+                "format": "tiff",
+                "state": "ready",
+                "code": null,
+                "error": null,
+                "stage": "result",
+                "diagnostic": "",
+                "executionMode": "media_identity",
+                "executionReason": "validated_media_identity",
+                "resultChecks": [
+                  {
+                    "check": "media_identity",
+                    "status": "byte_preserved",
+                    "qualityCompared": false
+                  },
+                  {
+                    "check": "media_properties",
+                    "status": "checked_subset",
+                    "qualityCompared": false,
+                    "source": {
+                      "format": "tiff",
+                      "width": 1200,
+                      "height": 850,
+                      "frames": 1,
+                      "pages": 3,
+                      "alpha": false,
+                      "durationsMs": [],
+                      "pageDimensions": [
+                        [
+                          1200,
+                          850
+                        ],
+                        [
+                          1200,
+                          850
+                        ],
+                        [
+                          1200,
+                          850
+                        ]
+                      ]
+                    },
+                    "result": {
+                      "format": "tiff",
+                      "width": 1200,
+                      "height": 850,
+                      "frames": 1,
+                      "pages": 3,
+                      "alpha": false,
+                      "durationsMs": [],
+                      "pageDimensions": [
+                        [
+                          1200,
+                          850
+                        ],
+                        [
+                          1200,
+                          850
+                        ],
+                        [
+                          1200,
+                          850
+                        ]
+                      ]
+                    },
+                    "expectedLosses": []
+                  }
+                ],
+                "durationMs": 1,
+                "nativeTimings": null,
+                "exportFilter": null,
+                "warnings": [],
+                "quality": null,
+                "outputs": [
+                  {
+                    "path": "0006-tiff/06_LEVEL_3.tiff",
+                    "size": 175792,
+                    "sha256": "83b0d8c31796b0adf80312beb54d015ad15b3dc8ef86c0137cd0d509454ac05a"
+                  }
+                ],
+                "route": null,
+                "libreOfficeStarted": false
+              }
+            ]
+          },
+          {
+            "fileId": "source6",
+            "name": "05_LEVEL_2.odc",
+            "sourceSha256": "f99c4c4fb52c671eadc8511cb09ec564b057793a09436bb1c7c71ed37c0c4d2d",
+            "nativeRoute": {
+              "state": "detected",
+              "basis": "native_preflight_chart_content",
+              "documentServices": [
+                "com.sun.star.chart2.ChartDocument"
+              ],
+              "nativeKind": 4,
+              "chartPackage": true,
+              "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+              "exported": false,
+              "sourceContract": {
+                "state": "recognized",
+                "contentClass": "odf_package",
+                "mimetype": "application/vnd.oasis.opendocument.chart",
+                "expectedServices": [
+                  "com.sun.star.chart2.ChartDocument"
+                ],
+                "bodyObserved": true
+              }
+            },
+            "warnings": [],
+            "targets": [
+              {
+                "taskId": "c5844ad7c17e70092ca6c146cdf1da89:6",
+                "format": "odc",
+                "state": "ready",
+                "code": null,
+                "error": null,
+                "stage": "result",
+                "diagnostic": "",
+                "executionMode": "native_identity",
+                "executionReason": "validated_native_identity",
+                "resultChecks": [
+                  {
+                    "check": "native_identity",
+                    "status": "byte_preserved",
+                    "qualityCompared": false
+                  }
+                ],
+                "durationMs": 1,
+                "nativeTimings": null,
+                "exportFilter": null,
+                "warnings": [],
+                "quality": null,
+                "outputs": [
+                  {
+                    "path": "0007-odc/05_LEVEL_2.odc",
+                    "size": 1487,
+                    "sha256": "f99c4c4fb52c671eadc8511cb09ec564b057793a09436bb1c7c71ed37c0c4d2d"
+                  }
+                ],
+                "route": null,
+                "libreOfficeStarted": false
+              }
+            ]
+          }
+        ],
+        "timings": {
+          "journalMs": 14,
+          "preflight_startedMs": 4,
+          "preflight_doneMs": 1969,
+          "planMs": 0,
+          "job_queuedMs": 1969,
+          "job_startedMs": 1972,
+          "engine_startedMs": 1973,
+          "packaging_startedMs": 3029,
+          "job_finishedMs": 3029
+        },
+        "qualityCheckRequested": false,
+        "qualityCompared": false,
+        "jobId": "c5844ad7c17e70092ca6c146cdf1da89",
+        "state": "ready",
+        "officeStarts": 0,
+        "trace": {
+          "events": [
+            {
+              "sequence": 1,
+              "elapsedMs": 0,
+              "stage": "job_created",
+              "fileId": null,
+              "format": null,
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 2,
+              "elapsedMs": 2,
+              "stage": "input_stored",
+              "fileId": "source0",
+              "format": null,
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 3,
+              "elapsedMs": 3,
+              "stage": "input_stored",
+              "fileId": "source1",
+              "format": null,
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 4,
+              "elapsedMs": 3,
+              "stage": "input_stored",
+              "fileId": "source2",
+              "format": null,
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 5,
+              "elapsedMs": 3,
+              "stage": "input_stored",
+              "fileId": "source3",
+              "format": null,
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 6,
+              "elapsedMs": 3,
+              "stage": "input_stored",
+              "fileId": "source4",
+              "format": null,
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 7,
+              "elapsedMs": 4,
+              "stage": "input_stored",
+              "fileId": "source5",
+              "format": null,
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 8,
+              "elapsedMs": 4,
+              "stage": "input_stored",
+              "fileId": "source6",
+              "format": null,
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 9,
+              "elapsedMs": 4,
+              "stage": "preflight_started",
+              "fileId": null,
+              "format": null,
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 10,
+              "elapsedMs": 71,
+              "stage": "preflight_file_started",
+              "fileId": "source0",
+              "format": null,
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 11,
+              "elapsedMs": 396,
+              "stage": "preflight_finished",
+              "fileId": "source0",
+              "format": null,
+              "code": "NATIVE_KIND_DETECTED",
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 12,
+              "elapsedMs": 396,
+              "stage": "preflight_file_started",
+              "fileId": "source1",
+              "format": null,
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 13,
+              "elapsedMs": 685,
+              "stage": "preflight_finished",
+              "fileId": "source1",
+              "format": null,
+              "code": "NATIVE_KIND_DETECTED",
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 14,
+              "elapsedMs": 685,
+              "stage": "preflight_file_started",
+              "fileId": "source2",
+              "format": null,
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 15,
+              "elapsedMs": 919,
+              "stage": "preflight_finished",
+              "fileId": "source2",
+              "format": null,
+              "code": "NATIVE_KIND_DETECTED",
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 16,
+              "elapsedMs": 919,
+              "stage": "preflight_file_started",
+              "fileId": "source3",
+              "format": null,
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 17,
+              "elapsedMs": 1237,
+              "stage": "preflight_finished",
+              "fileId": "source3",
+              "format": null,
+              "code": "NATIVE_KIND_DETECTED",
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 18,
+              "elapsedMs": 1237,
+              "stage": "preflight_file_started",
+              "fileId": "source4",
+              "format": null,
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 19,
+              "elapsedMs": 1471,
+              "stage": "preflight_finished",
+              "fileId": "source4",
+              "format": null,
+              "code": "PREFLIGHT_IMPORT_UNDETERMINED",
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 20,
+              "elapsedMs": 1471,
+              "stage": "preflight_file_started",
+              "fileId": "source5",
+              "format": null,
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 21,
+              "elapsedMs": 1724,
+              "stage": "preflight_finished",
+              "fileId": "source5",
+              "format": null,
+              "code": "NATIVE_KIND_DETECTED",
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 22,
+              "elapsedMs": 1724,
+              "stage": "preflight_file_started",
+              "fileId": "source6",
+              "format": null,
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 23,
+              "elapsedMs": 1893,
+              "stage": "preflight_finished",
+              "fileId": "source6",
+              "format": null,
+              "code": "NATIVE_KIND_DETECTED",
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 24,
+              "elapsedMs": 1969,
+              "stage": "preflight_done",
+              "fileId": null,
+              "format": null,
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 25,
+              "elapsedMs": 1969,
+              "stage": "job_queued",
+              "fileId": null,
+              "format": null,
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 26,
+              "elapsedMs": 1972,
+              "stage": "job_started",
+              "fileId": null,
+              "format": null,
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 27,
+              "elapsedMs": 1972,
+              "stage": "route_selected",
+              "fileId": "source0",
+              "format": "docx",
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 28,
+              "elapsedMs": 1973,
+              "stage": "engine_started",
+              "fileId": "source0",
+              "format": "docx",
+              "code": null,
+              "libreOfficeStarted": true
+            },
+            {
+              "sequence": 29,
+              "elapsedMs": 2340,
+              "stage": "result_retaining",
+              "fileId": "source0",
+              "format": "docx",
+              "code": null,
+              "libreOfficeStarted": true
+            },
+            {
+              "sequence": 30,
+              "elapsedMs": 2342,
+              "stage": "result_ready",
+              "fileId": "source0",
+              "format": "docx",
+              "code": null,
+              "libreOfficeStarted": true
+            },
+            {
+              "sequence": 31,
+              "elapsedMs": 2342,
+              "stage": "task_finished",
+              "fileId": "source0",
+              "format": "docx",
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 32,
+              "elapsedMs": 2343,
+              "stage": "route_selected",
+              "fileId": "source0",
+              "format": "txt",
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 33,
+              "elapsedMs": 2344,
+              "stage": "engine_started",
+              "fileId": "source0",
+              "format": "txt",
+              "code": null,
+              "libreOfficeStarted": true
+            },
+            {
+              "sequence": 34,
+              "elapsedMs": 2710,
+              "stage": "result_retaining",
+              "fileId": "source0",
+              "format": "txt",
+              "code": null,
+              "libreOfficeStarted": true
+            },
+            {
+              "sequence": 35,
+              "elapsedMs": 2711,
+              "stage": "result_ready",
+              "fileId": "source0",
+              "format": "txt",
+              "code": null,
+              "libreOfficeStarted": true
+            },
+            {
+              "sequence": 36,
+              "elapsedMs": 2711,
+              "stage": "task_finished",
+              "fileId": "source0",
+              "format": "txt",
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 37,
+              "elapsedMs": 2713,
+              "stage": "input_finished",
+              "fileId": "source0",
+              "format": null,
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 38,
+              "elapsedMs": 2713,
+              "stage": "route_selected",
+              "fileId": "source1",
+              "format": "pdf",
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 39,
+              "elapsedMs": 2713,
+              "stage": "engine_started",
+              "fileId": "source1",
+              "format": "pdf",
+              "code": null,
+              "libreOfficeStarted": true
+            },
+            {
+              "sequence": 40,
+              "elapsedMs": 3015,
+              "stage": "result_retaining",
+              "fileId": "source1",
+              "format": "pdf",
+              "code": null,
+              "libreOfficeStarted": true
+            },
+            {
+              "sequence": 41,
+              "elapsedMs": 3019,
+              "stage": "result_ready",
+              "fileId": "source1",
+              "format": "pdf",
+              "code": null,
+              "libreOfficeStarted": true
+            },
+            {
+              "sequence": 42,
+              "elapsedMs": 3019,
+              "stage": "task_finished",
+              "fileId": "source1",
+              "format": "pdf",
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 43,
+              "elapsedMs": 3020,
+              "stage": "input_finished",
+              "fileId": "source1",
+              "format": null,
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 44,
+              "elapsedMs": 3021,
+              "stage": "route_selected",
+              "fileId": "source2",
+              "format": "png",
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 45,
+              "elapsedMs": 3022,
+              "stage": "result_retaining",
+              "fileId": "source2",
+              "format": "png",
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 46,
+              "elapsedMs": 3022,
+              "stage": "result_ready",
+              "fileId": "source2",
+              "format": "png",
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 47,
+              "elapsedMs": 3023,
+              "stage": "task_finished",
+              "fileId": "source2",
+              "format": "png",
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 48,
+              "elapsedMs": 3023,
+              "stage": "input_finished",
+              "fileId": "source2",
+              "format": null,
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 49,
+              "elapsedMs": 3023,
+              "stage": "route_selected",
+              "fileId": "source3",
+              "format": "gif",
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 50,
+              "elapsedMs": 3025,
+              "stage": "result_retaining",
+              "fileId": "source3",
+              "format": "gif",
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 51,
+              "elapsedMs": 3025,
+              "stage": "result_ready",
+              "fileId": "source3",
+              "format": "gif",
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 52,
+              "elapsedMs": 3025,
+              "stage": "task_finished",
+              "fileId": "source3",
+              "format": "gif",
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 53,
+              "elapsedMs": 3025,
+              "stage": "input_finished",
+              "fileId": "source3",
+              "format": null,
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 54,
+              "elapsedMs": 3026,
+              "stage": "route_selected",
+              "fileId": "source5",
+              "format": "tiff",
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 55,
+              "elapsedMs": 3027,
+              "stage": "result_retaining",
+              "fileId": "source5",
+              "format": "tiff",
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 56,
+              "elapsedMs": 3027,
+              "stage": "result_ready",
+              "fileId": "source5",
+              "format": "tiff",
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 57,
+              "elapsedMs": 3027,
+              "stage": "task_finished",
+              "fileId": "source5",
+              "format": "tiff",
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 58,
+              "elapsedMs": 3027,
+              "stage": "input_finished",
+              "fileId": "source5",
+              "format": null,
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 59,
+              "elapsedMs": 3027,
+              "stage": "route_selected",
+              "fileId": "source6",
+              "format": "odc",
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 60,
+              "elapsedMs": 3028,
+              "stage": "result_retaining",
+              "fileId": "source6",
+              "format": "odc",
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 61,
+              "elapsedMs": 3029,
+              "stage": "result_ready",
+              "fileId": "source6",
+              "format": "odc",
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 62,
+              "elapsedMs": 3029,
+              "stage": "task_finished",
+              "fileId": "source6",
+              "format": "odc",
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 63,
+              "elapsedMs": 3029,
+              "stage": "input_finished",
+              "fileId": "source6",
+              "format": null,
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 64,
+              "elapsedMs": 3029,
+              "stage": "packaging_started",
+              "fileId": null,
+              "format": null,
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 65,
+              "elapsedMs": 3029,
+              "stage": "results_available",
+              "fileId": null,
+              "format": null,
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 66,
+              "elapsedMs": 3029,
+              "stage": "bundle_deferred",
+              "fileId": null,
+              "format": null,
+              "code": null,
+              "libreOfficeStarted": false
+            },
+            {
+              "sequence": 67,
+              "elapsedMs": 3029,
+              "stage": "job_finished",
+              "fileId": null,
+              "format": null,
+              "code": "ready",
+              "libreOfficeStarted": true
+            },
+            {
+              "sequence": 68,
+              "elapsedMs": 3029,
+              "stage": "worker_finished",
+              "fileId": null,
+              "format": null,
+              "code": "ready",
+              "libreOfficeStarted": false
+            }
+          ],
+          "droppedEvents": 0
+        },
+        "fileTimeoutSeconds": 30
+      },
+      "save": {
+        "jobId": "c5844ad7c17e70092ca6c146cdf1da89",
+        "saved": true,
+        "savedAll": true,
+        "incompleteRecovery": false,
+        "jobRunning": false,
+        "remainingOutputs": 0,
+        "outputs": 7,
+        "saveId": "e269804044a952d3d165185e95714e24",
+        "snapshotComplete": true,
+        "snapshotRevision": 68,
+        "bytesWritten": 307814,
+        "readbackVerified": true,
+        "verificationScope": "manifest_outputs",
+        "verificationMethod": "independent_read_sha256",
+        "outputsVerified": 7,
+        "bytesVerified": 307814,
+        "name": "AIO_Results_c5844ad7"
+      },
+      "originalsUnchanged": true,
+      "status": "partial_native_coverage"
+    },
+    "negativeControls": [
+      {
+        "source": "05_LEVEL_2.fodt",
+        "check": "source_contract",
+        "status": "pass",
+        "proof": {
+          "state": "invalid",
+          "code": "SOURCE_CONTAINER_INCONSISTENT",
+          "reason": "flat_mimetype_requires_document_family",
+          "contentClass": "flat_odf",
+          "expectedServices": []
+        }
+      },
+      {
+        "source": "05_LEVEL_2.fodp",
+        "check": "source_contract",
+        "status": "pass",
+        "proof": {
+          "state": "invalid",
+          "code": "SOURCE_CONTAINER_INCONSISTENT",
+          "reason": "flat_mimetype_requires_document_family",
+          "contentClass": "flat_odf",
+          "expectedServices": []
+        }
+      },
+      {
+        "source": "05_LEVEL_2.sxw",
+        "check": "source_contract",
+        "status": "pass",
+        "proof": {
+          "state": "invalid",
+          "code": "SOURCE_CONTAINER_INCONSISTENT",
+          "reason": "legacy_mimetype_namespace_mismatch",
+          "contentClass": "staroffice_package",
+          "expectedServices": []
+        }
+      },
+      {
+        "source": "14404-emz-06_LEVEL_3.emz",
+        "check": "corrupt_gzip_rejected",
+        "code": "ENGINE_OUTPUT_CONTAINER_INVALID",
+        "status": "pass"
+      },
+      {
+        "source": "14415-wmz-06_LEVEL_3.wmz",
+        "check": "corrupt_gzip_rejected",
+        "code": "ENGINE_OUTPUT_CONTAINER_INVALID",
+        "status": "pass"
+      },
+      {
+        "source": "05_LEVEL_2.odt",
+        "check": "undeclared_odf_columns_direct_native_control",
+        "expectedOutcome": "preserve cell text or reject content loss",
+        "sourceFacts": {
+          "name": "05_LEVEL_2.odt",
+          "size": 2197,
+          "sha256": "9c40dbefb524b830c6e77e1fda093c3776cee2a271ee283b2f12da37f89e9d60",
+          "zipCRC": "pass",
+          "hasVbaProject": false,
+          "mimetype": "application/vnd.oasis.opendocument.text",
+          "contentNamespace": "urn:oasis:names:tc:opendocument:xmlns:office:1.0",
+          "tableCells": 48,
+          "tableColumnDeclarations": 0
+        },
+        "outputFacts": {
+          "name": "05_LEVEL_2.docx",
+          "size": 6125,
+          "sha256": "f2d242f8ff05f2961b1a1e2677061e6e23d3ee66e95edbc5b9648ebabbb9193c",
+          "zipCRC": "pass",
+          "hasVbaProject": false,
+          "tableCells": 12,
+          "mainContentTypes": {
+            "/word/document.xml": "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"
+          }
+        },
+        "postconditionCode": "ENGINE_OUTPUT_CONTENT_LOSS",
+        "postconditionDiagnostic": "odf_table_missing_unique_cell_texts:36",
+        "status": "pass"
+      }
+    ],
+    "summary": {
+      "admittedTasks": "PASS",
+      "succeeded": 7,
+      "failed": 0,
+      "negativeControlsPassed": 6,
+      "coverage": "partial_native_coverage",
+      "unplannedPairs": [
+        {
+          "source": "06_LEVEL_3.apng",
+          "target": "apng",
+          "reason": "PREFLIGHT_IMPORT_UNDETERMINED"
+        }
+      ]
+    }
+  }
+}

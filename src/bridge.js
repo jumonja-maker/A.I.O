@@ -176,7 +176,10 @@
                           remainingOutputs: detail.remainingOutputs,
                           bytesWritten: detail.bytesWritten,
                           readbackVerified:detail.readbackVerified===true,
-                          verificationScope:detail.verificationScope });
+                          verificationScope:detail.verificationScope,
+                          verificationMethod:detail.verificationMethod,
+                          outputsVerified:detail.outputsVerified,
+                          bytesVerified:detail.bytesVerified });
               } else if (detail.status === 'cancelled') {
                 resolve({ cancelled: true });
               } else {
@@ -228,3 +231,4 @@
     }
   };
 })();
+

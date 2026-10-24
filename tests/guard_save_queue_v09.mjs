@@ -34,7 +34,7 @@ function fixture(options={}){
   for(const name of ['begin','dispose','finishTargets','failBatch','beginSave','finishSave'])
     progress[name]=value=>events.push({type:name,detail:value});
   const window={AllInOneNativeShell:options.browser!==true,
-    AllInOneBridge:{saveExcel:async result=>options.hostSave?.(result)||{saved:true,savedAll:false,snapshotComplete:true,outputs:1,jobRunning:true}},
+    AllInOneBridge:{saveExcel:async result=>options.hostSave?.(result)||{saved:true,readbackVerified:true,savedAll:false,snapshotComplete:true,outputs:1,jobRunning:true}},
     AIOFileProgress:{attach:()=>progress},dispatchEvent:event=>{events.push(event);return true;}};
   class CustomEvent{constructor(type,{detail}={}){this.type=type;this.detail=detail;}}
   const fetch=async(url,init={})=>{
@@ -73,6 +73,22 @@ function fixture(options={}){
 }
 
 const completed=[];
+{
+  const f=fixture({hostSave:async result=>{
+    assert.equal(result.verifySaved,true,'native readback is requested by default');
+    return {saved:true,savedAll:true,snapshotComplete:true,outputs:2};
+  }});
+  assert.equal(f.bridge.getSaveVerification(),true);
+  f.bridge.setSaveVerification(false);
+  assert.equal(f.bridge.getSaveVerification(),true,'caller cannot bypass saved-byte verification');
+  const operation=f.bridge.convertMany({files:input,formatIds:['pdf','html']});
+  await until(()=>f.polled()>0);
+  await assert.rejects(f.bridge.saveRetained(jobId,'folder'),error=>error.code==='SAVE_VERIFY_MISSING');
+  assert.equal(f.calls.some(c=>c.path==='/release'||c.path==='/saved'||c.path==='/cancel'),false,
+    'missing readback proof preserves live outputs and queue');
+  f.finish();await operation;
+  completed.push('native save requires independent readback proof and cannot be disabled');
+}
 {
   const f=fixture({noVerified:true});
   await assert.rejects(f.bridge.convertMany({files:input,formatIds:['pdf','html']}),
@@ -140,7 +156,7 @@ const completed=[];
   completed.push('live folder snapshot never releases or cancels active conversion');
 }
 {
-  const f=fixture({hostSave:async()=>({saved:true,savedAll:true,snapshotComplete:true,outputs:2})});
+  const f=fixture({hostSave:async()=>({saved:true,readbackVerified:true,savedAll:true,snapshotComplete:true,outputs:2})});
   const operation=f.bridge.convertMany({files:input,formatIds:['pdf','html']});
   await until(()=>f.polled()>0);
   await f.bridge.saveRetained(jobId,'folder');
@@ -208,7 +224,7 @@ const completed=[];
   await tick();
   await assert.rejects(f.bridge.saveRetained(jobId,'folder'),error=>error.code==='SAVE_BUSY');
   await assert.rejects(f.bridge.discardRetained(jobId),error=>error.code==='LIVE_JOB_DISCARD');
-  gate.resolve({saved:true,savedAll:false,snapshotComplete:true,outputs:1});await saving;
+  gate.resolve({saved:true,readbackVerified:true,savedAll:false,snapshotComplete:true,outputs:1});await saving;
   await assert.rejects(f.bridge.saveRetained(jobId,'zip'),error=>error.code==='ZIP_REQUIRES_FINISHED');
   assert.equal(f.calls.some(c=>c.path==='/bundle'),false);
   f.finish();await operation;
@@ -296,3 +312,4 @@ const completed=[];
   completed.push('21 local uploads use at most four transfers; preflight starts after every upload and no export starts automatically');
 }
 console.log(JSON.stringify({status:'PASS',scope:'actual JS bridge with controlled native-save and transport boundaries',checks:completed}));
+

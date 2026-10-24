@@ -116,7 +116,8 @@ def main(manifest_name):
     # Calc service and the selected FilterName before any route is admitted.
     if isinstance(hint, dict):
         options.append(property_value('FilterName', hint['filter']))
-        options.append(property_value('FilterOptions', hint['options']))
+        if hint.get('options') is not None:
+            options.append(property_value('FilterOptions', hint['options']))
     desktop = remote.ServiceManager.createInstanceWithContext('com.sun.star.frame.Desktop', remote)
     model = None
     try:
@@ -125,6 +126,8 @@ def main(manifest_name):
         if not services:
             result = {'state':'undetermined','code':'PREFLIGHT_INTERACTION_REQUIRED'
                       if handler.blocked else 'PREFLIGHT_IMPORT_FAILED'}
+        elif req.get('expectedSourceServices') and not set(services).intersection(req['expectedSourceServices']):
+            result = {'state': 'undetermined', 'code': 'SOURCE_MODEL_MISMATCH'}
         else:
             try:
                 text_document = bool(model.queryInterface(
@@ -175,3 +178,4 @@ if __name__ == '__main__':
         finally:
             os._exit(0)
 '''
+

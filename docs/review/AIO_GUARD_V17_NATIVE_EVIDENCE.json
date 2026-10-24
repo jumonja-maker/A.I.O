@@ -1,0 +1,455 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "scope": "v17 real Guard native targeted routes",
+  "missingSources": [],
+  "checks": [
+    {
+      "source": "missing-columns.odt",
+      "target": "docx",
+      "method": "independent_document_text",
+      "markers": 48,
+      "spineOrder": true,
+      "status": "PASS"
+    },
+    {
+      "source": "missing-columns.odt",
+      "target": "txt",
+      "method": "independent_document_text",
+      "markers": 48,
+      "spineOrder": true,
+      "status": "PASS"
+    },
+    {
+      "source": "missing-columns.odt",
+      "target": "pdf",
+      "method": "independent_document_text",
+      "markers": 48,
+      "spineOrder": true,
+      "status": "PASS"
+    },
+    {
+      "source": "ordered-spine.epub",
+      "target": "docx",
+      "method": "independent_document_text",
+      "markers": 2,
+      "spineOrder": true,
+      "embeddedImages": 1,
+      "status": "PASS"
+    },
+    {
+      "source": "ordered-spine.epub",
+      "target": "odt",
+      "method": "independent_document_text",
+      "markers": 2,
+      "spineOrder": true,
+      "status": "PASS"
+    },
+    {
+      "source": "ordered-spine.epub",
+      "target": "pdf",
+      "method": "independent_document_text",
+      "markers": 2,
+      "spineOrder": true,
+      "status": "PASS"
+    },
+    {
+      "source": "ordered-spine.epub",
+      "target": "txt",
+      "method": "independent_document_text",
+      "markers": 2,
+      "spineOrder": true,
+      "status": "PASS"
+    },
+    {
+      "source": "three-sheets.fods",
+      "target": "dbf",
+      "method": "independent_native_csv_reimport_per_sheet",
+      "sheets": [
+        {
+          "sheet": 1,
+          "stringMarkers": 2,
+          "allFound": true,
+          "numericValues": 2
+        },
+        {
+          "sheet": 2,
+          "stringMarkers": 2,
+          "allFound": true,
+          "numericValues": 2
+        },
+        {
+          "sheet": 3,
+          "stringMarkers": 2,
+          "allFound": true,
+          "numericValues": 2
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "source": "three-sheets.fods",
+      "target": "dif",
+      "method": "independent_native_csv_reimport_per_sheet",
+      "sheets": [
+        {
+          "sheet": 1,
+          "stringMarkers": 2,
+          "allFound": true,
+          "numericValues": 2
+        },
+        {
+          "sheet": 2,
+          "stringMarkers": 2,
+          "allFound": true,
+          "numericValues": 2
+        },
+        {
+          "sheet": 3,
+          "stringMarkers": 2,
+          "allFound": true,
+          "numericValues": 2
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "source": "05_LEVEL_2.odt",
+      "target": "docx",
+      "method": "independent_document_text",
+      "markers": 48,
+      "spineOrder": true,
+      "status": "PASS"
+    },
+    {
+      "source": "05_LEVEL_2.odt",
+      "target": "txt",
+      "method": "independent_document_text",
+      "markers": 48,
+      "spineOrder": true,
+      "status": "PASS"
+    },
+    {
+      "source": "05_LEVEL_2.odt",
+      "target": "pdf",
+      "method": "independent_document_text",
+      "markers": 48,
+      "spineOrder": true,
+      "status": "PASS"
+    },
+    {
+      "source": "05_LEVEL_2.epub",
+      "target": "odt",
+      "method": "independent_document_text",
+      "markers": 1,
+      "spineOrder": true,
+      "status": "PASS"
+    },
+    {
+      "source": "05_LEVEL_2.epub",
+      "target": "pdf",
+      "method": "independent_document_text",
+      "markers": 1,
+      "spineOrder": true,
+      "status": "PASS"
+    },
+    {
+      "source": {
+        "format": "gif",
+        "width": 800,
+        "height": 540,
+        "frames": 4,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          150,
+          150,
+          150,
+          150
+        ],
+        "orientation": 1,
+        "loopCount": 0
+      },
+      "target": "png",
+      "method": "independent_container_structure",
+      "result": {
+        "format": "png",
+        "width": 800,
+        "height": 540,
+        "frames": 4,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          150.0,
+          150.0,
+          150.0,
+          150.0
+        ],
+        "orientation": 1,
+        "animationContainer": true,
+        "loopCount": 0,
+        "bitDepth": 8
+      },
+      "status": "PASS"
+    },
+    {
+      "source": {
+        "format": "gif",
+        "width": 800,
+        "height": 540,
+        "frames": 4,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          150,
+          150,
+          150,
+          150
+        ],
+        "orientation": 1,
+        "loopCount": 0
+      },
+      "target": "webp",
+      "method": "independent_container_structure",
+      "result": {
+        "format": "webp",
+        "width": 800,
+        "height": 540,
+        "frames": 4,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [
+          150,
+          150,
+          150,
+          150
+        ],
+        "orientation": 1,
+        "loopCount": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "source": {
+        "format": "png",
+        "width": 800,
+        "height": 540,
+        "frames": 1,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [],
+        "orientation": 1,
+        "animationContainer": false,
+        "loopCount": 1,
+        "bitDepth": 8
+      },
+      "target": "webp",
+      "method": "independent_container_structure",
+      "result": {
+        "format": "webp",
+        "width": 800,
+        "height": 540,
+        "frames": 1,
+        "pages": 1,
+        "alpha": true,
+        "durationsMs": [],
+        "orientation": 1,
+        "loopCount": 1
+      },
+      "status": "PASS"
+    },
+    {
+      "source": "05_LEVEL_2.png",
+      "target": "emz",
+      "method": "independent_full_gzip_and_native_records",
+      "files": [
+        {
+          "format": "emf",
+          "bytes": 1303712,
+          "records": 24,
+          "declaredRecords": 23,
+          "nativeHeaderCountExcludesHeader": true,
+          "sha256": "d58fc1ae8714437ec0e3ac4b792a02ed21cc2f776c39f1301e2d9fd06b84a408"
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "source": "05_LEVEL_2.png",
+      "target": "wmz",
+      "method": "independent_full_gzip_and_native_records",
+      "files": [
+        {
+          "format": "wmf",
+          "bytes": 3040186,
+          "records": 183,
+          "sha256": "c13489fd36c420b242c9eb80fb78da8a1cc4344a0f9c35ef427046cbbcc5be50"
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "source": "05_LEVEL_2.ods",
+      "target": "dbf",
+      "method": "independent_native_csv_reimport_per_sheet",
+      "sheets": [
+        {
+          "sheet": 1,
+          "stringMarkers": 48,
+          "allFound": true,
+          "numericValues": 0
+        },
+        {
+          "sheet": 2,
+          "stringMarkers": 5,
+          "allFound": true,
+          "numericValues": 3
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "method": "independent_native_csv_reimport_per_sheet",
+      "sheets": [
+        {
+          "sheet": 1,
+          "stringMarkers": 48,
+          "numericValues": 0,
+          "allFound": true
+        },
+        {
+          "sheet": 2,
+          "stringMarkers": 5,
+          "numericValues": 3,
+          "allFound": true
+        }
+      ],
+      "status": "PASS",
+      "source": "05_LEVEL_2.ods",
+      "target": "dif",
+      "inspectorCorrection": "Explicit native DIF:76 import matches UTF8 native export recipe"
+    }
+  ],
+  "unplannedPairs": [],
+  "platformUnsupported": [
+    {
+      "source": "05_LEVEL_2.png",
+      "target": "svm",
+      "status": "platform_not_applicable",
+      "reason": "NATIVE_FORMAT_IMPORT_ONLY",
+      "requiredPlatform": "Windows native UNO graphic-export acceptance"
+    }
+  ],
+  "fulltest510": "NOT_RUN",
+  "visibleGui": "NOT_RUN",
+  "counts": {
+    "total": 21,
+    "completed": 21,
+    "succeeded": 21,
+    "failed": 0,
+    "cancelled": 0
+  },
+  "savedByteReadback": "PASS",
+  "originalsUnchanged": true,
+  "inspectorRecheck": {
+    "reason": "Original DIF reimport inspector omitted explicit UTF8 charset; native output bytes were correct",
+    "originalEvidence": "evidence.json",
+    "correctedNativeReimport": "dif-utf8-inspector-recheck.json",
+    "numericReadbacks": "cached-numeric-readback-recheck.json",
+    "conversionResultsReused": true
+  },
+  "cachedNumericValuesChecked": 18,
+  "independentRechecks": {
+    "dif-utf8-inspector-recheck.json": {
+      "method": "independent_native_csv_reimport_per_sheet",
+      "sheets": [
+        {
+          "sheet": 1,
+          "stringMarkers": 48,
+          "numericValues": 0,
+          "allFound": true
+        },
+        {
+          "sheet": 2,
+          "stringMarkers": 5,
+          "numericValues": 3,
+          "allFound": true
+        }
+      ],
+      "status": "PASS",
+      "source": "05_LEVEL_2.ods",
+      "target": "dif",
+      "inspectorCorrection": "Explicit native DIF:76 import matches UTF8 native export recipe"
+    },
+    "cached-numeric-readback-recheck.json": {
+      "status": "PASS",
+      "checks": [
+        {
+          "case": "case2",
+          "source": "three-sheets.fods",
+          "target": "dbf",
+          "sheet": 1,
+          "numericValues": 2,
+          "status": "PASS"
+        },
+        {
+          "case": "case2",
+          "source": "three-sheets.fods",
+          "target": "dbf",
+          "sheet": 2,
+          "numericValues": 2,
+          "status": "PASS"
+        },
+        {
+          "case": "case2",
+          "source": "three-sheets.fods",
+          "target": "dbf",
+          "sheet": 3,
+          "numericValues": 2,
+          "status": "PASS"
+        },
+        {
+          "case": "case2",
+          "source": "three-sheets.fods",
+          "target": "dif",
+          "sheet": 1,
+          "numericValues": 2,
+          "status": "PASS"
+        },
+        {
+          "case": "case2",
+          "source": "three-sheets.fods",
+          "target": "dif",
+          "sheet": 2,
+          "numericValues": 2,
+          "status": "PASS"
+        },
+        {
+          "case": "case2",
+          "source": "three-sheets.fods",
+          "target": "dif",
+          "sheet": 3,
+          "numericValues": 2,
+          "status": "PASS"
+        },
+        {
+          "case": "case7",
+          "source": "05_LEVEL_2.ods",
+          "target": "dbf",
+          "sheet": 1,
+          "numericValues": 0,
+          "status": "PASS"
+        },
+        {
+          "case": "case7",
+          "source": "05_LEVEL_2.ods",
+          "target": "dbf",
+          "sheet": 2,
+          "numericValues": 3,
+          "status": "PASS"
+        }
+      ],
+      "numericValuesChecked": 15
+    }
+  }
+}

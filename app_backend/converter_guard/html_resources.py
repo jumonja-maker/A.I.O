@@ -44,16 +44,17 @@ def resource_manifest(entries, source_name):
     return result
 
 
-def inspect_dependencies(source, parser_type, *, cancel=None, missing=None, seconds=2):
+def inspect_dependencies(source, parser_type, *, cancel=None, missing=None, seconds=2,
+                         transform_factory=None):
     if source.suffix.lower() not in {'.html', '.htm', '.xhtml'}:
         return None
     root = source.parent.resolve()
     pending, seen, absent = [source], set(), []
     scheduled = {source}
     budget_exhausted = False
-    until = time.monotonic() + seconds
+    until = None if seconds is None else time.monotonic() + seconds
     while pending:
-        if time.monotonic() >= until or len(seen) >= 128:
+        if (until is not None and time.monotonic() >= until) or len(seen) >= 128:
             return 'HTML_PREFLIGHT_UNDETERMINED'
         current = pending.pop()
         if current in seen:
@@ -90,6 +91,7 @@ def inspect_dependencies(source, parser_type, *, cancel=None, missing=None, seco
             return valid
 
         parser = parser_type(resolve)
+        transform = transform_factory() if transform_factory and current.suffix.lower() != '.css' else None
         decoder = codecs.getincrementaldecoder('utf-8')('strict')
         first, css_tail = True, ''
         try:
@@ -97,7 +99,7 @@ def inspect_dependencies(source, parser_type, *, cancel=None, missing=None, seco
                 while block := stream.read(128 * 1024):
                     if cancel and cancel.is_set():
                         raise GuardError('CANCELLED', 'Проверка ресурсов отменена.', stage='preflight')
-                    if time.monotonic() >= until:
+                    if until is not None and time.monotonic() >= until:
                         return 'HTML_PREFLIGHT_UNDETERMINED'
                     if first:
                         first = False
@@ -112,17 +114,21 @@ def inspect_dependencies(source, parser_type, *, cancel=None, missing=None, seco
                         parser._scan_css(css_tail + text)
                         css_tail = (css_tail + text)[-4096:]
                     else:
-                        parser.feed(text)
+                        parser.feed(transform.feed(text) if transform else text)
                     if budget_exhausted or parser.undetermined or len(parser.rawdata) > 512 * 1024:
                         return 'HTML_PREFLIGHT_UNDETERMINED'
                 final = decoder.decode(b'', final=True)
                 if current.suffix.lower() == '.css':
                     parser._scan_css(css_tail + final)
                 else:
-                    parser.feed(final)
+                    parser.feed(transform.feed(final) if transform else final)
+                    if transform and (transform.quote is not None or transform.in_tag or
+                                      transform.rawtext is not None):
+                        return 'HTML_PREFLIGHT_UNDETERMINED'
                     parser.close()
         except (UnicodeError, LookupError, ValueError):
             return 'HTML_PREFLIGHT_UNDETERMINED'
     if missing is not None:
         missing.extend(absent)
     return 'HTML_LOCAL_RESOURCES_NOT_UPLOADED' if absent else None
+

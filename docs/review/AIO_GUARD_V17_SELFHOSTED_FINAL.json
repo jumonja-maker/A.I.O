@@ -1,0 +1,915 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "sourceSha": "f44ff2f70bb65a7de720b6f36111533264c60cdc",
+  "workflowHead": "1b70f47ddc887de17380945945ca07777c7c7c6f",
+  "runId": 40133468628,
+  "runUrl": "https://github.com/jumonja-maker/A.I.O/actions/runs/40133468628",
+  "uniqueTestsExercisedAcrossPlatforms": 582,
+  "commonSkippedTests": [],
+  "windows": {
+    "schema": 1,
+    "sourceSha": "f44ff2f70bb65a7de720b6f36111533264c60cdc",
+    "workflowSha": "14295cb1b7fcea8c6f9eb38d002d17c7b718f85e",
+    "platform": "Windows",
+    "python": "3.11.9",
+    "stages": {
+      "dependencies": {
+        "status": "PASS",
+        "missing": [],
+        "platformNotApplicable": []
+      },
+      "unittest": {
+        "status": "PASS",
+        "returncode": 0,
+        "timedOut": false,
+        "durationMs": 115844,
+        "log": "unittest.log",
+        "discovered": 582,
+        "passed": 577,
+        "failed": 0,
+        "errors": 0,
+        "skipped": [
+          {
+            "test": "test_converter_guard_process_v02.ControlledProcessTests.test_deadline_kills_own_process_tree_and_next_file_runs",
+            "reason": "POSIX test fixture; real Windows Job Object needs Windows acceptance",
+            "status": "not_applicable"
+          },
+          {
+            "test": "test_converter_guard_process_v02.ControlledProcessTests.test_live_output_quota_stops_only_the_growing_process",
+            "reason": "POSIX test fixture; real Windows Job Object needs Windows acceptance",
+            "status": "not_applicable"
+          },
+          {
+            "test": "test_converter_guard_process_v02.ControlledProcessTests.test_slow_cleanup_does_not_hold_the_global_metadata_lock",
+            "reason": "POSIX test fixture; real Windows Job Object needs Windows acceptance",
+            "status": "not_applicable"
+          },
+          {
+            "test": "test_guard_native_metrics_v11.NativeMetricsQA.test_cli_measures_process_time_without_inventing_import_or_export_times",
+            "reason": "Executable generated fixture uses a POSIX shebang",
+            "status": "not_applicable"
+          },
+          {
+            "test": "test_guard_native_metrics_v11.NativeMetricsQA.test_twenty_worker_recycles_leave_no_live_readers_profiles_or_pipe_descriptors",
+            "reason": "Owned POSIX worker lifecycle; not Windows Job Object QA",
+            "status": "not_applicable"
+          }
+        ],
+        "failureDetails": [],
+        "expectedFailures": [],
+        "unexpectedSuccesses": []
+      },
+      "nativeV16": {
+        "status": "PASS",
+        "returncode": 0,
+        "timedOut": false,
+        "durationMs": 136296,
+        "log": "native-v16.log",
+        "generated": {
+          "pass": 9,
+          "not_run": 1
+        },
+        "guard": "pass",
+        "counts": {
+          "total": 8,
+          "succeeded": 8,
+          "failed": 0,
+          "cancelled": 0
+        },
+        "unplannedPairs": [],
+        "notRun": [],
+        "unsupportedFixtureGeneration": [
+          {
+            "target": "sxw",
+            "service": "com.sun.star.text.TextDocument",
+            "producer": "native_LibreOffice_export",
+            "filter": null,
+            "status": "not_run",
+            "reason": "installed_native_export_filter_unavailable"
+          }
+        ],
+        "negativeControls": {
+          "pass": 4
+        },
+        "fulltest510": "NOT_RUN",
+        "windowsGuiTested": false
+      },
+      "native11Routes": {
+        "status": "PASS",
+        "returncode": 0,
+        "timedOut": false,
+        "durationMs": 43079,
+        "log": "native-v08.log",
+        "quality": {
+          "officeContainers": "PASS",
+          "textAndTableMarkers": "PASS",
+          "sourceBytesUnchanged": "PASS",
+          "pdfText": "PASS",
+          "pdfPageGeometryMatchesCLI": "PASS",
+          "csvMatchesNativeCLI": "PASS"
+        }
+      },
+      "nativeV17": {
+        "status": "PASS",
+        "returncode": 0,
+        "timedOut": false,
+        "durationMs": 106891,
+        "log": "native-v17.log",
+        "schema": 1,
+        "scope": "v17 real Guard native targeted routes",
+        "missingSources": [],
+        "checks": [
+          {
+            "source": "missing-columns.odt",
+            "target": "docx",
+            "method": "independent_document_text",
+            "markers": 48,
+            "spineOrder": true,
+            "status": "PASS"
+          },
+          {
+            "source": "missing-columns.odt",
+            "target": "txt",
+            "method": "independent_document_text",
+            "markers": 48,
+            "spineOrder": true,
+            "status": "PASS"
+          },
+          {
+            "source": "missing-columns.odt",
+            "target": "pdf",
+            "method": "independent_document_text",
+            "markers": 48,
+            "spineOrder": true,
+            "status": "PASS"
+          },
+          {
+            "source": "ordered-spine.epub",
+            "target": "docx",
+            "method": "independent_document_text",
+            "markers": 2,
+            "spineOrder": true,
+            "embeddedImages": 1,
+            "status": "PASS"
+          },
+          {
+            "source": "ordered-spine.epub",
+            "target": "odt",
+            "method": "independent_document_text",
+            "markers": 2,
+            "spineOrder": true,
+            "status": "PASS"
+          },
+          {
+            "source": "ordered-spine.epub",
+            "target": "pdf",
+            "method": "independent_document_text",
+            "markers": 2,
+            "spineOrder": true,
+            "status": "PASS"
+          },
+          {
+            "source": "ordered-spine.epub",
+            "target": "txt",
+            "method": "independent_document_text",
+            "markers": 2,
+            "spineOrder": true,
+            "status": "PASS"
+          },
+          {
+            "source": "three-sheets.fods",
+            "target": "dbf",
+            "method": "independent_native_fods_reimport_per_sheet",
+            "sheets": [
+              {
+                "sheet": 1,
+                "stringMarkers": 2,
+                "numericValues": 2,
+                "numericReadback": [
+                  {
+                    "marker": "AIO_SHEET_1_FIRST",
+                    "expected": "10",
+                    "actual": "10",
+                    "valueType": "float",
+                    "displayText": "10",
+                    "typeCoercion": null,
+                    "typedRecovery": null
+                  },
+                  {
+                    "marker": "AIO_SHEET_1_LAST",
+                    "expected": "11",
+                    "actual": "11",
+                    "valueType": "float",
+                    "displayText": "11",
+                    "typeCoercion": null,
+                    "typedRecovery": null
+                  }
+                ],
+                "allFound": true
+              },
+              {
+                "sheet": 2,
+                "stringMarkers": 2,
+                "numericValues": 2,
+                "numericReadback": [
+                  {
+                    "marker": "AIO_SHEET_2_FIRST",
+                    "expected": "20",
+                    "actual": "20",
+                    "valueType": "float",
+                    "displayText": "20",
+                    "typeCoercion": null,
+                    "typedRecovery": null
+                  },
+                  {
+                    "marker": "AIO_SHEET_2_LAST",
+                    "expected": "21",
+                    "actual": "21",
+                    "valueType": "float",
+                    "displayText": "21",
+                    "typeCoercion": null,
+                    "typedRecovery": null
+                  }
+                ],
+                "allFound": true
+              },
+              {
+                "sheet": 3,
+                "stringMarkers": 2,
+                "numericValues": 2,
+                "numericReadback": [
+                  {
+                    "marker": "AIO_SHEET_3_FIRST",
+                    "expected": "30",
+                    "actual": "30",
+                    "valueType": "float",
+                    "displayText": "30",
+                    "typeCoercion": null,
+                    "typedRecovery": null
+                  },
+                  {
+                    "marker": "AIO_SHEET_3_LAST",
+                    "expected": "31",
+                    "actual": "31",
+                    "valueType": "float",
+                    "displayText": "31",
+                    "typeCoercion": null,
+                    "typedRecovery": null
+                  }
+                ],
+                "allFound": true
+              }
+            ],
+            "companionFiles": [],
+            "status": "PASS"
+          },
+          {
+            "source": "three-sheets.fods",
+            "target": "dif",
+            "method": "independent_native_fods_reimport_per_sheet",
+            "sheets": [
+              {
+                "sheet": 1,
+                "stringMarkers": 2,
+                "numericValues": 2,
+                "numericReadback": [
+                  {
+                    "marker": "AIO_SHEET_1_FIRST",
+                    "expected": "10",
+                    "actual": "10",
+                    "valueType": "float",
+                    "displayText": "10",
+                    "typeCoercion": null,
+                    "typedRecovery": null
+                  },
+                  {
+                    "marker": "AIO_SHEET_1_LAST",
+                    "expected": "11",
+                    "actual": "11",
+                    "valueType": "float",
+                    "displayText": "11",
+                    "typeCoercion": null,
+                    "typedRecovery": null
+                  }
+                ],
+                "allFound": true
+              },
+              {
+                "sheet": 2,
+                "stringMarkers": 2,
+                "numericValues": 2,
+                "numericReadback": [
+                  {
+                    "marker": "AIO_SHEET_2_FIRST",
+                    "expected": "20",
+                    "actual": "20",
+                    "valueType": "float",
+                    "displayText": "20",
+                    "typeCoercion": null,
+                    "typedRecovery": null
+                  },
+                  {
+                    "marker": "AIO_SHEET_2_LAST",
+                    "expected": "21",
+                    "actual": "21",
+                    "valueType": "float",
+                    "displayText": "21",
+                    "typeCoercion": null,
+                    "typedRecovery": null
+                  }
+                ],
+                "allFound": true
+              },
+              {
+                "sheet": 3,
+                "stringMarkers": 2,
+                "numericValues": 2,
+                "numericReadback": [
+                  {
+                    "marker": "AIO_SHEET_3_FIRST",
+                    "expected": "30",
+                    "actual": "30",
+                    "valueType": "float",
+                    "displayText": "30",
+                    "typeCoercion": null,
+                    "typedRecovery": null
+                  },
+                  {
+                    "marker": "AIO_SHEET_3_LAST",
+                    "expected": "31",
+                    "actual": "31",
+                    "valueType": "float",
+                    "displayText": "31",
+                    "typeCoercion": null,
+                    "typedRecovery": null
+                  }
+                ],
+                "allFound": true
+              }
+            ],
+            "companionFiles": [],
+            "status": "PASS"
+          },
+          {
+            "source": "05_LEVEL_2.odt",
+            "target": "docx",
+            "method": "independent_document_text",
+            "markers": 48,
+            "spineOrder": true,
+            "status": "PASS"
+          },
+          {
+            "source": "05_LEVEL_2.odt",
+            "target": "txt",
+            "method": "independent_document_text",
+            "markers": 48,
+            "spineOrder": true,
+            "status": "PASS"
+          },
+          {
+            "source": "05_LEVEL_2.odt",
+            "target": "pdf",
+            "method": "independent_document_text",
+            "markers": 48,
+            "spineOrder": true,
+            "status": "PASS"
+          },
+          {
+            "source": "05_LEVEL_2.epub",
+            "target": "odt",
+            "method": "independent_document_text",
+            "markers": 1,
+            "spineOrder": true,
+            "status": "PASS"
+          },
+          {
+            "source": "05_LEVEL_2.epub",
+            "target": "pdf",
+            "method": "independent_document_text",
+            "markers": 1,
+            "spineOrder": true,
+            "status": "PASS"
+          },
+          {
+            "source": "05_LEVEL_2.gif",
+            "target": "png",
+            "method": "independent_container_structure",
+            "sourceMedia": {
+              "format": "gif",
+              "width": 800,
+              "height": 540,
+              "frames": 4,
+              "pages": 1,
+              "alpha": true,
+              "durationsMs": [
+                150,
+                150,
+                150,
+                150
+              ],
+              "orientation": 1,
+              "loopCount": 0
+            },
+            "resultMedia": {
+              "format": "png",
+              "width": 800,
+              "height": 540,
+              "frames": 4,
+              "pages": 1,
+              "alpha": true,
+              "durationsMs": [
+                150,
+                150,
+                150,
+                150
+              ],
+              "orientation": 1,
+              "animationContainer": true,
+              "loopCount": 0,
+              "bitDepth": 8
+            },
+            "status": "PASS"
+          },
+          {
+            "source": "05_LEVEL_2.gif",
+            "target": "webp",
+            "method": "independent_container_structure",
+            "sourceMedia": {
+              "format": "gif",
+              "width": 800,
+              "height": 540,
+              "frames": 4,
+              "pages": 1,
+              "alpha": true,
+              "durationsMs": [
+                150,
+                150,
+                150,
+                150
+              ],
+              "orientation": 1,
+              "loopCount": 0
+            },
+            "resultMedia": {
+              "format": "webp",
+              "width": 800,
+              "height": 540,
+              "frames": 4,
+              "pages": 1,
+              "alpha": true,
+              "durationsMs": [
+                150,
+                150,
+                150,
+                150
+              ],
+              "orientation": 1,
+              "loopCount": 0
+            },
+            "status": "PASS"
+          },
+          {
+            "source": "05_LEVEL_2.png",
+            "target": "webp",
+            "method": "independent_container_structure",
+            "sourceMedia": {
+              "format": "png",
+              "width": 800,
+              "height": 540,
+              "frames": 1,
+              "pages": 1,
+              "alpha": true,
+              "durationsMs": [],
+              "orientation": 1,
+              "animationContainer": false,
+              "loopCount": 1,
+              "bitDepth": 8
+            },
+            "resultMedia": {
+              "format": "webp",
+              "width": 800,
+              "height": 540,
+              "frames": 1,
+              "pages": 1,
+              "alpha": true,
+              "durationsMs": [],
+              "orientation": 1,
+              "loopCount": 1
+            },
+            "status": "PASS"
+          },
+          {
+            "source": "05_LEVEL_2.png",
+            "target": "emz",
+            "method": "independent_full_gzip_and_native_records",
+            "files": [
+              {
+                "format": "emf",
+                "bytes": 1303712,
+                "records": 24,
+                "declaredRecords": 23,
+                "nativeHeaderCountExcludesHeader": true,
+                "sha256": "d7341e1738ed9186c418270f477e6078e90b7ee3c79952c4f30bcc2f2c0360ba"
+              }
+            ],
+            "status": "PASS"
+          },
+          {
+            "source": "05_LEVEL_2.png",
+            "target": "wmz",
+            "method": "independent_full_gzip_and_native_records",
+            "files": [
+              {
+                "format": "wmf",
+                "bytes": 3040186,
+                "records": 183,
+                "sha256": "a66f27154d024c0def77b4e981e68b55a83cff6b147f684e6817590040ed5eda"
+              }
+            ],
+            "status": "PASS"
+          },
+          {
+            "source": "05_LEVEL_2.png",
+            "target": "svm",
+            "method": "native_svm_signature",
+            "pages": 1,
+            "status": "PASS"
+          },
+          {
+            "source": "05_LEVEL_2.ods",
+            "target": "dbf",
+            "method": "independent_native_fods_reimport_per_sheet",
+            "sheets": [
+              {
+                "sheet": 1,
+                "stringMarkers": 48,
+                "numericValues": 0,
+                "numericReadback": [],
+                "allFound": true
+              },
+              {
+                "sheet": 2,
+                "stringMarkers": 5,
+                "numericValues": 3,
+                "numericReadback": [
+                  {
+                    "marker": "Уровень",
+                    "expected": "2",
+                    "actual": "2.0",
+                    "valueType": "string",
+                    "displayText": "2",
+                    "typeCoercion": "native_DBF_mixed_column_memo_with_typed_recovery_sidecar",
+                    "typedRecovery": {
+                      "sourceValue": "2.0",
+                      "exportedText": "2",
+                      "sidecar": "05_LEVEL_2__sheet_002.dbf.aio-columns.jsonl",
+                      "row": 2,
+                      "column": 1
+                    }
+                  },
+                  {
+                    "marker": "Строки",
+                    "expected": "24",
+                    "actual": "24.0",
+                    "valueType": "string",
+                    "displayText": "24",
+                    "typeCoercion": "native_DBF_mixed_column_memo_with_typed_recovery_sidecar",
+                    "typedRecovery": {
+                      "sourceValue": "24.0",
+                      "exportedText": "24",
+                      "sidecar": "05_LEVEL_2__sheet_002.dbf.aio-columns.jsonl",
+                      "row": 3,
+                      "column": 1
+                    }
+                  },
+                  {
+                    "marker": "Сумма",
+                    "expected": "5622.13",
+                    "actual": "5622.13",
+                    "valueType": "string",
+                    "displayText": "5622,13",
+                    "typeCoercion": "native_DBF_mixed_column_memo_with_typed_recovery_sidecar",
+                    "typedRecovery": {
+                      "sourceValue": "5622.13",
+                      "exportedText": "5622,13",
+                      "sidecar": "05_LEVEL_2__sheet_002.dbf.aio-columns.jsonl",
+                      "row": 4,
+                      "column": 1
+                    }
+                  }
+                ],
+                "allFound": true
+              }
+            ],
+            "companionFiles": [
+              "05_LEVEL_2__sheet_002.dbf.aio-columns.jsonl",
+              "05_LEVEL_2__sheet_002.dbt"
+            ],
+            "status": "PASS"
+          },
+          {
+            "source": "05_LEVEL_2.ods",
+            "target": "dif",
+            "method": "independent_native_fods_reimport_per_sheet",
+            "sheets": [
+              {
+                "sheet": 1,
+                "stringMarkers": 48,
+                "numericValues": 0,
+                "numericReadback": [],
+                "allFound": true
+              },
+              {
+                "sheet": 2,
+                "stringMarkers": 5,
+                "numericValues": 3,
+                "numericReadback": [
+                  {
+                    "marker": "Уровень",
+                    "expected": "2",
+                    "actual": "2",
+                    "valueType": "float",
+                    "displayText": "2",
+                    "typeCoercion": null,
+                    "typedRecovery": null
+                  },
+                  {
+                    "marker": "Строки",
+                    "expected": "24",
+                    "actual": "24",
+                    "valueType": "float",
+                    "displayText": "24",
+                    "typeCoercion": null,
+                    "typedRecovery": null
+                  },
+                  {
+                    "marker": "Сумма",
+                    "expected": "5622.13",
+                    "actual": "5622.13",
+                    "valueType": "float",
+                    "displayText": "5622,13",
+                    "typeCoercion": null,
+                    "typedRecovery": null
+                  }
+                ],
+                "allFound": true
+              }
+            ],
+            "companionFiles": [],
+            "status": "PASS"
+          }
+        ],
+        "unplannedPairs": [],
+        "platformUnsupported": [],
+        "fulltest510": "NOT_RUN",
+        "visibleGui": "NOT_RUN",
+        "counts": {
+          "total": 22,
+          "completed": 22,
+          "succeeded": 22,
+          "failed": 0,
+          "cancelled": 0
+        },
+        "savedByteReadback": "PASS",
+        "originalsUnchanged": true
+      },
+      "originalsUnchanged": {
+        "status": "PASS",
+        "before": "6f13a05d595d8aaa65c1b1d79198f8fadc4a2fb217832e49ede6433ba1d4dc19",
+        "after": "6f13a05d595d8aaa65c1b1d79198f8fadc4a2fb217832e49ede6433ba1d4dc19"
+      }
+    },
+    "fulltest510": "NOT_RUN",
+    "visibleGui": "NOT_RUN",
+    "scope": "offline full source regressions and bounded native conversion; no installation or packaging",
+    "dependencies": {
+      "openpyxl": true,
+      "PySide6": true,
+      "pypdf": true,
+      "node": true,
+      "DOM": true
+    },
+    "corpus": {
+      "count": 20,
+      "bytes": 2299288,
+      "extensions": {
+        ".apng": 2,
+        ".dbf": 1,
+        ".dif": 1,
+        ".emz": 1,
+        ".epub": 1,
+        ".fodp": 1,
+        ".fodt": 1,
+        ".gif": 2,
+        ".odc": 1,
+        ".ods": 1,
+        ".odt": 2,
+        ".png": 1,
+        ".sxw": 1,
+        ".tiff": 2,
+        ".webp": 1,
+        ".wmz": 1
+      },
+      "inventorySha256": "6f13a05d595d8aaa65c1b1d79198f8fadc4a2fb217832e49ede6433ba1d4dc19",
+      "status": "enumerated_read_only",
+      "scope": "targeted_original_FULLTEST_subset"
+    },
+    "status": "PASS"
+  },
+  "linux": {
+    "schema": 1,
+    "sourceSha": "f44ff2f70bb65a7de720b6f36111533264c60cdc",
+    "workflowSha": "14295cb1b7fcea8c6f9eb38d002d17c7b718f85e",
+    "platform": "Linux",
+    "python": "3.12.3",
+    "stages": {
+      "dependencies": {
+        "status": "PASS",
+        "missing": [],
+        "platformNotApplicable": [
+          "PySide6"
+        ]
+      },
+      "unittest": {
+        "status": "PASS",
+        "returncode": 0,
+        "timedOut": false,
+        "durationMs": 61142,
+        "log": "unittest.log",
+        "discovered": 582,
+        "passed": 560,
+        "failed": 0,
+        "errors": 0,
+        "skipped": [
+          {
+            "test": "test_guard_adapter_v17.AdapterRoutes.test_apng_native_import_failure_still_admits_frame_preserving_qt_routes",
+            "reason": "Application Qt dependency required",
+            "status": "platform_not_applicable"
+          },
+          {
+            "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_animation_to_tiff_keeps_each_frame_as_page",
+            "reason": "PySide6 required for native raster frame tests",
+            "status": "platform_not_applicable"
+          },
+          {
+            "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_apng_dispose_previous_background_and_source_blend",
+            "reason": "PySide6 required for native raster frame tests",
+            "status": "platform_not_applicable"
+          },
+          {
+            "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_apng_source_over_composes_semitransparent_subframe",
+            "reason": "PySide6 required for native raster frame tests",
+            "status": "platform_not_applicable"
+          },
+          {
+            "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_apng_to_webp_preserves_pixels_alpha_timing_loops",
+            "reason": "PySide6 required for native raster frame tests",
+            "status": "platform_not_applicable"
+          },
+          {
+            "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_cancellation_during_rows_cleans_partial_and_frame_scratch",
+            "reason": "PySide6 required for native raster frame tests",
+            "status": "platform_not_applicable"
+          },
+          {
+            "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_gif_cross_roundtrip_exact_palette_and_transparency",
+            "reason": "PySide6 required for native raster frame tests",
+            "status": "platform_not_applicable"
+          },
+          {
+            "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_gif_palette_limit_does_not_silently_quantise",
+            "reason": "PySide6 required for native raster frame tests",
+            "status": "platform_not_applicable"
+          },
+          {
+            "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_gif_semialpha_rejected_without_publishing_partial_file",
+            "reason": "PySide6 required for native raster frame tests",
+            "status": "platform_not_applicable"
+          },
+          {
+            "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_gif_subcentisecond_timing_is_explicitly_rejected",
+            "reason": "PySide6 required for native raster frame tests",
+            "status": "platform_not_applicable"
+          },
+          {
+            "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_icc_profile_is_preserved_in_webp_apng_and_tiff",
+            "reason": "PySide6 required for native raster frame tests",
+            "status": "platform_not_applicable"
+          },
+          {
+            "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_jpeg_exif_orientation_is_applied_before_png_encoding",
+            "reason": "PySide6 required for native raster frame tests",
+            "status": "platform_not_applicable"
+          },
+          {
+            "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_loop_change_is_not_ready",
+            "reason": "PySide6 required for native raster frame tests",
+            "status": "platform_not_applicable"
+          },
+          {
+            "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_nonraster_route_is_left_to_document_adapter",
+            "reason": "PySide6 required for native raster frame tests",
+            "status": "platform_not_applicable"
+          },
+          {
+            "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_opaque_rgba_256_colours_fit_exact_gif_palette",
+            "reason": "PySide6 required for native raster frame tests",
+            "status": "platform_not_applicable"
+          },
+          {
+            "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_pdf_to_tiff_renders_every_page_at_recorded_dpi",
+            "reason": "PySide6 required for native raster frame tests",
+            "status": "platform_not_applicable"
+          },
+          {
+            "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_tiff_preflight_requires_actual_decoder_for_cross_container",
+            "reason": "PySide6 required for native raster frame tests",
+            "status": "platform_not_applicable"
+          },
+          {
+            "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_tiff_to_pdf_postcondition_blocks_dropped_pages",
+            "reason": "PySide6 required for native raster frame tests",
+            "status": "platform_not_applicable"
+          },
+          {
+            "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_webp_to_png_writes_animation_instead_of_flattening",
+            "reason": "PySide6 required for native raster frame tests",
+            "status": "platform_not_applicable"
+          },
+          {
+            "test": "test_guard_qt_observation_v13.QtObservation.test_no_timer_without_opt_in_and_delay_measurement_does_not_throw",
+            "reason": "Opt in with AIO_QT_SAVE_QA=1 and existing Qt bindings",
+            "status": "platform_not_applicable"
+          },
+          {
+            "test": "test_guard_qt_save_v13.QtSaveBoundary.test_save_signals_are_queued_nonmodal_and_duplicate_picker_is_rejected",
+            "reason": "Opt in with AIO_QT_SAVE_QA=1 and existing Qt bindings",
+            "status": "platform_not_applicable"
+          },
+          {
+            "test": "test_libreoffice_direct.LibreOfficeDirectTests.test_live_writer_calc_pdf_with_local_engine",
+            "reason": "LibreOffice not installed",
+            "status": "platform_not_applicable"
+          }
+        ],
+        "failureDetails": [],
+        "expectedFailures": [],
+        "unexpectedSuccesses": []
+      },
+      "originalsUnchanged": {
+        "status": "PASS",
+        "before": "6f13a05d595d8aaa65c1b1d79198f8fadc4a2fb217832e49ede6433ba1d4dc19",
+        "after": "6f13a05d595d8aaa65c1b1d79198f8fadc4a2fb217832e49ede6433ba1d4dc19"
+      }
+    },
+    "fulltest510": "NOT_RUN",
+    "visibleGui": "NOT_RUN",
+    "scope": "source_only",
+    "native": {
+      "status": "NOT_RUN",
+      "reason": "explicit_source_only_mode",
+      "requiredCoverage": "Full native acceptance on NIKITA Windows job"
+    },
+    "dependencies": {
+      "openpyxl": true,
+      "PySide6": false,
+      "pypdf": true,
+      "node": true,
+      "DOM": true
+    },
+    "corpus": {
+      "count": 20,
+      "bytes": 2299288,
+      "extensions": {
+        ".apng": 2,
+        ".dbf": 1,
+        ".dif": 1,
+        ".emz": 1,
+        ".epub": 1,
+        ".fodp": 1,
+        ".fodt": 1,
+        ".gif": 2,
+        ".odc": 1,
+        ".ods": 1,
+        ".odt": 2,
+        ".png": 1,
+        ".sxw": 1,
+        ".tiff": 2,
+        ".webp": 1,
+        ".wmz": 1
+      },
+      "inventorySha256": "6f13a05d595d8aaa65c1b1d79198f8fadc4a2fb217832e49ede6433ba1d4dc19",
+      "status": "enumerated_read_only",
+      "scope": "targeted_original_FULLTEST_subset"
+    },
+    "status": "PASS"
+  },
+  "scope": {
+    "fulltest510": "NOT_RUN",
+    "visibleGUI": "NOT_RUN",
+    "installer": "NOT_RUN",
+    "linuxNative": "NOT_RUN; explicit source_only, native coverage is on NIKITA",
+    "mainChanged": false
+  }
+}
