@@ -46,7 +46,7 @@ WARNING_TEXT = {
         'Рисунок сохранён штатным XHTML-фильтром LibreOffice. Анимация, '
         'редактируемость и точность отображения отдельно не сравнивались.'),
     'NATIVE_WRITER_TEXT_ONLY': (
-        'Writer сохраняет CSV/TAB/TSV как обычный текст UTF-8. Это не таблица Calc: '
+        'Writer сохраняет TXT/CSV/TAB/TSV как обычный текст UTF-8. Это не таблица Calc: '
         'оформление, изображения и табличная структура не сохраняются.'),
     'NATIVE_TABLE_FORMAT_LIMITS': (
         'DBF/DIF имеют ограничения структуры, типов и оформления. '
@@ -83,6 +83,9 @@ class ExportRecipe:
 
 
 def native_export_recipe(native, target, proof):
+    runtime_filter = native.runtime_export_filter(target, proof)
+    if runtime_filter:
+        return ExportRecipe(runtime_filter, 'UTF8', warnings=('NATIVE_WRITER_TEXT_ONLY',))
     if (not native.valid or not proof or
             proof.get('registryFingerprint') != native.fingerprint or
             native.observed_decision(target, proof) != 'registered'):

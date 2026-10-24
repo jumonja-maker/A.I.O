@@ -1,6 +1,6 @@
 {
   "scope": "isolated Linux source, actual Qt and DOM regressions",
-  "run": 546,
+  "run": 578,
   "failures": 0,
   "errors": 0,
   "skipped": [],
@@ -9,10 +9,9 @@
     "test_brand_restoration.BrandRestorationTests.test_spec_bundles_icon_and_approved_sources_and_sets_exe_resource"
   ],
   "success": true,
-  "postReviewQuotaRegressions": {
-    "run": 3,
-    "passed": 3,
-    "failed": 0,
-    "scope": "explicit staging spool quota, preserved deadline, no-quota all-sheet path"
+  "postSuiteOracleRegressions": {
+    "checkerPassed": 10,
+    "driverPassed": 14,
+    "scope": "strict canonical native values, mixed-column DBF typed recovery, explicit source-only mode"
   }
 }

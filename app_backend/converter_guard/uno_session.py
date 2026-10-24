@@ -193,6 +193,48 @@ def export_draw_svm(model, remote, prop, target):
     return outputs
 
 
+def inspect_native_text_export(remote, text_document, services):
+    """Resolve this one Writer export against LO's final live configuration.
+
+    Static XCD/XCU merge order can leave a text extension uncertain. Runtime
+    FilterFactory and TypeDetection are authoritative for this running office;
+    no source detection or export is performed by this capability query.
+    """
+    writer = 'com.sun.star.text.TextDocument'
+    web = 'com.sun.star.text.WebDocument'
+    if text_document is not True or not set(services).intersection((writer, web)):
+        return {}, 'text_document_not_confirmed'
+    try:
+        factory = remote.ServiceManager.createInstanceWithContext(
+            'com.sun.star.document.FilterFactory', remote)
+        if factory is None or not factory.hasByName('Text (encoded)'):
+            return {}, 'filter_missing'
+        properties = {p.Name: p.Value for p in factory.getByName('Text (encoded)')
+                      if p.Name in ('Flags', 'DocumentService', 'Type')}
+        if properties.get('DocumentService') != writer:
+            return {}, 'document_service_mismatch'
+        # The FilterFactory UNO Flags property is the native integer bitmask:
+        # IMPORT=1, EXPORT=2. Never reinterpret strings as native permissions.
+        flags = properties.get('Flags')
+        if type(flags) is not int or not flags & 2:
+            return {}, 'export_flag_missing'
+        type_name = properties.get('Type')
+        if not isinstance(type_name, str) or not type_name or len(type_name) > 256:
+            return {}, 'type_missing'
+        detector = remote.ServiceManager.createInstanceWithContext(
+            'com.sun.star.document.TypeDetection', remote)
+        if detector is None or not detector.hasByName(type_name):
+            return {}, 'type_missing'
+        types = {p.Name: p.Value for p in detector.getByName(type_name) if p.Name == 'Extensions'}
+        extensions = types.get('Extensions')
+        if (not isinstance(extensions, (tuple, list)) or len(extensions) > 128
+                or not any(isinstance(value, str) and value.lower() == 'txt' for value in extensions)):
+            return {}, 'extensions_mismatch'
+        return {'txt': 'Text (encoded)'}, 'verified'
+    except Exception:
+        return {}, 'runtime_registry_unavailable'
+
+
 def main(boot_name):
     boot = json.loads(Path(boot_name).read_text(encoding='utf-8'))
     until = time.monotonic() + 20
@@ -293,6 +335,12 @@ def main(boot_name):
                     result = {'id':request_id,'ok':True,'services':services,
                               'typeName':arguments.get('TypeName'), 'filterName':actual_filter,
                               'nativeTextDocument':text_document}
+                    text_exports, text_export_reason = inspect_native_text_export(
+                        remote, text_document, services)
+                    if text_exports:
+                        result['nativeExportFilters'] = text_exports
+                    if text_document:
+                        result['nativeExportInspection'] = {'txt': text_export_reason}
                     if 'com.sun.star.drawing.DrawingDocument' in services:
                         try:
                             result['drawPages'] = model.getDrawPages().getCount()
@@ -325,6 +373,15 @@ def main(boot_name):
                     export_tick = time.monotonic()
                     exported_paths = [target]
                     try:
+                        if req['format'] == 'txt' and req['exportFilter'] == 'Text (encoded)':
+                            try:
+                                native_text = bool(model.queryInterface(
+                                    uno.getTypeByName('com.sun.star.text.XTextDocument')))
+                            except Exception:
+                                native_text = False
+                            text_exports, text_reason = inspect_native_text_export(remote, native_text, services)
+                            if text_exports.get('txt') != 'Text (encoded)':
+                                raise RuntimeError('NATIVE_TEXT_EXPORT_CAPABILITY_CHANGED:' + text_reason)
                         if (req.get('graphicExport') == 'svm' and req['format'] == 'svm'
                                 and 'com.sun.star.drawing.DrawingDocument' in services):
                             exported_paths = export_draw_svm(model, remote, prop, target)

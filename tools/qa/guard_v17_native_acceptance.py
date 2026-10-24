@@ -7,11 +7,9 @@ INCOMPLETE. This is bounded native acceptance, not a full visual certification.
 from __future__ import annotations
 
 import argparse
-import csv
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 import gzip
 import hashlib
-import io
 import json
 from pathlib import Path
 import re
@@ -85,13 +83,140 @@ def numeric_pairs(path):
     return result
 
 
-def check_numeric_pairs(csv_path, pairs):
-    rows = list(csv.reader(io.StringIO(csv_path.read_text(encoding='utf-8-sig'))))
+def primary_table_outputs(paths, target, expected_count):
+    """Memo/index companions are retained outputs, not additional sheets."""
+    primaries = [path for path in paths if path.suffix.lower() == '.' + target]
+    if len(primaries) != expected_count:
+        raise AssertionError('Expected %d %s sheet primaries, received %d; all retained outputs=%r' %
+                             (expected_count, target, len(primaries), [path.name for path in paths]))
+    return primaries, [path for path in paths if path not in primaries]
+
+
+def mixed_numeric_control_column(path, sheet_index):
+    table = odf_xml(path).findall('.//{%s}table' % TABLE)[sheet_index]
+    kinds = set()
+    for row in table.findall('{%s}table-row' % TABLE)[1:]:
+        cells = row.findall('{%s}table-cell' % TABLE)
+        if len(cells) < 2:
+            continue
+        kind = cells[1].get('{%s}value-type' % OFFICE)
+        if kind == 'string' and normal(''.join(cells[1].itertext())):
+            kinds.add('string')
+        elif kind in ('float', 'currency', 'percentage'):
+            kinds.add('numeric')
+    return kinds == {'string', 'numeric'}
+
+
+def cell_display(cell):
+    paragraphs = cell.findall('.//{urn:oasis:names:tc:opendocument:xmlns:text:1.0}p')
+    return '\n'.join(''.join(paragraph.itertext()) for paragraph in paragraphs)
+
+
+def dbf_numeric_controls(source, sheet_index, primary):
+    """Compare typed recovery metadata against the original source cells."""
+    table = odf_xml(source).findall('.//{%s}table' % TABLE)[sheet_index]
+    controls, source_displays = {}, {}
+    row_index = 0
+    for row in table.findall('{%s}table-row' % TABLE):
+        cells = row.findall('{%s}table-cell' % TABLE)
+        if (len(cells) >= 2 and cells[0].get('{%s}value-type' % OFFICE) == 'string' and
+                cells[1].get('{%s}value-type' % OFFICE) == 'float'):
+            marker = normal(''.join(cells[0].itertext()))
+            if marker:
+                controls[(row_index, 1)] = (marker, Decimal(cells[1].get('{%s}value' % OFFICE)))
+                source_displays[marker] = cell_display(cells[1])
+        row_index += int(row.get('{%s}number-rows-repeated' % TABLE, '1'))
+    sidecar = primary.with_name(primary.name + '.aio-columns.jsonl')
+    if not sidecar.is_file():
+        return {}, source_displays
+    selected = {}
+    with sidecar.open(encoding='utf-8') as stream:
+        header = json.loads(next(stream))
+        if (header.get('schemaVersion') != 1 or header.get('format') != 'dBase' or
+                1 not in header.get('memoColumns', [])):
+            raise AssertionError('Mixed DBF typed recovery sidecar header differs: ' + sidecar.name)
+        for line in stream:
+            row = json.loads(line, parse_float=Decimal)
+            control = controls.get((row.get('row'), row.get('column')))
+            if control is None:
+                continue
+            marker, expected = control
+            value = row.get('sourceValue')
+            try:
+                numeric = Decimal(str(value))
+            except InvalidOperation as error:
+                raise AssertionError('DBF recovery sidecar has invalid sourceValue=%r for %r' % (value, marker)) from error
+            if row.get('sourceType') != 'number' or not numeric.is_finite() or numeric != expected:
+                raise AssertionError('DBF recovery sidecar changed source value for %r: expected=%s observed=%r' %
+                                     (marker, expected, value))
+            if marker in selected or not isinstance(row.get('exportedText'), str):
+                raise AssertionError('Invalid or duplicate mixed DBF recovery entry for ' + marker)
+            selected[marker] = {'sourceValue': str(numeric), 'exportedText': row['exportedText'],
+                                'sidecar': sidecar.name, 'row': row['row'], 'column': row['column']}
+    if len(selected) != len(controls):
+        raise AssertionError('Mixed DBF recovery sidecar is missing original numeric controls')
+    return selected, source_displays
+
+
+def check_native_table_readback(path, markers, pairs, *, allow_dbf_mixed_numeric_text=False,
+                                dbf_memo_controls=None, source_numeric_displays=None):
+    """Use native typed values, never locale-formatted CSV display strings."""
+    tables = odf_xml(path).findall('.//{%s}table' % TABLE)
+    if len(tables) != 1:
+        raise AssertionError('A single exported sheet reopened as %d native tables' % len(tables))
+    text = normal(' '.join(''.join(cell.itertext()) for cell in tables[0].iter('{%s}table-cell' % TABLE)))
+    missing = [marker for marker in markers if normal(marker) not in text]
+    if missing:
+        raise AssertionError('Native table reimport lost string markers: %r' % missing)
+    rows = tables[0].findall('.//{%s}table-row' % TABLE)
+    observed = []
     for marker, expected in pairs:
-        row = next((values for values in rows if values and normal(values[0]) == marker), None)
-        if row is None or len(row) < 2 or Decimal(row[1]) != expected:
-            raise AssertionError('Native table reimport changed the paired cached numeric value for ' + marker)
-    return len(pairs)
+        matches = []
+        for row in rows:
+            cells = row.findall('{%s}table-cell' % TABLE)
+            if cells and normal(''.join(cells[0].itertext())) == marker:
+                matches.append(cells)
+        if len(matches) != 1 or len(matches[0]) < 2:
+            raise AssertionError('Native numeric control %r: expected exactly one row and second cell; observed rows=%d' %
+                                 (marker, len(matches)))
+        cell = matches[0][1]
+        value_type = cell.get('{%s}value-type' % OFFICE)
+        value = cell.get('{%s}value' % OFFICE)
+        display = cell_display(cell)
+        diagnostic = 'marker=%r; expected=%s; observedType=%r; observedOfficeValue=%r; observedDisplayText=%r' % (
+            marker, expected, value_type, value, display)
+        coerced = value_type == 'string' and allow_dbf_mixed_numeric_text
+        coercion = None
+        if coerced:
+            recovery = (dbf_memo_controls or {}).get(marker)
+            if recovery is not None:
+                if display != recovery['exportedText'] or Decimal(recovery['sourceValue']) != expected:
+                    raise AssertionError('DBF native Memo differs from typed recovery metadata; ' + diagnostic)
+                value = recovery['sourceValue']
+                coercion = 'native_DBF_mixed_column_memo_with_typed_recovery_sidecar'
+            elif ((source_numeric_displays or {}).get(marker) == display and
+                  display and not display.lstrip().startswith('#')):
+                value = str(expected)
+                coercion = 'native_DBF_mixed_column_preserves_source_display'
+            else:
+                value = normal(display)
+                if not re.fullmatch(r'[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?', value):
+                    raise AssertionError('Native mixed DBF numeric text is not canonical; ' + diagnostic)
+                coercion = 'native_DBF_mixed_column_numeric_as_text'
+        elif value_type not in ('float', 'currency', 'percentage') or value is None:
+            raise AssertionError('Native table reimport changed a numeric cell type; ' + diagnostic)
+        try:
+            actual = Decimal(value)
+        except InvalidOperation as error:
+            raise AssertionError('Native numeric value is not canonical; ' + diagnostic) from error
+        if not actual.is_finite() or actual != expected:
+            raise AssertionError('Native table reimport changed a cached numeric value; ' + diagnostic)
+        observed.append({'marker': marker, 'expected': str(expected), 'actual': value,
+                         'valueType': value_type, 'displayText': display,
+                         'typeCoercion': coercion,
+                         'typedRecovery': (dbf_memo_controls or {}).get(marker) if coerced else None})
+    return {'stringMarkers': len(markers), 'numericValues': len(pairs),
+            'numericReadback': observed, 'allFound': True}
 
 
 def seed_controls(folder):
@@ -207,30 +332,29 @@ def check_case(case, target, paths, work, executable, seconds):
             raise AssertionError('Alpha channel was lost')
         if before['frames'] > 1 and before['durationsMs'] != after['durationsMs']:
             raise AssertionError('Animation timing changed')
-        return {'method': 'independent_container_structure', 'source': before, 'result': after}
+        return {'method': 'independent_container_structure', 'sourceMedia': before, 'resultMedia': after}
     if case['kind'] == 'table':
         expected_sheets = table_markers(source)
-        if len(paths) != len(expected_sheets):
-            raise AssertionError('Expected %d sheet exports, received %d' % (len(expected_sheets), len(paths)))
+        paths, companions = primary_table_outputs(paths, target, len(expected_sheets))
         sheet_checks = []
         # Map the original stem first and then the numbered additional sheets.
         paths = sorted(paths, key=lambda path: (path.stem != source.stem, path.name))
         for index, (path, markers) in enumerate(zip(paths, expected_sheets)):
             reopen = work / ('reopen-sheet-%d' % index)
             prepare_profile(reopen / 'profile')
-            result = convert_path(path, 'csv', reopen, executable=executable,
-                convert_spec='csv:Text - txt - csv (StarCalc):44,34,76,1',
+            result = convert_path(path, 'fods', reopen, executable=executable,
+                convert_spec='fods:OpenDocument Spreadsheet Flat XML',
                 import_filter='dBase:76' if target == 'dbf' else 'DIF:76',
                 cancel=_RunControl(threading.Event(), reopen, seconds, None))
-            csv_path = next(candidate for candidate in result if candidate.suffix == '.csv')
-            csv_text = normal(csv_path.read_text(encoding='utf-8-sig'))
-            missing = [marker for marker in markers if normal(marker) not in csv_text]
-            if missing:
-                raise AssertionError('Native table reimport lost data in sheet %d: %r' % (index + 1, missing))
-            numbers_checked = check_numeric_pairs(csv_path, numeric_pairs(source)[index])
-            sheet_checks.append({'sheet': index + 1, 'stringMarkers': len(markers),
-                                 'numericValues': numbers_checked, 'allFound': True})
-        return {'method': 'independent_native_csv_reimport_per_sheet', 'sheets': sheet_checks}
+            flat_path = next(candidate for candidate in result if candidate.suffix == '.fods')
+            mixed = target == 'dbf' and mixed_numeric_control_column(source, index)
+            recovery, source_displays = dbf_numeric_controls(source, index, path) if mixed else ({}, {})
+            sheet_checks.append({'sheet': index + 1,
+                **check_native_table_readback(flat_path, markers, numeric_pairs(source)[index],
+                    allow_dbf_mixed_numeric_text=mixed, dbf_memo_controls=recovery,
+                    source_numeric_displays=source_displays)})
+        return {'method': 'independent_native_fods_reimport_per_sheet', 'sheets': sheet_checks,
+                'companionFiles': [path.name for path in companions]}
     raise AssertionError('Unknown acceptance case')
 
 

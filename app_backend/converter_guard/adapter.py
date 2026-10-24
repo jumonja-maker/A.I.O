@@ -187,9 +187,14 @@ class LibreOfficeAdapter:
         known = {row[0] for row in entries}
         media_targets = set(t for proof in (proofs or {}).values() if proof
                             for t in proof.get('qtMediaTargets', ()))
-        for ext in sorted(media_targets - known):
-            entries.append((ext, 'images', ext.upper() + ' — сохранение кадров Qt',
-                            {'apng': 'image/apng', 'tif': 'image/tiff',
+        live_targets = set(t for proof in (proofs or {}).values() if proof
+                           for t in proof.get('nativeExportFilters', ())
+                           if native.runtime_export_filter(t, proof))
+        for ext in sorted((media_targets | live_targets) - known):
+            entries.append((ext, 'documents' if ext == 'txt' else 'images',
+                            'TXT — нативный текст UTF-8' if ext == 'txt' else
+                            ext.upper() + ' — сохранение кадров Qt',
+                            {'apng': 'image/apng', 'tif': 'image/tiff', 'txt': 'text/plain',
                              'tiff': 'image/tiff'}.get(ext, 'image/' + ext), True))
         for ext, category, description, mime, registered in entries:
             if ext == 'xml':
@@ -218,7 +223,7 @@ class LibreOfficeAdapter:
                 }).get(ext, 'Проверка Guard подтверждает маршрут, но не гарантирует отсутствие смысловых или визуальных потерь.')}],
                 'unavailableReasons': {f['id']: native.route_reason(ext, (proofs or {}).get(f['id']))
                                        for f in files if proofs and native.route_reason(ext, proofs.get(f['id']))},
-                'registeredExport': (ext in native.exports or ext in media_targets or
+                'registeredExport': (ext in native.exports or ext in media_targets or ext in live_targets or
                                      ext == 'svm' and bool(compatible)) if native.valid else registered,
                 'enabled': available and proofs is not None and bool(compatible),
                 # Hints and undetermined routes remain visible diagnostics,
@@ -351,6 +356,8 @@ class LibreOfficeAdapter:
                         'csvInspection': csv_profile,
                         'drawPages':result.get('drawPages'),
                         'nativeGraphicExports': result.get('nativeGraphicExports', []),
+                        'nativeExportFilters': result.get('nativeExportFilters', {}),
+                        'nativeExportInspection': result.get('nativeExportInspection', {}),
                         'registryFingerprint':native.fingerprint,'exported':False}
                 return {'state':'undetermined','code':result.get('code') or 'PREFLIGHT_IMPORT_FAILED',
                         'diagnosticStage':result.get('stage','import'),
