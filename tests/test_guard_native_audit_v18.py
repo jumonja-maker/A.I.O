@@ -1,5 +1,6 @@
 """Batch preparation identity, native cancellation and failure-path cleanup."""
 import json
+import os
 from pathlib import Path
 import shutil
 import tempfile
@@ -113,6 +114,10 @@ class NativeAuditV18(unittest.TestCase):
     def test_one_native_preflight_reuses_only_this_calls_source_inspection(self):
         source = self.source()
         executable = self.root / 'soffice'; executable.touch()
+        if os.name == 'nt':
+            # The Windows preflight uses the installed UNO python.exe instead
+            # of the Linux LOK kind-based worker; emulate that exact response.
+            (self.root / 'python.exe').touch()
         native = SimpleNamespace(valid=True, fingerprint='registry',
             filters={}, import_services={WRITER}, imports={'odt': {WRITER}})
         adapter = LibreOfficeAdapter(executable)
@@ -127,7 +132,10 @@ class NativeAuditV18(unittest.TestCase):
         class Tree:
             def __init__(self, command, *, cwd, **kwargs):
                 self.process = Child()
-                (cwd / 'result.json').write_text(json.dumps({'state': 'detected', 'kind': 0}))
+                detected = {'state': 'detected', 'kind': 0}
+                if os.name == 'nt':
+                    detected.update(modelLoaded=True, documentServices=[WRITER])
+                (cwd / 'result.json').write_text(json.dumps(detected))
             def __enter__(self): return self
             def __exit__(self, *args): pass
         with patch.object(adapter, '_registry', return_value=native), \
