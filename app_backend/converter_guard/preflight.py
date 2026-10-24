@@ -32,8 +32,13 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
     from .routes import registry
     from .csv_import import csv_import_hint
     from .legacy_import import legacy_import_hint
+    from .source_contract import inspect_source_contract, source_import_hint, source_model_matches
     native = native if native is not None else registry(executable)
-    hint = csv_import_hint(source, native) or legacy_import_hint(source, native)
+    contract = inspect_source_contract(source, cancel=cancel)
+    if contract.get('state') == 'invalid':
+        return {'state': 'undetermined', 'code': contract['code'], 'sourceContract': contract, 'exported': False}
+    source_hint = source_import_hint(contract, native)
+    hint = source_hint or csv_import_hint(source, native) or legacy_import_hint(source, native)
     if not native.valid:
         return {'state': 'undetermined', 'code': 'PREFLIGHT_REGISTRY_UNAVAILABLE'}
     work = work.resolve()
@@ -42,6 +47,7 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
     manifest = work / 'request.json'
     request = {'program': str(Path(executable).resolve().parent), 'source': str(source.resolve())}
     request['documentServices'] = sorted({service for services in native.imports.values() for service in services})
+    request['expectedSourceServices'] = contract.get('expectedServices', [])
     if hint:
         request['csvImportHint'] = hint
     if office_session is not None:
@@ -102,7 +108,10 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
                     selected = detected.get('filterName')
                     item = native.filters.get(selected)
                     import_filter = selected if item and 'IMPORT' in item[2] and item[0] in services else None
-                    if hint and (import_filter != hint['filter'] or
+                    if not source_model_matches(contract, services):
+                        return {'state': 'undetermined', 'code': 'SOURCE_MODEL_MISMATCH',
+                                'sourceContract': contract, 'exported': False}
+                    if hint and (import_filter != hint['filter'] or not source_hint and
                                  sorted(set(services)) != ['com.sun.star.sheet.SpreadsheetDocument']):
                         return {'state':'undetermined','code':'PREFLIGHT_IMPORT_FILTER_MISMATCH'}
                     return {'state':'detected','basis':'native_preflight_uno_document','modelLoaded':True,
@@ -110,6 +119,7 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
                             'documentServices':sorted(set(services)), 'typeName':detected.get('typeName'),
                             'filterName':selected, 'selectedImportFilter':import_filter,
                             'selectedImportOptions':hint['options'] if hint else None,
+                            'sourceContract':contract,
                             'drawPages':detected.get('drawPages'),
                             'registryFingerprint':native.fingerprint,'exported':False}
             if os.name == 'nt':
@@ -117,7 +127,8 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
                         else 'PREFLIGHT_UNO_TYPE_UNMAPPED')
                 if code not in ('PREFLIGHT_UNO_API_UNAVAILABLE', 'PREFLIGHT_UNO_TYPE_UNKNOWN',
                                 'PREFLIGHT_UNO_TYPE_UNMAPPED', 'PREFLIGHT_IMPORT_FAILED',
-                                'PREFLIGHT_INTERACTION_REQUIRED','PREFLIGHT_IMPORT_FILTER_MISMATCH'):
+                                'PREFLIGHT_INTERACTION_REQUIRED','PREFLIGHT_IMPORT_FILTER_MISMATCH',
+                                'SOURCE_MODEL_MISMATCH'):
                     code = 'PREFLIGHT_UNO_API_UNAVAILABLE'
                 try:
                     stage = (work / 'stage.txt').read_text(encoding='ascii').strip()[:64]
@@ -152,9 +163,13 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
                                        'PREFLIGHT_KIND_UNDETERMINED'):
                     native_code = 'PREFLIGHT_KIND_UNDETERMINED'
                 return {'state': 'undetermined', 'code': native_code}
+            if not source_model_matches(contract, SERVICES[kind]):
+                return {'state': 'undetermined', 'code': 'SOURCE_MODEL_MISMATCH',
+                        'sourceContract': contract, 'exported': False}
             return {'state': 'detected', 'documentServices': list(SERVICES[kind]),
                     'basis': 'native_preflight_document_kind', 'nativeKind': kind,
                     'drawPages': detected.get('drawPages') if kind == 3 else None,
                     'registryFingerprint': native.fingerprint, 'exported': False}
     except (OSError, ValueError):
         return {'state': 'undetermined', 'code': 'PREFLIGHT_API_UNAVAILABLE'}
+

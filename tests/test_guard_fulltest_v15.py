@@ -81,13 +81,14 @@ class BugBag(unittest.TestCase):
         self.assertEqual(result['status'],'content_present')
         self.assertFalse(result['qualityCompared'])
 
-    def test_large_or_dynamic_output_is_explicitly_not_checked(self):
+    def test_dynamic_output_fails_closed_and_large_text_is_streamed(self):
         p = self.root/'picture.html';p.write_text('<body><canvas></canvas><script>draw()</script></body>')
-        self.assertEqual(check_native_output([p],'html',self.root/'picture.bmp',
-            cancel=threading.Event())['status'],'not_checked')
+        with self.assertRaises(GuardError) as error:
+            check_native_output([p],'html',self.root/'picture.bmp',cancel=threading.Event())
+        self.assertEqual(error.exception.code,'ENGINE_OUTPUT_VALIDATION_INCOMPLETE')
         p.write_bytes(b'<body>'+b'a'*(1024*1024))
         self.assertEqual(check_native_output([p],'html',self.root/'picture.bmp',
-            cancel=threading.Event())['reason'],'inspection_budget')
+            cancel=threading.Event())['status'],'content_present')
 
     def test_html_over_32_mib_is_streamed_without_size_veto(self):
         p = self.root/'large.html'
@@ -202,7 +203,7 @@ class BugBag(unittest.TestCase):
         self.assertEqual(g.recoverable()['jobs'][0]['outputs'],2)
         self.assertTrue(all(not a.saved and a.path.exists() for a in g._jobs[job].artifacts))
 
-    def test_zip_has_hashes_for_every_output_and_readback_is_optional(self):
+    def test_zip_has_hashes_for_every_output_and_folder_readback_is_default(self):
         g=self.guard();job,state=self.ready(g)
         with g.open_result(state['result']['ticket']) as (stream,_,_):
             with zipfile.ZipFile(stream) as z:
@@ -212,7 +213,8 @@ class BugBag(unittest.TestCase):
                 for e in manifest['outputs']:
                     self.assertEqual(hashlib.sha256(z.read(e['path'])).hexdigest(),e['sha256'])
         result=g.save_folder(state['result']['ticket'],self.root)
-        self.assertFalse(result['readbackVerified'])
+        self.assertTrue(result['readbackVerified'])
+        self.assertEqual(result['outputsVerified'],2)
 
     def test_download_readback_does_not_acknowledge_itself(self):
         g=self.guard();job,state=self.ready(g,('pdf',))
@@ -307,3 +309,4 @@ class BugBag(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+

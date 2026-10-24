@@ -16,7 +16,8 @@
   let inspected = null;
   let lastRun = null;
   let qualityCheck = false;
-  let verifySaved = false;
+  // Native saves are acknowledged only after an independent read of disk bytes.
+  const verifySaved = true;
   const publish = report => {
     if (typeof CustomEvent === 'function' && typeof window.dispatchEvent === 'function')
       window.dispatchEvent(new CustomEvent('aio-guard-state', {detail:report}));
@@ -540,7 +541,7 @@
       if(active?.startRequested)throw errorOf('Режим проверки можно изменить перед следующей конвертацией.','QUALITY_BUSY');
       qualityCheck=enabled;
     },
-    setSaveVerification(enabled) { verifySaved = enabled === true; },
+    setSaveVerification() { return verifySaved; },
     getSaveVerification() { return verifySaved; },
     getHtmlSources() {
       if(active||preparing)return [];
@@ -630,3 +631,4 @@
     }
   });
 })();
+

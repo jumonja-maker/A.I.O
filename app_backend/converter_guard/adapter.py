@@ -15,6 +15,7 @@ from .native_observation import NativeObservation
 from .native_metrics import clean_timings
 from .legacy_import import legacy_import_hint, validate_options
 from .postconditions import check_native_output
+from .source_contract import inspect_source_contract, source_import_hint, source_model_matches
 
 
 def prepare_profile(profile):
@@ -115,8 +116,10 @@ class LibreOfficeAdapter:
         options = (proof or {}).get('selectedImportOptions')
         if (not name and (proof or {}).get('basis') == 'native_preflight_document_kind'
                 and (proof or {}).get('state') == 'detected'
-                and (proof or {}).get('nativeKind') == 1
-                and (proof or {}).get('documentServices') == ['com.sun.star.sheet.SpreadsheetDocument']):
+                and ((proof or {}).get('nativeKind') == 1 and
+                     (proof or {}).get('documentServices') == ['com.sun.star.sheet.SpreadsheetDocument']
+                     or (proof or {}).get('sourceContract', {}).get('contentClass') == 'flat_odf'
+                     and source_model_matches(proof['sourceContract'], proof.get('documentServices')))):
             # LOK confirms the model, but does not expose its chosen filter.
             # Keep an explicit installed text-import request separate from
             # a UNO-observed selected filter; never replace a different model.
@@ -141,6 +144,8 @@ class LibreOfficeAdapter:
         native = self._registry()
         formats = []
         for ext, category, description, mime, registered in catalog(self.executable):
+            if ext == 'xml':
+                description = 'XML — нативное представление документа'
             states = {f['id']: (native.hint(f['name'], ext) if proofs is None else
                                native.observed_decision(ext, proofs.get(f['id']))) for f in files}
             compatible = [i for i, state in states.items() if state == 'registered']
@@ -160,7 +165,8 @@ class LibreOfficeAdapter:
                     'jpeg': 'JPEG — формат с потерями; экспорт может менять качество изображения и геометрию страницы.',
                     'webp': 'Графический экспорт документа может менять размер полотна и формат представления.',
                     'pdf': 'PDF предназначен для просмотра: структура и редактируемость исходника могут измениться.',
-                    'epub': 'EPUB создаётся фильтром экспорта; поддержка экспорта не означает, что EPUB можно открыть как исходник.'
+                    'epub': 'EPUB создаётся фильтром экспорта; поддержка экспорта не означает, что EPUB можно открыть как исходник.',
+                    'xml': 'Для Writer/Calc/Impress/Draw используется установленный штатный фильтр Flat OpenDocument XML. Это не Excel/Word 2003 XML; точный фильтр указан в отчёте.'
                 }).get(ext, 'Проверка Guard подтверждает маршрут, но не гарантирует отсутствие смысловых или визуальных потерь.')}],
                 'unavailableReasons': {f['id']: native.route_reason(ext, (proofs or {}).get(f['id']))
                                        for f in files if proofs and native.route_reason(ext, proofs.get(f['id']))},
@@ -211,17 +217,28 @@ class LibreOfficeAdapter:
         batch = getattr(self._local, 'batch', None)
         office = batch[1] if batch else None
         native = self._registry()
-        hint = csv_import_hint(source, native) or legacy_import_hint(source, native)
+        contract = inspect_source_contract(source, cancel=cancel)
+        if contract.get('state') == 'invalid':
+            return {'state': 'undetermined', 'code': contract['code'],
+                    'sourceContract': contract, 'exported': False}
+        if (contract.get('contentClass') == 'epub_package' and native.valid
+                and not native.imports.get('epub')):
+            return {'state': 'undetermined', 'code': 'EPUB_NATIVE_IMPORT_UNAVAILABLE',
+                    'sourceContract': contract, 'exported': False}
+        source_hint = source_import_hint(contract, native)
+        hint = source_hint or csv_import_hint(source, native) or legacy_import_hint(source, native)
         # One streaming scan, only for a content-confirmed text hint. Large or
         # ambiguous inputs retain an explicit incomplete status, never a veto.
         csv_profile = (inspect_csv_stream(source, delimiter=chr(int(hint['options'].split(',')[0])),
                                          cancel=cancel, seconds=min(.15, timeout or .15),
-                                         analyze_values=False) if hint and hint.get('basis') != 'content_confirmed_legacy' else None)
+                                         analyze_values=False) if hint and not source_hint
+                       and hint.get('basis') != 'content_confirmed_legacy' else None)
         if office and hasattr(office, 'request') and not office.disabled:
             native = self._registry()
             try:
                 result = office.request({'operation':'inspect','source':str(source.resolve()),
                     'services':sorted(native.import_services),
+                    'expectedSourceServices':contract.get('expectedServices', []),
                     'importFilter':hint['filter'] if hint else None,
                     'importOptions':hint['options'] if hint else None},
                     cancel=cancel,timeout=timeout)
@@ -231,7 +248,10 @@ class LibreOfficeAdapter:
                     selected = result.get('filterName')
                     item = native.filters.get(selected)
                     confirmed = selected if item and 'IMPORT' in item[2] and item[0] in services else None
-                    if hint and (confirmed != hint['filter'] or
+                    if not source_model_matches(contract, services):
+                        return {'state': 'undetermined', 'code': 'SOURCE_MODEL_MISMATCH',
+                                'sourceContract': contract, 'exported': False}
+                    if hint and (confirmed != hint['filter'] or not source_hint and
                                  services != ['com.sun.star.sheet.SpreadsheetDocument']):
                         return {'state':'undetermined','code':'PREFLIGHT_IMPORT_FILTER_MISMATCH'}
                     return {'state':'detected','basis':'native_preflight_uno_document','modelLoaded':True,
@@ -240,12 +260,14 @@ class LibreOfficeAdapter:
                         'documentServices':services,'typeName':result.get('typeName'),'filterName':selected,
                         'selectedImportFilter':confirmed,
                         'selectedImportOptions':hint['options'] if hint else None,
+                        'sourceContract':contract,
                         'csvImportSampleOnly': bool(csv_profile and not csv_profile.get('complete')),
                         'csvInspection': csv_profile,
                         'drawPages':result.get('drawPages'),
                         'registryFingerprint':native.fingerprint,'exported':False}
                 return {'state':'undetermined','code':result.get('code') or 'PREFLIGHT_IMPORT_FAILED',
-                        'diagnosticStage':result.get('stage','import')}
+                        'diagnosticStage':result.get('stage','import'),
+                        **({'sourceContract': contract} if contract.get('state') != 'not_applicable' else {})}
             except GuardError as error:
                 if error.code == 'ENGINE_TIMEOUT':
                     return {'state':'undetermined','code':'PREFLIGHT_TIMEOUT','diagnosticStage':'native_import'}
@@ -258,7 +280,12 @@ class LibreOfficeAdapter:
             proof = inspect_source(self.executable, source, workspace, cancel=cancel,
                 timeout=timeout, prepare_profile=prepare_profile, native=self._registry(),
                 office_session=office if os.name == 'nt' and not hasattr(office,'request') else None)
-            if (hint and proof.get('state') == 'detected'
+            if proof.get('state') == 'detected' and not source_model_matches(contract, proof.get('documentServices')):
+                return {'state': 'undetermined', 'code': 'SOURCE_MODEL_MISMATCH',
+                        'sourceContract': contract, 'exported': False}
+            if contract.get('state') != 'not_applicable':
+                proof = {**proof, 'sourceContract': contract}
+            if (hint and not source_hint and proof.get('state') == 'detected'
                     and proof.get('basis') == 'native_preflight_document_kind'
                     and proof.get('nativeKind') == 1
                     and proof.get('documentServices') == ['com.sun.star.sheet.SpreadsheetDocument']
@@ -266,6 +293,10 @@ class LibreOfficeAdapter:
                 proof = {**proof, 'requestedImportFilter': hint['filter'],
                          'requestedImportOptions': hint['options'],
                          'csvImportSampleOnly': bool(csv_profile and not csv_profile.get('complete')), 'csvInspection':csv_profile}
+            if (source_hint and proof.get('state') == 'detected'
+                    and proof.get('basis') == 'native_preflight_document_kind'
+                    and proof.get('registryFingerprint') == native.fingerprint):
+                proof = {**proof, 'requestedImportFilter': source_hint['filter']}
             if office and proof.get('code') in ('PREFLIGHT_TIMEOUT', 'PREFLIGHT_API_UNAVAILABLE',
                                                 'PREFLIGHT_UNO_API_UNAVAILABLE'):
                 office.recycle()
@@ -291,15 +322,40 @@ class LibreOfficeAdapter:
 
     def convert(self, source, target, workspace, *, cancel, timeout,
                 on_started, output_limit=None, on_document_service=None, on_stage=None):
-        paths = self._convert_native(source, target, workspace, cancel=cancel, timeout=timeout,
-            on_started=on_started, output_limit=output_limit,
-            on_document_service=on_document_service, on_stage=on_stage)
+        from .media_fidelity import copy_media_identity
+        from .native_identity import copy_chart_identity
+        proof = getattr(self._local, 'proof', None) or {}
+        paths = None
+        identity_control = (cancel if timeout is None and output_limit is None else
+                            _RunControl(cancel, workspace, timeout, output_limit))
+        if proof.get('state') == 'detected' and self.route_decision(target, proof) == 'registered':
+            paths = copy_media_identity(source, workspace / 'output', target, cancel=identity_control)
+            identity = 'media_identity' if paths else None
+            if paths is None:
+                paths = copy_chart_identity(source, workspace / 'output', target, proof, cancel=identity_control)
+                identity = 'native_identity' if paths else None
+            if paths:
+                self._local.execution_mode = identity
+                self._local.metrics = None
+                self._local.export_info = {'executionReason': 'validated_' + identity,
+                    'resultChecks': [{'check': identity, 'status': 'byte_preserved', 'qualityCompared': False}]}
+        if paths is None:
+            paths = self._convert_native(source, target, workspace, cancel=cancel, timeout=timeout,
+                on_started=on_started, output_limit=output_limit,
+                on_document_service=on_document_service, on_stage=on_stage)
         check = check_native_output(paths, target, source, cancel=cancel)
         if check:
-            self._local.export_info['resultChecks'] = [check]
-            if check.get('status') == 'not_checked':
-                self._local.export_info['warnings'] = tuple(
-                    self._local.export_info.get('warnings', ())) + ('NATIVE_HTML_CONTENT_NOT_CHECKED',)
+            checks = [{key: value for key, value in check.items() if key != 'additionalChecks'}]
+            checks.extend(check.get('additionalChecks', []))
+            self._local.export_info['resultChecks'] = list(self._local.export_info.get('resultChecks', [])) + checks
+            warnings = list(self._local.export_info.get('warnings', ()))
+            for result_check in checks:
+                if result_check.get('status') == 'not_checked':
+                    code = ('ODF_TABLE_CONTENT_NOT_CHECKED' if result_check.get('check') == 'odf_table_text'
+                            else 'NATIVE_OUTPUT_NOT_CHECKED')
+                    if code not in warnings:
+                        warnings.append(code)
+            self._local.export_info['warnings'] = tuple(warnings)
         return paths
 
     def _convert_native(self, source, target, workspace, *, cancel, timeout,
@@ -355,12 +411,14 @@ class LibreOfficeAdapter:
                             'exportOptions':recipe.filter_options,
                             'requiredDrawPages':recipe.required_draw_pages,
                             'importFilter':getattr(self._local,'import_filter',None),
+                            'expectedImportFilter':getattr(self._local,'import_filter',None),
                             'importOptions':getattr(self._local,'import_options',None),
                             'importTimeout': max(getattr(office, 'import_timeout', 60),
                                 min(timeout, max(getattr(office, 'import_timeout', 60),
                                     (proof.get('nativeImportMs') or 0) / 1000 * 3 + 5)))
                                 if timeout is not None else getattr(office, 'import_timeout', 60),
-                            'services':sorted(native.import_services),'expectedServices':services},
+                            'services':sorted(native.import_services),'expectedServices':services,
+                            'expectedSourceServices':proof.get('sourceContract', {}).get('expectedServices', [])},
                             cancel=control,timeout=timeout,on_stage=on_stage or (lambda stage:None))
                         response_received = True
                         if result.get('nativeCloseInterrupted'):
@@ -372,6 +430,15 @@ class LibreOfficeAdapter:
                         if not result.get('ok'):
                             diagnostic=str(result.get('diagnostic','')).replace(str(source.parent.parent.parent),'[local]')
                             code = result.get('code') or 'ENGINE_FAILED'
+                            interaction = result.get('interaction')
+                            if isinstance(interaction, dict):
+                                kind = interaction.get('requestType')
+                                number = interaction.get('errorCode')
+                                if (isinstance(kind, str) and len(kind) <= 128
+                                        and all(c.isalnum() or c in '._' for c in kind)):
+                                    diagnostic += '\nnative_interaction:' + kind
+                                if type(number) is int:
+                                    diagnostic += ':error_code=' + str(number)
                             message = ('LibreOffice запросил дополнительные данные при экспорте. '
                                        'Направление не завершено; остальные задачи продолжаются.'
                                        if code == 'EXPORT_INTERACTION_REQUIRED' else
@@ -440,3 +507,4 @@ class LibreOfficeAdapter:
 
     def _capture_metrics(self, value):
         self._local.metrics = clean_timings(value)
+

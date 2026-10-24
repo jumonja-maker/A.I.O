@@ -74,7 +74,8 @@ class SaveQueueTests(unittest.TestCase):
         self.assertEqual(manifest['jobId'], identity)
         self.assertEqual(manifest['saveId'], saved['saveId'])
         self.assertEqual(len(manifest['outputs']), 1)
-        self.assertFalse(manifest['readbackVerified'])
+        self.assertTrue(manifest['readbackVerified'])
+        self.assertEqual(manifest['outputsVerified'],1)
         copied = manifest['outputs'][0]
         self.assertEqual(hashlib.sha256((self.destination/saved['name']/copied['path']).read_bytes()).hexdigest(),
                          copied['sha256'])
@@ -197,3 +198,4 @@ class SaveQueueTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+

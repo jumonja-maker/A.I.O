@@ -48,7 +48,7 @@
       '<div data-g-counts></div><div class="aio-guard-warning" data-g-warning></div>'+
       '<div class="aio-guard-tools"><input type="search" placeholder="Имя файла или формат" aria-label="Поиск в очереди"><select aria-label="Состояние задач"><option value="all">Все задачи</option><option value="error">Ошибки</option><option value="pending">Ожидают</option><option value="ready">Готовые</option></select></div>'+
       '<div data-g-storage></div><label class="aio-guard-quality"><input type="checkbox" data-g-quality> Проверить структуру результатов <small>Дольше; без проверки внешнего вида</small></label>'+
-      '<label class="aio-guard-quality"><input type="checkbox" data-g-verify> Проверять сохранённые файлы <small>Дополнительное чтение с диска; без оценки качества конвертации</small></label>'+
+      '<div class="aio-guard-quality" data-g-verify>Сохранённые файлы проверяются автоматически <small>Сверяем байты с результатом AIO после записи на диск</small></div>'+
       '<div class="aio-guard-save" data-g-resources><select data-g-html-source aria-label="Исходник HTML"></select><button type="button" data-g-add-resources>Добавить папку ресурсов HTML</button><input type="file" data-g-resource-picker webkitdirectory multiple hidden></div>'+
       '<div class="aio-guard-list" role="list" aria-label="Задачи конвертации"></div>'+
       '<div class="aio-guard-pages"><button type="button" data-g-prev>Назад</button><span data-g-page></span><button type="button" data-g-next>Далее</button></div>'+
@@ -104,10 +104,7 @@
       try{api()?.setQualityCheck?.(qualityInput.checked);}catch(error){
         qualityInput.checked=api()?.getQualityCheck?.()===true;text('[data-g-warning]',error.message);}
     });
-    const verifyInput=bar.querySelector('[data-g-verify]');
-    verifyInput.checked=api()?.getSaveVerification?.()===true;
-    verifyInput.disabled=!window.AllInOneNativeShell;
-    verifyInput.addEventListener('change',()=>api()?.setSaveVerification?.(verifyInput.checked));
+    bar.querySelector('[data-g-verify]').hidden=!window.AllInOneNativeShell;
     const picker=bar.querySelector('[data-g-resource-picker]');
     bar.querySelector('[data-g-add-resources]').addEventListener('click',()=>picker.click());
     picker.addEventListener('change',async()=>{
@@ -128,13 +125,23 @@
     bar.querySelector('[data-g-next]').addEventListener('click',()=>{page++;renderRows();});
     const dialog=bar.querySelector('.aio-guard-popup');
     bar.querySelector('[data-g-close]').addEventListener('click',()=>dialog.close());
+    const outsideDialog=event=>{
+      if(event.target!==dialog||!Number.isFinite(event.clientX)||!Number.isFinite(event.clientY))return false;
+      const bounds=dialog.getBoundingClientRect();
+      return event.clientX<bounds.left||event.clientX>bounds.right||
+        event.clientY<bounds.top||event.clientY>bounds.bottom;
+    };
     let backdropDown=false;
-    dialog.addEventListener('pointerdown',event=>{backdropDown=event.target===dialog;});
+    dialog.addEventListener('pointerdown',event=>{backdropDown=event.button===0&&outsideDialog(event);});
     dialog.addEventListener('pointerup',event=>{
-      if(backdropDown&&event.target===dialog)dialog.close();
+      if(backdropDown&&event.button===0&&outsideDialog(event))dialog.close();
       backdropDown=false;
     });
     dialog.addEventListener('pointercancel',()=>{backdropDown=false;});
+    dialog.addEventListener('cancel',event=>{
+      event.preventDefault();
+      dialog.close();
+    });
     dialog.addEventListener('close',()=>{
       stateButton?.setAttribute('aria-expanded','false');
       if(stateButton?.isConnected)stateButton.focus({preventScroll:true});
@@ -301,3 +308,4 @@
   window.addEventListener('focus',refresh);
   new MutationObserver(mount).observe(document.body,{subtree:true,childList:true});mount();
 })();
+

@@ -37,8 +37,22 @@ def main(boot_name):
     from com.sun.star.task import XInteractionHandler
     class Abort(unohelper.Base, XInteractionHandler):
         blocked = False
+        request_type = None
+        error_code = None
         def handle(self, request):
             self.blocked = True
+            try:
+                payload = request.getRequest()
+                name = type(payload).__name__
+                if len(name) <= 128 and all(c.isalnum() or c in '._' for c in name):
+                    self.request_type = name
+                for field in ('ErrCode', 'ErrorCode'):
+                    value = getattr(payload, field, None)
+                    if type(value) is int:
+                        self.error_code = value
+                        break
+            except Exception:
+                pass
             for item in request.getContinuations():
                 abort = item.queryInterface(uno.getTypeByName('com.sun.star.task.XInteractionAbort'))
                 if abort is not None:
@@ -101,7 +115,9 @@ def main(boot_name):
                 arguments = {p.Name:p.Value for p in model.getArgs()
                              if p.Name in ('FilterName', 'TypeName')}
                 actual_filter = arguments.get('FilterName')
-                if req['operation'] == 'inspect':
+                if req.get('expectedSourceServices') and not set(services).intersection(req['expectedSourceServices']):
+                    result = {'id':request_id,'ok':False,'code':'SOURCE_MODEL_MISMATCH','stage':'import'}
+                elif req['operation'] == 'inspect':
                     try:
                         text_document = bool(model.queryInterface(
                             uno.getTypeByName('com.sun.star.text.XTextDocument')))
@@ -117,6 +133,8 @@ def main(boot_name):
                             pass
                 elif not set(services).intersection(req['expectedServices']):
                     result = {'id':request_id,'ok':False,'code':'NATIVE_MODEL_CHANGED','stage':'import'}
+                elif req.get('expectedImportFilter') and actual_filter != req['expectedImportFilter']:
+                    result = {'id':request_id,'ok':False,'code':'NATIVE_IMPORT_FILTER_CHANGED','stage':'import'}
                 elif req.get('requiredDrawPages') is not None and (
                         'com.sun.star.drawing.DrawingDocument' not in services or
                         model.getDrawPages().getCount() != req['requiredDrawPages']):
@@ -150,6 +168,10 @@ def main(boot_name):
                       else 'ENGINE_FAILED'),
                       'stage':stage,'diagnostic':str(error)[-4096:]}
         finally:
+            interaction = export_handler if export_handler is not None and export_handler.blocked else handler
+            if result is not None and interaction is not None and interaction.blocked:
+                result['interaction'] = {'requestType': interaction.request_type,
+                                         'errorCode': interaction.error_code}
             if import_tick is not None and 'importMs' not in timings:
                 timings['importMs'] = round((time.monotonic()-import_tick)*1000)
             if model is not None:
@@ -342,3 +364,4 @@ class UnoSession:
     def __enter__(self):return self
     def __exit__(self,*_):
         self.recycle();shutil.rmtree(self.workspace,ignore_errors=True)
+

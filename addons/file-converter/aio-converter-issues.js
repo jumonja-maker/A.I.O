@@ -5,6 +5,10 @@
   const limitText = (value, max = 1600) => String(value || '').slice(0, max);
   const riskPattern = /экспериментально|только текст|не восстанавливаются|могут .*сохраниться|могут измениться|не остаются редактируемыми|один слайд|извлечение таблиц/i;
   const preflightReasons = {
+    SOURCE_CONTAINER_INCONSISTENT:'Объявления типа и содержимое контейнера противоречат друг другу. Сохраните исходник и пересоздайте его в родной программе; переименование расширения проблему не исправляет.',
+    SOURCE_MODEL_MISMATCH:'LibreOffice открыл содержимое как другой тип документа. Конвертация остановлена, чтобы не выдать неверно импортированные данные за готовый результат.',
+    NATIVE_IMPORT_FILTER_CHANGED:'При повторном открытии LibreOffice выбрал другой импортирующий фильтр. Повторите проверку исходника; результат по изменившемуся маршруту не подтверждён.',
+    EPUB_NATIVE_IMPORT_UNAVAILABLE:'Установленный LibreOffice умеет экспортировать EPUB, но не подтвердил импорт этого EPUB. Для него пока нет рабочего нативного маршрута.',
     HTML_LOCAL_RESOURCES_NOT_UPLOADED:'HTML ссылается на отсутствующие локальные файлы. Добавьте папку ресурсов HTML через «Состояние».',
     HTML_PREFLIGHT_UNDETERMINED:'Проверка зависимостей HTML не завершена из-за синтаксиса или времени анализа.',
     NATIVE_IMPORT_UNAVAILABLE:'Эта установка LibreOffice не подтвердила нативный импорт содержимого.',
@@ -18,6 +22,12 @@
     PREFLIGHT_KIND_UNDETERMINED:'Нативный тип не удалось сопоставить с модулем LibreOffice. Это не доказывает повреждение файла.',
     PREFLIGHT_IMPORT_FAILED:'LibreOffice не подтвердил открытие этого содержимого без диалога.',
     PREFLIGHT_INTERACTION_REQUIRED:'Для импорта LibreOffice запросил дополнительные сведения. Автоматический импорт не подтверждён.'
+  };
+  const routeReasons = {
+    NATIVE_FORMAT_IMPORT_ONLY:'Установленный LibreOffice умеет читать этот формат, но не имеет фильтра для записи в него.',
+    NATIVE_REPORT_EXPORT_UNAVAILABLE:'Для ORP не найден установленный экспортёр отчётов Base. Наличие формата в каталоге не подтверждает рабочий экспорт.',
+    NATIVE_DOCUMENT_SERVICE_MISMATCH:'Экспортёр установлен, но не поддерживает фактически открытый тип этого документа.',
+    NATIVE_SVG_SELECTION_ONLY:'Нативный SVG-фильтр Writer/Calc экспортирует выбранную графику. Экспорт всего документа этим маршрутом не поддерживается.'
   };
   let sequence = 0;
 
@@ -102,12 +112,10 @@
         } else if (incompatible.has(id)) {
           rows.push({source: file.name, target: fmt.label || fmt.id,
             kind: 'Нет зарегистрированного маршрута',
-            reason: fmt.unavailableReasons?.[id]==='NATIVE_SVG_SELECTION_ONLY'
-              ? 'Нативный SVG-фильтр Writer/Calc экспортирует выбранную графику. Экспорт всего документа этим маршрутом не поддерживается.'
-              : fmt.compatibility==='native_preflight'
+            reason: routeReasons[fmt.unavailableReasons?.[id]] || (fmt.compatibility==='native_preflight'
               ? 'Предварительная проверка определила тип содержимого. У этого типа в реестре LibreOffice нет выбранного экспорта.'
               : 'Для расширения исходника реестр LibreOffice не показывает экспорт в этот формат. '
-                + 'Это предварительная подсказка, а не проверка содержимого.'});
+                + 'Это предварительная подсказка, а не проверка содержимого.')});
         } else if (undetermined.has(id)) {
           rows.push({source:file.name,target:fmt.label||fmt.id,kind:'Направление не подтверждено',
             reason:'Направление не подтверждено и пока недоступно. Можно повторить проверку направлений.'});
@@ -447,3 +455,4 @@
   }
   window.AIOConverterIssues = Object.freeze({attach});
 })();
+

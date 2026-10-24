@@ -66,13 +66,34 @@ assert.equal(requests.filter(r=>r.path.endsWith('/start')).length,0);
 document.querySelector('[data-g-close]').click();assert.equal(dialog.open,false);
 document.querySelector('.aio-guard-state-button').click();assert.equal(dialog.open,true);
 const inside=document.querySelector('[data-g-counts]');
-inside.dispatchEvent(new window.Event('pointerdown',{bubbles:true}));
-dialog.dispatchEvent(new window.Event('pointerup'));
+function pointer(target,type,x,y,button=0){
+  const event=new window.Event(type,{bubbles:true});
+  Object.defineProperties(event,{clientX:{value:x},clientY:{value:y},button:{value:button}});
+  target.dispatchEvent(event);
+}
+pointer(inside,'pointerdown',20,20);
+pointer(dialog,'pointerup',-10,-10);
 assert.equal(dialog.open,true,'dragging from inside cannot dismiss dialog');
-dialog.dispatchEvent(new window.Event('pointerdown'));
-dialog.dispatchEvent(new window.Event('pointerup'));
+pointer(dialog,'pointerdown',20,20);
+pointer(dialog,'pointerup',20,20);
+assert.equal(dialog.open,true,'internal dialog padding is not the backdrop');
+pointer(dialog,'pointerdown',-10,-10,2);
+pointer(dialog,'pointerup',-10,-10,2);
+assert.equal(dialog.open,true,'secondary pointer button does not dismiss dialog');
+pointer(dialog,'pointerdown',-10,-10);
+pointer(dialog,'pointerup',20,20);
+assert.equal(dialog.open,true,'a pointer released in dialog padding does not dismiss it');
+pointer(dialog,'pointerdown',-10,-10);
+pointer(dialog,'pointerup',-10,-10);
 assert.equal(dialog.open,false);
 assert.equal(document.querySelector('.aio-guard-state-button').getAttribute('aria-expanded'),'false');
+document.querySelector('.aio-guard-state-button').click();
+dialog.dispatchEvent(new window.Event('cancel',{cancelable:true}));
+assert.equal(dialog.open,false,'Escape closes State');
+assert.equal(requests.filter(r=>r.path.endsWith('/cancel')).length,0,'closing State never cancels work');
+assert.equal(document.querySelector('[data-g-verify]').textContent.includes('автоматически'),true);
 console.log(JSON.stringify({status:'PASS',scope:'DOM+HTTP, controlled native import',
   originalUploadedOnce:true,resourceUploads:1,sourceCards:1,automaticExports:0,
-  automaticFormatSelection:false,resourceUpdateKeepsDialogOpen:true,dialogCloseAndDrag:true}));
+  automaticFormatSelection:false,resourceUpdateKeepsDialogOpen:true,dialogCloseAndDrag:true,
+  internalPaddingKeepsDialogOpen:true,escapeClosesWithoutCancelling:true}));
+

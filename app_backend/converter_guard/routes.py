@@ -147,9 +147,17 @@ class Registry:
         return services
 
     def route_reason(self, target, proof):
-        if target != 'svg' or not proof:
+        if not proof:
             return None
         services = self.export_services(proof)
+        if self.valid and target not in self.uncertain_extensions:
+            if target in self.imports and target not in self.exports:
+                return 'NATIVE_FORMAT_IMPORT_ONLY'
+            if target == 'orp' and not self.exports.get(target):
+                return 'NATIVE_REPORT_EXPORT_UNAVAILABLE'
+            if (proof.get('state') == 'detected' and any(isinstance(s, str) for s in services)
+                    and self.exports.get(target) and not set(services).intersection(self.exports[target])):
+                return 'NATIVE_DOCUMENT_SERVICE_MISMATCH'
         if target == 'svg':
             candidates = set().union(*(self.export_candidates.get((target, s), ()) for s in services))
             if candidates and candidates <= {'writer_svg_Export', 'calc_svg_Export'}:
@@ -278,3 +286,4 @@ def registry(executable):
     except OSError:
         files = ()
     return _load(files, str(executable))
+

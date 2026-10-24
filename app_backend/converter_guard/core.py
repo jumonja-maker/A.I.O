@@ -110,10 +110,12 @@ class _Artifact:
     format: str | None = None
     archive_name: str = ''
     saved: bool = False
+    sha256: str | None = None
 
     def metadata(self):
         return {'fileId': self.file_id, 'format': self.format, 'name': self.name,
                 'archiveName': self.archive_name, 'size': self.size, 'saved': self.saved,
+                'sha256': self.sha256,
                 'ticket': self.ticket,
                 'mime': mime_for(self.path.suffix.lower().lstrip('.')),
                 'downloadUrl': '/api/converter-guard/result?ticket=' + self.ticket}
@@ -425,7 +427,8 @@ class ConverterGuard:
                         tasks.append(_Task(format_id, index, state='cancelled',
                             code='INTERRUPTED_RESTART', error='Задание было прервано. Исходник можно выбрать повторно.'))
                     files.append(_File(**row, source=root/'input'/'unavailable', targets=tasks, state='done',
-                                       native_route=original.get('nativeRoute')))
+                                       native_route=original.get('nativeRoute'),
+                                       content_digest=original.get('sourceSha256')))
                 job = _Job(identity, root, files, 0, store=store, recovered=True)
                 job.input_accounting = header.get('inputAccounting', [])
                 if integrity != 'complete':
@@ -478,7 +481,15 @@ class ConverterGuard:
                                     raise ValueError('Invalid archive name')
                                 artifact = _Artifact(identity, path, path.name, output['size'],
                                     secrets.token_urlsafe(32), item.id, task.format, archive_name,
-                                    saved=relative in saved)
+                                    saved=relative in saved, sha256=output.get('sha256'))
+                                if artifact.sha256 is not None:
+                                    if not isinstance(artifact.sha256, str) or not re.fullmatch('[0-9a-f]{64}', artifact.sha256):
+                                        raise ValueError('Invalid output fingerprint')
+                                    from .save_verification import sha256_stream
+                                    with path.open('rb') as restored:
+                                        actual = sha256_stream(restored, cancel=threading.Event())
+                                    if actual != (artifact.size, artifact.sha256):
+                                        raise ValueError('Recovery output fingerprint changed')
                                 task.artifacts.append(artifact)
                                 job.artifacts.append(artifact)
                             except (OSError, ValueError, KeyError, TypeError):
@@ -1311,6 +1322,7 @@ class ConverterGuard:
             return  # Diagnostic availability cannot change an export outcome.
         with self._lock:
             task.native_timings = value
+            task.execution_mode = getattr(self.adapter, 'execution_mode', lambda: task.execution_mode)()
             task.export_filter = selected
             task.warnings = warnings
             task.result_checks = copy.deepcopy(export.get('resultChecks', []))[:4]
@@ -1345,9 +1357,18 @@ class ConverterGuard:
                 continue
             seen.add(resolved)
             relative = resolved.relative_to(root).as_posix()
-            artifacts.append(_Artifact(job.id, resolved, path.name, path.stat().st_size,
+            from .save_verification import sha256_stream
+            try:
+                with resolved.open('rb') as output:
+                    retained_size, retained_sha256 = sha256_stream(output,
+                        cancel=_Cancellation(job.cancel, item.cancel))
+            except GuardError as error:
+                if error.code == 'SAVE_CANCELLED':
+                    raise GuardError('CANCELLED', 'Проверка результата отменена.', stage='result') from error
+                raise
+            artifacts.append(_Artifact(job.id, resolved, path.name, retained_size,
                 secrets.token_urlsafe(32), item.id, task.format,
-                f'{task.index + 1:04d}-{task.format}/' + relative))
+                f'{task.index + 1:04d}-{task.format}/' + relative, sha256=retained_sha256))
         if not artifacts:
             raise GuardError('ENGINE_OUTPUT_MISSING', 'LibreOffice не создал результат.',
                              stage='result')
@@ -1459,10 +1480,13 @@ class ConverterGuard:
                             if source_failure:
                                 self._fail(job, item, task, GuardError(
                                     'SOURCE_DEFERRED_AFTER_TIMEOUT' if source_failure == 'ENGINE_TIMEOUT' else
-                                    'PREFLIGHT_ROUTE_UNDETERMINED' if source_failure == 'NATIVE_MODEL_CHANGED' else 'SOURCE_IMPORT_FAILED',
+                                    'PREFLIGHT_ROUTE_UNDETERMINED' if source_failure in (
+                                        'NATIVE_MODEL_CHANGED', 'SOURCE_MODEL_MISMATCH', 'NATIVE_IMPORT_FILTER_CHANGED')
+                                    else 'SOURCE_IMPORT_FAILED',
                                     'Оставшиеся направления этого файла отложены после тайм-аута. Можно повторить с большим временем.'
                                     if source_failure == 'ENGINE_TIMEOUT' else
-                                    'Нативная модель изменилась. Повторите проверку исходника.' if source_failure == 'NATIVE_MODEL_CHANGED' else
+                                    'Нативная модель или фильтр импорта изменились. Повторите проверку исходника.'
+                                    if source_failure in ('NATIVE_MODEL_CHANGED', 'SOURCE_MODEL_MISMATCH', 'NATIVE_IMPORT_FILTER_CHANGED') else
                                     'LibreOffice не смог открыть этот исходник; повторные экспорты не запускались.',
                                     stage='queue' if source_failure == 'ENGINE_TIMEOUT' else 'import'))
                                 continue
@@ -1554,6 +1578,7 @@ class ConverterGuard:
                             self._retain_outputs(job, item, task, workspace, paths)
                         except GuardError as error:
                             if (error.code in ('SOURCE_IMPORT_FAILED', 'NATIVE_MODEL_CHANGED',
+                                               'SOURCE_MODEL_MISMATCH', 'NATIVE_IMPORT_FILTER_CHANGED',
                                                'PREFLIGHT_INTERACTION_REQUIRED')
                                     or error.code == 'ENGINE_TIMEOUT' and error.stage not in ('export', 'close')):
                                 source_failure = error.code
@@ -1674,7 +1699,8 @@ class ConverterGuard:
                 'inputsPlanned':len(job.files),
                 'inputsWithoutTasks':[row for row in job.input_accounting if not row['planned']],
                 'recoveryError':job.recovery_error, 'files': [
-            {'fileId': f.id, 'name': f.name, 'nativeRoute': f.native_route, 'warnings': (
+            {'fileId': f.id, 'name': f.name, 'sourceSha256':f.content_digest,
+             'nativeRoute': f.native_route, 'warnings': (
                 ['SOURCE_NAME_NORMALIZED'] if f.name_normalized else []),
              'targets': [{'taskId': job.id + ':' + str(t.index), 'format': t.format, 'state': t.state, 'code': t.code,
                           'error': t.error, 'stage': t.stage,
@@ -1685,7 +1711,7 @@ class ConverterGuard:
                           'nativeTimings': clean_timings(t.native_timings),
                           'exportFilter': t.export_filter, 'warnings': warning_details(t.warnings),
                           'quality':copy.deepcopy(t.quality) if t.quality else None,
-                          'outputs': [{'path': a.archive_name, 'size': a.size} for a in t.artifacts],
+                          'outputs': [{'path': a.archive_name, 'size': a.size, 'sha256':a.sha256} for a in t.artifacts],
                           'route': t.route,
                           'libreOfficeStarted': t.lo_started} for t in f.targets]}
             for f in job.files], 'timings':dict(job.timings),'qualityCheckRequested':job.quality_check,
@@ -1762,19 +1788,22 @@ class ConverterGuard:
                             output.write(block)
                             digest.update(block)
                             written += len(block)
-                    if written != artifact.size:
-                        raise GuardError('SAVE_CHANGED', 'Размер результата изменился при упаковке.')
+                    if written != artifact.size or (artifact.sha256 and digest.hexdigest() != artifact.sha256):
+                        raise GuardError('SAVE_CHANGED', 'Байты результата изменились после проверки, до упаковки.')
                     manifest.append({'path':artifact.archive_name, 'size':written,
                                      'sha256':digest.hexdigest(), 'fileId':artifact.file_id,
-                                     'format':artifact.format})
+                                     'format':artifact.format, 'exportSha256':artifact.sha256,
+                                     'copySha256':digest.hexdigest()})
                 with archive.open('AIO-conversion-report.json', 'w', force_zip64=True) as output:
                     output.write(report)
                 with archive.open('AIO-results-manifest.json', 'w', force_zip64=True) as output:
                     output.write(json.dumps(
                     {'schema':2, 'jobId':job.id, 'readbackVerified':False,
                      'verificationScope':'hashes_during_zip', 'outputs':manifest}, ensure_ascii=False).encode('utf-8'))
+            from .save_verification import sha256_stream
+            with bundle.open('rb') as stream:
+                actual, bundle_sha256 = sha256_stream(stream, cancel=job.bundle_cancel)
             with self._lock:
-                actual = bundle.stat().st_size
                 delta = actual - budget
                 if delta > 0:
                     self._reserve(job, delta)
@@ -1782,7 +1811,8 @@ class ConverterGuard:
                     self._unreserve(job, -delta)
                 name = ('AIO_Results_Partial.zip' if any(t.state not in SUCCESS for f in job.files for t in f.targets)
                         else 'AIO_Results.zip')
-                artifact = _Artifact(job.id, bundle, name, actual, secrets.token_urlsafe(32))
+                artifact = _Artifact(job.id, bundle, name, actual, secrets.token_urlsafe(32),
+                                     sha256=bundle_sha256)
                 job.packaging_error = None
                 job.bundle = artifact
                 self._tickets[artifact.ticket] = artifact
@@ -1868,7 +1898,7 @@ class ConverterGuard:
                     'outputs': len(copies)}
 
     def save_folder(self, ticket, destination, *, cancel=None, on_progress=lambda current, total: None,
-                    verify=False, on_verifying=lambda: None):
+                    verify=True, on_verifying=lambda: None):
         """Copy one immutable snapshot of completed outputs, including a live job.
 
         New outputs stay unsaved; saving never cancels or releases a queue.
@@ -1878,6 +1908,8 @@ class ConverterGuard:
         from .save_verification import verify_folder
         if type(verify) is not bool:
             raise GuardError('SAVE_VERIFY_POLICY', 'Неверный режим проверки сохранения.', stage='save')
+        # Retain the API parameter for older hosts. A legacy false value cannot
+        # bypass independent on-disk verification before acknowledging a save.
         cancel = cancel or threading.Event()
         with self._lock:
             anchor = self._tickets.get(ticket)
@@ -1946,7 +1978,8 @@ class ConverterGuard:
                             written += len(block)
                         output.flush()
                         os.fsync(output.fileno())
-                    if written != artifact.size or target.exists():
+                    if (written != artifact.size or target.exists() or
+                            artifact.sha256 and digest.hexdigest() != artifact.sha256):
                         raise GuardError('SAVE_CHANGED', 'Результат изменён или имя уже занято.', stage='save')
                     part.replace(target)
                 finally:
@@ -1954,7 +1987,8 @@ class ConverterGuard:
                 bytes_written += written
                 manifest.append({'path': artifact.archive_name, 'size': written,
                                  'sha256': digest.hexdigest(), 'fileId': artifact.file_id,
-                                 'format': artifact.format})
+                                 'format': artifact.format, 'exportSha256':artifact.sha256,
+                                 'copySha256':digest.hexdigest()})
                 if self.telemetry is not None:
                     try:
                         self.telemetry.emit('save_file_written',
@@ -1974,13 +2008,12 @@ class ConverterGuard:
                 'schema':2, 'jobId':job.id, 'saveId':save_id,
                 'snapshotRevision':snapshot_revision, 'jobStateAtStart':state_at_start,
                 **verification, 'outputs':manifest})
-            if verify:
-                atomic_json(folder / 'AIO-save-status.json', save_status('verifying'))
-                try:
-                    on_verifying()
-                except Exception:
-                    pass
-                verification = verify_folder(folder, manifest, cancel=cancel, on_progress=on_progress)
+            atomic_json(folder / 'AIO-save-status.json', save_status('verifying'))
+            try:
+                on_verifying()
+            except Exception:
+                pass
+            verification = verify_folder(folder, manifest, cancel=cancel, on_progress=on_progress)
             atomic_json(folder / 'AIO-results-manifest.json', {
                 'schema': 2, 'jobId': job.id, 'saveId': save_id,
                 'snapshotRevision': snapshot_revision, 'jobStateAtStart': state_at_start,
@@ -1988,8 +2021,8 @@ class ConverterGuard:
             if cancel.is_set():
                 raise GuardError('SAVE_CANCELLED', 'Сохранение отменено. Результаты остаются в AIO.', stage='save')
             # Complete the external snapshot before acknowledging or releasing
-            # any source. Hashes above were calculated during copying, NOT by a
-            # second read or a fidelity scan.
+            # any source. Every output has been independently read back from
+            # its final disk path. This verifies bytes, not document fidelity.
             atomic_json(folder / 'AIO-save-status.json', save_status('completed'))
             outcome = self._acknowledge_outputs(job, copies)
             return {**outcome, 'saveId': save_id, 'snapshotComplete': True,
@@ -1999,6 +2032,15 @@ class ConverterGuard:
             code = error.code if isinstance(error, GuardError) else 'SAVE_STORAGE_FAILED'
             if folder is not None:
                 try:
+                    if any('readbackVerified' in entry for entry in manifest):
+                        verified = [entry for entry in manifest if entry.get('readbackVerified') is True]
+                        verification = {'readbackVerified':False, 'verificationScope':'manifest_outputs',
+                            'verificationMethod':'independent_read_sha256', 'outputsVerified':len(verified),
+                            'bytesVerified':sum(entry['readbackSize'] for entry in verified)}
+                    atomic_json(folder / 'AIO-results-manifest.json', {
+                        'schema':2, 'jobId':job.id, 'saveId':save_id,
+                        'snapshotRevision':snapshot_revision, 'jobStateAtStart':state_at_start,
+                        **verification, 'outputs':manifest})
                     atomic_json(folder / 'AIO-save-status.json',
                                 save_status('cancelled' if code == 'SAVE_CANCELLED' else 'failed', code))
                 except OSError:
@@ -2023,14 +2065,31 @@ class ConverterGuard:
         cancel = cancel or threading.Event()
         if self.owns_path(destination):
             raise GuardError('SAVE_OWNED_STORAGE', 'Выберите папку вне хранилища AIO.', stage='save')
+        with self._lock:
+            retained = self._tickets.get(ticket)
+            retained_fingerprint = ((retained.size, retained.sha256)
+                if retained is not None and retained.sha256 else None)
         with self.open_result(ticket) as (stream, _name, _size):
             expected = sha256_stream(stream, cancel=cancel)
+            if retained_fingerprint is not None and expected != retained_fingerprint:
+                raise GuardError('SAVE_CHANGED',
+                    'Байты результата изменились после проверки, до скачивания.', stage='save')
             path = Path(destination)
             if path_is_link(path):
                 raise GuardError('SAVE_VERIFY_FAILED', 'Ссылка вместо сохранённого файла.', stage='save')
-            with path.open('rb') as stream:
+            descriptor = os.open(path, os.O_RDONLY | getattr(os, 'O_BINARY', 0) |
+                                 getattr(os, 'O_NOFOLLOW', 0))
+            with os.fdopen(descriptor, 'rb') as stream:
+                before = os.fstat(stream.fileno())
                 actual = sha256_stream(stream, cancel=cancel)
-            if expected != actual:
+                after = os.fstat(stream.fileno())
+            current = path.stat(follow_symlinks=False)
+            def identity(info):
+                return (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+            import stat
+            unchanged = (stat.S_ISREG(before.st_mode) and not path_is_link(path) and
+                         identity(before) == identity(after) == identity(current))
+            if expected != actual or not unchanged:
                 raise GuardError('SAVE_VERIFY_FAILED', 'Сохранённые байты отличаются от результата Guard.', stage='save')
             return {'readbackVerified':True, 'verificationScope':'download_bytes', 'bytesVerified':actual[0]}
 
@@ -2379,3 +2438,4 @@ class ConverterGuard:
                     'unsavedOutputs': sum(not a.saved for j in jobs for a in j.artifacts),
                     'unsavedBytes': sum(a.size for j in jobs for a in j.artifacts if not a.saved),
                     'recoveryWriteFailures': sum(bool(j.recovery_error) for j in jobs)}
+

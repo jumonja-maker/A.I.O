@@ -12,6 +12,15 @@ WRITER = 'com.sun.star.text.TextDocument'
 CALC_TEXT = 'Text - txt - csv (StarCalc)'
 TEXT_OPTIONS = {'csv': '44,34,76,1,', 'tsv': '9,34,76,1,', 'tab': '9,34,76,1,'}
 WARNING_TEXT = {
+    'NATIVE_OUTPUT_NOT_CHECKED': (
+        'Файл создан, но одна из дополнительных проверок результата не завершена. '
+        'Отчёт содержит её причину; полная точность содержимого не подтверждена.'),
+    'ODF_TABLE_CONTENT_NOT_CHECKED': (
+        'Не удалось независимо сверить весь текст таблиц ODF с этим форматом результата. '
+        'Сохранность всех ячеек не подтверждена; причина указана в отчёте.'),
+    'NATIVE_XML_ODF_DIALECT': (
+        'XML сохранён как Flat OpenDocument XML штатным фильтром LibreOffice. '
+        'Это XML-представление документа OpenDocument, а не старый формат Excel/Word 2003 XML.'),
     'NATIVE_HTML_CONTENT_NOT_CHECKED': (
         'Файл создан, но ограниченная проверка содержимого HTML не завершена. '
         'Наличие всего содержимого и точность внешнего вида не подтверждены.'),
@@ -69,6 +78,19 @@ def native_export_recipe(native, target, proof):
                 and native.primary_extensions.get(observed) == target
                 and target not in native.uncertain_extensions):
             selected = observed
+    # A generic XML target has no selected legacy application dialect. Keep
+    # the model in its own native flat-ODF representation instead of choosing
+    # Excel/Word 2003 XSLT filters merely because their first suffix is "xml".
+    # The installed filter must explicitly export XML for this observed model.
+    if target == 'xml':
+        choices = {WRITER: 'OpenDocument Text Flat XML', CALC: 'OpenDocument Spreadsheet Flat XML',
+                   DRAW: 'OpenDocument Drawing Flat XML',
+                   'com.sun.star.presentation.PresentationDocument': 'OpenDocument Presentation Flat XML'}
+        candidates = [name for service, name in choices.items() if service in services
+                      and (item := native.filters.get(name)) and item[0] == service
+                      and 'EXPORT' in item[2] and 'xml' in item[1]]
+        if len(candidates) == 1:
+            return ExportRecipe(candidates[0], warnings=('NATIVE_XML_ODF_DIALECT',))
     # draw_html_Export can emit an empty HTML shell. The installed XHTML
     # exporter preserves a single Draw page and is valid HTML syntax as well.
     # Do not apply this to multi-page drawings: native absolute positioning
@@ -105,3 +127,4 @@ def native_export_recipe(native, target, proof):
                 ('NATIVE_WRITER_SVG_EXPORT_RISK',)
                 if selected == 'writer_svg_Export' and target == 'svg' else ())
     return ExportRecipe(selected, options, warnings=warnings)
+
