@@ -140,6 +140,101 @@ def run_cli(root, label, engine, source, import_filter, convert_spec):
     return result
 
 
+
+def run_guard(root, label, engine, targets):
+    """Exercise the real ConverterGuard upload -> preflight -> queue -> save."""
+    from app_backend.converter_guard import ConverterGuard, GuardLimits, LibreOfficeAdapter
+    from tools.qa.guard_v08_native_acceptance import fixtures
+    folder = root / label
+    folder.mkdir()
+    if targets == 'full':
+        sources = fixtures(folder / 'fixtures')
+        plan = {'docx': ['pdf', 'odt', 'docx'],
+                'xlsx': ['pdf', 'xlsx', 'csv'],
+                'csv': ['pdf', 'xlsx', 'dbf'],
+                'bmp': ['pdf', 'png']}
+    else:
+        (folder / 'fixtures').mkdir()
+        csv = folder / 'fixtures' / 'table.csv'
+        csv.write_bytes(CSV_BYTES)
+        sources = {'csv': csv}
+        plan = {'csv': ['dbf'] if targets == 'dbf' else ['pdf', 'xlsx', 'dbf']}
+    start = time.monotonic()
+    record = {'name': label, 'mode': 'converter_guard', 'plan': plan}
+    hashes = {key: hashlib.sha256(path.read_bytes()).hexdigest()
+              for key, path in sources.items()}
+    guard = ConverterGuard(adapter=LibreOfficeAdapter(engine),
+                           limits=GuardLimits(file_timeout=90, preflight_timeout=90),
+                           recovery_parent=folder / 'owned-jobs')
+    try:
+        jid = guard.create([{'id': key, 'name': path.name, 'size': path.stat().st_size}
+                            for key, path in sources.items()], prepare_only=True)['jobId']
+        for key, path in sources.items():
+            with path.open('rb') as stream:
+                guard.upload(jid, key, stream, path.stat().st_size)
+        inspection = guard.preflight(jid)
+        eligible = {item['id']: set(item['verifiedFileIds']) for item in
+                    inspection['formats']}
+        record['routesVerified'] = {
+            key: {fmt: key in eligible.get(fmt, set()) for fmt in fmts}
+            for key, fmts in plan.items()}
+        guard.start(jid, file_ids=list(sources),
+                    plan=[{'fileId': key, 'formats': fmts}
+                          for key, fmts in plan.items()], only_verified=True)
+        revision = -1
+        deadline = time.monotonic() + 330
+        while True:
+            state = guard.status(jid)
+            if state.get('revision') != revision:
+                revision = state['revision']
+            if state.get('finished'):
+                break
+            if time.monotonic() > deadline:
+                raise TimeoutError('Guard run exceeded 330s')
+            time.sleep(.1)
+        record['resultSummary'] = {key: state.get(key) for key in
+                                   ('succeeded', 'failed', 'completed', 'total',
+                                    'officeStarts', 'finished')}
+        full_report = guard.report(jid)
+        (folder / 'guard-report.json').write_text(
+            json.dumps(full_report, indent=2, ensure_ascii=False, default=str),
+            encoding='utf-8')
+        record['dbfTaskEvidence'] = []
+        def find_dbf(value):
+            if isinstance(value, dict):
+                if value.get('format') == 'dbf' or value.get('code') == 'ENGINE_OUTPUT_MISSING':
+                    record['dbfTaskEvidence'].append({k: value.get(k) for k in
+                        ('fileId', 'format', 'state', 'stage', 'code', 'diagnostic',
+                         'executionMode', 'executionReason', 'exportFilter',
+                         'nativeTimings', 'interaction') if k in value})
+                for item in value.values():
+                    find_dbf(item)
+            elif isinstance(value, (list, tuple)):
+                for item in value:
+                    find_dbf(item)
+        find_dbf(full_report)
+        record['dbfTaskEvidence'] = record['dbfTaskEvidence'][:8]
+        if state.get('result', {}).get('ticket'):
+            saved = guard.save_folder(state['result']['ticket'], folder)
+            saved_root = folder / saved['name']
+            actual = [saved_root / item['archiveName']
+                      for item in state['result'].get('outputs', ())
+                      if item.get('fileId') == 'csv' and item.get('format') == 'dbf']
+            record['dbfSaved'] = [
+                {'name': file.name, 'bytes': file.stat().st_size,
+                 'dbfCheck': dbf_check(file)}
+                for file in actual if file.is_file()]
+    except Exception as exc:
+        record['error'] = error_record(exc)
+    finally:
+        guard.close()
+    record['sourceUnchanged'] = all(
+        hashlib.sha256(path.read_bytes()).hexdigest() == hashes[key]
+        for key, path in sources.items())
+    record['elapsedMs'] = int((time.monotonic() - start) * 1000)
+    return record
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--engine', type=Path, required=True)
@@ -205,6 +300,13 @@ def main():
                 print('AIO_DBF_PROBE=' + json.dumps(case, ensure_ascii=True), flush=True)
         except Exception as exc:
             report['fodsSnapshot'] = {'created': False, 'error': error_record(exc)}
+    report['guardCases'] = []
+    for label, plan in (('guard-csv-only-dbf', 'dbf'),
+                        ('guard-csv-pdf-xlsx-dbf', 'csv-all'),
+                        ('guard-full-v08-eleven', 'full')):
+        case = run_guard(args.output, label, args.engine, plan)
+        report['guardCases'].append(case)
+        print('AIO_DBF_GUARD_CASE=' + json.dumps(case, ensure_ascii=True), flush=True)
     report['originalUnchanged'] = (csv.read_bytes() == CSV_BYTES
                                    and hashlib.sha256(csv.read_bytes()).hexdigest() == digest)
     report['status'] = report.get('status', 'DIAGNOSTIC_ONLY_NOT_QA_PASS')
@@ -212,7 +314,12 @@ def main():
         json.dumps(report, indent=2, ensure_ascii=False), encoding='utf-8')
     summary = {'status': report['status'], 'sourceUnchanged': report['originalUnchanged'],
                'dbfCasesPass': sum(bool(x.get('fixtureDbfValid')) for x in report['cases']),
-               'dbfCasesTotal': len(report['cases'])}
+               'dbfCasesTotal': len(report['cases']),
+               'guardCases': len(report.get('guardCases', [])),
+               'guardPass': sum(bool(x.get('resultSummary', {}).get('failed') == 0 and
+                                     x.get('resultSummary', {}).get('succeeded') ==
+                                     x.get('resultSummary', {}).get('total'))
+                                 for x in report.get('guardCases', []))}
     print('AIO_DBF_SUMMARY=' + json.dumps(summary), flush=True)
     if not report['originalUnchanged']:
         raise SystemExit('Source fixture modified')
