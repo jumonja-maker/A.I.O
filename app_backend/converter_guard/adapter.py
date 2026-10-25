@@ -34,6 +34,23 @@ def _source_identity(source):
         return None
 
 
+
+def _native_dbf_structure(path):
+    """Bounded native DBF container check, not a replacement DBF decoder."""
+    try:
+        with Path(path).open('rb') as source:
+            header = source.read(32)
+        if len(header) != 32 or header[0] not in (0x03, 0x04, 0x30, 0x83, 0x8b, 0xf5):
+            return False
+        rows = int.from_bytes(header[4:8], 'little')
+        offset = int.from_bytes(header[8:10], 'little')
+        stride = int.from_bytes(header[10:12], 'little')
+        size = Path(path).stat().st_size
+        return offset >= 33 and stride >= 1 and rows <= (size - offset) // stride
+    except (OSError, ValueError):
+        return False
+
+
 class _PreparedSourceCache:
     """Keep one private immutable import copy; never reuse a live LO model.
 
@@ -218,8 +235,29 @@ class LibreOfficeAdapter:
         batch = getattr(self._local, 'batch', None)
         return batch[0] if batch else registry(self.executable)
 
+    @staticmethod
+    def _route_with_registry(native, target, proof):
+        """Decide from one immutable installed-registry snapshot, no file I/O."""
+        if (proof and proof.get('state') == 'detected'
+                and proof.get('registryFingerprint') == native.fingerprint
+                and isinstance(proof.get('mediaProfile'), dict)
+                and target in proof.get('qtMediaTargets', ())):
+            return 'registered'
+        return native.observed_decision(target, proof)
+
+    def _bound_route_decider(self, native):
+        # Preserve explicit test/integration subclasses which override route_decision.
+        # The standard decision must not re-stat every LibreOffice XCD/XCU file
+        # for every source x target pair in a 510 x 85 matrix.
+        chosen = self.route_decision
+        if getattr(chosen, '__func__', None) is LibreOfficeAdapter.route_decision:
+            return lambda target, proof: self._route_with_registry(native, target, proof)
+        return chosen
+
     def route_decider(self):
-        return self.route_decision
+        # Guard.start() can plan 14,000+ target pairs. Pin one registry identity
+        # across the plan; the observed source proof still verifies fingerprint.
+        return self._bound_route_decider(self._registry())
 
     def execution_mode(self):
         return getattr(self._local,'execution_mode',None)
@@ -262,6 +300,7 @@ class LibreOfficeAdapter:
     def capabilities(self, files, *, proofs=None):
         available = self.available
         native = self._registry()
+        decision = self._bound_route_decider(native)
         formats = []
         entries = list(catalog(self.executable))
         known = {row[0] for row in entries}
@@ -280,9 +319,18 @@ class LibreOfficeAdapter:
             if ext == 'xml':
                 description = 'XML — нативное представление документа'
             states = {f['id']: (native.hint(f['name'], ext) if proofs is None else
-                               self.route_decision(ext, proofs.get(f['id']))) for f in files}
+                               decision(ext, proofs.get(f['id']))) for f in files}
             compatible = [i for i, state in states.items() if state == 'registered']
             unknown = [i for i, state in states.items() if state == 'undetermined']
+            # A large corpus may contain 510 files and dozens of formats.
+            # Don't evaluate the same reason (and its native service lookups)
+            # twice per file/format just to decide whether to include it.
+            reasons = {}
+            if proofs is not None:
+                for file in files:
+                    reason = native.route_reason(ext, proofs.get(file['id']))
+                    if reason:
+                        reasons[file['id']] = reason
             formats.append({'id': ext, 'label': ext.upper(), 'category': category,
                 'description': description, 'mime': mime,
                 # Native compatibility is not a claim of content/visual equivalence.
@@ -301,8 +349,7 @@ class LibreOfficeAdapter:
                     'epub': 'EPUB без нативного импортёра открывается через HTML в порядке OPF spine. При смене формата вёрстка книги может измениться; активные, зашифрованные и фиксированные макеты требуют отдельной поддержки.',
                     'xml': 'Для Writer/Calc/Impress/Draw используется установленный штатный фильтр Flat OpenDocument XML. Это не Excel/Word 2003 XML; точный фильтр указан в отчёте.'
                 }).get(ext, 'Проверка Guard подтверждает маршрут, но не гарантирует отсутствие смысловых или визуальных потерь.')}],
-                'unavailableReasons': {f['id']: native.route_reason(ext, (proofs or {}).get(f['id']))
-                                       for f in files if proofs and native.route_reason(ext, proofs.get(f['id']))},
+                'unavailableReasons': reasons,
                 'registeredExport': (ext in native.exports or ext in media_targets or ext in live_targets or
                                      ext == 'svm' and bool(compatible)) if native.valid else registered,
                 'enabled': available and proofs is not None and bool(compatible),
@@ -485,13 +532,9 @@ class LibreOfficeAdapter:
                 office.completed += 1
 
     def route_decision(self, target, proof):
-        native = self._registry()
-        if (proof and proof.get('state') == 'detected'
-                and proof.get('registryFingerprint') == native.fingerprint
-                and isinstance(proof.get('mediaProfile'), dict)
-                and target in proof.get('qtMediaTargets', ())):
-            return 'registered'
-        return native.observed_decision(target, proof)
+        # Standalone callers still consult the installed registry on demand;
+        # bulk operations use a pinned per-operation snapshot.
+        return self._route_with_registry(self._registry(), target, proof)
 
     def observation_needed(self, proof):
         native = self._registry()
@@ -668,6 +711,60 @@ class LibreOfficeAdapter:
         control.check_now()
         return paths
 
+    def _recover_missing_csv_dbf(self, source, workspace, control, recipe, native):
+        """One native CLI recovery for a *verified* Calc CSV -> dBase UNO miss.
+
+        Never guess a filter, retry an interaction, overwrite an existing
+        product, or authorize an unsupported route. On any uncertainty the
+        caller reports its original ENGINE_OUTPUT_MISSING failure. The cold
+        CLI produces the DBF; this helper only checks and links those bytes.
+        """
+        proof = getattr(self._local, 'proof', None) or {}
+        selected = getattr(self._local, 'import_filter', None)
+        options = getattr(self._local, 'import_options', None)
+        output = Path(workspace) / 'output'
+        if (recipe is None or recipe.filter_name != 'dBase'
+                or proof.get('state') != 'detected'
+                or proof.get('registryFingerprint') != native.fingerprint
+                or 'com.sun.star.sheet.SpreadsheetDocument' not in proof.get('documentServices', ())
+                or selected != 'Text - txt - csv (StarCalc)'
+                or proof.get('selectedImportFilter') != selected
+                or not options or Path(source).suffix.lower() != '.csv'
+                or not output.is_dir() or any(output.iterdir())):
+            return None
+        if control.is_set():
+            return None
+        recovery = Path(workspace) / 'dbf-native-cli-recovery'
+        import_filter = selected + ':' + options
+        try:
+            prepare_profile(recovery / 'profile')
+            native_files = convert_path(source, 'dbf', recovery, executable=self.executable,
+                cancel=control, on_started=lambda: None,
+                convert_spec=recipe.cli_spec('dbf'), import_filter=import_filter,
+                metrics_sink=self._capture_metrics)
+            if (len(native_files) != 1 or native_files[0].suffix.lower() != '.dbf'
+                    or not _native_dbf_structure(native_files[0]) or control.is_set()
+                    or any(output.iterdir())):
+                return None
+            candidate = output / (Path(source).stem + '.dbf')
+            # Hardlink is an exclusive publication on the same owned volume:
+            # it fails if the original UNO exporter created a late result.
+            os.link(native_files[0], candidate)
+            if not _native_dbf_structure(candidate):
+                candidate.unlink(missing_ok=True)
+                return None
+            confirmed = validated_outputs(source, 'dbf', output)
+            self._local.execution_mode = 'native_cli'
+            self._local.export_info['executionReason'] = 'native_cli_dbase_recovery'
+            self._local.export_info['warnings'] = tuple(dict.fromkeys(
+                (*self._local.export_info.get('warnings', ()), 'NATIVE_DBF_CLI_RECOVERY')))
+            self._local.export_info['resultChecks'] = [{
+                'check': 'dbf_native_container', 'status': 'checked_subset',
+                'qualityCompared': False, 'recovery': 'native_cli_one_attempt'}]
+            return confirmed
+        except (LibreOfficeError, OSError):
+            return None
+
     def _convert_native(self, source, target, workspace, *, cancel, timeout,
                 on_started, output_limit=None, on_document_service=None, on_stage=None):
         self._local.execution_mode = None
@@ -741,6 +838,12 @@ class LibreOfficeAdapter:
                         self._local.metrics = {**(clean_timings(result.get('timings')) or
                                                  {'source':'uno_document'}),
                                                'workerStartupMs':startup_ms}
+                        if (not result.get('ok') and result.get('code') == 'ENGINE_OUTPUT_MISSING'
+                                and target == 'dbf' and filter_name == 'dBase'):
+                            recovered = self._recover_missing_csv_dbf(
+                                source, workspace, control, recipe, native)
+                            if recovered is not None:
+                                return recovered
                         if not result.get('ok'):
                             diagnostic=str(result.get('diagnostic','')).replace(str(source.parent.parent.parent),'[local]')
                             code = result.get('code') or 'ENGINE_FAILED'

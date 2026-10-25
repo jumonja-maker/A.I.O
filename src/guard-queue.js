@@ -157,7 +157,17 @@
   function render() {
     if(!bar)return;
     bar.hidden=!state&&!jobs.length&&!warnings.length;
-    if(stateButton)stateButton.disabled=bar.hidden;
+    if(stateButton){
+      stateButton.disabled=bar.hidden;
+      const checking=state?.state==='checking';
+      const done=state?.preflightCompleted??0, total=state?.preflightTotal??0;
+      const label=checking?'Проверка '+done+' / '+total:'Состояние';
+      if(stateButton.textContent!==label)stateButton.textContent=label;
+      stateButton.classList.toggle('aio-guard-checking',checking);
+      stateButton.title=checking
+        ?'Предварительная проверка: '+done+' из '+total+'. Нажмите для подробностей и пропуска файла.'
+        :'Открыть состояние очереди Guard';
+    }
     if(bar.hidden&&bar.querySelector('.aio-guard-popup').open)bar.querySelector('.aio-guard-popup').close();
     const htmlSources=api()?.getHtmlSources?.()||[],htmlSelect=bar.querySelector('[data-g-html-source]');
     bar.querySelector('[data-g-resources]').hidden=!htmlSources.length;
@@ -223,9 +233,16 @@
     }
     actionFeedback=null;
     const active=state?.currentTask;
-    text('[data-g-current]',state?.statusReadError?'Связь со статусом прервана · повторяем запрос':active?active.name+(active.stage==='preflight'?' · проверка исходника':
-      active.stage==='upload'?' · подготовка исходника':' → '+active.format.toUpperCase())+' · '+
-      Math.max(0,Math.floor((Date.now()-active.startedMs)/1000))+' с':
+    const elapsed=active?.startedMs?Math.max(0,Math.floor((Date.now()-active.startedMs)/1000)):0;
+    const checking=state?.state==='checking';
+    const count=checking?' · проверено '+(state.preflightCompleted??0)+' / '+(state.preflightTotal??0):'';
+    text('[data-g-current]',state?.statusReadError?'Связь со статусом прервана · повторяем запрос':active?
+      active.name+(active.stage==='preflight'?' · проверка исходника'+count:
+      active.stage==='upload'?' · подготовка исходника':' → '+active.format.toUpperCase())+
+      ' · '+elapsed+' с'+(active.stage==='preflight'&&elapsed>=30?
+      ' · файл обрабатывается дольше обычного; можно пропустить его':''):
+      state?.state==='checking'?'Проверено '+(state.preflightCompleted??0)+' / '+(state.preflightTotal??0)+
+        ' · подготовка направлений…':
       state?.state==='paused'?'Очередь на паузе':state?.state==='prepared'?'Исходники проверены. Выберите форматы.':state&&!state.finished?'Подготовка результатов…':
       jobs.length?'Есть несохранённые результаты: '+jobs.length:warnings.length?'Есть результаты с повреждённым журналом':'Обработка завершена');
   }

@@ -149,7 +149,18 @@
   async function cancelInspection() {
     inspectionSequence++;
     const request = preparing;
-    if (request) {request.cancelled = true; await releaseJob(request.jobId);}
+    if (!request) return;
+    request.cancelled = true;
+    // /release rejects a live checking job (JOB_BUSY) and leaves its native
+    // LibreOffice process running. Cancel it first; prepareInputs.finally owns
+    // release after the blocked /preflight request has unwound. A cancelled
+    // inspection must not keep the global preflight gate for 510 more files.
+    if (request.jobId) {
+      try { await api('/cancel', {jobId:request.jobId}); }
+      catch (error) {
+        if (error.code !== 'JOB_NOT_FOUND') throw error;
+      }
+    }
   }
   function dispose() {
     inspected = null;
