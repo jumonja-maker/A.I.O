@@ -28,3 +28,6 @@
 [data-g-storage]{font-size:12px;opacity:.75;margin:6px 0}
 .aio-guard-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
 .aio-guard-dialog-head [data-g-close]{font-size:24px;line-height:1;min-width:32px}
+
+/* Long native preflight: keep the actual completed/total counter visible. */
+.aio-cv .aio-cv__format-head .aio-guard-state-button.aio-guard-checking{flex:0 0 156px;min-width:145px;font-variant-numeric:tabular-nums;white-space:nowrap}
