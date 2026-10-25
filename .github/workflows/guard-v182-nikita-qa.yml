@@ -110,6 +110,16 @@ jobs:
           if ($LASTEXITCODE -ne 0) {throw 'PYTHON_REGRESSION=FAIL'}
           Write-Host 'PYTHON_REGRESSION=PASS'
 
+      - name: Exercise actual 510-file native preflight with visible progress
+        working-directory: aio-v182-qa-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $out='D:\AIO-Lab\AIO-QA-Evidence\guard-v182-510-${{ github.run_id }}-${{ github.run_attempt }}'
+          & $env:AIO_QA_PYTHON -u tools/qa/guard_v182_large_preflight_acceptance.py --engine $env:AIO_QA_ENGINE --output $out --count 510 --deadline-seconds 600
+          if ($LASTEXITCODE -ne 0) { throw ('NATIVE_510_PREFLIGHT=FAIL;EVIDENCE='+$out) }
+          Write-Host 'NATIVE_510_PREFLIGHT=PASS'
+          Write-Host ('NATIVE_510_PREFLIGHT_EVIDENCE='+$out)
+
       - name: Native legacy CSV DBF acceptance twice
         working-directory: aio-v182-qa-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
