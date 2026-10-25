@@ -283,37 +283,74 @@ def inspect_document(source, *, cancel=None, seconds=BUDGET_SECONDS, max_bytes=B
 
 
 def compare_documents(before, after):
+    """Name the evidence actually compared, not just the overlapping counters.
+
+    A multi-sheet workbook can expose its sheet count while an XLSX value
+    digest is unavailable. That is useful structural evidence, NOT a check of
+    values or formulas. Never equate default-zero counters with text/value QA.
+    """
     evidence={'schema':1,'status':'not_checked','qualityCompared':False,
               'scope':'structural_subset','before':before,'after':after,
               'risks':[],'formatLimitations':[],
+              'structureCompared':False,'textCompared':False,'valuesCompared':False,
+              'comparisonCoverage':{'structure':'not_checked',
+                                    'text':'not_checked','values':'not_checked',
+                                    'visual':'not_checked'},
               'unknown':['visual_layout','fonts','rendered_pixels','formula_results']}
     if not before.get('complete') or not after.get('complete'):
         return evidence
     risks=evidence['risks']
     same_class=before.get('documentClass')==after.get('documentClass')
     if same_class:
-        for feature in ('tables','images','formulas','slides','sheets','pages','width','height','rows','columns'):
-            a,b=before['counts'].get(feature),after['counts'].get(feature)
-            if a is not None and b is not None and b<a:
+        structure_keys=('tables','images','formulas','slides','sheets','pages',
+                        'width','height','rows','columns')
+        shared=[key for key in structure_keys
+                if key in before.get('counts',{}) and key in after.get('counts',{})]
+        evidence['structureCompared']=bool(shared)
+        if shared:
+            evidence['comparisonCoverage']['structure']='checked_subset'
+        for feature in shared:
+            a,b=before['counts'][feature],after['counts'][feature]
+            if type(a) is int and type(b) is int and b<a:
                 risks.append({'code':'STRUCTURE_COUNT_DECREASED','feature':feature,'before':a,'after':b,
                               'certainty':'potential_loss'})
-        if before.get('textDigest') and after.get('textDigest') and before['textDigest']!=after['textDigest']:
-            risks.append({'code':'TEXT_DIFFERS','feature':'text','certainty':'requires_review'})
-        if (before.get('cellValues',{}).get('valuesDigest') and after.get('cellValues',{}).get('valuesDigest')
-                and before['cellValues']['valuesDigest']!=after['cellValues']['valuesDigest']):
-            risks.append({'code':'CELL_VALUES_DIFFER','feature':'cells','certainty':'requires_review'})
-    if before['counts'].get('formulas',0) and after.get('kind') in ('pdf','raster','svg','epub','csv'):
+        before_text=before.get('textDigest')
+        after_text=after.get('textDigest')
+        if before_text and after_text:
+            evidence['textCompared']=True
+            evidence['comparisonCoverage']['text']='checked_subset'
+            if before_text!=after_text:
+                risks.append({'code':'TEXT_DIFFERS','feature':'text','certainty':'requires_review'})
+        before_values=(before.get('cellValues') or {}).get('valuesDigest')
+        after_values=(after.get('cellValues') or {}).get('valuesDigest')
+        if before_values and after_values:
+            evidence['valuesCompared']=True
+            evidence['comparisonCoverage']['values']='checked_subset'
+            if before_values!=after_values:
+                risks.append({'code':'CELL_VALUES_DIFFER','feature':'cells','certainty':'requires_review'})
+    if before.get('counts',{}).get('formulas',0) and after.get('kind') in (
+            'pdf','raster','svg','epub','csv'):
         evidence['formatLimitations'].append('FORMULAS_NOT_EDITABLE_IN_TARGET')
     if before.get('documentClass')=='spreadsheet' and after.get('kind')=='csv':
         evidence['formatLimitations'].append('CSV_HAS_ONE_TABLE_AND_NO_WORKBOOK_STYLES')
-    comparable=same_class and (bool(before.get('textDigest') and after.get('textDigest')) or
-        bool(set(before['counts']).intersection(after['counts'])-{'words','paragraphs'}))
-    if comparable:
-        evidence.update(status='risks_found' if risks else 'checked_subset',qualityCompared=True)
-    else:
-        evidence['unknown'].append('no_comparable_structure')
-    return evidence
 
+    # Structural counts (even matching sheet counts) do not say whether any
+    # spreadsheet values survived. A spreadsheet with more than one sheet has
+    # no flat digest today. Report that gap rather than a false quality PASS.
+    spreadsheet=(before.get('documentClass')=='spreadsheet' or
+                 after.get('documentClass')=='spreadsheet')
+    if spreadsheet and not evidence['valuesCompared']:
+        evidence['unknown'].append('spreadsheet_values')
+    compared=(evidence['textCompared'] or evidence['valuesCompared'] or
+              evidence['structureCompared'] and not spreadsheet)
+    evidence['qualityCompared']=bool(compared)
+    if risks:
+        evidence['status']='risks_found'
+    elif compared:
+        evidence['status']='checked_subset'
+    else:
+        evidence['unknown'].append('no_comparable_content')
+    return evidence
 
 def inspect_isolated(source, workspace, *, cancel=None, seconds=BUDGET_SECONDS):
     """Keep XML/PDF parsers off the host and enforce a killable deadline."""
