@@ -1148,6 +1148,12 @@ class ConverterGuard:
                             or f.state not in {'queued','prepared'} for f in job.files)):
                     job = None
                     raise GuardError('JOB_STATE', 'Дождитесь загрузки исходников.', status=409)
+                # A 510-file matrix must not spend the normal two-minute
+                # preflight budget on every malformed/native-wedged sample.
+                # Unverified files remain unavailable, with a coded reason;
+                # the explicit "recheck longer" action retains full budgets.
+                if timeout_seconds is None and len(job.files) >= 32:
+                    native_timeout = min(native_timeout, 15.0)
                 job.state, job.running = 'checking', True
                 job.preflight_timeout_seconds = native_timeout
                 job.io += 1
