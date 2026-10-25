@@ -1,0 +1,162 @@
+{
+  "status": "FAIL",
+  "discovered": 791,
+  "passed": 761,
+  "failed": 1,
+  "errors": 0,
+  "skipped": [
+    {
+      "test": "test_comparison_pdf_preview_v19.PagePreview.test_bad_pdf_cannot_crash_the_host_or_be_shown_as_working_preview",
+      "reason": "Existing app Qt dependency required",
+      "status": "platform_not_applicable"
+    },
+    {
+      "test": "test_comparison_pdf_preview_v19.PagePreview.test_huge_raster_header_is_not_sent_to_the_browser_decoder",
+      "reason": "Existing app Qt dependency required",
+      "status": "platform_not_applicable"
+    },
+    {
+      "test": "test_comparison_pdf_preview_v19.PagePreview.test_pdf_pages_are_bounded_png_not_a_sandboxed_browser_plugin",
+      "reason": "Existing app Qt dependency required",
+      "status": "platform_not_applicable"
+    },
+    {
+      "test": "test_comparison_pdf_preview_v19.PagePreview.test_raster_preview_is_bounded_png_with_alpha_and_original_untouched",
+      "reason": "Existing app Qt dependency required",
+      "status": "platform_not_applicable"
+    },
+    {
+      "test": "test_guard_adapter_v17.AdapterRoutes.test_apng_native_import_failure_still_admits_frame_preserving_qt_routes",
+      "reason": "Application Qt dependency required",
+      "status": "platform_not_applicable"
+    },
+    {
+      "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_animation_to_tiff_keeps_each_frame_as_page",
+      "reason": "PySide6 required for native raster frame tests",
+      "status": "platform_not_applicable"
+    },
+    {
+      "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_apng_dispose_previous_background_and_source_blend",
+      "reason": "PySide6 required for native raster frame tests",
+      "status": "platform_not_applicable"
+    },
+    {
+      "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_apng_source_over_composes_semitransparent_subframe",
+      "reason": "PySide6 required for native raster frame tests",
+      "status": "platform_not_applicable"
+    },
+    {
+      "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_apng_to_webp_preserves_pixels_alpha_timing_loops",
+      "reason": "PySide6 required for native raster frame tests",
+      "status": "platform_not_applicable"
+    },
+    {
+      "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_cancellation_during_rows_cleans_partial_and_frame_scratch",
+      "reason": "PySide6 required for native raster frame tests",
+      "status": "platform_not_applicable"
+    },
+    {
+      "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_gif_cross_roundtrip_exact_palette_and_transparency",
+      "reason": "PySide6 required for native raster frame tests",
+      "status": "platform_not_applicable"
+    },
+    {
+      "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_gif_palette_limit_does_not_silently_quantise",
+      "reason": "PySide6 required for native raster frame tests",
+      "status": "platform_not_applicable"
+    },
+    {
+      "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_gif_semialpha_rejected_without_publishing_partial_file",
+      "reason": "PySide6 required for native raster frame tests",
+      "status": "platform_not_applicable"
+    },
+    {
+      "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_gif_subcentisecond_timing_is_explicitly_rejected",
+      "reason": "PySide6 required for native raster frame tests",
+      "status": "platform_not_applicable"
+    },
+    {
+      "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_icc_profile_is_preserved_in_webp_apng_and_tiff",
+      "reason": "PySide6 required for native raster frame tests",
+      "status": "platform_not_applicable"
+    },
+    {
+      "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_jpeg_exif_orientation_is_applied_before_png_encoding",
+      "reason": "PySide6 required for native raster frame tests",
+      "status": "platform_not_applicable"
+    },
+    {
+      "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_loop_change_is_not_ready",
+      "reason": "PySide6 required for native raster frame tests",
+      "status": "platform_not_applicable"
+    },
+    {
+      "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_nonraster_route_is_left_to_document_adapter",
+      "reason": "PySide6 required for native raster frame tests",
+      "status": "platform_not_applicable"
+    },
+    {
+      "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_opaque_rgba_256_colours_fit_exact_gif_palette",
+      "reason": "PySide6 required for native raster frame tests",
+      "status": "platform_not_applicable"
+    },
+    {
+      "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_pdf_to_tiff_renders_every_page_at_recorded_dpi",
+      "reason": "PySide6 required for native raster frame tests",
+      "status": "platform_not_applicable"
+    },
+    {
+      "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_tiff_preflight_requires_actual_decoder_for_cross_container",
+      "reason": "PySide6 required for native raster frame tests",
+      "status": "platform_not_applicable"
+    },
+    {
+      "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_tiff_to_pdf_postcondition_blocks_dropped_pages",
+      "reason": "PySide6 required for native raster frame tests",
+      "status": "platform_not_applicable"
+    },
+    {
+      "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_webp_to_png_writes_animation_instead_of_flattening",
+      "reason": "PySide6 required for native raster frame tests",
+      "status": "platform_not_applicable"
+    },
+    {
+      "test": "test_guard_qt_observation_v13.QtObservation.test_no_timer_without_opt_in_and_delay_measurement_does_not_throw",
+      "reason": "Opt in with AIO_QT_SAVE_QA=1 and existing Qt bindings",
+      "status": "platform_not_applicable"
+    },
+    {
+      "test": "test_guard_qt_save_v13.QtSaveBoundary.test_save_signals_are_queued_nonmodal_and_duplicate_picker_is_rejected",
+      "reason": "Opt in with AIO_QT_SAVE_QA=1 and existing Qt bindings",
+      "status": "platform_not_applicable"
+    },
+    {
+      "test": "test_guard_ui_audit_v18.NativeDownloadLifetime.test_rejected_requests_and_folder_redirects_leave_no_profile_children",
+      "reason": "Qt bindings required for QObject lifetime proof",
+      "status": "platform_not_applicable"
+    },
+    {
+      "test": "test_guard_ui_audit_v18.NativeDownloadLifetime.test_terminal_request_is_released_even_when_notification_raises",
+      "reason": "Qt bindings required for QObject lifetime proof",
+      "status": "platform_not_applicable"
+    },
+    {
+      "test": "test_guard_ui_audit_v18.NativeDownloadLifetime.test_terminal_requests_and_callbacks_leave_profile_ownership",
+      "reason": "Qt bindings required for QObject lifetime proof",
+      "status": "platform_not_applicable"
+    },
+    {
+      "test": "test_libreoffice_direct.LibreOfficeDirectTests.test_live_writer_calc_pdf_with_local_engine",
+      "reason": "LibreOffice not installed",
+      "status": "platform_not_applicable"
+    }
+  ],
+  "failureDetails": [
+    {
+      "test": "test_guard_native_audit_v18.NativeAuditV18.test_source_change_invalidates_preparation_and_old_staging_is_removed",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/aio-runner/actions-runner/actions-runner/_work/A.I.O/A.I.O/aio-pr54-v19-source-40196066727-1/tests/test_guard_native_audit_v18.py\", line 74, in test_source_change_invalidates_preparation_and_old_staging_is_removed\n    self.assertFalse(first.exists())\nAssertionError: True is not false\n"
+    }
+  ],
+  "expectedFailures": [],
+  "unexpectedSuccesses": []
+}
