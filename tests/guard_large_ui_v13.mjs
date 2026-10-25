@@ -61,6 +61,22 @@ const filter=document.querySelector('.aio-guard-tools select');filter.querySelec
 assert.equal(document.querySelectorAll('.aio-guard-task').length,1);
 assert.match(document.querySelector('.aio-guard-task').textContent,/Tail failure/);
 
+// A 510-file native import must show a real completed/total counter and
+// a slow-file hint, not an indefinite generic "preparing results" message.
+window.dispatchEvent(new window.CustomEvent('aio-guard-state',{detail:{
+  ...state,revision:4,state:'checking',preparation:true,
+  preflightCompleted:17,preflightTotal:510,
+  currentTask:{fileId:'0',name:'06_LEVEL_3.xlsx',format:'',stage:'preflight',
+    startedMs:Date.now()-40000}
+}}));
+assert.match(stateButton.textContent,/17 \/ 510/);
+assert.match(document.querySelector('[data-g-current]').textContent,/17 \/ 510/);
+assert.match(document.querySelector('[data-g-current]').textContent,/можно пропустить/);
+window.dispatchEvent(new window.CustomEvent('aio-guard-state',{detail:{
+  ...state,revision:5
+}}));
+assert.equal(stateButton.textContent,'Состояние');
+
 const progress=window.AIOFileProgress.attach(root);progress.begin({runId:'v13',fileIds:files.map(f=>f.fileId)});
 const one={fileId:'0',state:'converting',succeeded:1,total:2,targets:[{format:'pdf',state:'ready'},{format:'html',state:'converting'}]};
 progress.finishTargets({runId:'v13',partial:true,files:[one]});
