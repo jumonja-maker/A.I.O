@@ -297,10 +297,23 @@ class LibreOfficeAdapter:
     def available(self):
         return bool(self.executable and self.executable.is_file())
 
-    def capabilities(self, files, *, proofs=None):
+    def capabilities(self, files, *, proofs=None, cancel=None, on_progress=None):
+        """Build verified routes from one native snapshot; permit cancellation.
+
+        The 510 x 85 matrix is metadata-only. Check the owned cancellation
+        lease while walking it; a finished import count is not a commit of
+        the preflight result. Optional progress reports only format counts.
+        """
+        def check_cancel():
+            if cancel is not None and cancel.is_set():
+                raise GuardError('CANCELLED', 'Проверка направлений отменена.',
+                                 stage='preflight')
+
+        check_cancel()
         available = self.available
         native = self._registry()
         decision = self._bound_route_decider(native)
+        check_cancel()
         formats = []
         entries = list(catalog(self.executable))
         known = {row[0] for row in entries}
@@ -315,19 +328,30 @@ class LibreOfficeAdapter:
                             ext.upper() + ' — сохранение кадров Qt',
                             {'apng': 'image/apng', 'tif': 'image/tiff', 'txt': 'text/plain',
                              'tiff': 'image/tiff'}.get(ext, 'image/' + ext), True))
-        for ext, category, description, mime, registered in entries:
+        total_formats = len(entries)
+        if on_progress is not None:
+            on_progress(0, total_formats)
+        for format_index, (ext, category, description, mime, registered) in enumerate(entries):
+            check_cancel()
             if ext == 'xml':
                 description = 'XML — нативное представление документа'
-            states = {f['id']: (native.hint(f['name'], ext) if proofs is None else
-                               decision(ext, proofs.get(f['id']))) for f in files}
-            compatible = [i for i, state in states.items() if state == 'registered']
-            unknown = [i for i, state in states.items() if state == 'undetermined']
+            states = {}
+            for file_index, source in enumerate(files):
+                if file_index % 32 == 0:
+                    check_cancel()
+                identity = source['id']
+                states[identity] = (native.hint(source['name'], ext) if proofs is None
+                                    else decision(ext, proofs.get(identity)))
+            compatible = [identity for identity, state in states.items() if state == 'registered']
+            unknown = [identity for identity, state in states.items() if state == 'undetermined']
             # A large corpus may contain 510 files and dozens of formats.
             # Don't evaluate the same reason (and its native service lookups)
             # twice per file/format just to decide whether to include it.
             reasons = {}
             if proofs is not None:
-                for file in files:
+                for file_index, file in enumerate(files):
+                    if file_index % 32 == 0:
+                        check_cancel()
                     reason = native.route_reason(ext, proofs.get(file['id']))
                     if reason:
                         reasons[file['id']] = reason
@@ -364,6 +388,9 @@ class LibreOfficeAdapter:
                 'compatibility': 'native_registry_hint' if proofs is None else 'native_preflight',
                 'reasonCode': ('NATIVE_ROUTE_UNAVAILABLE' if files and not compatible and not unknown
                                else 'NATIVE_ROUTE_UNDETERMINED' if unknown else 'NATIVE_ROUTE_REGISTERED')})
+            if on_progress is not None:
+                on_progress(format_index + 1, total_formats)
+        check_cancel()
         return {'files': [{**item, 'compatibility': 'native_decision',
                            **({'preflight': proofs.get(item['id'])} if proofs is not None else {})}
                           for item in files],
