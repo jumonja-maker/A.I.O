@@ -1,5 +1,6 @@
 """Real QtWebEngine layout smoke; only native conversion is a controlled fixture."""
 import argparse
+import base64
 import io
 import json
 from pathlib import Path
@@ -20,8 +21,30 @@ from test_converter_guard_v02 import wait_finished
 from openpyxl import Workbook
 
 
+def synthetic_pdf():
+    """Two visible pages using the existing pypdf dependency, no reportlab."""
+    from pypdf import PdfWriter
+    from pypdf.generic import DictionaryObject, NameObject, DecodedStreamObject
+    writer=PdfWriter()
+    font=DictionaryObject({NameObject('/Type'):NameObject('/Font'),
+                           NameObject('/Subtype'):NameObject('/Type1'),
+                           NameObject('/BaseFont'):NameObject('/Helvetica')})
+    for label in ('PDF BEFORE / AFTER','PAGE TWO'):
+        page=writer.add_blank_page(width=400,height=300)
+        page[NameObject('/Resources')]=DictionaryObject({
+            NameObject('/Font'):DictionaryObject({NameObject('/F1'):font})})
+        content=DecodedStreamObject()
+        content.set_data(('BT /F1 24 Tf 30 250 Td ('+label+') Tj ET\n'
+                          'q 0.1 0.3 0.8 rg 30 40 200 100 re f Q\n').encode('ascii'))
+        page.replace_contents(content)
+    stream=io.BytesIO();writer.write(stream);writer.close()
+    return stream.getvalue()
+
+
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--output',type=Path,required=True);args=parser.parse_args()
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--output',type=Path,required=True)
+    parser.add_argument('--emit-snapshots',action='store_true',help='Emit bounded synthetic QA PNGs to logs; no artifact upload')
+    args=parser.parse_args()
     args.output.mkdir(parents=True,exist_ok=False)
     app=QApplication.instance() or QApplication([])
     with tempfile.TemporaryDirectory(prefix='aio-v19-visual-') as folder:
@@ -74,8 +97,7 @@ def main():
                 print(json.dumps(geometry,ensure_ascii=False),flush=True)
                 assert geometry['red'] and geometry['yellow'] and geometry['preview']
                 scenes.append({'name':name,'geometry':geometry,'screenshot':path.name})
-            from reportlab.pdfgen import canvas
-            stream=io.BytesIO();writer=canvas.Canvas(stream,pagesize=(400,300));writer.setFont('Helvetica',24);writer.drawString(30,250,'PDF BEFORE / AFTER');writer.setFillColorRGB(.1,.3,.8);writer.rect(30,40,200,100,fill=1);writer.showPage();writer.drawString(30,200,'PAGE TWO');writer.save();pdf=stream.getvalue()
+            pdf=synthetic_pdf()
             original_convert=server.guard.adapter.convert
             def copy_pdf(source,target,workspace,**kwargs):
                 kwargs['on_started']();directory=workspace/'output';directory.mkdir(parents=True);path=directory/'sample.pdf';path.write_bytes(source.read_bytes());return[path]
@@ -94,6 +116,11 @@ def main():
             scenes.append({'name':'pdf','metadata':pdf_meta,'screenshot':'pdf.png'})
             evidence={'status':'PASS','scope':'real QtWebEngine local UI and HTTP/isolated analysis; native output fixture controlled','windowsGUI':'NOT_RUN','scenes':scenes}
             (args.output/'evidence.json').write_text(json.dumps(evidence,ensure_ascii=False,indent=2)+'\n');print(json.dumps(evidence,ensure_ascii=False))
+            if args.emit_snapshots:
+                for name in ('dark.png','light.png','narrow.png','pdf.png'):
+                    raw=(args.output/name).read_bytes()
+                    if len(raw)>1024*1024:raise ValueError('Synthetic QA snapshot exceeds log budget')
+                    print('AIO_V19_VISUAL_SNAPSHOT='+json.dumps({'name':name,'pngBase64':base64.b64encode(raw).decode('ascii')}),flush=True)
         finally:
             window._shutdown_done=True;window.hide();window.page.deleteLater();app.processEvents();server.guard_api.close();server.guard.close();server.shutdown();server.server_close();thread.join(3)
 

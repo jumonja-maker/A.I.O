@@ -553,7 +553,11 @@ def _compare_grids(before, after, findings, checked, unknown):
         checked.add('cell_values_single_grid')
     if representation:
         findings.append({'code': 'CELL_REPRESENTATION_CHANGED', 'category': 'uncertain', 'feature': 'cell_text',
-            'message': 'Числовое значение совпадает, но текстовое представление изменилось.',
+            # This bucket includes verified numeric equivalence of TEXT cells,
+            # but also typed dates, booleans and numeric strings whose locale is
+            # unknown. Never assert equality for the entire bucket: "1,23" may
+            # be a rounded export of 1.23456789012345, not the same value.
+            'message': 'Представление значений изменилось; совпадение данных с учётом типа, локализации и точности требует проверки.',
             'certainty': 'requires_review', 'locations': representation[:25], 'totalAffected': len(representation)})
     if unknown_formula:
         unknown.add('cached_formula_values')

@@ -1934,10 +1934,11 @@ class ConverterGuard:
                 manifest = []
                 for artifact in job.artifacts:
                     digest, written = hashlib.sha256(), 0
-                    info = zipfile.ZipInfo.from_file(artifact.path, arcname=artifact.archive_name)
+                    source_path = self._owned_artifact_path(job, artifact, stage='bundle')
+                    info = zipfile.ZipInfo.from_file(source_path, arcname=artifact.archive_name)
                     # Force ZIP64 even when the stream length was not given to
                     # ZipFile.open: no hidden 2 GiB failure half-way through.
-                    with artifact.path.open('rb') as source, archive.open(
+                    with source_path.open('rb') as source, archive.open(
                             info, 'w', force_zip64=True) as output:
                         while block := source.read(CHUNK):
                             if job.bundle_cancel.is_set():
@@ -2095,6 +2096,11 @@ class ConverterGuard:
                     'outputsExpected': len(copies), 'outputsWritten': len(manifest),
                     'bytesWritten': bytes_written, **verification}
         try:
+            # A saved ticket and matching digest do not grant access to a path
+            # redirected outside this job after conversion. Validate the whole
+            # snapshot before creating destination files, then again per open.
+            for artifact in copies:
+                self._owned_artifact_path(job, artifact, stage='save')
             destination = Path(destination).resolve(strict=True)
             if self.owns_path(destination):
                 raise GuardError('SAVE_OWNED_STORAGE','Выберите папку вне служебного хранилища AIO.',stage='save')
@@ -2116,6 +2122,7 @@ class ConverterGuard:
             for number, artifact in enumerate(copies, 1):
                 if cancel.is_set():
                     raise GuardError('SAVE_CANCELLED', 'Сохранение отменено. Исходные результаты остаются в AIO.', stage='save')
+                source_path = self._owned_artifact_path(job, artifact, stage='save')
                 relative = Path(artifact.archive_name)
                 if relative.is_absolute() or '..' in relative.parts:
                     raise GuardError('ENGINE_OUTPUT_PATH', 'Недопустимое имя результата.', stage='save')
@@ -2126,7 +2133,7 @@ class ConverterGuard:
                 part = target.with_name(target.name + '.aio-part-' + secrets.token_hex(6))
                 digest, written = hashlib.sha256(), 0
                 try:
-                    with artifact.path.open('rb') as source, part.open('xb') as output:
+                    with source_path.open('rb') as source, part.open('xb') as output:
                         while block := source.read(CHUNK):
                             if cancel.is_set():
                                 raise GuardError('SAVE_CANCELLED', 'Сохранение отменено. Результаты остаются в AIO.', stage='save')
@@ -2395,6 +2402,15 @@ class ConverterGuard:
         except (OSError, ValueError):
             return None
 
+    def _owned_artifact_path(self, job, artifact, *, stage):
+        """Recheck retained outputs at every read boundary, not only export."""
+        path = self._comparison_path(job, artifact.path, artifact.size)
+        if path is None:
+            raise GuardError('SAVE_CHANGED',
+                'Результат изменён или находится вне служебного хранилища AIO.',
+                stage=stage, status=409)
+        return path
+
     @contextmanager
     def comparison_inputs(self, job_id):
         """Lease completed originals/results for an explicit analysis only.
@@ -2424,7 +2440,13 @@ class ConverterGuard:
                     resources.append(MappingProxyType({'path':name, 'size':metadata['size'],
                         'source':path, 'sha256':metadata.get('digest')}))
                 for task in item.targets:
-                    paths = tuple(a.path for a in task.artifacts)
+                    # Artifact paths were owned when the export was retained,
+                    # but a parent directory can since become a symlink or a
+                    # Windows junction. Revalidate outputs just like originals
+                    # before an analyzer or preview receives filesystem paths.
+                    paths = tuple(path for artifact in task.artifacts
+                                  if (path := self._comparison_path(
+                                      job, artifact.path, artifact.size)) is not None)
                     records.append(MappingProxyType({
                         'taskId':job.id+':'+str(task.index), 'fileId':item.id,
                         'name':item.name, 'format':task.format, 'state':task.state,
@@ -2625,7 +2647,8 @@ class ConverterGuard:
             job = self._get(artifact.job_id)
             job.io += 1
         try:
-            with artifact.path.open('rb') as stream:
+            path = self._owned_artifact_path(job, artifact, stage='download')
+            with path.open('rb') as stream:
                 yield stream, artifact.name, artifact.size
         finally:
             with self._lock:

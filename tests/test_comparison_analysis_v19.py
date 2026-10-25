@@ -106,6 +106,38 @@ class ComparisonAnalysisV19(unittest.TestCase):
         self.assertFalse(any(f['code'] == 'CELL_VALUES_CHANGED' for f in result['findings']))
         self.assertIn('CELL_REPRESENTATION_CHANGED', [f['code'] for f in result['findings']])
 
+    def test_text_identifier_leading_zeroes_remain_uncertain(self):
+        source, output = self.path('source.csv'), self.path('result.csv')
+        source.write_text('key,value\nA,00123\n', encoding='utf-8')
+        output.write_text('key,value\nA,123\n', encoding='utf-8')
+        result = analyze_pair(source, [output], 'csv')
+        self.assertEqual(result['status'], 'uncertain')
+        self.assertNotIn('cell_values_single_grid', result['checkedFeatures'])
+        found = next(f for f in result['findings'] if f['code'] == 'CELL_REPRESENTATION_CHANGED')
+        self.assertEqual(found['locations'][0]['before'], '00123')
+        self.assertEqual(found['locations'][0]['after'], '123')
+        self.assertNotIn('значение совпадает', found['message'])
+
+    def test_localized_numbers_never_claim_equality_without_locale_and_precision_proof(self):
+        from openpyxl import Workbook
+        source, output = self.path('source.xlsx'), self.path('result.csv')
+        book = Workbook(); sheet = book.active
+        sheet.append(['key', 'value']); sheet.append(['A', 1.23456789012345])
+        book.save(source); book.close()
+        for display in ('1,23', '1,23456789012345', '€1,23', '1 234,56'):
+            with self.subTest(display=display):
+                output.write_text('key,value\nA,"'+display+'"\n', encoding='utf-8')
+                result = analyze_pair(source, [output], 'csv')
+                self.assertEqual(result['status'], 'uncertain')
+                self.assertNotIn('cell_values_single_grid', result['checkedFeatures'])
+                self.assertFalse(any(f['category'] == 'confirmed_loss' for f in result['findings']))
+                found = next(f for f in result['findings'] if f['code'] == 'CELL_REPRESENTATION_CHANGED')
+                self.assertEqual(found['locations'][0]['before'], '1.23456789012345')
+                self.assertEqual(found['locations'][0]['after'], display)
+                self.assertIn('точности требует проверки', found['message'])
+                self.assertNotIn('значение совпадает', found['message'])
+                self.assertIn('csv_preserve_values', result['recipeCandidates'])
+
     def test_different_numeric_value_is_confirmed(self):
         source, output = self.path('source.csv'), self.path('result.csv')
         source.write_text('key,value\nA,42\n', encoding='utf-8')
@@ -285,6 +317,8 @@ class ComparisonAnalysisV19(unittest.TestCase):
         self.assertEqual(result['status'], 'uncertain')
         self.assertFalse(any(f['category'] == 'confirmed_loss' for f in result['findings']))
         self.assertNotIn('cell_values_single_grid', result['checkedFeatures'])
+        found = next(f for f in result['findings'] if f['code'] == 'CELL_REPRESENTATION_CHANGED')
+        self.assertNotIn('Числовое значение', found['message'])
 
     def test_odf_explicit_repeated_spaces_are_real_cell_data(self):
         source, output = self.path('source.ods'), self.path('result.csv')

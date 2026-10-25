@@ -3,8 +3,10 @@
 Uses a generated, single-sheet XLSX and a deliberately configured first
 LibreOffice export with SaveAsShown=true. This controlled degraded setting
 reproduces a repairable precision difference even when a release already
-exports full precision by default. No user document, global LO profile
-or application installation is changed. This is targeted evidence, not a full
+exports full precision by default. The generated numeric cell explicitly uses
+an en-US number format, independently of the runner's locale. This is not
+evidence that arbitrary localized CSV dialects can be compared. No user document,
+global LO profile or application installation is changed. This is targeted evidence, not a full
 format matrix, Windows GUI check or universal quality certification.
 """
 import argparse
@@ -39,7 +41,10 @@ def main(argv=None):
     sheet.title = 'Precision'
     sheet.append(['code', 'amount', 'note'])
     sheet.append(['00123', 1.23456789012345, 'Привет'])
-    sheet['B2'].number_format = '0.00'
+    # CSV export inherits the cell's number-format locale. FilterOptions token
+    # 6 controls CSV import, not export; changing it cannot pin decimal syntax.
+    # Keep the synthetic control deterministic through its own explicit format.
+    sheet['B2'].number_format = '[$-409]0.00'
     book.save(source)
     book.close()
     source_bytes = source.read_bytes()
@@ -79,7 +84,9 @@ def main(argv=None):
     origin = 'http://127.0.0.1:' + str(server.server_port)
     evidence = {'schema': 1, 'status': 'FAIL', 'scope': 'actual local loopback + source retention + isolated analysis + LibreOffice CSV automatic retry',
                 'fullFormatMatrix': 'NOT_RUN', 'windowsGUI': 'NOT_RUN', 'sourceSha256': source_hash,
-                'initialExportControl': {'SaveAsShown': True, 'scope': 'deliberately degraded first LO export; not a claim of a current default defect'}}
+                'initialExportControl': {'SaveAsShown': True, 'sourceNumberFormat': '[$-409]0.00',
+                    'numericLocale': 'en-US',
+                    'scope': 'deliberately degraded first LO export of a locale-pinned synthetic cell; not a claim of a current default or localized CSV comparison defect'}}
 
     def call(path, body=None, binary=False):
         headers = {'X-AIO-Token': token}
@@ -109,6 +116,8 @@ def main(argv=None):
         call('start', {'jobId': parent, 'formats': ['csv'], 'fileIds': ['source'],
                        'onlyVerified': True, 'archiveMode': 'on_demand'})
         first = wait('jobs?' + urlencode({'job': parent}), lambda s: s['finished'])
+        evidence['firstExecution'] = {'state': first['state'], 'succeeded': first['succeeded'],
+            'failed': first['failed'], 'files': first.get('files', [])}
         if first['succeeded'] != 1:
             raise AssertionError('Native initial conversion failed: ' + json.dumps(first))
         with server.guard.comparison_inputs(parent) as records:
@@ -127,36 +136,43 @@ def main(argv=None):
             return 2
         call('compare/retry', {'jobId': parent, 'analysisId': analysis['analysisId'], 'taskIds': [selected[0]['taskId']]})
         retried = wait('compare?' + urlencode({'job': parent}), lambda s: s.get('retry', {}).get('state') in ('completed', 'failed', 'cancelled'))
+        evidence['retry'] = retried.get('retry')
+        evidence['retryVerification'] = retried['retry'].get('verification')
         if retried['retry']['state'] != 'completed':
             raise AssertionError('Automatic retry failed: ' + json.dumps(retried['retry']))
-        evidence['retryVerification'] = retried['retry'].get('verification')
-        assert retried['retry'].get('verification', {}).get('assessment') == 'checked_subset_improved'
         child = retried['retry']['jobId']
         child_state = call('jobs?' + urlencode({'job': child}))
-        assert child_state['comparisonParentJobId'] == parent
-        assert child_state['comparisonRecipe'] == 'csv_preserve_values'
-        assert child_state['total'] == child_state['succeeded'] == 1
+        evidence['childExecution'] = child_state
         with server.guard.comparison_inputs(child) as records:
             candidate = records[0]['paths'][0]
             import csv
             with candidate.open(encoding='utf-8-sig', newline='') as stream:
                 rows = list(csv.reader(stream))
-            assert rows[1][0] == '00123'
-            assert Decimal(rows[1][1]) == Decimal('1.23456789012345')
-            assert rows[1][2] == 'Привет'
             evidence['candidateRows'] = rows
             evidence['candidateSha256'] = hashlib.sha256(candidate.read_bytes()).hexdigest()
         call('compare/start', {'jobId': child})
         child_analysis = wait('compare?' + urlencode({'job': child}), lambda s: s['state'] in ('completed', 'failed', 'cancelled'))
+        evidence.update(childAnalysis=child_analysis,
+                        firstResultsUnchanged=all(Path(path).is_file() and
+                            hashlib.sha256(Path(path).read_bytes()).hexdigest() == digest
+                            for path, digest in original_results.items()),
+                        sourceUnchanged=source.read_bytes() == source_bytes, selectedPairs=1,
+                        automaticParameters=server.guard.report(child)['files'][0]['targets'][0]['automaticParameters'])
+        # Capture the actual candidate and both analyses before judging the
+        # experiment, so a native/locale failure retains its full diagnostics.
+        assert retried['retry'].get('verification', {}).get('assessment') == 'checked_subset_improved'
+        assert child_state['comparisonParentJobId'] == parent
+        assert child_state['comparisonRecipe'] == 'csv_preserve_values'
+        assert child_state['total'] == child_state['succeeded'] == 1
+        assert rows[1][0] == '00123'
+        assert Decimal(rows[1][1]) == Decimal('1.23456789012345')
+        assert rows[1][2] == 'Привет'
         assert child_analysis['state'] == 'completed'
         assert not any(row['status'] == 'confirmed_loss' for row in child_analysis['items'])
-        assert all(Path(path).is_file() and hashlib.sha256(Path(path).read_bytes()).hexdigest() == digest
-                   for path, digest in original_results.items())
-        assert source.read_bytes() == source_bytes
+        assert evidence['firstResultsUnchanged']
+        assert evidence['sourceUnchanged']
         assert call('jobs?' + urlencode({'job': parent}))['result']['outputs'] == first['result']['outputs']
-        evidence.update(status='PASS', childAnalysis=child_analysis, firstResultsUnchanged=True,
-                        sourceUnchanged=True, selectedPairs=1,
-                        automaticParameters=server.guard.report(child)['files'][0]['targets'][0]['automaticParameters'])
+        evidence['status'] = 'PASS'
         return 0
     except Exception as error:
         evidence.update(error=type(error).__name__, reason=str(error))

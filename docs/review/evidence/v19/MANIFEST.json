@@ -6,18 +6,21 @@
   "evidence": {
     "analysis-1000.json": "505c658c9de022d31b90ccc39fcfe17c08dd977484fb2b708352b3e9e0c0a1b6",
     "analysis-1000.txt": "d530dd8dfa7d07d2bc382f294ec74cdde207e666e1c68554547ca9557b515180",
-    "code-sha256.json": "c51f176da440ebc1bc3a71a490b7944671fc929ad4b704328e1ad4b0f1e98cf8",
+    "code-sha256.json": "b7331f969247c3470d04a256d2ec2da3713b60c0eeb12e7b8655e11456e02d18",
     "dark.png": "6167c78c65a1a8779d9024093cc9198283bcd826009bf636b6eece5b4bb9c6df",
-    "full-tests.txt": "f68cf5a8f822a3da06c2fb243c7e12deb36503499b227ea4067ba9d55ae3852c",
+    "full-tests.txt": "38a49011c243403528c69149f710799147ed07b4362435fdf12cac4f9d790b82",
     "light.png": "2a81612fd0095fb94e5a31ac9d0fd4d6d773a7929cfbc0dfba4c37413a67a0d0",
     "live-http-retry.json": "ef9ed68e101064748e9fe9b68b542e009b265e7610ed8a6cb87ed9fc385d0ce7",
     "live-http-retry.txt": "a39bd2022a104e4f64920357ac67dd3b31e4df225d6b4d77d4ea11c23c32db27",
     "narrow.png": "f6543b62936899f81d2acd57cbe9aa23b9c61c8daa9bab9c1455aa850b817329",
     "native-control-diagnosis.json": "be40074aec7346d563f385995432c31d2cfdf3d50d256571e0348903a7eac4c9",
     "native-control-fixed.json": "c3900c4e431367ae31d0a9f9f2ee93e43ffca65f4b83a0479895b530db73605f",
+    "native-explicit-locale.json": "d481209d92c2c9e96e5662b582f5f73cd460e8d6c1b459dada3d5f32d8bec52b",
+    "native-locale-diagnosis.json": "77d27d72de02e09ac85d00cf63711b54136814375ce1da4412dc52417082c623",
     "native-recipes.json": "e89ff0b326313491d0399dc5e204ff2c626dc0a97c10ebb6f02385fb6403255c",
     "pdf.png": "fe3e5c09b6a4cfbdf6e85cabcad87472910b3584f0d15592d2e0990a6bdd05c6",
     "runner-first-summary.json": "ac7bc53469e86dd4107d7db943c4190f1225a79ad041b0ee57a337f50bd4a7af",
+    "runner-second-summary.json": "5e236163e987d629cfe099496e884ed7dc7574ff52ea2084a2b86119e925e11f",
     "runtime.json": "b66014a9ec9689961491dce61477a7b2e31e3bddbcd7480bd3495061d34edac7",
     "visual-console.txt": "c4026ecc3fe6143b264513dbb19380269289eed9306e54283f4dea43713182ef",
     "visual.json": "8fcf222f2f4d479fe45262778aa69a9e9fc9ee45f98f53e16a43abdd2454be9d"
@@ -31,19 +34,25 @@
     "fullFormatMatrix": "NOT_RUN"
   },
   "fullTestResult": {
-    "total": 720,
-    "passed": 720,
+    "total": 726,
+    "passed": 726,
     "skipped": 0,
     "failed": 0,
     "errors": 0,
-    "seconds": 61.298,
-    "comparisonTests": 71,
+    "seconds": 63.291,
+    "comparisonTests": 77,
     "addedRunnerClassificationTests": 2
   },
   "runnerFirstRun": {
     "id": 40183181222,
     "status": "FAIL",
     "source": "97d37f186e9245ab05473142a90dbeafb5471a6e",
+    "repeat": "PENDING"
+  },
+  "runnerSecondRun": {
+    "id": 40188505773,
+    "windows": "FAIL",
+    "linux": "SOURCE_ONLY_PASS",
     "repeat": "PENDING"
   }
 }

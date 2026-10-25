@@ -1,11 +1,14 @@
 """Retained original ownership and independent, explicitly selected retries."""
 import io
 import json
+import os
 from pathlib import Path
+import subprocess
 import tempfile
 import threading
 import time
 import unittest
+from unittest.mock import patch
 
 from app_backend.converter_guard import ConverterGuard, GuardError
 from test_converter_guard_v02 import wait_finished
@@ -120,6 +123,111 @@ class ComparisonOwnership(unittest.TestCase):
             self.assertTrue(source.is_file())
             self.assertTrue(records[0]['paths'][0].is_file())
         self.assertFalse(root.exists())
+
+    def test_foreign_output_is_unavailable_but_metadata_and_parent_are_preserved(self):
+        identity = self.converted(count=1)
+        artifact = self.guard._jobs[identity].artifacts[0]
+        owned_path = artifact.path
+        foreign = self.root / 'outside-this-job.pdf'
+        expected = owned_path.read_bytes()
+        foreign.write_bytes(expected)  # Even matching bytes do not establish ownership.
+        artifact.path = foreign
+        try:
+            with self.guard.comparison_inputs(identity) as records:
+                self.assertEqual(records[0]['paths'], ())
+                self.assertTrue(records[0]['sourceAvailable'])
+                self.assertEqual(records[0]['tickets'], (artifact.ticket,))
+                self.assertEqual(len(records[0]['outputs']), 1)
+            self.assertEqual(self.guard.status(identity)['succeeded'], 1)
+            self.assertEqual(foreign.read_bytes(), expected)
+        finally:
+            artifact.path = owned_path
+
+    def test_reparse_output_ancestor_is_checked_again_after_conversion(self):
+        identity = self.converted(count=1)
+        artifact = self.guard._jobs[identity].artifacts[0]
+        # Python 3.11 Windows junctions need not satisfy Path.is_symlink().
+        # Emulate the shared lstat/reparse predicate on every platform; the
+        # service regression also creates a real junction on Windows.
+        with patch('app_backend.converter_guard.core.path_is_link',
+                   side_effect=lambda candidate: candidate == artifact.path.parent) as checked:
+            with self.guard.comparison_inputs(identity) as records:
+                self.assertEqual(records[0]['paths'], ())
+                self.assertTrue(records[0]['sourceAvailable'])
+            self.assertIn(artifact.path.parent, [call.args[0] for call in checked.call_args_list])
+        with self.guard.comparison_inputs(identity) as records:
+            self.assertEqual(records[0]['paths'], (artifact.path,))
+
+    def _assert_invalid_artifact_cannot_be_downloaded_saved_or_zipped(self, identity, artifact):
+        reads = []
+        original_open = Path.open
+        def tracked_open(path, mode='r', *args, **kwargs):
+            if path == artifact.path and 'r' in mode:
+                reads.append(str(path))
+            return original_open(path, mode, *args, **kwargs)
+        with tempfile.TemporaryDirectory() as destination:
+            with patch.object(Path, 'open', tracked_open):
+                with self.assertRaises(GuardError) as download:
+                    with self.guard.open_result(artifact.ticket):
+                        self.fail('Foreign artifact became downloadable')
+                self.assertEqual(download.exception.code, 'SAVE_CHANGED')
+                with self.assertRaises(GuardError) as saved:
+                    self.guard.save_folder(artifact.ticket, destination)
+                self.assertEqual(saved.exception.code, 'SAVE_CHANGED')
+                self.guard.rebuild_bundle(identity)
+                state = wait_finished(self.guard, identity)
+                self.assertEqual(state['packagingError'], 'SAVE_CHANGED')
+            self.assertEqual(list(Path(destination).iterdir()), [])
+        self.assertEqual(reads, [], 'Ownership must be checked before reading foreign bytes')
+        job = self.guard._jobs[identity]
+        self.assertFalse(list(job.root.glob('*.zip')))
+        self.assertTrue(all(not item.saved for item in job.artifacts))
+        self.assertEqual(job.io, 0)
+        self.assertFalse(job.saving)
+
+    def test_same_byte_foreign_output_is_rejected_at_all_artifact_read_boundaries(self):
+        identity = self.converted(count=2)
+        artifact = self.guard._jobs[identity].artifacts[0]
+        owned_path = artifact.path
+        foreign = self.root / 'foreign-identical-output.pdf'
+        expected = owned_path.read_bytes()
+        foreign.write_bytes(expected)
+        artifact.path = foreign
+        try:
+            self._assert_invalid_artifact_cannot_be_downloaded_saved_or_zipped(identity, artifact)
+            self.assertEqual(foreign.read_bytes(), expected)
+        finally:
+            artifact.path = owned_path
+
+    def test_redirected_output_parent_is_rejected_at_all_artifact_read_boundaries(self):
+        identity = self.converted(count=2)
+        artifact = self.guard._jobs[identity].artifacts[0]
+        original = artifact.path.parent
+        backup = original.with_name(original.name + '-original')
+        foreign = self.root / 'foreign-output-directory'
+        foreign.mkdir()
+        expected = artifact.path.read_bytes()
+        (foreign / artifact.path.name).write_bytes(expected)
+        original.rename(backup)
+        try:
+            try:
+                original.symlink_to(foreign, target_is_directory=True)
+            except (NotImplementedError, OSError) as error:
+                if os.name != 'nt':
+                    self.fail('Cannot create controlled directory link: %s' % error)
+                junction = subprocess.run(
+                    ['cmd.exe', '/d', '/c', 'mklink', '/J', str(original), str(foreign)],
+                    capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=10)
+                self.assertEqual(junction.returncode, 0,
+                    'Cannot create no-admin junction: ' + (junction.stdout + junction.stderr)[-400:])
+            self._assert_invalid_artifact_cannot_be_downloaded_saved_or_zipped(identity, artifact)
+            self.assertEqual((foreign / artifact.path.name).read_bytes(), expected)
+        finally:
+            if original.is_symlink():
+                original.unlink()
+            elif original.exists():
+                os.rmdir(original)  # Removes the junction, never its target.
+            backup.rename(original)
 
     def test_legacy_or_missing_source_is_an_unavailable_record_not_lost_outputs(self):
         identity = self.converted(retain=False)
