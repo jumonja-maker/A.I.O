@@ -153,6 +153,22 @@ def start_server(port: int = 0, *, guard_recovery_parent=None):
             data = json.dumps(value, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
             self._send(code, data, 'application/json; charset=utf-8')
 
+        def _loopback_origin_allowed(self):
+            """Reject ambiguous Host before serving the token-bearing UI.
+
+            Binding only to 127.0.0.1 does not establish the HTTP origin:
+            a browser can resolve an unrelated hostname to loopback. Require
+            exactly the origin used by this application's own WebEngine page.
+            An absent Origin is normal for ordinary GET/navigation requests.
+            """
+            expected_host = '127.0.0.1:' + str(self.server.server_port)
+            hosts = self.headers.get_all('Host', [])
+            origins = self.headers.get_all('Origin', [])
+            expected_origin = 'http://' + expected_host
+            return (len(hosts) == 1 and hosts[0] == expected_host and
+                    len(origins) <= 1 and
+                    (not origins or origins[0] == expected_origin))
+
         def _authorized(self):
             return secrets.compare_digest(self.headers.get('X-AIO-Token', ''), token)
 
@@ -203,6 +219,9 @@ def start_server(port: int = 0, *, guard_recovery_parent=None):
             return self._send(200, blob, mime)
 
         def do_GET(self):
+            if not self._loopback_origin_allowed():
+                self.close_connection = True
+                return self._json(403, {'error':'Нет доступа.'})
             path = urlsplit(self.path).path
             if path.startswith('/api/converter-guard'):
                 return self.server.guard_api.get(self, path)
@@ -382,6 +401,9 @@ def start_server(port: int = 0, *, guard_recovery_parent=None):
                     self.server.converter_gate.release()
 
         def do_POST(self):
+            if not self._loopback_origin_allowed():
+                self.close_connection = True
+                return self._json(403, {'error':'Нет доступа.'})
             path = urlsplit(self.path).path
             if path.startswith('/api/converter-guard'):
                 return self.server.guard_api.post(self, path)
