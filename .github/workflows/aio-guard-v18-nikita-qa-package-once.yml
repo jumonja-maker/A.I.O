@@ -1,4 +1,4 @@
-name: AIO Guard v18.1 NIKITA Windows QA EXE portable and installer
+name: AIO Guard v18.1 diagnostic Windows EXE portable and installer
 
 # This one-shot workflow is separate from existing application/build workflows.
 # Root replaces both immutable pins after publishing the reviewed source commit.
@@ -122,21 +122,6 @@ jobs:
           }
           if (-not $engine) {throw 'Existing complete native LibreOffice unavailable'}
           'AIO_QA_ENGINE='+$engine | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-      - name: Prepare verified offline test-only dependencies
-        working-directory: aio-guard-v18-build-source-${{ github.run_id }}-${{ github.run_attempt }}
-        run: |
-          $ErrorActionPreference='Stop'
-          $target=Join-Path $env:RUNNER_TEMP 'aio-guard-v18-build-deps-${{ github.run_id }}-${{ github.run_attempt }}-windows'
-          & $env:AIO_QA_PYTHON tools/qa/guard_v17_test_dependencies.py --output $target --github-env
-          if ($LASTEXITCODE -ne 0) {throw 'Offline test dependency preparation failed'}
-      - name: Full source Qt DOM and real Windows native acceptance
-        id: acceptance
-        working-directory: aio-guard-v18-build-source-${{ github.run_id }}-${{ github.run_attempt }}
-        run: |
-          $ErrorActionPreference='Stop'
-          $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-guard-v18-build-evidence-${{ github.run_id }}-${{ github.run_attempt }}'
-          & $env:AIO_QA_PYTHON tools/qa/guard_v17_selfhosted_acceptance.py --output $evidence --executable $env:AIO_QA_ENGINE --seconds 60
-          if ($LASTEXITCODE -ne 0) {throw 'Windows acceptance failed or has incomplete required coverage; see AIO_SELFHOSTED_EVIDENCE'}
       - name: Verify offline QA packagers and complete bundled LibreOffice
         id: packaging_deps
         working-directory: aio-guard-v18-build-source-${{ github.run_id }}-${{ github.run_attempt }}
@@ -220,7 +205,7 @@ jobs:
           } | Set-Content -LiteralPath 'build\installer\SHA256SUMS.txt' -Encoding ascii
           @('SOURCE=3ca80cf40577372a4177f82939756247ecc95bfb','TREE=888c9b492fbb0fa4974121b3d21cf34c8b2bba30','GUARD=V18-PR41-AND-PREMAIN-PR47',
             'BLACKBOX=TELEMETRY-V0.1-PR15','LIBREOFFICE=BUNDLED',
-            'NATIVE_WINDOWS_QA=PASS','FULLTEST_510=NOT_RUN','VISIBLE_GUI=NOT_RUN','INSTALLED=NO;RELEASED=NO;MAIN=UNCHANGED') |
+            'NATIVE_WINDOWS_QA=BLOCKED_CSV_DBF_ISSUE_50','FULLTEST_510=NOT_RUN','VISIBLE_GUI=NOT_RUN','INSTALLED=NO;RELEASED=NO;MAIN=UNCHANGED') |
               Set-Content -LiteralPath 'build\installer\BUILD-STATUS.txt' -Encoding utf8
           Get-Content -LiteralPath 'build\installer\SHA256SUMS.txt' |
               ForEach-Object { Write-Host ('QA_SHA256='+$_) }
@@ -248,16 +233,15 @@ jobs:
           retention-days: 7
           if-no-files-found: error
 
-      - name: Report test, package and artifact outcomes separately
+      - name: Report diagnostic package without claiming QA pass
         if: always()
         run: |
           Write-Host ('PINNED_SOURCE='+$env:AIO_QA_SOURCE_SHA)
-          Write-Host 'AIO_NATIVE_ACCEPTANCE=${{ steps.acceptance.outcome }}'
+          Write-Host 'NATIVE_QA=BLOCKED_CSV_DBF_ISSUE_50;SOURCE_SHA=3ca80cf40577372a4177f82939756247ecc95bfb'
           Write-Host 'PACKAGER_DEPS=${{ steps.packaging_deps.outcome }}'
           Write-Host 'PACKAGE=${{ steps.package.outcome }}'
           Write-Host 'UPLOAD=${{ steps.upload.outcome }}'
           Write-Host 'INSTALL=NOT_RUN;FULLTEST_510=NOT_RUN;MAIN=UNCHANGED'
-          if ('${{ steps.acceptance.outcome }}' -ne 'success') { throw 'Pinned Windows source/native acceptance did not pass' }
           if ('${{ steps.package.outcome }}' -ne 'success') { throw 'Windows QA EXE/Setup/package failed' }
           if ('${{ steps.upload.outcome }}' -ne 'success') { Write-Warning 'Files packaged on NIKITA D:; GitHub artifact upload unavailable.' }
 
