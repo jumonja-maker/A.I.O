@@ -212,7 +212,7 @@
           uploads = inputs.filter(f=>previous.get(String(f.id))!==f.file);
         } catch (error) {if(error.code!=='JOB_NOT_FOUND')throw error;}
       }
-      if (!created) created = await api('/prepare', {files:metadata(inputs)});
+      if (!created) created = await api('/prepare', {files:metadata(inputs),retainSources:true});
       request.jobId = created.jobId;
       onCreated?.(created.jobId);
       current();
@@ -657,4 +657,3 @@
     }
   });
 })();
-

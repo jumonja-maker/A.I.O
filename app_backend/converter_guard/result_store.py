@@ -71,8 +71,17 @@ class ResultStore:
     def initialize(self, job):
         value = {'schema': 1, 'jobId': job.id,
             'inputAccounting':job.input_accounting,
+            'retainSources':getattr(job, 'retain_sources', False),
+            'comparisonParentJobId':getattr(job, 'comparison_parent_job_id', None),
+            'comparisonRecipe':getattr(job, 'comparison_recipe', None),
+            'comparisonParentTasks':list(getattr(job, 'comparison_parent_tasks', ())),
             'files': [{'id': f.id, 'name': f.name, 'size': f.size,'nativeRoute':f.native_route,
                        'sourceSha256':getattr(f,'content_digest',None),
+                       'sourcePath':(f.source.relative_to(self.root).as_posix()
+                                     if getattr(job, 'retain_sources', False) else None),
+                       'resources':[{'path':path, 'size':item['size'],
+                                     'digest':item.get('digest'), 'ready':item.get('ready') is True}
+                                    for path, item in f.resources.items()],
                        'targets': [{'index': t.index, 'format': t.format} for t in f.targets]}
                       for f in job.files]}
         value['checksum'] = self._digest(value)
@@ -114,6 +123,8 @@ class ResultStore:
             'durationMs':task.duration_ms,'executionMode':task.execution_mode,
             'nativeTimings':task.native_timings,
             'resultChecks':task.result_checks, 'executionReason':task.execution_reason,
+            'automaticRecipe':getattr(task, 'automatic_recipe', None),
+            'automaticParameters':getattr(task, 'automatic_parameters', None),
             'exportFilter':task.export_filter,'warnings':task.warnings,'quality':task.quality,
             'loStarted': task.lo_started}
         for artifact in task.artifacts:
@@ -209,3 +220,18 @@ class ResultStore:
             raise ValueError('Output is missing or changed')
         return path
 
+    def input_path(self, relative, size, digest):
+        """Restore only a verified original inside this job's private input tree."""
+        if (not isinstance(relative, str) or '\\' in relative
+                or len(Path(relative).parts) < 3 or Path(relative).parts[0] != 'input'
+                or not isinstance(digest, str) or len(digest) != 64
+                or any(c not in '0123456789abcdef' for c in digest)):
+            raise ValueError('Invalid retained source metadata')
+        path = self.output_path(relative, size)
+        actual = hashlib.sha256()
+        with path.open('rb') as source:
+            while block := source.read(64 * 1024):
+                actual.update(block)
+        if actual.hexdigest() != digest:
+            raise ValueError('Retained source changed')
+        return path

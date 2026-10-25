@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "baseCommit": "3ca80cf40577372a4177f82939756247ecc95bfb",
+  "baseTree": "888c9b492fbb0fa4974121b3d21cf34c8b2bba30",
+  "subject": "code-sha256.json",
+  "evidence": {
+    "analysis-1000.json": "505c658c9de022d31b90ccc39fcfe17c08dd977484fb2b708352b3e9e0c0a1b6",
+    "analysis-1000.txt": "d530dd8dfa7d07d2bc382f294ec74cdde207e666e1c68554547ca9557b515180",
+    "code-sha256.json": "b20ee9d86086a72ace6c119c13666354b6e207785dbc62c7386585aae1fffa92",
+    "dark.png": "6167c78c65a1a8779d9024093cc9198283bcd826009bf636b6eece5b4bb9c6df",
+    "full-tests.txt": "71d84e64ab5a0d2e13f23838c96b01c09c26694c624cc8af75b1273ba0ce2506",
+    "light.png": "2a81612fd0095fb94e5a31ac9d0fd4d6d773a7929cfbc0dfba4c37413a67a0d0",
+    "live-http-retry.json": "ef9ed68e101064748e9fe9b68b542e009b265e7610ed8a6cb87ed9fc385d0ce7",
+    "live-http-retry.txt": "a39bd2022a104e4f64920357ac67dd3b31e4df225d6b4d77d4ea11c23c32db27",
+    "narrow.png": "f6543b62936899f81d2acd57cbe9aa23b9c61c8daa9bab9c1455aa850b817329",
+    "native-recipes.json": "e89ff0b326313491d0399dc5e204ff2c626dc0a97c10ebb6f02385fb6403255c",
+    "pdf.png": "fe3e5c09b6a4cfbdf6e85cabcad87472910b3584f0d15592d2e0990a6bdd05c6",
+    "runtime.json": "b66014a9ec9689961491dce61477a7b2e31e3bddbcd7480bd3495061d34edac7",
+    "visual-console.txt": "c4026ecc3fe6143b264513dbb19380269289eed9306e54283f4dea43713182ef",
+    "visual.json": "8fcf222f2f4d479fe45262778aa69a9e9fc9ee45f98f53e16a43abdd2454be9d"
+  },
+  "scopes": {
+    "fullTests": "Linux source checkout + Qt + Node DOM; not Windows EXE",
+    "realLibreOffice": "native recipe proof and HTTP/CSV retry with deliberately degraded first export",
+    "stress": "1000 tiny text comparison workers; not 1000 Office conversions",
+    "visual": "actual Linux QtWebEngine and QtPdf; controlled native conversion fixture",
+    "windows": "NOT_RUN",
+    "fullFormatMatrix": "NOT_RUN"
+  },
+  "fullTestResult": {
+    "total": 718,
+    "passed": 718,
+    "skipped": 0,
+    "failed": 0,
+    "errors": 0,
+    "seconds": 66.01,
+    "newComparisonTests": 71
+  }
+}

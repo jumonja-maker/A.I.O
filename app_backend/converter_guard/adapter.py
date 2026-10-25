@@ -13,7 +13,7 @@ from ..libreoffice_engine import LibreOfficeError, convert_path, engine_binary, 
 from .errors import GuardError
 from .routes import registry
 from .csv_import import csv_import_hint, inspect_csv_stream
-from .export_recipe import native_export_recipe
+from .export_recipe import native_export_recipe, automatic_recipe, validate_retry_recipe
 from .native_observation import NativeObservation
 from .native_metrics import clean_timings
 from .legacy_import import legacy_import_hint, validate_options
@@ -229,6 +229,27 @@ class LibreOfficeAdapter:
 
     def export_info(self):
         return getattr(self._local, 'export_info', {})
+
+    def prepare_retry_recipe(self, recipe_id):
+        """The queue selects a finite recipe before EACH task, including None.
+
+        Target/model eligibility is rechecked immediately before native export.
+        No untrusted dictionary of LibreOffice properties enters the adapter.
+        """
+        if recipe_id is not None:
+            # Validate the identifier without inventing a target or route.
+            from .export_recipe import automatic_recipe_catalogue
+            if (not isinstance(recipe_id, str) or
+                    recipe_id not in {row['id'] for row in automatic_recipe_catalogue()}):
+                raise GuardError('AUTOMATIC_RECIPE_UNAVAILABLE',
+                                 'Неизвестная автонастройка LibreOffice.', stage='plan')
+        self._local.retry_recipe = recipe_id
+
+    def validate_retry_recipe(self, recipe_id, target, proof):
+        """Check parent-task eligibility before allocating a retry job."""
+        metadata = validate_retry_recipe(recipe_id, target)
+        recipe = automatic_recipe(recipe_id, target, self._registry(), proof)
+        return {**metadata, 'filter': recipe.filter_name}
 
     def prepare_source(self, proof):
         self._local.proof = proof
@@ -518,10 +539,17 @@ class LibreOfficeAdapter:
         from .odf_table_import import prepare_odf_table_source
         from .qt_media import convert_media_frames, convert_document_pages
         proof = getattr(self._local, 'proof', None) or {}
+        retry_recipe = getattr(self._local, 'retry_recipe', None)
+        if retry_recipe is not None:
+            validate_retry_recipe(retry_recipe, target)
+            # A Qt/identity route cannot truthfully apply LibreOffice export
+            # settings. Confirm the actual native recipe before doing work.
+            automatic_recipe(retry_recipe, target, self._registry(), proof)
         paths = None
         identity_control = (cancel if timeout is None and output_limit is None else
                             _RunControl(cancel, workspace, timeout, output_limit))
-        if proof.get('state') == 'detected' and self.route_decision(target, proof) == 'registered':
+        if (retry_recipe is None and proof.get('state') == 'detected'
+                and self.route_decision(target, proof) == 'registered'):
             paths = copy_media_identity(source, workspace / 'output', target, cancel=identity_control)
             identity = 'media_identity' if paths else None
             if paths is None:
@@ -687,9 +715,15 @@ class LibreOfficeAdapter:
                    _RunControl(cancel, workspace, timeout, output_limit))
         try:
             native = self._registry()
-            recipe = native_export_recipe(native, target, getattr(self._local, 'proof', None))
+            retry_recipe = getattr(self._local, 'retry_recipe', None)
+            recipe = (automatic_recipe(retry_recipe, target, native,
+                                       getattr(self._local, 'proof', None)) if retry_recipe else
+                      native_export_recipe(native, target, getattr(self._local, 'proof', None)))
             if recipe:
                 self._local.export_info = {'filter': recipe.filter_name, 'warnings': recipe.warnings}
+                if retry_recipe:
+                    self._local.export_info.update(automaticRecipe=retry_recipe,
+                        automaticParameters=validate_retry_recipe(retry_recipe, target)['parameters'])
             export_args = {'convert_spec': recipe.cli_spec(target)} if recipe else {}
             # The first requested native export identifies the actual model.
             # Filename hints never veto a file, including renamed/unlisted ones.
@@ -720,6 +754,8 @@ class LibreOfficeAdapter:
                             'format':target,'output':str(output.resolve()),'exportFilter':filter_name,
                             'graphicExport': 'svm' if filter_name == 'svm_Export' else None,
                             'exportOptions':recipe.filter_options,
+                            'automaticRecipe': retry_recipe,
+                            'exportFilterData': dict(recipe.filter_data) if recipe.filter_data else None,
                             'requiredDrawPages':recipe.required_draw_pages,
                             'importFilter':getattr(self._local,'import_filter',None),
                             'expectedImportFilter':getattr(self._local,'import_filter',None),
@@ -821,4 +857,3 @@ class LibreOfficeAdapter:
 
     def _capture_metrics(self, value):
         self._local.metrics = clean_timings(value)
-
