@@ -205,11 +205,16 @@ const completed=[];
   const preflight=deferred(),e=environment({preflight});
   const inspection=e.bridge.inspectFiles({files});
   while(!e.calls.some(c=>c.path==='/preflight'))await new Promise(r=>setTimeout(r,1));
-  await e.bridge.cancelInspection();preflight.resolve();
+  await e.bridge.cancelInspection();
+  assert.equal(e.calls.filter(c=>c.path==='/cancel'&&c.body.jobId===jobId).length,1,
+    'cancel must stop the backend checking worker, not only release an active job');
+  preflight.resolve();
   await assert.rejects(inspection,error=>error.code==='CANCELLED');
-  assert.ok(e.calls.some(c=>c.path==='/release'&&c.body.jobId===jobId));
+  const cancelIndex=e.calls.findIndex(c=>c.path==='/cancel');
+  const releaseIndex=e.calls.findIndex(c=>c.path==='/release');
+  assert.ok(releaseIndex>cancelIndex,'the worker must receive cancellation before disk ownership releases');
   assert.equal(e.calls.some(c=>c.path==='/start'),false);
-  completed.push('cancelled native inspection never caches a late response or starts export');
+  completed.push('cancelled native inspection stops the live backend before releasing spool');
 }
 {
   const e=environment();
