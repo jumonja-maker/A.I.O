@@ -1,0 +1,130 @@
+name: AIO Guard v18.1 CSV DBF NIKITA diagnostic
+
+# Owner-labelled diagnostic only. Never install, merge, release or use artifact quota.
+on:
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aio-guard-v181-csv-dbf-diagnostic-nikita
+  cancel-in-progress: false
+
+jobs:
+  diagnostic:
+    if: >-
+      github.repository == 'jumonja-maker/A.I.O' &&
+      github.actor == 'jumonja-maker' &&
+      github.event.action == 'labeled' &&
+      github.event.label.name == 'aio-csv-dbf-diagnostic-approved-once' &&
+      github.event.pull_request.user.login == 'jumonja-maker' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'diagnostics/guard-v181-csv-dbf-nikita-20261025' &&
+      github.event.pull_request.base.ref == 'feature/blackbox-deep-telemetry-v01-20261021'
+    runs-on: [self-hosted, Windows, X64, local-d-manual]
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: powershell
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: utf-8
+      PIP_NO_INDEX: '1'
+      AIO_GUARD_NATIVE_SESSION: '1'
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - name: Authenticate restricted NIKITA machine
+        run: |
+          $ErrorActionPreference='Stop'
+          if ($env:RUNNER_NAME -cne 'NIKITA' -or $env:RUNNER_OS -cne 'Windows' -or $env:USERNAME -ine 'aio-runner') { throw 'Untrusted runner identity' }
+          $principal=New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+          if ($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Elevated QA is forbidden' }
+          foreach($key in @('GITHUB_WORKSPACE','RUNNER_TEMP','TEMP','TMP')) {
+            $path=[Environment]::GetEnvironmentVariable($key)
+            if ([string]::IsNullOrWhiteSpace($path) -or -not [IO.Path]::GetFullPath($path).StartsWith('D:\',[StringComparison]::OrdinalIgnoreCase)) { throw ($key+' must remain on D:') }
+          }
+
+      - name: Confirm and preserve previously built QA packages
+        run: |
+          $ErrorActionPreference='Stop'
+          $source='D:\actions-runner\_work\A.I.O\A.I.O\aio-guard-v18-build-source-40177674281-1\build\installer'
+          $dest='D:\AIO-Lab\AIO-QA-Dist\guard-v18.1-20261025-40177674281'
+          $files=@(
+            @{Name='AIO-Guard-v18.1-QA-win-x64.exe'; Bytes=363150723; Hash='9d26227640e89f1bd2abd42a61e504b48be2102e71d447823490d4c25a40db35'},
+            @{Name='AIO-Guard-v18.1-QA-PORTABLE.zip'; Bytes=538324118; Hash='71c3356c015358c4030009d06964799d2814fc45cdd9fe30d01c1c1f223fa4bd'}
+          )
+          if (-not (Test-Path -LiteralPath $source -PathType Container)) {
+            Write-Warning 'AIO_PACKAGE_SOURCE=NOT_PRESENT_ON_NIKITA'
+            exit 0
+          }
+          foreach($item in $files) {
+            $path=Join-Path $source $item.Name
+            if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+              Write-Warning ('AIO_PACKAGE_SOURCE=INCOMPLETE;MISSING='+$item.Name)
+              exit 0
+            }
+            $info=Get-Item -LiteralPath $path
+            if (($info.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -or $info.Length -ne $item.Bytes) { throw ('Untrusted source package '+$item.Name) }
+            $hash=(Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($hash -cne $item.Hash) { throw ('Package SHA256 mismatch '+$item.Name) }
+          }
+          Write-Host 'AIO_PACKAGE_SOURCE=VERIFIED_EXISTING_BUILD'
+          if ((Get-PSDrive -Name D -PSProvider FileSystem).Free -lt 2GB) {
+            Write-Warning 'AIO_PACKAGE_ARCHIVE=SKIPPED_DISK_SPACE; originals verified'
+            exit 0
+          }
+          New-Item -ItemType Directory -Path $dest -Force | Out-Null
+          $archive=Get-Item -LiteralPath $dest
+          if (($archive.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { throw 'Archive must not be a junction' }
+          foreach($item in $files) {
+            $old=Join-Path $source $item.Name
+            $new=Join-Path $dest $item.Name
+            if (Test-Path -LiteralPath $new) {
+              $prior=Get-Item -LiteralPath $new
+              if (($prior.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -or $prior.Length -ne $item.Bytes -or
+                  (Get-FileHash -LiteralPath $new -Algorithm SHA256).Hash.ToLowerInvariant() -cne $item.Hash) { throw ('Archive contains different package '+$item.Name) }
+            } else {
+              Copy-Item -LiteralPath $old -Destination $new
+            }
+            if ((Get-FileHash -LiteralPath $new -Algorithm SHA256).Hash.ToLowerInvariant() -cne $item.Hash) { throw ('Archived package corrupted '+$item.Name) }
+            Write-Host ('AIO_ARCHIVED='+$item.Name+';SHA256='+$item.Hash)
+          }
+          foreach($name in @('SHA256SUMS.txt','BUILD-STATUS.txt')) {
+            $old=Join-Path $source $name
+            $new=Join-Path $dest $name
+            if ((Test-Path -LiteralPath $old -PathType Leaf) -and -not (Test-Path -LiteralPath $new)) { Copy-Item -LiteralPath $old -Destination $new }
+          }
+          Write-Host ('AIO_PACKAGE_ARCHIVE=VERIFIED;PATH='+$dest)
+          Write-Host 'AIO_PACKAGE_QA_STATUS=DIAGNOSTIC_ONLY_NOT_RELEASED'
+
+      - name: Checkout own diagnostic branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: jumonja-maker/A.I.O
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: aio-dbf-diagnostic-${{ github.run_id }}-${{ github.run_attempt }}
+          persist-credentials: false
+          clean: true
+
+      - name: Run cold warm UNO and direct LibreOffice DBF probes
+        working-directory: aio-dbf-diagnostic-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $python='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\Scripts\python.exe'
+          $marker='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\.00aio-test-only-venv.txt'
+          $engine='D:\LBR\program\soffice.com'
+          if (-not (Test-Path -LiteralPath $python -PathType Leaf) -or -not (Test-Path -LiteralPath $marker -PathType Leaf) -or (Get-Content -LiteralPath $marker -Raw).Trim() -cne '00AIO NIKITA ISOLATED DOCX PDF QA PY311 QT6103') { throw 'Trusted QA venv missing' }
+          if (-not (Test-Path -LiteralPath $engine -PathType Leaf) -or -not (Test-Path -LiteralPath 'D:\LBR\program\python.exe' -PathType Leaf)) { throw 'Trusted native office missing' }
+          & $python -c 'import sys; assert sys.version_info[:2] == (3,11)'
+          if ($LASTEXITCODE -ne 0) { throw 'Python version mismatch' }
+          & $python -m py_compile tools\qa\guard_v181_csv_dbf_diagnostic.py
+          if ($LASTEXITCODE -ne 0) { throw 'Probe syntax invalid' }
+          $evidence='D:\AIO-Lab\AIO-QA-Evidence\csv-dbf-${{ github.run_id }}-${{ github.run_attempt }}'
+          & $python -u tools\qa\guard_v181_csv_dbf_diagnostic.py --engine $engine --output $evidence
+          if ($LASTEXITCODE -ne 0) { throw ('Diagnostic script failure '+$LASTEXITCODE) }
+          if (-not (Test-Path -LiteralPath (Join-Path $evidence 'evidence.json') -PathType Leaf)) { throw 'No diagnostic evidence' }
+          Write-Host ('AIO_DBF_EVIDENCE_PATH='+$evidence)
+          Write-Host 'AIO_QA_RELEASE_GATE=BLOCKED_ISSUE_50_UNTIL_FULL_ACCEPTANCE'
