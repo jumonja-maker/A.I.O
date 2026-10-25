@@ -160,12 +160,18 @@
     if(stateButton){
       stateButton.disabled=bar.hidden;
       const checking=state?.state==='checking';
-      const done=state?.preflightCompleted??0, total=state?.preflightTotal??0;
-      const label=checking?'Проверка '+done+' / '+total:'Состояние';
+      const routing=checking&&state?.preflightPhase==='routes';
+      const stopping=checking&&state?.cancellationRequested===true;
+      const done=routing?(state?.preflightMatrixCompleted??0):(state?.preflightCompleted??0);
+      const total=routing?(state?.preflightMatrixTotal??0):(state?.preflightTotal??0);
+      const label=stopping?'Отменяем…':checking?
+        (routing?'Направления ':'Проверка ')+done+' / '+total:'Состояние';
       if(stateButton.textContent!==label)stateButton.textContent=label;
       stateButton.classList.toggle('aio-guard-checking',checking);
       stateButton.title=checking
-        ?'Предварительная проверка: '+done+' из '+total+'. Нажмите для подробностей и пропуска файла.'
+        ?stopping?'Отмена запрошена. Ожидаем остановки текущего вычисления.'
+        :routing?'Расчёт доступных направлений: '+done+' / '+total+'. Отмена доступна в панели конвертера.'
+        :'Предварительная проверка: '+done+' из '+total+'. Нажмите для подробностей и пропуска файла.'
         :'Открыть состояние очереди Guard';
     }
     if(bar.hidden&&bar.querySelector('.aio-guard-popup').open)bar.querySelector('.aio-guard-popup').close();
@@ -187,7 +193,9 @@
     bar.querySelector('[data-g-quality]').disabled=!!state&&!state.finished&&!state.preparation;
     renderCurrent();
     text('[data-g-counts]',state?.state==='uploading'?'Подготовлено исходников: '+state.uploadedFiles+' / '+state.inputFiles:
-      state?.state==='checking'?'Проверено исходников: '+state.preflightCompleted+' / '+state.preflightTotal:
+      state?.state==='checking'?(state.cancellationRequested?'Отменяем проверку… · ':
+        state.preflightPhase==='routes'?'Направления: '+(state.preflightMatrixCompleted??0)+' / '+(state.preflightMatrixTotal??0)+' · ':'')+
+        'Исходников: '+state.preflightCompleted+' / '+state.preflightTotal:
       state?'Обработано '+state.completed+' / '+state.total+' · успешно '+state.succeeded+
       ' · ошибок '+state.failed+' · отменено '+state.cancelled+' · исключено при выполнении '+state.filtered:'Результаты предыдущего запуска');
     text('[data-g-pause]',state?.pauseRequested?'Продолжить':'Пауза');
@@ -236,7 +244,11 @@
     const elapsed=active?.startedMs?Math.max(0,Math.floor((Date.now()-active.startedMs)/1000)):0;
     const checking=state?.state==='checking';
     const count=checking?' · проверено '+(state.preflightCompleted??0)+' / '+(state.preflightTotal??0):'';
-    text('[data-g-current]',state?.statusReadError?'Связь со статусом прервана · повторяем запрос':active?
+    text('[data-g-current]',state?.statusReadError?'Связь со статусом прервана · повторяем запрос':
+      checking&&state.cancellationRequested?'Останавливаем проверку. Исходники остаются сохранными…':
+      checking&&state.preflightPhase==='routes'?
+        'Файлы проверены · формируем направления '+(state.preflightMatrixCompleted??0)+' / '+(state.preflightMatrixTotal??0):
+      active?
       active.name+(active.stage==='preflight'?' · проверка исходника'+count:
       active.stage==='upload'?' · подготовка исходника':' → '+active.format.toUpperCase())+
       ' · '+elapsed+' с'+(active.stage==='preflight'&&elapsed>=30?
