@@ -5,19 +5,31 @@
   const labels=Object.freeze({confirmed_loss:'Подтверждённая потеря',format_limitation:'Ограничение формата',
     uncertain:'Требуется проверка',not_checked:'Не удалось проверить',checked:'Проверенная часть сохранена'});
   const phases=Object.freeze({queued:'Ожидание анализа',running:'Проверяем результаты',paused:'Анализ на паузе',
-    cancelled:'Анализ остановлен',completed:'Анализ завершён',failed:'Не удалось завершить анализ'});
+    cancelled:'Анализ остановлен',interrupted:'Анализ прерван',completed:'Анализ завершён',failed:'Не удалось завершить анализ'});
   const properties=Object.freeze({visual_layout:'внешний вид и расположение элементов',fonts:'шрифты',
     colour_accuracy:'точность цветов',formula_evaluation:'пересчёт формул',semantic_meaning:'смысл содержимого',
     rendered_pixels:'совпадение пикселей',formula_results:'результаты вычисления формул',formula_recalculation:'пересчёт формул',
     semantic_equivalence:'смысловая эквивалентность',normalized_text:'извлечённый текст',
     image_dimensions:'размеры изображения',frames:'кадры',pages:'страницы',alpha:'прозрачность',
-    identical_file_bytes:'побайтовое совпадение',all_sheet_values_unordered:'значения всех листов',
-    all_sheet_outputs_mapping:'соответствие файлов всем листам книги',spreadsheet_values:'значения ячеек'});
-  const terminal=new Set(['completed','cancelled','failed']);
+    cell_values:'значения ячеек',alpha_channel:'канал прозрачности',width:'ширина',height:'высота',identical_file_bytes:'побайтовое совпадение',all_sheet_values_unordered:'значения всех листов',
+    all_sheet_outputs_mapping:'соответствие файлов всем листам книги',spreadsheet_values:'значения ячеек',cell_values_single_grid:'значения одной таблицы',
+    comments_and_revisions:'комментарии и история правок',hidden_text:'скрытый текст',field_evaluation:'вычисление полей',textboxes_reading_order:'порядок текста в надписях',word_table_structure:'структура таблиц Word',
+    presentation_notes:'заметки к слайдам',presentation_masters_and_layouts:'образцы и макеты слайдов',presentation_animations:'анимации презентации',charts_and_smartart:'диаграммы и SmartArt',embedded_objects:'встроенные объекты',table_to_slide_mapping:'соответствие таблиц слайдам',slide_object_positions:'расположение объектов слайда',
+    cell_types:'типы ячеек',cell_formatting:'форматирование ячеек',sheet_names_and_identity:'имена и соответствие листов',merged_cells:'объединённые ячейки',cell_annotations:'примечания к ячейкам',charts_and_embedded_objects:'диаграммы и встроенные объекты',
+    notes_and_comments:'заметки и комментарии',tracked_changes:'исправления',supplemental_outputs_not_inspected:'содержимое сопровождающих файлов',incomplete_source_inspection:'непроверенная часть исходника',incomplete_result_inspection:'непроверенная часть результата',
+    page_to_frame_timing:'соответствие страниц и кадров по времени',animation_loop_count:'число повторов анимации',frame_durations:'длительность кадров',individual_page_to_frame_dimensions:'размеры отдельных страниц и кадров',bit_depth:'глубина цвета',image_pixel_values:'пиксели изображения',colour_profile:'цветовой профиль',exif_and_other_metadata:'EXIF и другие метаданные',editable_formula_mapping:'соответствие редактируемых формул'});
+  const terminal=new Set(['completed','cancelled','interrupted','failed']);
+  const validJob=id=>typeof id==='string'&&/^[0-9a-f]{32}$/.test(id);
   let dialog=null,launch=null,launchRoot=null,lastState=null,jobId=null,analysis=null,selectedTask=null,detail=null;
   let side='result',offset=0,query='',filter='all',timer=null,controller=null,previewController=null,previewURL=null;
   let epoch=0,viewEpoch=0,requestNumber=0,previewNumber=0,busyAction=false,searchTimer=null;
-  let opener=null,parentJob=null;
+  let opener=null,parentJob=null,unavailable=false,refreshFailures=0,restoreTask=null;
+  let outputIndex=0,outputOffset=0,outputChosen=false,historyOffset=0,historyTotal=0,historyPage=[],historyRunId=null,candidateJobId=null;
+  let historyNumber=0,verificationNumber=0,verificationOffset=0,verificationTotal=0;
+  const views=new Map();
+  const verdicts=Object.freeze({checked_subset_improved:'Повтор проверен: улучшились проверенные свойства. Полная сохранность не подтверждается.',
+    no_confirmed_improvement:'Повтор проверен: улучшение не подтверждено.',
+    not_comparable:'Повторный результат нельзя надёжно сопоставить с предыдущим.'});
   let previewBusy=false;
   let pdfPages={source:0,result:0},pdfPageCounts={source:null,result:null};
   const selected=new Set();
@@ -40,6 +52,42 @@
     return label+row;
   }
   const eligible=item=>item?.sourceAvailable!==false&&Array.isArray(item?.recipeCandidates)&&item.recipeCandidates.length>0;
+  const attemptId=attempt=>attempt?.runId||'latest';
+  const attempts=()=>historyPage.length?historyPage:analysis?.retry?[analysis.retry]:[];
+  const currentAttempt=()=>attempts().find(row=>attemptId(row)===historyRunId)||attempts()[0]||null;
+  function childrenOf(attempt){
+    if(Array.isArray(attempt?.children))return attempt.children.filter(row=>validJob(row?.jobId));
+    const ids=[...new Set((attempt?.jobIds||[attempt?.jobId]).filter(validJob))];
+    return ids.map(id=>({jobId:id,state:attempt.state,available:true,
+      verification:ids.length===1?attempt.verification:null}));
+  }
+  const currentCandidate=()=>childrenOf(currentAttempt()).find(row=>row.jobId===candidateJobId)||null;
+  const pageKey=()=>side==='source'?'source':'result:'+outputIndex;
+  const previewDescription=()=>side==='result'&&Array.isArray(detail?.outputPreviews)?
+    detail.outputPreviews.find(row=>row.outputIndex===outputIndex)||detail.previews?.result:detail?.previews?.[side]||detail?.[side+'Preview'];
+  function rememberView(closing=false){
+    if(!validJob(jobId)||(!dialog?.open&&!closing)||unavailable)return;
+    const indices=[...selected].map(id=>/^([0-9a-f]{32}):(\d+)$/.exec(id)).filter(m=>m&&m[1]===jobId).map(m=>Number(m[2]));
+    views.delete(jobId);views.set(jobId,{offset,query,filter,selected:indices,selectedTask,side,outputIndex,outputOffset,outputChosen,
+      pdfPages:{...pdfPages},pdfPageCounts:{...pdfPageCounts},historyOffset,historyPage,historyTotal,historyRunId,candidateJobId,
+      analysisId:analysis?.analysisId,previewed:!!detail,scroll:$('[data-c-files]')?.scrollTop||0});
+    while(views.size>16)views.delete(views.keys().next().value);
+  }
+  function markUnavailable(message){
+    unavailable=true;busyAction=false;epoch++;historyNumber++;verificationNumber++;controller?.abort();clearTimeout(timer);timer=null;clearPreview();selected.clear();
+    views.delete(jobId);feedback(message||'Пакет освобождён или удалён. Сравнение больше недоступно.');
+    $('[data-c-progress]').textContent='Пакет недоступен';refreshActions();
+  }
+
+  const reportUnavailable=error=>error.status===404&&['COMPARISON_NOT_STARTED','COMPARISON_REPORT_UNAVAILABLE'].includes(error.code);
+  function markReportUnavailable(){
+    clearTimeout(timer);timer=null;clearPreview();selected.clear();selectedTask=null;detail=null;restoreTask=null;
+    historyNumber++;historyPage=[];historyTotal=0;historyRunId=null;candidateJobId=null;clearVerifications();views.delete(jobId);
+    analysis={jobId,state:'failed',processed:0,total:0,canRestart:true,reportUnavailable:true};
+    placeholder('Отчёт недоступен. Запустите анализ заново.');
+    feedback('Отчёт анализа недоступен. Можно начать анализ заново; результаты конвертации сохранены.');render();
+  }
+
   const feedback=message=>{const node=$('[data-c-feedback]');if(node)node.textContent=plain(message);};
 
   async function request(path,body,signal=controller?.signal){
@@ -47,7 +95,7 @@
       headers:{'X-AIO-Token':token(),...(body===undefined?{}:{'Content-Type':'application/json'})},
       ...(body===undefined?{}:{body:JSON.stringify(body)})});
     const payload=await response.json();
-    if(!response.ok){const error=new Error(payload.error||'Операция анализа не выполнена.');error.code=payload.code;throw error;}
+    if(!response.ok){const error=new Error(payload.error||'Операция анализа не выполнена.');error.code=payload.code;error.status=response.status;throw error;}
     return payload;
   }
 
@@ -94,68 +142,134 @@
     }report.append(list);}
     else{const note=document.createElement('p');note.textContent=labels[item.status]||'Подробности ещё не получены.';report.append(note);}
     const unknown=Array.isArray(item.unknown)?item.unknown:[];
-    const scope=document.createElement('small');
-    scope.textContent=unknown.length?'Не проверено: '+[...new Set(unknown.map(value=>properties[value]||'часть свойств формата'))].join(', ')+'.':'Проверена доступная часть содержимого. Полная визуальная идентичность не подтверждается.';
-    report.append(scope);
+    const scope=document.createElement('details');scope.className='aio-compare-scope';
+    const summary=document.createElement('summary');summary.textContent='Границы проверки'+(unknown.length?' · есть непроверенные свойства':'');scope.append(summary);
+    const note=document.createElement('small');
+    note.textContent=unknown.length?'Не проверено: '+[...new Set(unknown.map(value=>properties[value]||'часть свойств формата'))].join(', ')+'.':'Проверена доступная часть содержимого. Полная визуальная идентичность не подтверждается.';
+    scope.append(note);
     const checked=(item.checkedFeatures||[]).filter(value=>Object.hasOwn(properties,value));
-    if(checked.length){const note=document.createElement('small');note.textContent='Проверено: '+checked.map(value=>properties[value]).join(', ')+'.';report.append(note);}
+    const evaluated=(item.evaluatedFeatures||item.checkedFeatures||[]).filter(value=>Object.hasOwn(properties,value));
+    if(evaluated.length){const value=document.createElement('small');value.textContent='Исследовано: '+[...new Set(evaluated.map(value=>properties[value]))].join(', ')+'.';scope.append(value);}
+    if(checked.length){const value=document.createElement('small');value.textContent='Совпало: '+checked.map(value=>properties[value]).join(', ')+'.';scope.append(value);}
+    const outputs=item.outputScope;
+    if(outputs){const value=document.createElement('small');value.textContent='Выходных файлов: '+Number(outputs.totalFiles||0)+'. Проверено основных: '+Number(outputs.inspectedPrimaryFiles||0)+' из '+Number(outputs.primaryFiles||0)+
+      '. Сопровождающих: '+Number(outputs.inspectedSupplementalFiles||0)+' из '+Number(outputs.supplementalFiles||0)+'.';scope.append(value);}
+    const coverage={body:'основной текст',headers:'верхние колонтитулы',footers:'нижние колонтитулы',footnotes:'сноски',endnotes:'концевые сноски',slide_text:'текст слайдов',slide_table_text:'текст таблиц слайдов'};
+    for(const [label,value] of [['Исходник',item.before],['Результат',item.after]])if(Array.isArray(value?.textCoverage)){
+      const text=document.createElement('small');text.textContent=label+' · извлечённый текст: '+value.textCoverage.map(key=>coverage[key]||'часть документа').join(', ')+'.';scope.append(text);
+    }
+    report.append(scope);
   }
 
   function refreshActions(){
     if(!dialog)return;
-    const state=analysis?.state;
-    const retry=analysis?.retry;
-    const waiting=retry&&!['completed','ready','failed','cancelled'].includes(retry.state);
+    const state=analysis?.state,retry=analysis?.retry;
+    const waiting=retry&&!['completed','ready','failed','cancelled','interrupted'].includes(retry.state);
+    const finished=state==='completed',canContinue=analysis?.canResume===true||(['cancelled','interrupted'].includes(state)&&analysis?.canResume!==false);
     $('[data-c-retry]').textContent='Повторить с автонастройкой'+(selected.size?' — '+selected.size:'');
-    $('[data-c-retry]').disabled=busyAction||waiting||!selected.size||!terminal.has(state)||state==='failed';
+    $('[data-c-retry]').disabled=unavailable||busyAction||waiting||!selected.size||!finished||analysis?.canRetry===false;
     $('[data-c-selected]').textContent='Выбрано: '+selected.size;
-    $('[data-c-select-all]').disabled=busyAction||state!=='completed';
-    $('[data-c-clear]').disabled=busyAction||!selected.size;
+    $('[data-c-select-all]').disabled=unavailable||busyAction||!finished;
+    $('[data-c-clear]').disabled=unavailable||busyAction||!selected.size;
     $('[data-c-pause]').textContent=state==='paused'?'Продолжить':'Пауза';
-    $('[data-c-pause]').disabled=busyAction||!['queued','running','paused'].includes(state);
-    $('[data-c-cancel]').disabled=busyAction||(!waiting&&!['queued','running','paused'].includes(state));
+    $('[data-c-pause]').disabled=unavailable||busyAction||!['queued','running','paused'].includes(state);
+    $('[data-c-resume]').hidden=!canContinue;
+    $('[data-c-resume]').disabled=unavailable||busyAction||waiting||analysis?.canResume===false;
+    $('[data-c-restart]').hidden=!analysis||!terminal.has(state);
+    $('[data-c-restart]').disabled=unavailable||busyAction||waiting||analysis?.canRestart===false;
+    $('[data-c-refresh]').disabled=unavailable||busyAction;
+    $('[data-c-cancel]').disabled=unavailable||busyAction||(!waiting&&!['queued','running','paused'].includes(state));
     $('[data-c-cancel]').textContent=waiting?'Остановить повтор':'Остановить анализ';
-    const candidate=$('[data-c-candidate]');
-    candidate.hidden=!retry?.jobId;
-    const assessment=retry?.verification?.assessment;
-    const verdicts={checked_subset_improved:'Повтор проверен: улучшились проверенные свойства. Полная сохранность не подтверждается.',
-      no_confirmed_improvement:'Повтор проверен: улучшение не подтверждено.',
-      not_comparable:'Повторный результат нельзя надёжно сопоставить с предыдущим.'};
-    $('[data-c-retry-verdict]').textContent=Object.hasOwn(verdicts,assessment)?verdicts[assessment]:'';
-    const candidateJobs=$('[data-c-retry-job]');
-    const childIds=[...new Set((retry?.jobIds||[retry?.jobId]).filter(id=>typeof id==='string'&&/^[0-9a-f]{32}$/.test(id)))];
-    const childSignature=childIds.join('|');
+    $('[data-c-save-current]').disabled=unavailable||busyAction;
+    const rows=attempts(),attempt=currentAttempt(),children=childrenOf(attempt);
+    if(attempt)historyRunId=attemptId(attempt);
+    const history=$('[data-c-history]');history.hidden=!rows.length&&!historyTotal;
+    const selector=$('[data-c-attempt]'),signature=rows.map(row=>attemptId(row)+':'+row.state).join('|');
+    if(selector.dataset.signature!==signature){
+      selector.replaceChildren();rows.forEach((row,index)=>{const option=document.createElement('option');option.value=attemptId(row);
+        const number=Math.max(1,historyTotal-historyOffset-index);option.textContent='Повтор '+number+' · '+(phases[row.state]||({ready:'Готов',preparing:'Подготовка',analyzing:'Проверка'})[row.state]||row.state||'');selector.append(option);});
+      selector.dataset.signature=signature;
+    }
+    selector.value=historyRunId||'';selector.disabled=unavailable||busyAction;
+    $('[data-c-history-page]').textContent=(rows.length?historyOffset+1:0)+'–'+(historyOffset+rows.length)+' / '+historyTotal;
+    $('[data-c-history-prev]').disabled=unavailable||busyAction||historyOffset===0;
+    $('[data-c-history-next]').disabled=unavailable||busyAction||historyOffset+rows.length>=historyTotal;
+    const candidateJobs=$('[data-c-retry-job]'),previous=candidateJobId;
+    const childSignature=historyRunId+'|'+children.map(row=>row.jobId+':'+row.available+':'+row.state).join('|');
     if(candidateJobs.dataset.jobs!==childSignature){
-      const previous=candidateJobs.value;candidateJobs.replaceChildren();
-      childIds.forEach((id,index)=>{const option=document.createElement('option');option.value=id;option.textContent='Повторный пакет '+(index+1)+' из '+childIds.length;candidateJobs.append(option);});
-      candidateJobs.value=childIds.includes(previous)?previous:retry?.jobId||childIds[0]||'';
+      candidateJobs.replaceChildren();children.forEach((row,index)=>{const option=document.createElement('option');option.value=row.jobId;
+        option.textContent='Пакет '+(index+1)+' из '+children.length+(row.recipe?' · '+(row.recipe==='csv_preserve_values'?'CSV':'PDF'):'')+(row.available===false?' · освобождён':'');candidateJobs.append(option);});
       candidateJobs.dataset.jobs=childSignature;
     }
-    candidateJobs.hidden=childIds.length<2;
-    $('[data-c-show-retry]').disabled=busyAction||!retry?.jobId||!['completed','ready'].includes(retry.state);
+    candidateJobId=children.some(row=>row.jobId===previous)?previous:children.at(-1)?.jobId||null;
+    candidateJobs.value=candidateJobId||'';candidateJobs.hidden=children.length<2;candidateJobs.disabled=unavailable||busyAction;
+    const child=currentCandidate(),assessment=child?.verification?.assessment;
+    let verdict=child?.available===false?'Этот пакет освобождён или удалён.':verdicts[assessment]||'';
+    if(attempt?.analysisId&&analysis?.analysisId&&attempt.analysisId!==analysis.analysisId)verdict+=' Оценка относится к предыдущему анализу.';
+    $('[data-c-retry-verdict]').textContent=verdict;
+    $('[data-c-candidate]').hidden=!children.length;
+    const childPending=child&&['queued','preparing','running','analyzing'].includes(child.state);
+    $('[data-c-show-retry]').disabled=busyAction||!child||child.available===false||childPending;
     $('[data-c-save-retry]').disabled=$('[data-c-show-retry]').disabled;
+    $('[data-c-verification-details]').hidden=!attempt?.runId;
     $('[data-c-back]').hidden=!parentJob;
+    $('[data-c-back]').disabled=busyAction||!parentJob;
     $('[data-c-source]').setAttribute('aria-pressed',String(side==='source'));
     $('[data-c-result]').setAttribute('aria-pressed',String(side==='result'));
-    $('[data-c-source]').disabled=!detail;
-    $('[data-c-result]').disabled=!detail;
-    const pdf=detail?.previews?.[side]?.kind==='pdf'||detail?.[side+'Preview']?.kind==='pdf';
+    $('[data-c-source]').disabled=unavailable||!detail;
+    $('[data-c-result]').disabled=unavailable||!detail;
+    $('[data-c-output]').disabled=unavailable||previewBusy||!detail;
+    const pdf=previewDescription()?.kind==='pdf',key=pageKey();
     $('[data-c-pdf-controls]').hidden=!pdf;
-    $('[data-c-pdf-page]').textContent=(pdfPages[side]+1)+' / '+(pdfPageCounts[side]||'…');
-    $('[data-c-pdf-prev]').disabled=!pdf||previewBusy||pdfPages[side]===0;
-    $('[data-c-pdf-next]').disabled=!pdf||previewBusy||!pdfPageCounts[side]||pdfPages[side]+1>=pdfPageCounts[side];
+    $('[data-c-pdf-page]').textContent=((pdfPages[key]||0)+1)+' / '+(pdfPageCounts[key]||'…');
+    $('[data-c-pdf-prev]').disabled=unavailable||!pdf||previewBusy||!pdfPages[key];
+    $('[data-c-pdf-next]').disabled=unavailable||!pdf||previewBusy||!pdfPageCounts[key]||(pdfPages[key]||0)+1>=pdfPageCounts[key];
+  }
+
+  function renderNavigation(){
+    const nav=$('[data-c-breadcrumbs]');nav.replaceChildren();
+    const ancestors=analysis?.navigation?.ancestors||[];
+    const entries=ancestors.filter(row=>validJob(row.jobId)&&row.jobId!==jobId);
+    const visible=entries.length>16?[entries[0],...entries.slice(-15)]:entries;
+    for(const [index,row] of visible.entries()){
+      const button=document.createElement('button');button.type='button';button.dataset.cJob=row.jobId;
+      button.textContent=row.label||(!index?'Исходный пакет':'Предыдущий повтор');button.title=plain(row.label||row.jobId);
+      button.disabled=row.available===false;button.addEventListener('click',()=>open(row.jobId,{opener}));nav.append(button);
+    }
+    const current=document.createElement('span');current.textContent=entries.length?'Текущий повтор':'Исходный пакет';current.setAttribute('aria-current','page');nav.append(current);
+    nav.hidden=!entries.length;
+  }
+
+  function renderOutputs(){
+    const area=$('[data-c-output-controls]'),select=$('[data-c-output]');
+    const outputs=Array.isArray(detail?.outputPreviews)?detail.outputPreviews:[];
+    area.hidden=outputs.length<2;
+    if(!outputs.length)return;
+    if(!outputChosen||!outputs.some(row=>row.outputIndex===outputIndex)){
+      const primary=outputs.find(row=>row.available!==false&&row.name===detail.previews?.result?.name)||outputs.find(row=>row.available!==false)||outputs[0];
+      outputIndex=primary.outputIndex;
+    }
+    outputOffset=Math.floor(Math.max(0,outputs.findIndex(row=>row.outputIndex===outputIndex))/100)*100;
+    const slice=outputs.slice(outputOffset,outputOffset+100);select.replaceChildren();
+    for(const output of slice){const option=document.createElement('option');option.value=String(output.outputIndex);
+      option.textContent=plain(output.name).slice(0,180)+(output.available===false?' · недоступен':'');option.title=plain(output.name);select.append(option);}
+    select.value=String(outputIndex);select.disabled=unavailable||previewBusy;
+    $('[data-c-output-prev]').hidden=outputs.length<=100;$('[data-c-output-next]').hidden=outputs.length<=100;
+    $('[data-c-output-prev]').disabled=unavailable||outputOffset===0;
+    $('[data-c-output-next]').disabled=unavailable||outputOffset+100>=outputs.length;
   }
 
   function render(){
     if(!dialog||!analysis)return;
     const count=Number(analysis.total)||0,done=Number(analysis.processed)||0;
-    $('[data-c-progress]').textContent=(phases[analysis.state]||'Получаем состояние')+' · '+done+' из '+count;
+    $('[data-c-progress]').textContent=analysis.reportUnavailable?'Отчёт недоступен. Запустите анализ заново.':(phases[analysis.state]||'Получаем состояние')+' · '+done+' из '+count;
     const progress=$('progress');progress.max=Math.max(1,count);progress.value=done;
     const retry=analysis.retry;
     if(retry&&retry.state!=='completed'&&retry.state!=='ready'){
       const messages={queued:'Готовим повторную конвертацию…',preparing:'Подготавливаем исходники для повторной конвертации…',
         running:'Повторная конвертация текущего пакета',analyzing:'Проверяем повторный результат…',
         cancelled:'Повторная конвертация остановлена. Первый результат сохранён.',
+        interrupted:'Повторная конвертация прервана. Готовые пакеты сохранены.',
         failed:'Повторная конвертация не завершена. Первый результат сохранён.'};
       const total=Number(retry.total)||0,current=Number(retry.completed)||0;
       $('[data-c-progress]').textContent=(messages[retry.state]||'Выполняем повтор…')+
@@ -165,8 +279,10 @@
       if(retry.error)feedback(retry.error);
     }
     const summary=analysis.summary||{};
-    $('[data-c-summary]').textContent='Потери: '+(summary.confirmed_loss||0)+' · Ограничения: '+(summary.format_limitation||0)+' · Требуют проверки: '+((summary.uncertain||0)+(summary.not_checked||0));
-    const list=$('[data-c-files]');list.replaceChildren();
+    $('[data-c-summary]').textContent=analysis.reportUnavailable?'Отчёт недоступен. Запустите анализ заново.':count===0&&terminal.has(analysis.state)?'Нет проверяемых пар в этом пакете':'Потери: '+(summary.confirmed_loss||0)+' · Ограничения: '+(summary.format_limitation||0)+' · Требуют проверки: '+((summary.uncertain||0)+(summary.not_checked||0));
+    const list=$('[data-c-files]'),scroll=list.scrollTop,active=document.activeElement;
+    const activeRow=active?.closest?.('.aio-compare-row'),focusedTask=activeRow?.querySelector('[data-task]')?.dataset.task;
+    const focusedCheck=active?.tagName==='INPUT'&&active?.type==='checkbox';list.replaceChildren();
     for(const item of (analysis.items||[]).slice(0,50)){
       if(typeof item.taskId!=='string')continue;
       const row=document.createElement('div');row.className='aio-compare-row';row.setAttribute('role','listitem');
@@ -187,36 +303,90 @@
       button.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();focusItem(item,true);}});
       row.append(button);list.append(row);
     }
+    list.scrollTop=scroll;
+    if(focusedTask){const row=[...list.children].find(node=>node.querySelector('[data-task]')?.dataset.task===focusedTask);(focusedCheck?row?.querySelector('input'):row?.querySelector('[data-task]'))?.focus({preventScroll:true});}
+    if(count===0&&terminal.has(analysis.state)){
+      const note=document.createElement('p');note.className='aio-compare-placeholder';note.textContent=analysis.reportUnavailable?'Отчёт недоступен. Запустите анализ заново. Результаты можно сохранить.':'В пакете нет подтверждённой связи результатов с исходниками. Результаты можно сохранить.';list.append(note);
+      $('[data-c-findings]').replaceChildren();const detailNote=document.createElement('p');detailNote.textContent=analysis.reportUnavailable?'Отчёт недоступен. Запустите анализ заново.':'Сравнение содержимого не выполнено: нет проверяемых пар.';$('[data-c-findings]').append(detailNote);
+    }
     const total=Number(analysis.totalFiltered??analysis.total)||0;
     $('[data-c-page]').textContent=(total?Math.floor(offset/50)+1:0)+' / '+Math.max(1,Math.ceil(total/50))+' · '+total;
     $('[data-c-prev]').disabled=offset===0;
     $('[data-c-next]').disabled=offset+50>=total;
-    refreshActions();
+    renderNavigation();renderOutputs();refreshActions();
   }
 
   function schedule(){
     clearTimeout(timer);timer=null;
-    const pending=analysis?.retry&&!['completed','ready','failed','cancelled'].includes(analysis.retry.state);
-    if(dialog?.open&&(!terminal.has(analysis?.state)||pending))timer=setTimeout(()=>refresh().catch(()=>{}),1000);
+    const pending=analysis?.retry&&!['completed','ready','failed','cancelled','interrupted'].includes(analysis.retry.state);
+    if(dialog?.open&&!unavailable&&(!terminal.has(analysis?.state)||pending||analysis?.finalizing||analysis?.retryFinalizing))timer=setTimeout(()=>refresh().catch(()=>{}),1000);
   }
   async function refresh(){
-    if(!dialog?.open||!jobId)return;
+    if(!dialog?.open||!jobId||unavailable)return;
     const version=epoch,view=viewEpoch,number=++requestNumber;
     try{
       const packet=await request('/compare?job='+encodeURIComponent(jobId)+'&offset='+offset+'&limit=50&filter='+encodeURIComponent(filter)+'&q='+encodeURIComponent(query));
       if(!alive(version)||view!==viewEpoch||number!==requestNumber)return;
       if(packet.jobId&&packet.jobId!==jobId)throw Error('Получен анализ другого задания.');
-      analysis=packet;render();
+      const oldId=analysis?.analysisId||views.get(jobId)?.analysisId;
+      if(oldId&&packet.analysisId&&oldId!==packet.analysisId){
+        selected.clear();selectedTask=null;detail=null;restoreTask=null;clearPreview();setReport(null);views.delete(jobId);
+        historyNumber++;historyOffset=0;historyPage=[];historyRunId=null;candidateJobId=null;clearVerifications();
+        pdfPages={};pdfPageCounts={};outputIndex=outputOffset=0;outputChosen=false;$('[data-c-output-controls]').hidden=true;
+      }
+      analysis=packet;refreshFailures=0;
+      if(packet.stale){markUnavailable('Пакет освобождён или удалён. Сравнение больше недоступно.');return;}
+      parentJob=packet.navigation?.parentJobId||parentJob;
+      historyTotal=Number(packet.historyTotal??packet.retryHistory?.length??(packet.retry?1:0));
+      if(historyOffset===0)historyPage=packet.retryHistory||[];
+      for(const row of packet.items||[])if(selected.has(row.taskId)&&!eligible(row))selected.delete(row.taskId);
+      render();
       if(packet.error)feedback(packet.error);
       if(packet.retry?.error)feedback(packet.retry.error);
+      if(restoreTask){const task=restoreTask;restoreTask=null;await focusItem({taskId:task,name:''},true);}
       schedule();
-    }catch(error){if(alive(version)&&error.name!=='AbortError'){feedback(error.message);timer=setTimeout(()=>refresh().catch(()=>{}),2000);}}
+    }catch(error){if(alive(version)&&error.name!=='AbortError'){
+      if(reportUnavailable(error)){markReportUnavailable();return;}
+      if(error.status===404||error.status===410){markUnavailable('Пакет или его отчёт освобождён/удалён. Сохранённые пользователем файлы не затрагиваются.');return;}
+      feedback(error.message);refreshFailures++;
+      if(refreshFailures<5&&![400,403].includes(error.status))timer=setTimeout(()=>refresh().catch(()=>{}),Math.min(15000,2000*refreshFailures));
+      else $('[data-c-progress]').textContent='Не удалось обновить состояние. Нажмите «Обновить».';
+    }}
+  }
+
+  async function loadHistory(nextOffset){
+    const version=epoch,number=++historyNumber,expectedId=analysis?.analysisId;
+    const packet=await request('/compare/retry-history?job='+encodeURIComponent(jobId)+'&offset='+nextOffset+'&limit=20');
+    if(!alive(version)||number!==historyNumber||analysis?.analysisId!==expectedId)return;
+    historyOffset=nextOffset;historyPage=packet.items||packet.retryHistory||[];historyTotal=Number(packet.total??packet.historyTotal??historyPage.length);
+    historyRunId=null;candidateJobId=null;clearVerifications();refreshActions();
+  }
+  function clearVerifications(){
+    verificationNumber++;verificationOffset=0;verificationTotal=0;
+    $('[data-c-verification-list]')?.replaceChildren();
+    $('[data-c-verification-details]')?.removeAttribute('open');
+  }
+  async function loadVerifications(nextOffset=0){
+    const attempt=currentAttempt();if(!attempt?.runId||unavailable)return;
+    const version=epoch,number=++verificationNumber,runId=attempt.runId,expectedId=analysis?.analysisId;
+    try{
+      const packet=await request('/compare/retry-history?job='+encodeURIComponent(jobId)+'&runId='+encodeURIComponent(runId)+'&offset='+nextOffset+'&limit=20');
+      if(!alive(version)||number!==verificationNumber||currentAttempt()?.runId!==runId||analysis?.analysisId!==expectedId)return;
+      verificationOffset=nextOffset;verificationTotal=Number(packet.total)||0;
+      const list=$('[data-c-verification-list]');list.replaceChildren();
+      for(const row of packet.items||[]){const line=document.createElement('li');line.textContent=plain(row.name||row.fileId||'Файл')+' → '+plain(row.format).toUpperCase()+': '+((row.available===false||row.stale)?'Пакет освобождён; историческая оценка. ':'')+(verdicts[row.assessment]||'Проверка не завершена.');list.append(line);}
+      if(!list.children.length){const line=document.createElement('li');line.textContent='Подробные оценки пока не созданы.';list.append(line);}
+      $('[data-c-verification-page]').textContent=(verificationTotal?nextOffset+1:0)+'–'+Math.min(nextOffset+20,verificationTotal)+' / '+verificationTotal;
+      $('[data-c-verification-prev]').disabled=nextOffset===0;
+      $('[data-c-verification-next]').disabled=nextOffset+20>=verificationTotal;
+    }catch(error){if(alive(version)&&number===verificationNumber)feedback(error.message);}
   }
 
   async function showPreview(){
+    if(unavailable)return;
     clearPreview();refreshActions();
     if(!detail){placeholder('Дважды нажмите на файл слева, чтобы открыть сравнение.');return;}
-    const description=detail.previews?.[side]||detail[side+'Preview'];
+    const description=previewDescription();
     $('[data-c-preview-label]').textContent=description?.name||detail.name||'';
     if(!description||description.kind==='unavailable'||description.available===false){placeholder(description?.note||'Предпросмотр этого формата недоступен. Результаты анализа приведены ниже.');return;}
     const version=epoch,number=previewNumber;
@@ -228,12 +398,23 @@
       if(parsed.origin!==(window.location?.origin||parsed.origin)||parsed.pathname!==prefix+'/compare/preview'||parsed.username||parsed.password)
         throw Error('Неверный адрес предпросмотра.');
     }catch(error){placeholder('Адрес предпросмотра не прошёл проверку.');return;}
-    const viewingSide=side,isPdf=description.kind==='pdf';
-    if(isPdf)parsed.searchParams.set('page',String(pdfPages[viewingSide]));
+    const viewingSide=pageKey(),isPdf=description.kind==='pdf';
+    if(side==='result')parsed.searchParams.set('outputIndex',String(outputIndex));
+    if(isPdf)parsed.searchParams.set('page',String(pdfPages[viewingSide]||0));
     previewController=new AbortController();previewBusy=true;refreshActions();placeholder('Загружаем выбранный документ…');
     try{
-      const response=await fetch(parsed.href,{headers:{'X-AIO-Token':token()},cache:'no-store',signal:previewController.signal});
-      if(!alive(version)||number!==previewNumber)return;
+      let response;
+      for(let attempt=0;attempt<18;attempt++){
+        if(!alive(version)||number!==previewNumber)return;
+        response=await fetch(parsed.href,{headers:{'X-AIO-Token':token()},cache:'no-store',signal:previewController.signal});
+        if(!alive(version)||number!==previewNumber)return;
+        if(response.status!==409)break;
+        const reason=await response.json();
+        if(reason.code!=='COMPARISON_PREVIEW_BUSY')throw Error(reason.error||'Предпросмотр временно недоступен.');
+        if(attempt===17)throw Error('Предыдущий просмотр ещё готовится. Переключите документ через несколько секунд.');
+        placeholder('Завершается предыдущий просмотр. Ожидаем выбранный документ…');
+        await new Promise(resolve=>setTimeout(resolve,Math.min(1000,150*(attempt+1))));
+      }
       if(!response.ok)throw Error('Предпросмотр недоступен. Файлы остаются в AIO.');
       const mime=(response.headers.get('Content-Type')||'').split(';')[0].toLowerCase();
       if(isPdf){
@@ -266,26 +447,31 @@
   async function focusItem(item,preview){
     if(selectedTask!==item.taskId){
       pdfPages={source:0,result:0};pdfPageCounts={source:null,result:null};
-      detail=null;clearPreview();
+      outputIndex=0;outputOffset=0;outputChosen=false;detail=null;clearPreview();$('[data-c-output-controls]').hidden=true;
       $('[data-c-preview-label]').textContent=plain(item.name);
       placeholder('Двойной клик или Enter открывает выбранное преобразование.');refreshActions();
     }
     selectedTask=item.taskId;setReport(item);
     for(const row of $('[data-c-files]')?.children||[])row.dataset.active=String(row.querySelector('[data-task]')?.dataset.task===item.taskId);
     if(!preview)return;
-    const version=epoch,number=++previewNumber;
+    const version=epoch,number=++previewNumber,expectedId=analysis?.analysisId;
     try{
-      const packet=await request('/compare/item?job='+encodeURIComponent(jobId)+'&task='+encodeURIComponent(item.taskId));
-      if(!alive(version)||selectedTask!==item.taskId||number!==previewNumber)return;
-      detail=packet.item||packet;setReport(detail);await showPreview();
+      const packet=await request('/compare/item?job='+encodeURIComponent(jobId)+'&task='+encodeURIComponent(item.taskId)+(expectedId?'&analysisId='+encodeURIComponent(expectedId):''));
+      if(!alive(version)||selectedTask!==item.taskId||number!==previewNumber||analysis?.analysisId!==expectedId)return;
+      const received=packet.item||packet;
+      if(received.analysisId&&received.analysisId!==expectedId){await refresh();feedback('Анализ изменился. Выберите преобразование в текущем отчёте.');return;}
+      detail=received;setReport(detail);renderOutputs();await showPreview();
     }catch(error){if(alive(version)&&error.name!=='AbortError')feedback(error.message);}
   }
 
   async function action(work){
     if(busyAction)return;
     const version=epoch;busyAction=true;refreshActions();feedback('Выполняем запрос…');
-    try{await work();if(alive(version)){feedback('');await refresh();}}
-    catch(error){if(alive(version)&&error.name!=='AbortError')feedback(error.message);}
+    try{await work();if(alive(version)&&!unavailable){feedback('');await refresh();}}
+    catch(error){if(alive(version)&&error.name!=='AbortError'){
+      if(error.status===409)await refresh();
+      if(alive(version))feedback(error.message);
+    }}
     finally{if(alive(version)){busyAction=false;refreshActions();}}
   }
 
@@ -307,11 +493,12 @@
     if(dialog)return;
     dialog=document.createElement('dialog');dialog.className='aio-compare-dialog';dialog.setAttribute('aria-labelledby','aio-compare-title');
     dialog.innerHTML='<div class="aio-compare-shell"><header class="aio-compare-head"><div><h2 id="aio-compare-title">До / после конвертации</h2><small data-c-summary>Анализ запускается по вашему запросу</small></div><button type="button" data-c-close aria-label="Закрыть сравнение">×</button></header>'+
-      '<div class="aio-compare-progress"><progress value="0" max="1" aria-label="Прогресс анализа"></progress><span data-c-progress role="status" aria-live="polite"></span><button type="button" data-c-pause>Пауза</button><button type="button" data-c-cancel>Остановить анализ</button></div><p class="aio-compare-feedback" data-c-feedback role="status" aria-live="polite"></p>'+
-      '<div class="aio-compare-body"><aside class="aio-compare-sidebar"><div class="aio-compare-tools"><input type="search" data-c-search placeholder="Файл или формат" aria-label="Поиск по результатам анализа"><select data-c-filter aria-label="Фильтр результатов анализа"><option value="all">Все результаты</option><option value="confirmed_loss">Подтверждённые потери</option><option value="format_limitation">Ограничения формата</option><option value="uncertain">Требуют проверки</option><option value="not_checked">Не удалось проверить</option><option value="checked">Проверенная часть сохранена</option></select></div>'+
+      '<nav class="aio-compare-breadcrumbs" data-c-breadcrumbs aria-label="Путь пакета" hidden></nav>'+
+      '<div class="aio-compare-progress"><progress value="0" max="1" aria-label="Прогресс анализа"></progress><span data-c-progress role="status" aria-live="polite"></span><button type="button" data-c-pause>Пауза</button><button type="button" data-c-cancel>Остановить анализ</button><button type="button" data-c-resume hidden>Продолжить анализ</button><button type="button" data-c-restart hidden>Начать заново</button><button type="button" data-c-refresh>Обновить</button></div><p class="aio-compare-feedback" data-c-feedback role="status" aria-live="polite"></p>'+
+      '<div class="aio-compare-body"><aside class="aio-compare-sidebar"><details class="aio-compare-history" data-c-history hidden><summary>Повторы и версии</summary><div class="aio-compare-history-body"><select data-c-attempt aria-label="Попытка повторной конвертации"></select><div class="aio-compare-pages"><button type="button" data-c-history-prev aria-label="Новые попытки">←</button><span data-c-history-page></span><button type="button" data-c-history-next aria-label="Предыдущие попытки">→</button></div><div class="aio-compare-candidate" data-c-candidate hidden><small data-c-retry-verdict></small><select data-c-retry-job aria-label="Пакет повторной конвертации"></select><button type="button" data-c-show-retry>Открыть этот пакет</button><button type="button" data-c-save-retry>Сохранить этот пакет</button><details class="aio-compare-verification" data-c-verification-details hidden><summary>Проверка всех преобразований попытки</summary><ul data-c-verification-list></ul><div class="aio-compare-pages"><button type="button" data-c-verification-prev>←</button><span data-c-verification-page></span><button type="button" data-c-verification-next>→</button></div></details></div></div></details><div class="aio-compare-tools"><input type="search" maxlength="200" data-c-search placeholder="Файл или формат" aria-label="Поиск по результатам анализа"><select data-c-filter aria-label="Фильтр результатов анализа"><option value="all">Все результаты</option><option value="confirmed_loss">Подтверждённые потери</option><option value="format_limitation">Ограничения формата</option><option value="uncertain">Требуют проверки</option><option value="not_checked">Не удалось проверить</option><option value="checked">Проверенная часть сохранена</option></select></div>'+
       '<div class="aio-compare-selection"><button type="button" data-c-select-all>Выбрать все с рекомендацией</button><button type="button" data-c-clear>Снять выбор</button><span data-c-selected>Выбрано: 0</span></div><div class="aio-compare-files" data-c-files role="list" aria-label="Преобразования"></div><div class="aio-compare-pages"><button type="button" data-c-prev>Назад</button><span data-c-page></span><button type="button" data-c-next>Далее</button></div></aside>'+
-      '<section class="aio-compare-right" aria-label="Просмотр и описание изменений"><div class="aio-compare-preview-head"><button type="button" data-c-source aria-pressed="false">Исходник</button><button type="button" data-c-result aria-pressed="true">Результат</button><div class="aio-compare-pdf-controls" data-c-pdf-controls role="group" aria-label="Страницы PDF" hidden><button type="button" data-c-pdf-prev aria-label="Предыдущая страница PDF">←</button><small data-c-pdf-page>1 / …</small><button type="button" data-c-pdf-next aria-label="Следующая страница PDF">→</button></div><span data-c-preview-label></span></div><div class="aio-compare-preview" data-c-preview></div><div class="aio-compare-report" data-c-findings></div>'+
-      '<footer class="aio-compare-actions"><button type="button" data-c-retry>Повторить с автонастройкой</button><details><summary title="Об автонастройке" aria-label="Предупреждение об автонастройке">!</summary><p>Настройка не обязательно улучшит качество файла. Предыдущий результат будет сохранён.</p></details><div class="aio-compare-candidate" data-c-candidate hidden><small data-c-retry-verdict></small><select data-c-retry-job aria-label="Пакет повторной конвертации"></select><button type="button" data-c-show-retry>Проверить повторный результат</button><button type="button" data-c-save-retry>Сохранить повторный результат</button></div><button type="button" data-c-back hidden>Вернуться к первому результату</button></footer></section></div></div>';
+      '<section class="aio-compare-right" aria-label="Просмотр и описание изменений"><div class="aio-compare-preview-head"><button type="button" data-c-source aria-pressed="false">Исходник</button><button type="button" data-c-result aria-pressed="true">Результат</button><div class="aio-compare-pdf-controls" data-c-pdf-controls role="group" aria-label="Страницы PDF" hidden><button type="button" data-c-pdf-prev aria-label="Предыдущая страница PDF">←</button><small data-c-pdf-page>1 / …</small><button type="button" data-c-pdf-next aria-label="Следующая страница PDF">→</button></div><span data-c-preview-label></span><div class="aio-compare-output-controls" data-c-output-controls hidden><button type="button" data-c-output-prev aria-label="Предыдущие выходные файлы">←</button><select data-c-output aria-label="Выходной файл выбранного преобразования"></select><button type="button" data-c-output-next aria-label="Следующие выходные файлы">→</button></div></div><div class="aio-compare-preview" data-c-preview></div><div class="aio-compare-report" data-c-findings></div>'+
+      '<footer class="aio-compare-actions"><button type="button" data-c-retry>Повторить с автонастройкой</button><details class="aio-compare-warning"><summary title="Об автонастройке" aria-label="Предупреждение об автонастройке">!</summary><p>Настройка не обязательно улучшит качество файла. Предыдущий результат будет сохранён.</p></details><button type="button" data-c-save-current>Сохранить текущий пакет</button><button type="button" data-c-back hidden>Предыдущий пакет</button></footer></section></div></div>';
     document.body.append(dialog);
     $('[data-c-close]').addEventListener('click',()=>dialog.close());
     dialog.addEventListener('cancel',event=>{event.preventDefault();dialog.close();});
@@ -320,42 +507,79 @@
     dialog.addEventListener('pointerdown',event=>{outside=event.button===0&&isOutside(event);});
     dialog.addEventListener('pointerup',event=>{if(outside&&event.button===0&&isOutside(event))dialog.close();outside=false;});
     dialog.addEventListener('pointercancel',()=>{outside=false;});
-    dialog.addEventListener('close',()=>{epoch++;viewEpoch++;clearTimeout(timer);clearTimeout(searchTimer);timer=searchTimer=null;controller?.abort();controller=null;clearPreview();busyAction=false;detail=analysis=null;selectedTask=null;selected.clear();opener?.setAttribute('aria-expanded','false');if(opener?.isConnected)opener.focus({preventScroll:true});opener=null;});
+    dialog.addEventListener('close',()=>{rememberView(true);epoch++;historyNumber++;verificationNumber++;viewEpoch++;clearTimeout(timer);clearTimeout(searchTimer);timer=searchTimer=null;controller?.abort();controller=null;clearPreview();busyAction=false;detail=analysis=null;selectedTask=null;selected.clear();$('[data-c-files]').replaceChildren();$('[data-c-findings]').replaceChildren();$('[data-c-output]').replaceChildren();$('[data-c-verification-list]').replaceChildren();historyPage=[];opener?.setAttribute('aria-expanded','false');if(opener?.isConnected)opener.focus({preventScroll:true});opener=null;});
     $('[data-c-search]').addEventListener('input',event=>{query=event.target.value;offset=0;viewEpoch++;clearTimeout(searchTimer);searchTimer=setTimeout(()=>refresh(),180);});
     $('[data-c-filter]').addEventListener('change',event=>{filter=event.target.value;offset=0;viewEpoch++;refresh();});
     $('[data-c-prev]').addEventListener('click',()=>{offset=Math.max(0,offset-50);viewEpoch++;refresh();});
     $('[data-c-next]').addEventListener('click',()=>{offset+=50;viewEpoch++;refresh();});
     $('[data-c-source]').addEventListener('click',()=>{side='source';showPreview();});
     $('[data-c-result]').addEventListener('click',()=>{side='result';showPreview();});
-    $('[data-c-pdf-prev]').addEventListener('click',()=>{if(pdfPages[side]>0){pdfPages[side]--;showPreview();}});
-    $('[data-c-pdf-next]').addEventListener('click',()=>{if(pdfPageCounts[side]&&pdfPages[side]+1<pdfPageCounts[side]){pdfPages[side]++;showPreview();}});
+    $('[data-c-pdf-prev]').addEventListener('click',()=>{const key=pageKey();if(pdfPages[key]>0){pdfPages[key]--;showPreview();}});
+    $('[data-c-pdf-next]').addEventListener('click',()=>{const key=pageKey();if(pdfPageCounts[key]&&(pdfPages[key]||0)+1<pdfPageCounts[key]){pdfPages[key]=(pdfPages[key]||0)+1;showPreview();}});
     $('[data-c-select-all]').addEventListener('click',chooseAll);
     $('[data-c-clear]').addEventListener('click',()=>{selected.clear();render();});
-    $('[data-c-pause]').addEventListener('click',()=>action(()=>request('/compare/control',{jobId,action:analysis?.state==='paused'?'resume':'pause'})));
-    $('[data-c-cancel]').addEventListener('click',()=>action(()=>request('/compare/control',{jobId,action:'cancel'})));
-    $('[data-c-retry]').addEventListener('click',()=>action(async()=>{await request('/compare/retry',{jobId,analysisId:analysis.analysisId,taskIds:[...selected]});selected.clear();}));
+    $('[data-c-pause]').addEventListener('click',()=>action(()=>request('/compare/control',{jobId,analysisId:analysis?.analysisId,action:analysis?.state==='paused'?'resume':'pause'})));
+    $('[data-c-cancel]').addEventListener('click',()=>action(()=>request('/compare/control',{jobId,analysisId:analysis?.analysisId,action:'cancel'})));
+    $('[data-c-retry]').addEventListener('click',()=>action(async()=>{
+      if(analysis?.state!=='completed')throw Error('Завершите анализ перед повторной конвертацией.');
+      await request('/compare/retry',{jobId,analysisId:analysis.analysisId,taskIds:[...selected]});
+      selected.clear();historyOffset=0;historyPage=[];historyRunId=null;candidateJobId=null;clearVerifications();$('[data-c-history]').setAttribute('open','');
+    }));
     $('[data-c-show-retry]').addEventListener('click',()=>{const candidate=$('[data-c-retry-job]').value;if(candidate)open(candidate,{parent:jobId,opener:$('[data-c-show-retry]')});});
     $('[data-c-save-retry]').addEventListener('click',()=>action(async()=>{const candidate=$('[data-c-retry-job]').value;if(!candidate)throw Error('Повторный результат ещё не готов.');const response=await window.AllInOneBridge?.converter?.saveRetained(candidate,window.AllInOneNativeShell?'folder':'zip');if(response?.saved!==true)throw Error('Сохранение отменено. Оба результата остаются в AIO.');}));
-    $('[data-c-back]').addEventListener('click',()=>{const previous=parentJob;if(previous)open(previous,{opener:$('[data-c-back]')});});
+    $('[data-c-back]').addEventListener('click',()=>{const previous=parentJob;if(previous)open(previous,{opener});});
+    $('[data-c-resume]').addEventListener('click',()=>action(()=>request('/compare/control',{jobId,analysisId:analysis?.analysisId,action:'resume'})));
+    $('[data-c-restart]').addEventListener('click',()=>action(async()=>{
+      await request('/compare/start',{jobId,analysisId:analysis?.analysisId,restart:true});selected.clear();selectedTask=null;detail=null;restoreTask=null;clearPreview();setReport(null);views.delete(jobId);
+    }));
+    $('[data-c-refresh]').addEventListener('click',()=>action(async()=>{refreshFailures=0;if(!analysis)await request('/compare/start',{jobId});}));
+    $('[data-c-save-current]').addEventListener('click',()=>action(async()=>{
+      const response=await window.AllInOneBridge?.converter?.saveRetained(jobId,window.AllInOneNativeShell?'folder':'zip');
+      if(response?.saved!==true)throw Error('Сохранение отменено. Пакет остаётся в AIO.');
+    }));
+    $('[data-c-output]').addEventListener('change',event=>{outputIndex=Number(event.target.value);outputChosen=true;showPreview();});
+    for(const [selector,direction] of [['[data-c-output-prev]',-1],['[data-c-output-next]',1]])$(selector).addEventListener('click',()=>{
+      const list=detail?.outputPreviews||[],entry=list[outputOffset+direction*100];if(entry){outputIndex=entry.outputIndex;outputChosen=true;renderOutputs();showPreview();}
+    });
+    $('[data-c-attempt]').addEventListener('change',event=>{historyRunId=event.target.value;candidateJobId=null;clearVerifications();refreshActions();});
+    $('[data-c-retry-job]').addEventListener('change',event=>{candidateJobId=event.target.value;refreshActions();});
+    $('[data-c-history-prev]').addEventListener('click',()=>action(()=>loadHistory(Math.max(0,historyOffset-20))));
+    $('[data-c-history-next]').addEventListener('click',()=>action(()=>loadHistory(historyOffset+20)));
+    $('[data-c-verification-details]').addEventListener('toggle',event=>{if(event.currentTarget.open)loadVerifications(0);});
+    $('[data-c-verification-prev]').addEventListener('click',()=>loadVerifications(Math.max(0,verificationOffset-20)));
+    $('[data-c-verification-next]').addEventListener('click',()=>loadVerifications(verificationOffset+20));
   }
 
   async function open(id,options={}){
-    if(typeof id!=='string'||!/^[0-9a-f]{32}$/.test(id))throw Error('Нет доступного задания для сравнения.');
-    mount();epoch++;viewEpoch++;requestNumber++;clearTimeout(timer);controller?.abort();clearPreview();
-    controller=new AbortController();jobId=id;analysis=null;selectedTask=null;detail=null;selected.clear();side='result';offset=0;query='';filter='all';busyAction=false;
-    pdfPages={source:0,result:0};pdfPageCounts={source:null,result:null};
+    if(!validJob(id))throw Error('Нет доступного задания для сравнения.');
+    rememberView();mount();epoch++;viewEpoch++;requestNumber++;historyNumber++;verificationNumber++;
+    clearTimeout(timer);clearTimeout(searchTimer);controller?.abort();clearPreview();
+    const previous=views.get(id);
+    controller=new AbortController();jobId=id;analysis=null;detail=null;selected.clear();unavailable=false;refreshFailures=0;
+    selectedTask=previous?.selectedTask||null;restoreTask=previous?.previewed?selectedTask:null;
+    side=previous?.side||'result';offset=previous?.offset||0;query=previous?.query||'';filter=previous?.filter||'all';busyAction=false;
+    outputIndex=previous?.outputIndex||0;outputOffset=previous?.outputOffset||0;outputChosen=previous?.outputChosen===true;
+    for(const index of previous?.selected||[])selected.add(id+':'+index);
+    pdfPages={...(previous?.pdfPages||{})};pdfPageCounts={...(previous?.pdfPageCounts||{})};
+    historyOffset=previous?.historyOffset||0;historyPage=previous?.historyPage||[];historyTotal=previous?.historyTotal||0;
+    historyRunId=previous?.historyRunId||null;candidateJobId=previous?.candidateJobId||null;
     parentJob=options.parent||null;
     const requestedOpener=options.opener||document.activeElement;
-    // Switching parent/candidate inside the same dialog keeps its external
-    // launcher as the focus destination and aria-expanded owner.
     if(requestedOpener&&(!dialog.open||!dialog.contains(requestedOpener)))opener=requestedOpener;
-    $('[data-c-search]').value='';$('[data-c-filter]').value='all';$('[data-c-files]').replaceChildren();
-    $('[data-c-progress]').textContent='Подготавливаем анализ…';$('[data-c-preview-label]').textContent='';
+    $('[data-c-search]').value=query;$('[data-c-filter]').value=filter;$('[data-c-files]').replaceChildren();
+    $('[data-c-output-controls]').hidden=true;clearVerifications();
+    $('[data-c-progress]').textContent='Загружаем анализ…';$('[data-c-preview-label]').textContent='';
     setReport(null);placeholder('Дважды нажмите на файл слева, чтобы открыть сравнение.');feedback('');
     if(!dialog.open)dialog.showModal();opener?.setAttribute('aria-expanded','true');refreshActions();
     const version=epoch;
-    try{await request('/compare/start',{jobId});if(alive(version))await refresh();}
-    catch(error){if(alive(version)&&error.name!=='AbortError'){feedback(error.message);$('[data-c-progress]').textContent='Анализ недоступен. Результат можно сохранить.';}}
+    try{
+      await request('/compare/start',{jobId});if(alive(version))await refresh();
+      if(alive(version)&&previous)$('[data-c-files]').scrollTop=previous.scroll;
+    }catch(error){if(alive(version)&&error.name!=='AbortError'){
+      if(reportUnavailable(error))markReportUnavailable();
+      else if(error.status===404||error.status===410)markUnavailable('Пакет освобождён или удалён. Сравнение больше недоступно.');
+      else{feedback(error.message);$('[data-c-progress]').textContent='Анализ недоступен. Результат можно сохранить; запуск можно повторить кнопкой «Обновить».';}
+    }}
   }
 
   function attach(){
@@ -367,13 +591,23 @@
     if(!launch.isConnected){const save=[...footer.querySelectorAll('button')].find(b=>!b.closest('.aio-guard-queue')&&/Сохранить/.test(b.textContent));if(save)save.insertAdjacentElement('afterend',launch);else footer.append(launch);}
     launch.hidden=!(lastState?.finished&&lastState.result?.ticket&&lastState.succeeded>0);
     footer.classList.toggle('aio-compare-ready',!launch.hidden);
-    launch.disabled=lastState?.comparisonAvailable===false;
-    launch.title=launch.disabled?'Исходные копии этого задания уже недоступны для сравнения':'';
+    launch.disabled=false;
+    launch.title=lastState?.comparisonAvailable===false?'Служебные исходники недоступны. Анализ покажет ограничения; результат можно просмотреть.':'';
   }
   window.addEventListener('aio-guard-state',event=>{lastState=event.detail||null;attach();});
-  window.addEventListener('aio-guard-save-confirmed',event=>{if(event.detail?.released&&event.detail.jobId===lastState?.jobId){lastState=null;attach();}if(event.detail?.released&&event.detail.jobId===jobId&&dialog?.open){feedback('Задание сохранено и освобождено. Предпросмотр можно закрыть.');clearTimeout(timer);}});
+  function released(detail){
+    if(!validJob(detail?.jobId))return;
+    const id=detail.jobId;views.delete(id);
+    for(const view of views.values())for(const attempt of view.historyPage||[])for(const child of childrenOf(attempt))if(child.jobId===id)child.available=false;
+    for(const attempt of attempts())for(const child of childrenOf(attempt))if(child.jobId===id)child.available=false;
+    if(id===lastState?.jobId){lastState=null;attach();}
+    if(id===jobId&&dialog?.open)markUnavailable(detail.discarded?'Пакет удалён. Сравнение больше недоступно.':'Пакет сохранён и освобождён. Сравнение больше недоступно.');
+    else if(dialog?.open&&analysis)refresh();
+  }
+  window.addEventListener('aio-guard-save-confirmed',event=>{if(event.detail?.released===true)released(event.detail);});
+  window.addEventListener('aio-guard-job-released',event=>released(event.detail));
   const observer=new MutationObserver(mutations=>{if(mutations.some(m=>[...m.addedNodes,...m.removedNodes].some(n=>n.nodeType===1&&(n.matches?.('.aio-cv,.aio-cv__footer')||n.querySelector?.('.aio-cv,.aio-cv__footer')))))attach();});
   observer.observe(document.body,{childList:true,subtree:true});attach();
-  window.addEventListener('pagehide',()=>{controller?.abort();clearTimeout(timer);clearTimeout(searchTimer);clearPreview();observer.disconnect();});
+  window.addEventListener('pagehide',()=>{controller?.abort();clearTimeout(timer);clearTimeout(searchTimer);clearPreview();views.clear();observer.disconnect();});
   window.AIOGuardComparison=Object.freeze({open,close:()=>dialog?.close()});
 })();

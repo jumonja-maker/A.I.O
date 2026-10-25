@@ -12,14 +12,18 @@ import hashlib
 import io
 import json
 from pathlib import Path
+import posixpath
+import re
+import stat
 import threading
 import time
 import unicodedata
+from urllib.parse import unquote, urlsplit
 import xml.etree.ElementTree as ET
 import zipfile
 
 from .errors import GuardError
-from .media_fidelity import ALIASES, ANIMATED_TARGETS, RASTER, display_dimensions, inspect_media
+from .media_fidelity import ALIASES, ANIMATED_TARGETS, RASTER, display_dimensions, display_page_dimensions, inspect_media
 
 MAX_READ = 32 * 1024 * 1024
 MAX_XML = 16 * 1024 * 1024
@@ -34,7 +38,18 @@ TABLE = 'urn:oasis:names:tc:opendocument:xmlns:table:1.0'
 TEXT = 'urn:oasis:names:tc:opendocument:xmlns:text:1.0'
 WORD = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
 STRICT_WORD = 'http://purl.oclc.org/ooxml/wordprocessingml/main'
+DRAWING = 'http://schemas.openxmlformats.org/drawingml/2006/main'
+STRICT_DRAWING = 'http://purl.oclc.org/ooxml/drawingml/main'
+PRESENTATION = 'http://schemas.openxmlformats.org/presentationml/2006/main'
+STRICT_PRESENTATION = 'http://purl.oclc.org/ooxml/presentationml/main'
 UNCHECKED = ('visual_layout', 'fonts', 'colour_accuracy', 'formula_evaluation', 'semantic_meaning')
+_SKIP_TEXT_SUBTREES = {
+    '{%s}%s' % (namespace, local)
+    for namespace, locals_ in ((OFFICE, ('annotation',)), (TEXT, ('note', 'tracked-changes')),
+        (WORD, ('del', 'moveFrom', 'instrText', 'delText')),
+        (STRICT_WORD, ('del', 'moveFrom', 'instrText', 'delText')))
+    for local in locals_
+}
 
 
 class _Limited(ValueError):
@@ -76,6 +91,8 @@ def _identity(path):
     if path.is_symlink():
         raise _Limited('source_link_not_inspected')
     stamp = path.stat()
+    if not stat.S_ISREG(stamp.st_mode):
+        raise _Limited('non_regular_file_not_inspected')
     return (str(path.resolve(strict=True)), stamp.st_dev, stamp.st_ino,
             stamp.st_size, stamp.st_mtime_ns, stamp.st_ctime_ns)
 
@@ -97,6 +114,8 @@ def _xml(data, budget):
 
 
 def _element_text(item):
+    if item.tag in _SKIP_TEXT_SUBTREES:
+        return ''
     parts = [item.text or '']
     for child in item:
         local = child.tag.rsplit('}', 1)[-1]
@@ -109,7 +128,7 @@ def _element_text(item):
             parts.append('\t')
         elif child.tag in ('{%s}line-break' % TEXT, '{%s}br' % WORD, '{%s}br' % STRICT_WORD):
             parts.append('\n')
-        elif child.tag in ('{%s}annotation' % OFFICE, '{%s}note' % TEXT, '{%s}tracked-changes' % TEXT):
+        elif child.tag in _SKIP_TEXT_SUBTREES:
             pass
         else:
             parts.append(_element_text(child))
@@ -119,26 +138,37 @@ def _element_text(item):
     return ''.join(parts)
 
 
-def _cell_text(cell):
+def _paragraphs(root):
+    """Visible text stories only; never revisit skipped or nested paragraphs."""
     tags = {'{%s}%s' % (namespace, local) for namespace, locals_ in (
-        (TEXT, ('p', 'h')), (WORD, ('p',)), (STRICT_WORD, ('p',))) for local in locals_}
-    return '\n'.join(_element_text(item) for item in cell.iter() if item.tag in tags)
+        (TEXT, ('p', 'h')), (WORD, ('p',)), (STRICT_WORD, ('p',)),
+        (DRAWING, ('p',)), (STRICT_DRAWING, ('p',))) for local in locals_}
+    pending = [root]
+    while pending:
+        item = pending.pop()
+        if item.tag in _SKIP_TEXT_SUBTREES:
+            continue
+        if item.tag in tags:
+            yield item
+        else:
+            pending.extend(reversed(list(item)))
+
+
+def _cell_text(cell):
+    return '\n'.join(_element_text(item) for item in _paragraphs(cell))
 
 
 def _paragraph_text(root, budget):
     paragraphs = []
     size = 0
-    tags = {'{%s}%s' % (namespace, local) for namespace, locals_ in (
-        (TEXT, ('p', 'h')), (WORD, ('p',)), (STRICT_WORD, ('p',))) for local in locals_}
-    for item in root.iter():
+    for item in _paragraphs(root):
         budget.check()
-        if item.tag in tags:
-            value = _normal(_element_text(item))
-            size += len(value)
-            if size > MAX_TEXT:
-                raise _Limited('text_budget')
-            if value:
-                paragraphs.append(value)
+        value = _normal(_element_text(item))
+        size += len(value)
+        if size > MAX_TEXT:
+            raise _Limited('text_budget')
+        if value:
+            paragraphs.append(value)
     return '\n'.join(paragraphs)
 
 
@@ -159,6 +189,20 @@ def _trim(rows):
     while result and not result[-1]:
         result.pop()
     return result
+
+
+def _decode_text(data, kind):
+    # A BOM identifies Unicode unambiguously. Never guess legacy codepages or
+    # silently replace characters: replacement would erase comparison evidence.
+    encoding = ('utf-32' if data.startswith((b'\xff\xfe\0\0', b'\0\0\xfe\xff')) else
+                'utf-16' if data.startswith((b'\xff\xfe', b'\xfe\xff')) else 'utf-8-sig')
+    try:
+        text = data.decode(encoding, 'strict')
+    except UnicodeError as error:
+        raise _Limited(kind + '_encoding_not_inspected') from error
+    if '\0' in text:
+        raise _Limited(kind + '_encoding_not_inspected')
+    return text
 
 
 def _odf_grids(root, budget):
@@ -229,12 +273,127 @@ def _word_grids(root, budget):
     return result
 
 
+def _package_xml(archive, name, budget):
+    with archive.open(name) as stream:
+        return _xml(budget.read(stream), budget)
+
+
+def _relationships(archive, base, budget):
+    relname = posixpath.join(posixpath.dirname(base), '_rels', posixpath.basename(base) + '.rels')
+    if relname not in archive.namelist():
+        return {}
+    result = {}
+    for relation in _package_xml(archive, relname, budget):
+        if relation.get('TargetMode', '').lower() == 'external':
+            continue
+        target = unquote(relation.get('Target', ''))
+        parsed = urlsplit(target)
+        if parsed.scheme or parsed.netloc or parsed.query or parsed.fragment or '\\' in target:
+            continue
+        name = posixpath.normpath(target.lstrip('/') if target.startswith('/') else
+                                posixpath.join(posixpath.dirname(base), target))
+        if name == '..' or name.startswith('../'):
+            continue
+        result[relation.get('Id', '')] = (relation.get('Type', '').rsplit('/', 1)[-1], name)
+    return result
+
+
+def _word_summary(archive, names, budget):
+    root = _package_xml(archive, 'word/document.xml', budget)
+    if root.tag not in ('{%s}document' % WORD, '{%s}document' % STRICT_WORD):
+        raise _Limited('word_document_root_not_recognized')
+    roots = [root]
+    coverage = {'body'}
+    stories = {name for type_, name in _relationships(archive, 'word/document.xml', budget).values()
+               if type_ in ('header', 'footer', 'footnotes', 'endnotes')}
+    # Include conventional story parts even for a recoverable package whose
+    # relationships are absent. Detached comments and revisions stay unknown.
+    stories.update(n for n in names if re.fullmatch(r'word/(?:header\d*|footer\d*|footnotes|endnotes)\.xml', n))
+    for name in sorted(stories):
+        if name not in names:
+            raise _Limited('word_related_text_part_missing')
+        story = _package_xml(archive, name, budget)
+        local = story.tag.rsplit('}', 1)[-1]
+        if local not in ('hdr', 'ftr', 'footnotes', 'endnotes'):
+            raise _Limited('word_related_text_root_not_recognized')
+        if local in ('footnotes', 'endnotes'):
+            # Separator glyphs are layout machinery rather than note content.
+            for note in list(story):
+                if any(note.get('{%s}type' % namespace) in ('separator', 'continuationSeparator')
+                       for namespace in (WORD, STRICT_WORD)):
+                    story.remove(note)
+        roots.append(story)
+        coverage.add({'hdr': 'headers', 'ftr': 'footers'}.get(local, local))
+    texts = [_paragraph_text(part, budget) for part in roots]
+    if sum(map(len, texts)) > MAX_TEXT:
+        raise _Limited('text_budget')
+    return {'kind': 'ooxml', 'documentClass': 'text', 'complete': True,
+        '_text': '\n'.join(texts), '_grids': _word_grids(root, budget),
+        'textCoverage': sorted(coverage), 'hasStyles': 'word/styles.xml' in names,
+        'unknown': ['comments_and_revisions', 'hidden_text', 'field_evaluation',
+                    'textboxes_reading_order', 'word_table_structure'],
+        'counts': {'tables': sum(1 for x in root.iter() if x.tag.rsplit('}', 1)[-1] == 'tbl'),
+                   'textParts': len(roots),
+                   'images': sum(n.startswith('word/media/') and not n.endswith('/') for n in names),
+                   'formulas': sum(x.tag.rsplit('}', 1)[-1] == 'oMath' for part in roots for x in part.iter())}}
+
+
+def _presentation_summary(archive, names, budget):
+    root = _package_xml(archive, 'ppt/presentation.xml', budget)
+    if root.tag not in ('{%s}presentation' % PRESENTATION, '{%s}presentation' % STRICT_PRESENTATION):
+        raise _Limited('presentation_root_not_recognized')
+    relations = _relationships(archive, 'ppt/presentation.xml', budget)
+    slide_names = []
+    for item in root.iter():
+        if item.tag.rsplit('}', 1)[-1] != 'sldId':
+            continue
+        rid = next((value for key, value in item.attrib.items() if key.endswith('}id')), None)
+        type_, name = relations.get(rid, ('', ''))
+        if type_ != 'slide' or name not in names or name in slide_names:
+            raise _Limited('presentation_slide_mapping_not_determined')
+        slide_names.append(name)
+        if len(slide_names) > 1000:
+            raise _Limited('presentation_slide_budget')
+    if not slide_names:
+        raise _Limited('presentation_slide_mapping_not_determined')
+    texts, grids, cells, text_size = [], [], 0, 0
+    for name in slide_names:
+        slide = _package_xml(archive, name, budget)
+        if slide.tag not in ('{%s}sld' % PRESENTATION, '{%s}sld' % STRICT_PRESENTATION):
+            raise _Limited('presentation_slide_root_not_recognized')
+        texts.append(_paragraph_text(slide, budget))
+        text_size += len(texts[-1])
+        if text_size > MAX_TEXT:
+            raise _Limited('text_budget')
+        for namespace in (DRAWING, STRICT_DRAWING):
+            for table in slide.iter('{%s}tbl' % namespace):
+                rows = []
+                for row in table.findall('{%s}tr' % namespace):
+                    values = []
+                    for cell in row.findall('{%s}tc' % namespace):
+                        if any((key.rsplit('}', 1)[-1] in ('gridSpan', 'rowSpan') and value != '1') or
+                               (key.rsplit('}', 1)[-1] in ('hMerge', 'vMerge') and value not in ('0', 'false'))
+                               for key, value in cell.attrib.items()):
+                            raise _Limited('merged_cells_mapping_not_inspected')
+                        cells += 1
+                        if cells > MAX_CELLS:
+                            raise _Limited('cell_budget')
+                        values.append(_value(_cell_text(cell)))
+                    rows.append(values)
+                grids.append({'name': '', 'rows': _trim(rows)})
+    return {'kind': 'ooxml', 'documentClass': 'presentation', 'complete': True,
+        '_text': '\n'.join(texts), '_grids': grids, 'textCoverage': ['slide_text', 'slide_table_text'],
+        'hasStyles': True, 'counts': {'slides': len(slide_names), 'tables': len(grids),
+            'cells': cells, 'images': sum(n.startswith('ppt/media/') and not n.endswith('/') for n in names)},
+        'unknown': ['presentation_notes', 'presentation_masters_and_layouts',
+                    'presentation_animations', 'charts_and_smartart', 'embedded_objects',
+                    'table_to_slide_mapping', 'slide_object_positions']}
+
+
 def _csv_summary(path, budget):
     with path.open('rb') as stream:
         data = budget.read(stream, MAX_READ)
-    text = data.decode('utf-8-sig', 'strict')
-    if '\0' in text:
-        raise _Limited('csv_encoding_not_inspected')
+    text = _decode_text(data, 'csv')
     choices = []
     for delimiter in (',', ';', '\t', '|'):
         reader = csv.reader(io.StringIO(text[:65536], newline=''), delimiter=delimiter, strict=True)
@@ -262,7 +421,9 @@ def _csv_summary(path, budget):
         rows.append([_value(value) for value in row])
     return {'kind': 'csv', 'documentClass': 'spreadsheet', 'complete': True,
             '_text': text[:MAX_TEXT], '_grids': [{'name': '', 'rows': _trim(rows)}],
-            'counts': {'sheets': 1, 'rows': len(rows), 'columns': max(map(len, rows), default=0)},
+            '_text_truncated': len(text) > MAX_TEXT,
+            'counts': {'sheets': 1, 'rows': len(rows), 'columns': max(map(len, rows), default=0), 'characters': len(text)},
+            'unknown': ['cell_types', 'cell_formatting', 'sheet_names_and_identity'],
             'delimiter': choices[0]}
 
 
@@ -287,7 +448,15 @@ def _xlsx_summary(path, archive, budget):
             with archive.open(item) as stream:
                 _xml(budget.read(stream), budget)
     from openpyxl import load_workbook
-    book = load_workbook(path, read_only=True, data_only=False, keep_links=False)
+    # We identify the container before the suffix. A spreadsheet incorrectly
+    # named .docx should be reported as a model mismatch, not hidden by
+    # openpyxl's extension whitelist.
+    stream = path.open('rb')
+    try:
+        book = load_workbook(stream, read_only=True, data_only=False, keep_links=False)
+    except BaseException:
+        stream.close()
+        raise
     try:
         sheets, cells, formulas, styles = [], 0, 0, False
         for sheet in book:
@@ -301,7 +470,9 @@ def _xlsx_summary(path, archive, budget):
                     cells += 1
                     if cells > MAX_CELLS:
                         raise _Limited('cell_budget')
-                    styles = styles or cell.has_style
+                    # Read-only sparse sheets yield EmptyCell placeholders,
+                    # which carry no style metadata or has_style property.
+                    styles = styles or getattr(cell, 'has_style', False)
                     value = cell.value
                     if cell.data_type == 'f':
                         formulas += 1
@@ -322,9 +493,12 @@ def _xlsx_summary(path, archive, budget):
                 '_grids': sheets, '_text': '', 'counts': {'sheets': len(sheets), 'cells': cells,
                 'formulas': formulas,
                 'images': sum(item.filename.startswith('xl/media/') and not item.is_dir() for item in archive.infolist())},
-                'hasStyles': styles}
+                'hasStyles': styles,
+                'unknown': ['cell_types', 'cell_formatting', 'sheet_names_and_identity',
+                            'merged_cells', 'cell_annotations', 'charts_and_embedded_objects']}
     finally:
         book.close()
+        stream.close()
 
 
 def _pdf_summary(path, budget):
@@ -391,7 +565,7 @@ def collect_source_summary(source, *, cancel=None):
             magic = stream.read(32)
         if magic.startswith((b'\x89PNG\r\n\x1a\n', b'GIF87a', b'GIF89a', b'BM', b'\xff\xd8', b'II*\0', b'MM\0*')) or (
                 magic.startswith(b'RIFF') and magic[8:12] == b'WEBP'):
-            media = inspect_media(source, cancel=cancel)
+            media = inspect_media(source, cancel=cancel, validate_container=True)
             result.update(kind='raster', documentClass='image', complete=True, media=media,
                           counts={k: media[k] for k in ('width', 'height', 'frames', 'pages')})
         elif magic.startswith(b'%PDF-'):
@@ -404,14 +578,9 @@ def collect_source_summary(source, *, cancel=None):
                 if 'xl/workbook.xml' in names:
                     result.update(_xlsx_summary(source, archive, budget))
                 elif 'word/document.xml' in names:
-                    with archive.open('word/document.xml') as stream:
-                        root = _xml(budget.read(stream), budget)
-                    result.update(kind='ooxml', documentClass='text', complete=True,
-                        _text=_paragraph_text(root, budget), _grids=_word_grids(root, budget),
-                        hasStyles='word/styles.xml' in names,
-                        counts={'tables': sum(1 for x in root.iter() if x.tag.rsplit('}', 1)[-1] == 'tbl'),
-                                'images': sum(n.startswith('word/media/') and not n.endswith('/') for n in names),
-                                'formulas': sum(x.tag.rsplit('}', 1)[-1] == 'oMath' for x in root.iter())})
+                    result.update(_word_summary(archive, names, budget))
+                elif 'ppt/presentation.xml' in names:
+                    result.update(_presentation_summary(archive, names, budget))
                 elif 'content.xml' in names and 'mimetype' in names:
                     with archive.open('mimetype') as stream:
                         mime = budget.read(stream, 256).decode('ascii')
@@ -420,9 +589,12 @@ def collect_source_summary(source, *, cancel=None):
                     with archive.open('content.xml') as stream:
                         root = _xml(budget.read(stream), budget)
                     kind = mime.rsplit('.', 1)[-1]
-                    result.update(kind='odf', documentClass='spreadsheet' if kind == 'spreadsheet' else 'text',
+                    result.update(kind='odf', documentClass={'spreadsheet': 'spreadsheet', 'presentation': 'presentation',
+                        'graphics': 'drawing'}.get(kind, 'text'),
                         complete=True, _text=_paragraph_text(root, budget), _grids=_odf_grids(root, budget),
                         hasStyles=any(any(key.endswith('}style-name') for key in x.attrib) for x in root.iter()),
+                        unknown=['notes_and_comments', 'tracked_changes', 'embedded_objects',
+                                 'cell_types', 'sheet_names_and_identity', 'cell_formatting'],
                         counts={'tables': len(root.findall('.//{%s}table' % TABLE)),
                                 'images': sum(n.startswith('Pictures/') and not n.endswith('/') for n in names),
                                 'formulas': sum('{%s}formula' % TABLE in x.attrib for x in root.iter())})
@@ -436,6 +608,8 @@ def collect_source_summary(source, *, cancel=None):
             kind = root.get('{%s}mimetype' % OFFICE, '')
             result.update(kind='odf', documentClass='spreadsheet' if kind.endswith('.spreadsheet') else 'text',
                           complete=True, _text=_paragraph_text(root, budget), _grids=_odf_grids(root, budget),
+                          unknown=['notes_and_comments', 'tracked_changes', 'embedded_objects',
+                                   'cell_types', 'sheet_names_and_identity', 'cell_formatting'],
                           counts={'tables': len(root.findall('.//{%s}table' % TABLE)),
                                   'formulas': sum('{%s}formula' % TABLE in x.attrib for x in root.iter())})
         elif source.suffix.lower() in ('.csv', '.tsv', '.tab'):
@@ -443,9 +617,7 @@ def collect_source_summary(source, *, cancel=None):
         elif source.suffix.lower() in ('.txt', '.text', '.md'):
             with source.open('rb') as stream:
                 raw = budget.read(stream, MAX_TEXT * 4)
-            value = raw.decode('utf-8-sig', 'strict')
-            if '\0' in value:
-                raise _Limited('text_encoding_not_inspected')
+            value = _decode_text(raw, 'text')
             if len(value) > MAX_TEXT:
                 raise _Limited('text_budget')
             result.update(kind='text', documentClass='text', complete=True, _text=value)
@@ -456,7 +628,7 @@ def collect_source_summary(source, *, cancel=None):
             raise _Limited('source_changed_during_analysis')
         text = result.get('_text', '')
         result['textDigest'] = hashlib.sha256(_normal(text).encode()).hexdigest() if text else None
-        result['counts']['characters'] = len(text)
+        result['counts'].setdefault('characters', len(text))
     except GuardError as error:
         if error.code == 'CANCELLED':
             raise
@@ -471,7 +643,8 @@ def collect_source_summary(source, *, cancel=None):
 
 
 def _public(summary):
-    return {key: summary[key] for key in ('kind', 'documentClass', 'complete', 'counts', 'reason', 'textDigest') if key in summary}
+    return {key: summary[key] for key in ('kind', 'documentClass', 'complete', 'counts', 'reason',
+                                        'textDigest', 'textCoverage') if key in summary}
 
 
 def _number(value):
@@ -493,9 +666,23 @@ def _compare_grids(before, after, findings, checked, unknown):
         unknown.add('multiple_table_or_sheet_mapping')
         return
     rows_a, rows_b = a[0]['rows'], b[0]['rows']
-    changed, representation, unknown_formula = [], [], False
+    changed, representation, additions, added_positions, unknown_formula = [], [], [], set(), False
+    for ri, row in enumerate(rows_b):
+        for ci, cell in enumerate(row):
+            original = rows_a[ri][ci] if ri < len(rows_a) and ci < len(rows_a[ri]) else None
+            if (cell['value'] or cell.get('formula')) and (
+                    original is None or (not original['value'] and not original.get('formula'))):
+                # Preservation of every original value is weaker than equality:
+                # extra nonempty output cells must not certify the entire grid.
+                value = cell['value'] or cell['formula']
+                additions.append({'row': ri + 1, 'column': ci + 1, 'before': '', 'after': value[:120],
+                                  **({'afterTruncated': True} if len(value) > 120 else {}),
+                                  **({'afterKind': 'formula'} if cell.get('formula') else {})})
+                added_positions.add((ri, ci))
     for ri, row in enumerate(rows_a):
         for ci, cell in enumerate(row):
+            if (ri, ci) in added_positions:
+                continue
             if cell.get('formula') and (cell['type'] == 'unknown' or not cell['value']):
                 unknown_formula = True
                 continue
@@ -504,6 +691,11 @@ def _compare_grids(before, after, findings, checked, unknown):
             if actual == expected:
                 continue
             output_cell = rows_b[ri][ci] if ri < len(rows_b) and ci < len(rows_b[ri]) else None
+            if output_cell and output_cell.get('formula') and (
+                    output_cell['type'] == 'unknown' or not output_cell['value']):
+                # A formula's absent cache is not an empty output value.
+                unknown_formula = True
+                continue
             special_type = cell['type'] in ('date', 'time', 'boolean') or (
                 output_cell is not None and output_cell['type'] in ('date', 'time', 'boolean'))
             if special_type or (actual and cell['type'] == 'number' and _number(actual) is None):
@@ -521,7 +713,9 @@ def _compare_grids(before, after, findings, checked, unknown):
             if not expected and not actual:
                 continue
             changed.append({'row': ri + 1, 'column': ci + 1,
-                            'before': expected[:120], 'after': actual[:120]})
+                            'before': expected[:120], 'after': actual[:120],
+                            **({'beforeTruncated': True} if len(expected) > 120 else {}),
+                            **({'afterTruncated': True} if len(actual) > 120 else {})})
     if changed:
         # Different coordinates alone are not lost content: an exporter may
         # reorder rows/columns. Confirm only missing value multiplicity in
@@ -535,7 +729,10 @@ def _compare_grids(before, after, findings, checked, unknown):
         missing = source_values - result_values
         lost, moved = [], []
         for entry in changed:
-            key = token(entry['before'])
+            # Display snippets are bounded, but the proof must use the full
+            # source value. A long cell must not become a fake "moved" value.
+            full_value = rows_a[entry['row'] - 1][entry['column'] - 1]['value']
+            key = token(full_value)
             if entry['before'] and missing[key]:
                 lost.append(entry)
                 missing[key] -= 1
@@ -549,8 +746,12 @@ def _compare_grids(before, after, findings, checked, unknown):
             findings.append({'code': 'CELL_POSITIONS_CHANGED', 'category': 'uncertain', 'feature': 'cell_relationships',
                 'message': 'Расположение значений изменилось; потеря самих значений не доказана.',
                 'certainty': 'requires_review', 'locations': moved[:25], 'totalAffected': len(moved)})
-    elif not unknown_formula and not representation:
+    elif not unknown_formula and not representation and not additions:
         checked.add('cell_values_single_grid')
+    if additions:
+        findings.append({'code': 'CELL_VALUES_ADDED', 'category': 'uncertain', 'feature': 'cell_values',
+            'message': 'В результате появились непустые ячейки или формулы в исходно пустых позициях. Причина и допустимость добавления требуют проверки.',
+            'certainty': 'requires_review', 'locations': additions[:25], 'totalAffected': len(additions)})
     if representation:
         findings.append({'code': 'CELL_REPRESENTATION_CHANGED', 'category': 'uncertain', 'feature': 'cell_text',
             # This bucket includes verified numeric equivalence of TEXT cells,
@@ -563,6 +764,122 @@ def _compare_grids(before, after, findings, checked, unknown):
         unknown.add('cached_formula_values')
 
 
+def _compare_formulas(before, after, findings, checked, unknown):
+    a, b = before.get('_grids', []), after.get('_grids', [])
+    if before.get('documentClass') != 'spreadsheet' or after.get('documentClass') != 'spreadsheet':
+        return
+    if after.get('kind') not in ('ooxml', 'odf'):
+        return
+    if len(a) != 1 or len(b) != 1:
+        unknown.add('editable_formula_mapping')
+        return
+    def formulas(grid):
+        return {(ri + 1, ci + 1): cell['formula'] for ri, row in enumerate(grid['rows'])
+                for ci, cell in enumerate(row) if cell.get('formula')}
+    old, new = formulas(a[0]), formulas(b[0])
+    if not old:
+        return
+    if old == new:
+        checked.add('editable_formulas_single_grid')
+    elif not new and after.get('kind') in ('ooxml', 'odf'):
+        findings.append({'code': 'EDITABLE_FORMULAS_MISSING', 'category': 'confirmed_loss',
+            'feature': 'editable_formulas',
+            'message': 'В исходной таблице есть формулы, а в проверенной таблице результата формул нет.',
+            'certainty': 'confirmed_subset', 'before': len(old), 'after': 0,
+            'locations': [{'row': row, 'column': column, 'before': value[:120], 'after': ''}
+                          for (row, column), value in list(old.items())[:25]], 'totalAffected': len(old)})
+    else:
+        findings.append({'code': 'FORMULA_STRUCTURE_CHANGED', 'category': 'uncertain',
+            'feature': 'editable_formulas', 'message': 'Формулы или их расположение изменились; эквивалентность выражений не проверена.',
+            'certainty': 'requires_review', 'before': len(old), 'after': len(new)})
+
+
+def _compare_media_sequences(a, b, target, findings, checked, unknown):
+    """Map static pages and timed frames before comparing their properties."""
+    target = ALIASES.get(target, target)
+    if target == 'tiff':
+        expected, actual = max(a.get('pages', 1), a.get('frames', 1)), b.get('pages', 1)
+        field = 'pages'
+        if a.get('frames', 1) > 1:
+            findings.append({'code': 'FORMAT_ANIMATION_TIMELINE_LIMITATION', 'category': 'format_limitation',
+                'feature': 'animation_timeline', 'message': 'Кадры могут сохраниться как страницы TIFF, но формат не сохраняет временную шкалу анимации.',
+                'certainty': 'format_contract'})
+    elif target in ANIMATED_TARGETS:
+        expected, actual = max(a.get('pages', 1), a.get('frames', 1)), b.get('frames', 1)
+        field = 'frames'
+        if a.get('pages', 1) > 1:
+            findings.append({'code': 'FORMAT_PAGE_SEMANTICS_LIMITATION', 'category': 'format_limitation',
+                'feature': 'page_semantics', 'message': 'Страницы исходника представлены кадрами анимации; их временная шкала в исходнике не задана.',
+                'certainty': 'format_contract'})
+            unknown.add('page_to_frame_timing')
+    else:
+        expected, actual, field = 1, 1, 'single_image'
+        for kind in ('frames', 'pages'):
+            if a.get(kind, 1) > 1:
+                findings.append({'code': 'FORMAT_' + kind.upper() + '_LIMITATION', 'category': 'format_limitation',
+                    'feature': kind, 'message': 'Выбранный формат не сохраняет ' +
+                        ('анимацию.' if kind == 'frames' else 'несколько страниц.'),
+                    'before': a[kind], 'after': b.get(kind, 1), 'certainty': 'format_contract'})
+    if expected != actual:
+        findings.append({'code': 'MEDIA_' + field.upper() + '_CHANGED', 'category': 'confirmed_loss',
+            'feature': field, 'message': 'Количество ' + ('страниц' if field == 'pages' else 'кадров') + ' изменилось.',
+            'before': expected, 'after': actual, 'certainty': 'confirmed_subset'})
+    else:
+        checked.add(field)
+    if a.get('frames', 1) > 1 and target in ANIMATED_TARGETS and a['frames'] == b.get('frames'):
+        if a.get('loopCount') is not None and b.get('loopCount') is not None:
+            if a['loopCount'] != b['loopCount']:
+                findings.append({'code': 'ANIMATION_LOOP_CHANGED', 'category': 'confirmed_loss',
+                    'feature': 'animation_loop_count', 'message': 'Число повторов анимации изменилось.',
+                    'before': a['loopCount'], 'after': b['loopCount'], 'certainty': 'confirmed_subset'})
+            else:
+                checked.add('animation_loop_count')
+        else:
+            unknown.add('animation_loop_count')
+        old, new = a.get('durationsMs', []), b.get('durationsMs', [])
+        if len(old) == len(new) == a['frames']:
+            changes = [{'frame': i + 1, 'before': left, 'after': right}
+                       for i, (left, right) in enumerate(zip(old, new))
+                       if abs(left - right) > max(20, left * 0.05)]
+            if changes:
+                findings.append({'code': 'ANIMATION_TIMING_CHANGED', 'category': 'confirmed_loss',
+                    'feature': 'frame_durations', 'message': 'Длительности кадров изменились сверх допуска 20 мс или 5%.',
+                    'locations': changes[:25], 'totalAffected': len(changes), 'certainty': 'confirmed_subset'})
+            else:
+                checked.add('frame_durations_within_tolerance')
+        else:
+            unknown.add('frame_durations')
+    elif a.get('frames', 1) > 1:
+        unknown.add('frame_durations')
+    if target == 'tiff' and b.get('pageDimensions'):
+        old_dimensions = (display_page_dimensions(a) if a.get('pageDimensions') else
+                          [list(display_dimensions(a))] * max(a.get('pages', 1), a.get('frames', 1)))
+        new_dimensions = display_page_dimensions(b)
+        if len(old_dimensions) == len(new_dimensions):
+            changed = [{'page': i + 1, 'before': old, 'after': new}
+                       for i, (old, new) in enumerate(zip(old_dimensions, new_dimensions)) if old != new]
+            if changed:
+                findings.append({'code': 'IMAGE_PAGE_DIMENSIONS_CHANGED', 'category': 'confirmed_loss',
+                    'feature': 'page_dimensions', 'message': 'Размеры отдельных страниц изображения изменились.',
+                    'locations': changed[:25], 'totalAffected': len(changed), 'certainty': 'confirmed_subset'})
+            else:
+                checked.add('page_dimensions')
+    elif a.get('pages', 1) > 1:
+        unknown.add('individual_page_to_frame_dimensions')
+    if a.get('bitDepth') is not None and b.get('bitDepth') is not None:
+        if a['bitDepth'] > b['bitDepth']:
+            supported = target in ('png', 'apng', 'tiff')
+            findings.append({'code': 'IMAGE_BIT_DEPTH_REDUCED' if supported else 'FORMAT_BIT_DEPTH_LIMITATION',
+                'category': 'confirmed_loss' if supported else 'format_limitation', 'feature': 'bit_depth',
+                'message': 'Глубина цвета изображения уменьшилась.', 'before': a['bitDepth'], 'after': b['bitDepth'],
+                'certainty': 'confirmed_subset' if supported else 'format_contract'})
+        else:
+            checked.add('bit_depth_not_reduced')
+    else:
+        unknown.add('bit_depth')
+    unknown.update(('image_pixel_values', 'colour_profile', 'exif_and_other_metadata'))
+
+
 def _multi_csv_summary(paths, before, budget, findings, checked, unknown):
     """Prove all sheet VALUES by multiplicity without guessing sheet order.
 
@@ -572,6 +889,9 @@ def _multi_csv_summary(paths, before, budget, findings, checked, unknown):
     from collections import Counter
     if len(paths) > 256:
         raise _Limited('sheet_output_budget')
+    identities = [_identity(path) for path in paths]
+    if len({identity[0] for identity in identities}) != len(paths):
+        raise _Limited('duplicate_primary_outputs')
     expected, observed, cells = Counter(), Counter(), 0
 
     def signature(grid):
@@ -593,6 +913,8 @@ def _multi_csv_summary(paths, before, budget, findings, checked, unknown):
         budget.check()
         value = _csv_summary(path, budget)
         observed[signature(value['_grids'][0])] += 1
+    if any(_identity(path) != identity for path, identity in zip(paths, identities)):
+        raise _Limited('result_changed_during_analysis')
     if grids and len(grids) == len(paths) and expected == observed:
         checked.add('all_sheet_values_unordered')
         unknown.add('sheet_names_and_identity')
@@ -602,7 +924,7 @@ def _multi_csv_summary(paths, before, budget, findings, checked, unknown):
             'before': len(grids), 'after': len(paths), 'certainty': 'requires_review'})
         unknown.add('all_sheet_outputs_mapping')
     return {'kind': 'csv', 'documentClass': 'spreadsheet', 'complete': True,
-            'counts': {'sheetFiles': len(paths)}, '_text': '', '_grids': []}
+            'counts': {'sheetFiles': len(paths)}, '_text': '', '_grids': [], '_identities': identities}
 
 
 def analyze_pair(source, paths, target, *, cancel=None, source_evidence=None):
@@ -612,27 +934,47 @@ def analyze_pair(source, paths, target, *, cancel=None, source_evidence=None):
     before = source_evidence or collect_source_summary(source, cancel=cancel)
     report = {'schemaVersion': 1, 'status': 'not_checked', 'qualityCompared': False,
               'scope': 'verified_properties_only', 'findings': [], 'checkedFeatures': [],
-              'unknown': list(UNCHECKED), 'recipeCandidates': [], 'before': _public(before), 'after': {}}
+              'unknown': list(UNCHECKED), 'recipeCandidates': [], 'before': _public(before), 'after': {},
+              'outputScope': {'totalFiles': len(paths), 'primaryFiles': 0, 'supplementalFiles': len(paths),
+                              'inspectedPrimaryFiles': 0, 'inspectedSupplementalFiles': 0}}
     findings, checked, unknown = report['findings'], set(), set(UNCHECKED)
     budget = _Budget(cancel)
     budget.check()
     try:
         if tuple(before.get('_identity', ())) != _identity(source):
             raise _Limited('source_changed_or_unavailable')
-        candidates = [p for p in paths if p.suffix.lower().lstrip('.') == target]
-        if not candidates and target in RASTER:
+        if len(paths) > 10000:
+            raise _Limited('output_file_budget')
+        if target in RASTER:
             canonical = ALIASES.get(target, target)
             candidates = [p for p in paths if ALIASES.get(p.suffix.lower().lstrip('.'), p.suffix.lower().lstrip('.')) == canonical]
+        else:
+            candidates = [p for p in paths if p.suffix.lower().lstrip('.') == target]
+        report['outputScope'].update(primaryFiles=len(candidates), supplementalFiles=len(paths) - len(candidates))
+        if len(paths) != len(candidates):
+            unknown.add('supplemental_outputs_not_inspected')
         multi_csv = len(candidates) > 1 and target in ('csv', 'tsv', 'tab')
         if len(candidates) != 1 and not multi_csv:
             raise _Limited('primary_output_mapping_not_determined')
         primary = candidates[0]
         after = (_multi_csv_summary(candidates, before, budget, findings, checked, unknown)
                  if multi_csv else collect_source_summary(primary, cancel=cancel))
+        report['outputScope']['inspectedPrimaryFiles'] = len(candidates)
         report['after'] = _public(after)
+        required_models = {'docx': ('ooxml', 'text'), 'xlsx': ('ooxml', 'spreadsheet'),
+                           'pptx': ('ooxml', 'presentation'), 'odt': ('odf', 'text'),
+                           'ods': ('odf', 'spreadsheet'), 'odp': ('odf', 'presentation'),
+                           'odg': ('odf', 'drawing'), 'pdf': ('pdf', 'rendered')}
+        if after.get('complete') and target in required_models and (
+                after.get('kind'), after.get('documentClass')) != required_models[target]:
+            raise GuardError('OUTPUT_FORMAT_MISMATCH', 'Структура результата не соответствует выбранному формату.', stage='comparison')
         unknown.update(before.get('unknown', ()))
         unknown.update(after.get('unknown', ()))
         if not before.get('complete') or not after.get('complete'):
+            if not before.get('complete'):
+                unknown.add('incomplete_source_inspection')
+            if not after.get('complete'):
+                unknown.add('incomplete_result_inspection')
             findings.append({'code': 'ANALYSIS_INCOMPLETE', 'category': 'not_checked',
                 'message': 'Часть свойств не удалось надёжно проверить.',
                 'certainty': 'unknown', 'reason': before.get('reason') or after.get('reason')})
@@ -643,6 +985,7 @@ def analyze_pair(source, paths, target, *, cancel=None, source_evidence=None):
                 while True:
                     budget.check()
                     a, b = left.read(65536), right.read(65536)
+                    budget.check(len(a) + len(b))
                     if a != b:
                         identical = False
                         break
@@ -658,17 +1001,7 @@ def analyze_pair(source, paths, target, *, cancel=None, source_evidence=None):
             if verified is None or verified['format'] != ALIASES.get(target, target):
                 raise GuardError('MEDIA_OUTPUT_INVALID', 'Неверный контейнер результата.', stage='comparison')
         if media_a and media_b:
-            for field, supported in (('frames', target in ANIMATED_TARGETS), ('pages', target in ('tif', 'tiff'))):
-                a, b = media_a.get(field, 1), media_b.get(field, 1)
-                if a != b:
-                    expected = a > 1 and not supported
-                    findings.append({'code': 'FORMAT_' + field.upper() + '_LIMITATION' if expected else 'MEDIA_' + field.upper() + '_CHANGED',
-                        'category': 'format_limitation' if expected else 'confirmed_loss', 'feature': field,
-                        'message': ('Выбранный формат не сохраняет ' + ('анимацию.' if field == 'frames' else 'несколько страниц.')) if expected else
-                                   ('Число кадров изменилось.' if field == 'frames' else 'Число страниц изменилось.'),
-                        'before': a, 'after': b, 'certainty': 'format_contract' if expected else 'confirmed_subset'})
-                else:
-                    checked.add(field)
+            _compare_media_sequences(media_a, media_b, target, findings, checked, unknown)
             if display_dimensions(media_a) != display_dimensions(media_b):
                 findings.append({'code': 'IMAGE_DIMENSIONS_CHANGED', 'category': 'confirmed_loss', 'feature': 'image_dimensions',
                     'message': 'Размеры изображения изменились.', 'before': list(display_dimensions(media_a)),
@@ -699,8 +1032,16 @@ def analyze_pair(source, paths, target, *, cancel=None, source_evidence=None):
             findings.append({'code': 'FORMAT_EDITABLE_FORMULAS_LIMITATION', 'category': 'format_limitation', 'feature': 'formulas',
                 'message': 'В результате нет редактируемой модели формул исходной книги.', 'certainty': 'format_contract'})
         if before.get('complete') and after.get('complete'):
+            if before.get('documentClass') == after.get('documentClass'):
+                for field in ('tables', 'slides', 'sheets', 'images'):
+                    left_count, right_count = before.get('counts', {}).get(field), after.get('counts', {}).get(field)
+                    if left_count is not None and right_count is not None and left_count != right_count:
+                        findings.append({'code': 'STRUCTURE_' + field.upper() + '_COUNT_CHANGED', 'category': 'uncertain',
+                            'feature': field, 'message': 'Число структурных объектов изменилось; только по количеству нельзя доказать потерю содержимого.',
+                            'before': left_count, 'after': right_count, 'certainty': 'requires_review'})
             if before.get('documentClass') == after.get('documentClass') and before.get('_grids') and after.get('_grids'):
                 _compare_grids(before, after, findings, checked, unknown)
+                _compare_formulas(before, after, findings, checked, unknown)
             text_a, text_b = _normal(before.get('_text', '')), _normal(after.get('_text', ''))
             text_complete = before.get('_text_complete', True) and after.get('_text_complete', True)
             if text_a and text_b and text_complete and before.get('documentClass') != 'spreadsheet':
@@ -713,6 +1054,10 @@ def analyze_pair(source, paths, target, *, cancel=None, source_evidence=None):
             elif text_a and (not text_b or not text_complete) and after.get('kind') == 'pdf':
                 findings.append({'code': 'PDF_TEXT_NOT_EXTRACTED', 'category': 'uncertain', 'feature': 'text',
                     'message': 'Текст PDF не извлечён. Это не доказательство потери видимого текста.', 'certainty': 'requires_review'})
+            elif text_a and not text_b and after.get('kind') == 'text':
+                findings.append({'code': 'TEXT_OUTPUT_EMPTY', 'category': 'confirmed_loss', 'feature': 'text',
+                    'message': 'В исходнике извлечён текст, а текстовый результат пуст.',
+                    'before': len(text_a), 'after': 0, 'certainty': 'confirmed_subset'})
             if after.get('kind') == 'pdf' and before.get('counts', {}).get('images', 0) > 0 and not media_a:
                 findings.append({'code': 'PDF_IMAGE_PROPERTIES_UNVERIFIED', 'category': 'uncertain', 'feature': 'images',
                     'message': 'Встроенные изображения требуют проверки качества PDF; число объектов не доказывает сохранность пикселей.',
@@ -732,6 +1077,9 @@ def analyze_pair(source, paths, target, *, cancel=None, source_evidence=None):
             raise _Limited('source_changed_during_analysis')
         if not multi_csv and after.get('_identity') and tuple(after['_identity']) != _identity(primary):
             raise _Limited('result_changed_during_analysis')
+        if multi_csv and any(tuple(identity) != _identity(path)
+                             for path, identity in zip(candidates, after.get('_identities', ()))):
+            raise _Limited('result_changed_during_analysis')
         categories = {f['category'] for f in findings}
         report['status'] = ('confirmed_loss' if 'confirmed_loss' in categories else
                             'uncertain' if 'uncertain' in categories else
@@ -740,10 +1088,13 @@ def analyze_pair(source, paths, target, *, cancel=None, source_evidence=None):
     except GuardError as error:
         if error.code == 'CANCELLED':
             raise
-        findings.append({'code': error.code, 'category': 'confirmed_loss' if error.code == 'MEDIA_OUTPUT_INVALID' else 'not_checked',
-            'message': 'Контейнер результата повреждён.' if error.code == 'MEDIA_OUTPUT_INVALID' else 'Проверка результата не завершена.',
-            'certainty': 'confirmed_subset' if error.code == 'MEDIA_OUTPUT_INVALID' else 'unknown'})
-        report['status'] = 'confirmed_loss' if error.code == 'MEDIA_OUTPUT_INVALID' else 'not_checked'
+        invalid = error.code in ('MEDIA_OUTPUT_INVALID', 'OUTPUT_FORMAT_MISMATCH')
+        findings.append({'code': error.code, 'category': 'confirmed_loss' if invalid else 'not_checked',
+            **({'feature': 'result_container'} if invalid else {}),
+            'message': ('Структура результата не соответствует выбранному формату.' if error.code == 'OUTPUT_FORMAT_MISMATCH' else
+                       'Контейнер результата повреждён.' if error.code == 'MEDIA_OUTPUT_INVALID' else 'Проверка результата не завершена.'),
+            'certainty': 'confirmed_subset' if invalid else 'unknown'})
+        report['status'] = 'confirmed_loss' if invalid else 'not_checked'
     except (_Limited, OSError, ValueError) as error:
         # A changed/deleted input or interrupted inspection invalidates the
         # comparison as a whole. Do not leave stale red claims or recipes.
@@ -756,8 +1107,10 @@ def analyze_pair(source, paths, target, *, cancel=None, source_evidence=None):
             'reason': str(error) if isinstance(error, _Limited) else 'file_unavailable'})
     report['findings'] = findings[:MAX_FINDINGS]
     report['checkedFeatures'] = sorted(checked)
+    report['evaluatedFeatures'] = sorted(checked | {f['feature'] for f in report['findings']
+        if f.get('certainty') == 'confirmed_subset' and f.get('feature')})
     report['unknown'] = sorted(unknown)
-    report['qualityCompared'] = bool(checked)
+    report['qualityCompared'] = bool(report['evaluatedFeatures'])
     return report
 
 
@@ -784,5 +1137,5 @@ def preview_text(path, *, max_chars=100000, cancel=None):
         return {'kind': 'unavailable', 'text': '', 'truncated': False,
                 'note': 'Текстовый предпросмотр этого файла недоступен.',
                 'reason': evidence.get('reason', 'no_text_representation')}
-    return {'kind': 'text', 'text': text[:max_chars], 'truncated': len(text) > max_chars,
+    return {'kind': 'text', 'text': text[:max_chars], 'truncated': len(text) > max_chars or evidence.get('_text_truncated', False),
             'note': 'Текстовое представление: оформление и расположение объектов не показаны.'}

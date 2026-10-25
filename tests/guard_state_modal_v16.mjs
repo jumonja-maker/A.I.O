@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 
 const source=readFileSync(new URL('../src/guard-queue.js',import.meta.url),'utf8');
-const start=source.indexOf("    const dialog=bar.querySelector('.aio-guard-popup');");
+const start=source.indexOf("    const dialog=bar.querySelector('.aio-guard-popup');\n    bar.querySelector('[data-g-close]')");
 const end=source.indexOf("    bar.querySelector('[data-g-jobs]')",start);
 assert.ok(start>0&&end>start,'production modal event block must be found');
 class Element {

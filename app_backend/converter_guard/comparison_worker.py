@@ -6,8 +6,60 @@ import sys
 import time
 import os
 
+MAX_WORKER_MEMORY = 768 * 1024 * 1024
+
+
+def _fingerprint(path):
+    with path.open('rb') as stream:
+        return hashlib.file_digest(stream, 'sha256').hexdigest()
+
+
+def _stamp(path):
+    value = path.stat()
+    return value.st_dev, value.st_ino, value.st_size, value.st_mtime_ns, value.st_ctime_ns
+
+
+def _write_preview(root, source, request, result):
+    # Decoders open the path themselves. Check again after they finish, so a
+    # changed file can never be shown as the bytes identified by an old report.
+    expected = request.get('expectedSha256')
+    try:
+        unchanged = expected is None or _fingerprint(source) == expected
+    except OSError:
+        unchanged = False
+    if not unchanged:
+        (root / 'preview.png').unlink(missing_ok=True)
+        result = {'kind': 'unavailable',
+            'code': 'SOURCE_CHANGED' if request.get('previewSide') == 'source' else 'RESULT_CHANGED',
+            'note': 'Файл изменился во время просмотра. Запустите анализ заново.'}
+    (root / 'preview.json').write_text(json.dumps(result, ensure_ascii=False, allow_nan=False), encoding='utf-8')
+
+
+def _not_checked_identity(code):
+    return {'status': 'not_checked', 'findings': [{'code': code, 'category': 'not_checked',
+        'message': 'Служебный файл изменился после конвертации. Причину нельзя приписать конвертеру.'}],
+        'checkedFeatures': [], 'unknown': ['source_identity' if code == 'SOURCE_CHANGED' else 'result_identity'],
+        'recipeCandidates': []}
+
+
+def _apply_memory_budget(limit=MAX_WORKER_MEMORY):
+    """Bound only disposable inspection workers, never LibreOffice exports.
+
+    Windows receives an opt-in process commit limit from its parent's Job
+    Object. POSIX sets its data limit here, after spawning, avoiding unsafe
+    preexec callbacks in the multithreaded application.
+    """
+    if os.name != 'nt':
+        import resource
+        soft, hard = resource.getrlimit(resource.RLIMIT_DATA)
+        desired = min(limit, hard) if hard != resource.RLIM_INFINITY else limit
+        if soft != resource.RLIM_INFINITY:
+            desired = min(desired, soft)
+        resource.setrlimit(resource.RLIMIT_DATA, (desired, hard))
+
 
 def main(request_path):
+    _apply_memory_budget()
     from .comparison_analysis import collect_source_summary, analyze_pair, preview_text
     request_path = Path(request_path)
     if request_path.stat().st_size > 4 * 1024 * 1024:
@@ -18,6 +70,20 @@ def main(request_path):
         def is_set(self): return False  # Parent owns the killable process deadline.
     cancel = Cancellation()
     source = Path(request['source'])
+    if request.get('mode') in ('preview','pdf_preview','image_preview'):
+        expected = request.get('expectedSha256')
+        if expected is not None:
+            import re
+            if not isinstance(expected,str) or re.fullmatch(r'[0-9a-f]{64}',expected) is None:
+                raise ValueError('invalid_preview_fingerprint')
+            with source.open('rb') as original:
+                actual = hashlib.file_digest(original,'sha256').hexdigest()
+            if actual != expected:
+                code = 'SOURCE_CHANGED' if request.get('previewSide') == 'source' else 'RESULT_CHANGED'
+                result = {'kind':'unavailable','code':code,
+                    'note':'Файл изменился после конвертации. Сохранённый отчёт относится к прежним байтам; запустите анализ заново.'}
+                (root/'preview.json').write_text(json.dumps(result,ensure_ascii=False),encoding='utf-8')
+                return
     if request.get('mode') == 'image_preview':
         if os.name != 'nt' and not os.environ.get('DISPLAY'):
             os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
@@ -41,7 +107,7 @@ def main(request_path):
                     image = image.scaled(1400,1800,Qt.AspectRatioMode.KeepAspectRatio,Qt.TransformationMode.SmoothTransformation)
                 if image.save(str(root/'preview.png')):
                     result = {'kind':'image','note':'Уменьшенный просмотр изображения; для анимации показан первый кадр.'}
-        (root/'preview.json').write_text(json.dumps(result,ensure_ascii=False),encoding='utf-8')
+        _write_preview(root, source, request, result)
         return
     if request.get('mode') == 'pdf_preview':
         if os.name != 'nt' and not os.environ.get('DISPLAY'):
@@ -72,16 +138,20 @@ def main(request_path):
                 if not image.isNull() and image.save(str(root/'preview.png')):
                     result = {'kind':'image','pages':count,'page':page,'note':'Постраничный просмотр PDF через QtPdf.'}
         document.close()
-        (root/'preview.json').write_text(json.dumps(result,ensure_ascii=False),encoding='utf-8')
+        _write_preview(root, source, request, result)
         return
     if request.get('mode') == 'preview':
         result = preview_text(source)
-        (root/'preview.json').write_text(json.dumps(result, ensure_ascii=False, allow_nan=False), encoding='utf-8')
+        _write_preview(root, source, request, result)
         return
     with source.open('rb') as original:
         actual = hashlib.file_digest(original, 'sha256').hexdigest()
     verified = actual == request.get('sourceSha256')
     evidence = collect_source_summary(source, cancel=cancel) if verified else None
+    # Bind the reusable summary to the expected bytes too. Subsequent pairs
+    # reuse it instead of re-reading/re-hashing a large source for every target.
+    verified = verified and _fingerprint(source) == request.get('sourceSha256')
+    source_stamp = _stamp(source) if verified else None
     with (root/'outcomes.jsonl').open('x', encoding='utf-8') as stream:
         for pair in request['pairs']:
             while (root/'pause').exists(): time.sleep(.1)
@@ -93,9 +163,23 @@ def main(request_path):
                 if expected and observed != expected: unchanged = False
             outcome = (analyze_pair(source, [Path(p) for p in pair['paths']], pair['target'],
                                    cancel=cancel, source_evidence=evidence) if verified and unchanged else
-                       {'status':'not_checked','findings':[{'code':'SOURCE_CHANGED' if not verified else 'RESULT_CHANGED','category':'not_checked',
-                        'message':'Служебный файл изменился после конвертации. Причину нельзя приписать конвертеру.'}],
-                        'checkedFeatures':[],'unknown':['source_identity'],'recipeCandidates':[]})
+                       _not_checked_identity('SOURCE_CHANGED' if not verified else 'RESULT_CHANGED'))
+            # A reader may have observed a replacement after the first hash.
+            # Revalidate every output after inspection before publishing proof.
+            if verified and unchanged:
+                try:
+                    unchanged = all(not pair.get('sha256', {}).get(name) or
+                        _fingerprint(Path(name)) == pair['sha256'][name] for name in pair['paths'])
+                except OSError:
+                    unchanged = False
+                if not unchanged:
+                    outcome = _not_checked_identity('RESULT_CHANGED')
+                try:
+                    source_unchanged = _stamp(source) == source_stamp
+                except OSError:
+                    source_unchanged = False
+                if not source_unchanged:
+                    outcome = _not_checked_identity('SOURCE_CHANGED')
             stream.write(json.dumps({'taskId':pair['taskId'],'outcome':outcome}, ensure_ascii=False, allow_nan=False)+'\n')
             stream.flush()
 

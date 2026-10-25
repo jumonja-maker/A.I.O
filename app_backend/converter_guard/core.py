@@ -735,6 +735,12 @@ class ConverterGuard:
                               'unsavedOutputs': sum(not a.saved for a in j.artifacts),
                               'unsavedBytes': sum(a.size for a in j.artifacts if not a.saved),
                               'recoveryDurable': bool(j.store and not j.recovery_error),
+                              'retainSources': j.retain_sources,
+                              'comparisonAvailable': bool(j.retain_sources and not j.running and
+                                  j.artifacts and any(not f.source_released for f in j.files)),
+                              'comparisonParentJobId': j.comparison_parent_job_id,
+                              'comparisonRecipe': j.comparison_recipe,
+                              'comparisonParentTasks': list(j.comparison_parent_tasks),
                               'salvaged': j.salvage, 'qualityCompared': False}
                              for j in self._jobs.values() if not j.released
                              and (j.recovery_error or any(not a.saved for a in j.artifacts))]}
@@ -2444,15 +2450,16 @@ class ConverterGuard:
                     # but a parent directory can since become a symlink or a
                     # Windows junction. Revalidate outputs just like originals
                     # before an analyzer or preview receives filesystem paths.
-                    paths = tuple(path for artifact in task.artifacts
-                                  if (path := self._comparison_path(
-                                      job, artifact.path, artifact.size)) is not None)
+                    output_paths = tuple(self._comparison_path(job, artifact.path, artifact.size)
+                                         for artifact in task.artifacts)
+                    paths = tuple(path for path in output_paths if path is not None)
                     records.append(MappingProxyType({
                         'taskId':job.id+':'+str(task.index), 'fileId':item.id,
                         'name':item.name, 'format':task.format, 'state':task.state,
                         'source':source, 'sourceAvailable':source is not None,
                         'sourceSha256':item.content_digest, 'size':item.size,
-                        'paths':paths, 'tickets':tuple(a.ticket for a in task.artifacts),
+                        'paths':paths, 'outputPaths':output_paths,
+                        'tickets':tuple(a.ticket for a in task.artifacts),
                         'outputs':tuple(a.metadata() for a in task.artifacts),
                         'warnings':tuple(task.warnings), 'code':task.code,
                         'error':task.error, 'exportFilter':task.export_filter,

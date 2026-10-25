@@ -57,6 +57,23 @@ def bmp(path):
     path.write_bytes(b'BM'+struct.pack('<IHHI', 54+len(pixels), 0, 0, 54)+dib+pixels)
 
 
+def pptx(path, slides):
+    p = 'http://schemas.openxmlformats.org/presentationml/2006/main'
+    a = 'http://schemas.openxmlformats.org/drawingml/2006/main'
+    r = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
+    with zipfile.ZipFile(path, 'w') as archive:
+        archive.writestr('ppt/presentation.xml', '<p:presentation xmlns:p="'+p+'" xmlns:r="'+r+'">'
+            '<p:sldIdLst>'+''.join('<p:sldId id="'+str(i+1)+'" r:id="r'+str(i)+'"/>' for i in range(len(slides)))+
+            '</p:sldIdLst></p:presentation>')
+        archive.writestr('ppt/_rels/presentation.xml.rels', '<Relationships>'+''.join(
+            '<Relationship Id="r'+str(i)+'" Type="'+r+'/slide" Target="slides/slide'+str(i)+'.xml"/>'
+            for i in range(len(slides)))+'</Relationships>')
+        for i, text in enumerate(slides):
+            archive.writestr('ppt/slides/slide'+str(i)+'.xml', '<p:sld xmlns:p="'+p+'" xmlns:a="'+a+'">'
+                '<p:cSld><p:spTree><p:sp><p:txBody><a:p><a:r><a:t>'+text+'</a:t></a:r></a:p>'
+                '</p:txBody></p:sp></p:spTree></p:cSld></p:sld>')
+
+
 class ComparisonAnalysisV19(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -144,6 +161,105 @@ class ComparisonAnalysisV19(unittest.TestCase):
         output.write_text('key,value\nA,0\n', encoding='utf-8')
         self.assertEqual(analyze_pair(source, [output], 'csv')['status'], 'confirmed_loss')
 
+    def test_long_cell_loss_uses_full_evidence_and_bounded_display(self):
+        source, output = self.path('source.csv'), self.path('result.csv')
+        source.write_text('key,value\nA,'+'x'*121+'SOURCE\n', encoding='utf-8')
+        output.write_text('key,value\nA,'+'x'*121+'RESULT\n', encoding='utf-8')
+        result = analyze_pair(source, [output], 'csv')
+        self.assertEqual(result['status'], 'confirmed_loss')
+        found = next(f for f in result['findings'] if f['code'] == 'CELL_VALUES_CHANGED')
+        self.assertEqual(found['locations'][0]['before'], 'x'*120)
+        self.assertTrue(found['locations'][0]['beforeTruncated'])
+        self.assertTrue(found['locations'][0]['afterTruncated'])
+
+    def test_confirmed_loss_counts_as_evaluated_but_uncertainty_is_not_a_proof(self):
+        source, output = self.path('source.csv'), self.path('result.csv')
+        source.write_text('A,B\n', encoding='utf-8')
+        output.write_text('C,D\n', encoding='utf-8')
+        result = analyze_pair(source, [output], 'csv')
+        self.assertEqual(result['status'], 'confirmed_loss')
+        self.assertEqual(result['checkedFeatures'], [])
+        self.assertEqual(result['evaluatedFeatures'], ['cell_values'])
+        self.assertTrue(result['qualityCompared'])
+        source.write_text('key,value\nA,00123\n', encoding='utf-8')
+        output.write_text('key,value\nA,123\n', encoding='utf-8')
+        uncertain = analyze_pair(source, [output], 'csv')
+        self.assertEqual(uncertain['status'], 'uncertain')
+        self.assertEqual(uncertain['evaluatedFeatures'], [])
+        self.assertFalse(uncertain['qualityCompared'])
+
+    def test_added_result_cells_do_not_claim_full_grid_equality_or_source_loss(self):
+        source, output = self.path('source.csv'), self.path('result.csv')
+        source.write_text('key,value\nA,42\n', encoding='utf-8')
+        for extra, expected in (('key,value\nA,42\nEXTRA,unexpected\n', [(3, 1), (3, 2)]),
+                                ('key,value,extra\nA,42,unexpected\n', [(1, 3), (2, 3)])):
+            with self.subTest(extra=extra):
+                output.write_text(extra, encoding='utf-8')
+                result = analyze_pair(source, [output], 'csv')
+                self.assertEqual(result['status'], 'uncertain')
+                self.assertEqual(result['checkedFeatures'], [])
+                self.assertEqual(result['evaluatedFeatures'], [])
+                self.assertFalse(result['qualityCompared'])
+                found = next(f for f in result['findings'] if f['code'] == 'CELL_VALUES_ADDED')
+                self.assertEqual([(entry['row'], entry['column']) for entry in found['locations']], expected)
+                self.assertFalse(any(f['category'] == 'confirmed_loss' for f in result['findings']))
+
+    def test_formula_added_outside_source_grid_also_prevents_value_equality(self):
+        from openpyxl import Workbook
+        source, output = self.path('source.xlsx'), self.path('result.xlsx')
+        book = Workbook(); book.active.append(['key', 'value']); book.active.append(['A', 42]); book.save(source); book.close()
+        book = Workbook(); book.active.append(['key', 'value']); book.active.append(['A', 42]); book.active['C3'] = '=1+2'; book.save(output); book.close()
+        result = analyze_pair(source, [output], 'xlsx')
+        self.assertEqual(result['status'], 'uncertain')
+        self.assertNotIn('cell_values_single_grid', result['checkedFeatures'])
+        found = next(f for f in result['findings'] if f['code'] == 'CELL_VALUES_ADDED')
+        self.assertEqual(found['locations'], [{'row': 3, 'column': 3, 'before': '', 'after': '=1+2', 'afterKind': 'formula'}])
+
+    def test_pages_and_frames_preserve_sequence_without_false_red(self):
+        import app_backend.converter_guard.comparison_analysis as module
+        source, output = self.path('source.png'), self.path('result.tiff')
+        png(source); output.write_bytes(b'II*\0profile-boundary')
+        def profile(format_, *, frames=1, pages=1):
+            return {'format': format_, 'width': 2, 'height': 2, 'frames': frames, 'pages': pages,
+                    'alpha': False, 'orientation': 1, 'durationsMs': [100]*frames, 'loopCount': 0}
+        a, b = profile('png', frames=3), profile('tiff', pages=3)
+        with patch.object(module, 'inspect_media', side_effect=lambda path, **kwargs: a if Path(path) == source else b):
+            result = analyze_pair(source, [output], 'tiff')
+        self.assertEqual(result['status'], 'format_limitation')
+        self.assertIn('pages', result['checkedFeatures'])
+        self.assertFalse(any(f['category'] == 'confirmed_loss' for f in result['findings']))
+        with patch.object(module, 'inspect_media', side_effect=lambda path, **kwargs: b if Path(path) == output else a):
+            reverse = analyze_pair(output, [source], 'png')
+        self.assertEqual(reverse['status'], 'format_limitation')
+        self.assertIn('frames', reverse['checkedFeatures'])
+        self.assertIn('page_to_frame_timing', reverse['unknown'])
+        self.assertFalse(any(f['code'] == 'ANIMATION_TIMING_CHANGED' for f in reverse['findings']))
+        b['pages'] = 2
+        with patch.object(module, 'inspect_media', side_effect=lambda path, **kwargs: a if Path(path) == source else b):
+            missing = analyze_pair(source, [output], 'tiff')
+        self.assertEqual(missing['status'], 'confirmed_loss')
+        self.assertIn('MEDIA_PAGES_CHANGED', [f['code'] for f in missing['findings']])
+
+    def test_animation_timing_loop_and_secondary_page_properties_are_checked(self):
+        import app_backend.converter_guard.comparison_analysis as module
+        source, output = self.path('source.png'), self.path('result.png')
+        png(source, frames=2); png(output, frames=2, width=3)
+        a = {'format': 'png', 'width': 2, 'height': 2, 'frames': 2, 'pages': 1,
+             'alpha': False, 'orientation': 1, 'durationsMs': [100, 200], 'loopCount': 0, 'bitDepth': 16}
+        b = dict(a, durationsMs=[100, 300], loopCount=1, bitDepth=8)
+        with patch.object(module, 'inspect_media', side_effect=lambda path, **kwargs: a if Path(path) == source else b):
+            result = analyze_pair(source, [output], 'png')
+        self.assertTrue({'ANIMATION_TIMING_CHANGED', 'ANIMATION_LOOP_CHANGED', 'IMAGE_BIT_DEPTH_REDUCED'} <=
+                        {f['code'] for f in result['findings']})
+        a.update(format='tiff', frames=1, pages=2, pageDimensions=[[2, 2], [5, 4]], pageOrientations=[1, 1])
+        b.update(format='tiff', frames=1, pages=2, pageDimensions=[[2, 2], [3, 4]], pageOrientations=[1, 1], bitDepth=16)
+        first, second = self.path('source.tiff'), self.path('result.tiff')
+        first.write_bytes(b'II*\0source'); second.write_bytes(b'II*\0result')
+        with patch.object(module, 'inspect_media', side_effect=lambda path, **kwargs: a if Path(path) == first else b):
+            result = analyze_pair(first, [second], 'tiff')
+        found = next(f for f in result['findings'] if f['code'] == 'IMAGE_PAGE_DIMENSIONS_CHANGED')
+        self.assertEqual(found['locations'], [{'page': 2, 'before': [5, 4], 'after': [3, 4]}])
+
     def test_row_reordering_is_not_falsely_reported_as_lost_values(self):
         source, output = self.path('source.csv'), self.path('result.csv')
         source.write_text('key,value\nA,42\nB,43\n', encoding='utf-8')
@@ -191,6 +307,19 @@ class ComparisonAnalysisV19(unittest.TestCase):
         result = analyze_pair(source, [output], 'bmp')
         self.assertEqual(result['status'], 'confirmed_loss')
         self.assertIn('MEDIA_OUTPUT_INVALID', [f['code'] for f in result['findings']])
+
+    def test_invalid_container_is_evaluated_without_claiming_any_equality(self):
+        source, invalid = self.path('source.txt'), self.path('invalid.bmp')
+        source.write_text('Original', encoding='utf-8')
+        invalid.write_bytes(b'BM'+bytes(24))
+        result = analyze_pair(source, [invalid], 'bmp')
+        self.assertEqual(result['status'], 'confirmed_loss')
+        self.assertEqual(result['checkedFeatures'], [])
+        self.assertEqual(result['evaluatedFeatures'], ['result_container'])
+        self.assertTrue(result['qualityCompared'])
+        self.assertIn('visual_layout', result['unknown'])
+        found = next(f for f in result['findings'] if f['code'] == 'MEDIA_OUTPUT_INVALID')
+        self.assertEqual(found['feature'], 'result_container')
 
     def test_pdf_extraction_difference_never_proves_lost_ink(self):
         source, output = self.path('source.docx'), self.path('result.pdf')
@@ -338,6 +467,102 @@ class ComparisonAnalysisV19(unittest.TestCase):
         self.assertIn('cell_values_single_grid', result['checkedFeatures'])
         self.assertFalse(any(f['category'] == 'confirmed_loss' for f in result['findings']))
 
+    def test_odf_annotations_do_not_pollute_visible_cell_values(self):
+        source, output = self.path('source.fods'), self.path('result.csv')
+        source.write_text('<o:document xmlns:o="urn:oasis:names:tc:opendocument:xmlns:office:1.0" '
+            'xmlns:t="urn:oasis:names:tc:opendocument:xmlns:table:1.0" '
+            'xmlns:p="urn:oasis:names:tc:opendocument:xmlns:text:1.0" '
+            'o:mimetype="application/vnd.oasis.opendocument.spreadsheet"><o:body><o:spreadsheet>'
+            '<t:table><t:table-row><t:table-cell><p:p>key</p:p></t:table-cell>'
+            '<t:table-cell><p:p>value</p:p></t:table-cell></t:table-row><t:table-row>'
+            '<t:table-cell><p:p>A</p:p></t:table-cell><t:table-cell><p:p>Visible'
+            '<o:annotation><p:p>Private comment</p:p></o:annotation></p:p></t:table-cell>'
+            '</t:table-row></t:table></o:spreadsheet></o:body></o:document>', encoding='utf-8')
+        output.write_text('key,value\nA,Visible\n', encoding='utf-8')
+        result = analyze_pair(source, [output], 'csv')
+        self.assertIn('cell_values_single_grid', result['checkedFeatures'])
+        self.assertNotIn('Private comment', preview_text(source)['text'])
+        self.assertIn('notes_and_comments', result['unknown'])
+        self.assertFalse(any(f['category'] == 'confirmed_loss' for f in result['findings']))
+
+    def test_word_related_text_and_revisions_have_explicit_coverage(self):
+        source, output = self.path('source.docx'), self.path('result.docx')
+        docx(source, 'Body'); docx(output, 'Body')
+        for path, note in ((source, 'Original note'), (output, 'Changed note')):
+            with zipfile.ZipFile(path, 'a') as archive:
+                archive.writestr('word/footnotes.xml', '<w:footnotes xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+                    '<w:footnote w:type="separator"><w:p><w:r><w:t>Separator</w:t></w:r></w:p></w:footnote>'
+                    '<w:footnote><w:p><w:r><w:t>'+note+'</w:t></w:r></w:p></w:footnote></w:footnotes>')
+                archive.writestr('word/header1.xml', '<w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+                    '<w:p><w:del><w:r><w:delText>Deleted</w:delText></w:r></w:del><w:r><w:t>Header</w:t></w:r></w:p></w:hdr>')
+        result = analyze_pair(source, [output], 'docx')
+        self.assertEqual(result['status'], 'uncertain')
+        self.assertIn('footnotes', result['before']['textCoverage'])
+        self.assertIn('headers', result['before']['textCoverage'])
+        self.assertNotIn('normalized_text', result['checkedFeatures'])
+        preview = preview_text(source)['text']
+        self.assertIn('Original note', preview)
+        self.assertNotIn('Deleted', preview)
+        self.assertNotIn('Separator', preview)
+        self.assertIn('comments_and_revisions', result['unknown'])
+
+    def test_presentation_reads_ordered_slides_and_does_not_infer_quality_from_count(self):
+        source, output = self.path('source.pptx'), self.path('result.pptx')
+        pptx(source, ['First slide', 'Second slide'])
+        pptx(output, ['First slide Second slide'])
+        result = analyze_pair(source, [output], 'pptx')
+        self.assertIn('normalized_text', result['checkedFeatures'])
+        self.assertEqual(result['status'], 'uncertain')
+        self.assertIn('STRUCTURE_SLIDES_COUNT_CHANGED', [f['code'] for f in result['findings']])
+        self.assertEqual(result['before']['counts']['slides'], 2)
+        self.assertIn('presentation_notes', result['unknown'])
+        self.assertIn('First slide', preview_text(source)['text'])
+
+    def test_formula_structure_is_distinct_from_unavailable_calculated_values(self):
+        from openpyxl import Workbook
+        source, output = self.path('source.xlsx'), self.path('result.xlsx')
+        book = Workbook(); book.active.append(['key', 'value']); book.active.append(['A', '=6*7']); book.save(source); book.close()
+        book = Workbook(); book.active.append(['key', 'value']); book.active.append(['A', 42]); book.save(output); book.close()
+        result = analyze_pair(source, [output], 'xlsx')
+        self.assertEqual(result['status'], 'confirmed_loss')
+        self.assertIn('EDITABLE_FORMULAS_MISSING', [f['code'] for f in result['findings']])
+        self.assertIn('cached_formula_values', result['unknown'])
+        # An output formula without a stored cache must not look like an empty
+        # value and generate a false red loss against a static numeric input.
+        reverse = analyze_pair(output, [source], 'xlsx')
+        self.assertFalse(any(f['category'] == 'confirmed_loss' for f in reverse['findings']))
+        self.assertNotIn('cell_values_single_grid', reverse['checkedFeatures'])
+        self.assertIn('cached_formula_values', reverse['unknown'])
+
+    def test_bom_text_encodings_are_explicit_and_legacy_encoding_is_not_guessed(self):
+        source, output = self.path('source.txt'), self.path('result.txt')
+        source.write_text('Привет UTF', encoding='utf-8')
+        for encoding in ('utf-16', 'utf-32'):
+            with self.subTest(encoding=encoding):
+                output.write_text('Привет UTF', encoding=encoding)
+                result = analyze_pair(source, [output], 'txt')
+                self.assertIn('normalized_text', result['checkedFeatures'])
+                self.assertEqual(preview_text(output)['text'], 'Привет UTF')
+        output.write_bytes('Привет UTF'.encode('cp1251'))
+        result = analyze_pair(source, [output], 'txt')
+        self.assertEqual(result['status'], 'not_checked')
+        self.assertEqual(result['after']['reason'], 'text_encoding_not_inspected')
+        output.write_text('', encoding='utf-8')
+        empty = analyze_pair(source, [output], 'txt')
+        self.assertEqual(empty['status'], 'confirmed_loss')
+        self.assertIn('TEXT_OUTPUT_EMPTY', [f['code'] for f in empty['findings']])
+
+    def test_csv_preview_truncation_does_not_hide_complete_value_inspection(self):
+        source = self.path('source.csv')
+        text = 'key,value\n'+''.join('K'+str(i)+','+'v'*1000+'\n' for i in range(600))
+        source.write_text(text, encoding='utf-8')
+        summary = collect_source_summary(source)
+        self.assertTrue(summary['complete'])
+        self.assertEqual(summary['counts']['characters'], len(text))
+        preview = preview_text(source, max_chars=MAX_TEXT)
+        self.assertTrue(preview['truncated'])
+        self.assertEqual(len(preview['text']), MAX_TEXT)
+
     def test_many_empty_repeated_rows_have_a_budget_not_an_allocation_explosion(self):
         source = self.path('source.fods')
         source.write_text('<o:document xmlns:o="urn:oasis:names:tc:opendocument:xmlns:office:1.0" '
@@ -385,6 +610,74 @@ class ComparisonAnalysisV19(unittest.TestCase):
         changed = analyze_pair(source, [first, second], 'csv')
         self.assertEqual(changed['status'], 'uncertain')
         self.assertNotIn('all_sheet_values_unordered', changed['checkedFeatures'])
+
+    def test_multi_csv_mutation_invalidates_the_whole_comparison(self):
+        from openpyxl import Workbook
+        import app_backend.converter_guard.comparison_analysis as module
+        source, first, second = self.path('source.xlsx'), self.path('first.csv'), self.path('second.csv')
+        book = Workbook(); book.active.append(['A', 'B']); book.create_sheet('Second').append(['C', 'D']); book.save(source); book.close()
+        first.write_text('A,B\n', encoding='utf-8'); second.write_text('C,D\n', encoding='utf-8')
+        real = module._csv_summary
+        def mutate(path, budget):
+            value = real(path, budget)
+            if path == second:
+                first.write_text('CHANGED,B\n', encoding='utf-8')
+            return value
+        with patch.object(module, '_csv_summary', side_effect=mutate):
+            result = analyze_pair(source, [first, second], 'csv')
+        self.assertEqual(result['status'], 'not_checked')
+        self.assertEqual(result['checkedFeatures'], [])
+        self.assertEqual(result['findings'][0]['reason'], 'result_changed_during_analysis')
+
+    def test_supplemental_outputs_and_alias_ambiguity_are_never_hidden(self):
+        source, output, resource = self.path('source.csv'), self.path('result.csv'), self.path('image.png')
+        source.write_text('A,B\n', encoding='utf-8'); output.write_text('A,B\n', encoding='utf-8'); png(resource)
+        result = analyze_pair(source, [output, resource], 'csv')
+        self.assertIn('supplemental_outputs_not_inspected', result['unknown'])
+        self.assertEqual(result['outputScope'], {'totalFiles': 2, 'primaryFiles': 1, 'supplementalFiles': 1,
+                                                'inspectedPrimaryFiles': 1, 'inspectedSupplementalFiles': 0})
+        # Both extensions denote JPEG. Exact suffix must not silently hide the
+        # other candidate and certify just one arbitrarily chosen output.
+        one, two = self.path('one.jpg'), self.path('two.jpeg')
+        one.write_bytes(b'one'); two.write_bytes(b'two')
+        ambiguous = analyze_pair(source, [one, two], 'jpg')
+        self.assertEqual(ambiguous['status'], 'not_checked')
+        self.assertEqual(ambiguous['outputScope']['primaryFiles'], 2)
+        self.assertEqual(ambiguous['findings'][0]['reason'], 'primary_output_mapping_not_determined')
+
+    def test_duplicate_csv_paths_cannot_prove_two_sheets_saved(self):
+        from openpyxl import Workbook
+        source, output = self.path('source.xlsx'), self.path('result.csv')
+        book = Workbook(); book.active.append(['A', 'B']); book.create_sheet('Second').append(['A', 'B']); book.save(source); book.close()
+        output.write_text('A,B\n', encoding='utf-8')
+        result = analyze_pair(source, [output, output], 'csv')
+        self.assertEqual(result['status'], 'not_checked')
+        self.assertEqual(result['findings'][0]['reason'], 'duplicate_primary_outputs')
+
+    def test_byte_comparison_respects_read_quota(self):
+        source, output = self.path('source.unrecognized'), self.path('result.unrecognized')
+        source.write_bytes(b'x'*1024); output.write_bytes(b'x'*1024)
+        with patch('app_backend.converter_guard.comparison_analysis.MAX_READ', 512):
+            result = analyze_pair(source, [output], 'unrecognized')
+        self.assertEqual(result['status'], 'not_checked')
+        self.assertNotIn('identical_file_bytes', result['checkedFeatures'])
+
+    def test_wrong_document_model_and_truncated_package_are_not_green(self):
+        from openpyxl import Workbook
+        source, wrong, partial = self.path('source.docx'), self.path('result.docx'), self.path('partial.docx')
+        docx(source, 'Source text')
+        real_xlsx = self.path('table.xlsx'); book = Workbook(); book.active.append(['A', 'B']); book.save(real_xlsx); book.close()
+        wrong.write_bytes(real_xlsx.read_bytes())
+        result = analyze_pair(source, [wrong], 'docx')
+        self.assertEqual(result['status'], 'confirmed_loss')
+        self.assertIn('OUTPUT_FORMAT_MISMATCH', [f['code'] for f in result['findings']])
+        self.assertIn('result_container', result['evaluatedFeatures'])
+        self.assertNotIn('result_container', result['checkedFeatures'])
+        partial.write_bytes(source.read_bytes()[:80])
+        result = analyze_pair(source, [partial], 'docx')
+        self.assertEqual(result['status'], 'not_checked')
+        self.assertIn('incomplete_result_inspection', result['unknown'])
+        self.assertFalse(result['qualityCompared'])
 
     def test_utf16_entity_declarations_are_rejected_and_preview_is_literal_text(self):
         source = self.path('source.docx')
