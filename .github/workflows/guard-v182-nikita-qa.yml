@@ -1,0 +1,124 @@
+name: AIO Guard v18.2 NIKITA preflight and DBF QA
+
+on:
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aio-v182-nikita-qa-owned
+  cancel-in-progress: false
+
+jobs:
+  windows-qa:
+    if: >-
+      github.repository == 'jumonja-maker/A.I.O' &&
+      github.actor == 'jumonja-maker' &&
+      github.event.action == 'labeled' &&
+      github.event.label.name == 'aio-v182-qa-approved-once' &&
+      github.event.pull_request.user.login == 'jumonja-maker' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'fix/guard-v182-bulk-preflight-and-dbf-20261025' &&
+      github.event.pull_request.base.ref == 'feature/blackbox-deep-telemetry-v01-20261021'
+    runs-on: [self-hosted, Windows, X64, local-d-manual]
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: powershell
+    env:
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: utf-8
+      PYTHONDONTWRITEBYTECODE: '1'
+      PIP_NO_INDEX: '1'
+      PIP_NO_INPUT: '1'
+      QT_QPA_PLATFORM: offscreen
+      AIO_BLACKBOX_EVENTS: ''
+    steps:
+      - name: Verify restricted owner-operated Windows runner
+        run: |
+          $ErrorActionPreference='Stop'
+          if ($env:RUNNER_NAME -cne 'NIKITA' -or $env:RUNNER_OS -cne 'Windows' -or $env:USERNAME -ine 'aio-runner') { throw 'Unexpected runner' }
+          $principal=New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+          if ($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Elevated QA not permitted' }
+          foreach($key in @('GITHUB_WORKSPACE','RUNNER_TEMP','TEMP','TMP')) {
+            $value=[Environment]::GetEnvironmentVariable($key)
+            if ([string]::IsNullOrWhiteSpace($value) -or -not [IO.Path]::GetFullPath($value).StartsWith('D:\',[StringComparison]::OrdinalIgnoreCase)) { throw ('Path not D: '+$key) }
+          }
+
+      - name: Checkout frozen diagnostic PR head
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        env:
+          GIT_CONFIG_COUNT: '1'
+          GIT_CONFIG_KEY_0: core.autocrlf
+          GIT_CONFIG_VALUE_0: 'false'
+        with:
+          repository: jumonja-maker/A.I.O
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: aio-v182-qa-${{ github.run_id }}-${{ github.run_attempt }}
+          persist-credentials: false
+          clean: true
+
+      - name: Verify QA dependencies and source revision
+        working-directory: aio-v182-qa-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $wanted='${{ github.event.pull_request.head.sha }}'
+          $got=(& git rev-parse HEAD).Trim()
+          if ($LASTEXITCODE -ne 0 -or $got -cne $wanted) { throw 'Pinned source mismatch' }
+          Write-Host ('AIO_TESTED_SHA='+$got)
+          $python='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\Scripts\python.exe'
+          $marker='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\.00aio-test-only-venv.txt'
+          if (-not (Test-Path -LiteralPath $python -PathType Leaf) -or -not (Test-Path -LiteralPath $marker -PathType Leaf) -or (Get-Content -LiteralPath $marker -Raw).Trim() -cne '00AIO NIKITA ISOLATED DOCX PDF QA PY311 QT6103') { throw 'Unapproved Python environment' }
+          & $python -c 'import sys,PySide6.QtWebEngineWidgets,PySide6.QtPdf;assert sys.version_info[:2]==(3,11)'
+          if ($LASTEXITCODE -ne 0) { throw 'Python/Qt dependencies unavailable' }
+          'AIO_QA_PYTHON='+$python | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          $engine='D:\LBR\program\soffice.com'
+          if (-not (Test-Path -LiteralPath $engine -PathType Leaf) -or -not (Test-Path -LiteralPath 'D:\LBR\program\python.exe' -PathType Leaf)) { throw 'Approved full LibreOffice unavailable' }
+          'AIO_QA_ENGINE='+$engine | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          $node=Get-Command node -ErrorAction SilentlyContinue
+          if ($node) {$node=$node.Source} else {
+            $runnerRoot=Split-Path -Parent (Split-Path -Parent $env:RUNNER_TEMP)
+            $candidates=@((Join-Path $runnerRoot 'externals\node24\bin\node.exe'),(Join-Path $runnerRoot 'externals\node20\bin\node.exe'),'D:\AIO-Lab\nodejs\node.exe')
+            $found=@($candidates | Where-Object {Test-Path -LiteralPath $_ -PathType Leaf} | Select-Object -First 1)
+            if ($found.Count -ne 1) {throw 'Offline Node not found'}
+            $node=$found[0]
+          }
+          'AIO_QA_NODE='+$node | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          $links=@((Join-Path $env:GITHUB_WORKSPACE 'node_modules\linkedom\esm\index.js'),'D:\AIO-Lab\node_modules\linkedom\esm\index.js','D:\AIO-Lab\AIO-QA-Env\node_modules\linkedom\esm\index.js')
+          $found=@($links | Where-Object {Test-Path -LiteralPath $_ -PathType Leaf} | Select-Object -First 1)
+          if ($found.Count -eq 1) {'AIO_DOM_MODULE='+$found[0] | Out-File $env:GITHUB_ENV -Encoding utf8 -Append}
+          else {throw 'Existing linkedom DOM module unavailable'}
+
+      - name: Compile and run regression including 510-file UI
+        working-directory: aio-v182-qa-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          & $env:AIO_QA_PYTHON -m compileall -q app_backend tests tools/qa
+          if ($LASTEXITCODE -ne 0) {throw 'PY_COMPILE=FAIL'}
+          & $env:AIO_QA_PYTHON -m unittest discover -s tests -p 'test_guard_v182_bulk_and_dbf.py' -v
+          if ($LASTEXITCODE -ne 0) {throw 'TARGETED_V182=FAIL'}
+          Write-Host 'TARGETED_V182=PASS'
+          foreach($test in @('tests\guard_bridge_contracts.mjs','tests\guard_large_ui_v13.mjs','tests\guard_queue_dom_v08.mjs')) {
+            & $env:AIO_QA_NODE $test
+            if ($LASTEXITCODE -ne 0) {throw ('DOM_TEST_FAILED='+$test)}
+          }
+          Write-Host 'BRIDGE_DOM=PASS'
+          & $env:AIO_QA_PYTHON -m unittest discover -s tests -p 'test_*.py' -q
+          if ($LASTEXITCODE -ne 0) {throw 'PYTHON_REGRESSION=FAIL'}
+          Write-Host 'PYTHON_REGRESSION=PASS'
+
+      - name: Native legacy CSV DBF acceptance twice
+        working-directory: aio-v182-qa-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $base='D:\AIO-Lab\AIO-QA-Evidence\guard-v182-${{ github.run_id }}'
+          foreach($i in @(1,2)) {
+            $out=$base+'-native-v08-'+$i
+            & $env:AIO_QA_PYTHON tools\qa\guard_v08_native_acceptance.py --output $out
+            if ($LASTEXITCODE -ne 0) {throw ('NATIVE_V08_ATTEMPT_'+$i+'=FAIL')}
+            Write-Host ('NATIVE_V08_ATTEMPT_'+$i+'=PASS')
+          }
+          Write-Host 'CSV_DBF_NATIVE_QA=2_PASS_ATTEMPTS_NOT_FULLTEST'
+          Write-Host 'MAIN=UNCHANGED;FULLTEST_510=NOT_RUN;INSTALLER_QA=NOT_RUN'
