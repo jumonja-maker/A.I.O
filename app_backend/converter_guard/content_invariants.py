@@ -6,6 +6,7 @@ Instead, compare actual nonempty cell text with an inspectable text export.
 This is a content subset check, not a visual or semantic fidelity certificate.
 """
 import codecs
+from collections import Counter
 from contextlib import contextmanager
 from html.parser import HTMLParser
 from pathlib import Path
@@ -36,6 +37,8 @@ MAX_XML_READ = 64 * 1024 * 1024
 MAX_XML_DEPTH = 128
 MAX_UNIQUE_CELL_TEXTS = 10000
 MAX_CELL_TEXT_BYTES = 4 * 1024 * 1024
+MAX_STRUCTURAL_CELLS = 20000
+MAX_TEXT_MATCH_WORK = 64 * 1024 * 1024
 
 
 class _InspectionLimited(Exception):
@@ -110,9 +113,17 @@ def _odf_xml(path):
 
 
 def _source_cells(source, cancel):
-    tokens, tables = set(), []
+    """Inspect only ODF Writer tables with implicit column declarations.
+
+    Preserve the row/cell grid and multiplicity rather than a unique-token
+    set. Bounded inspection may decline complex spans and repeated rows; it
+    never modifies the original and never vetoes a document based on size.
+    """
+    tokens, tables, grids = set(), [], []
     physical_cells = 0
     token_bytes = 0
+    total_cells = 0
+    values = Counter()
     with _odf_xml(source) as stream:
         if stream is None:
             return None
@@ -124,40 +135,70 @@ def _source_cells(source, cancel):
                 if len(stack) > MAX_XML_DEPTH:
                     raise _InspectionLimited('xml_depth_budget')
                 if element.tag == '{' + _TABLE + '}table':
-                    tables.append({'columns': False, 'tokens': set(), 'cells': 0})
+                    if tables:
+                        tables[-1]['ambiguous'] = True
+                    tables.append({'columns': False, 'tokens': set(), 'values': Counter(),
+                                   'cells': 0, 'rows': [], 'row': None, 'ambiguous': False})
                 elif element.tag == '{' + _TABLE + '}table-column' and tables:
                     tables[-1]['columns'] = True
+                elif element.tag == '{' + _TABLE + '}table-row' and tables:
+                    table = tables[-1]
+                    if table['row'] is not None or element.get('{' + _TABLE + '}number-rows-repeated', '1') != '1':
+                        table['ambiguous'] = True
+                    table['row'] = []
+                elif element.tag in ('{' + _TABLE + '}table-cell',
+                                      '{' + _TABLE + '}covered-table-cell') and tables:
+                    if (element.tag.endswith('}covered-table-cell') or
+                            any(element.get('{' + _TABLE + '}' + attr, '1') != '1'
+                                for attr in ('number-columns-repeated', 'number-columns-spanned',
+                                             'number-rows-spanned'))):
+                        tables[-1]['ambiguous'] = True
                 continue
             if element.tag == '{' + _TABLE + '}table-cell' and tables:
+                table = tables[-1]
                 text = _normalize(_element_text(element))
+                if table['row'] is None:
+                    table['ambiguous'] = True
+                else:
+                    table['row'].append(text)
+                total_cells += 1
+                if total_cells > MAX_STRUCTURAL_CELLS:
+                    raise _InspectionLimited('structural_cell_budget')
                 if text:
-                    if text not in tables[-1]['tokens']:
+                    if text not in table['tokens']:
                         token_bytes += len(text.encode('utf-8'))
                         if (token_bytes > MAX_CELL_TEXT_BYTES or
-                                sum(len(table['tokens']) for table in tables) + len(tokens)
+                                len(tokens) + sum(len(t['tokens']) for t in tables)
                                 >= MAX_UNIQUE_CELL_TEXTS):
                             raise _InspectionLimited('cell_text_budget')
-                        tables[-1]['tokens'].add(text)
-                    tables[-1]['cells'] += 1
+                        table['tokens'].add(text)
+                    table['values'][text] += 1
+                    table['cells'] += 1
+                element.clear()
+            elif element.tag == '{' + _TABLE + '}table-row' and tables:
+                table = tables[-1]
+                if table['row'] is not None:
+                    table['rows'].append(tuple(table['row']))
+                    table['row'] = None
                 element.clear()
             elif element.tag == '{' + _TABLE + '}table' and tables:
                 table = tables.pop()
                 if not table['columns'] and table['cells']:
+                    if table['ambiguous']:
+                        raise _InspectionLimited('complex_table_layout')
                     tokens.update(table['tokens'])
+                    values.update(table['values'])
+                    grids.append(tuple(table['rows']))
                     physical_cells += table['cells']
-                element.clear()
-            elif element.tag == '{' + _TABLE + '}table-row':
                 element.clear()
             elif not tables:
                 element.clear()
-            # Removing completed nodes avoids retaining millions of empty row
-            # objects, while paragraphs inside a live cell remain intact.
             if len(stack) > 1 and (not tables or element.tag in (
                     '{' + _TABLE + '}table-cell', '{' + _TABLE + '}table-row')):
                 stack[-2].remove(element)
             stack.pop()
-    return {'tokens': tokens, 'cells': physical_cells} if tokens else None
-
+    return {'tokens': tokens, 'values': values, 'tables': grids,
+            'cells': physical_cells} if tokens else None
 
 class _Presence:
     """Match normalized cell text across streamed element/chunk boundaries."""
