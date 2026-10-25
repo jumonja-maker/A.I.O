@@ -389,32 +389,35 @@ def _compare_table_grids(expected, observed):
 
 
 class _Presence:
-    """Match normalized cell text across streamed element/chunk boundaries."""
-    def __init__(self, tokens):
-        self.missing = set(tokens)
-        self.keep = max(map(len, self.missing), default=1)
-        self.tail = ''
-        self.pending_space = False
-        self.started = False
+    """Bounded exact-value multiplicity check for the non-tabular TXT target.
 
-    def feed(self, text):
-        if not self.missing:
-            return
-        pieces = []
-        for part in re.finditer(r'\s+|\S+', text):
-            value = part.group()
-            if value.isspace():
-                self.pending_space = True
-            else:
-                if self.pending_space and self.started:
-                    pieces.append(' ')
-                pieces.append(value)
-                self.started = True
-                self.pending_space = False
-        window = self.tail + ''.join(pieces)
-        self.missing.difference_update(token for token in tuple(self.missing) if token in window)
-        self.tail = window[-self.keep:]
+    This can confirm cell *text*, never cell positions. A word substring is not
+    an exact cell value, and duplicate source cells require duplicate matches.
+    """
+    def __init__(self, values):
+        self.expected = Counter(values)
+        self.parts = []
+        self.bytes = 0
+        self.missing = Counter(values)
 
+    def feed(self, value):
+        self.bytes += len(value.encode('utf-8'))
+        if self.bytes > MAX_XML_READ:
+            raise _InspectionLimited('text_read_budget')
+        self.parts.append(value)
+
+    def finish(self):
+        whole = _normalize(''.join(self.parts))
+        if len(whole) * len(self.expected) > MAX_TEXT_MATCH_WORK:
+            raise _InspectionLimited('text_matching_budget')
+        self.missing.clear()
+        for value, required in self.expected.items():
+            # Entire normalized values with word boundaries; avoid 42 in 1420
+            # and A/B within AB while retaining arbitrary Unicode text.
+            pattern = r'(?<!\\w)' + re.escape(value) + r'(?!\\w)'
+            observed = sum(1 for _ in re.finditer(pattern, whole))
+            if observed < required:
+                self.missing[value] = required - observed
 
 def _xml_text(stream, matcher, cancel):
     stack, paragraph_depth = [], 0
@@ -526,17 +529,33 @@ def check_content_invariants(paths, target, source, *, cancel, source_evidence=N
         raise GuardError('ENGINE_OUTPUT_VALIDATION_INCOMPLETE',
             'Не удалось проверить текст таблиц в результате. Он не отмечен готовым.',
             stage='result', diagnostic='odf_table_primary_ambiguous')
-    matcher = _Presence(expected['tokens'])
+    structured = target in (_ODF_OUTPUTS | _WORD_OUTPUTS | _HTML_OUTPUTS | {'fodt'})
+    matcher = None
     try:
-        _output_text(candidates[0], target, matcher, cancel)
+        if structured:
+            grids = (_html_table_grids(candidates[0], cancel) if target in _HTML_OUTPUTS
+                     else _xml_table_grids(candidates[0], target, cancel))
+            _compare_table_grids(expected['tables'], grids)
+        else:
+            matcher = _Presence(expected['values'])
+            _output_text(candidates[0], target, matcher, cancel)
+            matcher.finish()
     except (_InspectionLimited, ET.ParseError, zipfile.BadZipFile, KeyError,
             UnicodeError, OSError, ValueError) as error:
         raise GuardError('ENGINE_OUTPUT_VALIDATION_INCOMPLETE',
-            'Не удалось проверить текст таблиц в результате. Он не отмечен готовым.',
+            'Не удалось полностью проверить таблицы в результате. Он не отмечен готовым.',
             stage='result', diagnostic='odf_table_output:' + type(error).__name__) from error
     _cancel(cancel)
-    if matcher.missing:
+    if matcher is not None and matcher.missing:
+        before = expected['values']
+        missing_unique = sum(1 for value in before if matcher.missing[value] == before[value])
+        diagnostic = ('odf_table_missing_unique_cell_texts:' + str(missing_unique)
+                      if missing_unique else 'odf_table_missing_duplicate_cells:' +
+                      str(sum(matcher.missing.values())))
         raise GuardError('ENGINE_OUTPUT_CONTENT_LOSS',
-            'В результате отсутствует текст исходных ячеек таблицы. Он не отмечен готовым.',
-            stage='result', diagnostic='odf_table_missing_unique_cell_texts:' + str(len(matcher.missing)))
-    return {**result, 'status': 'checked_subset', 'missingUniqueCellTexts': 0}
+            'В результате отсутствуют исходные значения ячеек. Он не отмечен готовым.',
+            stage='result', diagnostic=diagnostic)
+    return {**result, 'status': 'checked_subset', 'missingUniqueCellTexts': 0,
+            'comparedScope': 'table_grid' if structured else 'text_value_multiplicity',
+            'tableStructureCompared': structured,
+            'checkedCellOccurrences':sum(expected['values'].values())}
