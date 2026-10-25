@@ -77,6 +77,46 @@ class BulkPreflightTests(unittest.TestCase):
         self.assertEqual(budgets, [120])
 
 
+    def test_live_bulk_cancel_releases_preflight_gate_for_next_job(self):
+        """A cancelled 510-file verification must not poison a fresh run."""
+        job = self.create(510)
+        entered = threading.Event()
+        outcomes = []
+        def blocking(source, workspace, *, cancel, timeout):
+            entered.set()
+            while not cancel.wait(.01):
+                pass
+            raise GuardError('CANCELLED', 'Interrupted native source inspection',
+                             stage='preflight')
+        def verify():
+            try:
+                self.guard.preflight(job)
+            except GuardError as error:
+                outcomes.append(error.code)
+        with patch.object(self.guard.adapter, 'preflight', side_effect=blocking, create=True), \
+             patch.object(self.guard.adapter, 'capabilities',
+                          return_value={'files': [], 'formats': []}, create=True):
+            worker = threading.Thread(target=verify, name='bulk-preflight-cancel')
+            worker.start()
+            self.assertTrue(entered.wait(3), 'Expected a live native preflight')
+            before = self.guard.status(job)
+            self.assertEqual(before['state'], 'checking')
+            self.assertEqual(before['preflightTotal'], 510)
+            self.guard.cancel(job)
+            worker.join(3)
+            self.assertFalse(worker.is_alive(), 'Cancelled preflight still owns global gate')
+            self.assertEqual(outcomes, ['CANCELLED'])
+            self.assertEqual(self.guard.status(job)['state'], 'cancelled')
+        second = self.create(1)
+        with patch.object(self.guard.adapter, 'preflight',
+                          return_value={'state': 'detected'}, create=True), \
+             patch.object(self.guard.adapter, 'capabilities',
+                          return_value={'files': [], 'formats': []}, create=True):
+            self.guard.preflight(second)
+        self.assertEqual(self.guard.status(second)['state'], 'prepared')
+
+
+
 class MissingDbfRecoveryTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
