@@ -86,6 +86,9 @@ jobs:
             $node=$found[0]
           }
           'AIO_QA_NODE='+$node | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          # Python HTTP+DOM regression uses shutil.which('node'): expose the
+          # approved offline executable to next steps, not only to direct calls.
+          [IO.Path]::GetDirectoryName($node) | Out-File $env:GITHUB_PATH -Encoding utf8 -Append
           # Use the repo's signed/manifest-verified offline QA dependency
           # bundle. NIKITA has no global linkedom: never npm/pip install.
           $deps=Join-Path $env:RUNNER_TEMP ('aio-v182-deps-${{ github.run_id }}-${{ github.run_attempt }}')
