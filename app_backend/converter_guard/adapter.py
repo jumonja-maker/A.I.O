@@ -235,8 +235,29 @@ class LibreOfficeAdapter:
         batch = getattr(self._local, 'batch', None)
         return batch[0] if batch else registry(self.executable)
 
+    @staticmethod
+    def _route_with_registry(native, target, proof):
+        """Decide from one immutable installed-registry snapshot, no file I/O."""
+        if (proof and proof.get('state') == 'detected'
+                and proof.get('registryFingerprint') == native.fingerprint
+                and isinstance(proof.get('mediaProfile'), dict)
+                and target in proof.get('qtMediaTargets', ())):
+            return 'registered'
+        return native.observed_decision(target, proof)
+
+    def _bound_route_decider(self, native):
+        # Preserve explicit test/integration subclasses which override route_decision.
+        # The standard decision must not re-stat every LibreOffice XCD/XCU file
+        # for every source x target pair in a 510 x 85 matrix.
+        chosen = self.route_decision
+        if getattr(chosen, '__func__', None) is LibreOfficeAdapter.route_decision:
+            return lambda target, proof: self._route_with_registry(native, target, proof)
+        return chosen
+
     def route_decider(self):
-        return self.route_decision
+        # Guard.start() can plan 14,000+ target pairs. Pin one registry identity
+        # across the plan; the observed source proof still verifies fingerprint.
+        return self._bound_route_decider(self._registry())
 
     def execution_mode(self):
         return getattr(self._local,'execution_mode',None)
@@ -279,6 +300,7 @@ class LibreOfficeAdapter:
     def capabilities(self, files, *, proofs=None):
         available = self.available
         native = self._registry()
+        decision = self._bound_route_decider(native)
         formats = []
         entries = list(catalog(self.executable))
         known = {row[0] for row in entries}
@@ -297,7 +319,7 @@ class LibreOfficeAdapter:
             if ext == 'xml':
                 description = 'XML — нативное представление документа'
             states = {f['id']: (native.hint(f['name'], ext) if proofs is None else
-                               self.route_decision(ext, proofs.get(f['id']))) for f in files}
+                               decision(ext, proofs.get(f['id']))) for f in files}
             compatible = [i for i, state in states.items() if state == 'registered']
             unknown = [i for i, state in states.items() if state == 'undetermined']
             # A large corpus may contain 510 files and dozens of formats.
@@ -510,13 +532,9 @@ class LibreOfficeAdapter:
                 office.completed += 1
 
     def route_decision(self, target, proof):
-        native = self._registry()
-        if (proof and proof.get('state') == 'detected'
-                and proof.get('registryFingerprint') == native.fingerprint
-                and isinstance(proof.get('mediaProfile'), dict)
-                and target in proof.get('qtMediaTargets', ())):
-            return 'registered'
-        return native.observed_decision(target, proof)
+        # Standalone callers still consult the installed registry on demand;
+        # bulk operations use a pinned per-operation snapshot.
+        return self._route_with_registry(self._registry(), target, proof)
 
     def observation_needed(self, proof):
         native = self._registry()
