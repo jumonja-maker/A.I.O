@@ -24,8 +24,6 @@ env:
   PIP_DISABLE_PIP_VERSION_CHECK: '1'
   AIO_BLACKBOX_EVENTS: ''
   QT_QPA_PLATFORM: offscreen
-  AIO_BUNDLE_PROFILE: lean
-  AIO_LO_QA_BUILD: '0'
   OMP_NUM_THREADS: '2'
   OPENBLAS_NUM_THREADS: '2'
 
@@ -165,6 +163,9 @@ jobs:
       - name: Package portable ZIP and versioned Windows QA installer
         id: package
         working-directory: aio-guard-v18-build-source-${{ github.run_id }}-${{ github.run_attempt }}
+        env:
+          AIO_BUNDLE_PROFILE: lean
+          AIO_LO_QA_BUILD: '0'
         run: |
           $ErrorActionPreference='Stop'
           $python='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\Scripts\python.exe'
