@@ -16,8 +16,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  AIO_QA_SOURCE_SHA: c70d7a4f2639ad9b6ff8a09f8e56ebb7c4e1df14
-  AIO_QA_TREE_SHA: d9d4d09350b3675c2c33a639a7b6756aa64e7c82
+  AIO_QA_SOURCE_SHA: 16bc5db0a6f271dcb618ef883fb708f964e351dd
+  AIO_QA_TREE_SHA: a2d3c20987b9e7a4d85ab67aeebb9bc0e751ea50
   PYTHONDONTWRITEBYTECODE: '1'
   PYTHONUTF8: '1'
   PYTHONIOENCODING: utf-8
@@ -42,7 +42,7 @@ jobs:
       github.event.pull_request.head.ref == 'patch/guard-before-after-20261025' &&
       github.event.pull_request.base.ref == 'feature/blackbox-deep-telemetry-v01-20261021'
     runs-on: [self-hosted, Windows, X64, local-d-manual]
-    timeout-minutes: 30
+    timeout-minutes: 45
     defaults:
       run:
         shell: powershell
@@ -69,7 +69,7 @@ jobs:
           GIT_CONFIG_VALUE_0: 'false'
         with:
           repository: jumonja-maker/A.I.O
-          ref: c70d7a4f2639ad9b6ff8a09f8e56ebb7c4e1df14
+          ref: 16bc5db0a6f271dcb618ef883fb708f964e351dd
           path: aio-pr54-v19-source-${{ github.run_id }}-${{ github.run_attempt }}
           persist-credentials: false
           clean: true
@@ -185,7 +185,7 @@ jobs:
         run: |
           $ErrorActionPreference='Stop'
           $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-pr54-v19-journeys-${{ github.run_id }}-${{ github.run_attempt }}'
-          & $env:AIO_QA_PYTHON tools/qa/guard_v19_journeys_acceptance.py --output $evidence --files 24 --emit-snapshots
+          & $env:AIO_QA_PYTHON tools/qa/guard_v19_journeys_acceptance.py --output $evidence --files 24 --discard-cycles 5 --emit-snapshots
           Write-Host ('QT_JOURNEYS_PROCESS_EXIT='+$LASTEXITCODE)
           if ($LASTEXITCODE -ne 0) {throw 'Windows partial analysis/save/cancel journeys failed'}
       - name: Build isolated real Windows EXE with existing PyInstaller
@@ -208,7 +208,12 @@ jobs:
           # Offline test-only dependencies must never leak into application packaging.
           Remove-Item Env:PYTHONPATH -ErrorAction SilentlyContinue
           $env:PYTHONNOUSERSITE='1'
-          & $env:AIO_QA_PYTHON -c 'import PyInstaller,openpyxl,pypdf;from PySide6 import QtGui,QtPdf,QtWebEngineWidgets;print("EXISTING_BUILD_TOOLS="+PyInstaller.__version__)'
+          $probe=@'
+          import PyInstaller, openpyxl, pypdf
+          from PySide6 import QtGui, QtPdf, QtWebEngineWidgets
+          print('EXISTING_BUILD_TOOLS='+PyInstaller.__version__)
+          '@
+          & $env:AIO_QA_PYTHON -c $probe
           if ($LASTEXITCODE -ne 0) {throw 'Existing trusted PyInstaller/production dependencies unavailable; no install is allowed'}
           $env:PYINSTALLER_CONFIG_DIR=Join-Path $buildRoot 'cache'
           $dist=Join-Path $buildRoot 'dist'
@@ -305,7 +310,7 @@ jobs:
           GIT_CONFIG_VALUE_0: 'false'
         with:
           repository: jumonja-maker/A.I.O
-          ref: c70d7a4f2639ad9b6ff8a09f8e56ebb7c4e1df14
+          ref: 16bc5db0a6f271dcb618ef883fb708f964e351dd
           path: aio-pr54-v19-source-${{ github.run_id }}-${{ github.run_attempt }}
           persist-credentials: false
           clean: true
