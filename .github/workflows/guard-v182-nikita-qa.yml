@@ -101,11 +101,11 @@ jobs:
           & $env:AIO_QA_PYTHON -m unittest discover -s tests -p 'test_guard_v182_bulk_and_dbf.py' -v
           if ($LASTEXITCODE -ne 0) {throw 'TARGETED_V182=FAIL'}
           Write-Host 'TARGETED_V182=PASS'
-          foreach($test in @('tests\guard_bridge_contracts.mjs','tests\guard_large_ui_v13.mjs','tests\guard_queue_dom_v08.mjs')) {
+          foreach($test in @('tests\guard_bridge_contracts.mjs','tests\guard_large_ui_v13.mjs')) {
             & $env:AIO_QA_NODE $test
             if ($LASTEXITCODE -ne 0) {throw ('DOM_TEST_FAILED='+$test)}
           }
-          Write-Host 'BRIDGE_DOM=PASS'
+          Write-Host 'BRIDGE_DOM=PASS;LIVE_HTTP_QUEUE_DOM=NOT_RUN_REQUIRES_TEST_SERVER'
           & $env:AIO_QA_PYTHON -m unittest discover -s tests -p 'test_*.py' -q
           if ($LASTEXITCODE -ne 0) {throw 'PYTHON_REGRESSION=FAIL'}
           Write-Host 'PYTHON_REGRESSION=PASS'
