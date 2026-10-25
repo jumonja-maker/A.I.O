@@ -1,0 +1,249 @@
+name: AIO Guard v18.1 diagnostic Windows EXE portable and installer
+
+# This one-shot workflow is separate from existing application/build workflows.
+# Root replaces both immutable pins after publishing the reviewed source commit.
+on:
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aio-guard-v18-nikita-build-once
+  cancel-in-progress: false
+
+env:
+  AIO_QA_SOURCE_SHA: 3ca80cf40577372a4177f82939756247ecc95bfb
+  AIO_QA_TREE_SHA: 888c9b492fbb0fa4974121b3d21cf34c8b2bba30
+  PYTHONDONTWRITEBYTECODE: '1'
+  PYTHONUTF8: '1'
+  PYTHONIOENCODING: utf-8
+  PIP_NO_INDEX: '1'
+  PIP_NO_INPUT: '1'
+  PIP_DISABLE_PIP_VERSION_CHECK: '1'
+  AIO_BLACKBOX_EVENTS: ''
+  QT_QPA_PLATFORM: offscreen
+  OMP_NUM_THREADS: '2'
+  OPENBLAS_NUM_THREADS: '2'
+
+jobs:
+  windows-qa:
+    if: >-
+      github.repository == 'jumonja-maker/A.I.O' &&
+      github.actor == 'jumonja-maker' &&
+      github.event.action == 'labeled' &&
+      github.event.label.name == 'aio-guard-v18-build-approved-once' &&
+      github.event.pull_request.number > 40 &&
+      github.event.pull_request.user.login == 'jumonja-maker' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'build/guard-v18-nikita-20261025' &&
+      github.event.pull_request.base.ref == 'qa/guard-v18-build-base-20261025'
+    runs-on: [self-hosted, Windows, X64, local-d-manual]
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - name: Verify restricted NIKITA host before checkout
+        run: |
+          $ErrorActionPreference='Stop'
+          if ($env:RUNNER_NAME -cne 'NIKITA' -or $env:RUNNER_OS -cne 'Windows' -or $env:USERNAME -ine 'aio-runner') { throw 'Untrusted runner identity' }
+          $principal=New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+          if ($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Elevated QA is forbidden' }
+          foreach($key in @('GITHUB_WORKSPACE','RUNNER_TEMP','TEMP','TMP')) {
+            $path=[Environment]::GetEnvironmentVariable($key)
+            if ([string]::IsNullOrWhiteSpace($path) -or -not [IO.Path]::GetFullPath($path).StartsWith('D:\',[StringComparison]::OrdinalIgnoreCase)) { throw ($key+' must remain on D:') }
+          }
+          if ((Get-PSDrive -Name D -PSProvider FileSystem).Free -lt 30GB -or (Get-PSDrive -Name C -PSProvider FileSystem).Free -lt 10GB) { throw 'Required C/D free space unavailable' }
+          foreach($name in @('aio-guard-v18-build-source-${{ github.run_id }}-${{ github.run_attempt }}','aio-guard-v18-build-evidence-${{ github.run_id }}-${{ github.run_attempt }}')) {
+            if (Test-Path -LiteralPath (Join-Path $env:GITHUB_WORKSPACE $name)) { throw 'Run destination already exists' }
+          }
+      - name: Checkout immutable reviewed source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        env:
+          GIT_CONFIG_COUNT: '1'
+          GIT_CONFIG_KEY_0: core.autocrlf
+          GIT_CONFIG_VALUE_0: 'false'
+        with:
+          repository: jumonja-maker/A.I.O
+          ref: 3ca80cf40577372a4177f82939756247ecc95bfb
+          path: aio-guard-v18-build-source-${{ github.run_id }}-${{ github.run_attempt }}
+          persist-credentials: false
+          clean: true
+      - name: Verify Git tree and select existing offline tools
+        working-directory: aio-guard-v18-build-source-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $python='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\Scripts\python.exe'
+          $marker='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\.00aio-test-only-venv.txt'
+          if (-not (Test-Path -LiteralPath $python -PathType Leaf) -or -not (Test-Path -LiteralPath $marker -PathType Leaf) -or (Get-Content -LiteralPath $marker -Raw).Trim() -cne '00AIO NIKITA ISOLATED DOCX PDF QA PY311 QT6103') { throw 'Trusted QA Python environment unavailable' }
+          $verify=@'
+          import hashlib, os
+          from pathlib import Path
+          def tree(folder):
+              entries=[]
+              for child in folder.iterdir():
+                  if child.name=='.git':continue
+                  key=child.name.encode('utf-8')
+                  if child.is_symlink():raise ValueError('Unexpected symlink')
+                  if child.is_dir():mode,oid,sort=b'40000',tree(child),key+b'/'
+                  elif child.is_file():
+                      data=child.read_bytes();mode=b'100644';sort=key
+                      oid=hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).digest()
+                  else:raise ValueError('Unexpected file type')
+                  entries.append((sort,mode+b' '+key+b'\0'+oid))
+              raw=b''.join(row for _,row in sorted(entries,key=lambda item:item[0]))
+              return hashlib.sha1(b'tree '+str(len(raw)).encode()+b'\0'+raw).digest()
+          actual=tree(Path.cwd()).hex()
+          print('AIO_VERIFIED_TREE='+actual)
+          if actual!=os.environ['AIO_QA_TREE_SHA']:raise SystemExit('SOURCE_TREE_MISMATCH')
+          '@
+          & $python -c $verify
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned source verification failed' }
+          'AIO_QA_PYTHON='+$python | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          $runnerRoot=Split-Path -Parent (Split-Path -Parent $env:RUNNER_TEMP)
+          $node=Get-Command node -ErrorAction SilentlyContinue
+          if ($node) {$node=$node.Source} else {
+            $node=@(@((Join-Path $runnerRoot 'externals\node24\bin\node.exe'),(Join-Path $runnerRoot 'externals\node20\bin\node.exe'),'D:\AIO-Lab\nodejs\node.exe') | Where-Object {Test-Path -LiteralPath $_ -PathType Leaf} | Select-Object -First 1)
+            if ($node.Count -ne 1) { throw 'Existing offline Node unavailable' };$node=$node[0]
+          }
+          [IO.Path]::GetDirectoryName($node) | Out-File $env:GITHUB_PATH -Encoding utf8 -Append
+          $links=@((Join-Path $env:GITHUB_WORKSPACE 'node_modules\linkedom\esm\index.js'),'D:\AIO-Lab\node_modules\linkedom\esm\index.js','D:\AIO-Lab\AIO-QA-Env\node_modules\linkedom\esm\index.js')
+          $link=@($links | Where-Object {Test-Path -LiteralPath $_ -PathType Leaf} | Select-Object -First 1)
+          if ($link.Count -eq 1) {'AIO_DOM_MODULE='+$link[0] | Out-File $env:GITHUB_ENV -Encoding utf8 -Append}
+          $engine=$null
+          foreach($base in @('D:\LBR\LibreOffice','D:\LBR','D:\AIO-Lab\LibreOffice','C:\Program Files\LibreOffice')) {
+            foreach($leaf in @('program\soffice.com','program\soffice.exe')) {
+              $candidate=Join-Path $base $leaf
+              if ((Test-Path -LiteralPath $candidate -PathType Leaf) -and (Test-Path -LiteralPath (Join-Path $base 'program\soffice.bin') -PathType Leaf) -and (Test-Path -LiteralPath (Join-Path $base 'share') -PathType Container)) {$engine=$candidate;break}
+            }
+            if ($engine) {break}
+          }
+          if (-not $engine) {throw 'Existing complete native LibreOffice unavailable'}
+          'AIO_QA_ENGINE='+$engine | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Verify offline QA packagers and complete bundled LibreOffice
+        id: packaging_deps
+        working-directory: aio-guard-v18-build-source-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $python=$env:AIO_QA_PYTHON
+          if (-not (Test-Path -LiteralPath $python -PathType Leaf)) { throw 'Pinned offline Python missing' }
+          & $python -c 'import sys, PyInstaller, PySide6.QtWebEngineWidgets, PySide6.QtPdf, pypdf; assert sys.version_info[:2] == (3,11)'
+          if ($LASTEXITCODE -ne 0) { throw 'Required PyInstaller, QtWebEngine, QtPdf or pypdf unavailable' }
+          Write-Host 'WIN_QA_PACKAGER_DEPS=PASS'
+          if (-not (Test-Path -LiteralPath $env:AIO_QA_ENGINE -PathType Leaf)) { throw 'QA LibreOffice binary missing' }
+          $lo=Split-Path -Parent (Split-Path -Parent $env:AIO_QA_ENGINE)
+          foreach($part in @('program\soffice.exe','program\soffice.bin','share')) {
+            if (-not (Test-Path -LiteralPath (Join-Path $lo $part))) { throw ('Incomplete LO distribution: '+$part) }
+          }
+          $licenses=@(Get-ChildItem -LiteralPath $lo -Filter LICENSE* -File -Recurse -ErrorAction Stop)
+          if ($licenses.Count -lt 1) { throw 'LibreOffice license file missing' }
+          'AIO_LIBREOFFICE_ROOT='+$lo | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          $dir='D:\AIO-Lab\AIO-QA-Env\inno-673-portable\compiler'
+          $compilers=@(Get-ChildItem -LiteralPath $dir -Filter ISCC.exe -File -Recurse -ErrorAction Stop)
+          if ($compilers.Count -ne 1) { throw 'Approved offline Inno Setup compiler unavailable' }
+          'AIO_APPROVED_ISCC='+$compilers[0].FullName | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host 'WINDOWS_QA_PACKAGER=PASS;LO_PAYLOAD=COMPLETE;NO_INSTALL=TRUE'
+
+      - name: Package portable ZIP and versioned Windows QA installer
+        id: package
+        working-directory: aio-guard-v18-build-source-${{ github.run_id }}-${{ github.run_attempt }}
+        env:
+          AIO_BUNDLE_PROFILE: lean
+          AIO_LO_QA_BUILD: '0'
+        run: |
+          $ErrorActionPreference='Stop'
+          $python='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\Scripts\python.exe'
+          foreach ($file in @('assets\brand\icons\aio.ico',
+              'assets\brand\elva-v13-happy-256.png',
+              'app_backend\blackbox_telemetry.py',
+              'app_backend\converter_guard\core.py',
+              'tests\test_blackbox_telemetry.py')) {
+            if (-not (Test-Path -LiteralPath $file -PathType Leaf)) {
+              throw ('Component missing: '+$file)
+            }
+          }
+          $env:PYINSTALLER_CONFIG_DIR=Join-Path $env:RUNNER_TEMP ('aio-v18.1-pyinst-'+$env:GITHUB_RUN_ID)
+          New-Item -ItemType Directory -Force -Path $env:PYINSTALLER_CONFIG_DIR | Out-Null
+          & $python -m PyInstaller --noconfirm --clean AllInOne.spec
+          if ($LASTEXITCODE -ne 0) { throw 'PYINSTALLER_FAILED' }
+          foreach ($item in @('dist\A.I.O\A.I.O.exe',
+              'dist\A.I.O\_internal\libreoffice\program\soffice.exe',
+              'dist\A.I.O\_internal\libreoffice\program\soffice.bin',
+              'dist\A.I.O\_internal\assets\brand\icons\aio.ico')) {
+            if (-not (Test-Path -LiteralPath $item -PathType Leaf)) {
+              throw ('Bundle incomplete: '+$item)
+            }
+          }
+          if (-not (Test-Path -LiteralPath 'dist\A.I.O\_internal\libreoffice\share' -PathType Container)) {
+            throw 'LibreOffice share directory missing.'
+          }
+          $pdf=@(Get-ChildItem -LiteralPath 'dist\A.I.O\_internal' -File -Recurse -ErrorAction Stop |
+            Where-Object {$_.Name -match '^QtPdf(Widgets)?(\.pyd|\.dll)$'})
+          if ($pdf.Count -eq 0) { throw 'QtPdf module missing from bundled runtime' }
+          Write-Host ('QA_RUNTIME_QTPDF_FILES='+$pdf.Count)
+          New-Item -ItemType Directory -Force -Path 'build\installer' | Out-Null
+          $portable='build\installer\AIO-Guard-v18.1-QA-PORTABLE.zip'
+          Compress-Archive -LiteralPath 'dist\A.I.O' -DestinationPath $portable -CompressionLevel Optimal
+          if (-not (Test-Path -LiteralPath $portable -PathType Leaf)) { throw 'Portable missing.' }
+          $iss='installer\windows\AIO-Guard-QA.iss'
+          $original=Get-Content -LiteralPath $iss -Raw
+          $changed=$original.Replace('#define AppVersion "0.7.0-guard-qa"',
+              '#define AppVersion "0.18.1-guard-qa"').Replace(
+              'OutputBaseFilename=AIO-Guard-QA-win-x64',
+              'OutputBaseFilename=AIO-Guard-v18.1-QA-win-x64')
+          if ($changed -ceq $original) { throw 'Version metadata not updated.' }
+          [IO.File]::WriteAllText((Join-Path (Get-Location).Path $iss),
+              $changed,[Text.UTF8Encoding]::new($true))
+          & $env:AIO_APPROVED_ISCC $iss
+          if ($LASTEXITCODE -ne 0) { throw 'INNO_QA_FAILED' }
+          $setup='build\installer\AIO-Guard-v18.1-QA-win-x64.exe'
+          if (-not (Test-Path -LiteralPath $setup -PathType Leaf)) { throw 'Installer missing.' }
+          @($setup,$portable) | ForEach-Object {
+            (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash.ToLowerInvariant()+
+              '  '+[IO.Path]::GetFileName($_)
+          } | Set-Content -LiteralPath 'build\installer\SHA256SUMS.txt' -Encoding ascii
+          @('SOURCE=3ca80cf40577372a4177f82939756247ecc95bfb','TREE=888c9b492fbb0fa4974121b3d21cf34c8b2bba30','GUARD=V18-PR41-AND-PREMAIN-PR47',
+            'BLACKBOX=TELEMETRY-V0.1-PR15','LIBREOFFICE=BUNDLED',
+            'NATIVE_WINDOWS_QA=BLOCKED_CSV_DBF_ISSUE_50','FULLTEST_510=NOT_RUN','VISIBLE_GUI=NOT_RUN','INSTALLED=NO;RELEASED=NO;MAIN=UNCHANGED') |
+              Set-Content -LiteralPath 'build\installer\BUILD-STATUS.txt' -Encoding utf8
+          Get-Content -LiteralPath 'build\installer\SHA256SUMS.txt' |
+              ForEach-Object { Write-Host ('QA_SHA256='+$_) }
+          @($setup,$portable) | ForEach-Object {
+            $info=Get-Item -LiteralPath $_
+            Write-Host ('QA_PACKAGE='+$info.Name+';BYTES='+$info.Length)
+          }
+          Write-Host ('QA_LOCAL_PACKAGE_PATH='+(Resolve-Path 'build\installer').Path)
+          & $python -c 'import sys,zipfile; z=zipfile.ZipFile(sys.argv[1]); assert z.testzip() is None' $portable
+          if ($LASTEXITCODE -ne 0) { throw 'PORTABLE_ZIP_UNREADABLE' }
+          Write-Host 'PORTABLE_ZIP_CRC=PASS'
+          Write-Host 'NO_INSTALL_NO_RELEASE'
+
+      - name: Private artifact upload (independent of package success)
+        id: upload
+        if: steps.package.outcome == 'success'
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: AIO-V18-HARDENING-QA-${{ github.run_id }}
+          path: |
+            aio-guard-v18-build-source-${{ github.run_id }}-${{ github.run_attempt }}/build/installer/AIO-Guard-v18.1-QA-win-x64.exe
+            aio-guard-v18-build-source-${{ github.run_id }}-${{ github.run_attempt }}/build/installer/AIO-Guard-v18.1-QA-PORTABLE.zip
+            aio-guard-v18-build-source-${{ github.run_id }}-${{ github.run_attempt }}/build/installer/SHA256SUMS.txt
+            aio-guard-v18-build-source-${{ github.run_id }}-${{ github.run_attempt }}/build/installer/BUILD-STATUS.txt
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Report diagnostic package without claiming QA pass
+        if: always()
+        run: |
+          Write-Host ('PINNED_SOURCE='+$env:AIO_QA_SOURCE_SHA)
+          Write-Host 'NATIVE_QA=BLOCKED_CSV_DBF_ISSUE_50;SOURCE_SHA=3ca80cf40577372a4177f82939756247ecc95bfb'
+          Write-Host 'PACKAGER_DEPS=${{ steps.packaging_deps.outcome }}'
+          Write-Host 'PACKAGE=${{ steps.package.outcome }}'
+          Write-Host 'UPLOAD=${{ steps.upload.outcome }}'
+          Write-Host 'INSTALL=NOT_RUN;FULLTEST_510=NOT_RUN;MAIN=UNCHANGED'
+          if ('${{ steps.package.outcome }}' -ne 'success') { throw 'Windows QA EXE/Setup/package failed' }
+          if ('${{ steps.upload.outcome }}' -ne 'success') { Write-Warning 'Files packaged on NIKITA D:; GitHub artifact upload unavailable.' }
+
