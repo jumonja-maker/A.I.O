@@ -34,6 +34,23 @@ def _source_identity(source):
         return None
 
 
+
+def _native_dbf_structure(path):
+    """Bounded native DBF container check, not a replacement DBF decoder."""
+    try:
+        with Path(path).open('rb') as source:
+            header = source.read(32)
+        if len(header) != 32 or header[0] not in (0x03, 0x04, 0x30, 0x83, 0x8b, 0xf5):
+            return False
+        rows = int.from_bytes(header[4:8], 'little')
+        offset = int.from_bytes(header[8:10], 'little')
+        stride = int.from_bytes(header[10:12], 'little')
+        size = Path(path).stat().st_size
+        return offset >= 33 and stride >= 1 and rows <= (size - offset) // stride
+    except (OSError, ValueError):
+        return False
+
+
 class _PreparedSourceCache:
     """Keep one private immutable import copy; never reuse a live LO model.
 
@@ -676,6 +693,60 @@ class LibreOfficeAdapter:
         control.check_now()
         return paths
 
+    def _recover_missing_csv_dbf(self, source, workspace, control, recipe, native):
+        """One native CLI recovery for a *verified* Calc CSV -> dBase UNO miss.
+
+        Never guess a filter, retry an interaction, overwrite an existing
+        product, or authorize an unsupported route. On any uncertainty the
+        caller reports its original ENGINE_OUTPUT_MISSING failure. The cold
+        CLI produces the DBF; this helper only checks and links those bytes.
+        """
+        proof = getattr(self._local, 'proof', None) or {}
+        selected = getattr(self._local, 'import_filter', None)
+        options = getattr(self._local, 'import_options', None)
+        output = Path(workspace) / 'output'
+        if (recipe is None or recipe.filter_name != 'dBase'
+                or proof.get('state') != 'detected'
+                or proof.get('registryFingerprint') != native.fingerprint
+                or 'com.sun.star.sheet.SpreadsheetDocument' not in proof.get('documentServices', ())
+                or selected != 'Text - txt - csv (StarCalc)'
+                or proof.get('selectedImportFilter') != selected
+                or not options or Path(source).suffix.lower() != '.csv'
+                or not output.is_dir() or any(output.iterdir())):
+            return None
+        if control.is_set():
+            return None
+        recovery = Path(workspace) / 'dbf-native-cli-recovery'
+        import_filter = selected + ':' + options
+        try:
+            prepare_profile(recovery / 'profile')
+            native_files = convert_path(source, 'dbf', recovery, executable=self.executable,
+                cancel=control, on_started=lambda: None,
+                convert_spec=recipe.cli_spec('dbf'), import_filter=import_filter,
+                metrics_sink=self._capture_metrics)
+            if (len(native_files) != 1 or native_files[0].suffix.lower() != '.dbf'
+                    or not _native_dbf_structure(native_files[0]) or control.is_set()
+                    or any(output.iterdir())):
+                return None
+            candidate = output / (Path(source).stem + '.dbf')
+            # Hardlink is an exclusive publication on the same owned volume:
+            # it fails if the original UNO exporter created a late result.
+            os.link(native_files[0], candidate)
+            if not _native_dbf_structure(candidate):
+                candidate.unlink(missing_ok=True)
+                return None
+            confirmed = validated_outputs(source, 'dbf', output)
+            self._local.execution_mode = 'native_cli'
+            self._local.export_info['executionReason'] = 'native_cli_dbase_recovery'
+            self._local.export_info['warnings'] = tuple(dict.fromkeys(
+                (*self._local.export_info.get('warnings', ()), 'NATIVE_DBF_CLI_RECOVERY')))
+            self._local.export_info['resultChecks'] = [{
+                'check': 'dbf_native_container', 'status': 'checked_subset',
+                'qualityCompared': False, 'recovery': 'native_cli_one_attempt'}]
+            return confirmed
+        except (LibreOfficeError, OSError):
+            return None
+
     def _convert_native(self, source, target, workspace, *, cancel, timeout,
                 on_started, output_limit=None, on_document_service=None, on_stage=None):
         self._local.execution_mode = None
@@ -749,6 +820,12 @@ class LibreOfficeAdapter:
                         self._local.metrics = {**(clean_timings(result.get('timings')) or
                                                  {'source':'uno_document'}),
                                                'workerStartupMs':startup_ms}
+                        if (not result.get('ok') and result.get('code') == 'ENGINE_OUTPUT_MISSING'
+                                and target == 'dbf' and filter_name == 'dBase'):
+                            recovered = self._recover_missing_csv_dbf(
+                                source, workspace, control, recipe, native)
+                            if recovered is not None:
+                                return recovered
                         if not result.get('ok'):
                             diagnostic=str(result.get('diagnostic','')).replace(str(source.parent.parent.parent),'[local]')
                             code = result.get('code') or 'ENGINE_FAILED'
