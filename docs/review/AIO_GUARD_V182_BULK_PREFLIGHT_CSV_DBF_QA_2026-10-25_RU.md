@@ -36,7 +36,14 @@
 
 ## Windows-упаковка
 
-[Build run #40183033277](https://github.com/jumonja-maker/A.I.O/actions/runs/40183033277), исходный pinned commit `780c4bf9`. Сборка на NIKITA создаёт `AIO-Guard-v18.2-QA-win-x64.exe`, `AIO-Guard-v18.2-QA-PORTABLE.zip`, `SHA256SUMS.txt` и `BUILD-STATUS.txt`. Пакеты должны быть независимо скопированы после hash-readback в `D:\AIO-Lab\AIO-QA-Dist\guard-v18.2-20261025-40183033277`. Наличие файлов и точные SHA можно объявить **только после завершения job и проверки лога**.
+[Build run #40183033277](https://github.com/jumonja-maker/A.I.O/actions/runs/40183033277): **SUCCESS** на NIKITA, pinned source `780c4bf9eaf9ad6b759bfb99bc9e09bc82a19032`, Git tree `cc03012e2b98a8f560835cef4cbde858f7c012d3`. Созданы EXE, portable ZIP, `SHA256SUMS.txt` и `BUILD-STATUS.txt`. Проверены наличие QtPdf, комплектность LibreOffice, ZIP CRC и read-back SHA-256 обеих копий. Файлы **физически проверены и сохранены** в `D:\AIO-Lab\AIO-QA-Dist\guard-v18.2-20261025-40183033277`.
+
+| Файл | Размер | SHA-256 |
+|---|---:|---|
+| `AIO-Guard-v18.2-QA-win-x64.exe` | 363 240 680 байт | `4affa74bd0f7195992159a3bed0e15a97353c01ec6621b48a6305775a1623613` |
+| `AIO-Guard-v18.2-QA-PORTABLE.zip` | 538 325 699 байт | `37305d4c77ae3fdf9815e6db2a9e44fb83fd4711cb36cadc41f943812d75f3a4` |
+
+GitHub Artifacts не используются из-за известной квоты. Версия собрана, но **не установлена и не одобрена для релиза**: `NATIVE_QA=TARGETED_V08_TWICE_PASS`, `FULLTEST_510=NOT_RUN`, `VISIBLE_GUI=NOT_RUN`, `MAIN=UNCHANGED`.
 
 Предыдущие v18.1 пакеты сохранены отдельно и не должны удаляться/перезаписываться.
 
