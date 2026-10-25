@@ -85,8 +85,8 @@ class ContentInvariants(unittest.TestCase):
 
     def test_html_ignores_script_and_style_when_checking_presence(self):
         output = self.root / 'source.html'
-        cells = ''.join('<td>' + t + '</td>' for row in ROWS for t in row)
-        output.write_text('<html><body><table><tr>' + cells + '</tr></table></body></html>')
+        rows = ''.join('<tr>' + ''.join('<td>' + t + '</td>' for t in row) + '</tr>' for row in ROWS)
+        output.write_text('<html><body><table>' + rows + '</table></body></html>')
         result = check_native_output([output], 'html', self.source, cancel=threading.Event())
         self.assertEqual(result['status'], 'content_present')
         self.assertEqual(result['additionalChecks'][0]['status'], 'checked_subset')

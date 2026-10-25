@@ -222,7 +222,8 @@ class NativeAuditV18(unittest.TestCase):
             else:
                 with zipfile.ZipFile(source) as archive:
                     marker = 'A' if b'>A<' in archive.read('content.xml') else 'C'
-                destination.write_text((f'<html><body>{marker} B</body></html>'
+                destination.write_text((f'<html><body><table><tr><td>{marker}</td><td>B</td>'
+                                        '</tr></table></body></html>'
                                         if target == 'html' else marker + ' B'), encoding='utf-8')
             adapter._local.export_info = {}
             return [destination]

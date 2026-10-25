@@ -6,6 +6,7 @@ Instead, compare actual nonempty cell text with an inspectable text export.
 This is a content subset check, not a visual or semantic fidelity certificate.
 """
 import codecs
+from collections import Counter
 from contextlib import contextmanager
 from html.parser import HTMLParser
 from pathlib import Path
@@ -36,6 +37,8 @@ MAX_XML_READ = 64 * 1024 * 1024
 MAX_XML_DEPTH = 128
 MAX_UNIQUE_CELL_TEXTS = 10000
 MAX_CELL_TEXT_BYTES = 4 * 1024 * 1024
+MAX_STRUCTURAL_CELLS = 20000
+MAX_TEXT_MATCH_WORK = 64 * 1024 * 1024
 
 
 class _InspectionLimited(Exception):
@@ -110,9 +113,17 @@ def _odf_xml(path):
 
 
 def _source_cells(source, cancel):
-    tokens, tables = set(), []
+    """Inspect only ODF Writer tables with implicit column declarations.
+
+    Preserve the row/cell grid and multiplicity rather than a unique-token
+    set. Bounded inspection may decline complex spans and repeated rows; it
+    never modifies the original and never vetoes a document based on size.
+    """
+    tokens, tables, grids = set(), [], []
     physical_cells = 0
     token_bytes = 0
+    total_cells = 0
+    values = Counter()
     with _odf_xml(source) as stream:
         if stream is None:
             return None
@@ -124,68 +135,289 @@ def _source_cells(source, cancel):
                 if len(stack) > MAX_XML_DEPTH:
                     raise _InspectionLimited('xml_depth_budget')
                 if element.tag == '{' + _TABLE + '}table':
-                    tables.append({'columns': False, 'tokens': set(), 'cells': 0})
+                    if tables:
+                        tables[-1]['ambiguous'] = True
+                    tables.append({'columns': False, 'tokens': set(), 'values': Counter(),
+                                   'cells': 0, 'rows': [], 'row': None, 'ambiguous': False})
                 elif element.tag == '{' + _TABLE + '}table-column' and tables:
                     tables[-1]['columns'] = True
+                elif element.tag == '{' + _TABLE + '}table-row' and tables:
+                    table = tables[-1]
+                    if table['row'] is not None or element.get('{' + _TABLE + '}number-rows-repeated', '1') != '1':
+                        table['ambiguous'] = True
+                    table['row'] = []
+                elif element.tag in ('{' + _TABLE + '}table-cell',
+                                      '{' + _TABLE + '}covered-table-cell') and tables:
+                    if (element.tag.endswith('}covered-table-cell') or
+                            any(element.get('{' + _TABLE + '}' + attr, '1') != '1'
+                                for attr in ('number-columns-repeated', 'number-columns-spanned',
+                                             'number-rows-spanned'))):
+                        tables[-1]['ambiguous'] = True
                 continue
             if element.tag == '{' + _TABLE + '}table-cell' and tables:
+                table = tables[-1]
                 text = _normalize(_element_text(element))
+                if table['row'] is None:
+                    table['ambiguous'] = True
+                else:
+                    table['row'].append(text)
+                total_cells += 1
+                if total_cells > MAX_STRUCTURAL_CELLS:
+                    raise _InspectionLimited('structural_cell_budget')
                 if text:
-                    if text not in tables[-1]['tokens']:
+                    if text not in table['tokens']:
                         token_bytes += len(text.encode('utf-8'))
                         if (token_bytes > MAX_CELL_TEXT_BYTES or
-                                sum(len(table['tokens']) for table in tables) + len(tokens)
+                                len(tokens) + sum(len(t['tokens']) for t in tables)
                                 >= MAX_UNIQUE_CELL_TEXTS):
                             raise _InspectionLimited('cell_text_budget')
-                        tables[-1]['tokens'].add(text)
-                    tables[-1]['cells'] += 1
+                        table['tokens'].add(text)
+                    table['values'][text] += 1
+                    table['cells'] += 1
+                element.clear()
+            elif element.tag == '{' + _TABLE + '}table-row' and tables:
+                table = tables[-1]
+                if table['row'] is not None:
+                    table['rows'].append(tuple(table['row']))
+                    table['row'] = None
                 element.clear()
             elif element.tag == '{' + _TABLE + '}table' and tables:
                 table = tables.pop()
                 if not table['columns'] and table['cells']:
+                    if table['ambiguous']:
+                        raise _InspectionLimited('complex_table_layout')
                     tokens.update(table['tokens'])
+                    values.update(table['values'])
+                    grids.append(tuple(table['rows']))
                     physical_cells += table['cells']
-                element.clear()
-            elif element.tag == '{' + _TABLE + '}table-row':
                 element.clear()
             elif not tables:
                 element.clear()
-            # Removing completed nodes avoids retaining millions of empty row
-            # objects, while paragraphs inside a live cell remain intact.
             if len(stack) > 1 and (not tables or element.tag in (
                     '{' + _TABLE + '}table-cell', '{' + _TABLE + '}table-row')):
                 stack[-2].remove(element)
             stack.pop()
-    return {'tokens': tokens, 'cells': physical_cells} if tokens else None
+    return {'tokens': tokens, 'values': values, 'tables': grids,
+            'cells': physical_cells} if tokens else None
+
+
+def _xml_table_grids(path, target, cancel):
+    """Extract real table cells only; unrelated paragraphs cannot mask loss."""
+    source = Path(path)
+    if target in _ODF_OUTPUTS:
+        member = 'content.xml'
+        table_tag, row_tag, cell_tag = (
+            '{' + _TABLE + '}table', '{' + _TABLE + '}table-row', '{' + _TABLE + '}table-cell')
+    elif target in _WORD_OUTPUTS:
+        member = 'word/document.xml'
+        table_tag, row_tag, cell_tag = (
+            '{' + _WORD + '}tbl', '{' + _WORD + '}tr', '{' + _WORD + '}tc')
+    else:
+        member = None
+        table_tag, row_tag, cell_tag = (
+            '{' + _TABLE + '}table', '{' + _TABLE + '}table-row', '{' + _TABLE + '}table-cell')
+    @contextmanager
+    def xml_stream():
+        if member:
+            with zipfile.ZipFile(source) as archive, archive.open(member) as stream:
+                yield stream
+        else:
+            with source.open('rb') as stream:
+                yield stream
+    grids, tables, stack, inspected_cells = [], [], [], 0
+    with xml_stream() as stream:
+        for event, element in ET.iterparse(_InspectionReader(stream, cancel),
+                                           events=('start', 'end')):
+            _cancel(cancel)
+            if event == 'start':
+                stack.append(element)
+                if len(stack) > MAX_XML_DEPTH:
+                    raise _InspectionLimited('xml_depth_budget')
+                if element.tag == table_tag:
+                    if tables:
+                        tables[-1]['ambiguous'] = True
+                    tables.append({'rows': [], 'row': None, 'ambiguous': False})
+                elif element.tag == row_tag and tables:
+                    table = tables[-1]
+                    if table['row'] is not None:
+                        table['ambiguous'] = True
+                    table['row'] = []
+                    if target not in _WORD_OUTPUTS and element.get(
+                            '{' + _TABLE + '}number-rows-repeated', '1') != '1':
+                        table['ambiguous'] = True
+                elif tables and (
+                        element.tag in ('{' + _WORD + '}gridSpan', '{' + _WORD + '}vMerge',
+                                        '{' + _TABLE + '}covered-table-cell')
+                        or element.tag == cell_tag and target not in _WORD_OUTPUTS
+                        and any(element.get('{' + _TABLE + '}' + attr, '1') != '1'
+                            for attr in ('number-columns-repeated', 'number-columns-spanned',
+                                         'number-rows-spanned'))):
+                    tables[-1]['ambiguous'] = True
+                continue
+            if element.tag == cell_tag and tables:
+                table = tables[-1]
+                inspected_cells += 1
+                if inspected_cells > MAX_STRUCTURAL_CELLS:
+                    raise _InspectionLimited('structural_cell_budget')
+                if table['row'] is None:
+                    table['ambiguous'] = True
+                else:
+                    table['row'].append(_normalize(_element_text(element)))
+                element.clear()
+            elif element.tag == row_tag and tables:
+                table = tables[-1]
+                if table['row'] is not None:
+                    table['rows'].append(tuple(table['row']))
+                    table['row'] = None
+                element.clear()
+            elif element.tag == table_tag and tables:
+                table = tables.pop()
+                if table['ambiguous']:
+                    raise _InspectionLimited('complex_output_table_layout')
+                grids.append(tuple(table['rows']))
+                element.clear()
+            elif not tables:
+                element.clear()
+            if len(stack) > 1 and (not tables or element.tag in (cell_tag, row_tag)):
+                stack[-2].remove(element)
+            stack.pop()
+    return grids
+
+
+class _HtmlTableGrids(HTMLParser):
+    """Read only table cells from rendered HTML, ignoring scripts and styling."""
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.tables, self.rows, self.row, self.cell = [], None, None, None
+        self.depth, self.ignored, self.cell_count = 0, [], 0
+
+    def handle_starttag(self, tag, attrs):
+        if tag in ('head', 'script', 'style', 'template'):
+            self.ignored.append(tag)
+        if tag == 'table':
+            if self.depth:
+                raise _InspectionLimited('nested_html_tables')
+            self.depth = 1
+            self.rows = []
+        elif self.depth and tag == 'tr':
+            if self.row is not None:
+                raise _InspectionLimited('nested_html_rows')
+            self.row = []
+        elif self.depth and tag in ('td', 'th'):
+            if self.cell is not None or self.row is None:
+                raise _InspectionLimited('html_cell_nesting')
+            if any(name in ('colspan', 'rowspan') and value not in (None, '1')
+                   for name, value in attrs):
+                raise _InspectionLimited('html_spanned_cells')
+            self.cell = []
+        elif self.cell is not None and tag in ('br', 'p', 'div'):
+            self.cell.append(' ')
+
+    def handle_startendtag(self, tag, attrs):
+        self.handle_starttag(tag, attrs)
+        self.handle_endtag(tag)
+
+    def handle_data(self, data):
+        if self.cell is not None and not self.ignored:
+            self.cell.append(data)
+
+    def handle_endtag(self, tag):
+        if self.ignored and tag == self.ignored[-1]:
+            self.ignored.pop()
+        if self.depth and tag in ('td', 'th'):
+            if self.cell is None:
+                raise _InspectionLimited('html_cell_nesting')
+            self.cell_count += 1
+            if self.cell_count > MAX_STRUCTURAL_CELLS:
+                raise _InspectionLimited('structural_cell_budget')
+            self.row.append(_normalize(''.join(self.cell)))
+            self.cell = None
+        elif self.depth and tag == 'tr':
+            if self.row is None or self.cell is not None:
+                raise _InspectionLimited('html_row_nesting')
+            self.rows.append(tuple(self.row))
+            self.row = None
+        elif self.depth and tag == 'table':
+            if self.row is not None or self.cell is not None:
+                raise _InspectionLimited('html_unfinished_table')
+            self.tables.append(tuple(self.rows))
+            self.rows, self.depth = None, 0
+
+
+def _html_table_grids(path, cancel):
+    from .postconditions import _AttributeLimiter
+    parser, limiter = _HtmlTableGrids(), _AttributeLimiter()
+    decoder = codecs.getincrementaldecoder('utf-8-sig')('strict')
+    consumed = 0
+    with Path(path).open('rb') as stream:
+        while block := stream.read(65536):
+            _cancel(cancel)
+            consumed += len(block)
+            if consumed > MAX_XML_READ:
+                raise _InspectionLimited('html_read_budget')
+            parser.feed(limiter.feed(decoder.decode(block)))
+            if len(parser.rawdata) > 256 * 1024:
+                raise _InspectionLimited('html_parser_budget')
+        parser.feed(limiter.feed(decoder.decode(b'', final=True)))
+    if parser.depth or parser.cell is not None or limiter.in_tag or limiter.quote is not None:
+        raise _InspectionLimited('html_unterminated_table')
+    parser.close()
+    return parser.tables
+
+
+def _compare_table_grids(expected, observed):
+    """Compare full row/cell positions and duplicate tables, not substrings."""
+    wanted, actual = Counter(expected), Counter(observed)
+    missing_tables = wanted - actual
+    if not missing_tables:
+        return
+    before = Counter(cell for table in expected for row in table for cell in row if cell)
+    after = Counter(cell for table in observed for row in table for cell in row if cell)
+    missing = before - after
+    if missing:
+        # Keep the established missing-unique diagnostic for prior QA tools.
+        absent_unique = sum(1 for value in before if after[value] == 0)
+        code = ('odf_table_missing_unique_cell_texts:' + str(absent_unique)
+                if absent_unique else
+                'odf_table_missing_duplicate_cells:' + str(sum(missing.values())))
+        raise GuardError('ENGINE_OUTPUT_CONTENT_LOSS',
+                         'В результате исчезли исходные ячейки таблицы. Он не отмечен готовым.',
+                         stage='result', diagnostic=code)
+    raise GuardError('ENGINE_OUTPUT_TABLE_STRUCTURE_CHANGED',
+                     'Расположение ячеек таблицы изменилось. Результат не подтверждён.',
+                     stage='result', diagnostic='odf_table_row_or_column_mismatch')
 
 
 class _Presence:
-    """Match normalized cell text across streamed element/chunk boundaries."""
-    def __init__(self, tokens):
-        self.missing = set(tokens)
-        self.keep = max(map(len, self.missing), default=1)
-        self.tail = ''
-        self.pending_space = False
-        self.started = False
+    """Bounded exact-value multiplicity check for the non-tabular TXT target.
 
-    def feed(self, text):
-        if not self.missing:
-            return
-        pieces = []
-        for part in re.finditer(r'\s+|\S+', text):
-            value = part.group()
-            if value.isspace():
-                self.pending_space = True
-            else:
-                if self.pending_space and self.started:
-                    pieces.append(' ')
-                pieces.append(value)
-                self.started = True
-                self.pending_space = False
-        window = self.tail + ''.join(pieces)
-        self.missing.difference_update(token for token in tuple(self.missing) if token in window)
-        self.tail = window[-self.keep:]
+    This can confirm cell *text*, never cell positions. A word substring is not
+    an exact cell value, and duplicate source cells require duplicate matches.
+    """
+    def __init__(self, values):
+        self.expected = Counter(values)
+        self.parts = []
+        self.bytes = 0
+        self.missing = Counter(values)
 
+    def feed(self, value):
+        self.bytes += len(value.encode('utf-8'))
+        if self.bytes > MAX_XML_READ:
+            raise _InspectionLimited('text_read_budget')
+        self.parts.append(value)
+
+    def finish(self):
+        whole = _normalize(''.join(self.parts))
+        if len(whole) * len(self.expected) > MAX_TEXT_MATCH_WORK:
+            raise _InspectionLimited('text_matching_budget')
+        self.missing.clear()
+        for value, required in self.expected.items():
+            # Entire normalized values with word boundaries; avoid 42 in 1420
+            # and A/B within AB while retaining arbitrary Unicode text.
+            pattern = r'(?<!\w)' + re.escape(value) + r'(?!\w)'
+            observed = sum(1 for _ in re.finditer(pattern, whole))
+            if observed < required:
+                self.missing[value] = required - observed
 
 def _xml_text(stream, matcher, cancel):
     stack, paragraph_depth = [], 0
@@ -297,17 +529,33 @@ def check_content_invariants(paths, target, source, *, cancel, source_evidence=N
         raise GuardError('ENGINE_OUTPUT_VALIDATION_INCOMPLETE',
             'Не удалось проверить текст таблиц в результате. Он не отмечен готовым.',
             stage='result', diagnostic='odf_table_primary_ambiguous')
-    matcher = _Presence(expected['tokens'])
+    structured = target in (_ODF_OUTPUTS | _WORD_OUTPUTS | _HTML_OUTPUTS | {'fodt'})
+    matcher = None
     try:
-        _output_text(candidates[0], target, matcher, cancel)
+        if structured:
+            grids = (_html_table_grids(candidates[0], cancel) if target in _HTML_OUTPUTS
+                     else _xml_table_grids(candidates[0], target, cancel))
+            _compare_table_grids(expected['tables'], grids)
+        else:
+            matcher = _Presence(expected['values'])
+            _output_text(candidates[0], target, matcher, cancel)
+            matcher.finish()
     except (_InspectionLimited, ET.ParseError, zipfile.BadZipFile, KeyError,
             UnicodeError, OSError, ValueError) as error:
         raise GuardError('ENGINE_OUTPUT_VALIDATION_INCOMPLETE',
-            'Не удалось проверить текст таблиц в результате. Он не отмечен готовым.',
+            'Не удалось полностью проверить таблицы в результате. Он не отмечен готовым.',
             stage='result', diagnostic='odf_table_output:' + type(error).__name__) from error
     _cancel(cancel)
-    if matcher.missing:
+    if matcher is not None and matcher.missing:
+        before = expected['values']
+        missing_unique = sum(1 for value in before if matcher.missing[value] == before[value])
+        diagnostic = ('odf_table_missing_unique_cell_texts:' + str(missing_unique)
+                      if missing_unique else 'odf_table_missing_duplicate_cells:' +
+                      str(sum(matcher.missing.values())))
         raise GuardError('ENGINE_OUTPUT_CONTENT_LOSS',
-            'В результате отсутствует текст исходных ячеек таблицы. Он не отмечен готовым.',
-            stage='result', diagnostic='odf_table_missing_unique_cell_texts:' + str(len(matcher.missing)))
-    return {**result, 'status': 'checked_subset', 'missingUniqueCellTexts': 0}
+            'В результате отсутствуют исходные значения ячеек. Он не отмечен готовым.',
+            stage='result', diagnostic=diagnostic)
+    return {**result, 'status': 'checked_subset', 'missingUniqueCellTexts': 0,
+            'comparedScope': 'table_grid' if structured else 'text_value_multiplicity',
+            'tableStructureCompared': structured,
+            'checkedCellOccurrences':sum(expected['values'].values())}
