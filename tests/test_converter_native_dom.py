@@ -78,6 +78,27 @@ class NativeUIDOMAcceptance(cases.NativeTransportHTTPTests):
         self.assertFalse(self.server.guard.storage_stats()['jobs'])
         print(result.stdout.strip())
 
+    def test_510_source_cancel_during_route_matrix_http_dom(self):
+        # Full preserved Designer + authenticated HTTP. Slow only the
+        # synthetic registry decision after 510 fake native import proofs
+        # so the user-facing blue cancel button can be clicked at 510/510.
+        import time
+        adapter = self.server.guard.adapter
+        original = adapter._bound_route_decider
+        def delayed(native):
+            selected = original(native)
+            def check(target, proof):
+                time.sleep(.001)
+                return selected(target, proof)
+            return check
+        adapter._bound_route_decider = delayed
+        result = subprocess.run(
+            ['node', str(Path(__file__).with_name('guard_matrix_cancel_ui_v182.mjs'))],
+            env=dict(os.environ, AIO_TEST_SERVER=self.base),
+            capture_output=True, text=True, timeout=80)
+        self.assertEqual(result.returncode, 0, result.stdout + '\n' + result.stderr)
+        print(result.stdout.strip())
+
 
 # Reuse fixture helpers without collecting their HTTP tests twice.
 for _name in list(vars(cases.NativeTransportHTTPTests)):
