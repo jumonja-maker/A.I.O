@@ -31,6 +31,24 @@
 
 ---
 
+## 0.1. ORP — отдельная ситуация: недоступный **целевой формат**, а не ошибочный skipped-исходник
+
+**Новый ввод владельца:** в запущенном FULLTEST с 510 файлами / 87 целевыми форматами строка **ORP — ODF Database Report** показывает `Недоступно`. Это не равно значку ⊘ на исходном файле и не означает, что какой-либо из 510 был ошибочно исключён из прочих маршрутов.
+
+**Проверка оригинальной Google Drive-папки** `1wxYCJklFTYiNiMTRyf699OmqoUMfGLmf` (25.10.2026): 510 непосредственных файлов, **85 разных расширений, по 6 экземпляров каждого**; **0 `.odb` и 0 `.orp`**. Папка: https://drive.google.com/drive/folders/1wxYCJklFTYiNiMTRyf699OmqoUMfGLmf
+
+**Проверка точного upstream-фильтра LibreOffice:**
+- `filter/source/config/fragments/filters/StarBaseReport.xcu` объявляет `StarOffice XML (Base) Report`, флаги `IMPORT EXPORT OWN DEFAULT 3RDPARTYFILTER NOTINFILEDIALOG`, но **DocumentService = `com.sun.star.report.ReportDefinition`**, а не Writer/Calc/Impress/Draw/BaseDatabaseDocument. https://github.com/LibreOffice/core/blob/master/filter/source/config/fragments/filters/StarBaseReport.xcu
+- Тип `StarBaseReport.xcu` регистрирует расширение `.orp`, MIME `application/vnd.sun.xml.report` и `private:factory/sreport*`: https://github.com/LibreOffice/core/blob/master/filter/source/config/fragments/types/StarBaseReport.xcu
+- Официальная справка: информация о созданных отчётах хранится **в файле базы данных LibreOffice Base**; пользователь создаёт/редактирует их через Report Builder, а готовый отчёт выполняется и открывается как документ Writer: https://help.libreoffice.org/latest/en-GB/text/shared/guide/data_report.html
+- `app_backend/converter_guard/routes.py:route_reason` кодирует `NATIVE_REPORT_EXPORT_UNAVAILABLE` при отсутствии экспортёра `.orp` в **установленном** реестре и `NATIVE_DOCUMENT_SERVICE_MISMATCH` при наличии экспортёра, но отсутствии общей модели. Нельзя смешивать эти причины. Сама upstream-запись с флагом EXPORT **не доказывает**, что комплект LO на NIKITA имеет работающий standalone ORP-export.
+
+**Предварительный вердикт:** недоступность ORP **ожидаема для набора, не содержащего отчётных моделей**, и не является доказанным багом Guard. Даже дополнительный `.odb` сам по себе **не создаёт** модель `ReportDefinition`; нужен реальный отчёт Base и native proof именно этого сервиса. В связи с этим **не надо отключать Guard или форсировать ORP** ради 1/87 дополнительных форматов.
+
+**Оставшаяся проверка только если понадобится ORP-совместимость:** read-only NIKITA: записать `native.filters['StarOffice XML (Base) Report']`, `native.exports.get('orp')`, `native.import_services`, `registeredExport`, и значение `unavailableReasons['orp']` у одного типичного DOCX/XLSX и реального отчёта Base. Если реальный Base ReportDefinition доказан и штатный экспорт создаёт валидный ORP, но Guard блокирует **ту же пару**, это отдельный реальный баг. Без нативного доказательства считать ORP «специальный Base-формат / для данного набора нет подтверждённых маршрутов». Возможное UX-улучшение: показать эту конкретную причину рядом с `Недоступно`, без изменения допуска.
+
+---
+
 ## 1. Что доказывают скриншоты
 
 Реальная UI-подпись берётся из `addons/file-converter/aio-file-progress.js` при `data.state === 'skipped'`. В `src/converter-bridge.js` исходник может попасть в `unplanned`, когда среди **выбранных пользователем целевых форматов** у него нет подтверждённых `verifiedFileIds`. Тогда интерфейс показывает `skipped`.
