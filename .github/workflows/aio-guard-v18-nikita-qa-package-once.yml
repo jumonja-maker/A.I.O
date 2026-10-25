@@ -139,9 +139,32 @@ jobs:
           $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-guard-v18-build-evidence-${{ github.run_id }}-${{ github.run_attempt }}'
           & $env:AIO_QA_PYTHON tools/qa/guard_v17_selfhosted_acceptance.py --output $evidence --executable $env:AIO_QA_ENGINE --seconds 60
           if ($LASTEXITCODE -ne 0) {throw 'Windows acceptance failed or has incomplete required coverage; see AIO_SELFHOSTED_EVIDENCE'}
+      - name: Verify offline QA packagers and complete bundled LibreOffice
+        id: packaging_deps
+        working-directory: aio-guard-v18-build-source-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $python=$env:AIO_QA_PYTHON
+          if (-not (Test-Path -LiteralPath $python -PathType Leaf)) { throw 'Pinned offline Python missing' }
+          & $python -c 'import sys, PyInstaller, PySide6.QtWebEngineWidgets, PySide6.QtPdf, pypdf; assert sys.version_info[:2] == (3,11); print("WIN_QA_PACKAGER_DEPS=PASS")'
+          if ($LASTEXITCODE -ne 0) { throw 'Required PyInstaller, QtWebEngine, QtPdf or pypdf unavailable' }
+          if (-not (Test-Path -LiteralPath $env:AIO_QA_ENGINE -PathType Leaf)) { throw 'QA LibreOffice binary missing' }
+          $lo=Split-Path -Parent (Split-Path -Parent $env:AIO_QA_ENGINE)
+          foreach($part in @('program\soffice.exe','program\soffice.bin','share')) {
+            if (-not (Test-Path -LiteralPath (Join-Path $lo $part))) { throw ('Incomplete LO distribution: '+$part) }
+          }
+          $licenses=@(Get-ChildItem -LiteralPath $lo -Filter LICENSE* -File -Recurse -ErrorAction Stop)
+          if ($licenses.Count -lt 1) { throw 'LibreOffice license file missing' }
+          'AIO_LIBREOFFICE_ROOT='+$lo | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          $dir='D:\AIO-Lab\AIO-QA-Env\inno-673-portable\compiler'
+          $compilers=@(Get-ChildItem -LiteralPath $dir -Filter ISCC.exe -File -Recurse -ErrorAction Stop)
+          if ($compilers.Count -ne 1) { throw 'Approved offline Inno Setup compiler unavailable' }
+          'AIO_APPROVED_ISCC='+$compilers[0].FullName | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host 'WINDOWS_QA_PACKAGER=PASS;LO_PAYLOAD=COMPLETE;NO_INSTALL=TRUE'
+
       - name: Package portable ZIP and versioned Windows QA installer
         id: package
-        working-directory: aio-pin-${{ github.run_id }}
+        working-directory: aio-guard-v18-build-source-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           $ErrorActionPreference='Stop'
           $python='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\Scripts\python.exe'
@@ -169,6 +192,73 @@ jobs:
           if (-not (Test-Path -LiteralPath 'dist\A.I.O\_internal\libreoffice\share' -PathType Container)) {
             throw 'LibreOffice share directory missing.'
           }
+          $pdf=@(Get-ChildItem -LiteralPath 'dist\A.I.O\_internal' -File -Recurse -ErrorAction Stop |
+            Where-Object {$_.Name -match '^QtPdf(Widgets)?(\.pyd|\.dll)          New-Item -ItemType Directory -Force -Path 'build\installer' | Out-Null
+          $portable='build\installer\AIO-Guard-v18.1-QA-PORTABLE.zip'
+          Compress-Archive -LiteralPath 'dist\A.I.O' -DestinationPath $portable -CompressionLevel Optimal
+          if (-not (Test-Path -LiteralPath $portable -PathType Leaf)) { throw 'Portable missing.' }
+          $iss='installer\windows\AIO-Guard-QA.iss'
+          $original=Get-Content -LiteralPath $iss -Raw
+          $changed=$original.Replace('#define AppVersion "0.7.0-guard-qa"',
+              '#define AppVersion "0.18.1-guard-qa"').Replace(
+              'OutputBaseFilename=AIO-Guard-QA-win-x64',
+              'OutputBaseFilename=AIO-Guard-v18.1-QA-win-x64')
+          if ($changed -ceq $original) { throw 'Version metadata not updated.' }
+          [IO.File]::WriteAllText((Join-Path (Get-Location).Path $iss),
+              $changed,[Text.UTF8Encoding]::new($true))
+          & $env:AIO_APPROVED_ISCC $iss
+          if ($LASTEXITCODE -ne 0) { throw 'INNO_QA_FAILED' }
+          $setup='build\installer\AIO-Guard-v18.1-QA-win-x64.exe'
+          if (-not (Test-Path -LiteralPath $setup -PathType Leaf)) { throw 'Installer missing.' }
+          @($setup,$portable) | ForEach-Object {
+            (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash.ToLowerInvariant()+
+              '  '+[IO.Path]::GetFileName($_)
+          } | Set-Content -LiteralPath 'build\installer\SHA256SUMS.txt' -Encoding ascii
+          @('SOURCE=3ca80cf40577372a4177f82939756247ecc95bfb','TREE=888c9b492fbb0fa4974121b3d21cf34c8b2bba30','GUARD=V18-PR41-AND-PREMAIN-PR47',
+            'BLACKBOX=TELEMETRY-V0.1-PR15','LIBREOFFICE=BUNDLED',
+            'NATIVE_WINDOWS_QA=PASS','FULLTEST_510=NOT_RUN','VISIBLE_GUI=NOT_RUN','INSTALLED=NO;RELEASED=NO;MAIN=UNCHANGED') |
+              Set-Content -LiteralPath 'build\installer\BUILD-STATUS.txt' -Encoding utf8
+          Get-Content -LiteralPath 'build\installer\SHA256SUMS.txt' |
+              ForEach-Object { Write-Host ('QA_SHA256='+$_) }
+          @($setup,$portable) | ForEach-Object {
+            $info=Get-Item -LiteralPath $_
+            Write-Host ('QA_PACKAGE='+$info.Name+';BYTES='+$info.Length)
+          }
+          Write-Host ('QA_LOCAL_PACKAGE_PATH='+(Resolve-Path 'build\installer').Path)
+          & $python -c 'import sys, zipfile; f=sys.argv[1]; z=zipfile.ZipFile(f); assert z.testzip() is None, "ZIP_CRC_FAILED"; assert any(x.endswith("A.I.O.exe") for x in z.namelist()), "APP_EXE_MISSING"; print("PORTABLE_ZIP_CRC=PASS")' $portable
+          if ($LASTEXITCODE -ne 0) { throw 'PORTABLE_ZIP_UNREADABLE' }
+          Write-Host 'NO_INSTALL_NO_RELEASE'
+
+      - name: Private artifact upload (independent of package success)
+        id: upload
+        if: steps.package.outcome == 'success'
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: AIO-V18-HARDENING-QA-${{ github.run_id }}
+          path: |
+            aio-guard-v18-build-source-${{ github.run_id }}-${{ github.run_attempt }}/build/installer/AIO-Guard-v18.1-QA-win-x64.exe
+            aio-guard-v18-build-source-${{ github.run_id }}-${{ github.run_attempt }}/build/installer/AIO-Guard-v18.1-QA-PORTABLE.zip
+            aio-guard-v18-build-source-${{ github.run_id }}-${{ github.run_attempt }}/build/installer/SHA256SUMS.txt
+            aio-guard-v18-build-source-${{ github.run_id }}-${{ github.run_attempt }}/build/installer/BUILD-STATUS.txt
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Report independently test, package and artifact upload outcomes
+        if: always()
+        run: |
+          Write-Host ('PINNED_SOURCE='+$env:AIO_QA_SOURCE_SHA)
+          Write-Host 'AIO_NATIVE_ACCEPTANCE=${{ steps.acceptance.outcome }}'
+          Write-Host 'PACKAGE=${{ steps.package.outcome }}'
+          Write-Host 'UPLOAD=${{ steps.upload.outcome }}'
+          Write-Host 'HOSTED_MINUTES=UNUSED;INSTALL=NOT_RUN;MAIN=UNCHANGED'
+          if ('${{ steps.acceptance.outcome }}' -ne 'success') { throw 'Pinned Windows source/native acceptance did not pass' }
+          if ('${{ steps.package.outcome }}' -ne 'success') { throw 'Windows QA EXE/Setup/package failed' }
+          if ('${{ steps.upload.outcome }}' -ne 'success') { Write-Warning 'QA files packaged in local NIKITA D: workspace; GitHub artifact upload unavailable.' }
+
+})
+          if ($pdf.Count -eq 0) { throw 'Bundled runtime does not contain QtPdf required by document-page raster routes' }
+          Write-Host ('QA_RUNTIME_QTPDF_FILES='+$pdf.Count)
           New-Item -ItemType Directory -Force -Path 'build\installer' | Out-Null
           $portable='build\installer\AIO-Guard-v18.1-QA-PORTABLE.zip'
           Compress-Archive -LiteralPath 'dist\A.I.O' -DestinationPath $portable -CompressionLevel Optimal
@@ -213,10 +303,10 @@ jobs:
         with:
           name: AIO-V18-HARDENING-QA-${{ github.run_id }}
           path: |
-            aio-pin-${{ github.run_id }}/build/installer/AIO-Guard-v18.1-QA-win-x64.exe
-            aio-pin-${{ github.run_id }}/build/installer/AIO-Guard-v18.1-QA-PORTABLE.zip
-            aio-pin-${{ github.run_id }}/build/installer/SHA256SUMS.txt
-            aio-pin-${{ github.run_id }}/build/installer/BUILD-STATUS.txt
+            aio-guard-v18-build-source-${{ github.run_id }}-${{ github.run_attempt }}/build/installer/AIO-Guard-v18.1-QA-win-x64.exe
+            aio-guard-v18-build-source-${{ github.run_id }}-${{ github.run_attempt }}/build/installer/AIO-Guard-v18.1-QA-PORTABLE.zip
+            aio-guard-v18-build-source-${{ github.run_id }}-${{ github.run_attempt }}/build/installer/SHA256SUMS.txt
+            aio-guard-v18-build-source-${{ github.run_id }}-${{ github.run_attempt }}/build/installer/BUILD-STATUS.txt
           retention-days: 7
           if-no-files-found: error
 
