@@ -414,7 +414,7 @@ class _Presence:
         for value, required in self.expected.items():
             # Entire normalized values with word boundaries; avoid 42 in 1420
             # and A/B within AB while retaining arbitrary Unicode text.
-            pattern = r'(?<!\\w)' + re.escape(value) + r'(?!\\w)'
+            pattern = r'(?<!\w)' + re.escape(value) + r'(?!\w)'
             observed = sum(1 for _ in re.finditer(pattern, whole))
             if observed < required:
                 self.missing[value] = required - observed
