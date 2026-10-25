@@ -26,6 +26,44 @@ PREFIX = 'AIO_GUARD_RPC '
 def send(value):
     print(PREFIX + json.dumps(value, ensure_ascii=True), flush=True)
 
+def automatic_export_properties(req, prop, uno_runtime):
+    """A finite trusted recipe, not a bridge for arbitrary UNO properties."""
+    recipe = req.get('automaticRecipe')
+    data = req.get('exportFilterData')
+    if recipe is None:
+        if data is not None:
+            raise RuntimeError('AUTOMATIC_FILTER_DATA_WITHOUT_RECIPE')
+        return []
+    if recipe == 'pdf_preserve_images':
+        expected = {'UseLosslessCompression': True, 'ReduceImageResolution': False}
+        if (req.get('format') != 'pdf' or
+                not req.get('exportFilter', '').endswith('_pdf_Export') or
+                not isinstance(data, dict) or data != expected or
+                any(type(value) is not bool for value in data.values())):
+            raise RuntimeError('AUTOMATIC_FILTER_DATA_INVALID')
+        # PropertyValue.Value itself is an Any. PyUNO otherwise infers the
+        # nested Python tuple as []any, while PDFFilter extracts only
+        # []com.sun.star.beans.PropertyValue and silently uses defaults when
+        # extraction fails. Preserve the inner UNO sequence type explicitly.
+        data = uno_runtime.Any('[]com.sun.star.beans.PropertyValue',
+                               tuple(prop(name, value) for name, value in expected.items()))
+        return [prop('FilterData', data)]
+    if recipe == 'csv_preserve_values':
+        separator = '44' if req.get('format') == 'csv' else '9'
+        expected = separator + ',34,76,1,,0,false,true,false,false,false,-1,false,true'
+        if (req.get('format') not in ('csv', 'tsv', 'tab') or
+                req.get('exportFilter') != 'Text - txt - csv (StarCalc)' or
+                req.get('exportOptions') != expected or data is not None):
+            raise RuntimeError('AUTOMATIC_FILTER_DATA_INVALID')
+        return []
+    raise RuntimeError('AUTOMATIC_RECIPE_UNAVAILABLE')
+
+def automatic_csv_outputs(req, model):
+    paths = sorted(Path(req['output']).glob('*.' + req['format']))
+    if not paths or len(paths) != model.getSheets().getCount():
+        raise RuntimeError('AUTOMATIC_CSV_SHEETS_MISSING')
+    return paths
+
 def dbf_mixed_columns(sheet, area):
     """Find columns native dBase's first-record type inference would truncate."""
     first = tuple(sheet.getCellRangeByPosition(0, 0, area.EndColumn, 0).getDataArray()[0])
@@ -370,6 +408,7 @@ def main(boot_name):
                                       prop('Silent', True), prop('InteractionHandler', export_handler)]
                     if req.get('exportOptions') is not None:
                         export_options.append(prop('FilterOptions', req['exportOptions']))
+                    export_options.extend(automatic_export_properties(req, prop, uno))
                     export_tick = time.monotonic()
                     exported_paths = [target]
                     try:
@@ -390,6 +429,11 @@ def main(boot_name):
                             exported_paths = export_table_sheets(model, desktop, prop, target, export_options)
                         else:
                             model.storeToURL(target.as_uri(), tuple(export_options))
+                            if req.get('automaticRecipe') == 'csv_preserve_values':
+                                # ExportAllSheets (-1) produces native
+                                # basename-SheetName.csv files rather than
+                                # the requested single primary filename.
+                                exported_paths = automatic_csv_outputs(req, model)
                     finally:
                         timings['exportMs'] = round((time.monotonic()-export_tick)*1000)
                     present = all(p.is_file() and not p.is_symlink() and p.stat().st_size > 0
@@ -397,7 +441,8 @@ def main(boot_name):
                     # Result paths stay on disk. Thousands of HTML sidecars
                     # must not overflow the small control-message channel.
                     result = {'id':request_id,'ok':present and not export_handler.blocked,
-                              'primary':target.name,'stage':'export',
+                              'primary':(target.name if target.is_file() else
+                                         exported_paths[0].name if exported_paths else target.name),'stage':'export',
                               'code':('EXPORT_INTERACTION_REQUIRED' if export_handler.blocked else
                                       'ENGINE_OUTPUT_MISSING' if not present else None)}
                     if req['exportFilter'] == 'dBase' and list(Path(req['output']).glob('*.aio-columns.jsonl')):
@@ -611,4 +656,3 @@ class UnoSession:
             self.recycle()
         finally:
             shutil.rmtree(self.workspace,ignore_errors=True)
-

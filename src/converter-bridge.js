@@ -212,7 +212,7 @@
           uploads = inputs.filter(f=>previous.get(String(f.id))!==f.file);
         } catch (error) {if(error.code!=='JOB_NOT_FOUND')throw error;}
       }
-      if (!created) created = await api('/prepare', {files:metadata(inputs)});
+      if (!created) created = await api('/prepare', {files:metadata(inputs),retainSources:true});
       request.jobId = created.jobId;
       onCreated?.(created.jobId);
       current();
@@ -621,6 +621,8 @@
         throw errorOf('Сначала завершите или отмените очередь. После этого можно удалить её результаты.', 'LIVE_JOB_DISCARD');
       if(savingJobs.has(jobId))throw errorOf('Дождитесь завершения сохранения.', 'SAVE_BUSY');
       await api('/release',{jobId,discard:true});retained.delete(jobId);
+      if(typeof CustomEvent==='function')
+        window.dispatchEvent?.(new CustomEvent('aio-guard-job-released',{detail:{jobId,discarded:true}}));
     },
     async retryFailed({includeCancelled=false,timeoutSeconds}={}) {
       if(active)throw errorOf('Дождитесь завершения или отмените текущую очередь перед повтором ошибок.', 'CLIENT_BUSY');
@@ -657,4 +659,3 @@
     }
   });
 })();
-

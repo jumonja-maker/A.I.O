@@ -1,0 +1,37 @@
+{
+  "sourceSha256": "ce06cc493aa5a9471f08c5cfc1dbbdc9b7c11d880c1a65a45d6ff703e0202ef9",
+  "scope": "actual Linux native CLI, not UNO",
+  "initial_broken": {
+    "exitCode": 0,
+    "files": [
+      "precision-Precision.csv"
+    ],
+    "stdout": "convert /workspace/scratch/c58945ad251a/ba-csv-windows-diagnosis-24yjz9jz/precision.xlsx as a Calc document using filter : Text - txt - csv (StarCalc):44,34,76,1,,0,false,true,true,false,false,-1,false,true\nWriting sheet Precision -> /workspace/scratch/c58945ad251a/ba-csv-windows-diagnosis-24yjz9jz/initial_broken/precision-Precision.csv\n",
+    "stderr": "",
+    "contents": {
+      "precision-Precision.csv": "code,amount,note\n00123,1.23,Привет\n"
+    }
+  },
+  "initial_fixed": {
+    "exitCode": 0,
+    "files": [
+      "precision.csv"
+    ],
+    "stdout": "convert /workspace/scratch/c58945ad251a/ba-csv-windows-diagnosis-24yjz9jz/precision.xlsx as a Calc document -> /workspace/scratch/c58945ad251a/ba-csv-windows-diagnosis-24yjz9jz/initial_fixed/precision.csv using filter : Text - txt - csv (StarCalc):44,34,76,1,,0,false,true,true,false,false,0,false,true\n",
+    "stderr": "",
+    "contents": {
+      "precision.csv": "code,amount,note\n00123,1.23,Привет\n"
+    }
+  },
+  "retry": {
+    "exitCode": 0,
+    "files": [
+      "precision-Precision.csv"
+    ],
+    "stdout": "convert /workspace/scratch/c58945ad251a/ba-csv-windows-diagnosis-24yjz9jz/precision.xlsx as a Calc document using filter : Text - txt - csv (StarCalc):44,34,76,1,,0,false,true,false,false,false,-1,false,true\nWriting sheet Precision -> /workspace/scratch/c58945ad251a/ba-csv-windows-diagnosis-24yjz9jz/retry/precision-Precision.csv\n",
+    "stderr": "",
+    "contents": {
+      "precision-Precision.csv": "code,amount,note\n00123,1.23456789012345,Привет\n"
+    }
+  }
+}

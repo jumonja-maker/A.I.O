@@ -19,6 +19,7 @@ import shutil
 import tempfile
 import threading
 import time
+from types import MappingProxyType
 import zipfile
 
 from ..libreoffice_catalog import mime_for
@@ -115,6 +116,8 @@ class _Task:
     quality: dict | None = None
     result_checks: list = field(default_factory=list)
     execution_reason: str | None = None
+    automatic_recipe: str | None = None
+    automatic_parameters: dict | None = None
 
 
 @dataclass
@@ -211,6 +214,10 @@ class _Job:
     quality_check: bool = False
     quality_compared: bool = False
     input_accounting: list = field(default_factory=list)
+    retain_sources: bool = False
+    comparison_parent_job_id: str | None = None
+    comparison_recipe: str | None = None
+    comparison_parent_tasks: tuple = ()
 
 
 def _source_name(name):
@@ -331,6 +338,30 @@ class _Cancellation:
     def wait(self, seconds):
         self.job.wait(seconds)
         return self.is_set()
+
+
+class _RetryCancellation:
+    """Owned cancellation combined with a caller, without a watcher thread."""
+    def __init__(self, owned, caller):
+        self.owned, self.caller = owned, caller
+
+    def is_set(self):
+        return self.owned.is_set() or self.caller.is_set()
+
+    def set(self):
+        self.owned.set()
+
+    def clear(self):
+        self.owned.clear()
+
+    def wait(self, timeout=None):
+        until = None if timeout is None else time.monotonic() + timeout
+        while not self.is_set():
+            remaining = None if until is None else until - time.monotonic()
+            if remaining is not None and remaining <= 0:
+                return self.is_set()
+            self.owned.wait(.05 if remaining is None else min(.05, remaining))
+        return True
 
 
 class ConverterGuard:
@@ -474,10 +505,42 @@ class ConverterGuard:
                         indices.add(index)
                         tasks.append(_Task(format_id, index, state='cancelled',
                             code='INTERRUPTED_RESTART', error='Задание было прервано. Исходник можно выбрать повторно.'))
-                    files.append(_File(**row, source=root/'input'/'unavailable', targets=tasks, state='done',
-                                       native_route=original.get('nativeRoute'),
-                                       content_digest=original.get('sourceSha256')))
-                job = _Job(identity, root, files, 0, store=store, recovered=True)
+                    item = _File(**row, source=root/'input'/'unavailable', targets=tasks, state='done',
+                                 native_route=original.get('nativeRoute'),
+                                 content_digest=original.get('sourceSha256'), source_released=True)
+                    if header.get('retainSources') is True:
+                        try:
+                            item.source = store.input_path(original.get('sourcePath'), row['size'],
+                                                           item.content_digest)
+                            from .html_resources import resource_manifest
+                            metadata = original.get('resources', [])
+                            resources = resource_manifest(metadata, item.source.name) if metadata else {}
+                            for resource in metadata:
+                                name = resource['path']
+                                relative = (item.source.parent / name).relative_to(root).as_posix()
+                                store.input_path(relative, resource['size'], resource.get('digest'))
+                                resources[name].update(ready=True, digest=resource['digest'])
+                            item.resources = resources
+                            item.source_released = False
+                        except (OSError, ValueError, TypeError, KeyError, GuardError):
+                            # The outputs are still useful if a retained original
+                            # is absent/altered. Comparison reports unavailable,
+                            # never imports guessed paths or deletes these bytes.
+                            item.source = root/'input'/'unavailable'
+                    files.append(item)
+                job = _Job(identity, root, files, 0, store=store, recovered=True,
+                           retain_sources=header.get('retainSources') is True)
+                parent_id = header.get('comparisonParentJobId')
+                recipe = header.get('comparisonRecipe')
+                parent_tasks = header.get('comparisonParentTasks', [])
+                if (parent_id is None or isinstance(parent_id, str)
+                        and re.fullmatch(r'[0-9a-f]{32}', parent_id)):
+                    job.comparison_parent_job_id = parent_id
+                if recipe is None or isinstance(recipe, str) and re.fullmatch(r'[a-z0-9_]{1,64}', recipe):
+                    job.comparison_recipe = recipe
+                if isinstance(parent_tasks, list) and all(isinstance(t, str) and
+                        re.fullmatch(r'[0-9a-f]{32}:[0-9]{1,20}', t) for t in parent_tasks):
+                    job.comparison_parent_tasks = tuple(parent_tasks)
                 job.input_accounting = header.get('inputAccounting', [])
                 if integrity != 'complete':
                     job.recovery_error = 'RECOVERY_LEDGER_INCOMPLETE'
@@ -504,6 +567,10 @@ class ConverterGuard:
                         task.duration_ms=record.get('durationMs')
                         task.execution_mode=record.get('executionMode')
                         task.execution_reason=record.get('executionReason')
+                        automatic_recipe = record.get('automaticRecipe')
+                        if isinstance(automatic_recipe, str) and re.fullmatch(r'[a-z0-9_]{1,64}', automatic_recipe):
+                            task.automatic_recipe = automatic_recipe
+                        task.automatic_parameters = self._automatic_parameters(record.get('automaticParameters'))
                         task.result_checks=record.get('resultChecks', [])[:4]
                         task.native_timings=clean_timings(record.get('nativeTimings'))
                         task.quality = record.get('quality') if isinstance(record.get('quality'),dict) else None
@@ -668,6 +735,12 @@ class ConverterGuard:
                               'unsavedOutputs': sum(not a.saved for a in j.artifacts),
                               'unsavedBytes': sum(a.size for a in j.artifacts if not a.saved),
                               'recoveryDurable': bool(j.store and not j.recovery_error),
+                              'retainSources': j.retain_sources,
+                              'comparisonAvailable': bool(j.retain_sources and not j.running and
+                                  j.artifacts and any(not f.source_released for f in j.files)),
+                              'comparisonParentJobId': j.comparison_parent_job_id,
+                              'comparisonRecipe': j.comparison_recipe,
+                              'comparisonParentTasks': list(j.comparison_parent_tasks),
                               'salvaged': j.salvage, 'qualityCompared': False}
                              for j in self._jobs.values() if not j.released
                              and (j.recovery_error or any(not a.saved for a in j.artifacts))]}
@@ -912,7 +985,9 @@ class ConverterGuard:
         self._reserved -= amount
         job.reserved -= amount
 
-    def create(self, files, formats=None, *, plan=None, prepare_only=False):
+    def create(self, files, formats=None, *, plan=None, prepare_only=False, retain_sources=False):
+        if type(retain_sources) is not bool:
+            raise GuardError('COMPARISON_POLICY', 'Некорректный режим хранения исходников.')
         rows = validate_files(files, self.limits)
         planned = ({row['id']: [] for row in rows} if prepare_only else
                    validate_plan(rows, formats, plan))
@@ -945,7 +1020,8 @@ class ConverterGuard:
                 files.append(_File(**row, source=root / 'input' / str(index) / name,
                                    targets=tasks, name_normalized=normalized))
             identity = secrets.token_hex(16)
-            job = _Job(identity, root, files, size, preparation=prepare_only)
+            job = _Job(identity, root, files, size, preparation=prepare_only,
+                       retain_sources=retain_sources)
             job.files_by_id = {item.id: item for item in files}
             self._record(job, 'job_created')
             self._jobs[identity] = job
@@ -1377,6 +1453,10 @@ class ConverterGuard:
             task.result_checks = copy.deepcopy(export.get('resultChecks', []))[:4]
             reason = export.get('executionReason')
             task.execution_reason = reason if isinstance(reason, str) and len(reason) <= 64 else None
+            automatic = export.get('automaticRecipe')
+            task.automatic_recipe = (automatic if isinstance(automatic, str) and
+                re.fullmatch(r'[a-z0-9_]{1,64}', automatic) else None)
+            task.automatic_parameters = self._automatic_parameters(export.get('automaticParameters'))
         if value and self.telemetry is not None:
             for key, phase in (('workerStartupMs','launch'), ('importMs','import'),
                                ('exportMs','export'), ('processMs','engine')):
@@ -1389,6 +1469,15 @@ class ConverterGuard:
                             status='finished', duration_ms=value[key], backend=task.execution_mode)
                     except Exception:
                         pass
+
+    @staticmethod
+    def _automatic_parameters(value):
+        if (not isinstance(value, dict) or len(value) > 16 or any(
+                not isinstance(key, str) or len(key) > 64 or
+                not (type(item) in (bool, int) or isinstance(item, str) and len(item) <= 1024)
+                for key, item in value.items())):
+            return None
+        return dict(value)
 
     def _retain_outputs(self, job, item, task, workspace, paths):
         root = (workspace / 'output').resolve()
@@ -1603,6 +1692,9 @@ class ConverterGuard:
                             stages = ({'on_stage':stage_changed} if getattr(self.adapter.convert,'__func__',None)
                                       is LibreOfficeAdapter.convert else {})
                             try:
+                                prepare_recipe = getattr(self.adapter, 'prepare_retry_recipe', None)
+                                if prepare_recipe:
+                                    prepare_recipe(job.comparison_recipe)
                                 paths = self.adapter.convert(item.source, task.format, workspace,
                                     cancel=_Cancellation(job.cancel, item.cancel),
                                     timeout=job.file_timeout, on_started=started,
@@ -1653,9 +1745,11 @@ class ConverterGuard:
                         item.state = 'done'
                         item.state = self._file_state(item)
                         self._record(job, 'input_finished', file_id=item.id)
-                    # Keep original bytes across all targets; drop only the temp
-                    # input after its last target. Original user files are untouched.
-                    self._drop_source(job, item)
+                    # Ordinary API jobs retain their existing cleanup policy.
+                    # UI comparison jobs keep disk-owned originals until their
+                    # owning result job is explicitly released/saved/discarded.
+                    if not job.retain_sources:
+                        self._drop_source(job, item)
             self._flush_journal(job)
             with self._lock:
                 job.state = 'packaging'
@@ -1683,11 +1777,25 @@ class ConverterGuard:
                     job.packaging_error = 'BUNDLE_INTERRUPTED'
                 self._record(job, 'job_failed', code='GUARD_INTERNAL')
         finally:
+            prepare_recipe = getattr(self.adapter, 'prepare_retry_recipe', None)
+            if prepare_recipe:
+                try:
+                    prepare_recipe(None)
+                except Exception:
+                    pass  # A diagnostic/reset failure must not skip durable cleanup.
             self._flush_journal(job)
             if job.store:
                 self._store_write(job, job.store.finish, job)
             with self._lock:
                 job.running = False
+                if isinstance(job.cancel, _RetryCancellation):
+                    # A caller may reuse its operation event for a subsequent
+                    # retry. Keep this candidate's terminal cancellation fact,
+                    # not a live link to unrelated future operations.
+                    combined = job.cancel
+                    if combined.is_set():
+                        combined.owned.set()
+                    job.cancel = combined.owned
                 job.touched = time.monotonic()
                 self._record(job, 'worker_finished', code=job.state)
             self._cleanup(job)
@@ -1756,6 +1864,8 @@ class ConverterGuard:
                           'diagnostic': t.diagnostic,
                           'executionMode': t.execution_mode,
                           'executionReason': t.execution_reason, 'resultChecks':copy.deepcopy(t.result_checks),
+                          'automaticRecipe':t.automatic_recipe,
+                          'automaticParameters':copy.deepcopy(t.automatic_parameters),
                           'durationMs': t.duration_ms,
                           'nativeTimings': clean_timings(t.native_timings),
                           'exportFilter': t.export_filter, 'warnings': warning_details(t.warnings),
@@ -1764,7 +1874,11 @@ class ConverterGuard:
                           'route': t.route,
                           'libreOfficeStarted': t.lo_started} for t in f.targets]}
             for f in job.files], 'timings':dict(job.timings),'qualityCheckRequested':job.quality_check,
-            'qualityCompared':job.quality_compared}
+            'qualityCompared':job.quality_compared,
+            'retainSources':job.retain_sources,
+            'comparisonParentJobId':job.comparison_parent_job_id,
+            'comparisonRecipe':job.comparison_recipe,
+            'comparisonParentTasks':list(job.comparison_parent_tasks)}
 
     def report(self, job_id):
         if job_id not in self._jobs:
@@ -1826,10 +1940,11 @@ class ConverterGuard:
                 manifest = []
                 for artifact in job.artifacts:
                     digest, written = hashlib.sha256(), 0
-                    info = zipfile.ZipInfo.from_file(artifact.path, arcname=artifact.archive_name)
+                    source_path = self._owned_artifact_path(job, artifact, stage='bundle')
+                    info = zipfile.ZipInfo.from_file(source_path, arcname=artifact.archive_name)
                     # Force ZIP64 even when the stream length was not given to
                     # ZipFile.open: no hidden 2 GiB failure half-way through.
-                    with artifact.path.open('rb') as source, archive.open(
+                    with source_path.open('rb') as source, archive.open(
                             info, 'w', force_zip64=True) as output:
                         while block := source.read(CHUNK):
                             if job.bundle_cancel.is_set():
@@ -1987,6 +2102,11 @@ class ConverterGuard:
                     'outputsExpected': len(copies), 'outputsWritten': len(manifest),
                     'bytesWritten': bytes_written, **verification}
         try:
+            # A saved ticket and matching digest do not grant access to a path
+            # redirected outside this job after conversion. Validate the whole
+            # snapshot before creating destination files, then again per open.
+            for artifact in copies:
+                self._owned_artifact_path(job, artifact, stage='save')
             destination = Path(destination).resolve(strict=True)
             if self.owns_path(destination):
                 raise GuardError('SAVE_OWNED_STORAGE','Выберите папку вне служебного хранилища AIO.',stage='save')
@@ -2008,6 +2128,7 @@ class ConverterGuard:
             for number, artifact in enumerate(copies, 1):
                 if cancel.is_set():
                     raise GuardError('SAVE_CANCELLED', 'Сохранение отменено. Исходные результаты остаются в AIO.', stage='save')
+                source_path = self._owned_artifact_path(job, artifact, stage='save')
                 relative = Path(artifact.archive_name)
                 if relative.is_absolute() or '..' in relative.parts:
                     raise GuardError('ENGINE_OUTPUT_PATH', 'Недопустимое имя результата.', stage='save')
@@ -2018,7 +2139,7 @@ class ConverterGuard:
                 part = target.with_name(target.name + '.aio-part-' + secrets.token_hex(6))
                 digest, written = hashlib.sha256(), 0
                 try:
-                    with artifact.path.open('rb') as source, part.open('xb') as output:
+                    with source_path.open('rb') as source, part.open('xb') as output:
                         while block := source.read(CHUNK):
                             if cancel.is_set():
                                 raise GuardError('SAVE_CANCELLED', 'Сохранение отменено. Результаты остаются в AIO.', stage='save')
@@ -2162,6 +2283,8 @@ class ConverterGuard:
                         'stage': t.stage, 'libreOfficeStarted': t.lo_started,
                         'executionMode':t.execution_mode,
                         'executionReason':t.execution_reason, 'resultChecks':copy.deepcopy(t.result_checks),
+                        'automaticRecipe':t.automatic_recipe,
+                        'automaticParameters':copy.deepcopy(t.automatic_parameters),
                         'nativeTimings':clean_timings(t.native_timings),
                         'exportFilter':t.export_filter, 'warnings':warning_details(t.warnings),
                         'quality':copy.deepcopy(t.quality) if t.quality else None,
@@ -2207,6 +2330,11 @@ class ConverterGuard:
                                        'ready_retained' if job.artifacts else 'none'),
                 'qualityCheckRequested':job.quality_check,
                 'qualityCompared': job.quality_compared,
+                'retainSources':job.retain_sources,
+                'comparisonAvailable':bool(job.retain_sources and not job.running and
+                    job.artifacts and any(not f.source_released for f in job.files)),
+                'comparisonParentJobId':job.comparison_parent_job_id,
+                'comparisonRecipe':job.comparison_recipe,
                 'timings':dict(job.timings),
                 'files': rows, **counts, 'preflightChecks':job.preflight_checks,
                 'preflightTotal':len(job.files),
@@ -2263,6 +2391,170 @@ class ConverterGuard:
                     plan.append({'fileId': item.id, 'formats': formats})
             return {'sourceJobId': job.id, 'files': files, 'plan': plan,
                     'requiresUpload': bool(files), 'retainedOutputs': len(job.artifacts)}
+
+    @staticmethod
+    def _comparison_path(job, path, size):
+        """Resolve only a regular, existing file under this job's owned tree."""
+        try:
+            path = Path(path)
+            if not path.resolve(strict=True).is_relative_to(job.root.resolve()):
+                return None
+            for part in (path, *path.parents):
+                if part == job.root.parent:
+                    break
+                if path_is_link(part):
+                    return None
+            return path if path.is_file() and path.stat().st_size == size else None
+        except (OSError, ValueError):
+            return None
+
+    def _owned_artifact_path(self, job, artifact, *, stage):
+        """Recheck retained outputs at every read boundary, not only export."""
+        path = self._comparison_path(job, artifact.path, artifact.size)
+        if path is None:
+            raise GuardError('SAVE_CHANGED',
+                'Результат изменён или находится вне служебного хранилища AIO.',
+                stage=stage, status=409)
+        return path
+
+    @contextmanager
+    def comparison_inputs(self, job_id):
+        """Lease completed originals/results for an explicit analysis only.
+
+        Paths are generated from owned records, never accepted from clients.
+        The lease prevents discard/reaping from deleting an active inspection;
+        a missing old original remains a reportable unavailable item.
+        """
+        if job_id not in self._jobs:
+            self._load_recovery()
+        with self._lock:
+            job = self._get(job_id)
+            if job.running or job.state not in TERMINAL:
+                raise GuardError('COMPARISON_BUSY', 'Дождитесь завершения конвертации.', status=409)
+            job.io += 1
+            items = tuple(job.files)
+        try:
+            records = []
+            for item in items:
+                source = (self._comparison_path(job, item.source, item.size)
+                          if not item.source_released else None)
+                resources = []
+                for name, metadata in item.resources.items():
+                    path = self._comparison_path(job, item.source.parent/name, metadata['size'])
+                    if path is None or not metadata.get('ready'):
+                        source = None
+                    resources.append(MappingProxyType({'path':name, 'size':metadata['size'],
+                        'source':path, 'sha256':metadata.get('digest')}))
+                for task in item.targets:
+                    # Artifact paths were owned when the export was retained,
+                    # but a parent directory can since become a symlink or a
+                    # Windows junction. Revalidate outputs just like originals
+                    # before an analyzer or preview receives filesystem paths.
+                    output_paths = tuple(self._comparison_path(job, artifact.path, artifact.size)
+                                         for artifact in task.artifacts)
+                    paths = tuple(path for path in output_paths if path is not None)
+                    records.append(MappingProxyType({
+                        'taskId':job.id+':'+str(task.index), 'fileId':item.id,
+                        'name':item.name, 'format':task.format, 'state':task.state,
+                        'source':source, 'sourceAvailable':source is not None,
+                        'sourceSha256':item.content_digest, 'size':item.size,
+                        'paths':paths, 'outputPaths':output_paths,
+                        'tickets':tuple(a.ticket for a in task.artifacts),
+                        'outputs':tuple(a.metadata() for a in task.artifacts),
+                        'warnings':tuple(task.warnings), 'code':task.code,
+                        'error':task.error, 'exportFilter':task.export_filter,
+                        'automaticRecipe':task.automatic_recipe,
+                        'automaticParameters':copy.deepcopy(task.automatic_parameters),
+                        'nativeRoute':copy.deepcopy(item.native_route),
+                        'resultChecks':copy.deepcopy(task.result_checks),
+                        'quality':copy.deepcopy(task.quality), 'resources':tuple(resources)}))
+            yield tuple(records)
+        finally:
+            with self._lock:
+                job.io -= 1
+                self._io_drained.notify_all()
+            self._cleanup(job)
+
+    def retry_comparison(self, job_id, task_ids, recipe_id, *, cancel=None, on_created=None):
+        """Create a separate candidate from explicitly selected retained pairs.
+
+        Copies stream through the ordinary upload/guard paths. Native admission
+        is repeated against the current engine. Previous outputs/tickets are
+        never mutated or replaced by an automatic candidate.
+        """
+        from .export_recipe import validate_retry_recipe
+        if (not isinstance(task_ids, list) or not task_ids
+                or any(not isinstance(value, str) for value in task_ids)
+                or len(set(task_ids)) != len(task_ids)):
+            raise GuardError('COMPARISON_SELECTION', 'Выберите конкретные результаты для повтора.')
+        if not callable(getattr(self.adapter, 'preflight', None)):
+            raise GuardError('AUTO_RETRY_UNAVAILABLE', 'Движок не поддерживает повторную проверку исходника.')
+        cancel = cancel if cancel is not None else threading.Event()
+        identity = None
+        with self.comparison_inputs(job_id) as records:
+            selected = {record['taskId']:record for record in records if record['taskId'] in task_ids}
+            if len(selected) != len(task_ids):
+                raise GuardError('COMPARISON_SELECTION', 'Выбранный результат не относится к этому заданию.')
+            for record in selected.values():
+                if record['state'] not in SUCCESS or not record['paths']:
+                    raise GuardError('COMPARISON_SELECTION', 'Для этого преобразования нет готового результата.')
+                if not record['sourceAvailable']:
+                    raise GuardError('COMPARISON_SOURCE_UNAVAILABLE',
+                        'Служебный исходник недоступен. Выберите оригинал повторно.')
+                validate_retry_recipe(recipe_id, record['format'])
+                validate_native = getattr(self.adapter, 'validate_retry_recipe', None)
+                if validate_native:
+                    validate_native(recipe_id, record['format'], record['nativeRoute'])
+            if cancel.is_set():
+                raise GuardError('CANCELLED', 'Повторная конвертация отменена.')
+            sources, planned = {}, {}
+            for task_id in task_ids:
+                record = selected[task_id]
+                sources.setdefault(record['fileId'], record)
+                planned.setdefault(record['fileId'], []).append(record['format'])
+            rows = [{'id':fid, 'name':r['name'], 'size':r['size']} for fid,r in sources.items()]
+            try:
+                created = self.create(rows, prepare_only=True, retain_sources=True)
+                identity = created['jobId']
+                with self._lock:
+                    child = self._get(identity)
+                    child.cancel = _RetryCancellation(child.cancel, cancel)
+                    child.comparison_parent_job_id = job_id
+                    child.comparison_recipe = recipe_id
+                    child.comparison_parent_tasks = tuple(task_ids)
+                if on_created:
+                    on_created(identity)
+                for fid, record in sources.items():
+                    if child.cancel.is_set():
+                        raise GuardError('CANCELLED', 'Подготовка повтора отменена.')
+                    with record['source'].open('rb') as stream:
+                        self.upload(identity, fid, stream, record['size'])
+                    if child.files_by_id[fid].content_digest != record['sourceSha256']:
+                        raise GuardError('COMPARISON_SOURCE_CHANGED',
+                            'Исходник изменён после первой конвертации. Повтор не запущен.')
+                    if record['resources']:
+                        self.configure_resources(identity, fid,
+                            [{'path':r['path'], 'size':r['size']} for r in record['resources']])
+                        for resource in record['resources']:
+                            with resource['source'].open('rb') as stream:
+                                self.upload_resource(identity, fid, resource['path'], stream, resource['size'])
+                            if child.files_by_id[fid].resources[resource['path']].get('digest') != resource['sha256']:
+                                raise GuardError('COMPARISON_SOURCE_CHANGED',
+                                    'Ресурсы исходника изменены. Повтор не запущен.')
+                self.preflight(identity)
+                with self._lock:
+                    if self._closed or self._jobs[job_id].released or child.cancel.is_set():
+                        raise GuardError('CANCELLED', 'Повторная конвертация отменена.')
+                plan = [{'fileId':fid, 'formats':formats} for fid,formats in planned.items()]
+                return self.start(identity, file_ids=list(sources), plan=plan, only_verified=True,
+                                  archive_mode='on_demand', quality_check=False)
+            except BaseException:
+                if identity is not None:
+                    try:
+                        self.release(identity, discard=True)
+                    except GuardError:
+                        pass
+                raise
 
     def _cancel_queued(self, job):
         if job.state == 'queued' and job.future is not None and job.future.cancel():
@@ -2362,7 +2654,8 @@ class ConverterGuard:
             job = self._get(artifact.job_id)
             job.io += 1
         try:
-            with artifact.path.open('rb') as stream:
+            path = self._owned_artifact_path(job, artifact, stage='download')
+            with path.open('rb') as stream:
                 yield stream, artifact.name, artifact.size
         finally:
             with self._lock:
@@ -2498,4 +2791,3 @@ class ConverterGuard:
                     'unsavedOutputs': sum(not a.saved for j in jobs for a in j.artifacts),
                     'unsavedBytes': sum(a.size for j in jobs for a in j.artifacts if not a.saved),
                     'recoveryWriteFailures': sum(bool(j.recovery_error) for j in jobs)}
-

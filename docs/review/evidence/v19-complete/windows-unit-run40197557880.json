@@ -1,0 +1,47 @@
+{
+  "status": "PASS",
+  "discovered": 792,
+  "passed": 785,
+  "failed": 0,
+  "errors": 0,
+  "skipped": [
+    {
+      "test": "test_converter_guard_process_v02.ControlledProcessTests.test_deadline_kills_own_process_tree_and_next_file_runs",
+      "reason": "POSIX test fixture; real Windows Job Object needs Windows acceptance",
+      "status": "not_applicable"
+    },
+    {
+      "test": "test_converter_guard_process_v02.ControlledProcessTests.test_live_output_quota_stops_only_the_growing_process",
+      "reason": "POSIX test fixture; real Windows Job Object needs Windows acceptance",
+      "status": "not_applicable"
+    },
+    {
+      "test": "test_converter_guard_process_v02.ControlledProcessTests.test_slow_cleanup_does_not_hold_the_global_metadata_lock",
+      "reason": "POSIX test fixture; real Windows Job Object needs Windows acceptance",
+      "status": "not_applicable"
+    },
+    {
+      "test": "test_guard_native_metrics_v11.NativeMetricsQA.test_cli_measures_process_time_without_inventing_import_or_export_times",
+      "reason": "Executable generated fixture uses a POSIX shebang",
+      "status": "not_applicable"
+    },
+    {
+      "test": "test_guard_native_metrics_v11.NativeMetricsQA.test_twenty_worker_recycles_leave_no_live_readers_profiles_or_pipe_descriptors",
+      "reason": "Owned POSIX worker lifecycle; not Windows Job Object QA",
+      "status": "not_applicable"
+    },
+    {
+      "test": "test_guard_queue_audit_v18.ResultDeltaTests.test_unsupported_hardlinks_use_exclusive_copy_and_independent_readback",
+      "reason": "POSIX link-unsupported fallback",
+      "status": "not_applicable"
+    },
+    {
+      "test": "test_guard_queue_audit_v18.ResultDeltaTests.test_unsupported_link_fallback_still_rejects_a_competing_target",
+      "reason": "POSIX link-unsupported fallback",
+      "status": "not_applicable"
+    }
+  ],
+  "failureDetails": [],
+  "expectedFailures": [],
+  "unexpectedSuccesses": []
+}

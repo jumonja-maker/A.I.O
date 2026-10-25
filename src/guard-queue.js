@@ -53,7 +53,7 @@
       '<div class="aio-guard-list" role="list" aria-label="Задачи конвертации"></div>'+
       '<div class="aio-guard-pages"><button type="button" data-g-prev>Назад</button><span data-g-page></span><button type="button" data-g-next>Далее</button></div>'+
       '<div class="aio-guard-save"><select data-g-jobs aria-label="Несохранённое задание"></select><button type="button" data-g-zip>Сохранить ZIP</button><button type="button" data-g-folder>Сохранить в папку</button></div>'+
-      '<div class="aio-guard-save"><button type="button" data-g-retry>Повторить ошибки</button><button type="button" data-g-long>Повторить с большим временем</button><button type="button" data-g-check>Повторить проверку дольше</button><button type="button" data-g-report>Технический отчёт</button><button type="button" data-g-discard>Удалить результаты</button></div>'+
+      '<div class="aio-guard-save"><button type="button" data-g-retry>Повторить ошибки</button><button type="button" data-g-long>Повторить с большим временем</button><button type="button" data-g-check>Повторить проверку дольше</button><button type="button" data-g-compare>Анализ до/после</button><button type="button" data-g-report>Технический отчёт</button><button type="button" data-g-discard>Удалить результаты</button></div>'+
       '</dialog>';
     footer.append(bar);attachTopButton();
     bar.querySelector('[data-g-folder]').hidden=!window.AllInOneNativeShell;
@@ -83,6 +83,11 @@
     const selected=()=>bar.querySelector('[data-g-jobs]').value;
     action('[data-g-zip]',()=>api().saveRetained(selected(),'zip'));
     action('[data-g-folder]',()=>api().saveRetained(selected(),'folder'));
+    action('[data-g-compare]',async()=>{
+      const id=selected();if(!id||!window.AIOGuardComparison)throw Error('Выберите доступный пакет для анализа.');
+      const dialog=bar.querySelector('.aio-guard-popup');if(dialog.open)dialog.close();
+      await window.AIOGuardComparison.open(id,{opener:stateButton});
+    });
     action('[data-g-discard]',async()=>{
       if(window.confirm('Удалить несохранённые результаты этого задания?'))await api().discardRetained(selected());
     });
@@ -196,6 +201,9 @@
     bar.querySelector('[data-g-folder]').disabled=!chosen||chosen.saveInProgress;
     bar.querySelector('[data-g-zip]').disabled=!chosen||chosen.running||chosen.saveInProgress;
     bar.querySelector('[data-g-zip]').title=chosen?.running?'ZIP доступен после завершения очереди. Сейчас можно сохранить готовые файлы в папку.':'';
+    const compare=bar.querySelector('[data-g-compare]');
+    compare.disabled=!chosen||chosen.running;
+    compare.title=chosen?.comparisonAvailable===false?'Служебные исходники недоступны. Анализ покажет ограничения; результат можно просмотреть.':'';
     bar.querySelector('[data-g-discard]').disabled=!chosen||chosen.running||chosen.saveInProgress;
     bar.querySelector('[data-g-discard]').title=chosen?.running?'Сначала завершите или отмените очередь. Готовые результаты сейчас можно сохранить.':'';
     for(const key of ['retry','long'])bar.querySelector('[data-g-'+key+']').disabled=!state?.finished||!state.failed||!api()?.canRetry();

@@ -39,6 +39,15 @@ SOURCE_ONLY_NATIVE_REASONS = frozenset({
     'Application Qt dependency required',
     'LibreOffice not installed',
 })
+# These newer Qt-only checks have their own skip wording. Keep each exception
+# tied to its actual test class so an unrelated skipped check cannot inherit it.
+# This is supplemental Linux source coverage; Windows must execute these tests.
+SOURCE_ONLY_SCOPED_NATIVE_REASONS = {
+    'Existing app Qt dependency required':
+        'test_comparison_pdf_preview_v19.PagePreview.',
+    'Qt bindings required for QObject lifetime proof':
+        'test_guard_ui_audit_v18.NativeDownloadLifetime.',
+}
 
 
 def write_json(path, value):
@@ -51,7 +60,10 @@ def suite_summary(result, system=None, *, source_only=False):
                 'status': ('not_applicable' if system == 'Windows' and
                            reason in WINDOWS_INAPPLICABLE_REASONS else
                            'platform_not_applicable' if source_only and system == 'Linux' and
-                           reason in SOURCE_ONLY_NATIVE_REASONS else 'INCOMPLETE')}
+                           (reason in SOURCE_ONLY_NATIVE_REASONS or
+                            (reason in SOURCE_ONLY_SCOPED_NATIVE_REASONS and
+                             test.id().startswith(SOURCE_ONLY_SCOPED_NATIVE_REASONS[reason])))
+                           else 'INCOMPLETE')}
                for test, reason in result.skipped]
     failed = [{'test': test.id(), 'traceback': trace}
               for test, trace in result.failures + result.errors]
