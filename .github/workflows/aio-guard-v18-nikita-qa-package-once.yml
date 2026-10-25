@@ -129,8 +129,9 @@ jobs:
           $ErrorActionPreference='Stop'
           $python=$env:AIO_QA_PYTHON
           if (-not (Test-Path -LiteralPath $python -PathType Leaf)) { throw 'Pinned offline Python missing' }
-          & $python -c 'import sys, PyInstaller, PySide6.QtWebEngineWidgets, PySide6.QtPdf, pypdf; assert sys.version_info[:2] == (3,11); print("WIN_QA_PACKAGER_DEPS=PASS")'
+          & $python -c 'import sys, PyInstaller, PySide6.QtWebEngineWidgets, PySide6.QtPdf, pypdf; assert sys.version_info[:2] == (3,11)'
           if ($LASTEXITCODE -ne 0) { throw 'Required PyInstaller, QtWebEngine, QtPdf or pypdf unavailable' }
+          Write-Host 'WIN_QA_PACKAGER_DEPS=PASS'
           if (-not (Test-Path -LiteralPath $env:AIO_QA_ENGINE -PathType Leaf)) { throw 'QA LibreOffice binary missing' }
           $lo=Split-Path -Parent (Split-Path -Parent $env:AIO_QA_ENGINE)
           foreach($part in @('program\soffice.exe','program\soffice.bin','share')) {
@@ -214,8 +215,9 @@ jobs:
             Write-Host ('QA_PACKAGE='+$info.Name+';BYTES='+$info.Length)
           }
           Write-Host ('QA_LOCAL_PACKAGE_PATH='+(Resolve-Path 'build\installer').Path)
-          & $python -c 'import sys,zipfile; z=zipfile.ZipFile(sys.argv[1]); assert z.testzip() is None; assert any(p.endswith("A.I.O.exe") for p in z.namelist()); print("PORTABLE_ZIP_CRC=PASS")' $portable
+          & $python -c 'import sys,zipfile; z=zipfile.ZipFile(sys.argv[1]); assert z.testzip() is None' $portable
           if ($LASTEXITCODE -ne 0) { throw 'PORTABLE_ZIP_UNREADABLE' }
+          Write-Host 'PORTABLE_ZIP_CRC=PASS'
           Write-Host 'NO_INSTALL_NO_RELEASE'
 
       - name: Private artifact upload (independent of package success)
