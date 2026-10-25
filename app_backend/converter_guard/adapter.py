@@ -283,6 +283,15 @@ class LibreOfficeAdapter:
                                self.route_decision(ext, proofs.get(f['id']))) for f in files}
             compatible = [i for i, state in states.items() if state == 'registered']
             unknown = [i for i, state in states.items() if state == 'undetermined']
+            # A large corpus may contain 510 files and dozens of formats.
+            # Don't evaluate the same reason (and its native service lookups)
+            # twice per file/format just to decide whether to include it.
+            reasons = {}
+            if proofs is not None:
+                for file in files:
+                    reason = native.route_reason(ext, proofs.get(file['id']))
+                    if reason:
+                        reasons[file['id']] = reason
             formats.append({'id': ext, 'label': ext.upper(), 'category': category,
                 'description': description, 'mime': mime,
                 # Native compatibility is not a claim of content/visual equivalence.
@@ -301,8 +310,7 @@ class LibreOfficeAdapter:
                     'epub': 'EPUB без нативного импортёра открывается через HTML в порядке OPF spine. При смене формата вёрстка книги может измениться; активные, зашифрованные и фиксированные макеты требуют отдельной поддержки.',
                     'xml': 'Для Writer/Calc/Impress/Draw используется установленный штатный фильтр Flat OpenDocument XML. Это не Excel/Word 2003 XML; точный фильтр указан в отчёте.'
                 }).get(ext, 'Проверка Guard подтверждает маршрут, но не гарантирует отсутствие смысловых или визуальных потерь.')}],
-                'unavailableReasons': {f['id']: native.route_reason(ext, (proofs or {}).get(f['id']))
-                                       for f in files if proofs and native.route_reason(ext, proofs.get(f['id']))},
+                'unavailableReasons': reasons,
                 'registeredExport': (ext in native.exports or ext in media_targets or ext in live_targets or
                                      ext == 'svm' and bool(compatible)) if native.valid else registered,
                 'enabled': available and proofs is not None and bool(compatible),
