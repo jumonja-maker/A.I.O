@@ -15,8 +15,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  AIO_QA_SOURCE_SHA: 97d37f186e9245ab05473142a90dbeafb5471a6e
-  AIO_QA_TREE_SHA: 3fadcd0faa31ea0fe3913520c7f0c2263b24522f
+  AIO_QA_SOURCE_SHA: b6998a0a7a2e5bf22ed82eb20fa9a67156bb6603
+  AIO_QA_TREE_SHA: f8b18e5ee47fa512bcd286cdaad39352ad0ad72a
   PYTHONDONTWRITEBYTECODE: '1'
   PYTHONUTF8: '1'
   PYTHONIOENCODING: utf-8
@@ -68,7 +68,7 @@ jobs:
           GIT_CONFIG_VALUE_0: 'false'
         with:
           repository: jumonja-maker/A.I.O
-          ref: 97d37f186e9245ab05473142a90dbeafb5471a6e
+          ref: b6998a0a7a2e5bf22ed82eb20fa9a67156bb6603
           path: aio-pr54-v19-source-${{ github.run_id }}-${{ github.run_attempt }}
           persist-credentials: false
           clean: true
@@ -154,12 +154,16 @@ jobs:
           if ($LASTEXITCODE -ne 0) {throw 'Windows comparison native acceptance failed/incomplete'}
       - name: Real Windows QtWebEngine and QtPdf visual acceptance
         id: visual
+        env:
+          QT_OPENGL: software
+          QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --disable-gpu-compositing
         if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
         working-directory: aio-pr54-v19-source-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           $ErrorActionPreference='Stop'
           $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-pr54-v19-visual-${{ github.run_id }}-${{ github.run_attempt }}'
           & $env:AIO_QA_PYTHON tools/qa/guard_v19_visual_acceptance.py --output $evidence
+          Write-Host ('QT_VISUAL_PROCESS_EXIT='+$LASTEXITCODE)
           if ($LASTEXITCODE -ne 0) {throw 'Windows WebEngine visual acceptance failed/incomplete'}
       - name: Record exact candidate and local evidence
         if: always()
@@ -210,7 +214,7 @@ jobs:
           GIT_CONFIG_VALUE_0: 'false'
         with:
           repository: jumonja-maker/A.I.O
-          ref: 97d37f186e9245ab05473142a90dbeafb5471a6e
+          ref: b6998a0a7a2e5bf22ed82eb20fa9a67156bb6603
           path: aio-pr54-v19-source-${{ github.run_id }}-${{ github.run_attempt }}
           persist-credentials: false
           clean: true
@@ -219,12 +223,16 @@ jobs:
         run: |
           set -euo pipefail
           python_bin=""
+          qt_ready=0
           for candidate in /home/aio-runner/AIO-Lab/AIO-QA-Env/bin/python /home/aio-runner/AIO-QA-Env/bin/python /home/aio-runner/AIO-Lab/venv/bin/python /usr/bin/python3; do
             if test -x "$candidate"; then
-              python_bin="$candidate"
-              if "$candidate" -c 'import openpyxl, PySide6, pypdf' >/dev/null 2>&1; then break; fi
+              if test -z "$python_bin"; then python_bin="$candidate"; fi
+              if "$candidate" -c 'from PySide6 import QtCore, QtGui, QtPdf' >/dev/null 2>&1; then
+                python_bin="$candidate"; qt_ready=1; break
+              fi
             fi
           done
+          printf 'AIO_QA_HAVE_QT=%s\n' "$qt_ready" >> "$GITHUB_ENV"
           test -n "$python_bin"
           "$python_bin" - <<'PY'
           import hashlib, os
@@ -262,9 +270,11 @@ jobs:
             if test -f "$candidate"; then engine="$candidate"; break; fi
           done
           printf 'AIO_QA_ENGINE=%s\n' "$engine" >> "$GITHUB_ENV"
-          if test -z "$engine"; then
+          if test -z "$engine" || test "$qt_ready" != 1; then
             printf 'AIO_QA_SOURCE_ONLY=1\n' >> "$GITHUB_ENV"
-            printf '%s\n' 'Linux native engine unavailable; explicit source-only acceptance will run'
+            printf '%s\n' 'LINUX_SCOPE=SOURCE_ONLY; missing Qt/LibreOffice is NOT_RUN, not a native PASS'
+          else
+            printf 'AIO_QA_SOURCE_ONLY=0\n' >> "$GITHUB_ENV"
           fi
       - name: Prepare verified offline Linux test-only dependencies
         id: dependencies
@@ -285,7 +295,7 @@ jobs:
           "$AIO_QA_PYTHON" tools/qa/guard_v17_selfhosted_acceptance.py --unit-report "$evidence/unittest.json"
       - name: Real Linux LibreOffice comparison retry and reanalysis
         id: native
-        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' && env.AIO_QA_ENGINE != '' }}
         working-directory: aio-pr54-v19-source-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           set -euo pipefail
@@ -297,4 +307,9 @@ jobs:
           printf 'PINNED_SOURCE=%s\n' "$AIO_QA_SOURCE_SHA"
           printf '%s\n' 'FULL_SOURCE=${{ steps.tests.outcome }};NATIVE_COMPARE=${{ steps.native.outcome }}' 'ARTIFACT_UPLOAD=DISABLED;HOSTED_MINUTES=UNUSED;INSTALL=NOT_RUN;MAIN=UNCHANGED'
           test '${{ steps.tests.outcome }}' = success
-          test '${{ steps.native.outcome }}' = success
+          if test -n "$AIO_QA_ENGINE"; then
+            test '${{ steps.native.outcome }}' = success
+          else
+            printf '%s\n' 'LINUX_NATIVE=NOT_RUN; no engine installed; NIKITA native verification remains required'
+          fi
+          printf 'LINUX_SOURCE_ONLY=%s;QT_PRESENT=%s\n' "${AIO_QA_SOURCE_ONLY:-0}" "$AIO_QA_HAVE_QT"
