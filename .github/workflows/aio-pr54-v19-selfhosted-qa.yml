@@ -2,7 +2,8 @@ name: AIO PR54 v19 pinned self-hosted acceptance
 
 # This one-shot workflow is separate from existing application/build workflows.
 # Owner authorized NIKITA and AIO-UBUNTU for PR54; only the fixed source below runs.
-# No upload-artifact, hosted runner, package install, build, or existing workflow mutation.
+# No upload-artifact, hosted runner, package install, installer or release.
+# An isolated Windows QA build below uses only existing tools and RUNNER_TEMP.
 on:
   pull_request:
     types: [labeled]
@@ -15,8 +16,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  AIO_QA_SOURCE_SHA: 4c3115643e3faa5678946932a15ab46521389bd2
-  AIO_QA_TREE_SHA: f4c9f710dc02f2dd6df06cfce263a7354ad5d863
+  AIO_QA_SOURCE_SHA: c70d7a4f2639ad9b6ff8a09f8e56ebb7c4e1df14
+  AIO_QA_TREE_SHA: d9d4d09350b3675c2c33a639a7b6756aa64e7c82
   PYTHONDONTWRITEBYTECODE: '1'
   PYTHONUTF8: '1'
   PYTHONIOENCODING: utf-8
@@ -68,7 +69,7 @@ jobs:
           GIT_CONFIG_VALUE_0: 'false'
         with:
           repository: jumonja-maker/A.I.O
-          ref: 4c3115643e3faa5678946932a15ab46521389bd2
+          ref: c70d7a4f2639ad9b6ff8a09f8e56ebb7c4e1df14
           path: aio-pr54-v19-source-${{ github.run_id }}-${{ github.run_attempt }}
           persist-credentials: false
           clean: true
@@ -152,6 +153,15 @@ jobs:
           $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-pr54-v19-native-${{ github.run_id }}-${{ github.run_attempt }}'
           & $env:AIO_QA_PYTHON tools/qa/guard_v19_comparison_acceptance.py --output $evidence --executable $env:AIO_QA_ENGINE --seconds 180
           if ($LASTEXITCODE -ne 0) {throw 'Windows comparison native acceptance failed/incomplete'}
+      - name: Real Windows native UNO PDF pixels and multi-sheet CSV recipes
+        id: native_recipes
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
+        working-directory: aio-pr54-v19-source-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-pr54-v19-native-recipes-${{ github.run_id }}-${{ github.run_attempt }}'
+          & $env:AIO_QA_PYTHON tools/qa/guard_v19_native_recipes_acceptance.py --output $evidence --executable $env:AIO_QA_ENGINE --seconds 240 --require-mode native_uno
+          if ($LASTEXITCODE -ne 0) {throw 'Windows native UNO recipe pixels/sheets acceptance failed'}
       - name: Real Windows QtWebEngine and QtPdf visual acceptance
         id: visual
         env:
@@ -165,13 +175,94 @@ jobs:
           & $env:AIO_QA_PYTHON tools/qa/guard_v19_visual_acceptance.py --output $evidence --emit-snapshots
           Write-Host ('QT_VISUAL_PROCESS_EXIT='+$LASTEXITCODE)
           if ($LASTEXITCODE -ne 0) {throw 'Windows WebEngine visual acceptance failed/incomplete'}
+      - name: Real Windows partial analysis pause cancel and save journeys
+        id: journeys
+        env:
+          QT_OPENGL: software
+          QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --disable-gpu-compositing
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
+        working-directory: aio-pr54-v19-source-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-pr54-v19-journeys-${{ github.run_id }}-${{ github.run_attempt }}'
+          & $env:AIO_QA_PYTHON tools/qa/guard_v19_journeys_acceptance.py --output $evidence --files 24 --emit-snapshots
+          Write-Host ('QT_JOURNEYS_PROCESS_EXIT='+$LASTEXITCODE)
+          if ($LASTEXITCODE -ne 0) {throw 'Windows partial analysis/save/cancel journeys failed'}
+      - name: Build isolated real Windows EXE with existing PyInstaller
+        id: frozen_build
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
+        working-directory: aio-pr54-v19-source-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $checkout=[IO.Path]::GetFullPath((Get-Location).Path).TrimEnd('\')+'\'
+          $buildRoot=[IO.Path]::GetFullPath((Join-Path $env:RUNNER_TEMP 'aio-pr54-v19-build-${{ github.run_id }}-${{ github.run_attempt }}'))
+          $temporary=[IO.Path]::GetFullPath($env:RUNNER_TEMP).TrimEnd('\')+'\'
+          if (-not $buildRoot.StartsWith($temporary,[StringComparison]::OrdinalIgnoreCase) -or $buildRoot.StartsWith($checkout,[StringComparison]::OrdinalIgnoreCase) -or (Test-Path -LiteralPath $buildRoot)) {throw 'Build must use a new private RUNNER_TEMP directory outside checkout'}
+          New-Item -ItemType Directory -Path $buildRoot -ErrorAction Stop | Out-Null
+          'AIO_QA_BUILD_ROOT='+$buildRoot | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          $env:AIO_LIBREOFFICE_ROOT='D:\LBR'
+          foreach($leaf in @('program\soffice.exe','program\soffice.bin','program\python.exe')) {
+            if (-not (Test-Path -LiteralPath (Join-Path $env:AIO_LIBREOFFICE_ROOT $leaf) -PathType Leaf)) {throw ('Existing complete D:\LBR payload missing '+$leaf)}
+          }
+          if (-not (Test-Path -LiteralPath (Join-Path $env:AIO_LIBREOFFICE_ROOT 'share') -PathType Container)) {throw 'Existing LibreOffice share directory missing'}
+          # Offline test-only dependencies must never leak into application packaging.
+          Remove-Item Env:PYTHONPATH -ErrorAction SilentlyContinue
+          $env:PYTHONNOUSERSITE='1'
+          & $env:AIO_QA_PYTHON -c 'import PyInstaller,openpyxl,pypdf;from PySide6 import QtGui,QtPdf,QtWebEngineWidgets;print("EXISTING_BUILD_TOOLS="+PyInstaller.__version__)'
+          if ($LASTEXITCODE -ne 0) {throw 'Existing trusted PyInstaller/production dependencies unavailable; no install is allowed'}
+          $env:PYINSTALLER_CONFIG_DIR=Join-Path $buildRoot 'cache'
+          $dist=Join-Path $buildRoot 'dist'
+          $work=Join-Path $buildRoot 'work'
+          $stdout=Join-Path $buildRoot 'pyinstaller-stdout.log'
+          $stderr=Join-Path $buildRoot 'pyinstaller-stderr.log'
+          $spec=Join-Path (Get-Location).Path 'AllInOne.spec'
+          $build=@'
+          import subprocess, sys, time
+          from pathlib import Path
+          from app_backend.native_process import ProcessTree
+          root, spec = Path(sys.argv[1]), Path(sys.argv[2])
+          command = [sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean',
+              '--distpath', str(root/'dist'), '--workpath', str(root/'work'), str(spec)]
+          with (root/'pyinstaller-stdout.log').open('wb') as out, (root/'pyinstaller-stderr.log').open('wb') as err:
+              with ProcessTree(command, cwd=spec.parent, stdout=out, stderr=err) as tree:
+                  deadline = time.monotonic() + 1200
+                  while tree.process.poll() is None:
+                      if time.monotonic() >= deadline:
+                          raise TimeoutError('Owned isolated PyInstaller build exceeded 20 minutes')
+                      try: tree.process.wait(timeout=.5)
+                      except subprocess.TimeoutExpired: pass
+                  code = tree.process.returncode
+          print('PYINSTALLER_EXIT='+str(code)+';PRIVATE_BUILD_ROOT='+str(root), flush=True)
+          raise SystemExit(code)
+          '@
+          & $env:AIO_QA_PYTHON -c $build $buildRoot $spec
+          if ($LASTEXITCODE -ne 0) {
+            foreach($log in @($stdout,$stderr)) {
+              if (Test-Path -LiteralPath $log) {Get-Content -LiteralPath $log -Tail 40 | ForEach-Object {Write-Host ($_.Substring(0,[Math]::Min(500,$_.Length)))}}
+            }
+            throw 'Isolated PyInstaller build failed; full logs remain in private RUNNER_TEMP'
+          }
+          $exe=Join-Path $dist 'A.I.O\A.I.O.exe'
+          if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) {throw 'PyInstaller did not create the actual A.I.O executable'}
+          'AIO_QA_FROZEN_EXE='+$exe | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host ('FROZEN_EXE='+$exe+';INSTALLER=NOT_RUN;RELEASE=NOT_RUN;UPLOAD=DISABLED')
+      - name: Real frozen EXE comparison PDF image workers and packaged assets
+        id: frozen
+        if: ${{ !cancelled() && steps.frozen_build.outcome == 'success' }}
+        working-directory: aio-pr54-v19-source-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          if (-not (Test-Path -LiteralPath $env:AIO_QA_FROZEN_EXE -PathType Leaf)) {throw 'Actual private QA executable unavailable'}
+          $evidence=Join-Path $env:RUNNER_TEMP 'aio-pr54-v19-frozen-${{ github.run_id }}-${{ github.run_attempt }}'
+          & $env:AIO_QA_PYTHON tools/qa/guard_v19_frozen_acceptance.py --executable $env:AIO_QA_FROZEN_EXE --output $evidence --seconds 120
+          if ($LASTEXITCODE -ne 0) {throw 'Actual frozen EXE comparison/QtPdf/image acceptance failed'}
       - name: Record exact candidate and local evidence
         if: always()
         run: |
           Write-Host ('PINNED_SOURCE='+$env:AIO_QA_SOURCE_SHA)
-          Write-Host 'FULL_SOURCE=${{ steps.tests.outcome }};NATIVE_COMPARE=${{ steps.native.outcome }};QT_VISUAL=${{ steps.visual.outcome }}'
+          Write-Host 'FULL_SOURCE=${{ steps.tests.outcome }};NATIVE_COMPARE=${{ steps.native.outcome }};NATIVE_RECIPES=${{ steps.native_recipes.outcome }};QT_VISUAL=${{ steps.visual.outcome }};QT_JOURNEYS=${{ steps.journeys.outcome }};FROZEN_BUILD=${{ steps.frozen_build.outcome }};FROZEN_EXE=${{ steps.frozen.outcome }}'
           Write-Host 'ARTIFACT_UPLOAD=DISABLED;HOSTED_MINUTES=UNUSED;INSTALL=NOT_RUN;MAIN=UNCHANGED'
-          if ('${{ steps.tests.outcome }}' -ne 'success' -or '${{ steps.native.outcome }}' -ne 'success' -or '${{ steps.visual.outcome }}' -ne 'success') {throw 'PR54 Windows acceptance not complete'}
+          if ('${{ steps.tests.outcome }}' -ne 'success' -or '${{ steps.native.outcome }}' -ne 'success' -or '${{ steps.native_recipes.outcome }}' -ne 'success' -or '${{ steps.visual.outcome }}' -ne 'success' -or '${{ steps.journeys.outcome }}' -ne 'success' -or '${{ steps.frozen_build.outcome }}' -ne 'success' -or '${{ steps.frozen.outcome }}' -ne 'success') {throw 'PR54 Windows acceptance not complete'}
 
   linux-qa:
     needs: windows-qa
@@ -214,7 +305,7 @@ jobs:
           GIT_CONFIG_VALUE_0: 'false'
         with:
           repository: jumonja-maker/A.I.O
-          ref: 4c3115643e3faa5678946932a15ab46521389bd2
+          ref: c70d7a4f2639ad9b6ff8a09f8e56ebb7c4e1df14
           path: aio-pr54-v19-source-${{ github.run_id }}-${{ github.run_attempt }}
           persist-credentials: false
           clean: true
@@ -301,14 +392,22 @@ jobs:
           set -euo pipefail
           test -n "$AIO_QA_ENGINE"
           "$AIO_QA_PYTHON" tools/qa/guard_v19_comparison_acceptance.py --output "$GITHUB_WORKSPACE/aio-pr54-v19-native-${{ github.run_id }}-${{ github.run_attempt }}" --executable "$AIO_QA_ENGINE" --seconds 180
+      - name: Real Linux native CLI PDF pixels and multi-sheet CSV recipes
+        id: native_recipes
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' && env.AIO_QA_ENGINE != '' }}
+        working-directory: aio-pr54-v19-source-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          "$AIO_QA_PYTHON" tools/qa/guard_v19_native_recipes_acceptance.py --output "$GITHUB_WORKSPACE/aio-pr54-v19-native-recipes-${{ github.run_id }}-${{ github.run_attempt }}" --executable "$AIO_QA_ENGINE" --seconds 240 --require-mode native_cli
       - name: Record exact candidate and local evidence
         if: always()
         run: |
           printf 'PINNED_SOURCE=%s\n' "$AIO_QA_SOURCE_SHA"
-          printf '%s\n' 'FULL_SOURCE=${{ steps.tests.outcome }};NATIVE_COMPARE=${{ steps.native.outcome }}' 'ARTIFACT_UPLOAD=DISABLED;HOSTED_MINUTES=UNUSED;INSTALL=NOT_RUN;MAIN=UNCHANGED'
+          printf '%s\n' 'FULL_SOURCE=${{ steps.tests.outcome }};NATIVE_COMPARE=${{ steps.native.outcome }};NATIVE_RECIPES=${{ steps.native_recipes.outcome }}' 'ARTIFACT_UPLOAD=DISABLED;HOSTED_MINUTES=UNUSED;INSTALL=NOT_RUN;MAIN=UNCHANGED'
           test '${{ steps.tests.outcome }}' = success
           if test -n "$AIO_QA_ENGINE"; then
             test '${{ steps.native.outcome }}' = success
+            test '${{ steps.native_recipes.outcome }}' = success
           else
             printf '%s\n' 'LINUX_NATIVE=NOT_RUN; no engine installed; NIKITA native verification remains required'
           fi
