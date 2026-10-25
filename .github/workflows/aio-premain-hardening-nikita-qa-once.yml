@@ -14,8 +14,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  AIO_QA_SOURCE_SHA: b22f9f062a81696d7899aa7e611acc7398ab563e
-  AIO_QA_TREE_SHA: fe48219e66694554f77f19993674c9b183ba785a
+  AIO_QA_SOURCE_SHA: a127f7d7e61fa0487583c175cc743cd23e3232a2
+  AIO_QA_TREE_SHA: 888c9b492fbb0fa4974121b3d21cf34c8b2bba30
   PYTHONDONTWRITEBYTECODE: '1'
   PYTHONUTF8: '1'
   PYTHONIOENCODING: utf-8
@@ -67,7 +67,7 @@ jobs:
           GIT_CONFIG_VALUE_0: 'false'
         with:
           repository: jumonja-maker/A.I.O
-          ref: b22f9f062a81696d7899aa7e611acc7398ab563e
+          ref: a127f7d7e61fa0487583c175cc743cd23e3232a2
           path: aio-premain-v18-source-${{ github.run_id }}-${{ github.run_attempt }}
           persist-credentials: false
           clean: true
