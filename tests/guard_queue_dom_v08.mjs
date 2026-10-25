@@ -20,8 +20,14 @@ window.HTMLElement.prototype.showModal=function(){assert.equal(this.localName,'d
 window.HTMLElement.prototype.close=function(){assert.equal(this.localName,'dialog');this.open=false;this.dispatchEvent(new window.Event('close'));};
 window.AllInOneNativeShell=true;
 const plans=[],reports=[],preflights=[],beforeStarts=[],startStates=[];
+const transfers={started:0,finished:0,preflightStarted:0,preflightMs:null};
+const pending=new Set(),startedAt=Date.now();
 const apiFetch=async (url,options={})=>{
+  const marker={};pending.add(marker);let preflightAt=null;
+  try{
   const resolved=new URL(url,base);
+  if(resolved.pathname==='/api/converter-guard/input')transfers.started++;
+  if(resolved.pathname==='/api/converter-guard/preflight'){transfers.preflightStarted++;preflightAt=Date.now();}
   if(resolved.pathname==='/api/converter-guard/start'&&options.method==='POST') {
     const plan=JSON.parse(options.body);plans.push(plan);
     const state=await (await nativeFetch(base+'/api/converter-guard/jobs?job='+plan.jobId,
@@ -30,6 +36,8 @@ const apiFetch=async (url,options={})=>{
     beforeStarts.push(state);
   }
   const response=await nativeFetch(resolved,options);
+  if(resolved.pathname==='/api/converter-guard/input')transfers.finished++;
+  if(preflightAt!==null)transfers.preflightMs=Date.now()-preflightAt;
   if(resolved.pathname==='/api/converter-guard/jobs'&&resolved.search&&response.status===200)
     reports.push(await response.clone().json());
   if(resolved.pathname==='/api/converter-guard/preflight'&&response.ok)
@@ -37,6 +45,7 @@ const apiFetch=async (url,options={})=>{
   if(resolved.pathname==='/api/converter-guard/start'&&response.ok)
     startStates.push(await response.clone().json());
   return response;
+  }finally{pending.delete(marker);}
 };
 window.fetch=apiFetch;
 const context=vm.createContext({window,document,fetch:apiFetch,console,URL,Blob,File,FormData,
@@ -54,7 +63,8 @@ async function until(check,message) {
   throw Error(message+': '+document.querySelector('[data-cv-status]')?.textContent);
 }
 
-const untilReady=async check=>{const deadline=Date.now()+45000;while(Date.now()<deadline){if(await check())return;await new Promise(r=>setTimeout(r,10));}throw Error('Queue UI did not settle: '+document.querySelector('[data-cv-status]')?.textContent+'; rows='+document.querySelectorAll('.aio-cv__file[data-file-id]').length+'; preflight='+preflights.length+'; reports='+reports.length);};
+const untilReady=async check=>{const deadline=Date.now()+45000;while(Date.now()<deadline){if(await check())return;await new Promise(r=>setTimeout(r,10));}throw Error('Queue UI did not settle: '+document.querySelector('[data-cv-status]')?.textContent+'; rows='+document.querySelectorAll('.aio-cv__file[data-file-id]').length+'; preflight='+preflights.length+'; reports='+reports.length+'; transport='+JSON.stringify(transfers)+'; elapsedMs='+(Date.now()-startedAt));};
+try{
 [...document.querySelectorAll('.nav-item')].find(n=>n.textContent.includes('Конвертер')).click();
 await untilReady(()=>document.querySelector('[data-cv-add]')?.disabled===false);
 const picker=document.querySelector('[data-cv-picker]');
@@ -76,9 +86,20 @@ const search=document.querySelector('.aio-guard-tools input');search.value='tabl
 assert.equal(document.querySelectorAll('.aio-guard-task').length,1);
 assert.ok(document.querySelector('.aio-guard-task strong').textContent.includes('table-0999.csv'));
 assert.ok(document.querySelector('[data-g-counts]').textContent.includes('успешно 1000'));
+assert.equal(transfers.started,1000);assert.equal(transfers.finished,1000);
+assert.equal(preflights.at(-1).files.length,1000);
+assert.ok(preflights.at(-1).files.every(file=>file.preflight?.state==='detected'));
 assert.equal(plans.at(-1).plan.length,1000);
 assert.ok(plans.at(-1).plan.every(p=>p.formats.length===1&&p.formats[0]==='pdf'));
 assert.equal(plans.at(-1).archiveMode,'on_demand');
 assert.ok(reports.some(r=>r.finished&&r.succeeded===1000&&r.bundleDeferred&&r.result.folderOnly));
-console.log(JSON.stringify({status:'PASS',scope:'1000-file DOM + HTTP; synthetic native exports; dialog state shim',files:1000,tasks:1000,pageSize:50,search:true,explicitSelection:true,nativeArchiveOnDemand:true}));
-window.AllInOneBridge.converter.dispose();
+console.log(JSON.stringify({status:'PASS',scope:'1000-file DOM + HTTP; synthetic native exports; dialog state shim',files:1000,tasks:1000,pageSize:50,search:true,explicitSelection:true,nativeArchiveOnDemand:true,transport:transfers,elapsedMs:Date.now()-startedAt}));
+}finally{
+  // Even an assertion failure must stop its producer and await the in-flight
+  // local requests before the Python host closes Guard and removes its spool.
+  await window.AllInOneBridge?.converter?.cancelInspection();
+  window.AllInOneBridge?.converter?.dispose();
+  const deadline=Date.now()+10000;
+  while(pending.size&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,10));
+  assert.equal(pending.size,0,'fixture requests must drain before the host tears down');
+}

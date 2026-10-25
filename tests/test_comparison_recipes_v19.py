@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 import tempfile
 import threading
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -112,16 +112,52 @@ class AutomaticRecipes(unittest.TestCase):
         self.assertEqual(requests[0]['automaticRecipe'], 'pdf_preserve_images')
 
     def test_embedded_worker_applies_properties_only_to_selected_fresh_model(self):
-        models, imports, exports, replies = worker_contracts.UnoWorkerContracts().execute([
-            {'automaticRecipe':'pdf_preserve_images', 'exportFilterData':
-             {'UseLosslessCompression':True, 'ReduceImageResolution':False}}, {}])
+        class TypedAny:
+            def __init__(self, name, value):
+                self.typeName, self.value = name, value
+        def module(name):
+            result = ModuleType(name)
+            if name == 'uno':
+                result.Any = TypedAny
+            return result
+        def native_pdf_filter(options):
+            if 'FilterData' in options:
+                # Mirrors the real PDF filter's typed Any extraction. A plain
+                # tuple would be []any and native LO would ignore its options.
+                self.assertIsInstance(options['FilterData'], TypedAny)
+                self.assertEqual(options['FilterData'].typeName,
+                                 '[]com.sun.star.beans.PropertyValue')
+        with patch.object(worker_contracts, 'ModuleType', side_effect=module):
+            models, imports, exports, replies = worker_contracts.UnoWorkerContracts().execute([
+                {'automaticRecipe':'pdf_preserve_images', 'exportFilterData':
+                 {'UseLosslessCompression':True, 'ReduceImageResolution':False}}, {}],
+                 on_export=native_pdf_filter)
         self.assertTrue(all(row['ok'] for row in replies))
-        self.assertEqual({p.Name:p.Value for p in exports[0]['FilterData']},
+        self.assertEqual({p.Name:p.Value for p in exports[0]['FilterData'].value},
                          {'UseLosslessCompression':True, 'ReduceImageResolution':False})
+        self.assertTrue(all(type(p.Value) is bool for p in exports[0]['FilterData'].value))
         self.assertNotIn('FilterData', exports[1])
         self.assertTrue(all('FilterData' not in row and row['MacroExecutionMode']==0 for row in imports))
         self.assertEqual(len(models), 2)
         self.assertTrue(all(model.closed for model in models))
+
+    def test_uno_marshal_failure_cannot_silently_export_a_default_pdf(self):
+        def module(name):
+            result = ModuleType(name)
+            if name == 'uno':
+                def unsupported_type(*_args):
+                    raise RuntimeError('NATIVE_TYPED_SEQUENCE_UNAVAILABLE')
+                result.Any = unsupported_type
+            return result
+        with patch.object(worker_contracts, 'ModuleType', side_effect=module):
+            _, _, exports, replies = worker_contracts.UnoWorkerContracts().execute([
+                {'automaticRecipe':'pdf_preserve_images', 'exportFilterData':
+                 {'UseLosslessCompression':True, 'ReduceImageResolution':False}}, {}])
+        results = [row for row in replies if row['id'] != 'ready']
+        self.assertFalse(results[0]['ok'])
+        self.assertIn('NATIVE_TYPED_SEQUENCE_UNAVAILABLE', results[0]['diagnostic'])
+        self.assertTrue(results[1]['ok'])
+        self.assertEqual(len(exports), 1, 'Failed automatic settings must never export with native defaults')
 
     def test_worker_rejects_arbitrary_properties_and_next_task_still_runs(self):
         for data in ({'UseLosslessCompression':True, 'ReduceImageResolution':False, 'EncryptFile':True},
@@ -140,11 +176,11 @@ class AutomaticRecipes(unittest.TestCase):
         recipe = automatic_recipe('csv_preserve_values', 'csv', self.native, self.proof)
         request = {'automaticRecipe':'csv_preserve_values', 'format':'csv',
                    'exportFilter':CALC_TEXT, 'exportOptions':recipe.filter_options}
-        self.assertEqual(namespace['automatic_export_properties'](request, lambda n,v:(n,v)), [])
+        self.assertEqual(namespace['automatic_export_properties'](request, lambda n,v:(n,v), None), [])
         for changed in ({'format':'pdf'}, {'exportFilter':'writer_pdf_Export'},
                         {'exportOptions':recipe.filter_options+',arbitrary'}):
             with self.assertRaises(RuntimeError):
-                namespace['automatic_export_properties']({**request, **changed}, lambda n,v:(n,v))
+                namespace['automatic_export_properties']({**request, **changed}, lambda n,v:(n,v), None)
 
     def test_csv_worker_discovers_every_sheet_and_rejects_missing_or_empty_inventory(self):
         namespace = {'__name__':'recipe_test'}

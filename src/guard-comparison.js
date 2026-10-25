@@ -23,6 +23,7 @@
   let dialog=null,launch=null,launchRoot=null,lastState=null,jobId=null,analysis=null,selectedTask=null,detail=null;
   let side='result',offset=0,query='',filter='all',timer=null,controller=null,previewController=null,previewURL=null;
   let epoch=0,viewEpoch=0,requestNumber=0,previewNumber=0,busyAction=false,searchTimer=null;
+  let dialogGeneration=0,cleanedDialogGeneration=-1;
   let opener=null,parentJob=null,unavailable=false,refreshFailures=0,restoreTask=null;
   let outputIndex=0,outputOffset=0,outputChosen=false,historyOffset=0,historyTotal=0,historyPage=[],historyRunId=null,candidateJobId=null;
   let historyNumber=0,verificationNumber=0,verificationOffset=0,verificationTotal=0;
@@ -72,6 +73,27 @@
       pdfPages:{...pdfPages},pdfPageCounts:{...pdfPageCounts},historyOffset,historyPage,historyTotal,historyRunId,candidateJobId,
       analysisId:analysis?.analysisId,previewed:!!detail,scroll:$('[data-c-files]')?.scrollTop||0});
     while(views.size>16)views.delete(views.keys().next().value);
+  }
+  function cleanupClosedView(){
+    // Native close events are queued. A previous opening can finish closing
+    // after another package has already opened this same dialog element.
+    if(!dialog||dialog.open||cleanedDialogGeneration===dialogGeneration)return;
+    cleanedDialogGeneration=dialogGeneration;
+    rememberView(true);epoch++;historyNumber++;verificationNumber++;viewEpoch++;
+    clearTimeout(timer);clearTimeout(searchTimer);timer=searchTimer=null;
+    controller?.abort();controller=null;clearPreview();busyAction=false;detail=analysis=null;
+    selectedTask=null;selected.clear();$('[data-c-files]').replaceChildren();
+    $('[data-c-findings]').replaceChildren();$('[data-c-output]').replaceChildren();
+    $('[data-c-verification-list]').replaceChildren();historyPage=[];
+    opener?.setAttribute('aria-expanded','false');
+    if(opener?.isConnected)opener.focus({preventScroll:true});opener=null;
+  }
+  function closeComparison(){
+    if(!dialog)return;
+    dialog.close();
+    // Release view resources immediately; the later native close event is an
+    // idempotent notification and cannot clear a subsequently opened view.
+    cleanupClosedView();
   }
   function markUnavailable(message){
     unavailable=true;busyAction=false;epoch++;historyNumber++;verificationNumber++;controller?.abort();clearTimeout(timer);timer=null;clearPreview();selected.clear();
@@ -500,14 +522,14 @@
       '<section class="aio-compare-right" aria-label="Просмотр и описание изменений"><div class="aio-compare-preview-head"><button type="button" data-c-source aria-pressed="false">Исходник</button><button type="button" data-c-result aria-pressed="true">Результат</button><div class="aio-compare-pdf-controls" data-c-pdf-controls role="group" aria-label="Страницы PDF" hidden><button type="button" data-c-pdf-prev aria-label="Предыдущая страница PDF">←</button><small data-c-pdf-page>1 / …</small><button type="button" data-c-pdf-next aria-label="Следующая страница PDF">→</button></div><span data-c-preview-label></span><div class="aio-compare-output-controls" data-c-output-controls hidden><button type="button" data-c-output-prev aria-label="Предыдущие выходные файлы">←</button><select data-c-output aria-label="Выходной файл выбранного преобразования"></select><button type="button" data-c-output-next aria-label="Следующие выходные файлы">→</button></div></div><div class="aio-compare-preview" data-c-preview></div><div class="aio-compare-report" data-c-findings></div>'+
       '<footer class="aio-compare-actions"><button type="button" data-c-retry>Повторить с автонастройкой</button><details class="aio-compare-warning"><summary title="Об автонастройке" aria-label="Предупреждение об автонастройке">!</summary><p>Настройка не обязательно улучшит качество файла. Предыдущий результат будет сохранён.</p></details><button type="button" data-c-save-current>Сохранить текущий пакет</button><button type="button" data-c-back hidden>Предыдущий пакет</button></footer></section></div></div>';
     document.body.append(dialog);
-    $('[data-c-close]').addEventListener('click',()=>dialog.close());
-    dialog.addEventListener('cancel',event=>{event.preventDefault();dialog.close();});
+    $('[data-c-close]').addEventListener('click',closeComparison);
+    dialog.addEventListener('cancel',event=>{event.preventDefault();closeComparison();});
     let outside=false;
     const isOutside=event=>{if(event.target!==dialog)return false;const r=dialog.getBoundingClientRect();return event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom;};
     dialog.addEventListener('pointerdown',event=>{outside=event.button===0&&isOutside(event);});
-    dialog.addEventListener('pointerup',event=>{if(outside&&event.button===0&&isOutside(event))dialog.close();outside=false;});
+    dialog.addEventListener('pointerup',event=>{if(outside&&event.button===0&&isOutside(event))closeComparison();outside=false;});
     dialog.addEventListener('pointercancel',()=>{outside=false;});
-    dialog.addEventListener('close',()=>{rememberView(true);epoch++;historyNumber++;verificationNumber++;viewEpoch++;clearTimeout(timer);clearTimeout(searchTimer);timer=searchTimer=null;controller?.abort();controller=null;clearPreview();busyAction=false;detail=analysis=null;selectedTask=null;selected.clear();$('[data-c-files]').replaceChildren();$('[data-c-findings]').replaceChildren();$('[data-c-output]').replaceChildren();$('[data-c-verification-list]').replaceChildren();historyPage=[];opener?.setAttribute('aria-expanded','false');if(opener?.isConnected)opener.focus({preventScroll:true});opener=null;});
+    dialog.addEventListener('close',cleanupClosedView);
     $('[data-c-search]').addEventListener('input',event=>{query=event.target.value;offset=0;viewEpoch++;clearTimeout(searchTimer);searchTimer=setTimeout(()=>refresh(),180);});
     $('[data-c-filter]').addEventListener('change',event=>{filter=event.target.value;offset=0;viewEpoch++;refresh();});
     $('[data-c-prev]').addEventListener('click',()=>{offset=Math.max(0,offset-50);viewEpoch++;refresh();});
@@ -552,7 +574,8 @@
 
   async function open(id,options={}){
     if(!validJob(id))throw Error('Нет доступного задания для сравнения.');
-    rememberView();mount();epoch++;viewEpoch++;requestNumber++;historyNumber++;verificationNumber++;
+    if(dialog&&!dialog.open)cleanupClosedView();
+    rememberView();mount();dialogGeneration++;epoch++;viewEpoch++;requestNumber++;historyNumber++;verificationNumber++;
     clearTimeout(timer);clearTimeout(searchTimer);controller?.abort();clearPreview();
     const previous=views.get(id);
     controller=new AbortController();jobId=id;analysis=null;detail=null;selected.clear();unavailable=false;refreshFailures=0;
@@ -609,5 +632,5 @@
   const observer=new MutationObserver(mutations=>{if(mutations.some(m=>[...m.addedNodes,...m.removedNodes].some(n=>n.nodeType===1&&(n.matches?.('.aio-cv,.aio-cv__footer')||n.querySelector?.('.aio-cv,.aio-cv__footer')))))attach();});
   observer.observe(document.body,{childList:true,subtree:true});attach();
   window.addEventListener('pagehide',()=>{controller?.abort();clearTimeout(timer);clearTimeout(searchTimer);clearPreview();views.clear();observer.disconnect();});
-  window.AIOGuardComparison=Object.freeze({open,close:()=>dialog?.close()});
+  window.AIOGuardComparison=Object.freeze({open,close:closeComparison});
 })();

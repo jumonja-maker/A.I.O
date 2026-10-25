@@ -26,7 +26,7 @@ PREFIX = 'AIO_GUARD_RPC '
 def send(value):
     print(PREFIX + json.dumps(value, ensure_ascii=True), flush=True)
 
-def automatic_export_properties(req, prop):
+def automatic_export_properties(req, prop, uno_runtime):
     """A finite trusted recipe, not a bridge for arbitrary UNO properties."""
     recipe = req.get('automaticRecipe')
     data = req.get('exportFilterData')
@@ -41,7 +41,13 @@ def automatic_export_properties(req, prop):
                 not isinstance(data, dict) or data != expected or
                 any(type(value) is not bool for value in data.values())):
             raise RuntimeError('AUTOMATIC_FILTER_DATA_INVALID')
-        return [prop('FilterData', tuple(prop(name, value) for name, value in expected.items()))]
+        # PropertyValue.Value itself is an Any. PyUNO otherwise infers the
+        # nested Python tuple as []any, while PDFFilter extracts only
+        # []com.sun.star.beans.PropertyValue and silently uses defaults when
+        # extraction fails. Preserve the inner UNO sequence type explicitly.
+        data = uno_runtime.Any('[]com.sun.star.beans.PropertyValue',
+                               tuple(prop(name, value) for name, value in expected.items()))
+        return [prop('FilterData', data)]
     if recipe == 'csv_preserve_values':
         separator = '44' if req.get('format') == 'csv' else '9'
         expected = separator + ',34,76,1,,0,false,true,false,false,false,-1,false,true'
@@ -402,7 +408,7 @@ def main(boot_name):
                                       prop('Silent', True), prop('InteractionHandler', export_handler)]
                     if req.get('exportOptions') is not None:
                         export_options.append(prop('FilterOptions', req['exportOptions']))
-                    export_options.extend(automatic_export_properties(req, prop))
+                    export_options.extend(automatic_export_properties(req, prop, uno))
                     export_tick = time.monotonic()
                     exported_paths = [target]
                     try:

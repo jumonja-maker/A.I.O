@@ -12,7 +12,13 @@ window.location={href:'http://127.0.0.1:5123/',origin:'http://127.0.0.1:5123'};
 window.AllInOneNativeShell=true;
 window.AllInOneBridge={converter:{async saveRetained(id,mode){saved.push([id,mode]);return {saved:true};}}};
 window.HTMLElement.prototype.showModal=function(){this.open=true;this.setAttribute('open','');};
-window.HTMLElement.prototype.close=function(){this.open=false;this.removeAttribute('open');this.dispatchEvent(new window.Event('close'));};
+window.HTMLElement.prototype.close=function(){
+  if(!this.open)return;
+  this.open=false;this.removeAttribute('open');
+  // Native HTMLDialog queues close after flipping open, rather than invoking
+  // its listener in the close() call stack.
+  setTimeout(()=>this.dispatchEvent(new window.Event('close')),0);
+};
 window.HTMLElement.prototype.focus=function(){this.focused=true;};
 window.HTMLElement.prototype.getBoundingClientRect=function(){return {left:10,top:10,right:900,bottom:700};};
 // linkedom intentionally omits the browser select.value setter and dialog UI.
@@ -331,7 +337,7 @@ assert.equal($('[data-c-retry]').disabled,true);assert.equal($('[data-c-source]'
 assert.match($('[data-c-feedback]').textContent,/удалён/);
 assert.equal(document.querySelector('[data-aio-compare-launch]').hidden,true);
 const stoppedAt=calls.length;await new Promise(resolve=>setTimeout(resolve,1100));assert.equal(calls.length,stoppedAt,'released context does not poll forever');
-window.AIOGuardComparison.close();assert.equal($('[data-c-files]').children.length,0,'closing drops row/report event references');
+window.AIOGuardComparison.close();await flush();assert.equal($('[data-c-files]').children.length,0,'closing drops row/report event references');
 missingJob=true;await window.AIOGuardComparison.open(job);await flush();
 assert.match($('[data-c-feedback]').textContent,/освобождён|удалён/);
 assert.equal($('[data-c-restart]').disabled,true,'a deleted Guard package cannot be restarted');
@@ -372,7 +378,24 @@ await window.AIOGuardComparison.open(otherChild);await flush();
 assert.match($('[data-c-summary]').textContent,/Нет проверяемых пар/);
 assert.match($('[data-c-findings]').textContent,/Сравнение содержимого не выполнено/);
 assert.equal($('[data-c-retry]').disabled,true);window.AIOGuardComparison.close();emptyReport=false;
+// A queued close for an earlier opening must never abort or clear a newer one.
+for(let round=0;round<5;round++){
+  await window.AIOGuardComparison.open(job);await flush();
+  window.AIOGuardComparison.close();
+  const pending=window.AIOGuardComparison.open(round%2?child:otherChild);
+  await flush();await pending;await flush();
+  assert.equal(dialog.open,true);
+  assert.equal($('[data-c-files]').children.length,50,'an earlier close cannot clear the reopened view');
+  assert.match($('[data-c-progress]').textContent,/Анализ завершён/);
+  assert.equal(calls.filter(row=>row.path.endsWith('/compare/start')).at(-1).signal.aborted,false,
+    'an earlier close must not abort the new opening request');
+}
+// Closing through the native element also works before its queued event fires.
+dialog.close();const nativeReopen=window.AIOGuardComparison.open(job);
+await flush();await nativeReopen;await flush();
+assert.equal($('[data-c-files]').children.length,50);
+window.AIOGuardComparison.close();await flush();
 console.log(JSON.stringify({status:'PASS',scope:'production comparison UI + real DOM; controlled HTTP/native-save',
   inputs:1000,pageRows:50,selectedAcrossPages:100,automaticAnalysesOnMount:0,
   independentSave:true,escapedText:true,blobCleanup:true,stalePreviewRejected:true,
-  recipeRetryPreservesParent:true,pauseResumeCancel:true,pdfNativePageControls:true,multipleOutputs:102,historyAttempts:25,perChildVerdicts:true,nestedNavigation:true,cancelResumeRestart:true,releasedPollingStopped:true}));
+  recipeRetryPreservesParent:true,pauseResumeCancel:true,pdfNativePageControls:true,multipleOutputs:102,historyAttempts:25,perChildVerdicts:true,nestedNavigation:true,cancelResumeRestart:true,releasedPollingStopped:true,queuedCloseReopens:5}));

@@ -555,7 +555,9 @@ class ComparisonAnalysisV19(unittest.TestCase):
     def test_csv_preview_truncation_does_not_hide_complete_value_inspection(self):
         source = self.path('source.csv')
         text = 'key,value\n'+''.join('K'+str(i)+','+'v'*1000+'\n' for i in range(600))
-        source.write_text(text, encoding='utf-8')
+        # Keep fixture bytes identical on Windows: write_text would expand LF
+        # to CRLF while the expected character count still describes LF text.
+        source.write_bytes(text.encode('utf-8'))
         summary = collect_source_summary(source)
         self.assertTrue(summary['complete'])
         self.assertEqual(summary['counts']['characters'], len(text))
