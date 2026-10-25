@@ -15,8 +15,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  AIO_QA_SOURCE_SHA: b6998a0a7a2e5bf22ed82eb20fa9a67156bb6603
-  AIO_QA_TREE_SHA: f8b18e5ee47fa512bcd286cdaad39352ad0ad72a
+  AIO_QA_SOURCE_SHA: 4c3115643e3faa5678946932a15ab46521389bd2
+  AIO_QA_TREE_SHA: f4c9f710dc02f2dd6df06cfce263a7354ad5d863
   PYTHONDONTWRITEBYTECODE: '1'
   PYTHONUTF8: '1'
   PYTHONIOENCODING: utf-8
@@ -68,7 +68,7 @@ jobs:
           GIT_CONFIG_VALUE_0: 'false'
         with:
           repository: jumonja-maker/A.I.O
-          ref: b6998a0a7a2e5bf22ed82eb20fa9a67156bb6603
+          ref: 4c3115643e3faa5678946932a15ab46521389bd2
           path: aio-pr54-v19-source-${{ github.run_id }}-${{ github.run_attempt }}
           persist-credentials: false
           clean: true
@@ -162,7 +162,7 @@ jobs:
         run: |
           $ErrorActionPreference='Stop'
           $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-pr54-v19-visual-${{ github.run_id }}-${{ github.run_attempt }}'
-          & $env:AIO_QA_PYTHON tools/qa/guard_v19_visual_acceptance.py --output $evidence
+          & $env:AIO_QA_PYTHON tools/qa/guard_v19_visual_acceptance.py --output $evidence --emit-snapshots
           Write-Host ('QT_VISUAL_PROCESS_EXIT='+$LASTEXITCODE)
           if ($LASTEXITCODE -ne 0) {throw 'Windows WebEngine visual acceptance failed/incomplete'}
       - name: Record exact candidate and local evidence
@@ -214,7 +214,7 @@ jobs:
           GIT_CONFIG_VALUE_0: 'false'
         with:
           repository: jumonja-maker/A.I.O
-          ref: b6998a0a7a2e5bf22ed82eb20fa9a67156bb6603
+          ref: 4c3115643e3faa5678946932a15ab46521389bd2
           path: aio-pr54-v19-source-${{ github.run_id }}-${{ github.run_attempt }}
           persist-credentials: false
           clean: true
