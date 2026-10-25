@@ -19,11 +19,18 @@
     "native-locale-diagnosis.json": "77d27d72de02e09ac85d00cf63711b54136814375ce1da4412dc52417082c623",
     "native-recipes.json": "e89ff0b326313491d0399dc5e204ff2c626dc0a97c10ebb6f02385fb6403255c",
     "pdf.png": "fe3e5c09b6a4cfbdf6e85cabcad87472910b3584f0d15592d2e0990a6bdd05c6",
+    "runner-final-summary.json": "48867f431a3c3a87e10452990a4d5709c92ad908580fce8dd88a309d38be2c08",
     "runner-first-summary.json": "ac7bc53469e86dd4107d7db943c4190f1225a79ad041b0ee57a337f50bd4a7af",
     "runner-second-summary.json": "5e236163e987d629cfe099496e884ed7dc7574ff52ea2084a2b86119e925e11f",
     "runtime.json": "b66014a9ec9689961491dce61477a7b2e31e3bddbcd7480bd3495061d34edac7",
     "visual-console.txt": "c4026ecc3fe6143b264513dbb19380269289eed9306e54283f4dea43713182ef",
-    "visual.json": "8fcf222f2f4d479fe45262778aa69a9e9fc9ee45f98f53e16a43abdd2454be9d"
+    "visual.json": "8fcf222f2f4d479fe45262778aa69a9e9fc9ee45f98f53e16a43abdd2454be9d",
+    "windows-dark.png": "ae7169511d45eaa1ba48e393edcceed9760e456733647aba0022fc20a394272c",
+    "windows-light.png": "d3ae0e0b7c232a0dbf1830d8522988c2158e3aa4df3832871ad99e6591767d74",
+    "windows-narrow.png": "8c5253e47e75a521ce04d904a07b06162ecd848cd04a8e9bcd5da30f270bcf21",
+    "windows-native-csv.json": "e32de8d1c7863cffd64f32128059b4c955498691b6d8270a34dafe97b83b6c17",
+    "windows-pdf.png": "95756a01a95b20e3504aa786e1c9b9a53ce752f440b0176afba470b45023ef2e",
+    "windows-visual.json": "3b7d81554d5a118830d42e86c69255768186ed8cb0dec049be4d8333e997ffa7"
   },
   "scopes": {
     "fullTests": "Linux source checkout + Qt + Node DOM; not Windows EXE",
@@ -54,5 +61,27 @@
     "windows": "FAIL",
     "linux": "SOURCE_ONLY_PASS",
     "repeat": "PENDING"
+  },
+  "runnerFinal": {
+    "id": 40189802616,
+    "status": "SUCCESS",
+    "sourceCommit": "4c3115643e3faa5678946932a15ab46521389bd2",
+    "sourceTree": "f4c9f710dc02f2dd6df06cfce263a7354ad5d863",
+    "windows": {
+      "passed": 719,
+      "notApplicable": 7,
+      "failed": 0,
+      "errors": 0
+    },
+    "linuxSourceOnly": {
+      "passed": 697,
+      "notApplicable": 29,
+      "failed": 0,
+      "errors": 0
+    },
+    "nativeWindowsCsv": "PASS",
+    "automatedWindowsQtSmoke": "PASS",
+    "physicalGpu": "NOT_RUN",
+    "packagedExeSetup": "NOT_RUN"
   }
 }
