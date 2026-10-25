@@ -83,6 +83,47 @@ class AcceptanceEvidenceV17(unittest.TestCase):
             skipped=[(test, 'Set AIO_DOM_MODULE')])
         self.assertEqual(qa.suite_summary(result, 'Linux', source_only=True)['status'], 'INCOMPLETE')
 
+    def test_source_only_linux_records_new_qt_checks_as_unexecuted(self):
+        skipped = []
+        for test_id, reason in (
+            ('test_comparison_pdf_preview_v19.PagePreview.test_pdf_pages_are_bounded_png_not_a_sandboxed_browser_plugin',
+             'Existing app Qt dependency required'),
+            ('test_guard_ui_audit_v18.NativeDownloadLifetime.test_terminal_requests_and_callbacks_leave_profile_ownership',
+             'Qt bindings required for QObject lifetime proof'),
+        ):
+            skipped.append((SimpleNamespace(id=lambda value=test_id: value), reason))
+        result = SimpleNamespace(testsRun=2, failures=[], errors=[], unexpectedSuccesses=[], skipped=skipped)
+        summary = qa.suite_summary(result, 'Linux', source_only=True)
+        self.assertEqual(summary['status'], 'PASS')
+        self.assertEqual(summary['passed'], 0)
+        self.assertEqual(summary['discovered'], 2)
+        self.assertEqual([(row['test'], row['reason'], row['status']) for row in summary['skipped']],
+                         [(test.id(), reason, 'platform_not_applicable') for test, reason in skipped])
+        for system, source_only in (('Windows', True), ('Windows', False), ('Linux', False), ('Darwin', True)):
+            with self.subTest(system=system, source_only=source_only):
+                unaccepted = qa.suite_summary(result, system, source_only=source_only)
+                self.assertEqual(unaccepted['status'], 'INCOMPLETE')
+                self.assertEqual(unaccepted['passed'], 0)
+                self.assertTrue(all(row['status'] == 'INCOMPLETE' for row in unaccepted['skipped']))
+
+    def test_source_only_qt_exceptions_require_the_corresponding_test_class_and_exact_reason(self):
+        for test_id, reason in (
+            ('unrelated.PagePreview.test_case', 'Existing app Qt dependency required'),
+            ('test_comparison_pdf_preview_v19.PagePreviewExtra.test_case', 'Existing app Qt dependency required'),
+            ('test_comparison_pdf_preview_v19.PagePreview.test_case', 'Qt bindings required for QObject lifetime proof'),
+            ('test_guard_ui_audit_v18.NativeDownloadLifetime.test_case', 'Existing app Qt dependency required'),
+            ('test_guard_ui_audit_v18.NativeDownloadLifetimeExtra.test_case', 'Qt bindings required for QObject lifetime proof'),
+            ('test_guard_ui_audit_v18.NativeDownloadLifetime.test_case', 'Qt bindings required for QObject lifetime proof (unexpected)'),
+            ('test_comparison_pdf_preview_v19.PagePreview.test_case', 'Set AIO_DOM_MODULE'),
+        ):
+            with self.subTest(test=test_id, reason=reason):
+                test = SimpleNamespace(id=lambda: test_id)
+                result = SimpleNamespace(testsRun=1, failures=[], errors=[], unexpectedSuccesses=[],
+                                         skipped=[(test, reason)])
+                summary = qa.suite_summary(result, 'Linux', source_only=True)
+                self.assertEqual(summary['status'], 'INCOMPLETE')
+                self.assertEqual(summary['skipped'][0]['status'], 'INCOMPLETE')
+
     def test_source_only_keeps_pypdf_openpyxl_and_dom_mandatory(self):
         deps = {'PySide6': False, 'openpyxl': True, 'pypdf': False, 'node': True, 'DOM': False}
         summary = qa.dependency_summary(deps, system='Linux', source_only=True)

@@ -15,12 +15,14 @@
   "src/guard-comparison.js": "d08f5dcef9cbb9c3080e635f24f908673802e6131b15b1902db4496339197e3a",
   "tests/guard_comparison_v19.mjs": "fa980d50024aecc066fcc7900c51bbf0f3db0683c80a15b34733a5d09cae2860",
   "tests/test_comparison_analysis_v19.py": "37c77ba3ad036cd93f072314650a0019d8f7f439aaba6fa81c9a3755ab91ef15",
-  "tests/test_comparison_core_v19.py": "c0da8c1a5e0b744a425776d1c194e85fb85b5500456e45d495486e0f466ce2e1",
+  "tests/test_comparison_core_v19.py": "0b7b257843cc6fe7553e83380ff21a08532c33420873dc5c124c4d6dab277d19",
   "tests/test_comparison_pdf_preview_v19.py": "a2924a3fdfd5dd0f581e74d015ddf8aa793a957d6b6cc64a9f79535efee79357",
   "tests/test_comparison_recipes_v19.py": "8bbbae28566f831de89d395bcb8dc36d050dfd5bb1ee072b034346adf9889ae7",
-  "tests/test_comparison_service_v19.py": "b817cb9407ee2de20e8f29a502513b6e5b5908666b951d6293913da2960911da",
+  "tests/test_comparison_service_v19.py": "cc131943ee8bb07aa1950b5be1748012b74b6b013b17b74e7f1cd28e12e7927c",
   "tests/test_comparison_ui_v19.py": "2d433eb626b715f96952535c43553534df51a4175a187fddb943d4685c344341",
   "tools/qa/guard_v19_analysis_stress.py": "121a56b61f7af52f70f71bf8300a1243990e03c8537a7cf63451ba655fa37a03",
-  "tools/qa/guard_v19_comparison_acceptance.py": "014ab7eb14734ef1ff85c926b7391ae1f02ea67a6a12d5aadeb859c2aa475c74",
-  "tools/qa/guard_v19_visual_acceptance.py": "221a816111b007caad9b914ebd1391696bd0691698cf20ac75bfd6a76372adb3"
+  "tools/qa/guard_v19_comparison_acceptance.py": "8aa72130f8ade97e80006849a973c443ee26de6d94d25c5c3455e2a0b5e12d14",
+  "tools/qa/guard_v19_visual_acceptance.py": "221a816111b007caad9b914ebd1391696bd0691698cf20ac75bfd6a76372adb3",
+  "tools/qa/guard_v17_selfhosted_acceptance.py": "27cb7f08c0ccde96eb0ad267ddc7888866a92fcd428d229a8755aed491d507ec",
+  "tests/test_guard_selfhosted_qa_v17.py": "9fc382eb558df7171a5d2d0d3c1bec2b93f131bc1a29b6eabe40386e62c80272"
 }

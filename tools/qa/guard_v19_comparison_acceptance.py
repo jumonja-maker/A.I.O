@@ -59,8 +59,14 @@ def main(argv=None):
                 def shown(native, target, proof):
                     recipe = original(native, target, proof)
                     if recipe and recipe.filter_name == CALC_TEXT:
+                        # The control document has exactly one sheet. Keep
+                        # token 12 at 0 so an ordinary (non-retry) UNO export
+                        # writes its requested precision.csv. Using -1 here
+                        # changes LO's output contract to Precision-suffixed
+                        # filenames, which only the all-sheet retry requests
+                        # and validates. It would fail before any comparison.
                         return ExportRecipe(recipe.filter_name,
-                            '44,34,76,1,,0,false,true,true,false,false,-1,false,true',
+                            '44,34,76,1,,0,false,true,true,false,false,0,false,true',
                             warnings=recipe.warnings)
                     return recipe
                 with patch.object(adapter_module, 'native_export_recipe', shown):

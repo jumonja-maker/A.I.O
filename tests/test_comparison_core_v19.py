@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import tempfile
 import threading
+import time
 import unittest
 
 from app_backend.converter_guard import ConverterGuard, GuardError
@@ -69,14 +70,30 @@ class ComparisonOwnership(unittest.TestCase):
         self.guard = ConverterGuard(adapter=self.adapter, spool_parent=self.root)
         self.addCleanup(self.guard.close)
 
-    def converted(self, *, retain=True, count=2, formats=None):
+    def converted(self, *, retain=True, count=2, formats=None, seconds=15):
         rows = [{'id':str(i), 'name':str(i)+'.docx', 'size':4} for i in range(count)]
         identity = self.guard.create(rows, formats or ['pdf'], retain_sources=retain)['jobId']
         for row in rows:
             self.guard.upload(identity, row['id'], io.BytesIO(b'DATA'), 4)
         self.guard.start(identity, archive_mode='on_demand')
-        wait_finished(self.guard, identity, seconds=15)
-        return identity
+        # This is an ownership fixture, not a conversion-speed benchmark. In
+        # particular, a Windows runner may need longer to journal 1000 files.
+        # Delta polling avoids repeatedly rebuilding every output in that test.
+        deadline = time.monotonic() + seconds
+        revision = None
+        summary = {'jobId': identity}
+        while time.monotonic() < deadline:
+            state = self.guard.status(identity, since_revision=revision,
+                                      delta=True, result_delta=True)
+            revision = state['revision']
+            if not state.get('unchanged'):
+                summary = {key: state.get(key) for key in
+                           ('jobId', 'state', 'total', 'completed', 'succeeded',
+                            'failed', 'cancelled', 'pending')}
+                if state['finished']:
+                    return identity
+            time.sleep(.05)
+        self.fail('Guard fixture did not finish within %ss: %r' % (seconds, summary))
 
     def test_source_retention_is_explicit_and_does_no_extra_inspection(self):
         ordinary = self.converted(retain=False, count=1)
@@ -202,7 +219,7 @@ class ComparisonOwnership(unittest.TestCase):
         self.assertEqual(len(self.adapter.calls), 2)
 
     def test_thousand_retained_sources_stay_disk_owned_and_have_no_automatic_exports(self):
-        identity = self.converted(count=1000)
+        identity = self.converted(count=1000, seconds=60)
         with self.guard.comparison_inputs(identity) as records:
             self.assertEqual(len(records), 1000)
             self.assertTrue(all(r['source'].is_file() and r['sourceAvailable'] for r in records))

@@ -1,9 +1,12 @@
 """Real loopback API + isolated analysis; original/result ownership regressions."""
 from concurrent.futures import Future
+from contextlib import closing
 import hashlib
 import io
 import json
+import os
 from pathlib import Path
+import subprocess
 import tempfile
 import sqlite3
 from types import SimpleNamespace
@@ -219,15 +222,41 @@ class ComparisonServiceContracts(unittest.TestCase):
         secret = b'Z' * artifact.path.stat().st_size
         external.write_bytes(secret)
         artifact.path.unlink()
+        junction = original_directory = None
         try:
-            artifact.path.symlink_to(external)
-        except (NotImplementedError, OSError):
-            self.skipTest('This platform/account cannot create the controlled link fixture')
-        preview = self.json_request('compare/preview?' + urlencode({'job': identity, 'task': tid, 'side': 'result'}))
-        self.assertEqual(preview['kind'], 'unavailable')
-        self.assertNotIn(secret.decode(), json.dumps(preview))
-        self.assertTrue(external.is_file())
-        self.assertEqual(external.read_bytes(), secret)
+            try:
+                artifact.path.symlink_to(external)
+            except (NotImplementedError, OSError) as error:
+                if os.name != 'nt':
+                    self.fail('Cannot create the controlled symlink fixture: %s' % error)
+                # NTFS directory junctions require no symlink/admin privilege.
+                # Replace only this fixture's private output directory, and
+                # restore it before Guard's normal temporary-file cleanup.
+                external_directory = self.root / 'outside-owned-directory'
+                external_directory.mkdir()
+                external = external_directory / artifact.path.name
+                external.write_bytes(secret)
+                junction = artifact.path.parent
+                original_directory = junction.with_name(junction.name + '-original')
+                junction.rename(original_directory)
+                result = subprocess.run(
+                    ['cmd.exe', '/d', '/c', 'mklink', '/J', str(junction), str(external_directory)],
+                    capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=10)
+                self.assertEqual(result.returncode, 0,
+                                 'Cannot create private no-admin junction fixture: ' +
+                                 (result.stdout + result.stderr)[-400:])
+            preview = self.json_request('compare/preview?' + urlencode({'job': identity, 'task': tid, 'side': 'result'}))
+            self.assertEqual(preview['kind'], 'unavailable')
+            self.assertNotIn(secret.decode(), json.dumps(preview))
+            self.assertTrue(external.is_file())
+            self.assertEqual(external.read_bytes(), secret)
+        finally:
+            if junction is not None:
+                if junction.exists():
+                    os.rmdir(junction)
+                original_directory.rename(junction)
+            elif artifact.path.is_symlink():
+                artifact.path.unlink()
 
     def test_mutated_source_is_not_a_confirmed_loss_or_successful_comparison(self):
         state = self.converted(data=b'original value')
@@ -339,7 +368,9 @@ class ComparisonServiceContracts(unittest.TestCase):
         objects = []
         for name, payload in [('before.sqlite', before), ('after.sqlite', after)]:
             database = self.root / name
-            with sqlite3.connect(database) as db:
+            # A Connection context commits/rolls back; it does not close the
+            # Windows file handle. Close it before TemporaryDirectory cleanup.
+            with closing(sqlite3.connect(database)) as db, db:
                 db.execute('CREATE TABLE results(task TEXT PRIMARY KEY, payload TEXT)')
                 db.execute('INSERT INTO results VALUES (?,?)', (payload['taskId'], json.dumps(payload)))
             objects.append(SimpleNamespace(db=database, state='completed'))
