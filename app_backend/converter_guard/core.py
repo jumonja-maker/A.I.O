@@ -186,6 +186,9 @@ class _Job:
     preparation: bool = False
     preflight_checks: int = 0
     preflight_cache_hits: int = 0
+    preflight_phase: str = 'files'
+    preflight_matrix_completed: int = 0
+    preflight_matrix_total: int = 0
     bundle_cancel: threading.Event = field(default_factory=threading.Event)
     pause_wake: threading.Event = field(default_factory=threading.Event)
     paused: bool = False
@@ -1155,6 +1158,8 @@ class ConverterGuard:
                 if timeout_seconds is None and len(job.files) >= 32:
                     native_timeout = min(native_timeout, 15.0)
                 job.state, job.running = 'checking', True
+                job.preflight_phase = 'files'
+                job.preflight_matrix_completed = job.preflight_matrix_total = 0
                 job.preflight_timeout_seconds = native_timeout
                 job.io += 1
                 self._record(job, 'preflight_started')
@@ -1224,13 +1229,38 @@ class ConverterGuard:
                     raise GuardError('CANCELLED', 'Предварительная проверка отменена.', stage='preflight')
                 files = [{'id': f.id, 'name': f.name, 'size': f.size} for f in job.files]
                 proofs = {f.id: f.native_route for f in job.files}
-            # Building a file/target matrix can be expensive. The preparation
-            # lease keeps these inputs stable while status/cancel stay usable.
-            report = self.adapter.capabilities(files, proofs=proofs)
+            # All source imports may finish while the native route matrix is
+            # still running. Make this phase visible and independently
+            # cancellable instead of holding the UI at "510 / 510".
+            with self._lock:
+                if job.cancel.is_set():
+                    raise GuardError('CANCELLED', 'Предварительная проверка отменена.', stage='preflight')
+                job.preflight_phase = 'routes'
+                self._record(job, 'preflight_matrix_started')
+
+            def matrix_progress(completed, total):
+                with self._lock:
+                    if job.cancel.is_set():
+                        raise GuardError('CANCELLED', 'Проверка направлений отменена.', stage='preflight')
+                    job.preflight_matrix_completed = completed
+                    job.preflight_matrix_total = total
+                    self._record(job, 'preflight_matrix_progress')
+
+            capability = self.adapter.capabilities
+            # Preserve older external/test adapters which implement only
+            # capabilities(files, proofs=...). Native default has an explicit
+            # cooperative cancel/progress protocol; overridden methods retain
+            # their original signature and result semantics.
+            if getattr(capability, '__func__', None) is LibreOfficeAdapter.capabilities:
+                report = capability(files, proofs=proofs, cancel=job.cancel,
+                                    on_progress=matrix_progress)
+            else:
+                report = capability(files, proofs=proofs)
             with self._lock:
                 if job.cancel.is_set():
                     raise GuardError('CANCELLED', 'Предварительная проверка отменена.', stage='preflight')
                 job.state = 'prepared'
+                job.preflight_phase = 'done'
                 report['preflightChecks'] = job.preflight_checks
                 report['preflightCacheHits'] = job.preflight_cache_hits
                 return report
@@ -1241,6 +1271,7 @@ class ConverterGuard:
                     job.current = None
                     if job.cancel.is_set():
                         job.state = 'cancelled'
+                        job.preflight_phase = 'cancelled'
                     job.io -= 1
                     self._record(job,'preflight_done')
                     self._io_drained.notify_all()
@@ -2218,6 +2249,10 @@ class ConverterGuard:
                 'preflightTotal':len(job.files),
                 'preflightTimeoutSeconds':job.preflight_timeout_seconds,
                 'preflightCompleted':sum(f.state == 'prepared' for f in job.files),
+                'preflightPhase': job.preflight_phase,
+                'preflightMatrixCompleted': job.preflight_matrix_completed,
+                'preflightMatrixTotal': job.preflight_matrix_total,
+                'cancellationRequested': job.cancel.is_set(),
                 'preparation':job.preparation,
                 'preflightUndetermined':sum(not f.native_route or f.native_route.get('state')!='detected' for f in job.files),
                 'percent': counts['completed'] * 100 / counts['total'] if counts['total'] else None, 'result': result,
