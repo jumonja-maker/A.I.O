@@ -72,8 +72,25 @@ window.dispatchEvent(new window.CustomEvent('aio-guard-state',{detail:{
 assert.match(stateButton.textContent,/17 \/ 510/);
 assert.match(document.querySelector('[data-g-current]').textContent,/17 \/ 510/);
 assert.match(document.querySelector('[data-g-current]').textContent,/можно пропустить/);
+// The last file is checked, but native route matrix is a separate phase.
+// "510/510" must not imply preflight is complete or cancellation is ignored.
 window.dispatchEvent(new window.CustomEvent('aio-guard-state',{detail:{
-  ...state,revision:5
+  ...state,revision:5,state:'checking',preparation:true,
+  preflightCompleted:510,preflightTotal:510,preflightPhase:'routes',
+  preflightMatrixCompleted:33,preflightMatrixTotal:85,currentTask:null
+}}));
+assert.match(stateButton.textContent,/Направления 33 \/ 85/);
+assert.match(document.querySelector('[data-g-current]').textContent,/формируем направления 33 \/ 85/);
+assert.match(document.querySelector('[data-g-counts]').textContent,/Исходников: 510 \/ 510/);
+window.dispatchEvent(new window.CustomEvent('aio-guard-state',{detail:{
+  ...state,revision:6,state:'checking',preflightPhase:'routes',
+  preflightMatrixCompleted:33,preflightMatrixTotal:85,preflightCompleted:510,
+  preflightTotal:510,cancellationRequested:true,currentTask:null
+}}));
+assert.match(stateButton.textContent,/Отменяем/);
+assert.match(document.querySelector('[data-g-current]').textContent,/Останавливаем проверку/);
+window.dispatchEvent(new window.CustomEvent('aio-guard-state',{detail:{
+  ...state,revision:7
 }}));
 assert.equal(stateButton.textContent,'Состояние');
 
