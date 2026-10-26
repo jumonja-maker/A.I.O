@@ -13,7 +13,8 @@ import zipfile
 
 from app_backend.converter_guard.errors import GuardError
 from app_backend.converter_guard.source_contract import (
-    CALC, FORMULA, MATHML, OFFICE, WRITER, inspect_source_contract, source_model_matches)
+    CALC, FORMULA, IMPRESS, MATHML, OFFICE, WRITER, inspect_source_contract, source_model_matches,
+    source_import_hint)
 
 CT = 'http://schemas.openxmlformats.org/package/2006/content-types'
 REL = 'http://schemas.openxmlformats.org/package/2006/relationships'
@@ -157,6 +158,98 @@ class SourceContractV20(unittest.TestCase):
         self.assertEqual(inspect_source_contract(self.formula(xml='<math xmlns="urn:wrong"/>'))['state'], 'invalid')
         xml = f'<o:document-content xmlns:o="{OFFICE}"><o:body><o:text/></o:body></o:document-content>'
         self.assertEqual(inspect_source_contract(self.formula(xml=xml))['state'], 'invalid')
+
+    def test_native_flat_presentation_alias_requires_body_installed_import_and_model(self):
+        from types import SimpleNamespace
+        path = self.root / 'presentation.unknown'
+        path.write_text(f'<o:document xmlns:o="{OFFICE}" '
+            'o:mimetype="application/vnd.oasis.opendocument.presentation-flat-xml">'
+            '<o:body><o:presentation/></o:body></o:document>')
+        contract = inspect_source_contract(path)
+        self.assertEqual(contract['state'], 'recognized')
+        self.assertEqual(contract['expectedServices'], [IMPRESS])
+        self.assertEqual(contract['warnings'], ['SOURCE_MIMETYPE_ALIAS'])
+        self.assertTrue(contract['nativeImportRequired'])
+        name = 'OpenDocument Presentation Flat XML'
+        native = SimpleNamespace(valid=True, filters={name: (IMPRESS, (), {'IMPORT'})})
+        self.assertEqual(source_import_hint(contract, native)['filter'], name)
+        self.assertFalse(source_model_matches(contract, [CALC]))
+        self.assertFalse(source_model_matches(contract, [WRITER]))
+        self.assertTrue(source_model_matches(contract, [IMPRESS]))
+        native.filters = {}
+        self.assertIsNone(source_import_hint(contract, native))
+
+    def test_flat_alias_never_accepts_wrong_missing_or_foreign_body(self):
+        for body in ['<o:body><o:text/></o:body>', '<o:body/>',
+                '<x:body xmlns:x="urn:foreign"><o:presentation/></x:body>']:
+            with self.subTest(body=body):
+                path = self.root / 'presentation.unknown'
+                path.write_text(f'<o:document xmlns:o="{OFFICE}" '
+                    'o:mimetype="application/vnd.oasis.opendocument.presentation-flat-xml">'
+                    + body + '</o:document>')
+                self.assertEqual(inspect_source_contract(path)['state'], 'invalid')
+
+    def test_native_flat_text_alias_uses_installed_writer_import_and_exact_model(self):
+        from types import SimpleNamespace
+        path = self.root / 'text.unknown'
+        path.write_text(f'<o:document xmlns:o="{OFFICE}" '
+            'o:mimetype="application/vnd.oasis.opendocument.text-flat-xml">'
+            '<o:body><o:text/></o:body></o:document>')
+        contract = inspect_source_contract(path)
+        self.assertEqual(contract['state'], 'recognized')
+        self.assertEqual(contract['expectedServices'], [WRITER])
+        self.assertEqual(contract['warnings'], ['SOURCE_MIMETYPE_ALIAS'])
+        self.assertEqual(contract['importProfile'], 'flat_text_mimetype_alias')
+        name = 'OpenDocument Text Flat XML'
+        native = SimpleNamespace(valid=True, filters={name: (WRITER, (), {'IMPORT'})})
+        self.assertEqual(source_import_hint(contract, native)['filter'], name)
+        self.assertFalse(source_model_matches(contract, [CALC]))
+        self.assertFalse(source_model_matches(contract, [IMPRESS]))
+        native.filters[name] = (CALC, (), {'IMPORT'})
+        self.assertIsNone(source_import_hint(contract, native))
+        path.write_text(path.read_text().replace('<o:text/>', '<o:presentation/>'))
+        self.assertEqual(inspect_source_contract(path)['state'], 'invalid')
+
+    def test_flat_text_alias_keeps_existing_explicit_column_preparation(self):
+        from app_backend.converter_guard.odf_table_import import prepare_odf_table_source
+        table = 'urn:oasis:names:tc:opendocument:xmlns:table:1.0'
+        text = 'urn:oasis:names:tc:opendocument:xmlns:text:1.0'
+        path = self.root / 'text.fodt'
+        path.write_text(f'<o:document xmlns:o="{OFFICE}" xmlns:t="{table}" xmlns:x="{text}" '
+            'o:mimetype="application/vnd.oasis.opendocument.text-flat-xml"><o:body><o:text>'
+            '<t:table><t:table-row><t:table-cell><x:p>one</x:p></t:table-cell>'
+            '<t:table-cell><x:p>two</x:p></t:table-cell></t:table-row></t:table>'
+            '</o:text></o:body></o:document>')
+        before = path.read_bytes()
+        prepared, proof = prepare_odf_table_source(path, self.root / 'prep', cancel=threading.Event())
+        self.assertNotEqual(prepared, path)
+        self.assertEqual(proof['columns'], [2])
+        self.assertEqual(path.read_bytes(), before)
+        self.assertIn(b'one</x:p>', prepared.read_bytes())
+        self.assertIn(b'two</x:p>', prepared.read_bytes())
+        self.assertEqual(inspect_source_contract(prepared)['expectedServices'], [WRITER])
+
+    def test_alias_cannot_fall_back_to_automatic_import_when_its_importer_is_missing(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from app_backend.converter_guard.adapter import LibreOfficeAdapter, prepare_profile
+        from app_backend.converter_guard.preflight import inspect_source
+        import sys
+        source = self.root / 'alias.fodp'
+        source.write_text(f'<o:document xmlns:o="{OFFICE}" '
+            'o:mimetype="application/vnd.oasis.opendocument.presentation-flat-xml">'
+            '<o:body><o:presentation/></o:body></o:document>')
+        native = SimpleNamespace(valid=True, filters={})
+        adapter = LibreOfficeAdapter(sys.executable)
+        with patch.object(adapter, '_registry', return_value=native):
+            result = adapter._preflight_native(source, self.root / 'adapter',
+                cancel=threading.Event(), timeout=5)
+        self.assertEqual(result['code'], 'SOURCE_NATIVE_IMPORT_FILTER_REQUIRED')
+        result = inspect_source(Path(sys.executable), source, self.root / 'standalone',
+            cancel=threading.Event(), timeout=5, prepare_profile=prepare_profile, native=native)
+        self.assertEqual(result['code'], 'SOURCE_NATIVE_IMPORT_FILTER_REQUIRED')
+        self.assertFalse((self.root / 'adapter').exists())
+        self.assertFalse((self.root / 'standalone').exists())
 
     def test_budget_and_cancel_do_not_become_content_or_route_proof(self):
         path = self.package()

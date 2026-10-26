@@ -165,6 +165,124 @@ class DifNumericContracts(unittest.TestCase):
         self.assertFalse(check['qualityCompared'])
 
 
+class DifFileOwnershipContracts(unittest.TestCase):
+    """Resources are closed synchronously, even if error tracebacks survive."""
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name)
+        self.source = self.root / 'source.dif'
+        self.output = self.root / 'source.fods'
+        self.rows = [['VALUE'], [1.43], [2.86]]
+        self.source.write_bytes(dif(self.rows))
+        self.output.write_text(fods(self.rows))
+        self.cancel = threading.Event()
+
+    def _tracked_open(self, handles):
+        original = Path.open
+        def tracked(path, *args, **kwargs):
+            stream = original(path, *args, **kwargs)
+            if path in (self.source, self.output):
+                handles.append((path, stream))
+            return stream
+        return tracked
+
+    def _assert_closed(self, handles, *, output_expected=True):
+        self.assertTrue(handles, 'the test must observe actual opened resources')
+        self.assertIn(self.source, [path for path, _ in handles])
+        if output_expected:
+            self.assertIn(self.output, [path for path, _ in handles])
+        self.assertTrue(all(stream.closed for _, stream in handles),
+            'an inspection stream remained open after its owning call returned/raised')
+
+    def test_snapshot_mismatch_closes_both_files_with_exception_chain_retained(self):
+        from unittest.mock import patch
+        self.output.write_text(fods([['VALUE'], ['#ERR: 1.43 (V)'], [2.86]]))
+        handles, retained = [], []
+        with patch.object(Path, 'open', self._tracked_open(handles)):
+            try:
+                check_dif_output([self.output], 'fods', self.source, cancel=self.cancel)
+            except GuardError as error:
+                retained.extend((error, error.__traceback__, error.__cause__))
+                self.assertEqual(error.code, 'ENGINE_OUTPUT_CONTENT_LOSS')
+                # Assert inside the except, before even the caller's traceback
+                # reference or the inspection exception chain can be released.
+                self._assert_closed(handles)
+            else:
+                self.fail('expected a numeric mismatch')
+            self._assert_closed(handles)
+        self.assertTrue(retained[1])
+        self.output.unlink()  # Meaningful native Windows file-lock regression.
+        self.source.unlink()
+
+    def test_native_model_mismatch_closes_source_with_traceback_retained(self):
+        from unittest.mock import patch
+        handles, retained = [], []
+        broken = model([['VALUE'], ['#ERR: 1.43 (V)'], [2.86]])
+        with patch.object(Path, 'open', self._tracked_open(handles)):
+            try:
+                check_dif_import_model(self.source, broken)
+            except DifNumericMismatch as error:
+                retained.extend((error, error.__traceback__))
+                self._assert_closed(handles, output_expected=False)
+            else:
+                self.fail('expected an imported numeric mismatch')
+        self.assertTrue(retained[1])
+        self.source.unlink()
+
+    def test_cancel_between_output_yield_and_source_read_closes_both_streams(self):
+        from unittest.mock import patch
+        from app_backend.converter_guard import dif_evidence
+        real_rows = dif_evidence._dif_output_rows
+        def cancel_after_output_read(*args, **kwargs):
+            inner = real_rows(*args, **kwargs)
+            try:
+                for row in inner:
+                    self.cancel.set()
+                    yield row
+            finally:
+                inner.close()
+        handles, retained = [], []
+        with patch.object(Path, 'open', self._tracked_open(handles)), \
+                patch.object(dif_evidence, '_dif_output_rows', cancel_after_output_read):
+            try:
+                check_dif_output([self.output], 'fods', self.source, cancel=self.cancel)
+            except GuardError as error:
+                retained.extend((error, error.__traceback__, error.__cause__))
+                self.assertEqual(error.code, 'CANCELLED')
+                self._assert_closed(handles)
+            else:
+                self.fail('expected cancellation')
+        self.assertTrue(retained[1])
+        self.output.unlink()
+        self.source.unlink()
+
+    def test_malformed_output_tail_closes_files_while_parse_error_is_retained(self):
+        from unittest.mock import patch
+        self.output.write_text(fods(self.rows) + '<broken>')
+        handles, retained = [], []
+        with patch.object(Path, 'open', self._tracked_open(handles)):
+            try:
+                check_dif_output([self.output], 'fods', self.source, cancel=self.cancel)
+            except GuardError as error:
+                retained.extend((error, error.__traceback__, error.__cause__))
+                self.assertEqual(error.code, 'ENGINE_OUTPUT_VALIDATION_INCOMPLETE')
+                self._assert_closed(handles)
+            else:
+                self.fail('expected a malformed native snapshot')
+        self.assertTrue(retained[1])
+
+    def test_unknown_source_tail_closes_suspended_output_on_not_checked_return(self):
+        from unittest.mock import patch
+        self.source.write_bytes(self.source.read_bytes() + b'UNKNOWN AFTER EOD\n')
+        handles = []
+        with patch.object(Path, 'open', self._tracked_open(handles)):
+            check = check_dif_output([self.output], 'fods', self.source, cancel=self.cancel)
+            self.assertEqual(check['status'], 'not_checked')
+            self.assertEqual(check['reason'], 'dif_trailing_data')
+            self._assert_closed(handles)
+
+
 class DifAdapterIntegration(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()

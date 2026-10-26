@@ -500,6 +500,9 @@ class LibreOfficeAdapter:
             return {**result, 'sourceContract': {**contract, 'expectedServices': [WRITER, WEB]},
                     'sourcePreparation': prepared.summary, 'exported': False}
         source_hint = source_import_hint(contract, native)
+        if contract.get('nativeImportRequired') and source_hint is None:
+            return {'state': 'undetermined', 'code': 'SOURCE_NATIVE_IMPORT_FILTER_REQUIRED',
+                    'sourceContract': contract, 'exported': False}
         hint = source_hint or csv_import_hint(source, native) or legacy_import_hint(source, native)
         # One streaming scan, only for a content-confirmed text hint. Large or
         # ambiguous inputs retain an explicit incomplete status, never a veto.
@@ -1047,6 +1050,9 @@ class LibreOfficeAdapter:
                                        if code == 'PREFLIGHT_INTERACTION_REQUIRED' else
                                        'LibreOffice не смог '+('открыть исходник.'
                                        if result.get('stage')=='import' else 'создать выбранный результат.'))
+                            if code == 'DIF_NUMERIC_IMPORT_MISMATCH':
+                                message = ('При импорте DIF LibreOffice изменил числа или их типы. '
+                                           'Экспорт этого исходника остановлен; исходный файл сохранён.')
                             raise GuardError(code, message,
                                 stage=result.get('stage','engine'),diagnostic=diagnostic)
                         try:

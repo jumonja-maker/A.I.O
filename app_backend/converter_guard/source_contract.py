@@ -78,7 +78,7 @@ def _root_and_body(stream, *, cancel, budget):
                 stack.append(item.tag)
                 if root is None:
                     root = (item.tag, dict(item.attrib))
-                if len(stack) == 3 and stack[1].endswith('}body'):
+                if len(stack) == 3 and stack[1] in ('{' + OFFICE + '}body', '{' + LEGACY_OFFICE + '}body'):
                     return root, item.tag
             else:
                 stack.pop()
@@ -100,6 +100,14 @@ def _odf_contract(mime, root, body, *, flat=False):
     if mime.startswith(prefix):
         kind = mime[len(prefix):]
         expected = ODF.get(kind)
+        flat_alias_family = {'presentation-flat-xml': 'presentation', 'text-flat-xml': 'text'}.get(kind) if flat else None
+        if flat_alias_family:
+            # These deployed aliases have installed native Flat XML importers.
+            # Accept only its actual presentation body; the installed explicit
+            # importer and matching live model remain mandatory afterwards.
+            expected = ODF[flat_alias_family]
+            if body != '{' + OFFICE + '}' + expected[0]:
+                return _invalid('mimetype_body_mismatch', 'flat_odf')
         if expected is None:
             if flat and kind in ('text-flat-xml', 'spreadsheet-flat-xml',
                                  'presentation-flat-xml', 'graphics-flat-xml'):
@@ -119,7 +127,11 @@ def _odf_contract(mime, root, body, *, flat=False):
             return _invalid('mimetype_body_mismatch', 'odf')
         return {'state': 'recognized', 'contentClass': 'flat_odf' if flat else 'odf_package',
                 'mimetype': mime, 'expectedServices': [expected[1]],
-                'bodyObserved': body is not None}
+                'bodyObserved': body is not None,
+                **({'warnings': ['SOURCE_MIMETYPE_ALIAS'],
+                    'nativeImportRequired': True,
+                    'importProfile': 'flat_' + flat_alias_family + '_mimetype_alias'}
+                   if flat_alias_family else {})}
     if mime.startswith('application/vnd.sun.xml.'):
         expected = LEGACY.get(mime[len('application/vnd.sun.xml.'):])
         if expected is None:

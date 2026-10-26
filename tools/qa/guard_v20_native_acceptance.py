@@ -21,7 +21,7 @@ from app_backend.converter_guard.errors import GuardError
 from app_backend.converter_guard.media_fidelity import inspect_media
 from app_backend.converter_guard.source_contract import inspect_source_contract
 from guard_v08_native_acceptance import fixtures
-from guard_v16_bugbag_acceptance import presentation_seed
+from guard_v16_bugbag_acceptance import presentation_seed, writer_seed, MARKERS
 
 
 def digest(path):
@@ -61,6 +61,15 @@ def main():
     presentation = args.output / 'fixtures' / 'slides.fodp'
     presentation.write_text(presentation_seed(), encoding='utf-8')
     sources['presentation'] = presentation
+    flat_alias = args.output / 'fixtures' / 'presentation-alias.fodp'
+    flat_alias.write_text(presentation_seed().replace(
+        'application/vnd.oasis.opendocument.presentation',
+        'application/vnd.oasis.opendocument.presentation-flat-xml'), encoding='utf-8')
+    sources['flat_presentation_alias'] = flat_alias
+    flat_text = args.output / 'fixtures' / 'text-alias.fodt'
+    flat_text.write_text(writer_seed().replace('application/vnd.oasis.opendocument.text',
+        'application/vnd.oasis.opendocument.text-flat-xml'), encoding='utf-8')
+    sources['flat_text_alias'] = flat_text
     before = {key: digest(path) for key, path in sources.items()}
     adapter = LibreOfficeAdapter(args.executable)
     if not adapter.available:
@@ -69,13 +78,20 @@ def main():
     cases = []
     expected = {'docx': ['docm', 'dotx', 'pdf'], 'default_xlsx': ['xlsx'],
         'math': ['pdf'], 'dif': ['fods', 'xlsx', 'pdf'],
-        'bmp': ['png', 'jfif', 'jif', 'jpe'], 'presentation': ['bmp', 'htm']}
+        'bmp': ['png', 'jfif', 'jif', 'jpe'], 'presentation': ['bmp', 'htm'],
+        'flat_presentation_alias': ['odp'], 'flat_text_alias': ['odt']}
     cancel = threading.Event()
     with adapter.batch(args.output / 'office'):
         for key, targets in expected.items():
             source = sources[key]
             proof = adapter.preflight(source, args.output / ('inspect-' + key), cancel=cancel, timeout=60)
             if proof.get('state') != 'detected':
+                if key in ('flat_presentation_alias', 'flat_text_alias') and os.name != 'nt':
+                    assert proof.get('code') == 'SOURCE_MODEL_MISMATCH', proof
+                    cases.append({'source': key, 'status': 'SAFE_REJECTION',
+                        'reason': 'Linux LOK automatic model differs from declared native flat profile',
+                        'code': proof['code']})
+                    continue
                 raise AssertionError((key, proof))
             adapter.prepare_source(proof)
             if key in ('docx', 'presentation'):
@@ -103,6 +119,15 @@ def main():
                     assert (media['width'], media['height']) == (2, 2), media
                 if key == 'presentation' and target == 'bmp':
                     inspect_media(primaries[0], validate_container=True)
+                if key == 'flat_text_alias':
+                    with zipfile.ZipFile(primaries[0]) as archive:
+                        text = archive.read('content.xml').decode()
+                        assert all(marker in text for marker in MARKERS), 'Native text alias lost table cells'
+                if key == 'flat_presentation_alias':
+                    with zipfile.ZipFile(primaries[0]) as archive:
+                        content = archive.read('content.xml').decode()
+                        from guard_v16_bugbag_acceptance import SLIDE_MARKER
+                        assert SLIDE_MARKER in content, 'Native flat alias lost slide text'
                 if target in ('docm', 'dotx'):
                     with zipfile.ZipFile(primaries[0]) as archive:
                         content_types = archive.read('[Content_Types].xml').decode()

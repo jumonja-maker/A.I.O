@@ -158,10 +158,11 @@ def check_dif_import_model(source, model, *, cancel=None):
     """
     if not is_dif_source(source):
         return None
+    source_rows = iter_dif_numeric_rows(source, cancel=cancel)
     try:
         sheet = model.getSheets().getByIndex(0)
         count = 0
-        for row, values in iter_dif_numeric_rows(source, cancel=cancel):
+        for row, values in source_rows:
             for index in range(0, len(values), 128):
                 _dif_cancel(cancel)
                 batch = values[index:index + 128]
@@ -183,6 +184,10 @@ def check_dif_import_model(source, model, *, cancel=None):
             raise
         return {'check': 'dif_numeric_import', 'status': 'not_checked',
                 'reason': str(error), 'qualityCompared': False}
+    finally:
+        # A suspended source generator owns its file. A retained mismatch
+        # traceback must not keep that handle open until garbage collection.
+        source_rows.close()
 '''
 
 exec(DIF_CORE_SOURCE, globals())
@@ -279,11 +284,12 @@ def check_dif_output(paths, target, source, *, cancel):
         raise GuardError('ENGINE_OUTPUT_VALIDATION_INCOMPLETE',
             'Не удалось однозначно проверить числовые данные DIF.', stage='result',
             diagnostic='dif_numeric_primary_ambiguous')
+    observed = _dif_output_rows(candidates[0], target, cancel)
+    source_rows = iter_dif_numeric_rows(source, cancel=cancel)
     try:
-        observed = iter(_dif_output_rows(candidates[0], target, cancel))
         current = next(observed, None)
         count = 0
-        for row, values in iter_dif_numeric_rows(source, cancel=cancel):
+        for row, values in source_rows:
             while current is not None and current[0] + current[1] <= row:
                 current = next(observed, None)
             if not values:
@@ -321,6 +327,14 @@ def check_dif_output(paths, target, source, *, cancel):
         raise GuardError('ENGINE_OUTPUT_VALIDATION_INCOMPLETE',
             'Не удалось полностью прочитать нативный снимок чисел DIF. Результат не подтверждён.',
             stage='result', diagnostic='dif_numeric_inspection:' + type(error).__name__) from error
+    finally:
+        # Closing both streams is part of this call, including early mismatch,
+        # cancellation and bounded/unsupported inspection. On Windows a live
+        # generator otherwise locks the snapshot through the error traceback.
+        try:
+            observed.close()
+        finally:
+            source_rows.close()
     if cancel.is_set():
         raise GuardError('CANCELLED', 'Проверка чисел DIF отменена.', stage='result')
     return {**result, 'status': 'checked_subset', 'numericCells': count,
