@@ -1,0 +1,54 @@
+{
+  "status": "PASS",
+  "engine": "LibreOffice 25.2.3.2 (Linux)",
+  "scope": "19 original synthetic-corpus Word to native Writer text exports; not user FULLTEST; not the complete AIO Linux suite",
+  "cases": 19,
+  "allOriginalSha256Unchanged": true,
+  "allPrivateCopiesRemoved": true,
+  "allCheckedBodyParagraphsPresent": true,
+  "allCheckedTableCellsPresent": true,
+  "elapsedSecondsRange": [1.322, 1.904],
+  "timingScope": "One local set of isolated CLI runs; not a Windows throughput claim",
+  "preparationUnitTests": 18,
+  "fullCaseEvidenceSha256": "d5611ade46fef14c5472f8735fbcb4406e118e0a1d4d419cafada5d68b6f6241",
+  "txtLevel3": [
+    {
+      "source": "03_LEVEL_3.docx",
+      "sourceBytes": 38844,
+      "sourceSHA256": "dd0ff109f782ed4327b4918232318ef0f1ff55ca4b3530c9da6e8560442a2e69",
+      "elapsedSeconds": 1.843,
+      "outputBytes": 3527,
+      "outputSHA256": "81e3c0c2fd1d53d0cf15a72206d420df07f2e0d24172065ace808fb24b5e4abb",
+      "bodyParagraphs": 57,
+      "tableCells": 36,
+      "missingCheckedParagraphs": 0,
+      "missingCheckedCells": 0,
+      "lastCell106_96Occurrences": 1
+    },
+    {
+      "source": "03_LEVEL_3.docm",
+      "sourceBytes": 38852,
+      "sourceSHA256": "76647454d45278e0355d37e97cff92712ab862fde1fb957eb4dd319559045478",
+      "elapsedSeconds": 1.689,
+      "outputBytes": 3527,
+      "outputSHA256": "81e3c0c2fd1d53d0cf15a72206d420df07f2e0d24172065ace808fb24b5e4abb",
+      "bodyParagraphs": 57,
+      "tableCells": 36,
+      "missingCheckedParagraphs": 0,
+      "missingCheckedCells": 0,
+      "lastCell106_96Occurrences": 1
+    }
+  ],
+  "ablation": {
+    "unpreparedDocxAndDocm": "native TXT did not terminate before the controlled 10 second cutoff",
+    "terminalTableOnly": "loop reproduced; temporary text grows and repeats last cell",
+    "withoutTable": "native TXT completed",
+    "TextFilterInsteadOfEncoded": "loop reproduced",
+    "explicitLF": "loop reproduced",
+    "emptyParagraphAfterTerminalTable": "native TXT completed",
+    "nativeDOCReferenceTXT_SHA256": "81e3c0c2fd1d53d0cf15a72206d420df07f2e0d24172065ace808fb24b5e4abb",
+    "nativeDOCXviaODTReferenceTXT_SHA256": "81e3c0c2fd1d53d0cf15a72206d420df07f2e0d24172065ace808fb24b5e4abb"
+  },
+  "notRun": ["new user FULLTEST", "packaged v22 EXE/installer", "physical GUI acceptance"],
+  "interpretation": "Presence of checked text and identical reference text bytes does not certify all Word stories, fonts, layout or macros. The retained original documents were not rewritten."
+}
