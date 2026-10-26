@@ -12,12 +12,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: aio-pr60-v21-selfhosted-qa-once
+  group: aio-pr60-v21-final-selfhosted-qa-once
   cancel-in-progress: false
 
 env:
-  AIO_QA_SOURCE_SHA: 728131affd4849daa0bd4c868813d537a6dcb80a
-  AIO_QA_TREE_SHA: 4370343e19603c60c55cd1b6c4fb419dfafb61ad
+  AIO_QA_SOURCE_SHA: 4ac9ac17b7fd4e5b97b7c99e814b9547b668fc83
+  AIO_QA_TREE_SHA: 6a31001f4735f6538fe98cc9b18fad3887a6ea20
   PYTHONDONTWRITEBYTECODE: '1'
   PYTHONUTF8: '1'
   PYTHONIOENCODING: utf-8
@@ -35,7 +35,7 @@ jobs:
       github.repository == 'jumonja-maker/A.I.O' &&
       github.actor == 'jumonja-maker' &&
       github.event.action == 'labeled' &&
-      github.event.label.name == 'aio-pr60-v21-selfhosted-qa-once' &&
+      github.event.label.name == 'aio-pr60-v21-final-selfhosted-qa-once' &&
       github.event.pull_request.number == 60 &&
       github.event.pull_request.user.login == 'jumonja-maker' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
@@ -69,7 +69,7 @@ jobs:
           GIT_CONFIG_VALUE_0: 'false'
         with:
           repository: jumonja-maker/A.I.O
-          ref: 728131affd4849daa0bd4c868813d537a6dcb80a
+          ref: 4ac9ac17b7fd4e5b97b7c99e814b9547b668fc83
           path: aio-pr60-v21-source-${{ github.run_id }}-${{ github.run_attempt }}
           persist-credentials: false
           clean: true
@@ -132,6 +132,20 @@ jobs:
           $target=Join-Path $env:RUNNER_TEMP 'aio-pr60-v21-deps-${{ github.run_id }}-${{ github.run_attempt }}-windows'
           & $env:AIO_QA_PYTHON tools/qa/guard_v17_test_dependencies.py --output $target --github-env
           if ($LASTEXITCODE -ne 0) {throw 'Offline test dependency preparation failed'}
+      - name: Actual before-after analysis and LibreOffice automatic retry
+        working-directory: aio-pr60-v21-source-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-pr60-v21-evidence-${{ github.run_id }}-${{ github.run_attempt }}'
+          & $env:AIO_QA_PYTHON tools/qa/guard_v19_comparison_acceptance.py --output (Join-Path $evidence 'before-after-native') --executable $env:AIO_QA_ENGINE
+          if ($LASTEXITCODE -ne 0) {throw 'Actual before-after retry failed'}
+      - name: Native Strict XLSX and stale dimensions preserve values and routes
+        working-directory: aio-pr60-v21-source-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-pr60-v21-evidence-${{ github.run_id }}-${{ github.run_attempt }}'
+          & $env:AIO_QA_PYTHON tools/qa/guard_v21_xlsx_acceptance.py --output (Join-Path $evidence 'native-v21-xlsx') --executable $env:AIO_QA_ENGINE --require-mode native_uno
+          if ($LASTEXITCODE -ne 0) {throw 'Native XLSX route/value controls failed'}
       - name: Integrated real LibreOffice v20 native formats and quality contracts
         working-directory: aio-pr60-v21-source-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
@@ -168,13 +182,6 @@ jobs:
           $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-pr60-v21-evidence-${{ github.run_id }}-${{ github.run_attempt }}'
           & $env:AIO_QA_PYTHON tools/qa/guard_v19_native_recipes_acceptance.py --output (Join-Path $evidence 'native-v19-recipes') --executable $env:AIO_QA_ENGINE --require-mode native_uno
           if ($LASTEXITCODE -ne 0) {throw 'Native quality recipes regressed'}
-      - name: Actual before-after analysis and LibreOffice automatic retry
-        working-directory: aio-pr60-v21-source-${{ github.run_id }}-${{ github.run_attempt }}
-        run: |
-          $ErrorActionPreference='Stop'
-          $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-pr60-v21-evidence-${{ github.run_id }}-${{ github.run_attempt }}'
-          & $env:AIO_QA_PYTHON tools/qa/guard_v19_comparison_acceptance.py --output (Join-Path $evidence 'before-after-native') --executable $env:AIO_QA_ENGINE
-          if ($LASTEXITCODE -ne 0) {throw 'Actual before-after retry failed'}
       - name: Thousand-file comparison lifecycle and classification
         working-directory: aio-pr60-v21-source-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
