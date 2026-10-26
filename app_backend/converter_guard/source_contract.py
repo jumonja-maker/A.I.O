@@ -241,11 +241,14 @@ _XML_MAIN_TYPES = {
        for name in names},
     **{'application/vnd.' + name + '.macroenabled.main+xml': family
        for family, names in (
-           ('wordprocessingml', ('ms-word.document', 'ms-word.template')),
+           ('wordprocessingml', ('ms-word.document',)),
            ('spreadsheetml', ('ms-excel.sheet', 'ms-excel.template', 'ms-excel.addin')),
            ('presentationml', ('ms-powerpoint.presentation', 'ms-powerpoint.template',
                                'ms-powerpoint.slideshow', 'ms-powerpoint.addin')))
        for name in names},
+    # Word macro-enabled templates (DOTM) use a distinct real main-part MIME:
+    # macroEnabledTemplate, not the macroEnabled document/template spelling.
+    'application/vnd.ms-word.template.macroenabledtemplate.main+xml': 'wordprocessingml',
 }
 _BINARY_CALC_MAIN = 'application/vnd.ms-excel.sheet.binary.macroenabled.main'
 _STANDALONE_XML = {
