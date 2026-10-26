@@ -373,7 +373,7 @@ class ConverterGuard:
         self.adapter = adapter if adapter is not None else LibreOfficeAdapter()
         self.telemetry = telemetry
         declared_revision = os.environ.get('AIO_BUILD_REVISION', '')
-        self.build_identity = {'sourceRevision': declared_revision if re.fullmatch(r'[0-9a-f]{40}', declared_revision) else None,
+        self.build_identity = {'scope': 'report_runtime', 'sourceRevision': declared_revision if re.fullmatch(r'[0-9a-f]{40}', declared_revision) else None,
                                'basis': 'configured' if re.fullmatch(r'[0-9a-f]{40}', declared_revision) else 'unknown'}
         self.limits = limits if limits is not None else GuardLimits()
         self._recovery = None if recovery_parent is None else Path(recovery_parent).resolve()
@@ -1687,6 +1687,11 @@ class ConverterGuard:
                                 if task.state not in DONE:
                                     self._fail(job, item, task, GuardError('CANCELLED', 'Конвертация отменена.'))
                                 continue
+                            if source_failure == 'DIF_NUMERIC_IMPORT_MISMATCH':
+                                self._fail(job, item, task, GuardError(
+                                    source_failure, 'Импорт чисел DIF изменяет данные. Повторные направления этого исходника не запускались.',
+                                    stage='import'))
+                                continue
                             if source_failure:
                                 self._fail(job, item, task, GuardError(
                                     'SOURCE_DEFERRED_AFTER_TIMEOUT' if source_failure == 'ENGINE_TIMEOUT' else
@@ -1791,7 +1796,7 @@ class ConverterGuard:
                             self._retain_outputs(job, item, task, workspace, paths)
                         except GuardError as error:
                             self._capture_rejected_output(job, item, task, workspace, error)
-                            if (error.code in ('SOURCE_IMPORT_FAILED', 'NATIVE_MODEL_CHANGED',
+                            if (error.code in ('DIF_NUMERIC_IMPORT_MISMATCH', 'SOURCE_IMPORT_FAILED', 'NATIVE_MODEL_CHANGED',
                                                'SOURCE_MODEL_MISMATCH', 'NATIVE_IMPORT_FILTER_CHANGED',
                                                'PREFLIGHT_INTERACTION_REQUIRED')
                                     or error.code == 'ENGINE_TIMEOUT' and error.stage not in ('export', 'close')):

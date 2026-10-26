@@ -803,7 +803,14 @@ class LibreOfficeAdapter:
                 import_filter=name + (':' + options if options else ''))
         except LibreOfficeError as error:
             raise GuardError(error.code, str(error), stage='import', diagnostic=error.diagnostic) from error
-        check = check_dif_output(paths, 'fods', source, cancel=cancel)
+        try:
+            check = check_dif_output(paths, 'fods', source, cancel=cancel)
+        except GuardError as error:
+            if error.code == 'ENGINE_OUTPUT_CONTENT_LOSS':
+                raise GuardError('DIF_NUMERIC_IMPORT_MISMATCH',
+                    'Нативный импорт DIF изменил числовые данные. Экспорт этого исходника остановлен.',
+                    stage='import', diagnostic=error.diagnostic) from error
+            raise
         if check is None or check.get('status') not in ('checked_subset', 'not_checked'):
             raise GuardError('DIF_NUMERIC_VALIDATION_UNAVAILABLE',
                 'Не удалось проверить числовые данные DIF перед конвертацией.', stage='import')

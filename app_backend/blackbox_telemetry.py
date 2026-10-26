@@ -55,7 +55,7 @@ CRITICAL_EVENTS = frozenset({
     'task_cancelled', 'result_created', 'output_contract_warning',
     'cancel_requested', 'save_started', 'save_file_written', 'save_confirmed',
     'save_finished', 'save_failed', 'archive_failed', 'recovery_failed',
-    'engine_identity', 'file_cancel_requested', 'job_recovered', 'results_retained',
+    'engine_identity', 'native_registry_identified', 'file_cancel_requested', 'job_recovered', 'results_retained',
 })
 SAFE_STATE = frozenset({'completed', 'ready', 'failed', 'skipped', 'cancelled',
     'not_checked', 'unknown', 'checked', 'invalid', 'saved', 'partial', 'error'})

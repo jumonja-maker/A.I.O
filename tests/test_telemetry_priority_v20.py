@@ -61,6 +61,16 @@ class TelemetryPriority(unittest.TestCase):
         self.assertTrue({'task_failed', 'save_confirmed', 'cancel_requested'} <= {r['type'] for r in rows})
         self.assert_complete_accounting(emitter, rows)
 
+    def test_actual_guard_registry_event_survives_routine_flood(self):
+        with self.blocked_writer(capacity=8) as emitter:
+            for _ in range(20):
+                emitter.emit('task_queued')
+            emitter.emit('native_registry_identified', engine_registry_fingerprint='a' * 64)
+        rows = self.read(emitter)
+        [identity] = [row for row in rows if row['type'] == 'native_registry_identified']
+        self.assertEqual(identity['engine_registry_fingerprint'], 'a' * 64)
+        self.assert_complete_accounting(emitter, rows)
+
     def test_critical_flood_stays_bounded_and_declares_even_terminal_loss(self):
         with self.blocked_writer(capacity=8) as emitter:
             for _ in range(30):

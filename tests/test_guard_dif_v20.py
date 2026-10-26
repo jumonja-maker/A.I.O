@@ -226,7 +226,8 @@ class DifAdapterIntegration(unittest.TestCase):
         with patch('app_backend.converter_guard.adapter.convert_path', side_effect=convert):
             with self.assertRaises(GuardError) as error:
                 adapter._prepare_dif_snapshot(self.source, self.root / 'native', cancel=self.cancel)
-        self.assertEqual(error.exception.code, 'ENGINE_OUTPUT_CONTENT_LOSS')
+        self.assertEqual(error.exception.code, 'DIF_NUMERIC_IMPORT_MISMATCH')
+        self.assertEqual(error.exception.stage, 'import')
         self.assertNotIn(b'#ERR', self.source.read_bytes())
 
     def test_optional_probe_does_not_replace_missing_source_native_diagnosis(self):
