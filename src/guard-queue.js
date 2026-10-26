@@ -4,6 +4,7 @@
   let root=null, bar=null, stateButton=null, state=null, jobs=[], warnings=[], storage=null, page=0, refreshPending=false, clock=null;
   let preview=null, previewId=null, previewRequest=0, previewController=null;
   let refreshRevision=0, refreshAgain=false;
+  let renderedRecoveryWarnings=null;
   function dropRows(id){
     if(id&&rowCache?.jobId!==id)return;
     rowCache=paintedRows=null;
@@ -19,6 +20,36 @@
   let actionFeedback=null,feedbackRevision=null;
   const labels={queued:'В очереди',converting:'Конвертируется',ready:'Готово',saved:'Сохранено',
     error:'Ошибка',cancelled:'Отменено',skipped:'Исключено Guard'};
+  const recoveryReasons={
+    RECOVERY_UNFINISHED_PREPARATION:'Осталась незавершённая подготовка. Готовые результаты не подтверждены.',
+    RECOVERY_MANIFEST_MISSING:'Не найдено описание задания job.json.',
+    RECOVERY_LEDGER_INCOMPLETE:'Журнал результатов неполон. Полный состав результатов не подтверждён.',
+    RECOVERY_METADATA_INVALID:'Служебные сведения задания не удалось прочитать или проверить.',
+    RECOVERY_OUTPUT_MISSING:'Ожидаемый выходной файл отсутствует или изменён.',
+    RECOVERY_UNTRACKED_OUTPUTS:'Найдены файлы без подтверждённой записи в журнале.',
+    RECOVERY_RETIREMENT_INVALID:'Маркер удаления не прошёл проверку. Каталог не удалён.',
+    RECOVERY_CLEANUP_RETRY:'Не завершилась очистка ранее удалённого задания.',
+    RECOVERY_SALVAGED_UNVERIFIED:'Найдены файлы, но полнота и связь с исходниками не подтверждены.',
+    RECOVERY_WRITE_FAILED:'Запись служебного журнала не завершилась.'
+  };
+  function renderRecoveryWarnings(){
+    const box=bar?.querySelector('[data-g-recovery]');
+    if(!box||renderedRecoveryWarnings===warnings)return;
+    renderedRecoveryWarnings=warnings;box.hidden=!warnings.length;
+    const list=box.querySelector('[data-g-recovery-list]');list.replaceChildren();
+    box.querySelector('summary').textContent='Подробности восстановления: '+warnings.length;
+    for(const warning of warnings.slice(0,40)){
+      const row=document.createElement('p');row.setAttribute('data-g-recovery-entry','');
+      const code=typeof warning?.code==='string'?warning.code.slice(0,96):'RECOVERY_UNKNOWN';
+      const folder=typeof warning?.folder==='string'?warning.folder.slice(0,160):'Задание не определено';
+      const integrity=typeof warning?.integrity==='string'?' · '+warning.integrity.slice(0,64):'';
+      row.textContent=folder+' · '+code+integrity+' — '+
+        (recoveryReasons[code]||'Причина требует проверки. Сохраните технический отчёт.');
+      list.append(row);
+    }
+    if(warnings.length>40){const note=document.createElement('p');
+      note.textContent='Ещё предупреждений: '+(warnings.length-40)+'. Полный список — в техническом отчёте.';list.append(note);}
+  }
   const api=()=>window.AllInOneBridge?.converter;
   const text=(selector,value)=>{const n=bar?.querySelector(selector);if(n&&n.textContent!==String(value))n.textContent=String(value);};
   function attachTopButton() {
@@ -48,13 +79,14 @@
     if(!next){cancelPreview();dropRows();stateButton?.remove();stateButton=null;root=bar=null;if(clock){clearInterval(clock);clock=null;}return;}
     if(next===root&&bar?.isConnected){attachTopButton();return;}
     cancelPreview();dropRows();stateButton?.remove();stateButton=null;
-    root=next;rowCache=paintedRows=null;
+    root=next;rowCache=paintedRows=null;renderedRecoveryWarnings=null;
     const footer=root.querySelector('.aio-cv__footer');if(!footer)return;
     bar=document.createElement('div');bar.className='aio-guard-queue';bar.hidden=true;
     bar.innerHTML='<div class="aio-guard-current"><span data-g-current></span><button type="button" data-g-pause>Пауза</button><button type="button" data-g-skip>Пропустить файл</button></div>'+
       '<dialog class="aio-guard-popup" aria-label="Состояние очереди Guard">'+
       '<div class="aio-guard-dialog-head"><strong>Состояние</strong><button type="button" data-g-close aria-label="Закрыть состояние">×</button></div>'+
       '<div data-g-counts></div><div class="aio-guard-warning" data-g-warning></div>'+
+      '<details data-g-recovery hidden><summary>Подробности восстановления</summary><div data-g-recovery-list style="max-height:12rem;overflow:auto;overflow-wrap:anywhere"></div></details>'+
       '<div class="aio-guard-tools"><input type="search" placeholder="Имя файла или формат" aria-label="Поиск в очереди"><select aria-label="Состояние задач"><option value="all">Все задачи</option><option value="error">Ошибки</option><option value="pending">Ожидают</option><option value="ready">Готовые</option></select></div>'+
       '<div data-g-storage></div><label class="aio-guard-quality"><input type="checkbox" data-g-quality> Проверить структуру результатов <small>Дольше; без проверки внешнего вида</small></label>'+
       '<div class="aio-guard-quality" data-g-verify>Сохранённые файлы проверяются автоматически <small>Сверяем байты с результатом AIO после записи на диск</small></div>'+
@@ -213,7 +245,7 @@
     text('[data-g-storage]',storage?'Слоты Guard: '+storage.jobs+' / '+storage.maxJobs+
       ' · несохранено: '+storage.unsavedOutputs+' файлов · '+Math.ceil(storage.unsavedBytes/1048576)+' МБ':'');
     bar.querySelector('[data-g-quality]').disabled=!!state&&!state.finished&&!state.preparation;
-    renderCurrent();
+    renderCurrent();renderRecoveryWarnings();
     text('[data-g-counts]',state?.state==='uploading'?'Подготовлено исходников: '+state.uploadedFiles+' / '+state.inputFiles:
       state?.state==='checking'?(state.cancellationRequested?'Отменяем проверку… · ':
         state.preflightPhase==='routes'?'Направления: '+(state.preflightMatrixCompleted??0)+' / '+(state.preflightMatrixTotal??0)+' · ':'')+
@@ -250,7 +282,7 @@
     if(state?.files?.some(f=>f.nativeRoute?.csvImportSampleOnly))
       text('[data-g-warning]','CSV: настройки импорта определены по образцу. Полная сверка ячеек и локали не выполнялась.');
     if(storage?.pendingRecoveryFolders)text('[data-g-warning]','Ещё папок для восстановления: '+storage.pendingRecoveryFolders+'. Сохраните или удалите завершённые пакеты, чтобы освободить слоты.');
-    if(warnings.length)text('[data-g-warning]','Не удалось прочитать журнал '+warnings.length+' заданий. Файлы не удалены. Сохраните технический отчёт для восстановления.');
+    if(warnings.length)text('[data-g-warning]','Проблемы восстановления: '+warnings.length+' предупреждений. Причины перечислены ниже; это не подтверждение повреждения документов.');
     if(jobs.some(j=>j.salvaged))text('[data-g-warning]','Найдены файлы без надёжного журнала. Их можно сохранить; полнота и связь с исходниками не подтверждены. Оригинальная служебная папка останется до явного удаления.');
     if(state?.files?.some(f=>f.nativeRoute?.csvInspection?.raggedRows))
       text('[data-g-warning]','В CSV найдены строки с разным числом столбцов. Проверьте разделитель и результат; конвертация не запрещена.');
@@ -281,7 +313,7 @@
       state?.state==='checking'?'Проверено '+(state.preflightCompleted??0)+' / '+(state.preflightTotal??0)+
         ' · подготовка направлений…':
       state?.state==='paused'?'Очередь на паузе':state?.state==='prepared'?'Исходники проверены. Выберите форматы.':state&&!state.finished?'Подготовка результатов…':
-      jobs.length?'Есть несохранённые результаты: '+jobs.length:warnings.length?'Есть результаты с повреждённым журналом':'Обработка завершена');
+      jobs.length?'Есть несохранённые результаты: '+jobs.length:warnings.length?'Проблемы восстановления предыдущих заданий: '+warnings.length:'Обработка завершена');
   }
   async function loadPreview(){
     if(!bar)return;
@@ -398,7 +430,7 @@
   const observer=new MutationObserver(mount);
   observer.observe(document.body,{subtree:true,childList:true});mount();
   window.addEventListener('pagehide',()=>{
-    refreshRevision++;refreshAgain=false;cancelPreview();dropRows();state=null;jobs=[];warnings=[];storage=null;
+    refreshRevision++;refreshAgain=false;cancelPreview();dropRows();state=null;jobs=[];warnings=[];storage=null;renderedRecoveryWarnings=null;
     if(clock){clearInterval(clock);clock=null;}observer.disconnect();
   });
 })();
