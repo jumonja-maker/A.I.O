@@ -5,8 +5,8 @@
   "environment": "Linux LibreOfficeDev26.8.0alpha, notWindows",
   "sourceFiles": 6,
   "numericCellsPerCompleteCorpus": 864,
-  "unitTestsNew": 22,
-  "targetedUnitTestsIncludingExisting": 44,
+  "unitTestsNew": 33,
+  "targetedUnitTestsIncludingExisting": 55,
   "nativeSnapshots": [
     {
       "source": "01_LEVEL_1.dif",
@@ -311,7 +311,7 @@
     "pdfFidelityCompared": false
   },
   "limitations": [
-    "Historical Windows #ERR corruption was not reproduced on Linux LO26.8alpha; the change rejects demonstrated numeric mismatch before export instead of guessing a locale fix.",
+    "Direct Linux native private-profile regression now reproduces the 24 #ERR strings with ooSetupSystemLocale=ru-RU on the original SHA-e070a... source; the same DIF filter/options and en-US numeric profile preserve all72 numeric cells. This is not yet evidence of the new Windows build passing.",
     "Six DIF sources x21 target matrix NOT_RUN in this evidence. Three exported target families were checked; PDF checks establish creation only.",
     "No source rewrite and no extracting numbers from #ERR strings. Scientific DIF staging was rejected because it changes native number formats.",
     "Unsupported inspector grammar or bounded inspection returns not_checked with DIF_NUMERIC_CONTENT_NOT_CHECKED on both UNO and CLI; that does not prove corruption or fidelity.",
@@ -319,9 +319,65 @@
   ],
   "primaryImplementationReference": "https://github.com/LibreOffice/core/blob/master/sc/source/filter/dif/difimp.cxx",
   "codeHashes": {
-    "app_backend/converter_guard/dif_evidence.py": "4b1532a504dd84b70b361146b7dc6f65c32f0d069bb6db19dfbcfa1fb034fdc7",
-    "app_backend/converter_guard/adapter.py": "2042d89f1f8521e4a3fa45a862e72b632d7a44d46fbe57d45cce6534403d9b1c",
-    "app_backend/converter_guard/uno_session.py": "26d6cdae4d354bfb7d97f5e6582bc2c1e19a4f784196c434a2f735d5b3ad88d5",
-    "tests/test_guard_dif_v20.py": "18cf24e87d32bfe75209ed7f38231443d20483c235a63d260a868ea5fd283462"
+    "app_backend/converter_guard/dif_evidence.py": "a67289c2b46ad65cdbc5744bf8282fb0c7dc3aa0c90d8405ea3aa2bf81ea454d",
+    "app_backend/converter_guard/adapter.py": "5cb95068f458c529a608728e811d591f4571bd4464bb8986ddfb5cbc5106e70d",
+    "app_backend/converter_guard/uno_session.py": "15c3feea7c28ef1b3ffb01c84935d18dd362083c4529665283feef6c7c141c15",
+    "tests/test_guard_dif_v20.py": "3ec18903b3eca08ed0dca74d6c651c914ee0b6feb945599668b1e72bd2930003"
+  },
+  "controlledNumericLocaleRegression": {
+    "environment": "Linux LO26.8alpha, privateprofileswithooSetupSystemLocale",
+    "sourceSha256": "e070a343bcb84abfa778c70c77336a3970fc650cdffd5cb10d1be50a4a853a5c",
+    "results": [
+      {
+        "locale": "ru-RU",
+        "seconds": 10.856,
+        "sourceUnchanged": true,
+        "results": [
+          "ru-RU/output/05_LEVEL_2.fods"
+        ],
+        "check": {
+          "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+          "diagnostic": "DIF_NUMERIC_OUTPUT_MISMATCH:row=2:column=4"
+        },
+        "literalErrCount": 24
+      },
+      {
+        "locale": "en-US",
+        "seconds": 10.789,
+        "sourceUnchanged": true,
+        "results": [
+          "en-US/output/05_LEVEL_2.fods"
+        ],
+        "check": {
+          "check": "dif_numeric_values",
+          "qualityCompared": false,
+          "comparisonDomain": "ieee754_double",
+          "typesCompared": true,
+          "status": "checked_subset",
+          "numericCells": 72,
+          "valuesCompared": true,
+          "sourceNumericImportCompared": true
+        },
+        "literalErrCount": 0
+      }
+    ]
+  },
+  "privateLocalePolicy": {
+    "onlyOwnedDIFProfile": true,
+    "numericLocale": "en-US",
+    "normalSourceRestoresOriginalFactory": true,
+    "sourceRewrite": false,
+    "nativeFilterAndOptions": "DIF:76",
+    "schemaFile": "share/registry/main.xcd",
+    "schemaSha256": "87b20d10e4e3151b8961f0096cdf72c0962cde5d97f50fb3bef3245a701a51fb",
+    "keys": {
+      "/org.openoffice.Setup/L10N/ooSetupSystemLocale": "explicit native numeric/system locale; empty uses OS locale",
+      "/org.openoffice.Setup/L10N/ooLocale": "Office language",
+      "/org.openoffice.Office.Linguistic/General/DefaultLocale": "default document language"
+    },
+    "warning": "DIF_PRIVATE_NUMERIC_LOCALE_EN_US",
+    "representationRisk": "DIF has no explicit locale metadata; displayed implicit numeric formats may differ. Original file and installed LibreOffice user settings remain unchanged.",
+    "nativeFilterBoundGate": true,
+    "ordinaryTablePrefixWriterAndCliRegression": "PASS; actual worker branch AST executed, renamed native DIF still reaches gate"
   }
 }

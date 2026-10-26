@@ -1,0 +1,291 @@
+{
+  "schema": 1,
+  "status": "MEASURED_WITH_FAILURES",
+  "platform": "Linux",
+  "scope": "Seven historical SOURCE_CONTAINER_INCONSISTENT sources; actual source bytes, isolated native CLI with explicitly installed import/export filters. No source MIME/XML rewrites.",
+  "counts": {
+    "sources": 7,
+    "sourceMutations": 0,
+    "contentPreserved": 2,
+    "contentNotPreserved": 5,
+    "contentPreservedWithExistingPreparation": 4,
+    "remainingNativeContentFailure": 3
+  },
+  "nativeModelLimit": "Explicit native exports produce the listed office body; a live Windows UNO service proof has not been run here. Linux automatic LOK reports another family for the flat MIME aliases and must remain SOURCE_MODEL_MISMATCH.",
+  "guardChange": "Four flat text/presentation aliases are recognized structurally with warnings, explicit installed native importer and matching native model required. Existing column preparation is retained for Writer. Three mixed-namespace SXW remain rejected.",
+  "cases": [
+    {
+      "name": "04_LEVEL_1.sxw",
+      "sourceSha256": "3289a78b8c6f3a90992b0dc1300e04488996ce44c3c0d6f39a024f7979e10680",
+      "sourceUnchanged": true,
+      "sourceBody": "{urn:oasis:names:tc:opendocument:xmlns:office:1.0}text",
+      "exportedBody": "{urn:oasis:names:tc:opendocument:xmlns:office:1.0}text",
+      "sourceParagraphCount": 3,
+      "exportedParagraphCount": 1,
+      "sourceParagraphSha256": "d631491bd88821d5671b4e89e552a4d8dfca304a515a90a4487bae92d0a98c8d",
+      "exportedParagraphSha256": "055539df4a0b804c58caf46c0cd2941af10d64c1395ddd8e50b5f55d945841e6",
+      "sourceSlideCount": 0,
+      "exportedSlideCount": 0,
+      "exactParagraphsAndSlideCount": false,
+      "exportedSha256": "ec1ea14276c60e1095bb185d2868ebf9f73454c4d64969a965594a662f2ebe4b",
+      "requestedNativeImportFilter": "writer8",
+      "contract": {
+        "state": "invalid",
+        "code": "SOURCE_CONTAINER_INCONSISTENT",
+        "reason": "legacy_mimetype_namespace_mismatch",
+        "contentClass": "staroffice_package",
+        "expectedServices": []
+      },
+      "decision": "keep_container_rejection_content_not_preserved_by_tested_native_import",
+      "limits": "Comparison covers exact paragraph sequence and slide count, not universal visual fidelity; Linux LOK automatic import is not forced UNO."
+    },
+    {
+      "name": "05_LEVEL_2.sxw",
+      "sourceSha256": "0898890a4d8592258ec9a2da5bafe789a43bc93630a230b2354bce58418d9d34",
+      "sourceUnchanged": true,
+      "sourceBody": "{urn:oasis:names:tc:opendocument:xmlns:office:1.0}text",
+      "exportedBody": "{urn:oasis:names:tc:opendocument:xmlns:office:1.0}text",
+      "sourceParagraphCount": 73,
+      "exportedParagraphCount": 1,
+      "sourceParagraphSha256": "743e0661df0c8693ecdef06a1b6275138b2ff10768d673bfa2984df94b211c9c",
+      "exportedParagraphSha256": "055539df4a0b804c58caf46c0cd2941af10d64c1395ddd8e50b5f55d945841e6",
+      "sourceSlideCount": 0,
+      "exportedSlideCount": 0,
+      "exactParagraphsAndSlideCount": false,
+      "exportedSha256": "f3300f0e11d91bb33de5065be0887c7beff556c696bd5e6b2ffdd4e8588f88ee",
+      "requestedNativeImportFilter": "writer8",
+      "contract": {
+        "state": "invalid",
+        "code": "SOURCE_CONTAINER_INCONSISTENT",
+        "reason": "legacy_mimetype_namespace_mismatch",
+        "contentClass": "staroffice_package",
+        "expectedServices": []
+      },
+      "decision": "keep_container_rejection_content_not_preserved_by_tested_native_import",
+      "limits": "Comparison covers exact paragraph sequence and slide count, not universal visual fidelity; Linux LOK automatic import is not forced UNO."
+    },
+    {
+      "name": "06_LEVEL_3.sxw",
+      "sourceSha256": "4e83cf13b9d354df636c955274d1ccbe4a1a3cae4ece1862194e17b8c9246f2d",
+      "sourceUnchanged": true,
+      "sourceBody": "{urn:oasis:names:tc:opendocument:xmlns:office:1.0}text",
+      "exportedBody": "{urn:oasis:names:tc:opendocument:xmlns:office:1.0}text",
+      "sourceParagraphCount": 105,
+      "exportedParagraphCount": 1,
+      "sourceParagraphSha256": "73db52324649d2d0fb0dc330e66c2aeb50327c1e7b27a58ae15becfd40bb8286",
+      "exportedParagraphSha256": "055539df4a0b804c58caf46c0cd2941af10d64c1395ddd8e50b5f55d945841e6",
+      "sourceSlideCount": 0,
+      "exportedSlideCount": 0,
+      "exactParagraphsAndSlideCount": false,
+      "exportedSha256": "d0dd53b43cb47377d7e49fb1c6a4ada46f6056834ccb49a41877844ad22e2b11",
+      "requestedNativeImportFilter": "writer8",
+      "contract": {
+        "state": "invalid",
+        "code": "SOURCE_CONTAINER_INCONSISTENT",
+        "reason": "legacy_mimetype_namespace_mismatch",
+        "contentClass": "staroffice_package",
+        "expectedServices": []
+      },
+      "decision": "keep_container_rejection_content_not_preserved_by_tested_native_import",
+      "limits": "Comparison covers exact paragraph sequence and slide count, not universal visual fidelity; Linux LOK automatic import is not forced UNO."
+    },
+    {
+      "name": "05_LEVEL_2.fodt",
+      "sourceSha256": "ef9b6b9ffc47f3517136259c86d0686431ebb699d03afe2b29ca03eef0c1cf08",
+      "sourceUnchanged": true,
+      "sourceBody": "{urn:oasis:names:tc:opendocument:xmlns:office:1.0}text",
+      "exportedBody": "{urn:oasis:names:tc:opendocument:xmlns:office:1.0}text",
+      "sourceParagraphCount": 73,
+      "exportedParagraphCount": 38,
+      "sourceParagraphSha256": "743e0661df0c8693ecdef06a1b6275138b2ff10768d673bfa2984df94b211c9c",
+      "exportedParagraphSha256": "d6c7501f998c705e33565476496620194808704b623deb3bf900d6961b3c4acd",
+      "sourceSlideCount": 0,
+      "exportedSlideCount": 0,
+      "exactParagraphsAndSlideCount": false,
+      "exportedSha256": "232698844dd52c39afdea782dc5d3b0611b7749d3a18a16548b311b6def79f67",
+      "requestedNativeImportFilter": "OpenDocument Text Flat XML",
+      "contract": {
+        "state": "invalid",
+        "code": "SOURCE_CONTAINER_INCONSISTENT",
+        "reason": "flat_mimetype_requires_document_family",
+        "contentClass": "flat_odf",
+        "expectedServices": []
+      },
+      "decision": "recognize_flat_text_alias_require_existing_column_preparation_and_explicit_native_import_matching_model",
+      "limits": "Unprepared direct export lost implicit columns; existing production preparation restores every cell. Literal XML whitespace is normalized; these fixtures contain no explicit whitespace control nodes. Windows UNO service proof remains separate.",
+      "preparedNativeControl": {
+        "literalXmlWhitespaceNormalized": true,
+        "explicitWhitespaceControlNodes": 0,
+        "runtimeContractMocked": false,
+        "name": "05_LEVEL_2.fodt",
+        "sourceSha256": "ef9b6b9ffc47f3517136259c86d0686431ebb699d03afe2b29ca03eef0c1cf08",
+        "sourceUnchanged": true,
+        "preparation": {
+          "kind": "odf_explicit_table_columns",
+          "state": "prepared",
+          "tables": 1,
+          "columns": [
+            4
+          ],
+          "rows": [
+            12
+          ],
+          "originalPreserved": true,
+          "contentRewritten": false,
+          "qualityCompared": false
+        },
+        "sourceParagraphs": 73,
+        "resultParagraphs": 73,
+        "exactNonemptyParagraphSequence": true,
+        "sourceCells": 48,
+        "resultCells": 48,
+        "exactTableCellSequence": true,
+        "outputSha256": "d387fa2f49f5431111c05c04535e94b14fed11f393eb9da718335f3dc1232ba1",
+        "sourceParagraphSha256": "4fed3bcf69eae502f8e5559467a130ea0d67d0fb0c88fabea680628f78c53e1b",
+        "outputParagraphSha256": "4fed3bcf69eae502f8e5559467a130ea0d67d0fb0c88fabea680628f78c53e1b",
+        "existingContentInvariants": {
+          "check": "odf_table_text",
+          "sourceNonemptyCells": 48,
+          "uniqueCellTexts": 48,
+          "qualityCompared": false,
+          "status": "checked_subset",
+          "missingUniqueCellTexts": 0,
+          "comparedScope": "table_grid",
+          "tableStructureCompared": true,
+          "checkedCellOccurrences": 48
+        }
+      }
+    },
+    {
+      "name": "06_LEVEL_3.fodt",
+      "sourceSha256": "87586ed829b7a0c8b986894b105999bd364c43bb31eaea84f2b4ec164a085d01",
+      "sourceUnchanged": true,
+      "sourceBody": "{urn:oasis:names:tc:opendocument:xmlns:office:1.0}text",
+      "exportedBody": "{urn:oasis:names:tc:opendocument:xmlns:office:1.0}text",
+      "sourceParagraphCount": 105,
+      "exportedParagraphCount": 57,
+      "sourceParagraphSha256": "73db52324649d2d0fb0dc330e66c2aeb50327c1e7b27a58ae15becfd40bb8286",
+      "exportedParagraphSha256": "4aaec5c6f86a3b0a9c94271c5a8c785a0915c1a4d77dcb23d17b1d709c7d5453",
+      "sourceSlideCount": 0,
+      "exportedSlideCount": 0,
+      "exactParagraphsAndSlideCount": false,
+      "exportedSha256": "bb42e53958cfb71a9a3a14f13732a98e9a6c01b94d0453ada982dbc386fd810a",
+      "requestedNativeImportFilter": "OpenDocument Text Flat XML",
+      "contract": {
+        "state": "invalid",
+        "code": "SOURCE_CONTAINER_INCONSISTENT",
+        "reason": "flat_mimetype_requires_document_family",
+        "contentClass": "flat_odf",
+        "expectedServices": []
+      },
+      "decision": "recognize_flat_text_alias_require_existing_column_preparation_and_explicit_native_import_matching_model",
+      "limits": "Unprepared direct export lost implicit columns; existing production preparation restores every cell. Literal XML whitespace is normalized; these fixtures contain no explicit whitespace control nodes. Windows UNO service proof remains separate.",
+      "preparedNativeControl": {
+        "literalXmlWhitespaceNormalized": true,
+        "explicitWhitespaceControlNodes": 0,
+        "runtimeContractMocked": false,
+        "name": "06_LEVEL_3.fodt",
+        "sourceSha256": "87586ed829b7a0c8b986894b105999bd364c43bb31eaea84f2b4ec164a085d01",
+        "sourceUnchanged": true,
+        "preparation": {
+          "kind": "odf_explicit_table_columns",
+          "state": "prepared",
+          "tables": 1,
+          "columns": [
+            4
+          ],
+          "rows": [
+            16
+          ],
+          "originalPreserved": true,
+          "contentRewritten": false,
+          "qualityCompared": false
+        },
+        "sourceParagraphs": 105,
+        "resultParagraphs": 105,
+        "exactNonemptyParagraphSequence": true,
+        "sourceCells": 64,
+        "resultCells": 64,
+        "exactTableCellSequence": true,
+        "outputSha256": "832ca71187a02713fa2ad1bbc692b4811e636f4303a5ef517845a2341f47cba0",
+        "sourceParagraphSha256": "d70c5a4341ac4e33da44f3bc0fbf765abc5a6b58e5335b917d9c65ff56e0322e",
+        "outputParagraphSha256": "d70c5a4341ac4e33da44f3bc0fbf765abc5a6b58e5335b917d9c65ff56e0322e",
+        "existingContentInvariants": {
+          "check": "odf_table_text",
+          "sourceNonemptyCells": 64,
+          "uniqueCellTexts": 64,
+          "qualityCompared": false,
+          "status": "checked_subset",
+          "missingUniqueCellTexts": 0,
+          "comparedScope": "table_grid",
+          "tableStructureCompared": true,
+          "checkedCellOccurrences": 64
+        }
+      }
+    },
+    {
+      "name": "05_LEVEL_2.fodp",
+      "sourceSha256": "8e6caf1aa7a0397c2de17041454577b5ebe042d2f42cb3fb2902d83e8e1c34c6",
+      "sourceUnchanged": true,
+      "sourceBody": "{urn:oasis:names:tc:opendocument:xmlns:office:1.0}presentation",
+      "exportedBody": "{urn:oasis:names:tc:opendocument:xmlns:office:1.0}presentation",
+      "sourceParagraphCount": 15,
+      "exportedParagraphCount": 15,
+      "sourceParagraphSha256": "0e61c2f6faf4a25bcd48e3315705421b408f5e1c4151b5c98a7a203717d3f10b",
+      "exportedParagraphSha256": "0e61c2f6faf4a25bcd48e3315705421b408f5e1c4151b5c98a7a203717d3f10b",
+      "sourceSlideCount": 3,
+      "exportedSlideCount": 3,
+      "exactParagraphsAndSlideCount": true,
+      "exportedSha256": "863ebdb7597dfd49badc93084639d1d66041f2ae11e8d15f22e8eef8a183394e",
+      "requestedNativeImportFilter": "OpenDocument Presentation Flat XML",
+      "contract": {
+        "state": "recognized",
+        "contentClass": "flat_odf",
+        "mimetype": "application/vnd.oasis.opendocument.presentation-flat-xml",
+        "expectedServices": [
+          "com.sun.star.presentation.PresentationDocument"
+        ],
+        "bodyObserved": true,
+        "warnings": [
+          "SOURCE_MIMETYPE_ALIAS"
+        ],
+        "nativeImportRequired": true,
+        "importProfile": "flat_presentation_mimetype_alias"
+      },
+      "decision": "recognize_presentation_alias_require_explicit_native_import_and_matching_model",
+      "limits": "Comparison covers exact paragraph sequence and slide count, not universal visual fidelity; Linux LOK automatic import is not forced UNO."
+    },
+    {
+      "name": "06_LEVEL_3.fodp",
+      "sourceSha256": "b41f18e9a845a4c8695b2dc3748ca80a0b08f9612829232f21cb9a8b3f0265b7",
+      "sourceUnchanged": true,
+      "sourceBody": "{urn:oasis:names:tc:opendocument:xmlns:office:1.0}presentation",
+      "exportedBody": "{urn:oasis:names:tc:opendocument:xmlns:office:1.0}presentation",
+      "sourceParagraphCount": 36,
+      "exportedParagraphCount": 36,
+      "sourceParagraphSha256": "d638f96958b95096a1a134eb11481260d227b47db02414e776b969c74b941d7b",
+      "exportedParagraphSha256": "d638f96958b95096a1a134eb11481260d227b47db02414e776b969c74b941d7b",
+      "sourceSlideCount": 6,
+      "exportedSlideCount": 6,
+      "exactParagraphsAndSlideCount": true,
+      "exportedSha256": "7727d41728e22d7a4b311dc5767bd3f8ed6fde23e99d20c126b190040e0d4819",
+      "requestedNativeImportFilter": "OpenDocument Presentation Flat XML",
+      "contract": {
+        "state": "recognized",
+        "contentClass": "flat_odf",
+        "mimetype": "application/vnd.oasis.opendocument.presentation-flat-xml",
+        "expectedServices": [
+          "com.sun.star.presentation.PresentationDocument"
+        ],
+        "bodyObserved": true,
+        "warnings": [
+          "SOURCE_MIMETYPE_ALIAS"
+        ],
+        "nativeImportRequired": true,
+        "importProfile": "flat_presentation_mimetype_alias"
+      },
+      "decision": "recognize_presentation_alias_require_explicit_native_import_and_matching_model",
+      "limits": "Comparison covers exact paragraph sequence and slide count, not universal visual fidelity; Linux LOK automatic import is not forced UNO."
+    }
+  ]
+}

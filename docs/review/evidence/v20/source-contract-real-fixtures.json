@@ -1,0 +1,363 @@
+{
+  "scope": "all real input manifest entries; structural contracts only, not native admission/fidelity",
+  "sources": 510,
+  "sourceSHA256MatchesManifestAndUnchanged": true,
+  "oldStates": {
+    "invalid": 19,
+    "recognized": 172,
+    "not_applicable": 319
+  },
+  "newStates": {
+    "recognized": 188,
+    "invalid": 3,
+    "not_applicable": 319
+  },
+  "stateChanges": [
+    {
+      "name": "05_LEVEL_2.odf",
+      "sha256": "bf9cd071342a6b8a3240b665dfd8f15e3132e017fef9f20a8dfe18995212e9f0",
+      "old": {
+        "state": "invalid",
+        "code": "SOURCE_CONTAINER_INCONSISTENT",
+        "reason": "mimetype_namespace_mismatch",
+        "contentClass": "odf",
+        "expectedServices": []
+      },
+      "new": {
+        "state": "recognized",
+        "contentClass": "odf_formula_package",
+        "mimetype": "application/vnd.oasis.opendocument.formula",
+        "expectedServices": [
+          "com.sun.star.formula.FormulaProperties"
+        ],
+        "mathmlRootObserved": true,
+        "bodyObserved": false
+      }
+    },
+    {
+      "name": "05_LEVEL_2.fodp",
+      "sha256": "8e6caf1aa7a0397c2de17041454577b5ebe042d2f42cb3fb2902d83e8e1c34c6",
+      "old": {
+        "state": "invalid",
+        "code": "SOURCE_CONTAINER_INCONSISTENT",
+        "reason": "flat_mimetype_requires_document_family",
+        "contentClass": "flat_odf",
+        "expectedServices": []
+      },
+      "new": {
+        "state": "recognized",
+        "contentClass": "flat_odf",
+        "mimetype": "application/vnd.oasis.opendocument.presentation-flat-xml",
+        "expectedServices": [
+          "com.sun.star.presentation.PresentationDocument"
+        ],
+        "bodyObserved": true,
+        "warnings": [
+          "SOURCE_MIMETYPE_ALIAS"
+        ],
+        "nativeImportRequired": true,
+        "importProfile": "flat_presentation_mimetype_alias"
+      }
+    },
+    {
+      "name": "05_LEVEL_2.fodt",
+      "sha256": "ef9b6b9ffc47f3517136259c86d0686431ebb699d03afe2b29ca03eef0c1cf08",
+      "old": {
+        "state": "invalid",
+        "code": "SOURCE_CONTAINER_INCONSISTENT",
+        "reason": "flat_mimetype_requires_document_family",
+        "contentClass": "flat_odf",
+        "expectedServices": []
+      },
+      "new": {
+        "state": "recognized",
+        "contentClass": "flat_odf",
+        "mimetype": "application/vnd.oasis.opendocument.text-flat-xml",
+        "expectedServices": [
+          "com.sun.star.text.TextDocument"
+        ],
+        "bodyObserved": true,
+        "warnings": [
+          "SOURCE_MIMETYPE_ALIAS"
+        ],
+        "nativeImportRequired": true,
+        "importProfile": "flat_text_mimetype_alias"
+      }
+    },
+    {
+      "name": "04_LEVEL_1.xlsx",
+      "sha256": "43b03f007b893f435bcb9bf428d557ee490154adf317940710ef88e903c797b8",
+      "old": {
+        "state": "invalid",
+        "code": "SOURCE_CONTAINER_INCONSISTENT",
+        "reason": "ooxml_main_content_type",
+        "contentClass": "ooxml_package",
+        "expectedServices": []
+      },
+      "new": {
+        "state": "recognized",
+        "contentClass": "ooxml_package",
+        "mainContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+        "contentTypeBasis": "default",
+        "expectedServices": [
+          "com.sun.star.sheet.SpreadsheetDocument"
+        ]
+      }
+    },
+    {
+      "name": "04_LEVEL_1.odf",
+      "sha256": "7266d418108d1d3694f8ea10e6fb14397dd2ee33f3729c6b8ab9752121ecf75b",
+      "old": {
+        "state": "invalid",
+        "code": "SOURCE_CONTAINER_INCONSISTENT",
+        "reason": "mimetype_namespace_mismatch",
+        "contentClass": "odf",
+        "expectedServices": []
+      },
+      "new": {
+        "state": "recognized",
+        "contentClass": "odf_formula_package",
+        "mimetype": "application/vnd.oasis.opendocument.formula",
+        "expectedServices": [
+          "com.sun.star.formula.FormulaProperties"
+        ],
+        "mathmlRootObserved": true,
+        "bodyObserved": false
+      }
+    },
+    {
+      "name": "06_LEVEL_3.xlsx",
+      "sha256": "c29077eb936908766389a8afe83d01fe2e1ef4178956a3b4c11634717ed9dc11",
+      "old": {
+        "state": "invalid",
+        "code": "SOURCE_CONTAINER_INCONSISTENT",
+        "reason": "ooxml_main_content_type",
+        "contentClass": "ooxml_package",
+        "expectedServices": []
+      },
+      "new": {
+        "state": "recognized",
+        "contentClass": "ooxml_package",
+        "mainContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+        "contentTypeBasis": "default",
+        "expectedServices": [
+          "com.sun.star.sheet.SpreadsheetDocument"
+        ]
+      }
+    },
+    {
+      "name": "06_LEVEL_3.odf",
+      "sha256": "03636fe8eb6285f4e9a68b49a52bac4f7afa1337e9e23d4af07a8b8e233e8b67",
+      "old": {
+        "state": "invalid",
+        "code": "SOURCE_CONTAINER_INCONSISTENT",
+        "reason": "mimetype_namespace_mismatch",
+        "contentClass": "odf",
+        "expectedServices": []
+      },
+      "new": {
+        "state": "recognized",
+        "contentClass": "odf_formula_package",
+        "mimetype": "application/vnd.oasis.opendocument.formula",
+        "expectedServices": [
+          "com.sun.star.formula.FormulaProperties"
+        ],
+        "mathmlRootObserved": true,
+        "bodyObserved": false
+      }
+    },
+    {
+      "name": "06_LEVEL_3.fodp",
+      "sha256": "b41f18e9a845a4c8695b2dc3748ca80a0b08f9612829232f21cb9a8b3f0265b7",
+      "old": {
+        "state": "invalid",
+        "code": "SOURCE_CONTAINER_INCONSISTENT",
+        "reason": "flat_mimetype_requires_document_family",
+        "contentClass": "flat_odf",
+        "expectedServices": []
+      },
+      "new": {
+        "state": "recognized",
+        "contentClass": "flat_odf",
+        "mimetype": "application/vnd.oasis.opendocument.presentation-flat-xml",
+        "expectedServices": [
+          "com.sun.star.presentation.PresentationDocument"
+        ],
+        "bodyObserved": true,
+        "warnings": [
+          "SOURCE_MIMETYPE_ALIAS"
+        ],
+        "nativeImportRequired": true,
+        "importProfile": "flat_presentation_mimetype_alias"
+      }
+    },
+    {
+      "name": "06_LEVEL_3.fodt",
+      "sha256": "87586ed829b7a0c8b986894b105999bd364c43bb31eaea84f2b4ec164a085d01",
+      "old": {
+        "state": "invalid",
+        "code": "SOURCE_CONTAINER_INCONSISTENT",
+        "reason": "flat_mimetype_requires_document_family",
+        "contentClass": "flat_odf",
+        "expectedServices": []
+      },
+      "new": {
+        "state": "recognized",
+        "contentClass": "flat_odf",
+        "mimetype": "application/vnd.oasis.opendocument.text-flat-xml",
+        "expectedServices": [
+          "com.sun.star.text.TextDocument"
+        ],
+        "bodyObserved": true,
+        "warnings": [
+          "SOURCE_MIMETYPE_ALIAS"
+        ],
+        "nativeImportRequired": true,
+        "importProfile": "flat_text_mimetype_alias"
+      }
+    },
+    {
+      "name": "05_LEVEL_2.xlsx",
+      "sha256": "3deae3f17d9dda57c22c2112043739c778473b0f9465880148265728e98fea8c",
+      "old": {
+        "state": "invalid",
+        "code": "SOURCE_CONTAINER_INCONSISTENT",
+        "reason": "ooxml_main_content_type",
+        "contentClass": "ooxml_package",
+        "expectedServices": []
+      },
+      "new": {
+        "state": "recognized",
+        "contentClass": "ooxml_package",
+        "mainContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+        "contentTypeBasis": "default",
+        "expectedServices": [
+          "com.sun.star.sheet.SpreadsheetDocument"
+        ]
+      }
+    },
+    {
+      "name": "02_LEVEL_2.xlsx",
+      "sha256": "dfd4df414902ac060126c4e36b3ca4052fa51f18c3a2780c4e2f4c4a667e5cd7",
+      "old": {
+        "state": "invalid",
+        "code": "SOURCE_CONTAINER_INCONSISTENT",
+        "reason": "ooxml_main_content_type",
+        "contentClass": "ooxml_package",
+        "expectedServices": []
+      },
+      "new": {
+        "state": "recognized",
+        "contentClass": "ooxml_package",
+        "mainContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+        "contentTypeBasis": "default",
+        "expectedServices": [
+          "com.sun.star.sheet.SpreadsheetDocument"
+        ]
+      }
+    },
+    {
+      "name": "01_LEVEL_1.xlsx",
+      "sha256": "3ce79d8c9f8eb6fa60db04eff2562f2933675368ad02e3c1619bc3650d1087db",
+      "old": {
+        "state": "invalid",
+        "code": "SOURCE_CONTAINER_INCONSISTENT",
+        "reason": "ooxml_main_content_type",
+        "contentClass": "ooxml_package",
+        "expectedServices": []
+      },
+      "new": {
+        "state": "recognized",
+        "contentClass": "ooxml_package",
+        "mainContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+        "contentTypeBasis": "default",
+        "expectedServices": [
+          "com.sun.star.sheet.SpreadsheetDocument"
+        ]
+      }
+    },
+    {
+      "name": "03_LEVEL_3.xlsx",
+      "sha256": "f427610ad38c29912bd2b5f17bb094ae6678806c1f301af811359902eb1a2501",
+      "old": {
+        "state": "invalid",
+        "code": "SOURCE_CONTAINER_INCONSISTENT",
+        "reason": "ooxml_main_content_type",
+        "contentClass": "ooxml_package",
+        "expectedServices": []
+      },
+      "new": {
+        "state": "recognized",
+        "contentClass": "ooxml_package",
+        "mainContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+        "contentTypeBasis": "default",
+        "expectedServices": [
+          "com.sun.star.sheet.SpreadsheetDocument"
+        ]
+      }
+    },
+    {
+      "name": "03_LEVEL_3.odf",
+      "sha256": "cbfc0bc5db2d28f0600430009810d7341717071d60a7b0e2bb776455c502d451",
+      "old": {
+        "state": "invalid",
+        "code": "SOURCE_CONTAINER_INCONSISTENT",
+        "reason": "mimetype_namespace_mismatch",
+        "contentClass": "odf",
+        "expectedServices": []
+      },
+      "new": {
+        "state": "recognized",
+        "contentClass": "odf_formula_package",
+        "mimetype": "application/vnd.oasis.opendocument.formula",
+        "expectedServices": [
+          "com.sun.star.formula.FormulaProperties"
+        ],
+        "mathmlRootObserved": true,
+        "bodyObserved": false
+      }
+    },
+    {
+      "name": "02_LEVEL_2.odf",
+      "sha256": "3c795956c5ae93b52f63d4d8c5ad5d96b18d8d83da88b005bee0081ac540671c",
+      "old": {
+        "state": "invalid",
+        "code": "SOURCE_CONTAINER_INCONSISTENT",
+        "reason": "mimetype_namespace_mismatch",
+        "contentClass": "odf",
+        "expectedServices": []
+      },
+      "new": {
+        "state": "recognized",
+        "contentClass": "odf_formula_package",
+        "mimetype": "application/vnd.oasis.opendocument.formula",
+        "expectedServices": [
+          "com.sun.star.formula.FormulaProperties"
+        ],
+        "mathmlRootObserved": true,
+        "bodyObserved": false
+      }
+    },
+    {
+      "name": "01_LEVEL_1.odf",
+      "sha256": "39208d45477fbae00212449f5d58829a44594a44264a64252bfed6768378bff4",
+      "old": {
+        "state": "invalid",
+        "code": "SOURCE_CONTAINER_INCONSISTENT",
+        "reason": "mimetype_namespace_mismatch",
+        "contentClass": "odf",
+        "expectedServices": []
+      },
+      "new": {
+        "state": "recognized",
+        "contentClass": "odf_formula_package",
+        "mimetype": "application/vnd.oasis.opendocument.formula",
+        "expectedServices": [
+          "com.sun.star.formula.FormulaProperties"
+        ],
+        "mathmlRootObserved": true,
+        "bodyObserved": false
+      }
+    }
+  ]
+}
