@@ -16,8 +16,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  AIO_QA_SOURCE_SHA: feb5ddc3bc0368adb6ce73c1ea3f6f430b2617f1
-  AIO_QA_TREE_SHA: 1e5a2fa645f7b2151340fc669b87daf98529a569
+  AIO_QA_SOURCE_SHA: 785867731a42dc95b1d7676287d271160897bb14
+  AIO_QA_TREE_SHA: 22c3adfbdb892d825b1c3ae93e523a1742ea3db5
   PYTHONDONTWRITEBYTECODE: '1'
   PYTHONUTF8: '1'
   PYTHONIOENCODING: utf-8
@@ -69,7 +69,7 @@ jobs:
           GIT_CONFIG_VALUE_0: 'false'
         with:
           repository: jumonja-maker/A.I.O
-          ref: feb5ddc3bc0368adb6ce73c1ea3f6f430b2617f1
+          ref: 785867731a42dc95b1d7676287d271160897bb14
           path: aio-pr59-v20-source-${{ github.run_id }}-${{ github.run_attempt }}
           persist-credentials: false
           clean: true
@@ -132,6 +132,15 @@ jobs:
           $target=Join-Path $env:RUNNER_TEMP 'aio-pr59-v20-deps-${{ github.run_id }}-${{ github.run_attempt }}-windows'
           & $env:AIO_QA_PYTHON tools/qa/guard_v17_test_dependencies.py --output $target --github-env
           if ($LASTEXITCODE -ne 0) {throw 'Offline test dependency preparation failed'}
+      - name: Integrated real LibreOffice v20 native formats and quality contracts
+        working-directory: aio-pr59-v20-source-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:AIO_LIBREOFFICE=$env:AIO_QA_ENGINE
+          $env:AIO_BUILD_REVISION=$env:AIO_QA_SOURCE_SHA
+          $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-pr59-v20-evidence-${{ github.run_id }}-${{ github.run_attempt }}'
+          & $env:AIO_QA_PYTHON tools/qa/guard_v20_native_acceptance.py --output (Join-Path $evidence 'native-v20') --executable $env:AIO_QA_ENGINE --require-mode native_uno
+          if ($LASTEXITCODE -ne 0) {throw 'Required v20 native scenarios failed'}
       - name: Full Windows source Qt and DOM regression
         id: tests
         working-directory: aio-pr59-v20-source-${{ github.run_id }}-${{ github.run_attempt }}
@@ -144,15 +153,6 @@ jobs:
           $env:AIO_QT_SAVE_QA='1'
           & $env:AIO_QA_PYTHON tools/qa/guard_v17_selfhosted_acceptance.py --unit-report (Join-Path $evidence 'unittest.json')
           if ($LASTEXITCODE -ne 0) {throw 'Windows tests failed or have unexplained skips'}
-      - name: Integrated real LibreOffice v20 native formats and quality contracts
-        working-directory: aio-pr59-v20-source-${{ github.run_id }}-${{ github.run_attempt }}
-        run: |
-          $ErrorActionPreference='Stop'
-          $env:AIO_LIBREOFFICE=$env:AIO_QA_ENGINE
-          $env:AIO_BUILD_REVISION=$env:AIO_QA_SOURCE_SHA
-          $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-pr59-v20-evidence-${{ github.run_id }}-${{ github.run_attempt }}'
-          & $env:AIO_QA_PYTHON tools/qa/guard_v20_native_acceptance.py --output (Join-Path $evidence 'native-v20') --executable $env:AIO_QA_ENGINE --require-mode native_uno
-          if ($LASTEXITCODE -ne 0) {throw 'Required v20 native scenarios failed'}
       - name: Preserve real queue save and CSV DBF native regression
         working-directory: aio-pr59-v20-source-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
