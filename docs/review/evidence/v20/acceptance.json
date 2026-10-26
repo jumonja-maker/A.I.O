@@ -1,0 +1,276 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-26",
+  "status": "PASS_TARGETED_ACCEPTANCE",
+  "readiness": "READY_FOR_INDEPENDENT_QA_INTEGRATION_REVIEW",
+  "repository": "jumonja-maker/A.I.O",
+  "pullRequest": 59,
+  "branch": "patch/converter-completion-v20-20261026",
+  "testedSource": "785867731a42dc95b1d7676287d271160897bb14",
+  "testedSourceTree": "22c3adfbdb892d825b1c3ae93e523a1742ea3db5",
+  "integrationBase": "eb41fd0ec9a871e239ab906cf60791abccc082b0",
+  "integratedV19": "761991a8b00807606ad0ddd967fc9c04487a7714",
+  "workflowHead": "2b10add578fb67bb3f438cd9e6a2871d19bfb4e9",
+  "windows": {
+    "runner": "NIKITA restricted non-elevated offline test environment",
+    "run": 40294476196,
+    "job": 121477057444,
+    "url": "https://github.com/jumonja-maker/A.I.O/actions/runs/40294476196",
+    "conclusion": "success",
+    "sourceTests": {
+      "discovered": 944,
+      "passed": 934,
+      "failed": 0,
+      "errors": 0,
+      "platformInapplicable": [
+        {
+          "test": "test_comparison_recovery_v20.ComparisonRecoverySafety.test_dangling_catalogue_link_cannot_create_an_external_database",
+          "reason": "Host cannot create the controlled symlink",
+          "status": "not_applicable"
+        },
+        {
+          "test": "test_converter_guard_process_v02.ControlledProcessTests.test_deadline_kills_own_process_tree_and_next_file_runs",
+          "reason": "POSIX test fixture; real Windows Job Object needs Windows acceptance",
+          "status": "not_applicable"
+        },
+        {
+          "test": "test_converter_guard_process_v02.ControlledProcessTests.test_live_output_quota_stops_only_the_growing_process",
+          "reason": "POSIX test fixture; real Windows Job Object needs Windows acceptance",
+          "status": "not_applicable"
+        },
+        {
+          "test": "test_converter_guard_process_v02.ControlledProcessTests.test_slow_cleanup_does_not_hold_the_global_metadata_lock",
+          "reason": "POSIX test fixture; real Windows Job Object needs Windows acceptance",
+          "status": "not_applicable"
+        },
+        {
+          "test": "test_guard_media_v20.BmpNativeRepair.test_source_symlink_is_never_rewritten",
+          "reason": "Symlinks unavailable on this filesystem",
+          "status": "not_applicable"
+        },
+        {
+          "test": "test_guard_native_metrics_v11.NativeMetricsQA.test_cli_measures_process_time_without_inventing_import_or_export_times",
+          "reason": "Executable generated fixture uses a POSIX shebang",
+          "status": "not_applicable"
+        },
+        {
+          "test": "test_guard_native_metrics_v11.NativeMetricsQA.test_twenty_worker_recycles_leave_no_live_readers_profiles_or_pipe_descriptors",
+          "reason": "Owned POSIX worker lifecycle; not Windows Job Object QA",
+          "status": "not_applicable"
+        },
+        {
+          "test": "test_guard_quarantine_v20.DiagnosticQuarantineV20.test_symlink_output_and_linked_diagnostic_destination_are_not_followed",
+          "reason": "[WinError 1314] Клиент не обладает требуемыми правами: 'D:\\\\actions-runner\\\\temp\\\\tmpshjr7x6k\\\\job\\\\input\\\\original.docx' -> 'D:\\\\actions-runner\\\\temp\\\\tmpshjr7x6k\\\\job\\\\work\\\\1\\\\output\\\\link.docx'",
+          "status": "not_applicable"
+        },
+        {
+          "test": "test_guard_queue_audit_v18.ResultDeltaTests.test_unsupported_hardlinks_use_exclusive_copy_and_independent_readback",
+          "reason": "POSIX link-unsupported fallback",
+          "status": "not_applicable"
+        },
+        {
+          "test": "test_guard_queue_audit_v18.ResultDeltaTests.test_unsupported_link_fallback_still_rejects_a_competing_target",
+          "reason": "POSIX link-unsupported fallback",
+          "status": "not_applicable"
+        }
+      ]
+    },
+    "nativeV20": {
+      "status": "PASS",
+      "cases": 16,
+      "LibreOfficeUNO": 12,
+      "existingQtCodec": 4,
+      "allOriginalSourcesUnchanged": true,
+      "elapsedMs": 17016
+    },
+    "nativeV08QueueAndSave": {
+      "status": "PASS",
+      "exports": 11,
+      "independentReadback": true
+    },
+    "nativeV19ImagePixelsAndCSVRecipes": "PASS",
+    "qtBothThemesNarrowAndPDF": "PASS",
+    "qtSaveRecoveryAndAnalysisDiscardFiveCycles": "PASS",
+    "qtVisiblePhysicalGPU": "NOT_RUN",
+    "nativeConversionFixtureInQtJourneys": "controlled; actual Office separately tested above"
+  },
+  "linux": {
+    "sourceTests": {
+      "status": "PASS",
+      "passed": 944,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "nativeV20": {
+      "status": "PASS",
+      "successfulConversions": 14,
+      "safeModelRejections": 2,
+      "aliasModelLimitation": "Linux LOK auto import; explicit native CLI positive proof separate",
+      "elapsedMs": 57663
+    },
+    "difLocaleAblation": {
+      "sameOriginalSource": "e070a343bcb84abfa778c70c77336a3970fc650cdffd5cb10d1be50a4a853a5c",
+      "ruRUErrors": 24,
+      "privateEnUSErrors": 0,
+      "exactNumericCells": 72,
+      "sourceUnchanged": true
+    }
+  },
+  "inspection": {
+    "independentReviewFindingsResolved": [
+      "BMP Windows open handle",
+      "SQLite malformed schema",
+      "parallel restart ownership/rollback",
+      "duplicate history decoration",
+      "DIF generator file descriptor retention",
+      "DIF ordinary TABLE-text false positive",
+      "runtime provenance temporal scope",
+      "actual registry event priority",
+      "source-owned failed DIF repeated imports"
+    ],
+    "allSourceFixtureStructuralContracts": {
+      "files": 510,
+      "structuralRefusalsCorrected": 16,
+      "remainingSXWWithNativeContentFailure": 3,
+      "sourceBytesUnchanged": true
+    },
+    "historicalPresentationBadReadyNowRejected": 48,
+    "uiControlledCycles": {
+      "cycles": 2,
+      "filesEach": 1000,
+      "tasksEach": 83000
+    },
+    "codeFileSeal": {
+      "files": 237,
+      "localCodeMatchesPublishedGitBlobs": true
+    },
+    "criticalEventsReserve": "bounded FIFO; remaining drops explicitly recorded, no lossless-telemetry claim"
+  },
+  "notRun": [
+    "complete new user FULLTEST 510 sources / all targets",
+    "complete DIF 6x21 on Windows original corpus",
+    "multi-hour real GUI renderer RSS/handles/JS-paint soak",
+    "packaged EXE/installer of this final source",
+    "manual visible Windows GPU/DPI acceptance",
+    "universal visual/semantic fidelity of all 85 formats"
+  ],
+  "remainingNativeLimitations": [
+    "presentation HTML exporter may lose captions or images; proven losses are rejected",
+    "three tested inconsistent SXW cannot be safely unblocked",
+    "GIF palette/alpha cannot be silently quantized",
+    "JPEG remains lossy; DOTM/VBA preservation not certified",
+    "BLACK.BOX CPU/WCT/ETW collector requires separate repository work"
+  ],
+  "mainMerged": false,
+  "releaseCreated": false,
+  "releaseReady": false,
+  "earlierRuns": [
+    {
+      "id": 40288557239,
+      "status": "INCOMPLETE",
+      "reason": "three new privileged file-symlink fixture skips, zero failing tests; now exact platform classification, Linux counterparts executed"
+    },
+    {
+      "id": 40289415756,
+      "status": "FAIL",
+      "reason": "real FODS stream retention after numeric mismatch; explicit finally closure fixed"
+    },
+    {
+      "id": 40292258754,
+      "status": "FAIL",
+      "reason": "real DIF decimal import corruption reproduced; private numeric profile implemented and mandatory gate retained"
+    },
+    {
+      "id": 40294367419,
+      "status": "FAIL",
+      "reason": "native v20 passed; workflow evidence directory already existed after step reorder; only workflow setup corrected"
+    }
+  ],
+  "evidenceFiles": {
+    "bmp-native-linux.json": {
+      "size": 1133,
+      "sha256": "f9a14205786fc958f4491899de1451146b5a15b61b216c8e916a6a2877d14292"
+    },
+    "comparison-safety.json": {
+      "size": 1507,
+      "sha256": "dd5a38604db3078db27dbc3463f670909dc5160c5c08c59067fff6747a8ed8e0"
+    },
+    "critical-event-reserve.json": {
+      "size": 955,
+      "sha256": "a7be571a87e59d4ae173bf600ccd5632c25cb130f8cb62b88cb7ce0eca2660e5"
+    },
+    "dif-native-linux.json": {
+      "size": 13950,
+      "sha256": "001ea42f1c66426cf613a3c96fe438d1456e6d706fb3621d9ef02f5d8b04a714"
+    },
+    "docm-dotx-native-linux.json": {
+      "size": 1737,
+      "sha256": "098077c2aa96b9fae7832a5778fd98bf27b101057bb1d0494d24aa786bd5dd85"
+    },
+    "local-source-tests.json": {
+      "size": 186,
+      "sha256": "d1800097549aca5a50b83b58eb5292944d818da9958bb3d54d87597f11cda423"
+    },
+    "native-v20-linux.json": {
+      "size": 12257,
+      "sha256": "362365ac209f7217d4fbaaef359efe617c871b4e4658ae9e9f6c2bf99bf060bc"
+    },
+    "presentation-html.json": {
+      "size": 19143,
+      "sha256": "a46999f4cf93e898bd710c571e236b285eb87b8cb20091fbad2ba8762c2f30e9"
+    },
+    "source-contract-native-linux.json": {
+      "size": 11188,
+      "sha256": "a2837c2d706acc740a5e5fb4f17def139b768ef1948dd341c9cfb8f3f75e39b2"
+    },
+    "source-contract-real-fixtures.json": {
+      "size": 11670,
+      "sha256": "3f5c008387622457ebe384694a2ef5fdc648ec30cfc6125c0633efb1f35addd8"
+    },
+    "source-contract-seven-native.json": {
+      "size": 14295,
+      "sha256": "9b493c80e744f2604cd8d3399ba52dc310dbbe814f2667318921122d6e461aeb"
+    },
+    "tested-source-files-sha256.json": {
+      "size": 26887,
+      "sha256": "0d25662bf4ea7a902a4daa5f53301753db20494669f0e010e50c1f6e1f322e0b"
+    },
+    "windows-journeys.json": {
+      "size": 26399,
+      "sha256": "5606fb92885cf810bbd6de5a088588a86da70070e3578ab8fc32c50ba509400f"
+    },
+    "windows-large-ui.json": {
+      "size": 175,
+      "sha256": "5cbf53d477ece9ecbd95e623f16ce2bc081305996879c009f0ac9145a2f2adaf"
+    },
+    "windows-native-v08-queue-save.json": {
+      "size": 71257,
+      "sha256": "a54848a0441f365853706beb6bb5d10b9d6f685277f21e16f7ff812fb73a0a93"
+    },
+    "windows-native-v19-recipes.json": {
+      "size": 7456,
+      "sha256": "c0d5ae2126526914d9199401fe88234df20093ce67835a58c01eb951e461f605"
+    },
+    "windows-native-v20-first-pass.json": {
+      "size": 12505,
+      "sha256": "c6846d64208aae247e72172f8f5739821a3756bfd6e07dfb5158c878b168bc37"
+    },
+    "windows-native-v20.json": {
+      "size": 12504,
+      "sha256": "5deb9d7462a24365c29f48b3a1222271fc205c35ca439da66bb6c361c67a32e3"
+    },
+    "windows-source-tests.json": {
+      "size": 2842,
+      "sha256": "673dc30bbbf60ad64bccca0f88132586c5b09d7e426e8f3c8ecb01ec4adf9101"
+    },
+    "windows-ui-lifecycle.json": {
+      "size": 212,
+      "sha256": "e30235cebb86173471b6984426dc1c8d69b47468b0ebba32e46c017d2adec450"
+    },
+    "windows-visual.json": {
+      "size": 1626,
+      "sha256": "88e092c609e8cc1d40565f69ec1e0f0c6f641f60eb81a6126fbf131599e58361"
+    }
+  }
+}

@@ -17,14 +17,53 @@ import time
 from ..native_process import ProcessTree
 from .errors import GuardError
 from .native_logs import NativeLogs
+from .dif_evidence import DIF_CORE_SOURCE
 
-WORKER_SOURCE = r'''
+WORKER_SOURCE = DIF_CORE_SOURCE + r'''
 import json, os, sys, time, subprocess
 from pathlib import Path
 
 PREFIX = 'AIO_GUARD_RPC '
 def send(value):
     print(PREFIX + json.dumps(value, ensure_ascii=True), flush=True)
+
+def automatic_export_properties(req, prop, uno_runtime):
+    """A finite trusted recipe, not a bridge for arbitrary UNO properties."""
+    recipe = req.get('automaticRecipe')
+    data = req.get('exportFilterData')
+    if recipe is None:
+        if data is not None:
+            raise RuntimeError('AUTOMATIC_FILTER_DATA_WITHOUT_RECIPE')
+        return []
+    if recipe == 'pdf_preserve_images':
+        expected = {'UseLosslessCompression': True, 'ReduceImageResolution': False}
+        if (req.get('format') != 'pdf' or
+                not req.get('exportFilter', '').endswith('_pdf_Export') or
+                not isinstance(data, dict) or data != expected or
+                any(type(value) is not bool for value in data.values())):
+            raise RuntimeError('AUTOMATIC_FILTER_DATA_INVALID')
+        # PropertyValue.Value itself is an Any. PyUNO otherwise infers the
+        # nested Python tuple as []any, while PDFFilter extracts only
+        # []com.sun.star.beans.PropertyValue and silently uses defaults when
+        # extraction fails. Preserve the inner UNO sequence type explicitly.
+        data = uno_runtime.Any('[]com.sun.star.beans.PropertyValue',
+                               tuple(prop(name, value) for name, value in expected.items()))
+        return [prop('FilterData', data)]
+    if recipe == 'csv_preserve_values':
+        separator = '44' if req.get('format') == 'csv' else '9'
+        expected = separator + ',34,76,1,,0,false,true,false,false,false,-1,false,true'
+        if (req.get('format') not in ('csv', 'tsv', 'tab') or
+                req.get('exportFilter') != 'Text - txt - csv (StarCalc)' or
+                req.get('exportOptions') != expected or data is not None):
+            raise RuntimeError('AUTOMATIC_FILTER_DATA_INVALID')
+        return []
+    raise RuntimeError('AUTOMATIC_RECIPE_UNAVAILABLE')
+
+def automatic_csv_outputs(req, model):
+    paths = sorted(Path(req['output']).glob('*.' + req['format']))
+    if not paths or len(paths) != model.getSheets().getCount():
+        raise RuntimeError('AUTOMATIC_CSV_SHEETS_MISSING')
+    return paths
 
 def dbf_mixed_columns(sheet, area):
     """Find columns native dBase's first-record type inference would truncate."""
@@ -293,6 +332,7 @@ def main(boot_name):
     for raw in sys.stdin:
         req = json.loads(raw)
         model, result, stage = None, None, 'import'
+        dif_import_check = None
         operation_tick = time.monotonic()
         import_tick = export_tick = export_handler = handler = None
         timings = {'source':'uno_document'}
@@ -324,6 +364,10 @@ def main(boot_name):
                 arguments = {p.Name:p.Value for p in model.getArgs()
                              if p.Name in ('FilterName', 'TypeName')}
                 actual_filter = arguments.get('FilterName')
+                # Verify the actual imported doubles before ANY export filter
+                # can turn a locale-induced #ERR string into a false success.
+                dif_import_check = (check_dif_import_model(source, model)
+                                    if actual_filter == 'DIF' else None)
                 if req.get('expectedSourceServices') and not set(services).intersection(req['expectedSourceServices']):
                     result = {'id':request_id,'ok':False,'code':'SOURCE_MODEL_MISMATCH','stage':'import'}
                 elif req['operation'] == 'inspect':
@@ -370,6 +414,7 @@ def main(boot_name):
                                       prop('Silent', True), prop('InteractionHandler', export_handler)]
                     if req.get('exportOptions') is not None:
                         export_options.append(prop('FilterOptions', req['exportOptions']))
+                    export_options.extend(automatic_export_properties(req, prop, uno))
                     export_tick = time.monotonic()
                     exported_paths = [target]
                     try:
@@ -390,6 +435,11 @@ def main(boot_name):
                             exported_paths = export_table_sheets(model, desktop, prop, target, export_options)
                         else:
                             model.storeToURL(target.as_uri(), tuple(export_options))
+                            if req.get('automaticRecipe') == 'csv_preserve_values':
+                                # ExportAllSheets (-1) produces native
+                                # basename-SheetName.csv files rather than
+                                # the requested single primary filename.
+                                exported_paths = automatic_csv_outputs(req, model)
                     finally:
                         timings['exportMs'] = round((time.monotonic()-export_tick)*1000)
                     present = all(p.is_file() and not p.is_symlink() and p.stat().st_size > 0
@@ -397,19 +447,24 @@ def main(boot_name):
                     # Result paths stay on disk. Thousands of HTML sidecars
                     # must not overflow the small control-message channel.
                     result = {'id':request_id,'ok':present and not export_handler.blocked,
-                              'primary':target.name,'stage':'export',
+                              'primary':(target.name if target.is_file() else
+                                         exported_paths[0].name if exported_paths else target.name),'stage':'export',
                               'code':('EXPORT_INTERACTION_REQUIRED' if export_handler.blocked else
                                       'ENGINE_OUTPUT_MISSING' if not present else None)}
                     if req['exportFilter'] == 'dBase' and list(Path(req['output']).glob('*.aio-columns.jsonl')):
                         result['warnings'] = ['NATIVE_DBF_MIXED_COLUMN_TEXT']
         except Exception as error:
-            result = {'id':request_id,'ok':False,'code':('PREFLIGHT_INTERACTION_REQUIRED'
+            result = {'id':request_id,'ok':False,'code':('DIF_NUMERIC_IMPORT_MISMATCH'
+                      if isinstance(error, DifNumericMismatch) else
+                      'PREFLIGHT_INTERACTION_REQUIRED'
                       if stage == 'import' and handler is not None and handler.blocked else
                       'SOURCE_IMPORT_FAILED' if stage == 'import' else
                       'EXPORT_INTERACTION_REQUIRED' if export_handler is not None and export_handler.blocked
                       else 'ENGINE_FAILED'),
                       'stage':stage,'diagnostic':str(error)[-4096:]}
         finally:
+            if result is not None and dif_import_check is not None:
+                result['difNumericImport'] = dif_import_check
             interaction = export_handler if export_handler is not None and export_handler.blocked else handler
             if result is not None and interaction is not None and interaction.blocked:
                 result['interaction'] = {'requestType': interaction.request_type,
@@ -611,4 +666,3 @@ class UnoSession:
             self.recycle()
         finally:
             shutil.rmtree(self.workspace,ignore_errors=True)
-

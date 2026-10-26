@@ -1,0 +1,239 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "platform": "win32",
+  "scope": "existing_frozen_executable_worker",
+  "frozenVerified": true,
+  "desktopGUI": "NOT_RUN",
+  "LibreOffice": "NOT_RUN",
+  "operations": {
+    "text-analysis": {
+      "exitCode": 0,
+      "response": "outcomes.jsonl",
+      "diagnostic": ""
+    },
+    "changed-source-digest": {
+      "exitCode": 0,
+      "response": "outcomes.jsonl",
+      "diagnostic": ""
+    },
+    "pdf-analysis": {
+      "exitCode": 0,
+      "response": "outcomes.jsonl",
+      "diagnostic": ""
+    },
+    "pdf-page-0": {
+      "exitCode": 0,
+      "response": "preview.json",
+      "diagnostic": "",
+      "metadata": {
+        "kind": "image",
+        "pages": 2,
+        "page": 0,
+        "note": "Постраничный просмотр PDF через QtPdf."
+      },
+      "png": {
+        "width": 1400,
+        "height": 1050,
+        "bits": 8,
+        "colourType": 2,
+        "sha256": "da312199d843eb3d734438d9fcf5cb7aa00ad56bf9798a622c3a62ace932183c",
+        "decodedBytes": 4411050
+      }
+    },
+    "pdf-page-1": {
+      "exitCode": 0,
+      "response": "preview.json",
+      "diagnostic": "",
+      "metadata": {
+        "kind": "image",
+        "pages": 2,
+        "page": 1,
+        "note": "Постраничный просмотр PDF через QtPdf."
+      },
+      "png": {
+        "width": 1350,
+        "height": 1800,
+        "bits": 8,
+        "colourType": 2,
+        "sha256": "feb44a7f474fb695b6fe1418507346e7b1c98bba39afaeae11f66c3bb5c639da",
+        "decodedBytes": 7291800
+      }
+    },
+    "pdf-page-2": {
+      "exitCode": 0,
+      "response": "preview.json",
+      "diagnostic": "",
+      "metadata": {
+        "kind": "unavailable",
+        "note": "Не удалось отобразить выбранную страницу PDF."
+      }
+    },
+    "png-preview": {
+      "exitCode": 0,
+      "response": "preview.json",
+      "diagnostic": "",
+      "metadata": {
+        "kind": "image",
+        "note": "Уменьшенный просмотр изображения; для анимации показан первый кадр."
+      },
+      "png": {
+        "width": 1400,
+        "height": 700,
+        "bits": 8,
+        "colourType": 6,
+        "sha256": "da10db3d0e813aea25ad6808acad01dbf746101203385077445124e3b43e73ad",
+        "decodedBytes": 3920700
+      }
+    }
+  },
+  "assets": {
+    "status": "PASS",
+    "scope": "packaged asset bytes, not GUI behavior",
+    "sha256": {
+      "index.html": "aacfe02b968afaa39511c014c3f4dcf76efc7f4ee060536a98d40f917bcb5964",
+      "src/guard-comparison.js": "1b4bf14b331254c675c6ff8d7d443a0e88f609acd96c40680a375d0c4d72a96c",
+      "src/guard-comparison.css": "b75ab09efd438eea44c1a14dc4ac00800468e9e7fdbc51e3ebb1200e90dcfa64"
+    }
+  },
+  "textAnalysis": {
+    "same-text": {
+      "schemaVersion": 1,
+      "status": "checked",
+      "qualityCompared": true,
+      "scope": "verified_properties_only",
+      "findings": [],
+      "checkedFeatures": [
+        "identical_file_bytes",
+        "normalized_text"
+      ],
+      "unknown": [
+        "colour_accuracy",
+        "fonts",
+        "formula_evaluation",
+        "semantic_meaning",
+        "visual_layout"
+      ],
+      "recipeCandidates": [],
+      "before": {
+        "kind": "text",
+        "documentClass": "text",
+        "complete": true,
+        "counts": {
+          "characters": 56
+        },
+        "textDigest": "029dc51548d38f0b5048b733cce7cd3dfe2755e13ed487f581260d9cf2cfd9a7"
+      },
+      "after": {
+        "kind": "text",
+        "documentClass": "text",
+        "complete": true,
+        "counts": {
+          "characters": 56
+        },
+        "textDigest": "029dc51548d38f0b5048b733cce7cd3dfe2755e13ed487f581260d9cf2cfd9a7"
+      },
+      "outputScope": {
+        "totalFiles": 1,
+        "primaryFiles": 1,
+        "supplementalFiles": 0,
+        "inspectedPrimaryFiles": 1,
+        "inspectedSupplementalFiles": 0
+      },
+      "evaluatedFeatures": [
+        "identical_file_bytes",
+        "normalized_text"
+      ]
+    },
+    "changed-output-digest": {
+      "status": "not_checked",
+      "findings": [
+        {
+          "code": "RESULT_CHANGED",
+          "category": "not_checked",
+          "message": "Служебный файл изменился после конвертации. Причину нельзя приписать конвертеру."
+        }
+      ],
+      "checkedFeatures": [],
+      "unknown": [
+        "result_identity"
+      ],
+      "recipeCandidates": []
+    }
+  },
+  "sourceDigestGuard": {
+    "same-text": {
+      "status": "not_checked",
+      "findings": [
+        {
+          "code": "SOURCE_CHANGED",
+          "category": "not_checked",
+          "message": "Служебный файл изменился после конвертации. Причину нельзя приписать конвертеру."
+        }
+      ],
+      "checkedFeatures": [],
+      "unknown": [
+        "source_identity"
+      ],
+      "recipeCandidates": []
+    }
+  },
+  "pdfAnalysis": {
+    "pdf-module-proof": {
+      "schemaVersion": 1,
+      "status": "checked",
+      "qualityCompared": true,
+      "scope": "verified_properties_only",
+      "findings": [],
+      "checkedFeatures": [
+        "identical_file_bytes",
+        "normalized_text"
+      ],
+      "unknown": [
+        "colour_accuracy",
+        "fonts",
+        "formula_evaluation",
+        "nested_or_inline_pdf_images",
+        "pdf_text_extraction",
+        "semantic_meaning",
+        "visual_layout"
+      ],
+      "recipeCandidates": [],
+      "before": {
+        "kind": "pdf",
+        "documentClass": "rendered",
+        "complete": true,
+        "counts": {
+          "pages": 2,
+          "images": 0,
+          "characters": 39
+        },
+        "textDigest": "099f137ce79028219ec50b7d303a99db1d6a3d8a4e1c78731d22bef4158c8e56"
+      },
+      "after": {
+        "kind": "pdf",
+        "documentClass": "rendered",
+        "complete": true,
+        "counts": {
+          "pages": 2,
+          "images": 0,
+          "characters": 39
+        },
+        "textDigest": "099f137ce79028219ec50b7d303a99db1d6a3d8a4e1c78731d22bef4158c8e56"
+      },
+      "outputScope": {
+        "totalFiles": 1,
+        "primaryFiles": 1,
+        "supplementalFiles": 0,
+        "inspectedPrimaryFiles": 1,
+        "inspectedSupplementalFiles": 0
+      },
+      "evaluatedFeatures": [
+        "identical_file_bytes",
+        "normalized_text"
+      ]
+    }
+  },
+  "fixturesUnchanged": true,
+  "elapsedSeconds": 6.437
+}

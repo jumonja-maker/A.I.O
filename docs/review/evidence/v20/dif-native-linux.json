@@ -1,0 +1,383 @@
+{
+  "schemaVersion": 1,
+  "scope": "B01 DIF numeric import evidence; not complete converter or Windows certification",
+  "createdDate": "2026-10-26",
+  "environment": "Linux LibreOfficeDev26.8.0alpha, notWindows",
+  "sourceFiles": 6,
+  "numericCellsPerCompleteCorpus": 864,
+  "unitTestsNew": 33,
+  "targetedUnitTestsIncludingExisting": 55,
+  "nativeSnapshots": [
+    {
+      "source": "01_LEVEL_1.dif",
+      "sourceSha256": "7a3e4d79530927ae2d1088c8a80d258b0b0b52cf73f81de9df29bf99aa475bcd",
+      "preparedSha256": "78103af07a84557b58cf4e616035030a277f33baea05d15accb0f38176bc622d",
+      "check": {
+        "check": "dif_numeric_values",
+        "qualityCompared": false,
+        "comparisonDomain": "ieee754_double",
+        "typesCompared": true,
+        "status": "checked_subset",
+        "numericCells": 24,
+        "valuesCompared": true,
+        "sourceNumericImportCompared": true
+      },
+      "cacheReused": true,
+      "seconds": 12.813,
+      "originalUnchanged": true
+    },
+    {
+      "source": "02_LEVEL_2.dif",
+      "sourceSha256": "4ae0ab9fbe89d53fcde22f30482e4ff4034a4422cef3d10d19a76c59ac2d0df2",
+      "preparedSha256": "7a88d6dbc63d74f5df36649fb6ac3521b91d699327c30c1d0b2d781522dfedd5",
+      "check": {
+        "check": "dif_numeric_values",
+        "qualityCompared": false,
+        "comparisonDomain": "ieee754_double",
+        "typesCompared": true,
+        "status": "checked_subset",
+        "numericCells": 97,
+        "valuesCompared": true,
+        "sourceNumericImportCompared": true
+      },
+      "cacheReused": true,
+      "seconds": 13.839,
+      "originalUnchanged": true
+    },
+    {
+      "source": "03_LEVEL_3.dif",
+      "sourceSha256": "ca5dcbe1b03c1d606b2029f3d76b68ff78505d10bda50085efbf48a16da49d52",
+      "preparedSha256": "263c25f0b3bbde0a7f55b0a1373e62c1c75701efc76bc18c09932d40a115f7a9",
+      "check": {
+        "check": "dif_numeric_values",
+        "qualityCompared": false,
+        "comparisonDomain": "ieee754_double",
+        "typesCompared": true,
+        "status": "checked_subset",
+        "numericCells": 401,
+        "valuesCompared": true,
+        "sourceNumericImportCompared": true
+      },
+      "cacheReused": true,
+      "seconds": 10.542,
+      "originalUnchanged": true
+    },
+    {
+      "source": "04_LEVEL_1.dif",
+      "sourceSha256": "b1d8408a430d96a7d496732a72022e8353d99c780c00d5c05bcb1f8b62fa1f0e",
+      "preparedSha256": "2bcd224a564304826787a8aabe0c96ea44093d2de778681817cbb8fceb79a227",
+      "check": {
+        "check": "dif_numeric_values",
+        "qualityCompared": false,
+        "comparisonDomain": "ieee754_double",
+        "typesCompared": true,
+        "status": "checked_subset",
+        "numericCells": 15,
+        "valuesCompared": true,
+        "sourceNumericImportCompared": true
+      },
+      "cacheReused": true,
+      "seconds": 10.561,
+      "originalUnchanged": true
+    },
+    {
+      "source": "05_LEVEL_2.dif",
+      "sourceSha256": "e070a343bcb84abfa778c70c77336a3970fc650cdffd5cb10d1be50a4a853a5c",
+      "preparedSha256": "6a07cac3387b92cd595157e6bd065f2ac477e3feee792c3991e1b0a9165836d5",
+      "check": {
+        "check": "dif_numeric_values",
+        "qualityCompared": false,
+        "comparisonDomain": "ieee754_double",
+        "typesCompared": true,
+        "status": "checked_subset",
+        "numericCells": 72,
+        "valuesCompared": true,
+        "sourceNumericImportCompared": true
+      },
+      "cacheReused": true,
+      "seconds": 10.941,
+      "originalUnchanged": true
+    },
+    {
+      "source": "06_LEVEL_3.dif",
+      "sourceSha256": "4b8305abfbb2752dba4975a660dcc6b14de613c2fe70240f3f821ff8a1196a84",
+      "preparedSha256": "01bca20726b0b74ca01dbf61285cc6b06d53ccf6ddeb57371bc084fe7ebf5533",
+      "check": {
+        "check": "dif_numeric_values",
+        "qualityCompared": false,
+        "comparisonDomain": "ieee754_double",
+        "typesCompared": true,
+        "status": "checked_subset",
+        "numericCells": 255,
+        "valuesCompared": true,
+        "sourceNumericImportCompared": true
+      },
+      "cacheReused": true,
+      "seconds": 11.468,
+      "originalUnchanged": true
+    }
+  ],
+  "nativeFollowupExports": [
+    {
+      "target": "xlsx",
+      "exit": 0,
+      "seconds": 63.392,
+      "results": [
+        {
+          "source": "01_LEVEL_1.dif",
+          "result": "01_LEVEL_1.xlsx",
+          "exists": true,
+          "sha256": "1cd74f53ecc3ff1d89198f27d19f4d693853d500a3aac49926f8c0bc9566407d",
+          "bytes": 5884,
+          "numericCellsExact": 24,
+          "typesCompared": true
+        },
+        {
+          "source": "02_LEVEL_2.dif",
+          "result": "02_LEVEL_2.xlsx",
+          "exists": true,
+          "sha256": "ae472ebf8a0a68e2db0b6e63dcdb991c47a3085f58328367b909c834f9139b2b",
+          "bytes": 6419,
+          "numericCellsExact": 97,
+          "typesCompared": true
+        },
+        {
+          "source": "03_LEVEL_3.dif",
+          "result": "03_LEVEL_3.xlsx",
+          "exists": true,
+          "sha256": "ca82c53f23fc8c62bb251bbb178f999a9d6ebb3883088325a19b835fafbb2152",
+          "bytes": 8384,
+          "numericCellsExact": 401,
+          "typesCompared": true
+        },
+        {
+          "source": "04_LEVEL_1.dif",
+          "result": "04_LEVEL_1.xlsx",
+          "exists": true,
+          "sha256": "806c27b67947a26b0ddfc95a7c01484c8ed17150fbd6fc04a3cbb2e976f7d4b9",
+          "bytes": 5822,
+          "numericCellsExact": 15,
+          "typesCompared": true
+        },
+        {
+          "source": "05_LEVEL_2.dif",
+          "result": "05_LEVEL_2.xlsx",
+          "exists": true,
+          "sha256": "93e1e97b1665ca0b2fcf13733fe87a30d5c20d81a6445af9c71f6d30a6bcfa23",
+          "bytes": 6394,
+          "numericCellsExact": 72,
+          "typesCompared": true
+        },
+        {
+          "source": "06_LEVEL_3.dif",
+          "result": "06_LEVEL_3.xlsx",
+          "exists": true,
+          "sha256": "2e846ddf6d6ec7e58c33121edba3c5d933e5370856c6d3e97feb31a3d5515831",
+          "bytes": 8118,
+          "numericCellsExact": 255,
+          "typesCompared": true
+        }
+      ]
+    },
+    {
+      "target": "csv",
+      "exit": 0,
+      "seconds": 56.143,
+      "results": [
+        {
+          "source": "01_LEVEL_1.dif",
+          "result": "01_LEVEL_1-Data.csv",
+          "exists": true,
+          "sha256": "779d938ab008de226ba52a306e3c80dc083f8e1f34615e512daad02a298c74de",
+          "bytes": 152,
+          "numericCellsExact": 24,
+          "typesCompared": false
+        },
+        {
+          "source": "02_LEVEL_2.dif",
+          "result": "02_LEVEL_2-Data.csv",
+          "exists": true,
+          "sha256": "a7b9b341ac4805767527f299940af881daf00d97e14fa191ae7243a301c398c2",
+          "bytes": 544,
+          "numericCellsExact": 97,
+          "typesCompared": false
+        },
+        {
+          "source": "03_LEVEL_3.dif",
+          "result": "03_LEVEL_3-Data.csv",
+          "exists": true,
+          "sha256": "654d07942a5fb732e3fc01f34cfb1b0932aeee44c5b49dcbbeb8bdda46e56a93",
+          "bytes": 2124,
+          "numericCellsExact": 401,
+          "typesCompared": false
+        },
+        {
+          "source": "04_LEVEL_1.dif",
+          "result": "04_LEVEL_1-SET2_L1.csv",
+          "exists": true,
+          "sha256": "65f664c912785e0bfa9cec260eda679396bc8cf517200d081cd303977d9c1b35",
+          "bytes": 101,
+          "numericCellsExact": 15,
+          "typesCompared": false
+        },
+        {
+          "source": "05_LEVEL_2.dif",
+          "result": "05_LEVEL_2-SET2_L2.csv",
+          "exists": true,
+          "sha256": "2b53cfe38e0efd2a5e824b6b061318f9f3edf142c5748390ffc3257616f9c90f",
+          "bytes": 468,
+          "numericCellsExact": 72,
+          "typesCompared": false
+        },
+        {
+          "source": "06_LEVEL_3.dif",
+          "result": "06_LEVEL_3-SET2_L3.csv",
+          "exists": true,
+          "sha256": "56e4f409f2978aa8c3bc417432dfc537d44449e8a663beb7027b1c0b6b33d404",
+          "bytes": 1698,
+          "numericCellsExact": 255,
+          "typesCompared": false
+        }
+      ]
+    },
+    {
+      "target": "pdf",
+      "exit": 0,
+      "seconds": 66.057,
+      "results": [
+        {
+          "source": "01_LEVEL_1.dif",
+          "result": "01_LEVEL_1.pdf",
+          "exists": true,
+          "sha256": "897f18364ec536d5d11ea5890cc1f0bc1a3efb1b76af1748344cdd3cc3e446cc",
+          "bytes": 22861,
+          "numericCellsExact": null,
+          "qualityCompared": false
+        },
+        {
+          "source": "02_LEVEL_2.dif",
+          "result": "02_LEVEL_2.pdf",
+          "exists": true,
+          "sha256": "c97003ee44c1270fa9e59a13cfb3dd4c2388b68d2ef0f4bfe35143e5e1aaf40a",
+          "bytes": 45221,
+          "numericCellsExact": null,
+          "qualityCompared": false
+        },
+        {
+          "source": "03_LEVEL_3.dif",
+          "result": "03_LEVEL_3.pdf",
+          "exists": true,
+          "sha256": "36add8c3da11d9dfbb45584f38e4b45cdf523f95c868c3130f12127ce5f043bf",
+          "bytes": 138255,
+          "numericCellsExact": null,
+          "qualityCompared": false
+        },
+        {
+          "source": "04_LEVEL_1.dif",
+          "result": "04_LEVEL_1.pdf",
+          "exists": true,
+          "sha256": "56411e891842212bb87ce50b7909132e2283b2a47736da70b88500d1011fdfb2",
+          "bytes": 20615,
+          "numericCellsExact": null,
+          "qualityCompared": false
+        },
+        {
+          "source": "05_LEVEL_2.dif",
+          "result": "05_LEVEL_2.pdf",
+          "exists": true,
+          "sha256": "f66af592f3c2885154277517133159b232b0d04a3890fbf614c8002117e852ab",
+          "bytes": 39154,
+          "numericCellsExact": null,
+          "qualityCompared": false
+        },
+        {
+          "source": "06_LEVEL_3.dif",
+          "result": "06_LEVEL_3.pdf",
+          "exists": true,
+          "sha256": "3b35aeeb6f7edaa0aeb17481d1f69c0e39455529677a40e6adb2062981c2073c",
+          "bytes": 100058,
+          "numericCellsExact": null,
+          "qualityCompared": false
+        }
+      ]
+    }
+  ],
+  "checks": {
+    "sourceHashesUnchanged": true,
+    "oneSourceCacheReused": true,
+    "xlsxExactValuesAndNumericTypes": true,
+    "csvExactNumericValues": true,
+    "pdfCreated": true,
+    "pdfFidelityCompared": false
+  },
+  "limitations": [
+    "Direct Linux native private-profile regression now reproduces the 24 #ERR strings with ooSetupSystemLocale=ru-RU on the original SHA-e070a... source; the same DIF filter/options and en-US numeric profile preserve all72 numeric cells. This is not yet evidence of the new Windows build passing.",
+    "Six DIF sources x21 target matrix NOT_RUN in this evidence. Three exported target families were checked; PDF checks establish creation only.",
+    "No source rewrite and no extracting numbers from #ERR strings. Scientific DIF staging was rejected because it changes native number formats.",
+    "Unsupported inspector grammar or bounded inspection returns not_checked with DIF_NUMERIC_CONTENT_NOT_CHECKED on both UNO and CLI; that does not prove corruption or fidelity.",
+    "Numeric comparison is exact in native Calc IEEE754-double domain; general visual/semantic quality is not certified."
+  ],
+  "primaryImplementationReference": "https://github.com/LibreOffice/core/blob/master/sc/source/filter/dif/difimp.cxx",
+  "codeHashes": {
+    "app_backend/converter_guard/dif_evidence.py": "a67289c2b46ad65cdbc5744bf8282fb0c7dc3aa0c90d8405ea3aa2bf81ea454d",
+    "app_backend/converter_guard/adapter.py": "5cb95068f458c529a608728e811d591f4571bd4464bb8986ddfb5cbc5106e70d",
+    "app_backend/converter_guard/uno_session.py": "15c3feea7c28ef1b3ffb01c84935d18dd362083c4529665283feef6c7c141c15",
+    "tests/test_guard_dif_v20.py": "3ec18903b3eca08ed0dca74d6c651c914ee0b6feb945599668b1e72bd2930003"
+  },
+  "controlledNumericLocaleRegression": {
+    "environment": "Linux LO26.8alpha, privateprofileswithooSetupSystemLocale",
+    "sourceSha256": "e070a343bcb84abfa778c70c77336a3970fc650cdffd5cb10d1be50a4a853a5c",
+    "results": [
+      {
+        "locale": "ru-RU",
+        "seconds": 10.856,
+        "sourceUnchanged": true,
+        "results": [
+          "ru-RU/output/05_LEVEL_2.fods"
+        ],
+        "check": {
+          "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+          "diagnostic": "DIF_NUMERIC_OUTPUT_MISMATCH:row=2:column=4"
+        },
+        "literalErrCount": 24
+      },
+      {
+        "locale": "en-US",
+        "seconds": 10.789,
+        "sourceUnchanged": true,
+        "results": [
+          "en-US/output/05_LEVEL_2.fods"
+        ],
+        "check": {
+          "check": "dif_numeric_values",
+          "qualityCompared": false,
+          "comparisonDomain": "ieee754_double",
+          "typesCompared": true,
+          "status": "checked_subset",
+          "numericCells": 72,
+          "valuesCompared": true,
+          "sourceNumericImportCompared": true
+        },
+        "literalErrCount": 0
+      }
+    ]
+  },
+  "privateLocalePolicy": {
+    "onlyOwnedDIFProfile": true,
+    "numericLocale": "en-US",
+    "normalSourceRestoresOriginalFactory": true,
+    "sourceRewrite": false,
+    "nativeFilterAndOptions": "DIF:76",
+    "schemaFile": "share/registry/main.xcd",
+    "schemaSha256": "87b20d10e4e3151b8961f0096cdf72c0962cde5d97f50fb3bef3245a701a51fb",
+    "keys": {
+      "/org.openoffice.Setup/L10N/ooSetupSystemLocale": "explicit native numeric/system locale; empty uses OS locale",
+      "/org.openoffice.Setup/L10N/ooLocale": "Office language",
+      "/org.openoffice.Office.Linguistic/General/DefaultLocale": "default document language"
+    },
+    "warning": "DIF_PRIVATE_NUMERIC_LOCALE_EN_US",
+    "representationRisk": "DIF has no explicit locale metadata; displayed implicit numeric formats may differ. Original file and installed LibreOffice user settings remain unchanged.",
+    "nativeFilterBoundGate": true,
+    "ordinaryTablePrefixWriterAndCliRegression": "PASS; actual worker branch AST executed, renamed native DIF still reaches gate"
+  }
+}

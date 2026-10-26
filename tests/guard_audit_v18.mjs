@@ -14,7 +14,7 @@ const state=(revision,outputs,extra={})=>({jobId,revision,files:[file('one'),fil
   total:2,completed:2,succeeded:2,failed:0,cancelled:0,filtered:0,finished:false,state:'packaging',
   result:outputs===null?null:result(outputs),...extra});
 
-async function bridgeFixture(steps){
+async function bridgeFixture(steps,MapClass=Map){
   let started=false,index=0;
   const calls=[],events=[];
   class CustomEvent{constructor(type,{detail}={}){Object.assign(this,{type,detail});}}
@@ -31,7 +31,7 @@ async function bridgeFixture(steps){
     return {ok:true,status:200,headers:{get:()=>String(body.revision||0)},json:async()=>structuredClone(body)};
   };
   vm.runInNewContext(bridgeCode,{window,document:{body:{dataset:{aioToken:'test'}},querySelector:()=>null},
-    fetch,CustomEvent,crypto:webcrypto,setTimeout:callback=>setTimeout(callback,0)});
+    fetch,CustomEvent,crypto:webcrypto,Map:MapClass,setTimeout:callback=>setTimeout(callback,0)});
   const completed=await window.AllInOneBridge.converter.convertMany({files:['one','two'].map(id=>({id,file:{name:id+'.docx',size:1}})),formatIds:['pdf']});
   return {completed,calls,events};
 }
@@ -75,6 +75,29 @@ const checks=[];
   assert.deepEqual(Array.from(f.completed.result.outputs,o=>o.ticket),[ticketB,ticketC]);
   assert.equal(f.events.find(event=>event.detail?.revision===2).detail.result,null);
   checks.push('null result clears old inventory; first incremental inventory requires full resync');
+}
+
+
+// A long queue must not rebuild the complete output-ticket index on every
+// incremental poll. The output snapshots themselves remain immutable.
+{
+  let indexed=0;
+  class CountedMap extends Map {
+    constructor(entries){
+      const values=entries?Array.from(entries):[];
+      if(values.length&&values.every(pair=>typeof pair[0]==='string'&&pair[0].length===43&&Number.isInteger(pair[1])))indexed+=values.length;
+      super(values);
+    }
+  }
+  const steps=Array.from({length:100},(_,i)=>()=>state(i+2,[output(String(i).padStart(43,'0'))],
+    {delta:true,baseRevision:i+1,resultOutputsDelta:true,files:[],finished:i===99,state:i===99?'ready':'packaging'}));
+  const f=await bridgeFixture(steps,CountedMap);
+  assert.equal(f.completed.result.outputs.length,101);
+  assert.equal(new Set(f.completed.result.outputs.map(row=>row.ticket)).size,101);
+  assert.ok(indexed<=2,'100 output deltas must not rebuild growing ticket indexes (indexed '+indexed+' rows)');
+  const first=f.events.find(e=>e.detail?.revision===1).detail;
+  assert.equal(first.result.outputs.length,1,'performance improvement preserves the original immutable snapshot');
+  checks.push({outputDeltas:100,finalOutputs:101,indexedInventoryRows:indexed,immutableSnapshots:true});
 }
 
 if(process.env.AIO_DOM_MODULE){

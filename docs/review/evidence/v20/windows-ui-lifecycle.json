@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "cycles": 2,
+  "files": 1000,
+  "tasks": 83000,
+  "closedDomReleased": true,
+  "discardCleared": true,
+  "staleRecoveryIgnored": true,
+  "previewAborted": true,
+  "toolUnmountSafe": true
+}

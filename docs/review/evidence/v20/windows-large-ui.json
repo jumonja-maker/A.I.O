@@ -1,0 +1,7 @@
+{
+  "scope": "1000-file Guard queue; synthetic native boundary",
+  "files": 1000,
+  "succeeded": 1000,
+  "pythonHeapPeakMiB": 13.58,
+  "elapsedSecondsWithTracemalloc": 7.266
+}

@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "status": "FAIL",
+  "platform": "win32",
+  "sourceSha": "c70d7a4f2639ad9b6ff8a09f8e56ebb7c4e1df14",
+  "scope": "actual QtWebEngine + production bridge/native folder save + real isolated comparison workers; native conversion fixture controlled",
+  "picker": "new synthetic QA folder supplied; all file copies and independent readback are production code",
+  "fullFormatMatrix": "NOT_RUN",
+  "packagedEXE": "NOT_RUN",
+  "manualVisibleGuiAcceptance": "NOT_RUN",
+  "journeys": [
+    {
+      "name": "recovered_report_and_second_output",
+      "status": "PASS",
+      "sameAnalysisId": true,
+      "nativeExportsOnReopen": 0,
+      "secondSheetVisible": true
+    },
+    {
+      "name": "corrupt_report_requires_explicit_restart",
+      "status": "PASS",
+      "restartOffered": true,
+      "automaticRestart": false,
+      "newAnalysisId": true,
+      "originalAndConvertedBytesUnchanged": true,
+      "nativeExports": 0
+    },
+    {
+      "name": "close_comparison_then_save_during_real_analysis",
+      "status": "PASS",
+      "processedBeforeClose": 1,
+      "total": 24,
+      "liveWorkerObserved": true,
+      "releasedAllLeases": true,
+      "privateJobRemoved": true,
+      "qtTimerTicks": 49,
+      "savedByteHashesMatch": true,
+      "nativeExportsDuringAnalysis": 0,
+      "releasedJobView": {
+        "open": true,
+        "feedback": "Пакет освобождён или удалён. Сравнение больше недоступно.",
+        "retryDisabled": true,
+        "resumeDisabled": true,
+        "restartDisabled": true
+      }
+    }
+  ],
+  "snapshots": [
+    "recovered-second-output.png",
+    "corrupt-report-explicit-restart.png",
+    "closed-analysis-save.png",
+    "failure.png"
+  ],
+  "error": "TimeoutError",
+  "reason": "Qt journey did not reach its required state",
+  "failureView": {
+    "progress": "Загружаем анализ…",
+    "feedback": "",
+    "output": "",
+    "outputs": [],
+    "preview": ""
+  }
+}

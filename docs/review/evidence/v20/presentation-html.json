@@ -1,0 +1,555 @@
+{
+  "historicalKnownBadResults": [
+    {
+      "task": "3578",
+      "source": "02_LEVEL_2.fodp",
+      "target": "html",
+      "sourceSha256": "9473ad40a2ec477fcc33d6534b3f4783122f82e41da17d27f7ca181d31918c19",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_paragraphs:21"
+    },
+    {
+      "task": "3597",
+      "source": "02_LEVEL_2.fodp",
+      "target": "htm",
+      "sourceSha256": "9473ad40a2ec477fcc33d6534b3f4783122f82e41da17d27f7ca181d31918c19",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_graphics"
+    },
+    {
+      "task": "3610",
+      "source": "02_LEVEL_2.fodp",
+      "target": "xhtml",
+      "sourceSha256": "9473ad40a2ec477fcc33d6534b3f4783122f82e41da17d27f7ca181d31918c19",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_paragraphs:21"
+    },
+    {
+      "task": "3913",
+      "source": "02_LEVEL_2.odp",
+      "target": "html",
+      "sourceSha256": "502e68de4e86d155458a45703f535f2d3e5fffe30503f922b74d5eba4f68cc60",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_paragraphs:21"
+    },
+    {
+      "task": "3932",
+      "source": "02_LEVEL_2.odp",
+      "target": "htm",
+      "sourceSha256": "502e68de4e86d155458a45703f535f2d3e5fffe30503f922b74d5eba4f68cc60",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_graphics"
+    },
+    {
+      "task": "3945",
+      "source": "02_LEVEL_2.odp",
+      "target": "xhtml",
+      "sourceSha256": "502e68de4e86d155458a45703f535f2d3e5fffe30503f922b74d5eba4f68cc60",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_paragraphs:21"
+    },
+    {
+      "task": "4107",
+      "source": "02_LEVEL_2.otp",
+      "target": "html",
+      "sourceSha256": "9b913e35f291b4d0af77351e857f4ba29ae0fcffb8cb40fa6d88de1aa5622900",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_paragraphs:21"
+    },
+    {
+      "task": "4126",
+      "source": "02_LEVEL_2.otp",
+      "target": "htm",
+      "sourceSha256": "9b913e35f291b4d0af77351e857f4ba29ae0fcffb8cb40fa6d88de1aa5622900",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_graphics"
+    },
+    {
+      "task": "4139",
+      "source": "02_LEVEL_2.otp",
+      "target": "xhtml",
+      "sourceSha256": "9b913e35f291b4d0af77351e857f4ba29ae0fcffb8cb40fa6d88de1aa5622900",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_paragraphs:21"
+    },
+    {
+      "task": "4300",
+      "source": "02_LEVEL_2.potm",
+      "target": "html",
+      "sourceSha256": "ab539c4c6a1f765f9843ac56f3b8372cb2ce4e4363c6df985d797037d505c059",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_paragraphs:21"
+    },
+    {
+      "task": "4319",
+      "source": "02_LEVEL_2.potm",
+      "target": "htm",
+      "sourceSha256": "ab539c4c6a1f765f9843ac56f3b8372cb2ce4e4363c6df985d797037d505c059",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_graphics"
+    },
+    {
+      "task": "4332",
+      "source": "02_LEVEL_2.potm",
+      "target": "xhtml",
+      "sourceSha256": "ab539c4c6a1f765f9843ac56f3b8372cb2ce4e4363c6df985d797037d505c059",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_paragraphs:21"
+    },
+    {
+      "task": "4335",
+      "source": "02_LEVEL_2.potx",
+      "target": "html",
+      "sourceSha256": "e583cf7b7413e9ab30cac411fdcd870eeb7cfac06bddabdc48aa09babff054c0",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_paragraphs:21"
+    },
+    {
+      "task": "4354",
+      "source": "02_LEVEL_2.potx",
+      "target": "htm",
+      "sourceSha256": "e583cf7b7413e9ab30cac411fdcd870eeb7cfac06bddabdc48aa09babff054c0",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_graphics"
+    },
+    {
+      "task": "4367",
+      "source": "02_LEVEL_2.potx",
+      "target": "xhtml",
+      "sourceSha256": "e583cf7b7413e9ab30cac411fdcd870eeb7cfac06bddabdc48aa09babff054c0",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_paragraphs:21"
+    },
+    {
+      "task": "4405",
+      "source": "02_LEVEL_2.ppsx",
+      "target": "html",
+      "sourceSha256": "b65d04bcd55e7ca217d617145543b110cafbcc67dd8721c06eb18aafec655768",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_paragraphs:21"
+    },
+    {
+      "task": "4424",
+      "source": "02_LEVEL_2.ppsx",
+      "target": "htm",
+      "sourceSha256": "b65d04bcd55e7ca217d617145543b110cafbcc67dd8721c06eb18aafec655768",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_graphics"
+    },
+    {
+      "task": "4437",
+      "source": "02_LEVEL_2.ppsx",
+      "target": "xhtml",
+      "sourceSha256": "b65d04bcd55e7ca217d617145543b110cafbcc67dd8721c06eb18aafec655768",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_paragraphs:21"
+    },
+    {
+      "task": "4475",
+      "source": "02_LEVEL_2.pptm",
+      "target": "html",
+      "sourceSha256": "8c49ced33fe579fc08ab2caab5a1a94f3092c1dfc63adfe74c9d224fd5ef0009",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_paragraphs:21"
+    },
+    {
+      "task": "4494",
+      "source": "02_LEVEL_2.pptm",
+      "target": "htm",
+      "sourceSha256": "8c49ced33fe579fc08ab2caab5a1a94f3092c1dfc63adfe74c9d224fd5ef0009",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_graphics"
+    },
+    {
+      "task": "4507",
+      "source": "02_LEVEL_2.pptm",
+      "target": "xhtml",
+      "sourceSha256": "8c49ced33fe579fc08ab2caab5a1a94f3092c1dfc63adfe74c9d224fd5ef0009",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_paragraphs:21"
+    },
+    {
+      "task": "4510",
+      "source": "02_LEVEL_2.pptx",
+      "target": "html",
+      "sourceSha256": "c24e304232d678c8429b5622fb165fe9585fee48d6ad97014fc23992ba150d77",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_paragraphs:21"
+    },
+    {
+      "task": "4529",
+      "source": "02_LEVEL_2.pptx",
+      "target": "htm",
+      "sourceSha256": "c24e304232d678c8429b5622fb165fe9585fee48d6ad97014fc23992ba150d77",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_graphics"
+    },
+    {
+      "task": "4542",
+      "source": "02_LEVEL_2.pptx",
+      "target": "xhtml",
+      "sourceSha256": "c24e304232d678c8429b5622fb165fe9585fee48d6ad97014fc23992ba150d77",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_paragraphs:21"
+    },
+    {
+      "task": "6093",
+      "source": "03_LEVEL_3.fodp",
+      "target": "html",
+      "sourceSha256": "37c5db2c70936cd83f8d2522554c9a4daff549162befb24caeae45c72e5c6c5c",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_paragraphs:70"
+    },
+    {
+      "task": "6112",
+      "source": "03_LEVEL_3.fodp",
+      "target": "htm",
+      "sourceSha256": "37c5db2c70936cd83f8d2522554c9a4daff549162befb24caeae45c72e5c6c5c",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_graphics"
+    },
+    {
+      "task": "6125",
+      "source": "03_LEVEL_3.fodp",
+      "target": "xhtml",
+      "sourceSha256": "37c5db2c70936cd83f8d2522554c9a4daff549162befb24caeae45c72e5c6c5c",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_paragraphs:70"
+    },
+    {
+      "task": "6428",
+      "source": "03_LEVEL_3.odp",
+      "target": "html",
+      "sourceSha256": "9a2020e256b74bc58acc6be55168797e58f46c3bc5234ec1bd2e0dffb568ee04",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_paragraphs:70"
+    },
+    {
+      "task": "6447",
+      "source": "03_LEVEL_3.odp",
+      "target": "htm",
+      "sourceSha256": "9a2020e256b74bc58acc6be55168797e58f46c3bc5234ec1bd2e0dffb568ee04",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_graphics"
+    },
+    {
+      "task": "6460",
+      "source": "03_LEVEL_3.odp",
+      "target": "xhtml",
+      "sourceSha256": "9a2020e256b74bc58acc6be55168797e58f46c3bc5234ec1bd2e0dffb568ee04",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_paragraphs:70"
+    },
+    {
+      "task": "6622",
+      "source": "03_LEVEL_3.otp",
+      "target": "html",
+      "sourceSha256": "8a94a8cd3113c409e6afd7d85d194dd724d953980bc276fb1a10c2b1b5e8b5b6",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_paragraphs:70"
+    },
+    {
+      "task": "6641",
+      "source": "03_LEVEL_3.otp",
+      "target": "htm",
+      "sourceSha256": "8a94a8cd3113c409e6afd7d85d194dd724d953980bc276fb1a10c2b1b5e8b5b6",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_graphics"
+    },
+    {
+      "task": "6654",
+      "source": "03_LEVEL_3.otp",
+      "target": "xhtml",
+      "sourceSha256": "8a94a8cd3113c409e6afd7d85d194dd724d953980bc276fb1a10c2b1b5e8b5b6",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_paragraphs:70"
+    },
+    {
+      "task": "6815",
+      "source": "03_LEVEL_3.potm",
+      "target": "html",
+      "sourceSha256": "1ff521f9d963028ea787a23f50a7b368e17e6b43c3396fa57f30f2767bacfe39",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_paragraphs:70"
+    },
+    {
+      "task": "6834",
+      "source": "03_LEVEL_3.potm",
+      "target": "htm",
+      "sourceSha256": "1ff521f9d963028ea787a23f50a7b368e17e6b43c3396fa57f30f2767bacfe39",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_graphics"
+    },
+    {
+      "task": "6847",
+      "source": "03_LEVEL_3.potm",
+      "target": "xhtml",
+      "sourceSha256": "1ff521f9d963028ea787a23f50a7b368e17e6b43c3396fa57f30f2767bacfe39",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_paragraphs:70"
+    },
+    {
+      "task": "6850",
+      "source": "03_LEVEL_3.potx",
+      "target": "html",
+      "sourceSha256": "9ac8ee3aee637fa3bed4db5504beb87d471e8e23741921a840d5b4e8c4b55bde",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_paragraphs:70"
+    },
+    {
+      "task": "6869",
+      "source": "03_LEVEL_3.potx",
+      "target": "htm",
+      "sourceSha256": "9ac8ee3aee637fa3bed4db5504beb87d471e8e23741921a840d5b4e8c4b55bde",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_graphics"
+    },
+    {
+      "task": "6882",
+      "source": "03_LEVEL_3.potx",
+      "target": "xhtml",
+      "sourceSha256": "9ac8ee3aee637fa3bed4db5504beb87d471e8e23741921a840d5b4e8c4b55bde",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_paragraphs:70"
+    },
+    {
+      "task": "6920",
+      "source": "03_LEVEL_3.ppsx",
+      "target": "html",
+      "sourceSha256": "ac7c09e5985fcc76ae2e18d3cc117171df806d4a39e797cc8fc94c63d835652a",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_paragraphs:70"
+    },
+    {
+      "task": "6939",
+      "source": "03_LEVEL_3.ppsx",
+      "target": "htm",
+      "sourceSha256": "ac7c09e5985fcc76ae2e18d3cc117171df806d4a39e797cc8fc94c63d835652a",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_graphics"
+    },
+    {
+      "task": "6952",
+      "source": "03_LEVEL_3.ppsx",
+      "target": "xhtml",
+      "sourceSha256": "ac7c09e5985fcc76ae2e18d3cc117171df806d4a39e797cc8fc94c63d835652a",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_paragraphs:70"
+    },
+    {
+      "task": "6990",
+      "source": "03_LEVEL_3.pptm",
+      "target": "html",
+      "sourceSha256": "ebb83210347a8329f1c57e7ed1053ceece8db14aa5d9e5585b71a11013e4e787",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_paragraphs:70"
+    },
+    {
+      "task": "7009",
+      "source": "03_LEVEL_3.pptm",
+      "target": "htm",
+      "sourceSha256": "ebb83210347a8329f1c57e7ed1053ceece8db14aa5d9e5585b71a11013e4e787",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_graphics"
+    },
+    {
+      "task": "7022",
+      "source": "03_LEVEL_3.pptm",
+      "target": "xhtml",
+      "sourceSha256": "ebb83210347a8329f1c57e7ed1053ceece8db14aa5d9e5585b71a11013e4e787",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_paragraphs:70"
+    },
+    {
+      "task": "7025",
+      "source": "03_LEVEL_3.pptx",
+      "target": "html",
+      "sourceSha256": "89b892511207e3a566d51f5ebf2f0ee28e331d795add6038a52a8c15203c652b",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_paragraphs:70"
+    },
+    {
+      "task": "7044",
+      "source": "03_LEVEL_3.pptx",
+      "target": "htm",
+      "sourceSha256": "89b892511207e3a566d51f5ebf2f0ee28e331d795add6038a52a8c15203c652b",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_graphics"
+    },
+    {
+      "task": "7057",
+      "source": "03_LEVEL_3.pptx",
+      "target": "xhtml",
+      "sourceSha256": "89b892511207e3a566d51f5ebf2f0ee28e331d795add6038a52a8c15203c652b",
+      "status": "REJECTED",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_paragraphs:70"
+    }
+  ],
+  "historicalAll48Rejected": true,
+  "nativeLinuxControls": [
+    {
+      "nativeStatus": "CREATED",
+      "validation": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_paragraphs:21",
+      "outputs": [
+        {
+          "name": "02_LEVEL_2.xhtml",
+          "size": 59385,
+          "sha256": "0f83d83cf63233a23adebd197e6cf52da22de4b0b75467db60300391dccf5f60"
+        }
+      ],
+      "source": "02_LEVEL_2.pptx",
+      "target": "xhtml",
+      "seconds": 1.014
+    },
+    {
+      "nativeStatus": "CREATED",
+      "validation": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_graphics",
+      "outputs": [
+        {
+          "name": "02_LEVEL_2.htm",
+          "size": 1624,
+          "sha256": "e81404bbbe0d6b75738517b154a31297a76ba5921b7e8f380443493210bc638a"
+        }
+      ],
+      "source": "02_LEVEL_2.pptx",
+      "target": "htm",
+      "seconds": 0.611
+    },
+    {
+      "nativeStatus": "CREATED",
+      "validation": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_paragraphs:70",
+      "outputs": [
+        {
+          "name": "03_LEVEL_3.xhtml",
+          "size": 140527,
+          "sha256": "21a918d8e6b1be77eafffc80f86832bbb4c48f099f4132922479f87929d9c45c"
+        }
+      ],
+      "source": "03_LEVEL_3.fodp",
+      "target": "xhtml",
+      "seconds": 1.236
+    },
+    {
+      "nativeStatus": "CREATED",
+      "validation": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "diagnostic": "presentation_html_missing_graphics",
+      "outputs": [
+        {
+          "name": "03_LEVEL_3.htm",
+          "size": 3598,
+          "sha256": "c0843fd8aefbb4a644eb6f828ddfd6cf20f4f3af181021507c730ad264e318be"
+        }
+      ],
+      "source": "03_LEVEL_3.fodp",
+      "target": "htm",
+      "seconds": 0.594
+    }
+  ],
+  "scope": "Content subset only; no universal visual quality or Windows acceptance.",
+  "finalCodeHistoricalValidation": {
+    "tasks": 48,
+    "rejectedContentLoss": 48,
+    "elapsedSeconds": 1.507,
+    "tracemallocPeakBytes": 838585,
+    "tracemallocCurrentBytes": 509110,
+    "scope": "Validation only, not conversion speed or whole-process RSS benchmark."
+  },
+  "nativeEngine": {
+    "sha256": "ea40f4b1156ee43ac9a62b3f636cfc04d8acf4b67f5b070967ebd1d5ec564a4e",
+    "version": "LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5",
+    "platform": "Linux; no Windows parity claim"
+  },
+  "codeSha256": {
+    "app_backend/converter_guard/postconditions.py": "23cc16c94137e36b72b701c00d12a921236542de1655212542139c0870f036f6",
+    "app_backend/converter_guard/presentation_evidence.py": "684ef15063b968342716560a38b52489529b82e46af3b2459a5abaa9f6644630",
+    "tests/test_guard_presentation_v20.py": "d307b7bb6478a4c79836b5e6844210a06283fa224529e594aa2dc17a463b3c54"
+  },
+  "unitRegression": {
+    "newTests": 20,
+    "pass": 20,
+    "command": "PYTHONPATH=.:tests ../ba-venv/bin/python -m unittest tests.test_guard_presentation_v20 -q"
+  },
+  "nativeLinuxPositive": {
+    "source": "01_LEVEL_1.pptx",
+    "sourceSha256": "e34a2ac2e6172f11d6e1e22ba0a8a7640ca46a4e69d9e5eefe8db3676988fd55",
+    "target": "htm",
+    "result": {
+      "check": "html_body",
+      "status": "content_present",
+      "qualityCompared": false,
+      "inspectedBytes": 920,
+      "localResourcesChecked": true,
+      "additionalChecks": [
+        {
+          "check": "presentation_html_content",
+          "qualityCompared": false,
+          "sourceTextParagraphs": 5,
+          "sourceImageOccurrences": 0,
+          "status": "checked_subset",
+          "comparedScope": "body_text_and_graphic_presence",
+          "bodyTextInspected": true,
+          "imageReferences": 0,
+          "visualLayoutCompared": false
+        }
+      ]
+    },
+    "outputs": [
+      {
+        "name": "01_LEVEL_1.htm",
+        "sha256": "ced5dd2cc182b3ac4bc2442b556907a2ce3d25502e95bc0b1f5904749e0f063e",
+        "size": 920
+      }
+    ]
+  }
+}

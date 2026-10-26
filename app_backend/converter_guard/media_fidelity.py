@@ -21,6 +21,22 @@ ALPHA_TARGETS = frozenset(('png', 'apng', 'gif', 'webp', 'tiff', 'tif'))
 MAX_RECORDS = 65536
 
 
+def media_route_reason(target, proof):
+    """A registered PNG exporter is not an APNG encoder.
+
+    Raster routes in qtMediaTargets own a real APNG writer (including exact
+    APNG identity). Native document PNG filters have no animation framing;
+    advertising their output as APNG guarantees a rejected postcondition.
+    The caller still checks the native proof's registry identity and model.
+    """
+    targets = (proof or {}).get('qtMediaTargets', ())
+    if not isinstance(targets, (list, tuple, set, frozenset)):
+        targets = ()
+    if target == 'apng' and target not in targets:
+        return 'APNG_ENCODER_UNAVAILABLE'
+    return None
+
+
 class _Invalid(ValueError):
     pass
 

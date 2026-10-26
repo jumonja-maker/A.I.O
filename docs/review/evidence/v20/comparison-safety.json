@@ -1,0 +1,32 @@
+{
+  "scope": [
+    "B05 comparison safety v20",
+    "B07 AIO telemetry producer only"
+  ],
+  "environment": "Linux source, Qt offscreen, pinned offline LinkeDOM",
+  "comparison_suite": {
+    "tests": 163,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "elapsed_seconds": 30.923,
+    "new_regressions": 20
+  },
+  "telemetry_tests": {
+    "new_tests": 8,
+    "existing_tests": 16,
+    "failures": 0,
+    "skips": 0
+  },
+  "code_sha256": {
+    "app_backend/converter_guard/comparison_service.py": "df0ffbcf1b2230d06b2036d54d9902ded24b3fb9fadd54b3c1ef52a3e13a44c9",
+    "app_backend/converter_guard/comparison_worker.py": "d15ce9b72f2a12709cf0d1be1307f90951d6090eada1aac4c8d0bb6fb1be2f9c",
+    "tests/test_comparison_recovery_v20.py": "f93d40e16263719cef23a2f53d1a1ce824dac7685c7e6a3ea44f4e58b380f7b4",
+    "docs/review/AIO_V20_COMPARISON_SAFETY_RU.md": "b8305446d3a02310d607bdd9f717afff92f806a4401a5f77bb2da8af1ec3b13c",
+    "app_backend/blackbox_telemetry.py": "6f8801e933317192061bec64dd16153514e0d30d5abe3dee25ed63ac82e77b1e",
+    "tests/test_telemetry_priority_v20.py": "2c8adeaff0c726888c78bb9714db5da969cab2e03ed1449887fc954dbaa38719",
+    "docs/review/AIO_V20_TELEMETRY_PRIORITY_RU.md": "282523d791b9edf40f722d10197ebedd5e9de7e4c01267d51a980ebaf2983f6f"
+  },
+  "native_conversion_scope": "Controlled native adapters in comparison QA; this does not prove all Windows LibreOffice formats",
+  "telemetry_scope": "Synthetic bounded FIFO policy ablation only; BLACK.BOX CPU counters are unchanged"
+}

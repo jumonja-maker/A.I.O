@@ -1,0 +1,49 @@
+{
+  "engineVersion": "LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5",
+  "source": "01_LEVEL_1.docx",
+  "sourceSha256": "ef168e784eba3f0413ff42a291b994bc01bab93bb3bba2dfa67732617a8488e4",
+  "results": [
+    {
+      "target": "docm",
+      "nativeFilter": "MS Word 2007 XML VBA",
+      "sha256": "c9a4fbce35b48691078c46ee960087ce17c25e93cde4b08bb9858903c634574e",
+      "mainContentType": "application/vnd.ms-word.document.macroEnabled.main+xml",
+      "textRunsExpected": 4,
+      "textRunsActual": 6,
+      "paragraphTextAndOrderEqual": true,
+      "paragraphsExpected": 4,
+      "paragraphsActual": 4,
+      "scope": "paragraph text and main OPC content type only; run partition is not a content-loss test"
+    },
+    {
+      "target": "dotx",
+      "nativeFilter": "MS Word 2007 XML Template",
+      "sha256": "aef7bca68bd57bc3039f0f20c133882ece9b48add46154050fbf792f428712c6",
+      "mainContentType": "application/vnd.openxmlformats-officedocument.wordprocessingml.template.main+xml",
+      "textRunsExpected": 4,
+      "textRunsActual": 6,
+      "paragraphTextAndOrderEqual": true,
+      "paragraphsExpected": 4,
+      "paragraphsActual": 4,
+      "scope": "paragraph text and main OPC content type only; run partition is not a content-loss test"
+    }
+  ],
+  "nativeDrawApngControl": {
+    "filter": "draw_apng_Export",
+    "exists": true,
+    "profile": {
+      "format": "png",
+      "width": 638,
+      "height": 358,
+      "frames": 1,
+      "pages": 1,
+      "alpha": false,
+      "durationsMs": [],
+      "orientation": 1,
+      "animationContainer": false,
+      "loopCount": 1,
+      "bitDepth": 8
+    },
+    "conclusion": "ordinary PNG, strict APNG preflight must not promise this exporter"
+  }
+}

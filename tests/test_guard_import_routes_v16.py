@@ -61,7 +61,11 @@ class SourceContractsV16(unittest.TestCase):
             with self.subTest(mime=mime):
                 contract = inspect_source_contract(self.flat(mime, body))
                 self.assertEqual(contract['expectedServices'], [service])
-                invalid = inspect_source_contract(self.flat(mime + '-flat-xml', body))
+                # A native-proven flat-presentation MIME alias is supported;
+                # negative coverage must use a real body/type mismatch rather
+                # than treating its suffix alone as corruption.
+                invalid = inspect_source_contract(self.flat(mime + '-flat-xml',
+                    'text' if body == 'presentation' else 'presentation'))
                 self.assertEqual(invalid['code'], 'SOURCE_CONTAINER_INCONSISTENT')
         self.assertEqual(inspect_source_contract(self.flat('text', 'presentation'))['state'], 'invalid')
 
@@ -129,7 +133,7 @@ class SourceContractsV16(unittest.TestCase):
         self.assertEqual(inspect_source_contract(self.root / 'utf16.odt')['state'], 'not_checked')
 
     def test_malformed_flat_is_rejected_before_native_import_and_never_rewritten(self):
-        source = self.flat('text-flat-xml')
+        source = self.flat('text-flat-xml', 'presentation')
         before = source.read_bytes()
         exe = self.root / 'soffice'; exe.touch()
         adapter = LibreOfficeAdapter(exe)

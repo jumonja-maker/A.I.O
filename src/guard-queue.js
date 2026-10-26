@@ -2,7 +2,16 @@
 (() => {
   'use strict';
   let root=null, bar=null, stateButton=null, state=null, jobs=[], warnings=[], storage=null, page=0, refreshPending=false, clock=null;
-  let preview=null, previewId=null, previewRequest=0;
+  let preview=null, previewId=null, previewRequest=0, previewController=null;
+  let refreshRevision=0, refreshAgain=false;
+  function dropRows(id){
+    if(id&&rowCache?.jobId!==id)return;
+    rowCache=paintedRows=null;
+    bar?.querySelector('.aio-guard-list')?.replaceChildren();
+  }
+  function cancelPreview(){
+    previewRequest++;previewController?.abort();previewController=null;preview=previewId=null;
+  }
   // Only the visible page owns DOM nodes. Keep one bounded view per file;
   // unchanged polls and the elapsed-time clock must never rebuild the queue.
   let rowCache=null, paintedRows=null;
@@ -36,9 +45,9 @@
   }
   function mount() {
     const next=document.querySelector('.aio-cv');
-    if(!next){stateButton?.remove();stateButton=null;root=bar=null;rowCache=paintedRows=null;if(clock){clearInterval(clock);clock=null;}return;}
+    if(!next){cancelPreview();dropRows();stateButton?.remove();stateButton=null;root=bar=null;if(clock){clearInterval(clock);clock=null;}return;}
     if(next===root&&bar?.isConnected){attachTopButton();return;}
-    stateButton?.remove();stateButton=null;
+    cancelPreview();dropRows();stateButton?.remove();stateButton=null;
     root=next;rowCache=paintedRows=null;
     const footer=root.querySelector('.aio-cv__footer');if(!footer)return;
     bar=document.createElement('div');bar.className='aio-guard-queue';bar.hidden=true;
@@ -53,7 +62,7 @@
       '<div class="aio-guard-list" role="list" aria-label="Задачи конвертации"></div>'+
       '<div class="aio-guard-pages"><button type="button" data-g-prev>Назад</button><span data-g-page></span><button type="button" data-g-next>Далее</button></div>'+
       '<div class="aio-guard-save"><select data-g-jobs aria-label="Несохранённое задание"></select><button type="button" data-g-zip>Сохранить ZIP</button><button type="button" data-g-folder>Сохранить в папку</button></div>'+
-      '<div class="aio-guard-save"><button type="button" data-g-retry>Повторить ошибки</button><button type="button" data-g-long>Повторить с большим временем</button><button type="button" data-g-check>Повторить проверку дольше</button><button type="button" data-g-report>Технический отчёт</button><button type="button" data-g-discard>Удалить результаты</button></div>'+
+      '<div class="aio-guard-save"><button type="button" data-g-retry>Повторить ошибки</button><button type="button" data-g-long>Повторить с большим временем</button><button type="button" data-g-check>Повторить проверку дольше</button><button type="button" data-g-compare>Анализ до/после</button><button type="button" data-g-report>Технический отчёт</button><button type="button" data-g-discard>Удалить результаты</button></div>'+
       '</dialog>';
     footer.append(bar);attachTopButton();
     bar.querySelector('[data-g-folder]').hidden=!window.AllInOneNativeShell;
@@ -83,6 +92,11 @@
     const selected=()=>bar.querySelector('[data-g-jobs]').value;
     action('[data-g-zip]',()=>api().saveRetained(selected(),'zip'));
     action('[data-g-folder]',()=>api().saveRetained(selected(),'folder'));
+    action('[data-g-compare]',async()=>{
+      const id=selected();if(!id||!window.AIOGuardComparison)throw Error('Выберите доступный пакет для анализа.');
+      const dialog=bar.querySelector('.aio-guard-popup');if(dialog.open)dialog.close();
+      await window.AIOGuardComparison.open(id,{opener:stateButton});
+    });
     action('[data-g-discard]',async()=>{
       if(window.confirm('Удалить несохранённые результаты этого задания?'))await api().discardRetained(selected());
     });
@@ -143,6 +157,9 @@
       dialog.close();
     });
     dialog.addEventListener('close',()=>{
+      // Native close is queued: an older close must not clear a reopened view.
+      if(dialog.open)return;
+      dropRows();
       stateButton?.setAttribute('aria-expanded','false');
       if(stateButton?.isConnected)stateButton.focus({preventScroll:true});
     });
@@ -150,9 +167,13 @@
     render();refresh();
   }
   async function refresh() {
-    if(refreshPending||!api()?.recoverable)return;
-    refreshPending=true;
-    try{const found=await api().recoverable();jobs=found.jobs||[];warnings=found.warnings||[];storage=found.storage||null;render();}catch(_){}finally{refreshPending=false;}
+    if(!api()?.recoverable)return;
+    if(refreshPending){refreshAgain=true;return;}
+    refreshPending=true;const revision=refreshRevision;
+    try{const found=await api().recoverable();
+      if(revision!==refreshRevision)return;
+      jobs=found.jobs||[];warnings=found.warnings||[];storage=found.storage||null;render();
+    }catch(_){}finally{refreshPending=false;if(refreshAgain){refreshAgain=false;refresh();}}
   }
   function render() {
     if(!bar)return;
@@ -174,6 +195,7 @@
         :'Предварительная проверка: '+done+' из '+total+'. Нажмите для подробностей и пропуска файла.'
         :'Открыть состояние очереди Guard';
     }
+    text('[data-g-warning]',actionFeedback&&state?.revision===feedbackRevision?actionFeedback:'');
     if(bar.hidden&&bar.querySelector('.aio-guard-popup').open)bar.querySelector('.aio-guard-popup').close();
     const htmlSources=api()?.getHtmlSources?.()||[],htmlSelect=bar.querySelector('[data-g-html-source]');
     bar.querySelector('[data-g-resources]').hidden=!htmlSources.length;
@@ -214,6 +236,9 @@
     bar.querySelector('[data-g-folder]').disabled=!chosen||chosen.saveInProgress;
     bar.querySelector('[data-g-zip]').disabled=!chosen||chosen.running||chosen.saveInProgress;
     bar.querySelector('[data-g-zip]').title=chosen?.running?'ZIP доступен после завершения очереди. Сейчас можно сохранить готовые файлы в папку.':'';
+    const compare=bar.querySelector('[data-g-compare]');
+    compare.disabled=!chosen||chosen.running;
+    compare.title=chosen?.comparisonAvailable===false?'Служебные исходники недоступны. Анализ покажет ограничения; результат можно просмотреть.':'';
     bar.querySelector('[data-g-discard]').disabled=!chosen||chosen.running||chosen.saveInProgress;
     bar.querySelector('[data-g-discard]').title=chosen?.running?'Сначала завершите или отмените очередь. Готовые результаты сейчас можно сохранить.':'';
     for(const key of ['retry','long'])bar.querySelector('[data-g-'+key+']').disabled=!state?.finished||!state.failed||!api()?.canRetry();
@@ -260,17 +285,20 @@
   }
   async function loadPreview(){
     if(!bar)return;
-    const id=bar.querySelector('[data-g-jobs]').value,request=++previewRequest;
-    previewId=id;preview=null;
-    if(!id||id===state?.jobId){renderRows();return;}
+    const id=bar.querySelector('[data-g-jobs]').value;
+    cancelPreview();const request=previewRequest;previewId=id;
+    const Controller=window.AbortController||(typeof AbortController==='function'?AbortController:null);
+    const controller=Controller?new Controller():null;previewController=controller;
+    if(!id||id===state?.jobId){previewController=null;renderRows();return;}
     try{
       const response=await fetch('/api/converter-guard/jobs?job='+encodeURIComponent(id),
-        {headers:{'X-AIO-Token':document.body.dataset.aioToken},cache:'no-store'});
+        {headers:{'X-AIO-Token':document.body.dataset.aioToken},cache:'no-store',signal:controller?.signal});
       if(!response.ok)throw Error('Не удалось загрузить выбранный пакет.');
       const loaded=await response.json();
-      if(request!==previewRequest||bar.querySelector('[data-g-jobs]').value!==id)return;
+      if(request!==previewRequest||!bar||bar.querySelector('[data-g-jobs]').value!==id)return;
       preview=loaded;
-    }catch(error){if(request===previewRequest)text('[data-g-warning]',error.message);}
+    }catch(error){if(request===previewRequest&&error.name!=='AbortError')text('[data-g-warning]',error.message);}
+    finally{if(request===previewRequest)previewController=null;}
     if(request===previewRequest)renderRows();
   }
   function renderRows() {
@@ -331,7 +359,9 @@
     bar.querySelector('[data-g-prev]').disabled=page===0;bar.querySelector('[data-g-next]').disabled=page>=pages-1;
   }
   window.addEventListener('aio-guard-state',event=>{
-    state=event.detail;mount();render();
+    const previousId=state?.jobId;state=event.detail;
+    if(!state&&previousId)dropRows(previousId);
+    mount();render();
     const job=jobs.find(j=>j.jobId===state?.jobId);
     // Discover completed outputs even when the popup was opened before the
     // first export finished. No extra refresh for unchanged status polls.
@@ -339,12 +369,12 @@
         job.outputs!==state.partialResult.outputsCount || job.saveInProgress!==state.saveInProgress))refresh();
   });
   window.addEventListener('aio-guard-save-confirmed',event=>{
-    const id=event.detail?.jobId;
+    const id=event.detail?.jobId;if(!id)return;
     const released=event.detail?.released!==false&&event.detail?.savedAll!==false;
     if(released){
-      if(id===rowCache?.jobId)rowCache=paintedRows=null;
+      refreshRevision++;dropRows(id);
       if(id===state?.jobId)state=null;
-      if(id===previewId){preview=null;previewId=null;}
+      if(id===previewId)cancelPreview();
       jobs=jobs.filter(j=>j.jobId!==id);
     }else if(id===previewId){
       // A partial save changes ready/saved states without changing output
@@ -355,7 +385,21 @@
     if(bar)bar.querySelector('[data-g-jobs]').dataset.signature='';
     refresh();render();
   });
+  window.addEventListener('aio-guard-job-released',event=>{
+    const id=event.detail?.jobId;if(!id)return;
+    refreshRevision++;dropRows(id);
+    if(id===state?.jobId)state=null;
+    if(id===previewId)cancelPreview();
+    jobs=jobs.filter(job=>job.jobId!==id);
+    if(bar)bar.querySelector('[data-g-jobs]').dataset.signature='';
+    refresh();render();
+  });
   window.addEventListener('focus',refresh);
-  new MutationObserver(mount).observe(document.body,{subtree:true,childList:true});mount();
+  const observer=new MutationObserver(mount);
+  observer.observe(document.body,{subtree:true,childList:true});mount();
+  window.addEventListener('pagehide',()=>{
+    refreshRevision++;refreshAgain=false;cancelPreview();dropRows();state=null;jobs=[];warnings=[];storage=null;
+    if(clock){clearInterval(clock);clock=null;}observer.disconnect();
+  });
 })();
 

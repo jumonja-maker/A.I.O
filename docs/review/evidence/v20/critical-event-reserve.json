@@ -1,0 +1,33 @@
+{
+  "scope": "synthetic single FIFO admission-policy ablation, no LibreOffice or full app benchmark",
+  "results": [
+    {
+      "policy": "same_fifo_without_reserve",
+      "capacity": 8192,
+      "routine_attempts": 30000,
+      "critical_attempts": 1000,
+      "critical_admitted": 0,
+      "buffered_max_during_stall": 8192,
+      "producer_seconds": 0.1350270900002215,
+      "attempted": 31001,
+      "admitted": 8192,
+      "dropped": 22809,
+      "all_attempts_accounted": true,
+      "writer_deliberately_stalled": true
+    },
+    {
+      "policy": "reserved_capacity",
+      "capacity": 8192,
+      "routine_attempts": 30000,
+      "critical_attempts": 1000,
+      "critical_admitted": 1000,
+      "buffered_max_during_stall": 8168,
+      "producer_seconds": 0.14122340599715244,
+      "attempted": 31001,
+      "admitted": 8168,
+      "dropped": 22833,
+      "all_attempts_accounted": true,
+      "writer_deliberately_stalled": true
+    }
+  ]
+}

@@ -27,8 +27,13 @@ class GuardLimits:
     native_import_timeout: float = 60
     native_close_timeout: float = 15
     native_chart_timeout: float = 60
+    # Optional diagnostic samples of rejected native output; never a conversion cap.
+    rejected_output_bytes: int = 0
 
     def __post_init__(self):
+        if (type(self.rejected_output_bytes) is not int or
+                not 0 <= self.rejected_output_bytes <= 8 * 1024 * 1024):
+            raise ValueError('rejected_output_bytes must be between zero and 8 MiB')
         for key in ('max_jobs', 'max_metadata_bytes', 'session_max_tasks'):
             value = getattr(self, key)
             if type(value) is not int or value <= 0:
