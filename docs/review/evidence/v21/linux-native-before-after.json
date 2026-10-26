@@ -1,0 +1,971 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "scope": "actual local loopback + source retention + isolated analysis + LibreOffice CSV automatic retry",
+  "fullFormatMatrix": "NOT_RUN",
+  "windowsGUI": "NOT_RUN",
+  "sourceSha256": "5aaa8e1d668eea8354ab5899be84fb5ba6f3f182be77ee64fcc6978e5a0f0d78",
+  "initialExportControl": {
+    "SaveAsShown": true,
+    "sourceNumberFormat": "[$-409]0.00",
+    "numericLocale": "en-US",
+    "scope": "deliberately degraded first LO export of a locale-pinned synthetic cell; not a claim of a current default or localized CSV comparison defect"
+  },
+  "httpClient": {
+    "proxy": "disabled_for_loopback",
+    "ordinaryRequestTimeoutSeconds": 15,
+    "synchronousPreflightTimeoutSeconds": 180
+  },
+  "requestTrace": [
+    {
+      "number": 197,
+      "method": "GET",
+      "endpoint": "compare",
+      "timeoutSeconds": 15,
+      "startedSeconds": 19.951,
+      "state": "completed",
+      "httpStatus": 200,
+      "elapsedSeconds": 0.004
+    },
+    {
+      "number": 198,
+      "method": "GET",
+      "endpoint": "compare",
+      "timeoutSeconds": 15,
+      "startedSeconds": 20.055,
+      "state": "completed",
+      "httpStatus": 200,
+      "elapsedSeconds": 0.003
+    },
+    {
+      "number": 199,
+      "method": "GET",
+      "endpoint": "compare",
+      "timeoutSeconds": 15,
+      "startedSeconds": 20.159,
+      "state": "completed",
+      "httpStatus": 200,
+      "elapsedSeconds": 0.003
+    },
+    {
+      "number": 200,
+      "method": "GET",
+      "endpoint": "compare",
+      "timeoutSeconds": 15,
+      "startedSeconds": 20.262,
+      "state": "completed",
+      "httpStatus": 200,
+      "elapsedSeconds": 0.003
+    },
+    {
+      "number": 201,
+      "method": "GET",
+      "endpoint": "compare",
+      "timeoutSeconds": 15,
+      "startedSeconds": 20.365,
+      "state": "completed",
+      "httpStatus": 200,
+      "elapsedSeconds": 0.005
+    },
+    {
+      "number": 202,
+      "method": "GET",
+      "endpoint": "compare",
+      "timeoutSeconds": 15,
+      "startedSeconds": 20.471,
+      "state": "completed",
+      "httpStatus": 200,
+      "elapsedSeconds": 0.003
+    },
+    {
+      "number": 203,
+      "method": "GET",
+      "endpoint": "compare",
+      "timeoutSeconds": 15,
+      "startedSeconds": 20.574,
+      "state": "completed",
+      "httpStatus": 200,
+      "elapsedSeconds": 0.003
+    },
+    {
+      "number": 204,
+      "method": "GET",
+      "endpoint": "compare",
+      "timeoutSeconds": 15,
+      "startedSeconds": 20.677,
+      "state": "completed",
+      "httpStatus": 200,
+      "elapsedSeconds": 0.003
+    },
+    {
+      "number": 205,
+      "method": "GET",
+      "endpoint": "compare",
+      "timeoutSeconds": 15,
+      "startedSeconds": 20.78,
+      "state": "completed",
+      "httpStatus": 200,
+      "elapsedSeconds": 0.003
+    },
+    {
+      "number": 206,
+      "method": "GET",
+      "endpoint": "compare",
+      "timeoutSeconds": 15,
+      "startedSeconds": 20.883,
+      "state": "completed",
+      "httpStatus": 200,
+      "elapsedSeconds": 0.003
+    },
+    {
+      "number": 207,
+      "method": "GET",
+      "endpoint": "compare",
+      "timeoutSeconds": 15,
+      "startedSeconds": 20.986,
+      "state": "completed",
+      "httpStatus": 200,
+      "elapsedSeconds": 0.003
+    },
+    {
+      "number": 208,
+      "method": "GET",
+      "endpoint": "compare",
+      "timeoutSeconds": 15,
+      "startedSeconds": 21.09,
+      "state": "completed",
+      "httpStatus": 200,
+      "elapsedSeconds": 0.003
+    },
+    {
+      "number": 209,
+      "method": "GET",
+      "endpoint": "compare",
+      "timeoutSeconds": 15,
+      "startedSeconds": 21.193,
+      "state": "completed",
+      "httpStatus": 200,
+      "elapsedSeconds": 0.003
+    },
+    {
+      "number": 210,
+      "method": "GET",
+      "endpoint": "compare",
+      "timeoutSeconds": 15,
+      "startedSeconds": 21.296,
+      "state": "completed",
+      "httpStatus": 200,
+      "elapsedSeconds": 0.003
+    },
+    {
+      "number": 211,
+      "method": "GET",
+      "endpoint": "compare",
+      "timeoutSeconds": 15,
+      "startedSeconds": 21.399,
+      "state": "completed",
+      "httpStatus": 200,
+      "elapsedSeconds": 0.003
+    },
+    {
+      "number": 212,
+      "method": "GET",
+      "endpoint": "compare",
+      "timeoutSeconds": 15,
+      "startedSeconds": 21.502,
+      "state": "completed",
+      "httpStatus": 200,
+      "elapsedSeconds": 0.004
+    },
+    {
+      "number": 213,
+      "method": "GET",
+      "endpoint": "compare",
+      "timeoutSeconds": 15,
+      "startedSeconds": 21.606,
+      "state": "completed",
+      "httpStatus": 200,
+      "elapsedSeconds": 0.004
+    },
+    {
+      "number": 214,
+      "method": "GET",
+      "endpoint": "compare",
+      "timeoutSeconds": 15,
+      "startedSeconds": 21.71,
+      "state": "completed",
+      "httpStatus": 200,
+      "elapsedSeconds": 0.004
+    },
+    {
+      "number": 215,
+      "method": "GET",
+      "endpoint": "compare",
+      "timeoutSeconds": 15,
+      "startedSeconds": 21.814,
+      "state": "completed",
+      "httpStatus": 200,
+      "elapsedSeconds": 0.003
+    },
+    {
+      "number": 216,
+      "method": "GET",
+      "endpoint": "compare",
+      "timeoutSeconds": 15,
+      "startedSeconds": 21.917,
+      "state": "completed",
+      "httpStatus": 200,
+      "elapsedSeconds": 0.007
+    },
+    {
+      "number": 217,
+      "method": "GET",
+      "endpoint": "compare",
+      "timeoutSeconds": 15,
+      "startedSeconds": 22.025,
+      "state": "completed",
+      "httpStatus": 200,
+      "elapsedSeconds": 0.004
+    },
+    {
+      "number": 218,
+      "method": "GET",
+      "endpoint": "compare",
+      "timeoutSeconds": 15,
+      "startedSeconds": 22.128,
+      "state": "completed",
+      "httpStatus": 200,
+      "elapsedSeconds": 0.003
+    },
+    {
+      "number": 219,
+      "method": "GET",
+      "endpoint": "compare",
+      "timeoutSeconds": 15,
+      "startedSeconds": 22.232,
+      "state": "completed",
+      "httpStatus": 200,
+      "elapsedSeconds": 0.003
+    },
+    {
+      "number": 220,
+      "method": "GET",
+      "endpoint": "compare",
+      "timeoutSeconds": 15,
+      "startedSeconds": 22.335,
+      "state": "completed",
+      "httpStatus": 200,
+      "elapsedSeconds": 0.003
+    },
+    {
+      "number": 221,
+      "method": "GET",
+      "endpoint": "compare",
+      "timeoutSeconds": 15,
+      "startedSeconds": 22.438,
+      "state": "completed",
+      "httpStatus": 200,
+      "elapsedSeconds": 0.003
+    },
+    {
+      "number": 222,
+      "method": "GET",
+      "endpoint": "compare",
+      "timeoutSeconds": 15,
+      "startedSeconds": 22.541,
+      "state": "completed",
+      "httpStatus": 200,
+      "elapsedSeconds": 0.003
+    },
+    {
+      "number": 223,
+      "method": "GET",
+      "endpoint": "compare",
+      "timeoutSeconds": 15,
+      "startedSeconds": 22.668,
+      "state": "completed",
+      "httpStatus": 200,
+      "elapsedSeconds": 0.094
+    },
+    {
+      "number": 224,
+      "method": "GET",
+      "endpoint": "compare",
+      "timeoutSeconds": 15,
+      "startedSeconds": 22.862,
+      "state": "completed",
+      "httpStatus": 200,
+      "elapsedSeconds": 0.009
+    },
+    {
+      "number": 225,
+      "method": "GET",
+      "endpoint": "jobs",
+      "timeoutSeconds": 15,
+      "startedSeconds": 22.871,
+      "state": "completed",
+      "httpStatus": 200,
+      "elapsedSeconds": 0.001
+    },
+    {
+      "number": 226,
+      "method": "POST",
+      "endpoint": "compare/start",
+      "timeoutSeconds": 15,
+      "startedSeconds": 22.873,
+      "state": "completed",
+      "httpStatus": 202,
+      "elapsedSeconds": 0.002
+    },
+    {
+      "number": 227,
+      "method": "GET",
+      "endpoint": "compare",
+      "timeoutSeconds": 15,
+      "startedSeconds": 22.875,
+      "state": "completed",
+      "httpStatus": 200,
+      "elapsedSeconds": 0.002
+    },
+    {
+      "number": 228,
+      "method": "GET",
+      "endpoint": "jobs",
+      "timeoutSeconds": 15,
+      "startedSeconds": 22.877,
+      "state": "completed",
+      "httpStatus": 200,
+      "elapsedSeconds": 0.001
+    }
+  ],
+  "stage": "request:jobs",
+  "lastRequest": {
+    "number": 228,
+    "method": "GET",
+    "endpoint": "jobs",
+    "timeoutSeconds": 15,
+    "startedSeconds": 22.877,
+    "state": "completed",
+    "httpStatus": 200,
+    "elapsedSeconds": 0.001
+  },
+  "requestCount": 228,
+  "elapsedSeconds": 22.879,
+  "preflightHttpSeconds": 0.484,
+  "preflightExceededLegacy15SecondCutoff": false,
+  "preflight": {
+    "files": [
+      {
+        "fileId": "source",
+        "state": "detected"
+      }
+    ]
+  },
+  "firstExecution": {
+    "state": "ready",
+    "succeeded": 1,
+    "failed": 0,
+    "files": [
+      {
+        "fileId": "source",
+        "name": "precision.xlsx",
+        "state": "ready",
+        "cancellationRequested": false,
+        "nativeRoute": {
+          "state": "detected",
+          "documentServices": [
+            "com.sun.star.sheet.SpreadsheetDocument"
+          ],
+          "basis": "native_preflight_document_kind",
+          "nativeKind": 1,
+          "drawPages": null,
+          "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+          "exported": false,
+          "sourceContract": {
+            "state": "recognized",
+            "contentClass": "ooxml_package",
+            "mainContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+            "contentTypeBasis": "override",
+            "expectedServices": [
+              "com.sun.star.sheet.SpreadsheetDocument"
+            ]
+          }
+        },
+        "targets": [
+          {
+            "taskId": "5b2702455ead23547c5c6a6992db8ddb:0",
+            "format": "csv",
+            "state": "ready",
+            "code": null,
+            "error": null,
+            "stage": "result",
+            "libreOfficeStarted": true,
+            "executionMode": "native_cli",
+            "executionReason": "no_native_session",
+            "resultChecks": [],
+            "automaticRecipe": null,
+            "automaticParameters": null,
+            "nativeTimings": {
+              "source": "cli_process",
+              "processMs": 10521,
+              "launchMs": 0,
+              "adapterMs": 10523
+            },
+            "exportFilter": "Text - txt - csv (StarCalc)",
+            "warnings": [],
+            "quality": null,
+            "startedMs": 1793010570119,
+            "finishedMs": 1793010580645,
+            "route": null,
+            "percent": 100,
+            "outputs": [
+              {
+                "fileId": "source",
+                "format": "csv",
+                "name": "precision.csv",
+                "archiveName": "0001-csv/precision.csv",
+                "size": 44,
+                "saved": false,
+                "sha256": "61278d06dae8e7aa76d1540b0894438ef17ce62bbf690ffa91de86af7463ed56",
+                "ticket": "[REDACTED ephemeral local capability]",
+                "mime": "text/csv",
+                "downloadUrl": "[REDACTED ephemeral local capability]"
+              }
+            ]
+          }
+        ],
+        "warnings": []
+      }
+    ]
+  },
+  "firstCsv": "code,amount,note\n00123,1.23,Привет\n",
+  "firstAnalysis": {
+    "jobId": "5b2702455ead23547c5c6a6992db8ddb",
+    "analysisId": "f78714341d5b93262765fffce86bfef8",
+    "state": "completed",
+    "processed": 1,
+    "total": 1,
+    "summary": {
+      "confirmed_loss": 1,
+      "format_limitation": 0,
+      "uncertain": 0,
+      "not_checked": 0,
+      "checked": 0
+    },
+    "error": null,
+    "offset": 0,
+    "limit": 50,
+    "items": [
+      {
+        "taskId": "5b2702455ead23547c5c6a6992db8ddb:0",
+        "fileId": "source",
+        "name": "precision.xlsx",
+        "format": "csv",
+        "sourceAvailable": true,
+        "schemaVersion": 1,
+        "status": "confirmed_loss",
+        "qualityCompared": true,
+        "scope": "verified_properties_only",
+        "findings": [
+          {
+            "code": "FORMAT_STYLES_LIMITATION",
+            "category": "format_limitation",
+            "feature": "styles",
+            "message": "Текстовый формат не сохраняет оформление документа.",
+            "certainty": "format_contract"
+          },
+          {
+            "code": "CELL_VALUES_CHANGED",
+            "category": "confirmed_loss",
+            "feature": "cell_values",
+            "message": "Исходные значения отсутствуют в проверенной таблице результата.",
+            "certainty": "confirmed_subset",
+            "before": 1,
+            "after": null,
+            "locations": [
+              {
+                "row": 2,
+                "column": 2,
+                "before": "1.23456789012345",
+                "after": "1.23"
+              }
+            ],
+            "totalAffected": 1
+          }
+        ],
+        "checkedFeatures": [],
+        "unknown": [
+          "cell_annotations",
+          "cell_formatting",
+          "cell_types",
+          "charts_and_embedded_objects",
+          "colour_accuracy",
+          "fonts",
+          "formula_evaluation",
+          "merged_cells",
+          "semantic_meaning",
+          "sheet_names_and_identity",
+          "visual_layout"
+        ],
+        "recipeCandidates": [
+          "csv_preserve_values"
+        ],
+        "before": {
+          "kind": "ooxml",
+          "documentClass": "spreadsheet",
+          "complete": true,
+          "counts": {
+            "sheets": 1,
+            "cells": 6,
+            "formulas": 0,
+            "images": 0,
+            "characters": 0
+          },
+          "textDigest": null
+        },
+        "after": {
+          "kind": "csv",
+          "documentClass": "spreadsheet",
+          "complete": true,
+          "counts": {
+            "sheets": 1,
+            "rows": 2,
+            "columns": 3,
+            "characters": 35
+          },
+          "textDigest": "b414e9d6b5c165be9a6b7b53da54147cef0901e1a16c3c70ca3f39fa45114460"
+        },
+        "outputScope": {
+          "totalFiles": 1,
+          "primaryFiles": 1,
+          "supplementalFiles": 0,
+          "inspectedPrimaryFiles": 1,
+          "inspectedSupplementalFiles": 0
+        },
+        "evaluatedFeatures": [
+          "cell_values"
+        ],
+        "provenance": {
+          "comparisonScope": "retained_export_bytes",
+          "originalExportIdentity": "verified"
+        }
+      }
+    ],
+    "totalFiltered": 1,
+    "retry": null,
+    "recovered": false,
+    "canRestart": true,
+    "canResume": false,
+    "finalizing": false,
+    "retryFinalizing": false,
+    "canRetry": true,
+    "activeRetryJobId": null,
+    "reportAvailable": true,
+    "persistenceError": null,
+    "stale": false,
+    "historyRetention": "owned_job_lifetime",
+    "retryHistory": [],
+    "historyOffset": 0,
+    "historyLimit": 20,
+    "historyTotal": 0,
+    "navigation": {
+      "parentJobId": null,
+      "parentTaskIds": [],
+      "ancestors": [],
+      "children": []
+    }
+  },
+  "retry": {
+    "runId": "7d247af9df62f2fc75aedbd41436f3c3",
+    "analysisId": "f78714341d5b93262765fffce86bfef8",
+    "state": "completed",
+    "createdAt": 1793010581161,
+    "updatedAt": 1793010592488,
+    "jobId": "866058d6d648935b7fb6688911747bbf",
+    "jobIds": [
+      "866058d6d648935b7fb6688911747bbf"
+    ],
+    "children": [
+      {
+        "jobId": "866058d6d648935b7fb6688911747bbf",
+        "recipe": "csv_preserve_values",
+        "selectedCount": 1,
+        "state": "completed",
+        "error": null,
+        "verification": {
+          "assessment": "checked_subset_improved",
+          "scope": "checked_subset",
+          "beforeConfirmed": 1,
+          "afterConfirmed": 0,
+          "note": "Полная визуальная идентичность не проверяется. Первый вариант сохранён."
+        },
+        "completed": 1,
+        "total": 1,
+        "succeeded": 1,
+        "failed": 0,
+        "conversionState": "ready",
+        "available": true,
+        "stale": false
+      }
+    ],
+    "error": null,
+    "selectedCount": 1,
+    "verification": {
+      "assessment": "checked_subset_improved",
+      "scope": "checked_subset",
+      "pairsSelected": 1,
+      "pairsVerified": 1,
+      "beforeConfirmed": 1,
+      "afterConfirmed": 0,
+      "note": "Оценены только указанные свойства каждой выбранной пары. Первый вариант сохранён."
+    },
+    "durable": true,
+    "completed": 1,
+    "total": 1
+  },
+  "retryVerification": {
+    "assessment": "checked_subset_improved",
+    "scope": "checked_subset",
+    "pairsSelected": 1,
+    "pairsVerified": 1,
+    "beforeConfirmed": 1,
+    "afterConfirmed": 0,
+    "note": "Оценены только указанные свойства каждой выбранной пары. Первый вариант сохранён."
+  },
+  "childExecution": {
+    "schemaVersion": 3,
+    "jobId": "866058d6d648935b7fb6688911747bbf",
+    "revision": 106,
+    "state": "ready",
+    "finished": true,
+    "diagnosticBytes": 0,
+    "currentTask": null,
+    "pauseRequested": false,
+    "fileTimeoutSeconds": 1800,
+    "officeStarts": 0,
+    "recovered": false,
+    "salvaged": false,
+    "recoveryError": null,
+    "recoveryDurable": true,
+    "resultAvailability": "ready_retained",
+    "qualityCheckRequested": false,
+    "qualityCompared": false,
+    "retainSources": true,
+    "comparisonAvailable": true,
+    "comparisonParentJobId": "5b2702455ead23547c5c6a6992db8ddb",
+    "comparisonRecipe": "csv_preserve_values",
+    "timings": {
+      "journalMs": 5,
+      "preflight_startedMs": 4,
+      "preflight_doneMs": 7,
+      "planMs": 0,
+      "job_queuedMs": 7,
+      "job_startedMs": 8,
+      "engine_startedMs": 11,
+      "packaging_startedMs": 10941,
+      "job_finishedMs": 10942
+    },
+    "files": [
+      {
+        "fileId": "source",
+        "name": "precision.xlsx",
+        "state": "ready",
+        "cancellationRequested": false,
+        "nativeRoute": {
+          "state": "detected",
+          "documentServices": [
+            "com.sun.star.sheet.SpreadsheetDocument"
+          ],
+          "basis": "native_preflight_document_kind",
+          "nativeKind": 1,
+          "drawPages": null,
+          "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+          "exported": false,
+          "sourceContract": {
+            "state": "recognized",
+            "contentClass": "ooxml_package",
+            "mainContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+            "contentTypeBasis": "override",
+            "expectedServices": [
+              "com.sun.star.sheet.SpreadsheetDocument"
+            ]
+          }
+        },
+        "targets": [
+          {
+            "taskId": "866058d6d648935b7fb6688911747bbf:0",
+            "format": "csv",
+            "state": "ready",
+            "code": null,
+            "error": null,
+            "stage": "result",
+            "libreOfficeStarted": true,
+            "executionMode": "native_cli",
+            "executionReason": "no_native_session",
+            "resultChecks": [],
+            "automaticRecipe": "csv_preserve_values",
+            "automaticParameters": {
+              "encoding": "UTF-8",
+              "SaveAsShown": false,
+              "ExportFormulas": false,
+              "ExportAllSheets": true,
+              "IncludeBOM": true
+            },
+            "nativeTimings": {
+              "source": "cli_process",
+              "processMs": 10926,
+              "launchMs": 0,
+              "adapterMs": 10927
+            },
+            "exportFilter": "Text - txt - csv (StarCalc)",
+            "warnings": [
+              {
+                "code": "AUTOMATIC_RETRY_MAY_NOT_IMPROVE",
+                "message": "Применён проверенный набор параметров экспорта. Он не гарантирует улучшение; результат повторно проверяется, предыдущая версия остаётся в AIO."
+              },
+              {
+                "code": "AUTOMATIC_CSV_RAW_VALUES",
+                "message": "CSV повторно экспортирован в UTF-8 с исходной числовой точностью и отдельным файлом для каждого листа. Отображение дат, валют и округлённых чисел может измениться. Формулы представлены вычисленными значениями; оформление CSV не поддерживает."
+              }
+            ],
+            "quality": null,
+            "startedMs": 1793010581179,
+            "finishedMs": 1793010592108,
+            "route": null,
+            "percent": 100,
+            "outputs": [
+              {
+                "fileId": "source",
+                "format": "csv",
+                "name": "precision-Precision.csv",
+                "archiveName": "0001-csv/precision-Precision.csv",
+                "size": 56,
+                "saved": false,
+                "sha256": "9828b1be7cce37374ef1a704bc64366a34a3ee4c408111ac6f83d567556c4ca8",
+                "ticket": "[REDACTED ephemeral local capability]",
+                "mime": "text/csv",
+                "downloadUrl": "[REDACTED ephemeral local capability]"
+              }
+            ]
+          }
+        ],
+        "warnings": []
+      }
+    ],
+    "total": 1,
+    "completed": 1,
+    "attempted": 1,
+    "succeeded": 1,
+    "failed": 0,
+    "cancelled": 0,
+    "filtered": 0,
+    "pending": 0,
+    "preflightChecks": 0,
+    "preflightTotal": 1,
+    "preflightTimeoutSeconds": 120,
+    "preflightCompleted": 0,
+    "preflightPhase": "done",
+    "preflightMatrixCompleted": 87,
+    "preflightMatrixTotal": 87,
+    "cancellationRequested": false,
+    "preparation": false,
+    "preflightUndetermined": 0,
+    "percent": 100.0,
+    "result": {
+      "fileId": "source",
+      "format": "csv",
+      "name": "precision-Precision.csv",
+      "archiveName": "0001-csv/precision-Precision.csv",
+      "size": 56,
+      "saved": false,
+      "sha256": "9828b1be7cce37374ef1a704bc64366a34a3ee4c408111ac6f83d567556c4ca8",
+      "ticket": "[REDACTED ephemeral local capability]",
+      "mime": "text/csv",
+      "downloadUrl": "[REDACTED ephemeral local capability]",
+      "jobId": "866058d6d648935b7fb6688911747bbf",
+      "outputs": [
+        {
+          "fileId": "source",
+          "format": "csv",
+          "name": "precision-Precision.csv",
+          "archiveName": "0001-csv/precision-Precision.csv",
+          "size": 56,
+          "saved": false,
+          "sha256": "9828b1be7cce37374ef1a704bc64366a34a3ee4c408111ac6f83d567556c4ca8",
+          "ticket": "[REDACTED ephemeral local capability]",
+          "mime": "text/csv",
+          "downloadUrl": "[REDACTED ephemeral local capability]"
+        }
+      ]
+    },
+    "trace": null,
+    "archiveMode": "on_demand",
+    "bundleDeferred": false,
+    "packagingError": null,
+    "saveInProgress": false,
+    "partialResult": {
+      "fileId": "source",
+      "format": "csv",
+      "name": "precision-Precision.csv",
+      "archiveName": "0001-csv/precision-Precision.csv",
+      "size": 56,
+      "saved": false,
+      "sha256": "9828b1be7cce37374ef1a704bc64366a34a3ee4c408111ac6f83d567556c4ca8",
+      "ticket": "[REDACTED ephemeral local capability]",
+      "mime": "text/csv",
+      "downloadUrl": "[REDACTED ephemeral local capability]",
+      "jobId": "866058d6d648935b7fb6688911747bbf",
+      "outputsCount": 1,
+      "folderOnly": true
+    }
+  },
+  "candidateRows": [
+    [
+      "code",
+      "amount",
+      "note"
+    ],
+    [
+      "00123",
+      "1.23456789012345",
+      "Привет"
+    ]
+  ],
+  "candidateSha256": "9828b1be7cce37374ef1a704bc64366a34a3ee4c408111ac6f83d567556c4ca8",
+  "childAnalysis": {
+    "jobId": "866058d6d648935b7fb6688911747bbf",
+    "analysisId": "f775a4e23686db3cff17bcda6e9ad02b",
+    "state": "completed",
+    "processed": 1,
+    "total": 1,
+    "summary": {
+      "confirmed_loss": 0,
+      "format_limitation": 1,
+      "uncertain": 0,
+      "not_checked": 0,
+      "checked": 0
+    },
+    "error": null,
+    "offset": 0,
+    "limit": 50,
+    "items": [
+      {
+        "taskId": "866058d6d648935b7fb6688911747bbf:0",
+        "fileId": "source",
+        "name": "precision.xlsx",
+        "format": "csv",
+        "sourceAvailable": true,
+        "schemaVersion": 1,
+        "status": "format_limitation",
+        "qualityCompared": true,
+        "scope": "verified_properties_only",
+        "findings": [
+          {
+            "code": "FORMAT_STYLES_LIMITATION",
+            "category": "format_limitation",
+            "feature": "styles",
+            "message": "Текстовый формат не сохраняет оформление документа.",
+            "certainty": "format_contract"
+          }
+        ],
+        "checkedFeatures": [
+          "cell_values_single_grid"
+        ],
+        "unknown": [
+          "cell_annotations",
+          "cell_formatting",
+          "cell_types",
+          "charts_and_embedded_objects",
+          "colour_accuracy",
+          "fonts",
+          "formula_evaluation",
+          "merged_cells",
+          "semantic_meaning",
+          "sheet_names_and_identity",
+          "visual_layout"
+        ],
+        "recipeCandidates": [],
+        "before": {
+          "kind": "ooxml",
+          "documentClass": "spreadsheet",
+          "complete": true,
+          "counts": {
+            "sheets": 1,
+            "cells": 6,
+            "formulas": 0,
+            "images": 0,
+            "characters": 0
+          },
+          "textDigest": null
+        },
+        "after": {
+          "kind": "csv",
+          "documentClass": "spreadsheet",
+          "complete": true,
+          "counts": {
+            "sheets": 1,
+            "rows": 2,
+            "columns": 3,
+            "characters": 47
+          },
+          "textDigest": "4d55311d760f729eacccdf5f665692d163581c044896e5f6f99963be72f5a148"
+        },
+        "outputScope": {
+          "totalFiles": 1,
+          "primaryFiles": 1,
+          "supplementalFiles": 0,
+          "inspectedPrimaryFiles": 1,
+          "inspectedSupplementalFiles": 0
+        },
+        "evaluatedFeatures": [
+          "cell_values_single_grid"
+        ],
+        "provenance": {
+          "comparisonScope": "retained_export_bytes",
+          "originalExportIdentity": "verified"
+        }
+      }
+    ],
+    "totalFiltered": 1,
+    "retry": null,
+    "recovered": false,
+    "canRestart": true,
+    "canResume": false,
+    "finalizing": false,
+    "retryFinalizing": false,
+    "canRetry": true,
+    "activeRetryJobId": null,
+    "reportAvailable": true,
+    "persistenceError": null,
+    "stale": false,
+    "historyRetention": "owned_job_lifetime",
+    "retryHistory": [],
+    "historyOffset": 0,
+    "historyLimit": 20,
+    "historyTotal": 0,
+    "navigation": {
+      "parentJobId": "5b2702455ead23547c5c6a6992db8ddb",
+      "parentTaskIds": [
+        "5b2702455ead23547c5c6a6992db8ddb:0"
+      ],
+      "ancestors": [
+        {
+          "jobId": "5b2702455ead23547c5c6a6992db8ddb",
+          "label": "precision.xlsx · исходный результат",
+          "available": true
+        }
+      ],
+      "children": []
+    }
+  },
+  "firstResultsUnchanged": true,
+  "sourceUnchanged": true,
+  "selectedPairs": 1,
+  "automaticParameters": {
+    "encoding": "UTF-8",
+    "SaveAsShown": false,
+    "ExportFormulas": false,
+    "ExportAllSheets": true,
+    "IncludeBOM": true
+  }
+}

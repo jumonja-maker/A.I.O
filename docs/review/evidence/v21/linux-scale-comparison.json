@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "files": 1000,
+  "baselineSeconds": 95.03,
+  "waitOnProcessSeconds": 84.151,
+  "observedReductionPercent": 11.45,
+  "nativeConversionSpeedClaim": false,
+  "statisticalBenchmark": false,
+  "scope": "one same-host pair of controlled tiny-CSV runs; real isolated analysis, unchanged per-file workers and classifications; machine load not pinned",
+  "baselineScriptSha256": "349d782f0d180b1ca21ae9680dae6761523747c58b017d1263e16e9f6fbd4552",
+  "finalScriptSha256": "71d058fd1712a361daeedcdeed8020b4c0eba93703a560195fd365dc4c992549",
+  "scriptDelta": "only final cleanup failure exit/status handling; positive dataset and workload unchanged",
+  "serviceSha256": "ace6749e049445aaa15bd152ac06ef01e4791f2f32d9b773e871ea0e84432acf",
+  "truth": {
+    "state": "completed",
+    "processed": 1000,
+    "summary": {
+      "confirmed_loss": 100,
+      "format_limitation": 0,
+      "uncertain": 0,
+      "not_checked": 0,
+      "checked": 900
+    },
+    "expected": {
+      "checked": 900,
+      "confirmed_loss": 100,
+      "format_limitation": 0,
+      "uncertain": 0,
+      "not_checked": 0
+    }
+  },
+  "immutable": {
+    "filesRehashed": 2000,
+    "allUnchanged": true
+  },
+  "cleanup": {
+    "jobs": 0,
+    "tickets": 0,
+    "reservedBytes": 0,
+    "ioLeases": 0,
+    "sessionIndexes": 0,
+    "ownedDirectoryRemoved": true,
+    "ownerLockClosed": true,
+    "ownedExecutorThreadsAlive": 0
+  },
+  "workers": {
+    "started": 1006,
+    "closed": 1006,
+    "active": 0,
+    "peakActive": 1,
+    "liveAfterClose": 0,
+    "jobHandleAfterClose": 0
+  },
+  "baseline": "scale-1000/evidence.json",
+  "after": "scale-1000-wakeup/evidence.json",
+  "negativeHarnessControl": "late final-close failure yields FAIL and exit1; scale-final-cleanup-negative/evidence.json"
+}

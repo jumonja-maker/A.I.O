@@ -1,0 +1,57 @@
+[
+  {
+    "case": "obsolete_refresh_error",
+    "returncode": 1,
+    "stderr": "node:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\n\nAssertionError [ERR_ASSERTION]: an older failed refresh must not invalidate a newer successful report\n\ntrue !== false\n\n    at file:///workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/guard_comparison_v21.mjs:64:12\n    at async check (file:///workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/guard_comparison_v21.mjs:54:54)\n    at async file:///workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/guard_comparison_v21.mjs:116:53 {\n  generatedMessage: false,\n  code: 'ERR_ASSERTION',\n  actual: true,\n  expected: false,\n  operator: 'strictEqual',\n  diff: 'simple'\n}\n\nNode.js v24.22.1\n",
+    "stdout": ""
+  },
+  {
+    "case": "obsolete_detail_error",
+    "returncode": 1,
+    "stderr": "node:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\n\nAssertionError [ERR_ASSERTION]: late detail errors must obey the selected detail request identity\n    at file:///workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/guard_comparison_v21.mjs:75:12\n    at async check (file:///workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/guard_comparison_v21.mjs:54:54)\n    at async file:///workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/guard_comparison_v21.mjs:116:53 {\n  generatedMessage: false,\n  code: 'ERR_ASSERTION',\n  actual: 'obsolete detail failure',\n  expected: /obsolete detail failure/,\n  operator: 'doesNotMatch',\n  diff: 'simple'\n}\n\nNode.js v24.22.1\n",
+    "stdout": ""
+  },
+  {
+    "case": "retry_completion_different_job",
+    "returncode": 1,
+    "stderr": "node:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\n\nAssertionError [ERR_ASSERTION]: completion of another package must not erase this package selection\n+ actual - expected\n\n+ 'Выбрано: 0'\n- 'Выбрано: 1'\n            ^\n\n    at file:///workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/guard_comparison_v21.mjs:86:12\n    at async check (file:///workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/guard_comparison_v21.mjs:54:54)\n    at async file:///workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/guard_comparison_v21.mjs:116:53 {\n  generatedMessage: false,\n  code: 'ERR_ASSERTION',\n  actual: 'Выбрано: 0',\n  expected: 'Выбрано: 1',\n  operator: 'strictEqual',\n  diff: 'simple'\n}\n\nNode.js v24.22.1\n",
+    "stdout": ""
+  },
+  {
+    "case": "restart_completion_different_job",
+    "returncode": 1,
+    "stderr": "node:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\n\nAssertionError [ERR_ASSERTION]: an old restart must not clear a newer package preview\n    at file:///workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/guard_comparison_v21.mjs:96:12\n    at async check (file:///workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/guard_comparison_v21.mjs:54:54)\n    at async file:///workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/guard_comparison_v21.mjs:116:53 {\n  generatedMessage: false,\n  code: 'ERR_ASSERTION',\n  actual: '',\n  expected: /RESULT/,\n  operator: 'match',\n  diff: 'simple'\n}\n\nNode.js v24.22.1\n",
+    "stdout": ""
+  },
+  {
+    "case": "detail_pair_binding",
+    "returncode": 1,
+    "stderr": "node:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\n\nAssertionError [ERR_ASSERTION]: same analysis label does not prove the task/job binding\n    at file:///workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/guard_comparison_v21.mjs:104:12\n    at async check (file:///workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/guard_comparison_v21.mjs:54:54)\n    at async file:///workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/guard_comparison_v21.mjs:116:53 {\n  generatedMessage: false,\n  code: 'ERR_ASSERTION',\n  actual: 'UNRELATED RESULT',\n  expected: /UNRELATED RESULT/,\n  operator: 'doesNotMatch',\n  diff: 'simple'\n}\n\nNode.js v24.22.1\n",
+    "stdout": ""
+  },
+  {
+    "case": "preview_pair_binding",
+    "returncode": 1,
+    "stderr": "node:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\n\nAssertionError [ERR_ASSERTION]: a same-origin preview for another task must not be fetched\n\n1 !== 0\n\n    at cases (file:///workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/guard_comparison_v21.mjs:112:12)\n    at async check (file:///workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/guard_comparison_v21.mjs:54:54)\n    at async file:///workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/guard_comparison_v21.mjs:116:53 {\n  generatedMessage: false,\n  code: 'ERR_ASSERTION',\n  actual: 1,\n  expected: 0,\n  operator: 'strictEqual',\n  diff: 'simple'\n}\n\nNode.js v24.22.1\n",
+    "stdout": ""
+  },
+  {
+    "case": "obsolete_busy_preview",
+    "returncode": 1,
+    "stderr": "node:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\n\nAssertionError [ERR_ASSERTION]: a late busy reply must not replace the newer source preview with a waiting message\n    at file:///workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/guard_comparison_v21.mjs:117:12\n    at async check (file:///workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/guard_comparison_v21.mjs:54:54)\n    at async file:///workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/guard_comparison_v21.mjs:145:53 {\n  generatedMessage: false,\n  code: 'ERR_ASSERTION',\n  actual: 'Завершается предыдущий просмотр. Ожидаем выбранный документ…',\n  expected: /CURRENT SOURCE/,\n  operator: 'match',\n  diff: 'simple'\n}\n\nNode.js v24.22.1\n",
+    "stdout": ""
+  },
+  {
+    "case": "preview_analysis_binding",
+    "returncode": 1,
+    "stderr": "node:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\n\nAssertionError [ERR_ASSERTION]: a stale analysis token cannot be used for the current report\n\n1 !== 0\n\n    at file:///workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/guard_comparison_v21.mjs:124:12\n    at async check (file:///workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/guard_comparison_v21.mjs:54:54)\n    at async file:///workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/guard_comparison_v21.mjs:145:53 {\n  generatedMessage: false,\n  code: 'ERR_ASSERTION',\n  actual: 1,\n  expected: 0,\n  operator: 'strictEqual',\n  diff: 'simple'\n}\n\nNode.js v24.22.1\n",
+    "stdout": ""
+  },
+  {
+    "case": "unavailable_bundle_scope",
+    "returncode": 1,
+    "stderr": "node:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\n\nAssertionError [ERR_ASSERTION]: missing-artifact evidence must remain explicit\n    at file:///workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/guard_comparison_v21.mjs:143:12\n    at async check (file:///workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/guard_comparison_v21.mjs:54:54)\n    at async file:///workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/guard_comparison_v21.mjs:155:53 {\n  generatedMessage: false,\n  code: 'ERR_ASSERTION',\n  actual: 'Что изменилосьНе удалось проверить: Часть результата недоступна.Границы проверки · есть непроверенные свойстваНе проверено: внешний вид и расположение элементов.Выходных файлов: 3. Проверено основных: 0 из 0. Сопровождающих: 0 из 0.',\n  expected: /Недоступно: 1/,\n  operator: 'match',\n  diff: 'simple'\n}\n\nNode.js v24.22.1\n",
+    "stdout": "",
+    "scope": "v21 new backend missing-bundle outputScope compatibility"
+  }
+]

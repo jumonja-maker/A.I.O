@@ -1,0 +1,154 @@
+{
+  "schema": 1,
+  "status": "RESEARCH_ONLY_NOT_IMPLEMENTED",
+  "evidenceType": "summary_transcribed_from_observed_tool_output",
+  "rawSamplesAvailable": false,
+  "newBenchmarkExecutedForThisArtifact": false,
+  "platform": "Linux",
+  "interpreter": "/workspace/scratch/c58945ad251a/ba-venv/bin/python",
+  "totalSubprocesses": 80,
+  "productFilesChanged": false,
+  "method": {
+    "pairsPerCacheMode": 20,
+    "ordering": "eager/lazy for even pair indices, lazy/eager for odd pair indices",
+    "parentClock": "time.perf_counter; subprocess.run wall time",
+    "childClocks": "time.perf_counter before imports, after imports, after analyze_pair",
+    "childFlags": [
+      "-B"
+    ],
+    "environment": {
+      "PYTHONDONTWRITEBYTECODE": "1"
+    },
+    "operation": "Import comparison_worker and comparison_analysis, then analyze_pair(existing_csv,[existing_csv],csv)",
+    "fixtureSelection": "first */work/0/output/*.csv under state/before-after-transport-final/owned",
+    "fixtureUnchanged": true,
+    "fixtureSha256Recorded": false,
+    "simulatedLazy": "An in-memory ModuleType with package __path__/__spec__ replaces only app_backend.converter_guard initialization; no production __getattr__ implementation was made. Required worker/analyzer submodules load normally.",
+    "sourceOnly": "In-memory SourceFileLoader.get_code override compiles app_backend Python source directly; standard-library loading retains its ordinary cache behavior. No pyc file is changed or removed.",
+    "p90Definition": "sorted(values)[int(len(values)*0.9)-1]",
+    "wallTimeIncludes": "Interpreter startup, instrumentation, imports, tiny CSV comparison, JSON stdout, process exit; excludes parent JSON parsing."
+  },
+  "results": {
+    "default_cache/eager": {
+      "wallMs": {
+        "min": 61.596,
+        "median": 67.031,
+        "p90": 78.429,
+        "max": 81.613
+      },
+      "importMs": {
+        "min": 33.722,
+        "median": 36.72,
+        "p90": 43.522,
+        "max": 46.63
+      },
+      "analysisMs": {
+        "min": 0.637,
+        "median": 0.698,
+        "p90": 0.838,
+        "max": 1.068
+      },
+      "moduleCount": 180,
+      "appModuleCount": 23,
+      "samples": 20,
+      "qtModules": [],
+      "allStatuses": [
+        "checked"
+      ]
+    },
+    "default_cache/simulated_lazy": {
+      "wallMs": {
+        "min": 33.579,
+        "median": 36.505,
+        "p90": 38.279,
+        "max": 42.987
+      },
+      "importMs": {
+        "min": 8.995,
+        "median": 9.82,
+        "p90": 11.057,
+        "max": 12.4
+      },
+      "analysisMs": {
+        "min": 0.618,
+        "median": 0.718,
+        "p90": 0.814,
+        "max": 1.469
+      },
+      "moduleCount": 116,
+      "appModuleCount": 7,
+      "samples": 20,
+      "qtModules": [],
+      "allStatuses": [
+        "checked"
+      ]
+    },
+    "source_only/eager": {
+      "wallMs": {
+        "min": 126.77,
+        "median": 133.986,
+        "p90": 145.984,
+        "max": 173.329
+      },
+      "importMs": {
+        "min": 97.42,
+        "median": 103.049,
+        "p90": 113.226,
+        "max": 140.202
+      },
+      "analysisMs": {
+        "min": 0.662,
+        "median": 0.7,
+        "p90": 0.819,
+        "max": 0.914
+      },
+      "moduleCount": 180,
+      "appModuleCount": 23,
+      "samples": 20,
+      "qtModules": [],
+      "allStatuses": [
+        "checked"
+      ]
+    },
+    "source_only/simulated_lazy": {
+      "wallMs": {
+        "min": 52.337,
+        "median": 56.002,
+        "p90": 61.486,
+        "max": 67.236
+      },
+      "importMs": {
+        "min": 26.28,
+        "median": 28.62,
+        "p90": 30.906,
+        "max": 40.503
+      },
+      "analysisMs": {
+        "min": 0.658,
+        "median": 0.728,
+        "p90": 0.915,
+        "max": 1.008
+      },
+      "moduleCount": 116,
+      "appModuleCount": 7,
+      "samples": 20,
+      "qtModules": [],
+      "allStatuses": [
+        "checked"
+      ]
+    }
+  },
+  "observedMedianWallReductionPercent": {
+    "default_cache": 45.54,
+    "source_only": 58.2
+  },
+  "limits": [
+    "Linux only; no Windows import measurement",
+    "In-memory import simulation, not a deployed lazy package",
+    "No frozen EXE/PyInstaller measurement",
+    "Small existing CSV is compared to itself; not a full document workload",
+    "No CPU scheduling, filesystem or thermal control; no general speed guarantee",
+    "Not proof that eager imports caused the Windows 296.719-second scale result",
+    "Does not measure a change in LibreOffice conversion speed"
+  ]
+}

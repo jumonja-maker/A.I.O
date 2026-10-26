@@ -1,0 +1,16 @@
+test_failed_excel_progress_after_rows_cleans_output_writer (test_boundaries_v21.ExcelFailureCleanup.test_failed_excel_progress_after_rows_cleans_output_writer) ... ok
+test_failed_excel_progress_before_rows_cleans_header_writer (test_boundaries_v21.ExcelFailureCleanup.test_failed_excel_progress_before_rows_cleans_header_writer) ... ok
+test_failed_excel_save_removes_private_streaming_xml (test_boundaries_v21.ExcelFailureCleanup.test_failed_excel_save_removes_private_streaming_xml) ... ok
+test_failure_cleanup_never_deletes_another_workbooks_live_xml (test_boundaries_v21.ExcelFailureCleanup.test_failure_cleanup_never_deletes_another_workbooks_live_xml) ... ok
+test_successful_excel_merge_remains_independent_and_preserves_values (test_boundaries_v21.ExcelFailureCleanup.test_successful_excel_merge_remains_independent_and_preserves_values) ... ok
+test_continuous_upload_can_exceed_idle_window_without_total_timeout (test_boundaries_v21.GuardBoundaryLifecycle.test_continuous_upload_can_exceed_idle_window_without_total_timeout) ... ok
+test_preview_analysis_token_reaches_service_and_rejects_ambiguous_tokens (test_boundaries_v21.GuardBoundaryLifecycle.test_preview_analysis_token_reaches_service_and_rejects_ambiguous_tokens) ... ok
+test_release_prunes_comparison_only_after_guard_accepts_release (test_boundaries_v21.GuardBoundaryLifecycle.test_release_prunes_comparison_only_after_guard_accepts_release) ... ok
+test_shutdown_closes_http_admission_and_socket_before_comparison_wait (test_boundaries_v21.GuardBoundaryLifecycle.test_shutdown_closes_http_admission_and_socket_before_comparison_wait) ... ok
+test_stalled_html_resource_expires_and_releases_its_ownership (test_boundaries_v21.GuardBoundaryLifecycle.test_stalled_html_resource_expires_and_releases_its_ownership) ... ok
+test_stalled_input_expires_idle_without_holding_slot_and_can_retry (test_boundaries_v21.GuardBoundaryLifecycle.test_stalled_input_expires_idle_without_holding_slot_and_can_retry) ... ok
+
+----------------------------------------------------------------------
+Ran 11 tests in 0.471s
+
+OK

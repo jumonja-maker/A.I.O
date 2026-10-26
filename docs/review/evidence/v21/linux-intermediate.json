@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "discovered": 1027,
+  "passed": 1027,
+  "failed": 0,
+  "errors": 0,
+  "skipped": [],
+  "failureDetails": [],
+  "expectedFailures": [],
+  "unexpectedSuccesses": []
+}

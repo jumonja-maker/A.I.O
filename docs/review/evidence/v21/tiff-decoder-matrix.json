@@ -1,0 +1,88 @@
+{
+  "oracle": "installed Pillow 12.3.0",
+  "runtimeDependencyAdded": false,
+  "scope": "external QA oracle only",
+  "bigEndianBigTiffLimit": "installed Pillow _open checks ifh[2]==43, so big endian magic is not extended; 2 cases not independently decoded",
+  "cases": [
+    {
+      "big": false,
+      "endian": "<",
+      "tiled": false,
+      "status": "decoded",
+      "size": [
+        2,
+        2
+      ],
+      "pixel": 127
+    },
+    {
+      "big": false,
+      "endian": "<",
+      "tiled": true,
+      "status": "decoded",
+      "size": [
+        16,
+        32
+      ],
+      "pixel": 127
+    },
+    {
+      "big": false,
+      "endian": ">",
+      "tiled": false,
+      "status": "decoded",
+      "size": [
+        2,
+        2
+      ],
+      "pixel": 127
+    },
+    {
+      "big": false,
+      "endian": ">",
+      "tiled": true,
+      "status": "decoded",
+      "size": [
+        16,
+        32
+      ],
+      "pixel": 127
+    },
+    {
+      "big": true,
+      "endian": "<",
+      "tiled": false,
+      "status": "decoded",
+      "size": [
+        2,
+        2
+      ],
+      "pixel": 127
+    },
+    {
+      "big": true,
+      "endian": "<",
+      "tiled": true,
+      "status": "decoded",
+      "size": [
+        16,
+        32
+      ],
+      "pixel": 127
+    },
+    {
+      "big": true,
+      "endian": ">",
+      "tiled": false,
+      "status": "decoder_unavailable",
+      "reason": "UnidentifiedImageError"
+    },
+    {
+      "big": true,
+      "endian": ">",
+      "tiled": true,
+      "status": "decoder_unavailable",
+      "reason": "UnidentifiedImageError"
+    }
+  ]
+}

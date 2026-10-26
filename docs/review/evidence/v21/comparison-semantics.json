@@ -1,0 +1,21 @@
+{
+  "scope": "comparison semantics and optional quality inspection",
+  "base": "bfae27182950a87f7f67f95c8d25e15b940b94aa",
+  "new_tests": 17,
+  "targeted_and_adjacent_tests": 105,
+  "passed": 105,
+  "failures": 0,
+  "skipped": 0,
+  "red_reproduction": "7 initial cases failed before fixes; auxiliary Word orphan case separately reproduced confirmed_loss before fix",
+  "files": {
+    "app_backend/converter_guard/comparison_analysis.py": "20631b5b2bd0c9583d328cde383c60e8f8137077e9efccb9abbf7fd5bd45b1e2",
+    "app_backend/converter_guard/quality.py": "afa7ce5645b1162c6ac4f04a182fa6872dca2ee3f906c304f5d52ca4f6c7d894",
+    "app_backend/converter_guard/worksheet_geometry.py": "7981aa2f5666dd08c0bb6df635ef5e99224d67006a9ebff562316560ccbbcb03",
+    "tests/test_comparison_semantics_v21.py": "a02c8aab1ce63ae01bfab6b386ee2da80ec706df2247901f5d45f6ff9a479da1"
+  },
+  "logs": [
+    "comparison-semantics-red.log",
+    "comparison-word-orphan-red.log",
+    "comparison-semantics-adjacent.log"
+  ]
+}

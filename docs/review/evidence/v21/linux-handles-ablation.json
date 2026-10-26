@@ -1,0 +1,167 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "filesPerCycle": 1000,
+  "host": {
+    "system": "Linux",
+    "python": "3.12.14"
+  },
+  "scope": "two controlled CSV Guard cycles in one process; QA-reference ablation only",
+  "nativeLibreOfficeBenchmark": false,
+  "comparisonWorkersTested": false,
+  "wholeApplicationLeakFreedomCertified": false,
+  "primarySources": [
+    "https://github.com/python/cpython/blob/v3.11.9/Include/internal/pycore_condvar.h",
+    "https://github.com/python/cpython/blob/v3.11.9/Python/condvar.h",
+    "https://github.com/python/cpython/blob/v3.11.9/Python/thread_nt.h"
+  ],
+  "baseline": {
+    "threads": 1,
+    "peakRssBytes": 18812928,
+    "rssBytes": 18812928,
+    "fileDescriptors": 4
+  },
+  "cycles": [
+    {
+      "samples": {
+        "before": {
+          "threads": 1,
+          "peakRssBytes": 18825216,
+          "rssBytes": 18825216,
+          "fileDescriptors": 4
+        },
+        "converted": {
+          "threads": 2,
+          "peakRssBytes": 27455488,
+          "rssBytes": 27455488,
+          "fileDescriptors": 5
+        },
+        "afterCloseQaReferencesRetained": {
+          "threads": 1,
+          "peakRssBytes": 27955200,
+          "rssBytes": 27955200,
+          "fileDescriptors": 4
+        },
+        "afterQaReferencesDroppedBeforeGc": {
+          "threads": 1,
+          "peakRssBytes": 27619328,
+          "rssBytes": 26906624,
+          "fileDescriptors": 4
+        },
+        "afterQaReferencesDroppedAndGc": {
+          "threads": 1,
+          "peakRssBytes": 27619328,
+          "rssBytes": 26767360,
+          "fileDescriptors": 4
+        }
+      },
+      "files": 1000,
+      "retainedQaAliases": [
+        "job",
+        "saved_job",
+        "converted",
+        "rows",
+        "row",
+        "data"
+      ],
+      "cleanup": {
+        "jobs": 0,
+        "tickets": 0,
+        "reservedBytes": 0,
+        "ioLeases": 0,
+        "ownedDirectoryRemoved": true,
+        "ownerLockClosed": true,
+        "ownedExecutorThreadsAlive": 0
+      },
+      "weakReferencesBeforeDrop": {
+        "jobAlive": true,
+        "filesAlive": 1000
+      },
+      "weakReferencesAfterDropBeforeGc": {
+        "jobAlive": false,
+        "filesAlive": 0
+      },
+      "gcCollected": 0,
+      "weakReferencesAfterGc": {
+        "jobAlive": false,
+        "filesAlive": 0
+      },
+      "status": "PASS",
+      "cycle": 1
+    },
+    {
+      "samples": {
+        "before": {
+          "threads": 1,
+          "peakRssBytes": 27619328,
+          "rssBytes": 26791936,
+          "fileDescriptors": 4
+        },
+        "converted": {
+          "threads": 2,
+          "peakRssBytes": 27619328,
+          "rssBytes": 27435008,
+          "fileDescriptors": 5
+        },
+        "afterCloseQaReferencesRetained": {
+          "threads": 1,
+          "peakRssBytes": 27893760,
+          "rssBytes": 27893760,
+          "fileDescriptors": 4
+        },
+        "afterQaReferencesDroppedBeforeGc": {
+          "threads": 1,
+          "peakRssBytes": 27897856,
+          "rssBytes": 27897856,
+          "fileDescriptors": 4
+        },
+        "afterQaReferencesDroppedAndGc": {
+          "threads": 1,
+          "peakRssBytes": 27746304,
+          "rssBytes": 27746304,
+          "fileDescriptors": 4
+        }
+      },
+      "files": 1000,
+      "retainedQaAliases": [
+        "job",
+        "saved_job",
+        "converted",
+        "rows",
+        "row",
+        "data"
+      ],
+      "cleanup": {
+        "jobs": 0,
+        "tickets": 0,
+        "reservedBytes": 0,
+        "ioLeases": 0,
+        "ownedDirectoryRemoved": true,
+        "ownerLockClosed": true,
+        "ownedExecutorThreadsAlive": 0
+      },
+      "weakReferencesBeforeDrop": {
+        "jobAlive": true,
+        "filesAlive": 1000
+      },
+      "weakReferencesAfterDropBeforeGc": {
+        "jobAlive": false,
+        "filesAlive": 0
+      },
+      "gcCollected": 0,
+      "weakReferencesAfterGc": {
+        "jobAlive": false,
+        "filesAlive": 0
+      },
+      "status": "PASS",
+      "cycle": 2
+    }
+  ],
+  "afterBothCycles": {
+    "threads": 1,
+    "peakRssBytes": 27746304,
+    "rssBytes": 27746304,
+    "fileDescriptors": 4
+  },
+  "elapsedSeconds": 3.271
+}
