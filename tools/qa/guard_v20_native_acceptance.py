@@ -85,6 +85,9 @@ def main():
         for key, targets in expected.items():
             source = sources[key]
             proof = adapter.preflight(source, args.output / ('inspect-' + key), cancel=cancel, timeout=60)
+            print('AIO_V20_PREFLIGHT_CASE=' + json.dumps({'source': key, 'state': proof.get('state'),
+                'code': proof.get('code'), 'nativeImportLocale': proof.get('nativeImportLocale'),
+                'filter': proof.get('selectedImportFilter')}, ensure_ascii=True), flush=True)
             if proof.get('state') != 'detected':
                 if key in ('flat_presentation_alias', 'flat_text_alias') and os.name != 'nt':
                     assert proof.get('code') == 'SOURCE_MODEL_MISMATCH', proof
@@ -139,6 +142,7 @@ def main():
                     'elapsedMs': round((time.monotonic() - tick) * 1000),
                     'filter': info.get('filter'), 'checks': info.get('resultChecks', []),
                     'outputs': [{'name': p.name, 'size': p.stat().st_size, 'sha256': digest(p)} for p in paths]})
+                print('AIO_V20_NATIVE_CASE=' + json.dumps(cases[-1], ensure_ascii=True), flush=True)
     assert before == {key: digest(path) for key, path in sources.items()}, 'Source bytes changed'
     result = {'status': 'PASS', 'platform': sys.platform,
         'scope': 'synthetic native safety controls; not all-format or visual certification',

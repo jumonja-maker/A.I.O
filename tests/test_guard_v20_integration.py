@@ -113,6 +113,9 @@ class IntegratedV20(unittest.TestCase):
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]['code'], 'DIF_NUMERIC_CONTENT_NOT_CHECKED')
         self.assertIn('не подтверждено', rows[0]['message'])
+        locale = warning_details(['DIF_PRIVATE_NUMERIC_LOCALE_EN_US'])
+        self.assertEqual(len(locale), 1)
+        self.assertIn('en-US', locale[0]['message'])
 
     def test_native_apng_registry_cannot_bypass_the_actual_encoder_contract(self):
         class Native:

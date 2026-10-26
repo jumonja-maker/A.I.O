@@ -402,14 +402,149 @@ class DifAdapterIntegration(unittest.TestCase):
         self.assertEqual(state['code'], 'DIF_NUMERIC_IMPORT_MISMATCH')
         self.assertFalse(state['requestedExportStarted'])
 
+    def test_writer_table_prefix_cannot_trigger_native_dif_model_gate(self):
+        import ast
+        from app_backend.converter_guard.uno_session import WORKER_SOURCE
+        source = self.root / 'notes.txt'
+        source.write_text('TABLE\nThis is an ordinary note, not a DIF document.\n')
+        # Execute the actual assignment from the worker's import branch. The
+        # Writer double intentionally has no getSheets API.
+        parsed = ast.parse(WORKER_SOURCE)
+        assignment = next(node for node in ast.walk(parsed)
+            if isinstance(node, ast.Assign)
+            and any(isinstance(target, ast.Name) and target.id == 'dif_import_check'
+                    for target in node.targets)
+            and isinstance(node.value, ast.IfExp))
+        code = compile(ast.Module(body=[assignment], type_ignores=[]), '<worker-dif-branch>', 'exec')
+        namespace = {'actual_filter': 'Text', 'source': source, 'model': SimpleNamespace(),
+                     'check_dif_import_model': check_dif_import_model}
+        exec(code, namespace)
+        self.assertIsNone(namespace['dif_import_check'])
+        # Renaming real DIF bytes does not bypass the native filter or gate.
+        namespace.update(actual_filter='DIF', source=self.source,
+                         model=model([['VALUE'], ['#ERR: 1.43 (V)']]))
+        with self.assertRaises(DifNumericMismatch):
+            exec(code, namespace)
+
+    def test_cli_ordinary_table_prefix_keeps_original_native_source_and_filter(self):
+        from unittest.mock import patch
+        adapter = self._adapter()
+        adapter._local.import_filter = None
+        adapter._local.import_options = None
+        source = self.root / 'notes.txt'
+        source.write_text('TABLE\nThis is an ordinary note, not a DIF document.\n')
+        seen = []
+        def native(source_, target, workspace, **kwargs):
+            seen.append((source_, adapter._local.import_filter))
+            raise GuardError('CONTROLLED_NATIVE_STOP', 'stop after source selection', stage='engine')
+        with patch.object(adapter, '_prepare_dif_snapshot') as snapshot, \
+                patch.object(adapter, '_convert_native', side_effect=native):
+            with self.assertRaises(GuardError) as error:
+                adapter.convert(source, 'pdf', self.root / 'task', cancel=self.cancel,
+                    timeout=None, on_started=lambda: None)
+            self.assertEqual(error.exception.code, 'CONTROLLED_NATIVE_STOP')
+            snapshot.assert_not_called()
+        self.assertEqual(seen, [(source, None)])
+
     def test_worker_gate_is_before_inspect_and_export_and_retains_distinct_error(self):
         from app_backend.converter_guard.uno_session import WORKER_SOURCE
-        self.assertLess(WORKER_SOURCE.index('dif_import_check = check_dif_import_model'),
-                        WORKER_SOURCE.index("elif req['operation'] == 'inspect':"))
+        import ast
+        parsed = ast.parse(WORKER_SOURCE)
+        gate_call = next(node for node in ast.walk(parsed) if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name) and node.func.id == 'check_dif_import_model')
+        inspect_branch = next(node for node in ast.walk(parsed) if isinstance(node, ast.If)
+            and any(isinstance(value, ast.Constant) and value.value == 'inspect'
+                    for value in ast.walk(node.test)))
+        self.assertLess(gate_call.lineno, inspect_branch.lineno)
         self.assertIn("'DIF_NUMERIC_IMPORT_MISMATCH'", WORKER_SOURCE)
         namespace = {'__name__': 'dif_integrated_worker'}
         exec(compile(WORKER_SOURCE, '<integrated-worker>', 'exec'), namespace)
         self.assertIn('check_dif_import_model', namespace)
+
+
+class DifPrivateLocaleContracts(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name)
+
+    def _settings(self, profile):
+        import xml.etree.ElementTree as ET
+        data = ET.parse(profile / 'user' / 'registrymodifications.xcu').getroot()
+        namespace = '{http://openoffice.org/2001/registry}'
+        return {(item.attrib[namespace + 'path'], prop.attrib[namespace + 'name']):
+                    prop.find('value').text for item in data for prop in item}
+
+    def test_only_dif_private_profile_pins_installed_schema_numeric_locale(self):
+        from app_backend.converter_guard.adapter import prepare_profile
+        ordinary, dif_profile = self.root / 'ordinary', self.root / 'dif'
+        prepare_profile(ordinary)
+        prepare_profile(dif_profile, numeric_locale='en-US')
+        normal, dif = self._settings(ordinary), self._settings(dif_profile)
+        locale_keys = {
+            ('/org.openoffice.Setup/L10N', 'ooSetupSystemLocale'): 'en-US',
+            ('/org.openoffice.Setup/L10N', 'ooLocale'): 'en-US',
+            ('/org.openoffice.Office.Linguistic/General', 'DefaultLocale'): 'en-US'}
+        self.assertTrue(all(key not in normal for key in locale_keys))
+        self.assertEqual({key: dif[key] for key in locale_keys}, locale_keys)
+        self.assertEqual({key: value for key, value in dif.items() if key not in locale_keys}, normal)
+        # Neither a global environment change nor an application/user profile
+        # write is involved: the exact writes live in these two owned roots.
+        self.assertEqual(sorted(path.relative_to(self.root).as_posix()
+            for path in self.root.rglob('*') if path.is_file()),
+            ['dif/user/registrymodifications.xcu', 'ordinary/user/registrymodifications.xcu'])
+
+    def test_numeric_locale_is_a_finite_internal_policy(self):
+        from app_backend.converter_guard.adapter import prepare_profile
+        with self.assertRaisesRegex(ValueError, 'unsupported_private_numeric_locale'):
+            prepare_profile(self.root / 'untrusted', numeric_locale='arbitrary-external-setting')
+        self.assertFalse((self.root / 'untrusted').exists())
+
+    def test_transitions_recycle_one_owned_session_and_restore_default_factory(self):
+        from app_backend.converter_guard.adapter import LibreOfficeAdapter, prepare_profile
+        from app_backend.converter_guard.uno_session import UnoSession
+        class ControlledSession(UnoSession):
+            def __init__(self):
+                self.prepare_profile = prepare_profile
+                self.recycles = 0
+                self.active_processes = 1
+                self.max_active = 1
+            def recycle(self):
+                self.recycles += 1
+                self.active_processes = 0
+            def start(self):
+                self.active_processes += 1
+                self.max_active = max(self.max_active, self.active_processes)
+        office = ControlledSession()
+        adapter = LibreOfficeAdapter(self.root / 'soffice.exe')
+        original = office.prepare_profile
+        adapter._configure_dif_numeric_profile(office, None)
+        self.assertEqual(office.recycles, 0)
+        adapter._configure_dif_numeric_profile(office, 'en-US')
+        self.assertEqual(office.recycles, 1)
+        self.assertEqual(office.active_processes, 0)
+        office.prepare_profile(self.root / 'numeric-process')
+        self.assertEqual(self._settings(self.root / 'numeric-process')
+            [('/org.openoffice.Setup/L10N', 'ooSetupSystemLocale')], 'en-US')
+        office.start()
+        adapter._configure_dif_numeric_profile(office, 'en-US')
+        self.assertEqual(office.recycles, 1, 'same-mode DIF targets retain the warm owned process')
+        adapter._configure_dif_numeric_profile(office, None)
+        self.assertEqual(office.recycles, 2)
+        self.assertIs(office.prepare_profile, original)
+        office.prepare_profile(self.root / 'normal-process')
+        self.assertNotIn(('/org.openoffice.Setup/L10N', 'ooSetupSystemLocale'),
+                         self._settings(self.root / 'normal-process'))
+        office.start()
+        self.assertEqual(office.max_active, 1)
+
+    def test_external_adapter_profile_contract_is_untouched(self):
+        from app_backend.converter_guard.adapter import LibreOfficeAdapter
+        external = SimpleNamespace(prepare_profile=lambda profile: None)
+        original = external.prepare_profile
+        LibreOfficeAdapter._configure_dif_numeric_profile(external, 'en-US')
+        self.assertIs(external.prepare_profile, original)
+        self.assertFalse(hasattr(external, '_aio_dif_numeric_locale'))
 
 
 if __name__ == '__main__':

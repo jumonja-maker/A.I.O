@@ -112,9 +112,23 @@ class _PreparedSourceCache:
             raise
 
 
-def prepare_profile(profile):
+def prepare_profile(profile, *, numeric_locale=None):
     # Macro prevention is independent from document import/export selection.
     # Do not use DisableActiveContent: it hid native formula objects in QA.
+    if numeric_locale not in (None, 'en-US'):
+        raise ValueError('unsupported_private_numeric_locale')
+    # Installed Setup/L10N schema distinguishes Office UI language (ooLocale)
+    # from the numeric/system locale (ooSetupSystemLocale). DIF numeric V
+    # records use a dot, but its importer calls the model number formatter.
+    # Pin only our isolated DIF process; never edit the user's office profile.
+    numeric_settings = (
+        '<item oor:path="/org.openoffice.Setup/L10N">'
+        '<prop oor:name="ooLocale" oor:op="fuse"><value>en-US</value></prop>'
+        '<prop oor:name="ooSetupSystemLocale" oor:op="fuse"><value>en-US</value></prop>'
+        '</item>'
+        '<item oor:path="/org.openoffice.Office.Linguistic/General">'
+        '<prop oor:name="DefaultLocale" oor:op="fuse"><value>en-US</value></prop>'
+        '</item>\n' if numeric_locale == 'en-US' else '')
     user = profile / 'user'
     user.mkdir(parents=True)
     (user / 'registrymodifications.xcu').write_text(
@@ -124,7 +138,7 @@ def prepare_profile(profile):
         '<prop oor:name="DisableMacrosExecution" oor:op="fuse"><value>true</value></prop>'
         '<prop oor:name="BlockUntrustedReferrerLinks" oor:op="fuse"><value>true</value></prop>'
         '<prop oor:name="MacroSecurityLevel" oor:op="fuse"><value>3</value></prop>'
-        '</item></oor:items>\n', encoding='utf-8')
+        '</item>' + numeric_settings + '</oor:items>\n', encoding='utf-8')
 
 
 class _RunControl:
@@ -233,6 +247,36 @@ class LibreOfficeAdapter:
                 self._local.proof, self._local.import_filter, self._local.import_options = previous_source
                 self._local.source_preparation = previous_preparation
                 self._local.source_evidence = previous_evidence
+
+    @staticmethod
+    def _configure_dif_numeric_profile(office, numeric_locale):
+        """Switch only our owned UNO process, with at most one live profile.
+
+        Global/default office settings are untouched. A transition back to
+        an ordinary source restores the original private-profile factory and
+        starts a clean process, so DIF's numeric locale cannot leak to CSV or
+        another tool/source. External adapter/session implementations retain
+        their own profile contracts.
+        """
+        from .uno_session import UnoSession
+        if not isinstance(office, UnoSession):
+            return
+        current = getattr(office, '_aio_dif_numeric_locale', None)
+        if current == numeric_locale:
+            return
+        if numeric_locale not in (None, 'en-US'):
+            raise ValueError('unsupported_private_numeric_locale')
+        baseline = getattr(office, '_aio_default_prepare_profile', office.prepare_profile)
+        # Destroy this session's owned process before changing its factory.
+        # There is never a second concurrent locale-specific office instance.
+        office.recycle()
+        office._aio_default_prepare_profile = baseline
+        if numeric_locale is None:
+            office.prepare_profile = baseline
+        else:
+            from functools import partial
+            office.prepare_profile = partial(prepare_profile, numeric_locale=numeric_locale)
+        office._aio_dif_numeric_locale = numeric_locale
 
     def _registry(self):
         batch = getattr(self._local, 'batch', None)
@@ -512,6 +556,8 @@ class LibreOfficeAdapter:
                        and hint.get('basis') != 'content_confirmed_legacy' else None)
         if office and hasattr(office, 'request') and not office.disabled:
             native = self._registry()
+            self._configure_dif_numeric_profile(office,
+                'en-US' if hint and hint.get('filter') == 'DIF' else None)
             try:
                 result = office.request({'operation':'inspect','source':str(source.resolve()),
                     'services':sorted(native.import_services),
@@ -532,6 +578,9 @@ class LibreOfficeAdapter:
                                  services != ['com.sun.star.sheet.SpreadsheetDocument']):
                         return {'state':'undetermined','code':'PREFLIGHT_IMPORT_FILTER_MISMATCH'}
                     return {'state':'detected','basis':'native_preflight_uno_document','modelLoaded':True,
+                        **({'nativeImportLocale': 'en-US',
+                            'warnings': ['DIF_PRIVATE_NUMERIC_LOCALE_EN_US']}
+                           if getattr(office, '_aio_dif_numeric_locale', None) == 'en-US' else {}),
                         'nativeTextDocument': result.get('nativeTextDocument') is True,
                         'nativeImportMs': (result.get('timings') or {}).get('importMs'),
                         'documentServices':services,'typeName':result.get('typeName'),'filterName':selected,
@@ -686,9 +735,17 @@ class LibreOfficeAdapter:
             dif_preparation = None
             if not live_uno and is_dif_source(source):
                 native = self._registry()
-                dif_key = (native.fingerprint, getattr(self._local, 'import_filter', None),
-                           getattr(self._local, 'import_options', None))
-                dif_preparation = (dif_key, self._prepare_dif_snapshot)
+                selected_import = getattr(self._local, 'import_filter', None)
+                # TABLE is only an inexpensive content probe. The actual
+                # native import proof, or a confirmed legacy hint for a
+                # direct adapter call without proof, owns DIF admission.
+                direct_hint = (legacy_import_hint(source, native)
+                               if not proof and selected_import is None else None)
+                if (selected_import == 'DIF' or
+                        direct_hint is not None and direct_hint.get('filter') == 'DIF'):
+                    dif_key = (native.fingerprint, selected_import,
+                               getattr(self._local, 'import_options', None))
+                    dif_preparation = (dif_key, self._prepare_dif_snapshot)
             epub = proof.get('sourcePreparation', {}).get('kind') == 'epub_spine_html'
             if source_preparation is not None:
                 native_source, preparation = source_preparation.prepare(
@@ -799,7 +856,7 @@ class LibreOfficeAdapter:
             raise GuardError('CANCELLED', 'Проверка чисел DIF отменена.', stage='import')
         workspace = Path(workspace)
         try:
-            prepare_profile(workspace / 'profile')
+            prepare_profile(workspace / 'profile', numeric_locale='en-US')
             paths = convert_path(source, 'fods', workspace, executable=self.executable,
                 cancel=cancel, on_started=lambda: None,
                 convert_spec='fods:' + flat,
@@ -821,8 +878,10 @@ class LibreOfficeAdapter:
         return prepared, {'state': 'prepared', 'kind': 'native_dif_numeric_snapshot',
             'basis': ('native_calc_snapshot_numeric_coordinates' if check.get('status') == 'checked_subset'
                       else 'native_calc_snapshot_numeric_scope_unchecked'), 'numericCheck': check,
-            'warnings': ('NATIVE_DIF_NUMERIC_IMPORT_VERIFIED',) if check.get('status') == 'checked_subset'
-                        else ('DIF_NUMERIC_CONTENT_NOT_CHECKED',)}
+            'nativeImportLocale': 'en-US',
+            'warnings': ('DIF_PRIVATE_NUMERIC_LOCALE_EN_US',) + (
+                ('NATIVE_DIF_NUMERIC_IMPORT_VERIFIED',) if check.get('status') == 'checked_subset'
+                else ('DIF_NUMERIC_CONTENT_NOT_CHECKED',))}
 
     def _convert_legacy_sheets(self, source, target, workspace, *, control,
                                on_started, on_stage):
@@ -985,6 +1044,12 @@ class LibreOfficeAdapter:
                     request_sent = response_received = False
                     try:
                         startup_tick = time.monotonic()
+                        self._configure_dif_numeric_profile(office,
+                            'en-US' if getattr(self._local, 'import_filter', None) == 'DIF' else None)
+                        if getattr(office, '_aio_dif_numeric_locale', None) == 'en-US':
+                            self._local.export_info['nativeImportLocale'] = 'en-US'
+                            self._local.export_info['warnings'] = tuple(
+                                self._local.export_info.get('warnings', ())) + ('DIF_PRIVATE_NUMERIC_LOCALE_EN_US',)
                         office.ensure_started(control,min(45,timeout) if timeout is not None else 45)
                         startup_ms = round((time.monotonic()-startup_tick)*1000)
                         self._local.execution_mode = 'native_uno'

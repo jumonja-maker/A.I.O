@@ -366,7 +366,8 @@ def main(boot_name):
                 actual_filter = arguments.get('FilterName')
                 # Verify the actual imported doubles before ANY export filter
                 # can turn a locale-induced #ERR string into a false success.
-                dif_import_check = check_dif_import_model(source, model)
+                dif_import_check = (check_dif_import_model(source, model)
+                                    if actual_filter == 'DIF' else None)
                 if req.get('expectedSourceServices') and not set(services).intersection(req['expectedSourceServices']):
                     result = {'id':request_id,'ok':False,'code':'SOURCE_MODEL_MISMATCH','stage':'import'}
                 elif req['operation'] == 'inspect':
