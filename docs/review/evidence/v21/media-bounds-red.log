@@ -1,0 +1,38 @@
+test_before_after_reports_truncated_pixels_as_loss (test_media_bounds_v21.TiffDataBounds.test_before_after_reports_truncated_pixels_as_loss) ... FAIL
+test_out_of_file_strip_offset_is_rejected (test_media_bounds_v21.TiffDataBounds.test_out_of_file_strip_offset_is_rejected) ... FAIL
+test_truncated_second_page_is_not_a_valid_output (test_media_bounds_v21.TiffDataBounds.test_truncated_second_page_is_not_a_valid_output) ... FAIL
+test_valid_multipage_tiff_is_still_accepted (test_media_bounds_v21.TiffDataBounds.test_valid_multipage_tiff_is_still_accepted) ... ok
+
+======================================================================
+FAIL: test_before_after_reports_truncated_pixels_as_loss (test_media_bounds_v21.TiffDataBounds.test_before_after_reports_truncated_pixels_as_loss)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/test_media_bounds_v21.py", line 39, in test_before_after_reports_truncated_pixels_as_loss
+    self.assertEqual(outcome['status'], 'confirmed_loss')
+AssertionError: 'checked' != 'confirmed_loss'
+- checked
++ confirmed_loss
+
+
+======================================================================
+FAIL: test_out_of_file_strip_offset_is_rejected (test_media_bounds_v21.TiffDataBounds.test_out_of_file_strip_offset_is_rejected)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/test_media_bounds_v21.py", line 52, in test_out_of_file_strip_offset_is_rejected
+    with self.assertRaises(GuardError):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: GuardError not raised
+
+======================================================================
+FAIL: test_truncated_second_page_is_not_a_valid_output (test_media_bounds_v21.TiffDataBounds.test_truncated_second_page_is_not_a_valid_output)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/test_media_bounds_v21.py", line 31, in test_truncated_second_page_is_not_a_valid_output
+    with self.assertRaises(GuardError) as caught:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: GuardError not raised
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.005s
+
+FAILED (failures=3)

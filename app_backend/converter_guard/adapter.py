@@ -231,6 +231,7 @@ class LibreOfficeAdapter:
                            getattr(self._local,'import_options',None))
         previous_preparation = getattr(self._local, 'source_preparation', None)
         previous_evidence = getattr(self._local, 'source_evidence', None)
+        previous_recipe = getattr(self._local, 'retry_recipe', None)
         factory = (UnoSession if os.name == 'nt' and os.environ.get('AIO_GUARD_NATIVE_SESSION','1') != '0'
                    and (self.executable.parent/'python.exe').is_file()
                    else OfficeSession)
@@ -240,6 +241,7 @@ class LibreOfficeAdapter:
             self._local.batch = (registry(self.executable), office)
             self._local.source_preparation = _PreparedSourceCache(Path(workspace) / 'source-preparation')
             self._local.source_evidence = None
+            self._local.retry_recipe = None
             try:
                 yield office
             finally:
@@ -247,6 +249,7 @@ class LibreOfficeAdapter:
                 self._local.proof, self._local.import_filter, self._local.import_options = previous_source
                 self._local.source_preparation = previous_preparation
                 self._local.source_evidence = previous_evidence
+                self._local.retry_recipe = previous_recipe
 
     @staticmethod
     def _configure_dif_numeric_profile(office, numeric_locale):

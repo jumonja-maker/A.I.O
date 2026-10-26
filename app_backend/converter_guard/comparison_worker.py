@@ -140,7 +140,7 @@ def main(request_path):
                 if image.width() > 1400 or image.height() > 1800:
                     image = image.scaled(1400,1800,Qt.AspectRatioMode.KeepAspectRatio,Qt.TransformationMode.SmoothTransformation)
                 if image.save(str(root/'preview.png')):
-                    result = {'kind':'image','note':'Уменьшенный просмотр изображения; для анимации показан первый кадр.'}
+                    result = {'kind':'image','note':'Уменьшенный просмотр изображения; для анимации показан первый кадр, для многостраничного изображения — первая страница.'}
         _write_preview(root, source, request, result)
         return
     if request.get('mode') == 'pdf_preview':
@@ -178,14 +178,28 @@ def main(request_path):
         result = preview_text(source)
         _write_preview(root, source, request, result)
         return
-    with source.open('rb') as original:
-        actual = hashlib.file_digest(original, 'sha256').hexdigest()
-    verified = actual == request.get('sourceSha256')
+    # Linked HTML/CSS/images are part of the retained input identity even
+    # when this inspector can only compare a subset of their properties.
+    # Hash the bundle around summary collection once, then check its stamps
+    # per target instead of repeatedly re-reading every resource.
+    resources = request.get('sourceResources', [])
+    if not isinstance(resources, list) or len(resources) > 10000:
+        raise ValueError('comparison_source_resource_budget')
+    source_inputs = [(source, request.get('sourceSha256'))]
+    for resource in resources:
+        if not isinstance(resource, dict) or not isinstance(resource.get('path'), str):
+            raise ValueError('comparison_source_resource_identity')
+        source_inputs.append((Path(resource['path']), resource.get('sha256')))
+    def input_verified():
+        try:
+            return all(expected is not None and _fingerprint(path) == expected
+                       for path, expected in source_inputs)
+        except OSError:
+            return False
+    verified = input_verified()
     evidence = collect_source_summary(source, cancel=cancel) if verified else None
-    # Bind the reusable summary to the expected bytes too. Subsequent pairs
-    # reuse it instead of re-reading/re-hashing a large source for every target.
-    verified = verified and _fingerprint(source) == request.get('sourceSha256')
-    source_stamp = _stamp(source) if verified else None
+    verified = verified and input_verified()
+    source_stamps = {path: _stamp(path) for path, _ in source_inputs} if verified else {}
     with (root/'outcomes.jsonl').open('x', encoding='utf-8') as stream:
         for pair in request['pairs']:
             while (root/'pause').exists(): time.sleep(.1)
@@ -217,7 +231,7 @@ def main(request_path):
                 if not unchanged:
                     outcome = _not_checked_identity('RESULT_CHANGED')
                 try:
-                    source_unchanged = _stamp(source) == source_stamp
+                    source_unchanged = all(_stamp(path) == stamp for path, stamp in source_stamps.items())
                 except OSError:
                     source_unchanged = False
                 if not source_unchanged:

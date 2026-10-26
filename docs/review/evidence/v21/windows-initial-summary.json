@@ -1,0 +1,556 @@
+{
+  "workflowRun": 40306383288,
+  "sourceSha": "728131affd4849daa0bd4c868813d537a6dcb80a",
+  "status": "FAIL",
+  "records": {
+    "AIO_UNIT_EVIDENCE": {
+      "status": "PASS",
+      "discovered": 1031,
+      "passed": 1021,
+      "failed": 0,
+      "errors": 0,
+      "skipped": [
+        {
+          "test": "test_comparison_recovery_v20.ComparisonRecoverySafety.test_dangling_catalogue_link_cannot_create_an_external_database",
+          "reason": "Host cannot create the controlled symlink",
+          "status": "not_applicable"
+        },
+        {
+          "test": "test_converter_guard_process_v02.ControlledProcessTests.test_deadline_kills_own_process_tree_and_next_file_runs",
+          "reason": "POSIX test fixture; real Windows Job Object needs Windows acceptance",
+          "status": "not_applicable"
+        },
+        {
+          "test": "test_converter_guard_process_v02.ControlledProcessTests.test_live_output_quota_stops_only_the_growing_process",
+          "reason": "POSIX test fixture; real Windows Job Object needs Windows acceptance",
+          "status": "not_applicable"
+        },
+        {
+          "test": "test_converter_guard_process_v02.ControlledProcessTests.test_slow_cleanup_does_not_hold_the_global_metadata_lock",
+          "reason": "POSIX test fixture; real Windows Job Object needs Windows acceptance",
+          "status": "not_applicable"
+        },
+        {
+          "test": "test_guard_media_v20.BmpNativeRepair.test_source_symlink_is_never_rewritten",
+          "reason": "Symlinks unavailable on this filesystem",
+          "status": "not_applicable"
+        },
+        {
+          "test": "test_guard_native_metrics_v11.NativeMetricsQA.test_cli_measures_process_time_without_inventing_import_or_export_times",
+          "reason": "Executable generated fixture uses a POSIX shebang",
+          "status": "not_applicable"
+        },
+        {
+          "test": "test_guard_native_metrics_v11.NativeMetricsQA.test_twenty_worker_recycles_leave_no_live_readers_profiles_or_pipe_descriptors",
+          "reason": "Owned POSIX worker lifecycle; not Windows Job Object QA",
+          "status": "not_applicable"
+        },
+        {
+          "test": "test_guard_quarantine_v20.DiagnosticQuarantineV20.test_symlink_output_and_linked_diagnostic_destination_are_not_followed",
+          "reason": "[WinError 1314] Клиент не обладает требуемыми правами: 'D:\\\\actions-runner\\\\temp\\\\tmpn9tv2ods\\\\job\\\\input\\\\original.docx' -> 'D:\\\\actions-runner\\\\temp\\\\tmpn9tv2ods\\\\job\\\\work\\\\1\\\\output\\\\link.docx'",
+          "status": "not_applicable"
+        },
+        {
+          "test": "test_guard_queue_audit_v18.ResultDeltaTests.test_unsupported_hardlinks_use_exclusive_copy_and_independent_readback",
+          "reason": "POSIX link-unsupported fallback",
+          "status": "not_applicable"
+        },
+        {
+          "test": "test_guard_queue_audit_v18.ResultDeltaTests.test_unsupported_link_fallback_still_rejects_a_competing_target",
+          "reason": "POSIX link-unsupported fallback",
+          "status": "not_applicable"
+        }
+      ],
+      "failureDetails": [],
+      "expectedFailures": [],
+      "unexpectedSuccesses": []
+    },
+    "AIO_V19_COMPARISON_ACCEPTANCE": {
+      "schema": 1,
+      "status": "FAIL",
+      "scope": "actual local loopback + source retention + isolated analysis + LibreOffice CSV automatic retry",
+      "fullFormatMatrix": "NOT_RUN",
+      "windowsGUI": "NOT_RUN",
+      "sourceSha256": "b828ac26e23d936802637d2fc7c1c25392a29196976441f42d31fd472e273c38",
+      "initialExportControl": {
+        "SaveAsShown": true,
+        "sourceNumberFormat": "[$-409]0.00",
+        "numericLocale": "en-US",
+        "scope": "deliberately degraded first LO export of a locale-pinned synthetic cell; not a claim of a current default or localized CSV comparison defect"
+      },
+      "error": "TimeoutError",
+      "reason": "timed out"
+    },
+    "AIO_V20_NATIVE": {
+      "status": "PASS",
+      "platform": "win32",
+      "scope": "synthetic native safety controls; not all-format or visual certification",
+      "requireMode": "native_uno",
+      "cases": [
+        {
+          "source": "docx",
+          "target": "docm",
+          "status": "PASS",
+          "mode": "native_uno",
+          "elapsedMs": 453,
+          "filter": "MS Word 2007 XML VBA",
+          "checks": [],
+          "outputs": [
+            {
+              "name": "document.docm",
+              "size": 5306,
+              "sha256": "e48bb7bafa9bc62c7681c1654d61628b181057c10db6d551695b63c5bccd60f8"
+            }
+          ]
+        },
+        {
+          "source": "docx",
+          "target": "dotx",
+          "status": "PASS",
+          "mode": "native_uno",
+          "elapsedMs": 375,
+          "filter": "MS Word 2007 XML Template",
+          "checks": [],
+          "outputs": [
+            {
+              "name": "document.dotx",
+              "size": 5296,
+              "sha256": "d6513cdf8ab61062f1f1aee3f070235e1c4e066230f8f9cff020e61d7f1eb117"
+            }
+          ]
+        },
+        {
+          "source": "docx",
+          "target": "pdf",
+          "status": "PASS",
+          "mode": "native_uno",
+          "elapsedMs": 453,
+          "filter": "writer_pdf_Export",
+          "checks": [],
+          "outputs": [
+            {
+              "name": "document.pdf",
+              "size": 28884,
+              "sha256": "2865762bd1ddc6e0a82f1a5d74f4d218fee96c6fec89ce80aff2348f7653e5d1"
+            }
+          ]
+        },
+        {
+          "source": "default_xlsx",
+          "target": "xlsx",
+          "status": "PASS",
+          "mode": "native_uno",
+          "elapsedMs": 78,
+          "filter": "Calc MS Excel 2007 XML",
+          "checks": [],
+          "outputs": [
+            {
+              "name": "default.xlsx",
+              "size": 5601,
+              "sha256": "ca93921027783dd602e7e05437dd29e0a22bb8b8906abeb2e5e6619835302737"
+            }
+          ]
+        },
+        {
+          "source": "math",
+          "target": "pdf",
+          "status": "PASS",
+          "mode": "native_uno",
+          "elapsedMs": 359,
+          "filter": "math_pdf_Export",
+          "checks": [],
+          "outputs": [
+            {
+              "name": "formula.pdf",
+              "size": 25905,
+              "sha256": "eded2d411c13507a7b88c7a265332d3590ab19786efa280a5330c43a56b3dded"
+            }
+          ]
+        },
+        {
+          "source": "dif",
+          "target": "fods",
+          "status": "PASS",
+          "mode": "native_uno",
+          "elapsedMs": 141,
+          "filter": "OpenDocument Spreadsheet Flat XML",
+          "checks": [
+            {
+              "check": "dif_numeric_import",
+              "status": "checked_subset",
+              "numericCells": 2,
+              "valuesCompared": true,
+              "typesCompared": true,
+              "comparisonDomain": "ieee754_double",
+              "qualityCompared": false
+            }
+          ],
+          "outputs": [
+            {
+              "name": "numbers.fods",
+              "size": 23451,
+              "sha256": "27e9b9b6307abf7783a407c1da70cb1bb0e4d2d87ef1c6b984f96ce5ee9ce09c"
+            }
+          ]
+        },
+        {
+          "source": "dif",
+          "target": "xlsx",
+          "status": "PASS",
+          "mode": "native_uno",
+          "elapsedMs": 125,
+          "filter": "Calc MS Excel 2007 XML",
+          "checks": [
+            {
+              "check": "dif_numeric_import",
+              "status": "checked_subset",
+              "numericCells": 2,
+              "valuesCompared": true,
+              "typesCompared": true,
+              "comparisonDomain": "ieee754_double",
+              "qualityCompared": false
+            }
+          ],
+          "outputs": [
+            {
+              "name": "numbers.xlsx",
+              "size": 5715,
+              "sha256": "2fb9976765a7dbe05f2f4b34726b86c2d96a3679aae0bd758b0114132941a15d"
+            }
+          ]
+        },
+        {
+          "source": "dif",
+          "target": "pdf",
+          "status": "PASS",
+          "mode": "native_uno",
+          "elapsedMs": 468,
+          "filter": "calc_pdf_Export",
+          "checks": [
+            {
+              "check": "dif_numeric_import",
+              "status": "checked_subset",
+              "numericCells": 2,
+              "valuesCompared": true,
+              "typesCompared": true,
+              "comparisonDomain": "ieee754_double",
+              "qualityCompared": false
+            }
+          ],
+          "outputs": [
+            {
+              "name": "numbers.pdf",
+              "size": 16419,
+              "sha256": "d996db6e7ba5144ee7552752cac8913be6e0645f95a137d8fdc01e5c1b784a35"
+            }
+          ]
+        },
+        {
+          "source": "bmp",
+          "target": "png",
+          "status": "PASS",
+          "mode": "qt_media_frames",
+          "elapsedMs": 15,
+          "filter": null,
+          "checks": [
+            {
+              "check": "media_properties",
+              "status": "checked_subset",
+              "qualityCompared": false,
+              "source": {
+                "format": "bmp",
+                "width": 2,
+                "height": 2,
+                "frames": 1,
+                "pages": 1,
+                "alpha": false,
+                "durationsMs": [],
+                "orientation": 1
+              },
+              "result": {
+                "format": "png",
+                "width": 2,
+                "height": 2,
+                "frames": 1,
+                "pages": 1,
+                "alpha": false,
+                "durationsMs": [],
+                "orientation": 1,
+                "animationContainer": false,
+                "loopCount": 1,
+                "bitDepth": 8
+              },
+              "expectedLosses": []
+            }
+          ],
+          "outputs": [
+            {
+              "name": "picture.png",
+              "size": 100,
+              "sha256": "27d49547fee4c0ebbd89899ed125341dc20d245b2cebc61e137a0676e6de3b09"
+            }
+          ]
+        },
+        {
+          "source": "bmp",
+          "target": "jfif",
+          "status": "PASS",
+          "mode": "qt_media_frames",
+          "elapsedMs": 0,
+          "filter": null,
+          "checks": [
+            {
+              "check": "media_properties",
+              "status": "checked_subset",
+              "qualityCompared": false,
+              "source": {
+                "format": "bmp",
+                "width": 2,
+                "height": 2,
+                "frames": 1,
+                "pages": 1,
+                "alpha": false,
+                "durationsMs": [],
+                "orientation": 1
+              },
+              "result": {
+                "format": "jpeg",
+                "width": 2,
+                "height": 2,
+                "frames": 1,
+                "pages": 1,
+                "alpha": false,
+                "durationsMs": [],
+                "orientation": 1
+              },
+              "expectedLosses": []
+            }
+          ],
+          "outputs": [
+            {
+              "name": "picture.jfif",
+              "size": 667,
+              "sha256": "23ef60b9ec85ca512c62b101f58a032bf8d564ad2c36deecd12a8ef1417414e5"
+            }
+          ]
+        },
+        {
+          "source": "bmp",
+          "target": "jif",
+          "status": "PASS",
+          "mode": "qt_media_frames",
+          "elapsedMs": 16,
+          "filter": null,
+          "checks": [
+            {
+              "check": "media_properties",
+              "status": "checked_subset",
+              "qualityCompared": false,
+              "source": {
+                "format": "bmp",
+                "width": 2,
+                "height": 2,
+                "frames": 1,
+                "pages": 1,
+                "alpha": false,
+                "durationsMs": [],
+                "orientation": 1
+              },
+              "result": {
+                "format": "jpeg",
+                "width": 2,
+                "height": 2,
+                "frames": 1,
+                "pages": 1,
+                "alpha": false,
+                "durationsMs": [],
+                "orientation": 1
+              },
+              "expectedLosses": []
+            }
+          ],
+          "outputs": [
+            {
+              "name": "picture.jif",
+              "size": 667,
+              "sha256": "23ef60b9ec85ca512c62b101f58a032bf8d564ad2c36deecd12a8ef1417414e5"
+            }
+          ]
+        },
+        {
+          "source": "bmp",
+          "target": "jpe",
+          "status": "PASS",
+          "mode": "qt_media_frames",
+          "elapsedMs": 0,
+          "filter": null,
+          "checks": [
+            {
+              "check": "media_properties",
+              "status": "checked_subset",
+              "qualityCompared": false,
+              "source": {
+                "format": "bmp",
+                "width": 2,
+                "height": 2,
+                "frames": 1,
+                "pages": 1,
+                "alpha": false,
+                "durationsMs": [],
+                "orientation": 1
+              },
+              "result": {
+                "format": "jpeg",
+                "width": 2,
+                "height": 2,
+                "frames": 1,
+                "pages": 1,
+                "alpha": false,
+                "durationsMs": [],
+                "orientation": 1
+              },
+              "expectedLosses": []
+            }
+          ],
+          "outputs": [
+            {
+              "name": "picture.jpe",
+              "size": 667,
+              "sha256": "23ef60b9ec85ca512c62b101f58a032bf8d564ad2c36deecd12a8ef1417414e5"
+            }
+          ]
+        },
+        {
+          "source": "presentation",
+          "target": "bmp",
+          "status": "PASS",
+          "mode": "native_uno",
+          "elapsedMs": 172,
+          "filter": "impress_bmp_Export",
+          "checks": [
+            {
+              "check": "native_bmp_header_size",
+              "status": "repaired_header",
+              "qualityCompared": false,
+              "file": "slides.bmp",
+              "declaredSizeBefore": 3937302,
+              "actualSize": 2955222,
+              "headerField": "bfSize",
+              "headerBytesTouched": 4,
+              "pixelBytesChanged": 0,
+              "sourceOutputSha256": "136d3a4b9808a7031c738dcf0a276c356cd6b4bc772c90b93bd8da104df9ef19",
+              "width": 1323,
+              "height": 744,
+              "bitDepth": 24
+            },
+            {
+              "check": "media_properties",
+              "status": "checked_subset",
+              "qualityCompared": false,
+              "source": null,
+              "result": {
+                "format": "bmp",
+                "width": 1323,
+                "height": 744,
+                "frames": 1,
+                "pages": 1,
+                "alpha": false,
+                "durationsMs": [],
+                "orientation": 1
+              },
+              "expectedLosses": []
+            }
+          ],
+          "outputs": [
+            {
+              "name": "slides.bmp",
+              "size": 2955222,
+              "sha256": "23bf8ead6744e99506e94d4e064f159d4f6ea0416eab81d19263b6af0a9e4d25"
+            }
+          ]
+        },
+        {
+          "source": "presentation",
+          "target": "htm",
+          "status": "PASS",
+          "mode": "native_uno",
+          "elapsedMs": 110,
+          "filter": "impress_html_Export",
+          "checks": [
+            {
+              "check": "html_body",
+              "status": "content_present",
+              "qualityCompared": false,
+              "inspectedBytes": 458,
+              "localResourcesChecked": true
+            },
+            {
+              "check": "presentation_html_content",
+              "qualityCompared": false,
+              "sourceTextParagraphs": 1,
+              "sourceImageOccurrences": 0,
+              "status": "checked_subset",
+              "comparedScope": "body_text_and_graphic_presence",
+              "bodyTextInspected": true,
+              "imageReferences": 0,
+              "visualLayoutCompared": false
+            }
+          ],
+          "outputs": [
+            {
+              "name": "slides.htm",
+              "size": 458,
+              "sha256": "e5ec0c0b28e75147a62836fba1e7e7dd41371cff88eabf77b5a0790df5afe335"
+            }
+          ]
+        },
+        {
+          "source": "flat_presentation_alias",
+          "target": "odp",
+          "status": "PASS",
+          "mode": "native_uno",
+          "elapsedMs": 6890,
+          "filter": "impress8",
+          "checks": [],
+          "outputs": [
+            {
+              "name": "presentation-alias.odp",
+              "size": 11296,
+              "sha256": "c0ad01b527343aeef90d050f6ec7aceed2579197c1a128a5e5bd4fe595c0a6d7"
+            }
+          ]
+        },
+        {
+          "source": "flat_text_alias",
+          "target": "odt",
+          "status": "PASS",
+          "mode": "native_uno",
+          "elapsedMs": 188,
+          "filter": "writer8",
+          "checks": [],
+          "outputs": [
+            {
+              "name": "text-alias.odt",
+              "size": 15384,
+              "sha256": "140ef02a1ce5c333d43291f21b08a32ace356992da1dd31cfcb0e55bd9d23a02"
+            }
+          ]
+        }
+      ],
+      "sourceSHA256": {
+        "docx": "eb60d821b04eb12174250400e62b8e75124f502a99030903b48c13c4ff8529d5",
+        "xlsx": "5b840f0deaf1c9a41e2ef5a46ec1629cb5c063626cacba93cc281a078020f1d7",
+        "csv": "e8078ccdcad81cbae566326ea6dc91cf26657535bb23b123b39d85c2ac64a847",
+        "bmp": "a7beb5056325b28509539b4f84f7444a1333692b32806406fe21d7d6f991ee8b",
+        "dif": "f0e44472913f723db3ca57a65631a44122de891049aff8a7be322713830bfc8a",
+        "default_xlsx": "ef2ea854f8e0f210b8375dfa96ed1ef15eb497db542adf330a249fbd50edf7c0",
+        "math": "89e4949cbbf2de2173e4ecc732e0f8b7c9543ef35a534f63ae567452b02a2e74",
+        "presentation": "ce9e827036d118cc76c37df9c78d696a48f1c7abb25f28ef6b9d831df85b558d",
+        "flat_presentation_alias": "d7c7ac85388f5b63854a3ed4ab925d016c9461cd369b37aad1846ed584514287",
+        "flat_text_alias": "536c88a7bd28e19486d2d29b278e660f94ba32e816323748e86e682701ec0618"
+      },
+      "sourceBytesUnchanged": true,
+      "elapsedMs": 34781
+    }
+  }
+}

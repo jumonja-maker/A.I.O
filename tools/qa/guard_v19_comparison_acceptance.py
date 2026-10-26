@@ -18,11 +18,54 @@ from pathlib import Path
 import sys
 import threading
 import time
+import traceback
 from urllib.parse import urlencode
-from urllib.request import Request, urlopen
+from urllib.request import Request, build_opener, ProxyHandler
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
+
+
+class LoopbackClient:
+    """Bounded QA diagnostics; never send the synthetic local API via a proxy."""
+    def __init__(self, origin, token, evidence):
+        self.origin, self.token, self.evidence = origin, token, evidence
+        self.opener = build_opener(ProxyHandler({}))
+        self.started = time.monotonic()
+        self.requests = 0
+
+    def call(self, path, body=None, *, binary=False, timeout=15):
+        headers = {'X-AIO-Token': self.token}
+        method = 'GET' if body is None else 'POST'
+        if body is not None:
+            headers['Content-Type'] = 'application/octet-stream' if binary else 'application/json'
+            body = body if binary else json.dumps(body).encode()
+        started = time.monotonic()
+        self.requests += 1
+        # No token, request body, private document contents, or query values.
+        record = {'number': self.requests, 'method': method, 'endpoint': path.split('?', 1)[0],
+                  'timeoutSeconds': timeout, 'startedSeconds': round(started - self.started, 3),
+                  'state': 'running'}
+        trace = self.evidence.setdefault('requestTrace', [])
+        trace.append(record)
+        del trace[:-32]
+        self.evidence.update(stage='request:' + record['endpoint'], lastRequest=record,
+                             requestCount=self.requests)
+        try:
+            request = Request(self.origin + '/api/converter-guard/' + path, data=body, headers=headers)
+            with self.opener.open(request, timeout=timeout) as response:
+                record['httpStatus'] = response.status
+                result = json.loads(response.read())
+            record['state'] = 'completed'
+            return result
+        except Exception as error:
+            record.update(state='failed', error=type(error).__name__, reason=str(error))
+            if getattr(error, 'code', None) is not None:
+                record['httpStatus'] = error.code
+            raise
+        finally:
+            record['elapsedSeconds'] = round(time.monotonic() - started, 3)
+            self.evidence['elapsedSeconds'] = round(time.monotonic() - self.started, 3)
 
 
 def main(argv=None):
@@ -88,13 +131,12 @@ def main(argv=None):
                     'numericLocale': 'en-US',
                     'scope': 'deliberately degraded first LO export of a locale-pinned synthetic cell; not a claim of a current default or localized CSV comparison defect'}}
 
-    def call(path, body=None, binary=False):
-        headers = {'X-AIO-Token': token}
-        if body is not None:
-            headers['Content-Type'] = 'application/octet-stream' if binary else 'application/json'
-            body = body if binary else json.dumps(body).encode()
-        with urlopen(Request(origin + '/api/converter-guard/' + path, data=body, headers=headers), timeout=15) as response:
-            return json.loads(response.read())
+    client = LoopbackClient(origin, token, evidence)
+    evidence['httpClient'] = {'proxy': 'disabled_for_loopback', 'ordinaryRequestTimeoutSeconds': 15,
+                             'synchronousPreflightTimeoutSeconds': args.seconds}
+
+    def call(path, body=None, binary=False, *, timeout=15):
+        return client.call(path, body, binary=binary, timeout=timeout)
 
     def wait(path, predicate):
         deadline = time.monotonic() + args.seconds
@@ -103,6 +145,8 @@ def main(argv=None):
             if predicate(state):
                 return state
             time.sleep(.1)
+        evidence['stage'] = 'wait:' + path.split('?', 1)[0]
+        evidence['lastPolledState'] = state.get('state') if isinstance(state, dict) else None
         raise TimeoutError('Targeted acceptance did not complete before its own test deadline')
 
     try:
@@ -110,7 +154,14 @@ def main(argv=None):
                                    'retainSources': True})
         parent = created['jobId']
         call('input?' + urlencode({'job': parent, 'file': 'source'}), source_bytes, binary=True)
-        inspection = call('preflight', {'jobId': parent})
+        # This production endpoint is synchronous: it includes a native
+        # preflight budget (normally 120 s) and its route matrix. A fixed
+        # 15 s transport cutoff was shorter than the operation being tested.
+        # Use the explicit acceptance deadline here only, record the actual
+        # duration, and keep ordinary HTTP/status calls at 15 s.
+        inspection = call('preflight', {'jobId': parent}, timeout=args.seconds)
+        evidence['preflightHttpSeconds'] = evidence['lastRequest']['elapsedSeconds']
+        evidence['preflightExceededLegacy15SecondCutoff'] = evidence['preflightHttpSeconds'] > 15
         evidence['preflight'] = {'files': [{'fileId': row.get('fileId', row.get('id')),
             'state': row.get('preflight', {}).get('state')} for row in inspection.get('files', [])]}
         call('start', {'jobId': parent, 'formats': ['csv'], 'fileIds': ['source'],
@@ -175,7 +226,7 @@ def main(argv=None):
         evidence['status'] = 'PASS'
         return 0
     except Exception as error:
-        evidence.update(error=type(error).__name__, reason=str(error))
+        evidence.update(error=type(error).__name__, reason=str(error), traceback=traceback.format_exc())
         return 1
     finally:
         server.guard_api.close()

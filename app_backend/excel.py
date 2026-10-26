@@ -7,6 +7,7 @@ re-opened before being exposed to the UI.
 from __future__ import annotations
 
 from copy import copy
+from contextlib import contextmanager
 from io import BytesIO
 from math import isfinite
 from zipfile import ZipFile, BadZipFile
@@ -149,6 +150,39 @@ def _read_simple_table(data: bytes, name: str, row_sink=None):
         wb.close()
 
 
+@contextmanager
+def _streamed_output_workbook():
+    """Close only this merge's writers and discard their temporary XML.
+
+    Workbook.close() does not remove write-only worksheet XML when save or a
+    progress callback fails. Those files contain spreadsheet values and can be
+    large. openpyxl's writer owns their names; never scan a shared temp folder.
+    """
+    workbook = Workbook(write_only=True)
+    try:
+        yield workbook
+    finally:
+        for sheet in workbook.worksheets:
+            writer = getattr(sheet, '_writer', None)
+            if writer is None:
+                continue
+            try:
+                if not sheet.closed:
+                    sheet.close()
+            except Exception:
+                pass  # Preserve the original serialization/progress error.
+            finally:
+                try:
+                    writer.close()
+                except Exception:
+                    pass
+                try:
+                    writer.cleanup()
+                except (OSError, ValueError):
+                    pass  # Successful save already removes its own XML file.
+        workbook.close()
+
+
 def merge_xlsx(inputs: list[tuple[str, bytes]], progress=None) -> bytes:
     """Merge 2..100 XLSX byte sequences. Returns a validated, new XLSX.
 
@@ -227,49 +261,48 @@ def _merge_xlsx(inputs, progress, directory):
     # The complete source workbook and its cell objects have been closed and
     # released. Only one staged row and the distinct style tables stay live.
     rows = styles = first_row = None
-    out = Workbook(write_only=True)
-    if first_theme:
-        out.loaded_theme = first_theme
-    ws = out.create_sheet('Объединённая таблица')
-    ws.title = 'Объединённая таблица'
-    default_height, default_width, base_col_width = source_sheet_format
-    if default_height is not None:
-        ws.sheet_format.defaultRowHeight = default_height
-    if default_width is not None:
-        ws.sheet_format.defaultColWidth = default_width
-    if base_col_width is not None:
-        ws.sheet_format.baseColWidth = base_col_width
-    def apply_style(cell, metadata):
-        if metadata is not None:
-            cell.font, cell.fill, cell.border, cell.alignment, cell.protection = metadata
-    if header_height is not None:
-        ws.row_dimensions[1].height = header_height
-    if freeze_panes is not None:
-        ws.freeze_panes = freeze_panes
-    for column, width in max_widths.items():
-        ws.column_dimensions[column].width = width
-    def output_cells(row, styles):
-        cells = []
-        for value, number_format, key in row:
-            # An explicit empty inline cell preserves trailing column width
-            # when a dimension-free streaming reader opens the workbook.
-            cell = WriteOnlyCell(ws, value='' if value is None else value)
-            if isinstance(value, str):
-                cell.data_type = 's'  # Literal '=...' stays text.
-            if isinstance(value, float):
-                if not isfinite(value):
-                    raise MergeError('В таблице обнаружено недопустимое число.')
-                cell.value, cell.data_type = repr(value), 'n'
-            if number_format and number_format != 'General':
-                cell.number_format = number_format
-            if key is not None:
-                apply_style(cell, styles[key])
-            cells.append(cell)
-        return cells
-    ws.append(output_cells(header_style[0], header_style[1]))
-    report('write', 0, count)
-    written = 0
-    try:
+    with _streamed_output_workbook() as out:
+        if first_theme:
+            out.loaded_theme = first_theme
+        ws = out.create_sheet('Объединённая таблица')
+        ws.title = 'Объединённая таблица'
+        default_height, default_width, base_col_width = source_sheet_format
+        if default_height is not None:
+            ws.sheet_format.defaultRowHeight = default_height
+        if default_width is not None:
+            ws.sheet_format.defaultColWidth = default_width
+        if base_col_width is not None:
+            ws.sheet_format.baseColWidth = base_col_width
+        def apply_style(cell, metadata):
+            if metadata is not None:
+                cell.font, cell.fill, cell.border, cell.alignment, cell.protection = metadata
+        if header_height is not None:
+            ws.row_dimensions[1].height = header_height
+        if freeze_panes is not None:
+            ws.freeze_panes = freeze_panes
+        for column, width in max_widths.items():
+            ws.column_dimensions[column].width = width
+        def output_cells(row, styles):
+            cells = []
+            for value, number_format, key in row:
+                # An explicit empty inline cell preserves trailing column width
+                # when a dimension-free streaming reader opens the workbook.
+                cell = WriteOnlyCell(ws, value='' if value is None else value)
+                if isinstance(value, str):
+                    cell.data_type = 's'  # Literal '=...' stays text.
+                if isinstance(value, float):
+                    if not isfinite(value):
+                        raise MergeError('В таблице обнаружено недопустимое число.')
+                    cell.value, cell.data_type = repr(value), 'n'
+                if number_format and number_format != 'General':
+                    cell.number_format = number_format
+                if key is not None:
+                    apply_style(cell, styles[key])
+                cells.append(cell)
+            return cells
+        ws.append(output_cells(header_style[0], header_style[1]))
+        report('write', 0, count)
+        written = 0
         for stage, source_count, styles, heights in stages:
             with stage.open('rb') as staged:
                 for source_row in range(2, source_count + 2):
@@ -281,16 +314,10 @@ def _merge_xlsx(inputs, progress, directory):
                     if written % 1024 == 0 or written == count:
                         report('write', written, count)
             stage.unlink()
-    except BaseException:
-        # Close streaming XML writers if serialization aborts mid-row.
-        ws.close()
-        out.close()
-        raise
-    report('save')
-    stream = BytesIO()
-    out.save(stream)
-    out.close()
-    blob = stream.getvalue()
+        report('save')
+        stream = BytesIO()
+        out.save(stream)
+        blob = stream.getvalue()
     # Independently reopen the result and check the required logical structure.
     report('verify')
     check = load_workbook(BytesIO(blob), read_only=True, data_only=False)

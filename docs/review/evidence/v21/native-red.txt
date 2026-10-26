@@ -1,0 +1,104 @@
+test_aborted_import_with_nonnull_model_cannot_preflight_or_export (test_native_audit_v21.NativeImportV21.test_aborted_import_with_nonnull_model_cannot_preflight_or_export) ... 
+  test_aborted_import_with_nonnull_model_cannot_preflight_or_export (test_native_audit_v21.NativeImportV21.test_aborted_import_with_nonnull_model_cannot_preflight_or_export) (operation='inspect') ... FAIL
+  test_aborted_import_with_nonnull_model_cannot_preflight_or_export (test_native_audit_v21.NativeImportV21.test_aborted_import_with_nonnull_model_cannot_preflight_or_export) (operation='export') ... FAIL
+test_lazy_import_interaction_during_store_cannot_commit_partial_export (test_native_audit_v21.NativeImportV21.test_lazy_import_interaction_during_store_cannot_commit_partial_export) ... FAIL
+test_one_shot_preflight_cannot_admit_aborted_import_with_live_model (test_native_audit_v21.NativeImportV21.test_one_shot_preflight_cannot_admit_aborted_import_with_live_model) ... ERROR
+test_fallback_office_log_failure_releases_process_and_can_start_again (test_native_audit_v21.NativeStartupV21.test_fallback_office_log_failure_releases_process_and_can_start_again) ... FAIL
+test_nested_batch_does_not_inherit_or_leak_retry_recipe (test_native_audit_v21.NativeStartupV21.test_nested_batch_does_not_inherit_or_leak_retry_recipe) ... FAIL
+test_uno_log_start_failure_releases_owned_process_and_streams_immediately (test_native_audit_v21.NativeStartupV21.test_uno_log_start_failure_releases_owned_process_and_streams_immediately) ... FAIL
+test_uno_negative_ready_releases_process_without_outer_batch_exit (test_native_audit_v21.NativeStartupV21.test_uno_negative_ready_releases_process_without_outer_batch_exit) ... FAIL
+test_uno_thread_start_failure_does_not_join_unstarted_thread (test_native_audit_v21.NativeStartupV21.test_uno_thread_start_failure_does_not_join_unstarted_thread) ... FAIL
+
+======================================================================
+ERROR: test_one_shot_preflight_cannot_admit_aborted_import_with_live_model (test_native_audit_v21.NativeImportV21.test_one_shot_preflight_cannot_admit_aborted_import_with_live_model)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/test_native_audit_v21.py", line 107, in test_one_shot_preflight_cannot_admit_aborted_import_with_live_model
+    self.assertEqual((result['state'], result['code']),
+                                       ~~~~~~^^^^^^^^
+KeyError: 'code'
+
+======================================================================
+FAIL: test_aborted_import_with_nonnull_model_cannot_preflight_or_export (test_native_audit_v21.NativeImportV21.test_aborted_import_with_nonnull_model_cannot_preflight_or_export) (operation='inspect')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/test_native_audit_v21.py", line 58, in test_aborted_import_with_nonnull_model_cannot_preflight_or_export
+    self.assertFalse(replies[1]['ok'])
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_aborted_import_with_nonnull_model_cannot_preflight_or_export (test_native_audit_v21.NativeImportV21.test_aborted_import_with_nonnull_model_cannot_preflight_or_export) (operation='export')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/test_native_audit_v21.py", line 58, in test_aborted_import_with_nonnull_model_cannot_preflight_or_export
+    self.assertFalse(replies[1]['ok'])
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_lazy_import_interaction_during_store_cannot_commit_partial_export (test_native_audit_v21.NativeImportV21.test_lazy_import_interaction_during_store_cannot_commit_partial_export)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/test_native_audit_v21.py", line 69, in test_lazy_import_interaction_during_store_cannot_commit_partial_export
+    self.assertFalse(replies[-1]['ok'])
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_fallback_office_log_failure_releases_process_and_can_start_again (test_native_audit_v21.NativeStartupV21.test_fallback_office_log_failure_releases_process_and_can_start_again)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/test_native_audit_v21.py", line 175, in test_fallback_office_log_failure_releases_process_and_can_start_again
+    self.assert_released(session, tree)
+  File "/workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/test_native_audit_v21.py", line 127, in assert_released
+    tree.close.assert_called_once()
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 928, in assert_called_once
+    raise AssertionError(msg)
+AssertionError: Expected 'mock' to have been called once. Called 0 times.
+
+======================================================================
+FAIL: test_nested_batch_does_not_inherit_or_leak_retry_recipe (test_native_audit_v21.NativeStartupV21.test_nested_batch_does_not_inherit_or_leak_retry_recipe)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/test_native_audit_v21.py", line 194, in test_nested_batch_does_not_inherit_or_leak_retry_recipe
+    self.assertIsNone(getattr(adapter._local, 'retry_recipe', None))
+AssertionError: 'pdf_preserve_images' is not None
+
+======================================================================
+FAIL: test_uno_log_start_failure_releases_owned_process_and_streams_immediately (test_native_audit_v21.NativeStartupV21.test_uno_log_start_failure_releases_owned_process_and_streams_immediately)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/test_native_audit_v21.py", line 142, in test_uno_log_start_failure_releases_owned_process_and_streams_immediately
+    self.assert_released(session, tree)
+  File "/workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/test_native_audit_v21.py", line 127, in assert_released
+    tree.close.assert_called_once()
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 928, in assert_called_once
+    raise AssertionError(msg)
+AssertionError: Expected 'mock' to have been called once. Called 0 times.
+
+======================================================================
+FAIL: test_uno_negative_ready_releases_process_without_outer_batch_exit (test_native_audit_v21.NativeStartupV21.test_uno_negative_ready_releases_process_without_outer_batch_exit)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/test_native_audit_v21.py", line 168, in test_uno_negative_ready_releases_process_without_outer_batch_exit
+    self.assert_released(session, tree)
+  File "/workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/test_native_audit_v21.py", line 127, in assert_released
+    tree.close.assert_called_once()
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 928, in assert_called_once
+    raise AssertionError(msg)
+AssertionError: Expected 'mock' to have been called once. Called 0 times.
+
+======================================================================
+FAIL: test_uno_thread_start_failure_does_not_join_unstarted_thread (test_native_audit_v21.NativeStartupV21.test_uno_thread_start_failure_does_not_join_unstarted_thread)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/test_native_audit_v21.py", line 155, in test_uno_thread_start_failure_does_not_join_unstarted_thread
+    self.assert_released(session, tree)
+  File "/workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/test_native_audit_v21.py", line 127, in assert_released
+    tree.close.assert_called_once()
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 928, in assert_called_once
+    raise AssertionError(msg)
+AssertionError: Expected 'mock' to have been called once. Called 0 times.
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.059s
+
+FAILED (failures=8, errors=1)

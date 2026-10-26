@@ -1,0 +1,17 @@
+{
+  "scope": "owned queue/save/recovery mechanisms; controlled native exporter",
+  "new_tests": 20,
+  "targeted_tests": 134,
+  "result": "PASS",
+  "red_logs": [
+    "queue-save-red.log",
+    "queue-save-close-red.log",
+    "queue-save-late-red.log"
+  ],
+  "green_log": "queue-save-targeted.log",
+  "real_native_conversion": false,
+  "full_memory_soak": false,
+  "retirement_review": "independent cross-instance race reproduced by v21_boundaries, fixed with parent-side identity-bound marker",
+  "retirement_tests": 5,
+  "defensive_parser_test": "injected RecursionError; NOT independently reproduced Python3.12 defect"
+}

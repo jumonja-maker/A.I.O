@@ -476,6 +476,7 @@ class ConverterGuard:
                 job.recovery_error = 'RECOVERY_WRITE_FAILED'
 
     def _recover_results(self, roots=None):
+        ResultStore.reap_finished_retirements(self._recovery)
         roots = sorted(self._recovery.glob('aio-guard-*')) if roots is None else roots
         for root in roots:
             if len(self._jobs)>=self.limits.max_jobs:
@@ -485,17 +486,33 @@ class ConverterGuard:
                 continue
             if path_is_link(root):
                 continue
-            if not (root/'job.json').is_file():
-                # Crash during initial metadata write: preserve and surface
-                # the otherwise invisible directory for manual inspection.
-                self._recovery_issues.append({'folder': root.name,
-                    'code': 'RECOVERY_MANIFEST_MISSING', 'manualRecovery': True})
-                self._salvage_orphan(root)
-                continue
             store = ResultStore(root)
             try:
                 if not store.acquire():
                     continue  # Another running A.I.O instance owns this job.
+                try:
+                    retired = store.retirement_pending()
+                except (OSError, ValueError, TypeError):
+                    store.close()
+                    self._recovery_issues.append({'folder': root.name,
+                        'code': 'RECOVERY_RETIREMENT_INVALID', 'manualRecovery': True})
+                    continue  # An unreadable marker never authorizes deletion.
+                if retired:
+                    try:
+                        store.cleanup_retired()
+                    except (OSError, ValueError, TypeError):
+                        self._recovery_issues.append({'folder': root.name,
+                            'code': 'RECOVERY_CLEANUP_RETRY', 'manualRecovery': True})
+                    finally:
+                        store.close()
+                    continue  # Never adopt a partially removed result tree.
+                if not (root/'job.json').is_file():
+                    # Crash during initial metadata write: preserve and surface
+                    # the otherwise invisible directory for manual inspection.
+                    self._recovery_issues.append({'folder': root.name,
+                        'code': 'RECOVERY_MANIFEST_MISSING', 'manualRecovery': True})
+                    self._salvage_orphan(root, store=store)
+                    continue
                 header, records, saved, integrity = store.read()
                 identity = header.get('jobId')
                 if not isinstance(identity, str) or not re.fullmatch(r'[0-9a-f]{32}', identity):
@@ -615,9 +632,17 @@ class ConverterGuard:
                                 task.artifacts.append(artifact)
                                 job.artifacts.append(artifact)
                             except (OSError, ValueError, KeyError, TypeError):
+                                job.recovery_error = job.recovery_error or 'RECOVERY_OUTPUT_MISSING'
                                 task.state, task.code = 'error', 'RECOVERY_OUTPUT_MISSING'
                                 task.error = 'Один из результатов отсутствует или изменён. Доступные файлы сохранены.'
-                        if task.artifacts and task.state in SUCCESS:
+                        if task.state in SUCCESS and not task.artifacts:
+                            # Legacy journals have no output count. An empty
+                            # success cannot mean the file was converted or
+                            # saved; keep surviving results and originals.
+                            job.recovery_error = job.recovery_error or 'RECOVERY_OUTPUT_MISSING'
+                            task.state, task.code = 'error', 'RECOVERY_OUTPUT_MISSING'
+                            task.error = 'Результат отсутствует. Доступные файлы и исходники сохранены.'
+                        elif task.artifacts and task.state in SUCCESS:
                             task.state = 'saved' if all(a.saved for a in task.artifacts) else 'ready'
                 if not job.artifacts:
                     self._recovery_issues.append({'folder':root.name,
@@ -969,6 +994,8 @@ class ConverterGuard:
                 send('input_registered', phase='upload', status='completed')
 
     def _get(self, identity):
+        if self._closed:
+            raise GuardError('GUARD_CLOSED', 'Guard завершает работу.', status=503)
         job = self._jobs.get(identity)
         if job is None or job.released:
             raise GuardError('JOB_NOT_FOUND', 'Задание больше недоступно.', status=404)
@@ -1207,8 +1234,6 @@ class ConverterGuard:
             if maximum is not None and self._reserved + sum(r['size'] for r in additions) > maximum:
                 raise GuardError('SPOOL_QUOTA', 'Недостаточно настроенной квоты Guard.', status=413)
             self._reserve(job, sum(r['size'] for r in additions))
-            for item in removed:
-                self._drop_source(job, item)
             for row in additions:
                 name, normalized = _source_name(row['name'])
                 item = _File(**row, source=job.root/'input'/secrets.token_hex(8)/name,
@@ -1217,8 +1242,21 @@ class ConverterGuard:
             job.files = [job.files_by_id[row['id']] for row in rows]
             job.files_by_id = {f.id:f for f in job.files}
             job.state = 'uploading'
+            job.io += 1
             self._record(job, 'prepared_selection_updated')
-            return self._snapshot(job)
+        try:
+            # Antivirus/network filesystems may stall deletion. The I/O lease
+            # keeps this tree owned while status, cancel and other jobs remain
+            # responsive; removed sources are no longer visible to preflight.
+            for item in removed:
+                self._drop_source(job, item)
+            with self._lock:
+                return self._snapshot(self._get(job_id))
+        finally:
+            with self._lock:
+                job.io -= 1
+                self._io_drained.notify_all()
+            self._cleanup(job)
 
     def preflight(self, job_id, *, recheck=False, timeout_seconds=None, only_undetermined=False):
         """Inspect stored originals once, before any requested export."""
@@ -2683,6 +2721,10 @@ class ConverterGuard:
     def cancel(self, job_id):
         with self._lock:
             job = self._get(job_id)
+            if not job.running and job.state in TERMINAL:
+                # A delayed UI/analysis cancellation must not change the
+                # durable outcome or poison a completed candidate's event.
+                return self._snapshot(job)
             if job.state == 'packaging':
                 job.bundle_cancel.set()
             callbacks = self._stop(job)
@@ -2805,17 +2847,34 @@ class ConverterGuard:
 
     def _cleanup(self, job):
         with self._lock:
-            if not job.released or job.running or job.io or job.pending_journal or job.cleaning:
+            if job.running or job.io or job.pending_journal or job.cleaning:
                 return
+            # Shutdown may time out while an HTTP/comparison reader still
+            # holds an I/O lease. Keep both the OS ownership lock and quota
+            # accounting until that last lease calls cleanup. Unsaved bytes
+            # then detach for recovery; explicit discard still means delete.
+            preserve = bool(self._closed and self._recovery and not job.released
+                and (job.recovery_error or any(not a.saved for a in job.artifacts)))
+            if not job.released:
+                if not (self._closed and self._recovery):
+                    return
+                if not preserve:
+                    job.released = True
             job.cleaning = True
         # Potentially slow filesystem deletion never holds the global job lock.
         try:
-            if job.store:
+            if job.store and not preserve:
+                # Commit the admission barrier while ownership is still held.
+                # The parent-side marker survives every partial rmtree order.
+                job.store.retire()
+                job.store.cleanup_retired()
+            elif job.store:
                 job.store.close()
-            shutil.rmtree(job.root)
+            elif not preserve:
+                shutil.rmtree(job.root)
         except FileNotFoundError:
             pass
-        except OSError:
+        except (OSError, ValueError):
             with self._lock:
                 job.cleaning = False
                 self._record(job, 'cleanup_deferred', code='CLEANUP_RETRY')
@@ -2834,7 +2893,7 @@ class ConverterGuard:
             for job in self._jobs.values():
                 job.bundle_cancel.set()
                 job.save_cancel.set()
-                job.released = not bool(self._recovery)
+                job.released = job.released or not bool(self._recovery)
                 callbacks.extend(self._stop(job))
             self._tickets.clear()
             self._proof_cache.clear()
@@ -2851,15 +2910,10 @@ class ConverterGuard:
             with self._lock:
                 jobs = list(self._jobs.values())
             for job in jobs:
-                if job.recovery_error or (job.artifacts and any(not a.saved for a in job.artifacts)):
-                    if job.store:
-                        job.store.close()
-                else:
-                    job.released = True
-                    self._cleanup(job)
-            with self._lock:
-                self._jobs.clear()
-                self._reserved = 0
+                self._cleanup(job)
+            # Leased jobs deliberately remain registered until their final
+            # caller exits. Clearing them here would unlock a live recovery
+            # tree and lose accounting after the bounded shutdown wait.
 
     def storage_stats(self):
         with self._lock:

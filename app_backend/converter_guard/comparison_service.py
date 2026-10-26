@@ -13,6 +13,7 @@ import re
 import secrets
 import shutil
 import sqlite3
+import subprocess
 import sys
 import threading
 import time
@@ -20,6 +21,7 @@ import unicodedata
 from urllib.parse import urlencode
 
 from .errors import GuardError
+from .media_fidelity import RASTER
 from ..native_process import ProcessTree
 
 STATUSES = ('confirmed_loss', 'format_limitation', 'uncertain', 'not_checked', 'checked')
@@ -130,6 +132,12 @@ class ComparisonService:
         return value
 
     def _validate_report(self, item, *, force=False):
+        # Serialize committed rows and the in-memory counters with _store. A
+        # snapshot must not count a row and then let its writer count it again.
+        with self.lock:
+            return self._validate_report_locked(item, force=force)
+
+    def _validate_report_locked(self, item, *, force=False):
         stamp = self._report_stamp(item.db)
         if not force and stamp == item.validated_stamp:
             return
@@ -143,8 +151,9 @@ class ComparisonService:
         count = sum(counts.values())
         if count > item.total:
             raise GuardError('COMPARISON_REPORT_UNAVAILABLE', 'Количество строк отчёта не соответствует заданию.', status=404)
+        item.processed, item.summary = count, counts
         if item.state == 'completed' and count != item.total:
-            item.state, item.processed, item.summary = 'interrupted', count, counts
+            item.state = 'interrupted'
             item.error = 'В сохранённом отчёте отсутствует часть строк. Продолжите анализ явно.'
             self._persist(item)
         item.report_bytes = total_bytes
@@ -359,12 +368,16 @@ class ComparisonService:
             pointer = db.execute('SELECT id FROM current WHERE singleton=1').fetchone()
             row = db.execute('SELECT payload FROM sessions WHERE id=?', pointer).fetchone() if pointer else None
         if row is None:
+            if pointer is not None:
+                raise GuardError('COMPARISON_REPORT_UNAVAILABLE',
+                    'Журнал ссылается на отсутствующий сеанс. Запустите анализ заново явно; результаты конвертации сохранены.', status=404)
             return None
         try:
             value = self._decode(row[0])
             identity = value['analysisId']
-            if (not IDENTITY.fullmatch(identity) or value['jobId'] != job.id or
-                    type(value['total']) is not int or value['total'] < 0):
+            if (not isinstance(identity, str) or not IDENTITY.fullmatch(identity) or
+                    identity != pointer[0] or value['jobId'] != job.id or
+                    type(value['total']) is not int or value['total'] != len(self._task_map(job))):
                 raise ValueError('invalid session metadata')
             item = _Analysis(job.id, identity=identity, catalog=catalog,
                 root=job.root / 'comparison' / identity, total=value['total'],
@@ -447,12 +460,41 @@ class ComparisonService:
         try:
             self._persist(item, strict=True)
             item.future = self.executor.submit(self._run, item)
-            item.future.add_done_callback(lambda future: self._cancelled(item) if future.cancelled() else None)
+            item.future.add_done_callback(lambda future: self._finished(item, future))
         except Exception:
             item.state = 'interrupted'
             self._persist(item)
             item.pin, item.records = None, None
             raise
+
+    def _finished(self, item, future, *, retry=False):
+        if future.cancelled():
+            (self._cancelled_retry if retry else self._cancelled)(item)
+        self._forget_released(item)
+
+    def _forget_released(self, item):
+        with self.lock:
+            if (self.jobs.get(item.job_id) is item and not self._available(item.job_id)
+                    and self._settled(item) and self._retry_settled(item)):
+                self.jobs.pop(item.job_id, None)
+                item.expected_tasks.clear()
+                item.retry_jobs.clear()
+
+    def release(self, job_id):
+        """Stop this job's optional work after Guard accepted its release.
+
+        Guard owns deletion and retention. A detached unsaved job keeps its
+        resumable history; a released job drops large in-memory indexes once
+        the last worker and input lease have actually drained.
+        """
+        with self.lock:
+            item = self.jobs.get(job_id)
+            if item is None:
+                return
+            item.cancel.set(); item.retry_cancel.set(); item.pause.clear()
+            if item.future is not None: item.future.cancel()
+            if item.retry_future is not None: item.retry_future.cancel()
+        self._forget_released(item)
 
     def _cancelled(self, item):
         with self.lock:
@@ -560,11 +602,11 @@ class ComparisonService:
         if item.report_bytes + encoded > MAX_REPORT_BYTES:
             raise GuardError('COMPARISON_REPORT_BUDGET',
                 'Достигнут бюджет отчёта анализа. Проверенная часть сохранена; конвертация и сохранение файлов доступны.', status=507)
-        with self._item_database(item) as db:
-            inserted = db.execute('INSERT OR IGNORE INTO results VALUES (?,?,?,?,?,?,?)',
-                       (record['taskId'], record['name'], record['format'], status,
-                        bool(candidates), data, unicodedata.normalize('NFC', record['name']+' '+record['format']).casefold())).rowcount
         with self.lock:
+            with self._item_database(item) as db:
+                inserted = db.execute('INSERT OR IGNORE INTO results VALUES (?,?,?,?,?,?,?)',
+                           (record['taskId'], record['name'], record['format'], status,
+                            bool(candidates), data, unicodedata.normalize('NFC', record['name']+' '+record['format']).casefold())).rowcount
             if inserted:
                 item.processed += 1
                 item.summary[status] += 1
@@ -604,6 +646,16 @@ class ComparisonService:
                         if not record['sourceAvailable']:
                             self._store(item, record, self._unknown('SOURCE_UNAVAILABLE',
                                 'Служебная копия исходника недоступна. Сравнение не выполнено.'))
+                        elif record.get('outputs') and any(path is None for path in self._output_paths(record)):
+                            # A multi-file export is one owned result. Do not
+                            # silently compare only surviving files as if the
+                            # complete bundle had passed inspection.
+                            outcome = self._unknown('RESULT_UNAVAILABLE',
+                                'Часть сохранённого результата отсутствует или изменена. Проверка всего преобразования не выполнена.')
+                            outcome['outputScope'] = {'totalFiles': len(record['outputs']),
+                                'unavailableFiles': sum(path is None for path in self._output_paths(record)),
+                                'inspectedPrimaryFiles': 0, 'inspectedSupplementalFiles': 0}
+                            self._store(item, record, outcome)
                         elif not record['paths']:
                             self._store(item, record, self._unknown('RESULT_NOT_CREATED',
                                 'Результат конвертации не создан. Сравнивать содержимое пока нельзя.'))
@@ -633,7 +685,9 @@ class ComparisonService:
 
     def _worker(self, item, records, root):
         root.mkdir()
-        request = {'source': str(records[0]['source']), 'sourceSha256': records[0].get('sourceSha256'), 'pairs': [
+        request = {'source': str(records[0]['source']), 'sourceSha256': records[0].get('sourceSha256'),
+            'sourceResources': [{'path': str(resource['source']), 'sha256': resource.get('sha256')}
+                                for resource in records[0].get('resources', ())], 'pairs': [
             {'taskId': r['taskId'], 'target': r['format'], 'paths': [str(p) for p in r['paths']],
              'sha256': {str(path): metadata.get('sha256') for path, metadata in
                         zip(self._output_paths(r), r.get('outputs', ())) if path is not None}}
@@ -687,7 +741,13 @@ class ComparisonService:
                         break
                     drain()
                     if tree.process.poll() is not None: break
-                    time.sleep(.08)
+                    # Wait on the owned process, so a small source finishing
+                    # immediately does not pay an artificial 80 ms per file.
+                    # The bounded timeout still services pause/cancel/deadline.
+                    try:
+                        tree.process.wait(timeout=.08)
+                    except subprocess.TimeoutExpired:
+                        pass
                 # The process can exit between a read and poll(). Its final
                 # flushed outcome must be consumed before missing-pair rows.
                 drain(final=True)
@@ -845,6 +905,18 @@ class ComparisonService:
                   'csv_preserve_values': 'CSV с точными значениями'}.get(job.comparison_recipe)
         return name + (' · ' + recipe if recipe else ' · исходный результат')
 
+    def _verification_payload(self, item, row):
+        task, payload = row
+        value = self._decode(payload)
+        expected = item.expected_tasks.get(task)
+        if (expected is None or value.get('parentTaskId') != task or
+                value.get('fileId') != expected[0] or value.get('format') != expected[1] or
+                value.get('name') != expected[2] or value.get('assessment') not in (
+                    'checked_subset_improved', 'no_confirmed_improvement', 'not_comparable')):
+            raise GuardError('COMPARISON_REPORT_UNAVAILABLE',
+                'Запись проверки повтора не соответствует исходному преобразованию. Конвертированные файлы сохранены.', status=404)
+        return value
+
     def _history(self, item, *, offset=0, limit=20, run_id=None):
         if type(offset) is not int or type(limit) is not int or offset < 0 or not 1 <= limit <= 100:
             raise GuardError('COMPARISON_PAGE', 'Неверная страница истории.')
@@ -855,9 +927,9 @@ class ComparisonService:
                 if db.execute('SELECT 1 FROM retry_events WHERE run=? LIMIT 1', (run_id,)).fetchone() is None:
                     raise GuardError('COMPARISON_RUN', 'Повтор не найден в этом задании.', status=404)
                 total = db.execute('SELECT COUNT(*) FROM retry_tasks WHERE run=?', (run_id,)).fetchone()[0]
-                rows = db.execute('SELECT payload FROM retry_tasks WHERE run=? ORDER BY rowid LIMIT ? OFFSET ?',
+                rows = db.execute('SELECT task,payload FROM retry_tasks WHERE run=? ORDER BY rowid LIMIT ? OFFSET ?',
                                   (run_id, limit, offset)).fetchall()
-                values = [self._decode(row[0]) for row in rows]
+                values = [self._verification_payload(item, row) for row in rows]
                 for value in values:
                     value['available'] = self._available(value.get('jobId'))
                     value['stale'] = not value['available']
@@ -894,11 +966,11 @@ class ComparisonService:
         with self.guard.comparison_inputs(job_id) as records:
             record = next((r for r in records if r['taskId'] == task_id), None)
             if record is None: raise GuardError('COMPARISON_TASK', 'Преобразование недоступно.', status=404)
-            result['previews'] = {side: self._preview_meta(job_id, task_id, side, path)
+            result['previews'] = {side: self._preview_meta(job_id, task_id, side, path, analysis_id=item.identity)
                 for side, path in [('source', record['source']), ('result', self._primary(record))]}
             result['outputPreviews'] = []
             for index, (path, metadata) in enumerate(zip(self._output_paths(record), record['outputs'])):
-                preview = self._preview_meta(job_id, task_id, 'result', path, output_index=index)
+                preview = self._preview_meta(job_id, task_id, 'result', path, output_index=index, analysis_id=item.identity)
                 result['outputPreviews'].append({**preview, 'outputIndex': index,
                     'name': metadata.get('name', preview.get('name')), 'size': metadata.get('size'),
                     'available': path is not None and preview['kind'] != 'unavailable'})
@@ -922,25 +994,28 @@ class ComparisonService:
                      for meta in outputs)
 
     @staticmethod
-    def _preview_meta(job_id, task_id, side, path, *, output_index=None):
+    def _preview_meta(job_id, task_id, side, path, *, output_index=None, analysis_id=None):
         if path is None: return {'kind': 'unavailable', 'note': 'Файл недоступен для просмотра.'}
         suffix = path.suffix.lower()
-        kind = 'pdf' if suffix == '.pdf' else 'image' if suffix in ('.png','.jpg','.jpeg','.gif','.webp','.bmp') else 'text'
+        kind = 'pdf' if suffix == '.pdf' else 'image' if suffix.lstrip('.') in RASTER else 'text'
         if suffix != '.pdf' and path.stat().st_size > MAX_PREVIEW:
             return {'kind': 'unavailable', 'note': 'Встроенный просмотр ограничен 64 МиБ. Конвертация и сохранение доступны.'}
         query = {'job': job_id, 'task': task_id, 'side': side}
         if output_index is not None: query['outputIndex'] = output_index
+        if analysis_id is not None: query['analysisId'] = analysis_id
         return {'kind': kind, 'name': path.name, 'size': path.stat().st_size,
                 'url': '/api/converter-guard/compare/preview?' + urlencode(query),
                 'note': ('Текстовое представление; оформление не показано.' if kind == 'text' else
-                         'Уменьшенный просмотр изображения; для анимации показан первый кадр.' if kind == 'image' else '')}
+                         'Уменьшенный просмотр изображения; для анимации показан первый кадр, для многостраничного изображения — первая страница.' if kind == 'image' else '')}
 
     @contextmanager
-    def preview(self, job_id, task_id, side, *, page=0, output_index=None):
+    def preview(self, job_id, task_id, side, *, page=0, output_index=None, expected_analysis_id=None):
         if side not in ('source', 'result'): raise GuardError('COMPARISON_SIDE', 'Неверная сторона сравнения.')
         if output_index is not None and (type(output_index) is not int or output_index < 0):
             raise GuardError('COMPARISON_OUTPUT', 'Неверный номер результата.')
         with self.guard.comparison_inputs(job_id) as records:
+            if expected_analysis_id is not None:
+                self._expected(self._get(job_id), expected_analysis_id)
             record = next((r for r in records if r['taskId'] == task_id), None)
             if record is None: raise GuardError('COMPARISON_TASK', 'Преобразование недоступно.', status=404)
             if side == 'source':
@@ -994,7 +1069,10 @@ class ComparisonService:
                 while tree.process.poll() is None:
                     if self.closed or time.monotonic() >= until:
                         return {'kind':'unavailable','note':'Предпросмотр не завершился в отведённых ресурсах. Результат можно сохранить.'}
-                    time.sleep(.06)
+                    try:
+                        tree.process.wait(timeout=.06)
+                    except subprocess.TimeoutExpired:
+                        pass
             output = root / 'preview.json'
             if output.is_file() and output.stat().st_size <= 1024 * 1024:
                 result = json.loads(output.read_text(encoding='utf-8'))
@@ -1028,7 +1106,9 @@ class ComparisonService:
             transferred = False
             try:
                 with self.lock:
-                    self._expected(self.jobs.get(job_id), expected_analysis_id)
+                    if self.jobs.get(job_id) is not item:
+                        raise GuardError('COMPARISON_STALE', 'Сеанс анализа изменился. Откройте текущий отчёт.', status=409)
+                    self._expected(item, expected_analysis_id)
                     if self.closed:
                         raise GuardError('GUARD_CLOSED', 'Приложение завершает работу.', status=503)
                     if not self._settled(item):
@@ -1044,7 +1124,9 @@ class ComparisonService:
                 if not transferred: pin.__exit__(None, None, None)
             return self.snapshot(job_id)
         with self.lock:
-            self._expected(self.jobs.get(job_id), expected_analysis_id)
+            if self.jobs.get(job_id) is not item:
+                raise GuardError('COMPARISON_STALE', 'Сеанс анализа изменился. Откройте текущий отчёт.', status=409)
+            self._expected(item, expected_analysis_id)
             if action == 'cancel':
                 item.cancel.set(); item.retry_cancel.set(); item.pause.clear()
                 if item.future is not None: item.future.cancel()
@@ -1118,7 +1200,7 @@ class ComparisonService:
                 item.retry_pin = pin
                 try:
                     item.retry_future = self.retry_executor.submit(self._retry, item, groups)
-                    item.retry_future.add_done_callback(lambda future: self._cancelled_retry(item) if future.cancelled() else None)
+                    item.retry_future.add_done_callback(lambda future: self._finished(item, future, retry=True))
                 except Exception:
                     item.retry_pin = None
                     item.retry['state'] = 'interrupted'
@@ -1222,7 +1304,8 @@ class ComparisonService:
             for value in values:
                 db.execute('INSERT OR IGNORE INTO retry_tasks VALUES (?,?,?)',
                     (item.retry['runId'], value['parentTaskId'], json.dumps(value, ensure_ascii=False)))
-            rows = [json.loads(row[0]) for row in db.execute('SELECT payload FROM retry_tasks WHERE run=?', (item.retry['runId'],))]
+            rows = [self._verification_payload(item, row) for row in db.execute(
+                'SELECT task,payload FROM retry_tasks WHERE run=?', (item.retry['runId'],))]
         comparable = (len(rows) == item.retry['selectedCount'] and
                       all(r.get('assessment') in ('checked_subset_improved', 'no_confirmed_improvement') for r in rows))
         improved = comparable and all(r['assessment'] == 'checked_subset_improved' for r in rows)
@@ -1304,12 +1387,33 @@ class ComparisonService:
                 item.retry['state'] = 'completed'
         except Exception as error:
             with self.lock:
-                item.retry.update(state='cancelled' if item.retry_cancel.is_set() else 'failed',
+                # Preserve the real failure status, then stop only descendants
+                # actually created by this run. A full history disk must not
+                # leave a native child consuming resources without an owner.
+                cancelled = item.retry_cancel.is_set()
+                item.retry_cancel.set()
+                item.retry.update(state='cancelled' if cancelled else 'failed',
                     error=error.message if isinstance(error,GuardError) else 'Повтор не завершён. Первый результат остаётся в AIO.')
+                children = tuple(item.retry_jobs)
                 for child in item.retry['children']:
                     if child['state'] not in FINAL:
                         child['state'] = item.retry['state']
                         child['error'] = item.retry['error']
+            for identity in children:
+                with self.lock:
+                    child_analysis = self.jobs.get(identity)
+                    if child_analysis is not None and child_analysis.state not in FINAL:
+                        child_analysis.cancel.set(); child_analysis.pause.clear()
+                        if child_analysis.future is not None: child_analysis.future.cancel()
+                with self.guard._lock:
+                    child_job = self.guard._jobs.get(identity)
+                    owned = (child_job is not None and not child_job.released and
+                             child_job.comparison_parent_job_id == item.job_id)
+                if owned:
+                    try:
+                        self.guard.cancel(identity)
+                    except GuardError:
+                        pass  # A released child is already stopped by Guard.
         finally:
             try:
                 with self.lock:

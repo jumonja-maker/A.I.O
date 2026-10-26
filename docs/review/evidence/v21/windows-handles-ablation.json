@@ -1,0 +1,177 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "filesPerCycle": 1000,
+  "host": {
+    "system": "Windows",
+    "python": "3.11.9"
+  },
+  "scope": "two controlled CSV Guard cycles in one process; QA-reference ablation only",
+  "nativeLibreOfficeBenchmark": false,
+  "comparisonWorkersTested": false,
+  "wholeApplicationLeakFreedomCertified": false,
+  "primarySources": [
+    "https://github.com/python/cpython/blob/v3.11.9/Include/internal/pycore_condvar.h",
+    "https://github.com/python/cpython/blob/v3.11.9/Python/condvar.h",
+    "https://github.com/python/cpython/blob/v3.11.9/Python/thread_nt.h"
+  ],
+  "baseline": {
+    "threads": 1,
+    "handles": 164,
+    "rssBytes": 27930624,
+    "peakRssBytes": 35131392
+  },
+  "cycles": [
+    {
+      "samples": {
+        "before": {
+          "threads": 1,
+          "handles": 170,
+          "rssBytes": 27951104,
+          "peakRssBytes": 35131392
+        },
+        "converted": {
+          "threads": 2,
+          "handles": 1181,
+          "rssBytes": 38490112,
+          "peakRssBytes": 38490112
+        },
+        "afterCloseQaReferencesRetained": {
+          "threads": 1,
+          "handles": 1178,
+          "rssBytes": 39665664,
+          "peakRssBytes": 39731200
+        },
+        "afterQaReferencesDroppedBeforeGc": {
+          "threads": 1,
+          "handles": 171,
+          "rssBytes": 37556224,
+          "peakRssBytes": 39731200
+        },
+        "afterQaReferencesDroppedAndGc": {
+          "threads": 1,
+          "handles": 171,
+          "rssBytes": 37556224,
+          "peakRssBytes": 39731200
+        }
+      },
+      "files": 1000,
+      "retainedQaAliases": [
+        "job",
+        "saved_job",
+        "converted",
+        "rows",
+        "row",
+        "data"
+      ],
+      "cleanup": {
+        "jobs": 0,
+        "tickets": 0,
+        "reservedBytes": 0,
+        "ioLeases": 0,
+        "ownedDirectoryRemoved": true,
+        "ownerLockClosed": true,
+        "ownedExecutorThreadsAlive": 0
+      },
+      "weakReferencesBeforeDrop": {
+        "jobAlive": true,
+        "filesAlive": 1000
+      },
+      "weakReferencesAfterDropBeforeGc": {
+        "jobAlive": false,
+        "filesAlive": 0
+      },
+      "gcCollected": 58,
+      "weakReferencesAfterGc": {
+        "jobAlive": false,
+        "filesAlive": 0
+      },
+      "handleAblation": {
+        "retainedMinusBefore": 1008,
+        "releasedByDroppingQaReferencesAndGc": 1007,
+        "afterMinusBefore": 1
+      },
+      "status": "PASS",
+      "cycle": 1
+    },
+    {
+      "samples": {
+        "before": {
+          "threads": 1,
+          "handles": 170,
+          "rssBytes": 37560320,
+          "peakRssBytes": 39731200
+        },
+        "converted": {
+          "threads": 2,
+          "handles": 1181,
+          "rssBytes": 39440384,
+          "peakRssBytes": 39731200
+        },
+        "afterCloseQaReferencesRetained": {
+          "threads": 1,
+          "handles": 1178,
+          "rssBytes": 40472576,
+          "peakRssBytes": 40497152
+        },
+        "afterQaReferencesDroppedBeforeGc": {
+          "threads": 1,
+          "handles": 171,
+          "rssBytes": 38207488,
+          "peakRssBytes": 40497152
+        },
+        "afterQaReferencesDroppedAndGc": {
+          "threads": 1,
+          "handles": 171,
+          "rssBytes": 38207488,
+          "peakRssBytes": 40497152
+        }
+      },
+      "files": 1000,
+      "retainedQaAliases": [
+        "job",
+        "saved_job",
+        "converted",
+        "rows",
+        "row",
+        "data"
+      ],
+      "cleanup": {
+        "jobs": 0,
+        "tickets": 0,
+        "reservedBytes": 0,
+        "ioLeases": 0,
+        "ownedDirectoryRemoved": true,
+        "ownerLockClosed": true,
+        "ownedExecutorThreadsAlive": 0
+      },
+      "weakReferencesBeforeDrop": {
+        "jobAlive": true,
+        "filesAlive": 1000
+      },
+      "weakReferencesAfterDropBeforeGc": {
+        "jobAlive": false,
+        "filesAlive": 0
+      },
+      "gcCollected": 58,
+      "weakReferencesAfterGc": {
+        "jobAlive": false,
+        "filesAlive": 0
+      },
+      "handleAblation": {
+        "retainedMinusBefore": 1008,
+        "releasedByDroppingQaReferencesAndGc": 1007,
+        "afterMinusBefore": 1
+      },
+      "status": "PASS",
+      "cycle": 2
+    }
+  ],
+  "afterBothCycles": {
+    "threads": 1,
+    "handles": 164,
+    "rssBytes": 38207488,
+    "peakRssBytes": 40497152
+  },
+  "elapsedSeconds": 21.969
+}

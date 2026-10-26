@@ -1,0 +1,54 @@
+test_strict_worksheet_source_cannot_certify_missing_values (test_comparison_semantics_v21.ComparisonSemanticsV21.test_strict_worksheet_source_cannot_certify_missing_values) ... FAIL
+test_strict_worksheet_result_cannot_hide_added_values (test_comparison_semantics_v21.ComparisonSemanticsV21.test_strict_worksheet_result_cannot_hide_added_values) ... FAIL
+test_quality_cannot_hash_strict_cells_as_an_empty_sheet (test_comparison_semantics_v21.ComparisonSemanticsV21.test_quality_cannot_hash_strict_cells_as_an_empty_sheet) ... FAIL
+test_full_strict_workbook_unrecognized_by_reader_is_incomplete (test_comparison_semantics_v21.ComparisonSemanticsV21.test_full_strict_workbook_unrecognized_by_reader_is_incomplete) ... /opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/openpyxl/reader/workbook.py:84: UserWarning: File contains an invalid specification for 0. This will be removed
+  warn(msg)
+FAIL
+
+======================================================================
+FAIL: test_strict_worksheet_source_cannot_certify_missing_values (test_comparison_semantics_v21.ComparisonSemanticsV21.test_strict_worksheet_source_cannot_certify_missing_values)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/test_comparison_semantics_v21.py", line 72, in test_strict_worksheet_source_cannot_certify_missing_values
+    self.assertEqual(report['status'], 'not_checked')
+AssertionError: 'checked' != 'not_checked'
+- checked
++ not_checked
+? ++++
+
+
+======================================================================
+FAIL: test_strict_worksheet_result_cannot_hide_added_values (test_comparison_semantics_v21.ComparisonSemanticsV21.test_strict_worksheet_result_cannot_hide_added_values)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/test_comparison_semantics_v21.py", line 82, in test_strict_worksheet_result_cannot_hide_added_values
+    self.assertEqual(report['status'], 'not_checked')
+AssertionError: 'checked' != 'not_checked'
+- checked
++ not_checked
+? ++++
+
+
+======================================================================
+FAIL: test_quality_cannot_hash_strict_cells_as_an_empty_sheet (test_comparison_semantics_v21.ComparisonSemanticsV21.test_quality_cannot_hash_strict_cells_as_an_empty_sheet)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/test_comparison_semantics_v21.py", line 90, in test_quality_cannot_hash_strict_cells_as_an_empty_sheet
+    self.assertEqual(report['status'], 'not_checked')
+AssertionError: 'checked_subset' != 'not_checked'
+- checked_subset
++ not_checked
+
+
+======================================================================
+FAIL: test_full_strict_workbook_unrecognized_by_reader_is_incomplete (test_comparison_semantics_v21.ComparisonSemanticsV21.test_full_strict_workbook_unrecognized_by_reader_is_incomplete)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/test_comparison_semantics_v21.py", line 99, in test_full_strict_workbook_unrecognized_by_reader_is_incomplete
+    self.assertFalse(summary['complete'])
+AssertionError: True is not false
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.043s
+
+FAILED (failures=4)

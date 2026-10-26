@@ -1,0 +1,12 @@
+{
+  "functionalSource": "4ac9ac17b7fd4e5b97b7c99e814b9547b668fc83",
+  "functionalTree": "6a31001f4735f6538fe98cc9b18fad3887a6ea20",
+  "windowsRun": 40308252791,
+  "windowsWorkflowSha": "fd8b1cd6a72dfb6da6860372aecde3bccae20598",
+  "handleProbeSource": "d136ddfc11d0b96d79cbcbf80a3e98e7ec412f61",
+  "handleProbeTree": "3e792d3b67e88d137b4427dde1df7276230feed6",
+  "handleRun": 40310978570,
+  "handleWorkflowSha": "e10aca12e63c6172e51a9855fe09c47ca6af3f7c",
+  "productFilesChangedAfterFunctionalSource": false,
+  "status": "PASS within documented scope"
+}

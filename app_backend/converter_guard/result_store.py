@@ -11,6 +11,7 @@ from pathlib import Path
 import threading
 import secrets
 import stat
+import shutil
 
 
 def path_is_link(path):
@@ -68,6 +69,92 @@ class ResultStore:
             self.owner.close()
             self.owner = None
 
+    @property
+    def retirement_path(self):
+        # Outside the tree being removed: rmtree may delete job.json/owner.lock
+        # in any order, but cannot expose a half-deleted tree as recoverable.
+        return self.root.parent / ('.' + self.root.name + '.retiring.json')
+
+    def _retirement_info(self):
+        marker = self.retirement_path
+        if not os.path.lexists(marker):
+            return None
+        if path_is_link(marker) or marker.stat().st_size > 8192:
+            raise ValueError('Invalid retirement marker')
+        try:
+            value = json.loads(marker.read_text(encoding='utf-8'))
+            if not isinstance(value, dict):
+                raise ValueError('Invalid retirement marker')
+            checksum = value.pop('checksum', None)
+            actual = self._digest(value)
+        except RecursionError as error:
+            raise ValueError('Retirement marker nesting is unsupported') from error
+        if (checksum != actual or value.get('schema') != 1
+                or value.get('kind') != 'aio_guard_retirement'
+                or value.get('rootName') != self.root.name
+                or any(type(value.get(key)) is not int or value[key] < 0
+                       for key in ('device', 'inode'))):
+            raise ValueError('Invalid retirement marker')
+        return value
+
+    def retirement_pending(self):
+        value = self._retirement_info()
+        if value is None:
+            return False
+        if path_is_link(self.root) or not self.root.is_dir():
+            raise ValueError('Retirement root changed')
+        info = self.root.stat()
+        if (info.st_dev, info.st_ino) != (value['device'], value['inode']):
+            raise ValueError('Retirement root changed')
+        return True
+
+    def retire(self):
+        """Durably remove a saved/discarded tree from recovery admission."""
+        if self.owner is None and not self.acquire():
+            raise OSError('Retirement storage is busy')
+        try:
+            if self.retirement_pending():
+                return
+        except ValueError as error:
+            raise OSError('Invalid existing retirement marker') from error
+        info = self.root.stat()
+        value = {'schema': 1, 'kind': 'aio_guard_retirement',
+                 'rootName': self.root.name, 'device': info.st_dev, 'inode': info.st_ino}
+        value['checksum'] = self._digest(value)
+        marker = self.retirement_path
+        temporary = marker.with_name(marker.name + '.' + secrets.token_hex(8) + '.new')
+        try:
+            with temporary.open('x', encoding='utf-8') as stream:
+                json.dump(value, stream, ensure_ascii=True, separators=(',', ':'))
+                stream.flush()
+                os.fsync(stream.fileno())
+            temporary.replace(marker)
+        finally:
+            temporary.unlink(missing_ok=True)
+
+    def cleanup_retired(self):
+        """Retry only an identity-bound retirement, never an ordinary orphan."""
+        if not self.retirement_pending():
+            raise ValueError('Storage was not retired')
+        self.close()  # Windows cannot remove an open owner.lock file.
+        shutil.rmtree(self.root)
+        # Do not remove the admission barrier until the whole root is gone.
+        if not os.path.lexists(self.root):
+            self.retirement_path.unlink(missing_ok=True)
+
+    @classmethod
+    def reap_finished_retirements(cls, parent):
+        # A crash after root deletion but before marker deletion leaves only a
+        # tiny barrier. Reap validated barriers with no root, never user trees.
+        for marker in Path(parent).glob('.aio-guard-*.retiring.json'):
+            root = marker.parent / marker.name[1:-len('.retiring.json')]
+            store = cls(root)
+            try:
+                if store._retirement_info() is not None and not os.path.lexists(root):
+                    marker.unlink(missing_ok=True)
+            except (OSError, ValueError, TypeError):
+                continue
+
     def initialize(self, job):
         value = {'schema': 1, 'jobId': job.id,
             'inputAccounting':job.input_accounting,
@@ -118,6 +205,7 @@ class ResultStore:
         transaction=secrets.token_hex(16)
         yield {'kind':'task_begin','transaction':transaction,'index': task.index, 'fileId': item.id,
             'state': task.state, 'code': task.code, 'error': task.error,
+            'outputCount':len(task.artifacts),
             'stage': task.stage, 'diagnostic': task.diagnostic,
             'startedMs': task.started_ms, 'finishedMs': task.finished_ms,
             'durationMs':task.duration_ms,'executionMode':task.execution_mode,
@@ -192,6 +280,18 @@ class ResultStore:
                             pending[record['transaction']]['outputs'].append(record['output'])
                         elif record.get('kind') == 'task_commit' and record.get('transaction') in pending:
                             complete=pending.pop(record['transaction'])
+                            # Individual checksums do not expose a wholly lost
+                            # output line. A committed HTML bundle must retain
+                            # every artifact promised by its begin record. Old
+                            # journals remain readable but cannot gain this
+                            # stronger completeness claim retroactively.
+                            expected=complete.get('outputCount')
+                            paths=[output['path'] for output in complete['outputs']]
+                            if (len(set(paths)) != len(paths) or
+                                    'outputCount' in complete and (type(expected) is not int
+                                    or expected < 0 or expected != len(complete['outputs']))):
+                                integrity='incomplete_transaction'
+                                continue
                             records[complete['index']]=complete
                         elif record.get('kind') == 'saved':
                             saved.update(p for p in record.get('paths', []) if isinstance(p, str))

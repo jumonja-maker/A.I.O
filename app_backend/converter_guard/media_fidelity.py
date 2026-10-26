@@ -332,7 +332,59 @@ def _webp(r):
     return result
 
 
-def _tiff(r):
+def _tiff_array(r, descriptor, endian, inline_size, offset_code):
+    """Read strip/tile index values in bounded chunks, including BigTIFF."""
+    typ, count, payload = descriptor
+    sizes, codes = {3: 2, 4: 4, 16: 8}, {3: 'H', 4: 'I', 16: 'Q'}
+    if typ not in sizes or count <= 0:
+        raise _Invalid('tiff_data_table_type')
+    size = sizes[typ]
+    if count * size <= inline_size:
+        yield from struct.unpack(endian + codes[typ] * count, payload[:count * size])
+        return
+    position = struct.unpack(endian + offset_code, payload)[0]
+    if position + count * size > r.size:
+        raise _Invalid('tiff_data_table_bounds')
+    for start in range(0, count, 4096):
+        amount = min(4096, count - start)
+        r.seek(position + start * size)
+        chunk = r.read(amount * size)
+        yield from struct.unpack(endian + codes[typ] * amount, chunk)
+
+
+def _tiff_data_bounds(r, tables, endian, inline_size, offset_code):
+    # TIFF6 section 2 (strips), section 15 (tiles), and BigTIFF LONG8.
+    # Only bounds are proved here: valid offsets do not certify decompression,
+    # pixels, colours, or completeness of all private TIFF extensions.
+    for offsets, counts in ((273, 279), (324, 325), (513, 514)):
+        if offsets not in tables and counts not in tables:
+            continue
+        if offsets == 513:
+            # Old-style JPEG may explicitly declare no interchange stream
+            # with offset 0 (TIFF6 p105); its length is then irrelevant.
+            if offsets not in tables:
+                continue
+            if tables[offsets][1] == 1 and next(
+                    _tiff_array(r, tables[offsets], endian, inline_size, offset_code)) == 0:
+                continue
+        if offsets not in tables or counts not in tables:
+            raise _Invalid('tiff_data_table_incomplete')
+        if tables[offsets][1] != tables[counts][1]:
+            raise _Invalid('tiff_data_table_count')
+        starts = _tiff_array(r, tables[offsets], endian, inline_size, offset_code)
+        lengths = _tiff_array(r, tables[counts], endian, inline_size, offset_code)
+        for position, length in zip(starts, lengths):
+            # Large scans can legitimately contain millions of short strips.
+            # Their index is streamed from an already bounded byte extent;
+            # apply cancellation/deadline, not the IFD/frame metadata count cap.
+            _cancel(r.cancel)
+            # Keep sparse 0/0 entries compatible; never infer absent data from
+            # them. A positive extent beyond EOF is unambiguously truncated.
+            if position > r.size or length > r.size - position:
+                raise _Invalid('tiff_pixel_data_truncated')
+
+
+def _tiff(r, *, complete=False):
     order = r.read(2)
     if order not in (b'II', b'MM'):
         raise _Invalid('tiff_signature')
@@ -366,10 +418,17 @@ def _tiff(r):
         if count > MAX_RECORDS or r.file.tell()+count*entry_size+inline_size > r.size:
             raise _Invalid('tiff_ifd_bounds')
         values = {}
+        data_tables = {}
         for _ in range(count):
             r.record()
             entry = r.read(entry_size)
             tag, typ = struct.unpack(endian+'HH', entry[:4])
+            if complete and tag in (273, 279, 324, 325, 513, 514):
+                if tag in data_tables:
+                    raise _Invalid('tiff_duplicate_data_table')
+                number = struct.unpack(endian+('I' if version == 42 else 'Q'),
+                                       entry[4:entry_size-inline_size])[0]
+                data_tables[tag] = (typ, number, entry[-inline_size:])
             if tag not in (254, 256, 257, 258, 274, 277, 282, 283, 296, 338):
                 continue
             n = struct.unpack(endian+('I' if version == 42 else 'Q'), entry[4:entry_size-inline_size])[0]
@@ -388,6 +447,8 @@ def _tiff(r):
             else:
                 values[tag] = struct.unpack(endian+codes[typ]*n, payload[:amount])
         offset = struct.unpack(endian+offset_code, r.read(inline_size))[0]
+        if complete:
+            _tiff_data_bounds(r, data_tables, endian, inline_size, offset_code)
         if values.get(254, (0,))[0] & 1:  # Reduced-resolution thumbnails are not pages.
             continue
         width, height = values.get(256, (0,))[0], values.get(257, (0,))[0]
@@ -560,7 +621,7 @@ def inspect_media(path, *, cancel=None, validate_container=False):
             return None
         inspector = {'png': _png, 'gif': _gif, 'webp': _webp, 'tiff': _tiff,
                      'jpeg': _jpeg, 'bmp': _bmp}[kind]
-        result = (inspector(r, complete=True) if validate_container and kind in ('jpeg', 'bmp')
+        result = (inspector(r, complete=True) if validate_container and kind in ('jpeg', 'bmp', 'tiff')
                   else inspector(r))
         return result
     except (_Invalid, struct.error, OverflowError, IndexError) as error:

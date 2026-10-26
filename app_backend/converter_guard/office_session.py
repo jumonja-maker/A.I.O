@@ -9,7 +9,7 @@ import shutil
 import subprocess
 
 from ..native_process import ProcessTree
-from .native_logs import NativeLogs
+from .native_logs import NativeLogs, close_native_pipes
 
 
 class OfficeSession:
@@ -27,30 +27,41 @@ class OfficeSession:
             self.recycle()
         if self.tree:
             return
-        self.workspace.mkdir(parents=True, exist_ok=True)
-        self.profile = self.workspace / secrets.token_hex(8)
-        self.prepare_profile(self.profile)
-        self.pipe = 'aio_guard_' + secrets.token_hex(16)
-        command = [str(self.executable), '-env:UserInstallation=' + self.profile.resolve().as_uri(),
-                   '--headless', '--nologo', '--nodefault', '--norestore',
-                   '--accept=pipe,name=' + self.pipe + ';urp;StarOffice.ServiceManager']
-        self.tree = ProcessTree(command, cwd=self.workspace,
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        self.logs = NativeLogs(self.tree.process)
-        self.completed = 0
-        self.starts += 1
+        try:
+            self.workspace.mkdir(parents=True, exist_ok=True)
+            self.profile = self.workspace / secrets.token_hex(8)
+            self.prepare_profile(self.profile)
+            self.pipe = 'aio_guard_' + secrets.token_hex(16)
+            command = [str(self.executable), '-env:UserInstallation=' + self.profile.resolve().as_uri(),
+                       '--headless', '--nologo', '--nodefault', '--norestore',
+                       '--accept=pipe,name=' + self.pipe + ';urp;StarOffice.ServiceManager']
+            self.tree = ProcessTree(command, cwd=self.workspace,
+                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            self.logs = NativeLogs(self.tree.process)
+            self.completed = 0
+            self.starts += 1
+        except BaseException:
+            try:
+                self.recycle()
+            except Exception:
+                pass  # Keep the startup cause, not a secondary cleanup error.
+            raise
 
     def recycle(self):
         tree, logs, profile = self.tree, self.logs, self.profile
         self.tree = self.logs = self.profile = self.pipe = None
+        stopped = False
         try:
             if tree:
                 tree.close()
+            stopped = True
         finally:
             try:
                 if logs:
                     logs.finish()
             finally:
+                if stopped and tree:
+                    close_native_pipes(getattr(tree, 'process', None))
                 if profile:
                     shutil.rmtree(profile, ignore_errors=True)
 
