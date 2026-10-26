@@ -114,6 +114,24 @@ class SourceScanV22(unittest.TestCase):
                     self.assertFalse(sc.source_model_matches(result, []))
                     self.assertTrue(sc.source_model_matches(result, [service]))
 
+    def test_real_dotm_main_type_remains_content_recognized(self):
+        # Real Word/LibreOffice DOTM main parts use macroEnabledTemplate.
+        # The ordinary macroEnabled suffix would silently turn a valid
+        # template into not_checked, weakening model mismatch detection.
+        self.opc(target='word/document.xml', member='word/document.xml',
+                 mime='application/vnd.ms-word.template.macroEnabledTemplate.main+xml',
+                 content='<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"/>')
+        result = self.scan()
+        self.assertEqual(result['state'], 'recognized')
+        self.assertEqual(result['expectedServices'], [sc.WRITER])
+        self.assertTrue(sc.source_model_matches(result, [sc.WRITER]))
+        self.assertFalse(sc.source_model_matches(result, [sc.CALC]))
+        # The fabricated nonstandard suffix is not independently certified.
+        self.opc(target='word/document.xml', member='word/document.xml',
+                 mime='application/vnd.ms-word.template.macroEnabled.main+xml',
+                 content='<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"/>')
+        self.assertEqual(self.scan()['state'], 'not_checked')
+
     def test_registered_mime_casing_is_not_a_false_rejection(self):
         self.opc(mime='application/vnd.ms-excel.sheet.macroEnabled.main+xml')
         self.assertEqual(self.scan()['expectedServices'], [sc.CALC])
