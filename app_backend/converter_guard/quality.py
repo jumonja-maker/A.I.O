@@ -141,6 +141,10 @@ def _xlsx_values(source, budget):
     digest=hashlib.sha256()
     result={'rows':0,'columns':0,'valuesDigest':None,'sheets':len(book.sheetnames)}
     try:
+        if not book.worksheets:
+            # A valid native spreadsheet may use unsupported Strict relations.
+            # No reader-visible sheet is not proof that the workbook is empty.
+            raise _Limited('xlsx_worksheets_not_inspected')
         if len(book.worksheets)!=1:
             # A flat table digest is not a workbook-wide comparison.
             return result

@@ -35,6 +35,24 @@ def workbook(path, rows, dimension=None, cell_coordinate=None):
             for name, value in files.items(): archive.writestr(name, value)
 
 
+def strict_workbook(path, *, whole_package=False):
+    """Controlled Strict XML namespace fixture, preserving real cell contents."""
+    workbook(path, [['one', 'TWO'], ['third', 'FOUR']])
+    with zipfile.ZipFile(path) as archive:
+        parts = {name: archive.read(name) for name in archive.namelist()}
+    for name, value in parts.items():
+        if name == 'xl/worksheets/sheet1.xml' or whole_package and name.endswith(('.xml', '.rels')):
+            parts[name] = value.replace(
+                b'http://schemas.openxmlformats.org/spreadsheetml/2006/main',
+                b'http://purl.oclc.org/ooxml/spreadsheetml/main')
+            if whole_package:
+                parts[name] = parts[name].replace(
+                    b'http://schemas.openxmlformats.org/officeDocument/2006/relationships',
+                    b'http://purl.oclc.org/ooxml/officeDocument/relationships')
+    with zipfile.ZipFile(path, 'w') as archive:
+        for name, value in parts.items(): archive.writestr(name, value)
+
+
 def flat(path, kind='presentation', body='presentation', text='same', pages=1):
     content = ''.join('<draw:page><text:p>'+text+'</text:p></draw:page>' for _ in range(pages))
     path.write_text('<office:document xmlns:office="'+OFFICE+'" xmlns:draw="'+DRAW+'" xmlns:text="'+TEXT+
@@ -46,6 +64,45 @@ class ComparisonSemanticsV21(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(); self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
+
+    def test_strict_worksheet_source_cannot_certify_missing_values(self):
+        source, result = self.root/'strict.xlsx', self.root/'empty.xlsx'
+        strict_workbook(source); workbook(result, [])
+        report = analyze_pair(source, [result], 'xlsx')
+        self.assertEqual(report['status'], 'not_checked')
+        self.assertFalse(report['before']['complete'])
+        self.assertEqual(report['before']['reason'], 'xlsx_strict_values_not_inspected')
+        self.assertNotIn('cell_values_single_grid', report['checkedFeatures'])
+        self.assertEqual(report['recipeCandidates'], [])
+
+    def test_strict_worksheet_result_cannot_hide_added_values(self):
+        source, result = self.root/'empty.xlsx', self.root/'strict.xlsx'
+        workbook(source, []); strict_workbook(result)
+        report = analyze_pair(source, [result], 'xlsx')
+        self.assertEqual(report['status'], 'not_checked')
+        self.assertFalse(report['after']['complete'])
+        self.assertEqual(report['after']['reason'], 'xlsx_strict_values_not_inspected')
+        self.assertNotIn('cell_values_single_grid', report['checkedFeatures'])
+
+    def test_quality_cannot_hash_strict_cells_as_an_empty_sheet(self):
+        source = self.root/'strict.xlsx'; strict_workbook(source)
+        report = inspect_document(source)
+        self.assertEqual(report['status'], 'not_checked')
+        self.assertFalse(report['complete'])
+        self.assertEqual(report['reason'], 'xlsx_strict_values_not_inspected')
+        self.assertFalse(report.get('cellValues', {}).get('valuesDigest'))
+
+    def test_full_strict_workbook_unrecognized_by_reader_is_incomplete(self):
+        source = self.root/'strict.xlsx'; strict_workbook(source, whole_package=True)
+        original = source.read_bytes()
+        summary, quality = collect_source_summary(source), inspect_document(source)
+        self.assertFalse(summary['complete'])
+        self.assertEqual(summary['reason'], 'xlsx_strict_values_not_inspected')
+        self.assertFalse(quality['complete'])
+        self.assertEqual(quality['status'], 'not_checked')
+        self.assertEqual(quality['reason'], 'xlsx_worksheets_not_inspected')
+        self.assertFalse(quality.get('cellValues', {}).get('valuesDigest'))
+        self.assertEqual(source.read_bytes(), original)
 
     def test_understated_xlsx_dimension_cannot_hide_three_lost_values(self):
         a,b=self.root/'a.xlsx',self.root/'b.xlsx'

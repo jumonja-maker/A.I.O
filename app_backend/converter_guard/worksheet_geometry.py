@@ -53,6 +53,11 @@ def worksheet_geometry(events, *, check, max_cells=MAX_INSPECTION_CELLS, clear=F
                 namespace, _, local = element.tag[1:].partition('}') if element.tag.startswith('{') else ('', '', '')
                 if namespace not in SPREADSHEET_NAMESPACES or local != 'worksheet':
                     raise GeometryUnavailable('xlsx_worksheet_not_recognized')
+                if namespace == 'http://purl.oclc.org/ooxml/spreadsheetml/main':
+                    # The bundled read-only reader silently ignores Strict row/
+                    # cell tags. Valid geometry must not certify an empty read.
+                    # This is only optional evidence, never a native route veto.
+                    raise GeometryUnavailable('xlsx_strict_values_not_inspected')
             prefix = '{' + namespace + '}'
             if element.tag == prefix + 'sheetData' and len(stack) == 2:
                 data_parts += 1
