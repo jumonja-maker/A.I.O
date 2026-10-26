@@ -123,7 +123,9 @@ def main(manifest_name):
     try:
         model = desktop.loadComponentFromURL(source.as_uri(), '_blank', 0, tuple(options))
         services = [s for s in req.get('documentServices', []) if model is not None and model.supportsService(s)]
-        if not services:
+        # Aborting a load interaction can still return a partial native model.
+        # Keep it undetermined rather than offering routes for damaged content.
+        if handler.blocked or not services:
             result = {'state':'undetermined','code':'PREFLIGHT_INTERACTION_REQUIRED'
                       if handler.blocked else 'PREFLIGHT_IMPORT_FAILED'}
         elif req.get('expectedSourceServices') and not set(services).intersection(req['expectedSourceServices']):

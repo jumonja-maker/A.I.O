@@ -16,7 +16,7 @@ import time
 
 from ..native_process import ProcessTree
 from .errors import GuardError
-from .native_logs import NativeLogs
+from .native_logs import NativeLogs, close_native_pipes
 from .dif_evidence import DIF_CORE_SOURCE
 
 WORKER_SOURCE = DIF_CORE_SOURCE + r'''
@@ -356,7 +356,10 @@ def main(boot_name):
                     options.append(prop('FilterOptions', req['importOptions']))
             model = desktop.loadComponentFromURL(source.as_uri(), '_blank', 0, tuple(options))
             timings['importMs'] = round((time.monotonic()-import_tick)*1000)
-            if model is None:
+            # A native importer may return a partial model after an aborted
+            # interaction. Model existence alone does not prove that import
+            # completed; never admit routes or export that partial model.
+            if model is None or handler.blocked:
                 result = {'id':request_id,'ok':False,'code':'PREFLIGHT_INTERACTION_REQUIRED'
                           if handler.blocked else 'SOURCE_IMPORT_FAILED','stage':'import'}
             else:
@@ -446,10 +449,13 @@ def main(boot_name):
                                   for p in exported_paths)
                     # Result paths stay on disk. Thousands of HTML sidecars
                     # must not overflow the small control-message channel.
-                    result = {'id':request_id,'ok':present and not export_handler.blocked,
+                    result = {'id':request_id,'ok':present and not export_handler.blocked and not handler.blocked,
                               'primary':(target.name if target.is_file() else
                                          exported_paths[0].name if exported_paths else target.name),'stage':'export',
-                              'code':('EXPORT_INTERACTION_REQUIRED' if export_handler.blocked else
+                              # Some importers resolve objects lazily during
+                              # storeToURL and invoke the original load handler.
+                              'code':('PREFLIGHT_INTERACTION_REQUIRED' if handler.blocked else
+                                      'EXPORT_INTERACTION_REQUIRED' if export_handler.blocked else
                                       'ENGINE_OUTPUT_MISSING' if not present else None)}
                     if req['exportFilter'] == 'dBase' and list(Path(req['output']).glob('*.aio-columns.jsonl')):
                         result['warnings'] = ['NATIVE_DBF_MIXED_COLUMN_TEXT']
@@ -457,7 +463,7 @@ def main(boot_name):
             result = {'id':request_id,'ok':False,'code':('DIF_NUMERIC_IMPORT_MISMATCH'
                       if isinstance(error, DifNumericMismatch) else
                       'PREFLIGHT_INTERACTION_REQUIRED'
-                      if stage == 'import' and handler is not None and handler.blocked else
+                      if handler is not None and handler.blocked else
                       'SOURCE_IMPORT_FAILED' if stage == 'import' else
                       'EXPORT_INTERACTION_REQUIRED' if export_handler is not None and export_handler.blocked
                       else 'ENGINE_FAILED'),
@@ -582,36 +588,43 @@ class UnoSession:
             self.recycle()
         if self.tree:
             return
-        self.workspace.mkdir(parents=True,exist_ok=True)
-        self.profile = self.workspace / secrets.token_hex(8)
-        self.prepare_profile(self.profile)
-        self.pipe = 'aio_guard_' + secrets.token_hex(16)
-        worker, boot = self.workspace/'worker.py', self.workspace/'boot.json'
-        worker.write_text(WORKER_SOURCE,encoding='utf-8')
-        start = self.workspace/'start.token';start.unlink(missing_ok=True)
-        boot.write_text(json.dumps({'program':str(self.executable.parent),'executable':str(self.executable),
-                                   'profile':str(self.profile.resolve()),
-                                   'pipe':self.pipe,'start':str(start)}),encoding='utf-8')
-        environment = dict(os.environ)
-        environment.pop('PYTHONHOME',None);environment.pop('PYTHONPATH',None)
-        environment['PYTHONNOUSERSITE']='1'
-        self.responses = queue.Queue(maxsize=8)
-        self.tree = ProcessTree([str(self.executable.parent/'python.exe'),str(worker),str(boot)],
-            cwd=self.workspace,env=environment,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-        self.logs = NativeLogs(self.tree.process,capture_stdout=False)
-        self.reader = threading.Thread(target=self._read,args=(self.tree.process.stdout,self.responses),daemon=True,name='aio-uno-response')
-        self.reader.start()
-        start.write_text('ready',encoding='ascii')
-        self.starts += 1
         try:
-            response = self._receive('ready',cancel,timeout)
-        except GuardError as error:
-            if error.code in ('CANCELLED','ENGINE_TIMEOUT'):
-                raise
-            raise GuardError('UNO_SESSION_UNAVAILABLE','Не удалось запустить нативный UNO.',stage='launch') from error
-        if not response.get('ok'):
-            raise GuardError('UNO_SESSION_UNAVAILABLE','Нативный UNO недоступен.',stage='launch')
-        self.completed = 0
+            self.workspace.mkdir(parents=True,exist_ok=True)
+            self.profile = self.workspace / secrets.token_hex(8)
+            self.prepare_profile(self.profile)
+            self.pipe = 'aio_guard_' + secrets.token_hex(16)
+            worker, boot = self.workspace/'worker.py', self.workspace/'boot.json'
+            worker.write_text(WORKER_SOURCE,encoding='utf-8')
+            start = self.workspace/'start.token';start.unlink(missing_ok=True)
+            boot.write_text(json.dumps({'program':str(self.executable.parent),'executable':str(self.executable),
+                                       'profile':str(self.profile.resolve()),
+                                       'pipe':self.pipe,'start':str(start)}),encoding='utf-8')
+            environment = dict(os.environ)
+            environment.pop('PYTHONHOME',None);environment.pop('PYTHONPATH',None)
+            environment['PYTHONNOUSERSITE']='1'
+            self.responses = queue.Queue(maxsize=8)
+            self.tree = ProcessTree([str(self.executable.parent/'python.exe'),str(worker),str(boot)],
+                cwd=self.workspace,env=environment,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+            self.logs = NativeLogs(self.tree.process,capture_stdout=False)
+            self.reader = threading.Thread(target=self._read,args=(self.tree.process.stdout,self.responses),daemon=True,name='aio-uno-response')
+            self.reader.start()
+            start.write_text('ready',encoding='ascii')
+            self.starts += 1
+            try:
+                response = self._receive('ready',cancel,timeout)
+            except GuardError as error:
+                if error.code in ('CANCELLED','ENGINE_TIMEOUT'):
+                    raise
+                raise GuardError('UNO_SESSION_UNAVAILABLE','Не удалось запустить нативный UNO.',stage='launch') from error
+            if not response.get('ok'):
+                raise GuardError('UNO_SESSION_UNAVAILABLE','Нативный UNO недоступен.',stage='launch')
+            self.completed = 0
+        except BaseException:
+            try:
+                self.recycle()
+            except Exception:
+                pass  # Preserve the original startup failure; cleanup was attempted.
+            raise
 
     def request(self, value, *, cancel, timeout, on_stage=lambda stage:None):
         try:
@@ -638,11 +651,13 @@ class UnoSession:
     def recycle(self):
         tree, reader, logs, profile = self.tree, self.reader, self.logs, self.profile
         self.tree = self.reader = self.logs = self.profile = self.pipe = None
+        stopped = False
         try:
             # Terminate the owned process before flushing/closing its stdin.
             # BrokenPipeError previously skipped every remaining cleanup step.
             if tree:
                 tree.close()
+            stopped = True
         finally:
             try:
                 if tree and tree.process.stdin:
@@ -652,11 +667,13 @@ class UnoSession:
                         pass
             finally:
                 try:
-                    if reader:
+                    if reader and getattr(reader, 'ident', True) is not None:
                         reader.join(timeout=1)
                     if logs:
                         logs.finish()
                 finally:
+                    if stopped and tree:
+                        close_native_pipes(getattr(tree, 'process', None))
                     if profile:
                         shutil.rmtree(profile,ignore_errors=True)
 

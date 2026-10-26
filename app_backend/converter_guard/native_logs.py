@@ -49,3 +49,19 @@ class NativeLogs:
         for thread in self._threads:
             thread.join(timeout=1)
         return self.text()
+
+
+def close_native_pipes(process):
+    """Close orphaned pipe ends only after their owned process tree stopped.
+
+    Normally response/log drainers close their streams. Startup failures may
+    occur before either reader starts, so no thread owns those handles yet.
+    Never use this to interrupt a live reader or an unrelated office process.
+    """
+    for name in ('stdin', 'stdout', 'stderr'):
+        stream = getattr(process, name, None)
+        if stream is not None:
+            try:
+                stream.close()
+            except (OSError, ValueError):
+                pass

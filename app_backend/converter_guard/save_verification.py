@@ -83,12 +83,15 @@ def verify_folder(folder, entries, *, cancel=None, on_progress=lambda current, t
         if cancel and cancel.is_set():
             raise GuardError('SAVE_CANCELLED', 'Проверка сохранённых файлов отменена.', stage='save')
         try:
-            relative = resource_path(entry.get('path'))
+            relative = entry.get('path')
+            canonical = resource_path(relative)
         except (AttributeError, GuardError) as error:
             raise GuardError('SAVE_VERIFY_FAILED', 'Недопустимый путь результата.', stage='save') from error
-        if relative.casefold() in seen:
+        # Validate portable/canonical collisions without rewriting a native
+        # filename: NTFS and Linux preserve decomposed Unicode byte-for-byte.
+        if canonical.casefold() in seen:
             raise GuardError('SAVE_VERIFY_FAILED', 'Повторный путь в списке результатов.', stage='save')
-        seen.add(relative.casefold())
+        seen.add(canonical.casefold())
         if (type(entry.get('size')) is not int or entry['size'] < 0
                 or not re.fullmatch(r'[0-9a-f]{64}', str(entry.get('sha256')))):
             raise GuardError('SAVE_VERIFY_FAILED', 'Недопустимое описание результата.', stage='save')

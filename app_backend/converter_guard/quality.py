@@ -15,6 +15,8 @@ import time
 from xml.etree import ElementTree as ET
 import zipfile
 
+from .worksheet_geometry import GeometryUnavailable, worksheet_geometry
+
 BUDGET_BYTES = 64*1024*1024
 BUDGET_SECONDS = 8
 WORD = re.compile(r'\S+')
@@ -130,7 +132,12 @@ def _xlsx_values(source, budget):
                 while reader.read(65536):
                     pass
     budget.check()
-    book=load_workbook(source,read_only=True,data_only=False,keep_links=False)
+    source_stream=source.open('rb')
+    try:
+        book=load_workbook(source_stream,read_only=True,data_only=False,keep_links=False)
+    except BaseException:
+        source_stream.close()
+        raise
     digest=hashlib.sha256()
     result={'rows':0,'columns':0,'valuesDigest':None,'sheets':len(book.sheetnames)}
     try:
@@ -138,20 +145,34 @@ def _xlsx_values(source, budget):
             # A flat table digest is not a workbook-wide comparison.
             return result
         sheet=book.worksheets[0]
-        for row in sheet.iter_rows():
-            budget.check()
-            result['rows']+=1
-            values=[]
-            for cell in row:
-                value=cell.value
-                values.append('' if value is None else str(value))
-            result['columns']=max(result['columns'],len(values))
-            data=json.dumps(values,ensure_ascii=True,separators=(',',':')).encode('ascii')+b'\n'
-            budget.check(len(data));digest.update(data)
+        with zipfile.ZipFile(source) as archive, archive.open(sheet._worksheet_path) as stream:
+            try:
+                max_row,max_column=worksheet_geometry(
+                    ET.iterparse(budget.wrap(stream),events=('start','end')),check=budget.check,clear=True)
+            except GeometryUnavailable as error:
+                raise _Limited(str(error)) from error
+        sheet.reset_dimensions()
+        iterator=sheet.iter_rows(max_row=max_row,max_col=max_column) if max_row and max_column else ()
+        try:
+            for row in iterator:
+                budget.check()
+                result['rows']+=1
+                values=[]
+                for cell in row:
+                    value=cell.value
+                    values.append('' if value is None else str(value))
+                result['columns']=max(result['columns'],len(values))
+                data=json.dumps(values,ensure_ascii=True,separators=(',',':')).encode('ascii')+b'\n'
+                budget.check(len(data));digest.update(data)
+        finally:
+            close=getattr(iterator,'close',None)
+            if close is not None:
+                close()
         result['valuesDigest']=digest.hexdigest()
         return result
     finally:
         book.close()
+        source_stream.close()
 
 
 def inspect_document(source, *, cancel=None, seconds=BUDGET_SECONDS, max_bytes=BUDGET_BYTES):

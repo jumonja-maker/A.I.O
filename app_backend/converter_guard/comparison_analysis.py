@@ -23,6 +23,7 @@ import xml.etree.ElementTree as ET
 import zipfile
 
 from .errors import GuardError
+from .worksheet_geometry import GeometryUnavailable, worksheet_geometry, tree_events
 from .media_fidelity import ALIASES, ANIMATED_TARGETS, RASTER, display_dimensions, display_page_dimensions, inspect_media
 
 MAX_READ = 32 * 1024 * 1024
@@ -251,6 +252,47 @@ def _odf_grids(root, budget):
     return sheets
 
 
+def _odf_summary(root, mime, budget, *, flat=False, names=()):
+    # Templates and Flat XML are the same document families as their editable
+    # counterparts.  A suffix alone must neither invent a text model nor hide
+    # multiple presentation slides or sheets from the comparison.
+    from .source_contract import ODF
+    prefix = 'application/vnd.oasis.opendocument.'
+    if not mime.startswith(prefix):
+        raise _Limited('unrecognized_package')
+    kind = mime[len(prefix):]
+    if flat:
+        kind = {'presentation-flat-xml': 'presentation', 'text-flat-xml': 'text'}.get(kind, kind)
+    family = ODF.get(kind, (None,))[0]
+    if family not in ('text', 'spreadsheet', 'presentation', 'drawing'):
+        raise _Limited('odf_document_family_not_inspected')
+    expected_root = '{%s}%s' % (OFFICE, 'document' if flat else 'document-content')
+    if root.tag != expected_root:
+        raise _Limited('odf_document_root_not_recognized')
+    body = root.find('{%s}body' % OFFICE)
+    bodies = list(body) if body is not None else []
+    if len(bodies) != 1 or bodies[0].tag != '{%s}%s' % (OFFICE, family):
+        raise _Limited('odf_mimetype_body_mismatch')
+    grids = _odf_grids(root, budget)
+    counts = {'tables': len(grids),
+              'formulas': sum('{%s}formula' % TABLE in item.attrib for item in root.iter())}
+    if not flat:
+        counts['images'] = sum(name.startswith('Pictures/') and not name.endswith('/') for name in names)
+    if family == 'spreadsheet':
+        counts['sheets'] = len(grids)
+    if family in ('presentation', 'drawing'):
+        pages = bodies[0].findall('{urn:oasis:names:tc:opendocument:xmlns:drawing:1.0}page')
+        counts['slides' if family == 'presentation' else 'pages'] = len(pages)
+    unknown = ['notes_and_comments', 'tracked_changes', 'embedded_objects',
+               'cell_types', 'sheet_names_and_identity', 'cell_formatting']
+    if flat:
+        unknown.append('flat_odf_embedded_images')
+    return {'kind': 'odf', 'documentClass': family, 'complete': True,
+            '_text': _paragraph_text(root, budget), '_grids': grids,
+            'hasStyles': any(any(key.endswith('}style-name') for key in item.attrib) for item in root.iter()),
+            'unknown': unknown, 'counts': counts}
+
+
 def _word_grids(root, budget):
     result, cells = [], 0
     for namespace in (WORD, STRICT_WORD):
@@ -328,7 +370,7 @@ def _word_summary(archive, names, budget):
     if sum(map(len, texts)) > MAX_TEXT:
         raise _Limited('text_budget')
     return {'kind': 'ooxml', 'documentClass': 'text', 'complete': True,
-        '_text': '\n'.join(texts), '_grids': _word_grids(root, budget),
+        '_text': '\n'.join(texts), '_body_text': texts[0], '_grids': _word_grids(root, budget),
         'textCoverage': sorted(coverage), 'hasStyles': 'word/styles.xml' in names,
         'unknown': ['comments_and_revisions', 'hidden_text', 'field_evaluation',
                     'textboxes_reading_order', 'word_table_structure'],
@@ -443,10 +485,17 @@ def _xlsx_summary(path, archive, budget):
              item.filename.lower().endswith(('.xml', '.rels'))]
     if sum(item.file_size for item in parts) > MAX_READ - budget.used:
         raise _Limited('xlsx_xml_budget')
+    geometries = {}
     for item in parts:
         if item.filename != '[Content_Types].xml':
             with archive.open(item) as stream:
-                _xml(budget.read(stream), budget)
+                root = _xml(budget.read(stream), budget)
+            if root.tag.rsplit('}', 1)[-1] == 'worksheet':
+                try:
+                    geometries[item.filename] = worksheet_geometry(
+                        tree_events(root), check=budget.check, max_cells=MAX_CELLS)
+                except GeometryUnavailable as error:
+                    raise _Limited(str(error)) from error
     from openpyxl import load_workbook
     # We identify the container before the suffix. A spreadsheet incorrectly
     # named .docx should be reported as a model mismatch, not hidden by
@@ -460,34 +509,48 @@ def _xlsx_summary(path, archive, budget):
     try:
         sheets, cells, formulas, styles = [], 0, 0, False
         for sheet in book:
-            if sheet.max_row and sheet.max_column and sheet.max_row * sheet.max_column > MAX_CELLS:
+            # The dimension hint may be smaller than the real data.  Reset it
+            # only after actual XML coordinates have been bounded, so a sparse
+            # malicious coordinate cannot force an unbounded dense allocation.
+            bounds = geometries.get(sheet._worksheet_path)
+            if bounds is None:
+                raise _Limited('xlsx_worksheet_geometry_unavailable')
+            max_row, max_column = bounds
+            if cells + max_row * max_column > MAX_CELLS:
                 raise _Limited('cell_budget')
+            sheet.reset_dimensions()
             rows = []
-            for row in sheet.iter_rows():
-                budget.check()
-                values = []
-                for cell in row:
-                    cells += 1
-                    if cells > MAX_CELLS:
-                        raise _Limited('cell_budget')
-                    # Read-only sparse sheets yield EmptyCell placeholders,
-                    # which carry no style metadata or has_style property.
-                    styles = styles or getattr(cell, 'has_style', False)
-                    value = cell.value
-                    if cell.data_type == 'f':
-                        formulas += 1
-                        values.append(_value('', 'unknown', formula=str(value)))
-                    elif value is None:
-                        values.append(_value(''))
-                    elif isinstance(value, bool):
-                        values.append(_value(str(value).lower(), 'boolean'))
-                    elif isinstance(value, (int, float, Decimal)):
-                        values.append(_value(str(value), 'number'))
-                    elif hasattr(value, 'isoformat'):
-                        values.append(_value(value.isoformat(), 'date'))
-                    else:
-                        values.append(_value(value))
-                rows.append(values)
+            iterator = sheet.iter_rows(max_row=max_row, max_col=max_column) if max_row and max_column else ()
+            try:
+                for row in iterator:
+                    budget.check()
+                    values = []
+                    for cell in row:
+                        cells += 1
+                        if cells > MAX_CELLS:
+                            raise _Limited('cell_budget')
+                        # Read-only sparse sheets yield EmptyCell placeholders,
+                        # which carry no style metadata or has_style property.
+                        styles = styles or getattr(cell, 'has_style', False)
+                        value = cell.value
+                        if cell.data_type == 'f':
+                            formulas += 1
+                            values.append(_value('', 'unknown', formula=str(value)))
+                        elif value is None:
+                            values.append(_value(''))
+                        elif isinstance(value, bool):
+                            values.append(_value(str(value).lower(), 'boolean'))
+                        elif isinstance(value, (int, float, Decimal)):
+                            values.append(_value(str(value), 'number'))
+                        elif hasattr(value, 'isoformat'):
+                            values.append(_value(value.isoformat(), 'date'))
+                        else:
+                            values.append(_value(value))
+                    rows.append(values)
+            finally:
+                close = getattr(iterator, 'close', None)
+                if close is not None:
+                    close()
             sheets.append({'name': sheet.title, 'rows': _trim(rows)})
         return {'kind': 'ooxml', 'documentClass': 'spreadsheet', 'complete': True,
                 '_grids': sheets, '_text': '', 'counts': {'sheets': len(sheets), 'cells': cells,
@@ -584,34 +647,16 @@ def collect_source_summary(source, *, cancel=None):
                 elif 'content.xml' in names and 'mimetype' in names:
                     with archive.open('mimetype') as stream:
                         mime = budget.read(stream, 256).decode('ascii')
-                    if not mime.startswith('application/vnd.oasis.opendocument.'):
-                        raise _Limited('unrecognized_package')
                     with archive.open('content.xml') as stream:
                         root = _xml(budget.read(stream), budget)
-                    kind = mime.rsplit('.', 1)[-1]
-                    result.update(kind='odf', documentClass={'spreadsheet': 'spreadsheet', 'presentation': 'presentation',
-                        'graphics': 'drawing'}.get(kind, 'text'),
-                        complete=True, _text=_paragraph_text(root, budget), _grids=_odf_grids(root, budget),
-                        hasStyles=any(any(key.endswith('}style-name') for key in x.attrib) for x in root.iter()),
-                        unknown=['notes_and_comments', 'tracked_changes', 'embedded_objects',
-                                 'cell_types', 'sheet_names_and_identity', 'cell_formatting'],
-                        counts={'tables': len(root.findall('.//{%s}table' % TABLE)),
-                                'images': sum(n.startswith('Pictures/') and not n.endswith('/') for n in names),
-                                'formulas': sum('{%s}formula' % TABLE in x.attrib for x in root.iter())})
-                    if result['documentClass'] == 'spreadsheet':
-                        result['counts']['sheets'] = len(result['_grids'])
+                    result.update(_odf_summary(root, mime, budget, names=names))
                 else:
                     result['reason'] = 'unsupported_package'
         elif source.suffix.lower() in ('.fods', '.fodt', '.fodp', '.fodg'):
             with source.open('rb') as stream:
                 root = _xml(budget.read(stream), budget)
-            kind = root.get('{%s}mimetype' % OFFICE, '')
-            result.update(kind='odf', documentClass='spreadsheet' if kind.endswith('.spreadsheet') else 'text',
-                          complete=True, _text=_paragraph_text(root, budget), _grids=_odf_grids(root, budget),
-                          unknown=['notes_and_comments', 'tracked_changes', 'embedded_objects',
-                                   'cell_types', 'sheet_names_and_identity', 'cell_formatting'],
-                          counts={'tables': len(root.findall('.//{%s}table' % TABLE)),
-                                  'formulas': sum('{%s}formula' % TABLE in x.attrib for x in root.iter())})
+            mime = root.get('{%s}mimetype' % OFFICE, '')
+            result.update(_odf_summary(root, mime, budget, flat=True))
         elif source.suffix.lower() in ('.csv', '.tsv', '.tab'):
             result.update(_csv_summary(source, budget))
         elif source.suffix.lower() in ('.txt', '.text', '.md'):
@@ -961,10 +1006,19 @@ def analyze_pair(source, paths, target, *, cancel=None, source_evidence=None):
                  if multi_csv else collect_source_summary(primary, cancel=cancel))
         report['outputScope']['inspectedPrimaryFiles'] = len(candidates)
         report['after'] = _public(after)
-        required_models = {'docx': ('ooxml', 'text'), 'xlsx': ('ooxml', 'spreadsheet'),
-                           'pptx': ('ooxml', 'presentation'), 'odt': ('odf', 'text'),
-                           'ods': ('odf', 'spreadsheet'), 'odp': ('odf', 'presentation'),
-                           'odg': ('odf', 'drawing'), 'pdf': ('pdf', 'rendered')}
+        required_models = {
+            extension: (container, family)
+            for extensions, container, family in (
+                (('docx', 'docm', 'dotx', 'dotm'), 'ooxml', 'text'),
+                (('xlsx', 'xlsm', 'xltx', 'xltm'), 'ooxml', 'spreadsheet'),
+                (('pptx', 'pptm', 'potx', 'potm', 'ppsx', 'ppsm'), 'ooxml', 'presentation'),
+                (('odt', 'ott', 'fodt'), 'odf', 'text'),
+                (('ods', 'ots', 'fods'), 'odf', 'spreadsheet'),
+                (('odp', 'otp', 'fodp'), 'odf', 'presentation'),
+                (('odg', 'otg', 'fodg'), 'odf', 'drawing'),
+                (('pdf',), 'pdf', 'rendered'),
+            ) for extension in extensions
+        }
         if after.get('complete') and target in required_models and (
                 after.get('kind'), after.get('documentClass')) != required_models[target]:
             raise GuardError('OUTPUT_FORMAT_MISMATCH', 'Структура результата не соответствует выбранному формату.', stage='comparison')
@@ -1033,7 +1087,11 @@ def analyze_pair(source, paths, target, *, cancel=None, source_evidence=None):
                 'message': 'В результате нет редактируемой модели формул исходной книги.', 'certainty': 'format_contract'})
         if before.get('complete') and after.get('complete'):
             if before.get('documentClass') == after.get('documentClass'):
-                for field in ('tables', 'slides', 'sheets', 'images'):
+                for field in ('tables', 'slides', 'sheets', 'images', 'pages'):
+                    if field == 'pages' and media_a and media_b:
+                        # Timed frames and TIFF pages have an explicit mapping
+                        # above; their raw page counts are not comparable.
+                        continue
                     left_count, right_count = before.get('counts', {}).get(field), after.get('counts', {}).get(field)
                     if left_count is not None and right_count is not None and left_count != right_count:
                         findings.append({'code': 'STRUCTURE_' + field.upper() + '_COUNT_CHANGED', 'category': 'uncertain',
@@ -1055,9 +1113,20 @@ def analyze_pair(source, paths, target, *, cancel=None, source_evidence=None):
                 findings.append({'code': 'PDF_TEXT_NOT_EXTRACTED', 'category': 'uncertain', 'feature': 'text',
                     'message': 'Текст PDF не извлечён. Это не доказательство потери видимого текста.', 'certainty': 'requires_review'})
             elif text_a and not text_b and after.get('kind') == 'text':
-                findings.append({'code': 'TEXT_OUTPUT_EMPTY', 'category': 'confirmed_loss', 'feature': 'text',
-                    'message': 'В исходнике извлечён текст, а текстовый результат пуст.',
-                    'before': len(text_a), 'after': 0, 'certainty': 'confirmed_subset'})
+                auxiliary_only = (before.get('kind') == 'ooxml' and before.get('documentClass') == 'text'
+                                  and not _normal(before.get('_body_text', '')))
+                if auxiliary_only:
+                    # Conventional headers/notes are included for recovery and
+                    # preview even if detached. Their mere presence cannot
+                    # prove that an empty body lost visible text during export.
+                    unknown.add('word_auxiliary_text_visibility')
+                    findings.append({'code': 'WORD_AUXILIARY_TEXT_NOT_CONFIRMED', 'category': 'uncertain',
+                        'feature': 'text', 'certainty': 'requires_review',
+                        'message': 'Текст найден только во вспомогательных частях исходника. Их включение в видимое содержимое не подтверждено; пустой текстовый результат требует проверки.'})
+                else:
+                    findings.append({'code': 'TEXT_OUTPUT_EMPTY', 'category': 'confirmed_loss', 'feature': 'text',
+                        'message': 'В исходнике извлечён текст, а текстовый результат пуст.',
+                        'before': len(text_a), 'after': 0, 'certainty': 'confirmed_subset'})
             if after.get('kind') == 'pdf' and before.get('counts', {}).get('images', 0) > 0 and not media_a:
                 findings.append({'code': 'PDF_IMAGE_PROPERTIES_UNVERIFIED', 'category': 'uncertain', 'feature': 'images',
                     'message': 'Встроенные изображения требуют проверки качества PDF; число объектов не доказывает сохранность пикселей.',

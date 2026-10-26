@@ -7,6 +7,7 @@ import secrets
 import select
 import socket
 import threading
+import time
 from urllib.parse import parse_qs, quote, urlsplit
 
 from ..libreoffice_catalog import mime_for
@@ -20,15 +21,21 @@ class _CancelableInput:
     """Windows-safe short socket reads; wake on Guard cancellation.
 
     AIO's BaseHTTPRequestHandler has rbufsize=0, so this socket has no
-    prefetched HTTP body bytes. No size or elapsed-time conversion limit is
-    imposed by this reader.
+    prefetched HTTP body bytes. The configured idle timeout bounds a stalled
+    transfer, not its total duration or the size of a document.
     """
-    def __init__(self, connection, cancel):
+    def __init__(self, connection, cancel, *, idle_timeout):
         self.connection, self.cancel = connection, cancel
+        self.idle_timeout = idle_timeout
 
     def read(self, size):
+        deadline = time.monotonic() + self.idle_timeout
         while not self.cancel.is_set():
-            ready, _, _ = select.select([self.connection], [], [], 0.1)
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise GuardError('UPLOAD_IDLE_TIMEOUT', 'Передача файла остановилась. Повторите загрузку.',
+                                 stage='upload', status=408)
+            ready, _, _ = select.select([self.connection], [], [], min(0.1, remaining))
             if ready:
                 try:
                     return self.connection.recv(size)
@@ -141,12 +148,14 @@ class GuardAPI:
             pass
 
     def close(self):
-        self.comparison.close()
+        # Reject new work and interrupt HTTP bodies first. Comparison shutdown
+        # can wait for worker leases; it must not leave admission open meanwhile.
         with self._lock:
             self._closed = True
             connections = list(self._connections)
         for connection in connections:
             self._shutdown(connection, socket.SHUT_RDWR)
+        self.comparison.close()
 
     def get(self, handler, path):
         try:
@@ -202,7 +211,8 @@ class GuardAPI:
                     extra = (self._query(handler, 'path'),) if path.endswith('/resource') else ()
                     method(self._identity(self._query(handler, 'job')),
                         self._query(handler, 'file'), *extra,
-                        _CancelableInput(handler.connection, cancelled), length,
+                        _CancelableInput(handler.connection, cancelled,
+                            idle_timeout=self.guard.limits.upload_idle_timeout), length,
                         interrupt=cancelled.set)
                 return self._json(handler,200, {'ok': True})
             # Track metadata reads too: close() must unblock a stalled JSON body.
@@ -273,6 +283,7 @@ class GuardAPI:
                     compact=body.get('compact', False)))
             if path == PREFIX + '/release':
                 self.guard.release(identity, discard=body.get('discard', False))
+                self.comparison.release(identity)
                 return self._json(handler,200, {'ok': True})
             raise GuardError('API_NOT_FOUND', 'Неизвестная операция Guard.', status=404)
         except GuardError as error:
@@ -324,6 +335,12 @@ class GuardAPI:
                 expected_analysis_id=expected_analysis_id))
         if path == PREFIX + '/compare/preview':
             query = parse_qs(urlsplit(handler.path).query, keep_blank_values=True)
+            expected_analysis_id = None
+            if 'analysisId' in query:
+                values = query['analysisId']
+                if len(values) != 1 or re.fullmatch(r'[0-9a-f]{32}', values[0]) is None:
+                    raise GuardError('COMPARISON_ID', 'Неверный идентификатор сеанса анализа.')
+                expected_analysis_id = values[0]
             try:
                 if any(len(values) != 1 for values in query.values()):
                     raise ValueError('duplicate preview query')
@@ -337,7 +354,8 @@ class GuardAPI:
             except ValueError as error:
                 raise GuardError('COMPARISON_PAGE', 'Неверная страница предпросмотра.') from error
             with self._transfer(handler), self.comparison.preview(identity, task,
-                    self._query(handler, 'side'), page=page, output_index=output_index) as value:
+                    self._query(handler, 'side'), page=page, output_index=output_index,
+                    expected_analysis_id=expected_analysis_id) as value:
                 if 'json' in value:
                     return self._json(handler, 200, value['json'])
                 handler.send_response(200)
