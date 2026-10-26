@@ -16,8 +16,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  AIO_QA_SOURCE_SHA: 2fb9f356733155af3ae2915b11b353f6a2d1309b
-  AIO_QA_TREE_SHA: f7d1491efc4b5f1eef05d278dc929c1f9b063b30
+  AIO_QA_SOURCE_SHA: feb5ddc3bc0368adb6ce73c1ea3f6f430b2617f1
+  AIO_QA_TREE_SHA: 1e5a2fa645f7b2151340fc669b87daf98529a569
   PYTHONDONTWRITEBYTECODE: '1'
   PYTHONUTF8: '1'
   PYTHONIOENCODING: utf-8
@@ -69,7 +69,7 @@ jobs:
           GIT_CONFIG_VALUE_0: 'false'
         with:
           repository: jumonja-maker/A.I.O
-          ref: 2fb9f356733155af3ae2915b11b353f6a2d1309b
+          ref: feb5ddc3bc0368adb6ce73c1ea3f6f430b2617f1
           path: aio-pr59-v20-source-${{ github.run_id }}-${{ github.run_attempt }}
           persist-credentials: false
           clean: true
