@@ -35,7 +35,7 @@ class SourceEvidence:
                 info.st_mtime_ns, info.st_ctime_ns)
 
     def get(self, key, source, loader):
-        if key not in ('odf_table_text', 'media_profile'):
+        if key not in ('odf_table_text', 'media_profile', 'presentation_content'):
             raise ValueError('unknown_source_evidence_key')
         identity = self._identity(source)
         if identity != self.identity:
@@ -111,7 +111,9 @@ class _AttributeLimiter:
     the rest *only in the parser's inspection copy*.  Output files never change.
     Comments are copied literally so quotes in comments cannot swallow a body.
     """
-    def __init__(self):
+    def __init__(self, attribute_limit=4096):
+        self.attribute_limit = attribute_limit
+        self.truncated = False
         self.in_tag = False
         self.quote = None
         self.kept = 0
@@ -142,7 +144,9 @@ class _AttributeLimiter:
             if self.quote is not None:
                 closing = text.find(self.quote, index)
                 end = len(text) if closing < 0 else closing
-                keep = min(4096 - self.kept, end - index)
+                keep = min(self.attribute_limit - self.kept, end - index)
+                if keep < end - index:
+                    self.truncated = True
                 if keep:
                     result.append(text[index:index + keep])
                     self.kept += keep
@@ -279,6 +283,9 @@ def check_native_output(paths, target, source, *, cancel, budget=None, source_ev
     _cancelled(cancel)
     invariant = check_content_invariants(paths, target, source, cancel=cancel,
                                          source_evidence=source_evidence)
+    from .presentation_evidence import check_presentation_html
+    presentation = check_presentation_html(paths, target, source, cancel=cancel,
+                                            source_evidence=source_evidence)
     media = check_media_preservation(paths, target, source, cancel=cancel,
                                      source_evidence=source_evidence)
     if media is not None:
@@ -289,7 +296,10 @@ def check_native_output(paths, target, source, *, cancel, budget=None, source_ev
         result = _check_html(paths, Path(source), cancel=cancel, budget=budget)
     else:
         result = None
-    if result is not None and invariant is not None:
-        return {**result, 'additionalChecks': [invariant]}
-    return result if result is not None else invariant
+    checks = [item for item in (invariant, presentation) if item is not None]
+    if result is not None:
+        return {**result, 'additionalChecks': checks} if checks else result
+    if checks:
+        return {**checks[0], 'additionalChecks': checks[1:]} if len(checks) > 1 else checks[0]
+    return None
 

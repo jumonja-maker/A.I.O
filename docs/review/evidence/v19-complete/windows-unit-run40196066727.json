@@ -1,0 +1,60 @@
+{
+  "status": "FAIL",
+  "discovered": 791,
+  "passed": 781,
+  "failed": 2,
+  "errors": 1,
+  "skipped": [
+    {
+      "test": "test_converter_guard_process_v02.ControlledProcessTests.test_deadline_kills_own_process_tree_and_next_file_runs",
+      "reason": "POSIX test fixture; real Windows Job Object needs Windows acceptance",
+      "status": "not_applicable"
+    },
+    {
+      "test": "test_converter_guard_process_v02.ControlledProcessTests.test_live_output_quota_stops_only_the_growing_process",
+      "reason": "POSIX test fixture; real Windows Job Object needs Windows acceptance",
+      "status": "not_applicable"
+    },
+    {
+      "test": "test_converter_guard_process_v02.ControlledProcessTests.test_slow_cleanup_does_not_hold_the_global_metadata_lock",
+      "reason": "POSIX test fixture; real Windows Job Object needs Windows acceptance",
+      "status": "not_applicable"
+    },
+    {
+      "test": "test_guard_native_metrics_v11.NativeMetricsQA.test_cli_measures_process_time_without_inventing_import_or_export_times",
+      "reason": "Executable generated fixture uses a POSIX shebang",
+      "status": "not_applicable"
+    },
+    {
+      "test": "test_guard_native_metrics_v11.NativeMetricsQA.test_twenty_worker_recycles_leave_no_live_readers_profiles_or_pipe_descriptors",
+      "reason": "Owned POSIX worker lifecycle; not Windows Job Object QA",
+      "status": "not_applicable"
+    },
+    {
+      "test": "test_guard_queue_audit_v18.ResultDeltaTests.test_unsupported_hardlinks_use_exclusive_copy_and_independent_readback",
+      "reason": "POSIX link-unsupported fallback",
+      "status": "not_applicable"
+    },
+    {
+      "test": "test_guard_queue_audit_v18.ResultDeltaTests.test_unsupported_link_fallback_still_rejects_a_competing_target",
+      "reason": "POSIX link-unsupported fallback",
+      "status": "not_applicable"
+    }
+  ],
+  "failureDetails": [
+    {
+      "test": "test_comparison_analysis_v19.ComparisonAnalysisV19.test_csv_preview_truncation_does_not_hide_complete_value_inspection",
+      "traceback": "Traceback (most recent call last):\n  File \"D:\\actions-runner\\_work\\A.I.O\\A.I.O\\aio-pr54-v19-source-40196066727-1\\tests\\test_comparison_analysis_v19.py\", line 561, in test_csv_preview_truncation_does_not_hide_complete_value_inspection\n    self.assertEqual(summary['counts']['characters'], len(text))\nAssertionError: 604101 != 603500\n"
+    },
+    {
+      "test": "test_converter_native_dom.NativeUIDOMAcceptance.test_thousand_file_queue_controls",
+      "traceback": "Traceback (most recent call last):\n  File \"D:\\actions-runner\\_work\\A.I.O\\A.I.O\\aio-pr54-v19-source-40196066727-1\\tests\\test_converter_native_dom.py\", line 70, in test_thousand_file_queue_controls\n    self.assertEqual(result.returncode, 0, result.stdout + '\\n' + result.stderr)\nAssertionError: 1 != 0 : \nfile:///D:/actions-runner/_work/A.I.O/A.I.O/aio-pr54-v19-source-40196066727-1/tests/guard_queue_dom_v08.mjs:57\nconst untilReady=async check=>{const deadline=Date.now()+45000;while(Date.now()<deadline){if(await check())return;await new Promise(r=>setTimeout(r,10));}throw Error('Queue UI did not settle: '+document.querySelector('[data-cv-status]')?.textContent+'; rows='+document.querySelectorAll('.aio-cv__file[data-file-id]').length+'; preflight='+preflights.length+'; reports='+reports.length);};\n                                                                                                                                                                ^\n\nError: Queue UI did not settle: Проверяем направления до конвертации…; rows=1000; preflight=0; reports=9\n    at untilReady (file:///D:/actions-runner/_work/A.I.O/A.I.O/aio-pr54-v19-source-40196066727-1/tests/guard_queue_dom_v08.mjs:57:161)\n    at async file:///D:/actions-runner/_work/A.I.O/A.I.O/aio-pr54-v19-source-40196066727-1/tests/guard_queue_dom_v08.mjs:64:1\n\nNode.js v24.19.0\n\n"
+    },
+    {
+      "test": "test_converter_native_dom.NativeUIDOMAcceptance.test_thousand_file_queue_controls",
+      "traceback": "Traceback (most recent call last):\n  File \"D:\\AIO-Lab\\Python311\\Lib\\shutil.py\", line 632, in _rmtree_unsafe\n    os.unlink(fullname)\nPermissionError: [WinError 32] Процесс не может получить доступ к файлу, так как этот файл занят другим процессом: 'D:\\\\actions-runner\\\\temp\\\\tmpn5881zoa\\\\guard-results\\\\aio-guard-euban9wy\\\\owner.lock'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"D:\\actions-runner\\_work\\A.I.O\\A.I.O\\aio-pr54-v19-source-40196066727-1\\tests\\test_converter_native_stream.py\", line 102, in tearDown\n    self.work.cleanup()\n  File \"D:\\AIO-Lab\\Python311\\Lib\\tempfile.py\", line 947, in cleanup\n    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)\n  File \"D:\\AIO-Lab\\Python311\\Lib\\tempfile.py\", line 929, in _rmtree\n    _shutil.rmtree(name, onerror=onerror)\n  File \"D:\\AIO-Lab\\Python311\\Lib\\shutil.py\", line 787, in rmtree\n    return _rmtree_unsafe(path, onerror)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\AIO-Lab\\Python311\\Lib\\shutil.py\", line 629, in _rmtree_unsafe\n    _rmtree_unsafe(fullname, onerror)\n  File \"D:\\AIO-Lab\\Python311\\Lib\\shutil.py\", line 629, in _rmtree_unsafe\n    _rmtree_unsafe(fullname, onerror)\n  File \"D:\\AIO-Lab\\Python311\\Lib\\shutil.py\", line 634, in _rmtree_unsafe\n    onerror(os.unlink, fullname, sys.exc_info())\n  File \"D:\\AIO-Lab\\Python311\\Lib\\tempfile.py\", line 893, in onerror\n    _os.unlink(path)\nPermissionError: [WinError 32] Процесс не может получить доступ к файлу, так как этот файл занят другим процессом: 'D:\\\\actions-runner\\\\temp\\\\tmpn5881zoa\\\\guard-results\\\\aio-guard-euban9wy\\\\owner.lock'\n"
+    }
+  ],
+  "expectedFailures": [],
+  "unexpectedSuccesses": []
+}

@@ -25,6 +25,7 @@ FIELDS = frozenset({
     'save_status', 'source_size', 'source_sha256', 'result_size',
     'process_exit_code', 'monotonic_ns', 'reason_family',
     'result_sha256', 'producer_id', 'error_fingerprint',
+    'app_revision', 'app_revision_source', 'engine_registry_fingerprint',
 })
 TYPE = re.compile(r'^[a-zA-Z][a-zA-Z0-9_.-]{0,63}$')
 TARGET = re.compile(r'^[a-zA-Z0-9_-]{1,24}$')
@@ -45,6 +46,17 @@ STATUSES = frozenset({
 
 AUDIT_CODE = re.compile(r'^[a-zA-Z0-9_.-]{1,96}$')
 DIGEST = re.compile(r'^[0-9a-f]{64}$')
+REVISION = re.compile(r'^[0-9a-f]{40}$')
+# Keep FIFO/sequence ordering. Routine bursts may not consume this reserve;
+# critical bursts can still overflow and every such loss remains explicit.
+CRITICAL_EVENTS = frozenset({
+    'telemetry_started', 'job_created', 'job_started', 'job_finished', 'job_failed',
+    'input_registered', 'task_started', 'task_succeeded', 'task_failed',
+    'task_cancelled', 'result_created', 'output_contract_warning',
+    'cancel_requested', 'save_started', 'save_file_written', 'save_confirmed',
+    'save_finished', 'save_failed', 'archive_failed', 'recovery_failed',
+    'engine_identity', 'file_cancel_requested', 'job_recovered', 'results_retained',
+})
 SAFE_STATE = frozenset({'completed', 'ready', 'failed', 'skipped', 'cancelled',
     'not_checked', 'unknown', 'checked', 'invalid', 'saved', 'partial', 'error'})
 SAFE_BACKENDS = frozenset({'uno', 'cli', 'native_uno', 'native_cli', 'lok',
@@ -64,7 +76,7 @@ class TelemetryEmitter:
     IDs are keyed hashes, stable only inside one A.I.O emitter session.
     """
 
-    def __init__(self, path: Path | str, *, capacity: int = 8192):
+    def __init__(self, path: Path | str, *, capacity: int = 8192, app_revision=None):
         if not isinstance(capacity, int) or isinstance(capacity, bool) or not 1 <= capacity <= 65536:
             raise ValueError('Invalid telemetry capacity')
         requested = Path(path).expanduser()
@@ -79,6 +91,12 @@ class TelemetryEmitter:
         self.producer_id = secrets.token_hex(12)
         self._epoch = time.monotonic_ns()
         self._queue = queue.Queue(maxsize=capacity)
+        self._critical_reserve = min(1024, max(1, capacity // 8)) if capacity > 1 else 0
+        self._routine_capacity = capacity - self._critical_reserve
+        # This is a configured build declaration, not a Git or executable
+        # verification. Capture it once; never inspect the environment per task.
+        self._app_revision = (app_revision if isinstance(app_revision, str) and
+                              REVISION.fullmatch(app_revision) else None)
         self._sequence_lock = threading.Lock()
         self._next_seq = 0
         self._lost = 0
@@ -114,7 +132,8 @@ class TelemetryEmitter:
              filter_name=None, native_status=None, output_contract_status=None,
              fidelity_status=None, save_status=None, source_size=None,
              source_sha256=None, result_size=None, result_sha256=None,
-             process_exit_code=None, reason_family=None, error_fingerprint=None):
+             process_exit_code=None, reason_family=None, error_fingerprint=None,
+             engine_registry_fingerprint=None):
         """Safe even when called from under the GUARD RLock: no disk or waits."""
         try:
             if not TYPE.fullmatch(kind):
@@ -122,6 +141,11 @@ class TelemetryEmitter:
             event = {'type': kind, 'timestamp': _utc_now(),
                      'producer_id': self.producer_id, 'schema_version': 2,
                      'monotonic_ns': time.monotonic_ns() - self._epoch}
+            if self._app_revision is not None:
+                event['app_revision'] = self._app_revision
+                event['app_revision_source'] = 'configured'
+            if isinstance(engine_registry_fingerprint, str) and DIGEST.fullmatch(engine_registry_fingerprint):
+                event['engine_registry_fingerprint'] = engine_registry_fingerprint
             if request_id is not None:
                 event['request_id'] = self._opaque(request_id)
             if file_id is not None:
@@ -178,6 +202,8 @@ class TelemetryEmitter:
                 self._next_seq += 1
                 event['seq'] = self._next_seq
                 try:
+                    if kind not in CRITICAL_EVENTS and self._queue.qsize() >= self._routine_capacity:
+                        raise queue.Full
                     self._queue.put_nowait(event)
                 except queue.Full:
                     self._lost += 1
@@ -254,6 +280,6 @@ def from_environment():
     if not path:
         return None
     try:
-        return TelemetryEmitter(path)
+        return TelemetryEmitter(path, app_revision=os.environ.get('AIO_BUILD_REVISION'))
     except (OSError, ValueError, TypeError):
         return None

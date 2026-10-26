@@ -1,0 +1,86 @@
+{
+  "status": "PASS",
+  "platform": "Linux real LibreOffice CLI",
+  "sourceUnchanged": true,
+  "csv": {
+    "precision-Precision.csv": [
+      [
+        "code",
+        "amount",
+        "note"
+      ],
+      [
+        "00123",
+        "1.23456789012345",
+        "Привет"
+      ]
+    ],
+    "precision-Second.csv": [
+      [
+        "OTHER_SHEET",
+        "00500"
+      ]
+    ]
+  },
+  "csvInfo": {
+    "filter": "Text - txt - csv (StarCalc)",
+    "warnings": [
+      "AUTOMATIC_RETRY_MAY_NOT_IMPROVE",
+      "AUTOMATIC_CSV_RAW_VALUES"
+    ],
+    "automaticRecipe": "csv_preserve_values",
+    "automaticParameters": {
+      "encoding": "UTF-8",
+      "SaveAsShown": false,
+      "ExportFormulas": false,
+      "ExportAllSheets": true,
+      "IncludeBOM": true
+    },
+    "executionReason": "no_native_session"
+  },
+  "pdf": {
+    "outputs": 1,
+    "size": 14425,
+    "info": {
+      "filter": "calc_pdf_Export",
+      "warnings": [
+        "AUTOMATIC_RETRY_MAY_NOT_IMPROVE"
+      ],
+      "automaticRecipe": "pdf_preserve_images",
+      "automaticParameters": {
+        "UseLosslessCompression": true,
+        "ReduceImageResolution": false
+      },
+      "executionReason": "no_native_session"
+    }
+  },
+  "scope": "actual parameters applied, raw numeric precision, both sheets, Unicode and leading zeros; not Windows or universal visual fidelity",
+  "pdfImageControl": {
+    "status": "PASS",
+    "scope": "one generated RGB image in native Calc PDF, not full layout/font proof",
+    "sourceDimensions": [
+      1024,
+      512
+    ],
+    "sourcePixelsSha256": "84282e4934a3d26f25a8cefa367a5fb1eb5cd1e218b24453f18520a547cc6c60",
+    "sourceUnchanged": true,
+    "lossyDownsampledControl": [
+      {
+        "width": 150,
+        "height": 75,
+        "pixelsSha256": "d7c063055e6560280deb107019603b000955efed1d31ca4daf14a803646af178"
+      }
+    ],
+    "automaticRecipeOutput": [
+      {
+        "width": 1024,
+        "height": 512,
+        "pixelsSha256": "84282e4934a3d26f25a8cefa367a5fb1eb5cd1e218b24453f18520a547cc6c60"
+      }
+    ],
+    "appliedParameters": {
+      "UseLosslessCompression": true,
+      "ReduceImageResolution": false
+    }
+  }
+}

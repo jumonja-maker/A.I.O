@@ -5,13 +5,15 @@ It neither rewrites a source nor admits a route. Unknown content and exhausted
 inspection budgets still require LibreOffice's own import proof.
 """
 from pathlib import Path
-import posixpath
+import re
+from urllib.parse import quote, unquote, urlsplit
 import xml.etree.ElementTree as ET
 import zipfile
 
 from .errors import GuardError
 
 OFFICE = 'urn:oasis:names:tc:opendocument:xmlns:office:1.0'
+MATHML = 'http://www.w3.org/1998/Math/MathML'
 LEGACY_OFFICE = 'http://openoffice.org/2000/office'
 WRITER = 'com.sun.star.text.TextDocument'
 CALC = 'com.sun.star.sheet.SpreadsheetDocument'
@@ -103,6 +105,14 @@ def _odf_contract(mime, root, body, *, flat=False):
                                  'presentation-flat-xml', 'graphics-flat-xml'):
                 return _invalid('flat_mimetype_requires_document_family', 'flat_odf')
             return {'state': 'not_checked', 'reason': 'source_mimetype_unmapped', 'mimetype': mime}
+        # Formula packages have a MathML content.xml rather than the
+        # office:document-content wrapper used by Writer/Calc/Impress. This
+        # recognizes the declaration only: native import must still prove the
+        # FormulaProperties service through expectedServices/model matching.
+        if kind == 'formula' and not flat and tag == '{' + MATHML + '}math':
+            return {'state': 'recognized', 'contentClass': 'odf_formula_package',
+                    'mimetype': mime, 'expectedServices': [FORMULA],
+                    'mathmlRootObserved': True, 'bodyObserved': False}
         if tag != '{' + OFFICE + '}' + ('document' if flat else 'document-content'):
             return _invalid('mimetype_namespace_mismatch', 'odf')
         if body is not None and body != '{' + OFFICE + '}' + expected[0]:
@@ -139,6 +149,74 @@ def _xml_root(stream, *, cancel, budget):
     return None
 
 
+_CONTENT_TYPES = 'http://schemas.openxmlformats.org/package/2006/content-types'
+_RELATIONSHIPS = 'http://schemas.openxmlformats.org/package/2006/relationships'
+_OFFICE_RELATIONSHIPS = frozenset((
+    'http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument',
+    'http://purl.oclc.org/ooxml/officeDocument/relationships/officeDocument',
+))
+_PERCENT = re.compile(r'%([0-9a-fA-F]{2})')
+_UNRESERVED = frozenset('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~')
+
+
+def _opc_part_key(value, *, relationship=False):
+    """Resolve root relationships without extracting or guessing ZIP paths.
+
+    OPC part URIs are package-relative, not local filesystem paths. A package
+    relationship may contain dot segments; its resolved destination must remain
+    inside the package. Part declarations/items themselves cannot have them.
+    Escaped separators/unreserved characters are forbidden by OPC. Percent
+    escapes are retained (ZIP mapping), normalized in case, and Unicode IRIs
+    receive UTF-8 percent encoding. Case aliases are treated as ambiguous.
+    """
+    if (not isinstance(value, str) or not value or '\\' in value
+            or any(ord(c) <= 32 or ord(c) == 127 for c in value)):
+        raise ValueError('unsafe OPC URI')
+    parsed = urlsplit(value)
+    if parsed.scheme or parsed.netloc or '?' in value or '#' in value:
+        raise ValueError('non-package OPC URI')
+    path = parsed.path
+    if not relationship and not path.startswith('/'):
+        raise ValueError('part URI must be absolute')
+    if path.startswith('//'):
+        raise ValueError('authority in OPC URI')
+    # Reject malformed escapes rather than allowing zipfile/URL consumers to
+    # interpret the same name differently. Decode only to validate characters;
+    # read the exact encoded ZIP item after resolving its unique identity.
+    if re.search(r'%(?![0-9a-fA-F]{2})', path):
+        raise ValueError('malformed OPC URI escape')
+    for escaped in _PERCENT.finditer(path):
+        char = chr(int(escaped.group(1), 16))
+        if (char in _UNRESERVED or char in '/\\'
+                or ord(char) < 32 or ord(char) == 127):
+            raise ValueError('forbidden OPC URI escape')
+    decoded = unquote(path, encoding='utf-8', errors='strict')
+    if any(ord(c) < 32 or ord(c) == 127 for c in decoded):
+        raise ValueError('control character in OPC URI')
+    segments = []
+    for segment in path.lstrip('/').split('/'):
+        if relationship and segment == '.':
+            continue
+        if relationship and segment == '..':
+            if not segments:
+                raise ValueError('OPC URI escapes package root')
+            segments.pop()
+            continue
+        if not segment or segment in ('.', '..') or segment.endswith('.'):
+            raise ValueError('invalid OPC part segment')
+        segments.append(segment)
+    if not segments:
+        raise ValueError('empty OPC part URI')
+    canonical = quote('/'.join(segments), safe="/%:@!$&'()*+,;=-._~")
+    canonical = _PERCENT.sub(lambda match: match.group(0).upper(), canonical)
+    return canonical.casefold()
+
+
+def _check_cancel(cancel, index=0):
+    if index % 64 == 0 and cancel is not None and cancel.is_set():
+        raise GuardError('CANCELLED', 'Проверка исходного контейнера отменена.', stage='preflight')
+
+
 def _ooxml_contract(archive, names, *, cancel, budget):
     ct = '[Content_Types].xml'
     rel = '_rels/.rels'
@@ -146,28 +224,80 @@ def _ooxml_contract(archive, names, *, cancel, budget):
         return _invalid('missing_or_duplicate_ooxml_declarations', 'ooxml_package')
     if max(archive.getinfo(ct).file_size, archive.getinfo(rel).file_size) > budget:
         raise _Budget()
+    _check_cancel(cancel)
     ct_data, rel_data = archive.read(ct), archive.read(rel)
     _safe_xml_data(ct_data)
     _safe_xml_data(rel_data)
     content_types = ET.fromstring(ct_data)
     relationships = ET.fromstring(rel_data)
-    if (content_types.tag != '{http://schemas.openxmlformats.org/package/2006/content-types}Types'
-            or relationships.tag != '{http://schemas.openxmlformats.org/package/2006/relationships}Relationships'):
+    if (content_types.tag != '{' + _CONTENT_TYPES + '}Types'
+            or relationships.tag != '{' + _RELATIONSHIPS + '}Relationships'):
         return _invalid('ooxml_declaration_namespace', 'ooxml_package')
-    main = [item for item in relationships if item.get('Type', '').endswith('/officeDocument')]
+    relation_ids = set()
+    for index, item in enumerate(relationships):
+        _check_cancel(cancel, index)
+        if item.tag == '{' + _RELATIONSHIPS + '}Relationship':
+            identity = item.get('Id')
+            if not identity or identity in relation_ids:
+                return _invalid('ooxml_relationship_ids', 'ooxml_package')
+            relation_ids.add(identity)
+    main = [item for item in relationships
+            if item.tag == '{' + _RELATIONSHIPS + '}Relationship'
+            and item.get('Type') in _OFFICE_RELATIONSHIPS]
     if len(main) != 1 or main[0].get('TargetMode', 'Internal') != 'Internal':
         return _invalid('ooxml_main_relationship', 'ooxml_package')
-    part = main[0].get('Target', '').lstrip('/')
-    if '%' in part:
-        raise _Budget()  # URI escaping needs OPC resolution, not a guessed ZIP path.
-    if (not part or '\\' in part or posixpath.normpath(part) != part
-            or part.startswith('../') or names.count(part) != 1):
+    try:
+        part_key = _opc_part_key(main[0].get('Target'), relationship=True)
+    except (ValueError, UnicodeError):
         return _invalid('ooxml_main_part_missing_or_ambiguous', 'ooxml_package')
-    declarations = [item.get('ContentType', '') for item in content_types
-                    if item.get('PartName') == '/' + part]
-    if len(declarations) != 1:
+    # Never pass a URI directly to an archive or a filesystem. Match one exact
+    # stored member, rejecting duplicate entries and case/escape aliases.
+    matched = []
+    for index, name in enumerate(names):
+        _check_cancel(cancel, index)
+        if name.endswith('/'):
+            continue
+        try:
+            if _opc_part_key('/' + name) == part_key:
+                matched.append(name)
+        except (ValueError, UnicodeError):
+            continue  # Unrelated non-part entries cannot establish the model.
+    if len(matched) != 1:
+        return _invalid('ooxml_main_part_missing_or_ambiguous', 'ooxml_package')
+    part = matched[0]
+    overrides, defaults = {}, {}
+    try:
+        for index, item in enumerate(content_types):
+            _check_cancel(cancel, index)
+            if item.tag == '{' + _CONTENT_TYPES + '}Override':
+                key = _opc_part_key(item.get('PartName'))
+                table = overrides
+            elif item.tag == '{' + _CONTENT_TYPES + '}Default':
+                extension = item.get('Extension', '')
+                if (not extension or any(c in extension for c in './\\%?#:')
+                        or any(ord(c) <= 32 for c in extension)):
+                    raise ValueError('invalid content-type extension')
+                key, table = extension.casefold(), defaults
+            else:
+                # Foreign namespace elements/attributes must not impersonate
+                # a Default/Override declaration.
+                continue
+            declared_type = item.get('ContentType', '')
+            if not declared_type or key in table:
+                raise ValueError('missing or duplicate content-type declaration')
+            table[key] = declared_type
+    except (ValueError, UnicodeError):
+        return _invalid('ooxml_content_type_declarations', 'ooxml_package')
+    # OPC lookup precedence is Override for this part, then Default for its
+    # extension. A conflicting Default does not override a valid Override.
+    extension = part_key.rsplit('/', 1)[-1].rsplit('.', 1)
+    declared = overrides.get(part_key)
+    basis = 'override'
+    if declared is None:
+        declared = defaults.get(extension[-1]) if len(extension) == 2 else None
+        basis = 'default'
+    if not declared:
         return _invalid('ooxml_main_content_type', 'ooxml_package')
-    declared = declarations[0]
     family = next((name for name in ('wordprocessingml', 'spreadsheetml', 'presentationml')
                    if name in declared), None)
     if family is None:
@@ -186,7 +316,8 @@ def _ooxml_contract(archive, names, *, cancel, budget):
     if root not in accepted:
         return _invalid('ooxml_main_type_namespace_mismatch', 'ooxml_package')
     return {'state': 'recognized', 'contentClass': 'ooxml_package',
-            'mainContentType': declared, 'expectedServices': [service]}
+            'mainContentType': declared, 'contentTypeBasis': basis,
+            'expectedServices': [service]}
 
 
 def inspect_source_contract(source, *, cancel=None, budget=4 * 1024 * 1024):

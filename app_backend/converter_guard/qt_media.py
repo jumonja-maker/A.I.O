@@ -74,6 +74,11 @@ def supported_media_targets(info):
         return tuple(sorted(targets))
     targets.update(('png', 'apng', 'gif', 'tif', 'tiff'))
     targets.update(writers.intersection(('jpeg', 'jpg', 'bmp', 'webp')))
+    # JPEG aliases use the same live Qt JPEG encoder. Leaving these out
+    # silently sent JFIF/JIF/JPE through Draw's page export, changing the
+    # pixel canvas even though an installed image encoder could preserve it.
+    if 'jpeg' in writers or 'jpg' in writers:
+        targets.update(('jpeg', 'jpg', 'jpe', 'jfif', 'jif'))
     if source_kind == 'tiff':
         targets.add('pdf')
     return tuple(sorted(targets))

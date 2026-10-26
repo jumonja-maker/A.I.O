@@ -1,0 +1,14 @@
+Sandboxing disabled by user.
+QRhiGles2: Failed to create temporary context
+QRhiGles2: Failed to create context
+This plugin does not support createPlatformVulkanInstance
+QVulkanInstance: Failed to initialize Vulkan
+Unable to detect GPU vendor.
+[5:22:1025/045317.271282:ERROR:bus.cc(408)] Failed to connect to the bus: Failed to open socket: Operation not permitted
+[5:25:1025/045317.272157:ERROR:address_tracker_linux.cc(217)] Could not create NETLINK socket: Operation not permitted (1)
+[5:21:1025/045317.272873:ERROR:udev_watcher.cc(51)] Failed to initialize a udev monitor.
+[5:35:1025/045317.287340:ERROR:zygote_host_impl_linux.cc(283)] Failed to adjust OOM score of renderer with pid 36: No such file or directory (2)
+{"width": 1280, "height": 800, "dialog": {"x": 100, "y": 30, "width": 1080, "height": 740}, "rows": 2, "red": 1, "yellow": 1, "preview": "Название,Значение\nТовар,0\n"}
+{"width": 1280, "height": 800, "dialog": {"x": 100, "y": 30, "width": 1080, "height": 740}, "rows": 2, "red": 1, "yellow": 1, "preview": "Название,Значение\nТовар,0\n"}
+{"width": 900, "height": 650, "dialog": {"x": 16, "y": 16, "width": 868, "height": 618}, "rows": 2, "red": 1, "yellow": 1, "preview": "Название,Значение\nТовар,0\n"}
+{"status": "PASS", "scope": "real QtWebEngine local UI and HTTP/isolated analysis; native output fixture controlled", "windowsGUI": "NOT_RUN", "scenes": [{"name": "dark", "geometry": {"width": 1280, "height": 800, "dialog": {"x": 100, "y": 30, "width": 1080, "height": 740}, "rows": 2, "red": 1, "yellow": 1, "preview": "Название,Значение\nТовар,0\n"}, "screenshot": "dark.png"}, {"name": "light", "geometry": {"width": 1280, "height": 800, "dialog": {"x": 100, "y": 30, "width": 1080, "height": 740}, "rows": 2, "red": 1, "yellow": 1, "preview": "Название,Значение\nТовар,0\n"}, "screenshot": "light.png"}, {"name": "narrow", "geometry": {"width": 900, "height": 650, "dialog": {"x": 16, "y": 16, "width": 868, "height": 618}, "rows": 2, "red": 1, "yellow": 1, "preview": "Название,Значение\nТовар,0\n"}, "screenshot": "narrow.png"}, {"name": "pdf", "metadata": {"naturalWidth": 1400, "iframes": 0}, "screenshot": "pdf.png"}]}

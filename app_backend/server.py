@@ -13,6 +13,7 @@ import io
 import select
 import zipfile
 import mimetypes
+import os
 import re
 import secrets
 import threading
@@ -27,7 +28,7 @@ from .libreoffice_catalog import EXTENSION
 from .converter_transport import ConverterTransport
 from .blackbox_telemetry import from_environment
 from .converter_upload_stream import MultipartUpload, content_length, MAX_METADATA_BYTES
-from .converter_guard import ConverterGuard
+from .converter_guard import ConverterGuard, GuardLimits
 from .converter_guard.http_api import GuardAPI
 from .converter_guard.result_store import data_directory
 from urllib.parse import quote
@@ -445,7 +446,10 @@ def start_server(port: int = 0, *, guard_recovery_parent=None):
 
     server = LocalServer(('127.0.0.1', port), Handler)
     try:
-        server.guard = ConverterGuard(recovery_parent=(data_directory() / 'jobs'
+        diagnostic_limit = os.environ.get('AIO_GUARD_REJECTED_OUTPUT_BYTES', '0')
+        if not re.fullmatch(r'[0-9]{1,8}', diagnostic_limit):
+            raise ValueError('AIO_GUARD_REJECTED_OUTPUT_BYTES must be 0..8388608')
+        server.guard = ConverterGuard(limits=GuardLimits(rejected_output_bytes=int(diagnostic_limit)), recovery_parent=(data_directory() / 'jobs'
             if guard_recovery_parent is None else guard_recovery_parent),
             telemetry=server.telemetry)
         server.guard_api = GuardAPI(server.guard,

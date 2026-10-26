@@ -86,17 +86,26 @@
         const additions = state.result.outputs || [];
         if (additions.length) {
           const outputs = previous.slice();
-          const indexes = new Map(outputs.map((output, i)=>[output.ticket,i]));
+          // Index only once per authoritative inventory. A 14,000-output
+          // batch otherwise rebuilds all ticket entries for each small delta.
+          // The copied array still preserves every previously published view.
+          let indexes=operation.outputIndex;
+          if(operation.outputIndexAnchor!==previous||!indexes)
+            indexes=new Map(previous.map((output,i)=>[output.ticket,i]));
           for (const output of additions) {
             const index = indexes.get(output.ticket);
             if (index === undefined) {indexes.set(output.ticket,outputs.length);outputs.push(output);}
             else outputs[index] = output;
           }
+          operation.outputIndex=indexes;operation.outputIndexAnchor=outputs;
           state = {...state,result:{...state.result,outputs}};
         } else state = {...state,result:{...state.result,outputs:previous}};
       }
       state = {...state,files:operation.snapshot.files.map(f=>changed.get(String(f.fileId)) || f),
                changedFileIds:[...changed.keys()]};
+    }
+    if(!state.result||operation.outputIndexAnchor!==state.result.outputs){
+      operation.outputIndex=null;operation.outputIndexAnchor=null;
     }
     operation.etag = response.headers.get('ETag');
     operation.snapshot = state;
@@ -223,7 +232,7 @@
           uploads = inputs.filter(f=>previous.get(String(f.id))!==f.file);
         } catch (error) {if(error.code!=='JOB_NOT_FOUND')throw error;}
       }
-      if (!created) created = await api('/prepare', {files:metadata(inputs)});
+      if (!created) created = await api('/prepare', {files:metadata(inputs),retainSources:true});
       request.jobId = created.jobId;
       onCreated?.(created.jobId);
       current();
@@ -632,6 +641,8 @@
         throw errorOf('Сначала завершите или отмените очередь. После этого можно удалить её результаты.', 'LIVE_JOB_DISCARD');
       if(savingJobs.has(jobId))throw errorOf('Дождитесь завершения сохранения.', 'SAVE_BUSY');
       await api('/release',{jobId,discard:true});retained.delete(jobId);
+      if(typeof CustomEvent==='function')
+        window.dispatchEvent?.(new CustomEvent('aio-guard-job-released',{detail:{jobId,discarded:true}}));
     },
     async retryFailed({includeCancelled=false,timeoutSeconds}={}) {
       if(active)throw errorOf('Дождитесь завершения или отмените текущую очередь перед повтором ошибок.', 'CLIENT_BUSY');
@@ -668,4 +679,3 @@
     }
   });
 })();
-

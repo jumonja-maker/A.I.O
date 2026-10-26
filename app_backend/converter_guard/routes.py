@@ -129,7 +129,9 @@ class Registry:
             return next(iter(preferred))
         # LibreOffice ships multiple OOXML variants with the same suffix and
         # no unique DEFAULT. These are its standard native output filters.
-        standard = {'docx': 'MS Word 2007 XML', 'xlsx': 'Calc MS Excel 2007 XML',
+        standard = {'docx': 'MS Word 2007 XML', 'docm': 'MS Word 2007 XML VBA',
+                    'dotx': 'MS Word 2007 XML Template',
+                    'xlsx': 'Calc MS Excel 2007 XML',
                     'pptx': 'Impress MS PowerPoint 2007 XML'}.get(target)
         if standard in candidates:
             return standard

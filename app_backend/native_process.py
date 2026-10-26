@@ -2,17 +2,27 @@
 
 POSIX uses a new session. Windows uses a kill-on-close Job Object; if attaching
 the job fails, conversion fails explicitly instead of using taskkill /IM.
+The optional Windows process-memory limit is for disposable analysis/viewer
+workers. Ordinary native conversion callers retain their unrestricted default.
+POSIX workers install their own resource limit after exec; never preexec_fn in
+the multithreaded application process.
 """
 from __future__ import annotations
 
 import os
 import signal
 import subprocess
+import sys
 
 
 class ProcessTree:
     def __init__(self, command: list[str], *, cwd, on_started=lambda: None, stdout=None,
-                 stderr=None, env=None, stdin=None):
+                 stderr=None, env=None, stdin=None, memory_limit_bytes=None):
+        if memory_limit_bytes is not None and (
+                type(memory_limit_bytes) is not int or
+                not 16 * 1024 * 1024 <= memory_limit_bytes <= sys.maxsize):
+            raise ValueError('Process memory limit must be an integer byte count of at least 16 MiB')
+        self.memory_limit_bytes = memory_limit_bytes
         self.process = None
         self._job = None
         self._kernel = None
@@ -84,6 +94,9 @@ class ProcessTree:
             raise ctypes.WinError(ctypes.get_last_error())
         info = EXTENDED()
         info.BasicLimitInformation.LimitFlags = 0x2000  # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+        if self.memory_limit_bytes is not None:
+            info.BasicLimitInformation.LimitFlags |= 0x100  # JOB_OBJECT_LIMIT_PROCESS_MEMORY
+            info.ProcessMemoryLimit = self.memory_limit_bytes
         if not k.SetInformationJobObject(handle, 9, ctypes.byref(info), ctypes.sizeof(info)):
             error = ctypes.get_last_error()
             k.CloseHandle(handle)

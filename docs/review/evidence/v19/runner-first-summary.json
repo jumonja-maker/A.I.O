@@ -1,0 +1,235 @@
+{
+  "runId": 40183181222,
+  "workflowHead": "2debb34d8940e5c8fdf2b22b0bcf3d58ad14ba35",
+  "sourceCommit": "97d37f186e9245ab05473142a90dbeafb5471a6e",
+  "status": "FAIL",
+  "windows": {
+    "unittest": {
+      "status": "FAIL",
+      "discovered": 718,
+      "passed": 708,
+      "failed": 1,
+      "errors": 1,
+      "skipped": [
+        {
+          "test": "test_comparison_service_v19.ComparisonServiceContracts.test_output_symlink_is_not_a_preview_escape_from_owned_storage",
+          "reason": "This platform/account cannot create the controlled link fixture",
+          "status": "INCOMPLETE"
+        },
+        {
+          "test": "test_converter_guard_process_v02.ControlledProcessTests.test_deadline_kills_own_process_tree_and_next_file_runs",
+          "reason": "POSIX test fixture; real Windows Job Object needs Windows acceptance",
+          "status": "not_applicable"
+        },
+        {
+          "test": "test_converter_guard_process_v02.ControlledProcessTests.test_live_output_quota_stops_only_the_growing_process",
+          "reason": "POSIX test fixture; real Windows Job Object needs Windows acceptance",
+          "status": "not_applicable"
+        },
+        {
+          "test": "test_converter_guard_process_v02.ControlledProcessTests.test_slow_cleanup_does_not_hold_the_global_metadata_lock",
+          "reason": "POSIX test fixture; real Windows Job Object needs Windows acceptance",
+          "status": "not_applicable"
+        },
+        {
+          "test": "test_guard_native_metrics_v11.NativeMetricsQA.test_cli_measures_process_time_without_inventing_import_or_export_times",
+          "reason": "Executable generated fixture uses a POSIX shebang",
+          "status": "not_applicable"
+        },
+        {
+          "test": "test_guard_native_metrics_v11.NativeMetricsQA.test_twenty_worker_recycles_leave_no_live_readers_profiles_or_pipe_descriptors",
+          "reason": "Owned POSIX worker lifecycle; not Windows Job Object QA",
+          "status": "not_applicable"
+        },
+        {
+          "test": "test_guard_queue_audit_v18.ResultDeltaTests.test_unsupported_hardlinks_use_exclusive_copy_and_independent_readback",
+          "reason": "POSIX link-unsupported fallback",
+          "status": "not_applicable"
+        },
+        {
+          "test": "test_guard_queue_audit_v18.ResultDeltaTests.test_unsupported_link_fallback_still_rejects_a_competing_target",
+          "reason": "POSIX link-unsupported fallback",
+          "status": "not_applicable"
+        }
+      ],
+      "expectedFailures": [],
+      "unexpectedSuccesses": []
+    },
+    "failures": [
+      {
+        "test": "test_comparison_core_v19.ComparisonOwnership.test_thousand_retained_sources_stay_disk_owned_and_have_no_automatic_exports",
+        "tracebackPrefix": "Traceback (most recent call last):\n  File \"D:\\actions-runner\\_work\\A.I.O\\A.I.O\\aio-pr54-v19-source-40183181222-1\\tests\\test_comparison_core_v19.py\", line 205, in test_thousand_retained_sources_stay_disk_owned_and_have_no_automatic_exports\n    identity = self.converted(count=1000)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\actions-runner\\_work\\A.I.O\\A.I.O\\aio-pr54-v19-source-40183181222-1\\tests\\test_comparison_core_v19.py\", line 78, in converted\n    wait_finished(self.guard, identity, seconds=15)\n  File \"D:\\actions-runner\\_work\\A.I.O\\A.I.O\\aio-pr54-v19-source-40183181222-1\\tests\\test_converter_guard_v02.py\", line 73, in wait_finished\n    raise AssertionError('Guard did not finish: ' + repr(state))\nAssertionError: Guard did not finish: {'schemaVersion': 3, 'jobId': 'b7c78c42aa90d070c68225e94063f672', 'revision': 6137, 'state': 'running', 'finished': False, 'diagnosticBytes': 0, '"
+      },
+      {
+        "test": "test_comparison_service_v19.ComparisonServiceContracts.test_unknown_retry_evidence_is_not_promoted_to_confirmed_improvement",
+        "tracebackPrefix": "Traceback (most recent call last):\n  File \"D:\\AIO-Lab\\Python311\\Lib\\shutil.py\", line 632, in _rmtree_unsafe\n    os.unlink(fullname)\nPermissionError: [WinError 32] Процесс не может получить доступ к файлу, так как этот файл занят другим процессом: 'D:\\\\actions-runner\\\\temp\\\\tmpcf5oudk8\\\\after.sqlite'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"D:\\actions-runner\\_work\\A.I.O\\A.I.O\\aio-pr54-v19-source-40183181222-1\\tests\\test_comparison_service_v19.py\", line 87, in tearDown\n    self.temp.cleanup()\n  File \"D:\\AIO-Lab\\Python311\\Lib\\tempfile.py\", line 947, in cleanup\n    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)\n  File \"D:\\AIO-Lab\\Python311\\Lib\\tempfile.py\", line 929, in _rmtree\n    _shutil.rmtree(name, onerror=onerror)\n  File \"D:\\AIO-Lab\\Python311\\Lib\\shutil.py\", line 787, in rmtree\n    return _rmtree"
+      }
+    ],
+    "nativeControl": "FAIL: control helper enabled all-sheet names while ordinary UNO expected the requested single-file name",
+    "visual": "FAIL: D3D/Skia context lost in headless runner; software-only QA retry pending"
+  },
+  "linux": {
+    "unittest": {
+      "status": "INCOMPLETE",
+      "discovered": 718,
+      "passed": 689,
+      "failed": 0,
+      "errors": 0,
+      "skipped": [
+        {
+          "test": "test_comparison_pdf_preview_v19.PagePreview.test_bad_pdf_cannot_crash_the_host_or_be_shown_as_working_preview",
+          "reason": "Existing app Qt dependency required",
+          "status": "INCOMPLETE"
+        },
+        {
+          "test": "test_comparison_pdf_preview_v19.PagePreview.test_huge_raster_header_is_not_sent_to_the_browser_decoder",
+          "reason": "Existing app Qt dependency required",
+          "status": "INCOMPLETE"
+        },
+        {
+          "test": "test_comparison_pdf_preview_v19.PagePreview.test_pdf_pages_are_bounded_png_not_a_sandboxed_browser_plugin",
+          "reason": "Existing app Qt dependency required",
+          "status": "INCOMPLETE"
+        },
+        {
+          "test": "test_comparison_pdf_preview_v19.PagePreview.test_raster_preview_is_bounded_png_with_alpha_and_original_untouched",
+          "reason": "Existing app Qt dependency required",
+          "status": "INCOMPLETE"
+        },
+        {
+          "test": "test_guard_adapter_v17.AdapterRoutes.test_apng_native_import_failure_still_admits_frame_preserving_qt_routes",
+          "reason": "Application Qt dependency required",
+          "status": "platform_not_applicable"
+        },
+        {
+          "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_animation_to_tiff_keeps_each_frame_as_page",
+          "reason": "PySide6 required for native raster frame tests",
+          "status": "platform_not_applicable"
+        },
+        {
+          "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_apng_dispose_previous_background_and_source_blend",
+          "reason": "PySide6 required for native raster frame tests",
+          "status": "platform_not_applicable"
+        },
+        {
+          "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_apng_source_over_composes_semitransparent_subframe",
+          "reason": "PySide6 required for native raster frame tests",
+          "status": "platform_not_applicable"
+        },
+        {
+          "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_apng_to_webp_preserves_pixels_alpha_timing_loops",
+          "reason": "PySide6 required for native raster frame tests",
+          "status": "platform_not_applicable"
+        },
+        {
+          "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_cancellation_during_rows_cleans_partial_and_frame_scratch",
+          "reason": "PySide6 required for native raster frame tests",
+          "status": "platform_not_applicable"
+        },
+        {
+          "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_gif_cross_roundtrip_exact_palette_and_transparency",
+          "reason": "PySide6 required for native raster frame tests",
+          "status": "platform_not_applicable"
+        },
+        {
+          "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_gif_palette_limit_does_not_silently_quantise",
+          "reason": "PySide6 required for native raster frame tests",
+          "status": "platform_not_applicable"
+        },
+        {
+          "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_gif_semialpha_rejected_without_publishing_partial_file",
+          "reason": "PySide6 required for native raster frame tests",
+          "status": "platform_not_applicable"
+        },
+        {
+          "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_gif_subcentisecond_timing_is_explicitly_rejected",
+          "reason": "PySide6 required for native raster frame tests",
+          "status": "platform_not_applicable"
+        },
+        {
+          "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_icc_profile_is_preserved_in_webp_apng_and_tiff",
+          "reason": "PySide6 required for native raster frame tests",
+          "status": "platform_not_applicable"
+        },
+        {
+          "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_jpeg_exif_orientation_is_applied_before_png_encoding",
+          "reason": "PySide6 required for native raster frame tests",
+          "status": "platform_not_applicable"
+        },
+        {
+          "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_loop_change_is_not_ready",
+          "reason": "PySide6 required for native raster frame tests",
+          "status": "platform_not_applicable"
+        },
+        {
+          "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_nonraster_route_is_left_to_document_adapter",
+          "reason": "PySide6 required for native raster frame tests",
+          "status": "platform_not_applicable"
+        },
+        {
+          "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_opaque_rgba_256_colours_fit_exact_gif_palette",
+          "reason": "PySide6 required for native raster frame tests",
+          "status": "platform_not_applicable"
+        },
+        {
+          "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_pdf_to_tiff_renders_every_page_at_recorded_dpi",
+          "reason": "PySide6 required for native raster frame tests",
+          "status": "platform_not_applicable"
+        },
+        {
+          "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_tiff_preflight_requires_actual_decoder_for_cross_container",
+          "reason": "PySide6 required for native raster frame tests",
+          "status": "platform_not_applicable"
+        },
+        {
+          "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_tiff_to_pdf_postcondition_blocks_dropped_pages",
+          "reason": "PySide6 required for native raster frame tests",
+          "status": "platform_not_applicable"
+        },
+        {
+          "test": "test_guard_qt_media_frames_v17.NativeFrameConversion.test_webp_to_png_writes_animation_instead_of_flattening",
+          "reason": "PySide6 required for native raster frame tests",
+          "status": "platform_not_applicable"
+        },
+        {
+          "test": "test_guard_qt_observation_v13.QtObservation.test_no_timer_without_opt_in_and_delay_measurement_does_not_throw",
+          "reason": "Opt in with AIO_QT_SAVE_QA=1 and existing Qt bindings",
+          "status": "platform_not_applicable"
+        },
+        {
+          "test": "test_guard_qt_save_v13.QtSaveBoundary.test_save_signals_are_queued_nonmodal_and_duplicate_picker_is_rejected",
+          "reason": "Opt in with AIO_QT_SAVE_QA=1 and existing Qt bindings",
+          "status": "platform_not_applicable"
+        },
+        {
+          "test": "test_guard_ui_audit_v18.NativeDownloadLifetime.test_rejected_requests_and_folder_redirects_leave_no_profile_children",
+          "reason": "Qt bindings required for QObject lifetime proof",
+          "status": "INCOMPLETE"
+        },
+        {
+          "test": "test_guard_ui_audit_v18.NativeDownloadLifetime.test_terminal_request_is_released_even_when_notification_raises",
+          "reason": "Qt bindings required for QObject lifetime proof",
+          "status": "INCOMPLETE"
+        },
+        {
+          "test": "test_guard_ui_audit_v18.NativeDownloadLifetime.test_terminal_requests_and_callbacks_leave_profile_ownership",
+          "reason": "Qt bindings required for QObject lifetime proof",
+          "status": "INCOMPLETE"
+        },
+        {
+          "test": "test_libreoffice_direct.LibreOfficeDirectTests.test_live_writer_calc_pdf_with_local_engine",
+          "reason": "LibreOffice not installed",
+          "status": "platform_not_applicable"
+        }
+      ],
+      "expectedFailures": [],
+      "unexpectedSuccesses": []
+    },
+    "failures": [],
+    "native": "NOT_RUN: no installed LibreOffice in known paths",
+    "Qt": "NOT_RUN: no installed bindings in selected environment"
+  },
+  "links": {
+    "run": "https://github.com/jumonja-maker/A.I.O/actions/runs/40183181222"
+  }
+}

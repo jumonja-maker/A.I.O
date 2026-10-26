@@ -17,6 +17,7 @@ from zipfile import ZipFile
 
 from app_backend import libreoffice_engine as lo
 from app_backend.converter_upload_stream import MultipartUpload, CHUNK
+from app_backend.converter_guard import GuardError
 from app_backend.server import start_server
 
 
@@ -89,17 +90,60 @@ class NativeTransportHTTPTests(unittest.TestCase):
                                   side_effect=self.fake_native)
         self.native_patch.start()
         self.server, self.token = start_server(guard_recovery_parent=Path(self.work.name)/'guard-results')
+        # Track requests before their daemon workers start, including a client
+        # which dies in the middle of upload/preflight. A bounded fixture drain
+        # is independent of ThreadingMixIn's unbounded/non-daemon join policy.
+        self.http_drained = threading.Condition()
+        self.http_requests = set()
+        dispatch = self.server.process_request
+        handle = self.server.process_request_thread
+        def forget(request):
+            with self.http_drained:
+                self.http_requests.discard(request)
+                self.http_drained.notify_all()
+        def tracked_dispatch(request, address):
+            with self.http_drained:
+                self.http_requests.add(request)
+            try:
+                dispatch(request, address)
+            except BaseException:
+                forget(request)
+                raise
+        def tracked_handle(request, address):
+            try:
+                handle(request, address)
+            finally:
+                forget(request)
+        self.server.process_request = tracked_dispatch
+        self.server.process_request_thread = tracked_handle
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
         self.base = 'http://127.0.0.1:' + str(self.server.server_port)
 
     def tearDown(self):
         self.server.shutdown()
-        self.server.server_close()
-        self.thread.join(timeout=5)
-        self.native_patch.stop()
-        self.engine_patch.stop()
-        self.work.cleanup()
+        try:
+            # Stop accepting transfers and cancel every fixture-owned job before
+            # draining HTTP workers. Guard.close must run after those workers,
+            # not concurrently with a late preflight finishing its ownership.
+            self.server.guard_api.close()
+            self.server.converter.close()
+            with self.server.guard._lock:
+                job_ids = list(self.server.guard._jobs)
+            for job_id in job_ids:
+                try:
+                    self.server.guard.cancel(job_id)
+                except GuardError as error:
+                    self.assertEqual(error.code, 'JOB_NOT_FOUND')
+            with self.http_drained:
+                drained = self.http_drained.wait_for(lambda: not self.http_requests, timeout=15)
+            self.assertTrue(drained, 'Fixture HTTP workers did not drain before Guard/spool cleanup')
+        finally:
+            self.server.server_close()
+            self.thread.join(timeout=5)
+            self.native_patch.stop()
+            self.engine_patch.stop()
+            self.work.cleanup()
 
     def fake_native(self, source, target, workspace, *, cancel, on_started):
         on_started()

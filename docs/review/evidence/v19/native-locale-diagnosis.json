@@ -1,0 +1,71 @@
+{
+  "scope": "real Linux CLI task-owned ru-RU profiles, no global profile changes",
+  "cases": [
+    {
+      "name": "ru_default",
+      "numberFormat": "0.00",
+      "languageToken": "0",
+      "SaveAsShown": "true",
+      "exitCode": 0,
+      "output": {
+        "ru_default.csv": "code,amount,note\n00123,\"1,23\",Привет\n"
+      },
+      "stderr": ""
+    },
+    {
+      "name": "ru_default",
+      "numberFormat": "0.00",
+      "languageToken": "0",
+      "SaveAsShown": "false",
+      "exitCode": 0,
+      "output": {
+        "ru_default.csv": "code,amount,note\n00123,\"1,23456789012345\",Привет\n"
+      },
+      "stderr": ""
+    },
+    {
+      "name": "ru_token1033",
+      "numberFormat": "0.00",
+      "languageToken": "1033",
+      "SaveAsShown": "true",
+      "exitCode": 0,
+      "output": {
+        "ru_token1033.csv": "code,amount,note\n00123,\"1,23\",Привет\n"
+      },
+      "stderr": ""
+    },
+    {
+      "name": "ru_token1033",
+      "numberFormat": "0.00",
+      "languageToken": "1033",
+      "SaveAsShown": "false",
+      "exitCode": 0,
+      "output": {
+        "ru_token1033.csv": "code,amount,note\n00123,\"1,23456789012345\",Привет\n"
+      },
+      "stderr": ""
+    },
+    {
+      "name": "ru_explicit409",
+      "numberFormat": "[$-409]0.00",
+      "languageToken": "0",
+      "SaveAsShown": "true",
+      "exitCode": 0,
+      "output": {
+        "ru_explicit409.csv": "code,amount,note\n00123,1.23,Привет\n"
+      },
+      "stderr": ""
+    },
+    {
+      "name": "ru_explicit409",
+      "numberFormat": "[$-409]0.00",
+      "languageToken": "0",
+      "SaveAsShown": "false",
+      "exitCode": 0,
+      "output": {
+        "ru_explicit409.csv": "code,amount,note\n00123,1.23456789012345,Привет\n"
+      },
+      "stderr": ""
+    }
+  ]
+}
