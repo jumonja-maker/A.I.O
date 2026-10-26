@@ -135,3 +135,45 @@ python tools/qa/guard_source_scan_v22.py --rounds 9 --iterations 10 --output sca
 [Python Expat](https://docs.python.org/3/library/pyexpat.html),
 [ODF 1.2 Packages](https://docs.oasis-open.org/office/v1.2/os/OpenDocument-v1.2-os-part3.html),
 [XML 1.0](https://www.w3.org/TR/xml/).
+
+
+## Независимый технический review 00AIO и Windows QA
+
+После первоначального Draft проведён отдельный разбор реальных OOXML MIME из корпуса
+85 форматов × 8 уровней и исходников LibreOffice. Он выявил **подтверждённый пропуск
+DOTM**: настоящий основной тип Word-шаблона с макросами —
+`application/vnd.ms-word.template.macroEnabledTemplate.main+xml`, а не
+`application/vnd.ms-word.template.macroEnabled.main+xml`. В исходном PR такой
+файл получал `not_checked` вместо `recognized`, ослабляя проверку ожидаемой
+Writer-модели. Исправлена только точная таблица типов; добавлен тест успешного
+распознавания и отрицательный контроль вымышленного имени MIME.
+
+Первый общий Windows-прогон дополнительно выявил одно устаревшее ожидание
+в тесте v16. Прежняя проверка требовала `not_checked` для ZIP-пакета с
+UTF-16 flat-ODF корнем `office:document`. Теперь scanner читает UTF-16 и
+доказывает, что пакетный ODF обязан использовать `office:document-content`.
+Контроль уточнён в двух направлениях: неверная смесь имеет `invalid`,
+корректный упакованный UTF-16 ODF — `recognized`. Защитная политика не
+ослаблялась для того, чтобы сделать старый тест зелёным.
+
+**Окончательный функциональный исходник:**
+`699a814ae98d93f8df9b61faa182ec6a639f64ed`,
+Git tree `401a83927d4a3555c8a200bf3d998df50ed31e8e`.
+Его проверил [Windows NIKITA #40340185974](https://github.com/jumonja-maker/A.I.O/actions/runs/40340185974)
+с итогом **SUCCESS**: новые тесты сканера **44/44 PASS**; прежние
+контракты v20 **19/19 PASS**; полный source/Qt/DOM набор
+**1072 PASS, 10 точно обозначенных Windows platform N/A, 0 FAIL/ERROR**;
+нативные v20 **16/16 PASS**, Strict/stale XLSX **2/2 PASS**,
+реальная очередь/save/CSV→DBF **11/11 PASS**.
+
+Оригинальные микробенчмарки в разделах выше относятся к blob
+`933775c7c1911e3a6e1f074b66f1719faf705478`. После них
+менялась точечная таблица DOTM; новый замер скорости для окончательного
+функционального SHA отдельно **не проводился**. Это не оценка ускорения
+полного preflight, GUI или LibreOffice.
+
+Подробные машинные границы: [независимое review / Windows QA](evidence/guard-source-scan-v22-independent-review.json).
+В интеграционный PR не включаются временный acceptance workflow и
+наследованный build-only workflow. **FULLTEST, новый EXE и физический GUI
+не запускались.** Итоговая интеграция предназначена только для рабочей
+QA-ветки, не для `main`.
