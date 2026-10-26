@@ -1,0 +1,67 @@
+{
+  "schema": 1,
+  "review": "00AIO independent review after PR63 original patch",
+  "date": "2026-10-26",
+  "originalPrSource": "66a7526ce45d9202d60cc03e4fb866bc67532346",
+  "initialWindowsRun": 40338964135,
+  "initialWindowsState": "FAIL - legacy v16 UTF16 expectation, plus DOTM MIME mapping omission independently confirmed from 85-format corpus",
+  "independentFindings": [
+    {
+      "id": "PR63-R1",
+      "severity": "P1",
+      "topic": "Missing legitimate DOTM OOXML main content type",
+      "evidence": "application/vnd.ms-word.template.macroEnabledTemplate.main+xml appears in original 01_LEVEL_1.dotm and LibreOffice oox/source/core/filterdetect.cxx; original PR returned not_checked",
+      "resolution": "Explicit Writer exact main MIME, remove invented alias, add test_real_dotm_main_type_remains_content_recognized"
+    },
+    {
+      "id": "PR63-R2",
+      "severity": "P2",
+      "topic": "Obsolete v16 UTF-16 test expectation",
+      "evidence": "Old test zipped office:document (flat root) as ODF package, expected not_checked even though new parser proves mismatched root",
+      "resolution": "Require invalid for mismatched ZIP; require recognized for valid UTF-16 ODF package"
+    }
+  ],
+  "testedFunctionalSha": "699a814ae98d93f8df9b61faa182ec6a639f64ed",
+  "testedFunctionalTree": "401a83927d4a3555c8a200bf3d998df50ed31e8e",
+  "windowsRun": 40340185974,
+  "windowsWorkflow": "AIO PR63 source contract pinned NIKITA regression",
+  "windowsRunner": "NIKITA",
+  "sourceContractsNew": {
+    "passed": 44,
+    "failed": 0
+  },
+  "sourceContractsV20": {
+    "passed": 19,
+    "failed": 0
+  },
+  "fullWindowsSuite": {
+    "discovered": 1082,
+    "passed": 1072,
+    "notApplicable": 10,
+    "failed": 0,
+    "errors": 0
+  },
+  "nativeV20": {
+    "status": "PASS",
+    "cases": 16
+  },
+  "nativeV21Xlsx": {
+    "status": "PASS",
+    "cases": 2
+  },
+  "nativeQueueSaveCsvDbf": {
+    "status": "PASS",
+    "cases": 11
+  },
+  "originHashesPreserved": true,
+  "allProductFilesChangedAfterTestedSource": false,
+  "benchmarkScope": "Original PR63 scanner blob 933775c7; post-review DOTM mapping code was not separately re-benchmarked",
+  "notRun": [
+    "user FULLTEST",
+    "installed EXE acceptance",
+    "physical GPU/DPI GUI soak",
+    "new distribution",
+    "main release"
+  ],
+  "integrationPolicy": "QA target only; do not merge build-only or temporary acceptance workflows"
+}

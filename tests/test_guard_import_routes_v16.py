@@ -111,7 +111,7 @@ class SourceContractsV16(unittest.TestCase):
             inspect_source_contract(p, cancel=self.cancel)
         self.assertEqual(error.exception.code, 'CANCELLED')
 
-    def test_dtd_entities_and_utf16_are_deferred_without_parser_expansion(self):
+    def test_dtd_entities_deferred_and_utf16_package_structure_checked(self):
         p = self.root / 'entity.bin'
         dtd = '<!DOCTYPE office:document [<!ENTITY payload "A">]>'
         document = (f'<office:document xmlns:office="{OFFICE}" '
@@ -130,7 +130,22 @@ class SourceContractsV16(unittest.TestCase):
         with zipfile.ZipFile(self.root / 'utf16.odt', 'w') as z:
             z.writestr('mimetype', 'application/vnd.oasis.opendocument.text')
             z.writestr('content.xml', document.replace('&payload;', '').encode('utf-16'))
-        self.assertEqual(inspect_source_contract(self.root / 'utf16.odt')['state'], 'not_checked')
+        # This is a flat-XML office:document wrapped in an ODF ZIP; now that
+        # UTF-16 is supported its declared package/body mismatch is provable.
+        inconsistent = inspect_source_contract(self.root / 'utf16.odt')
+        self.assertEqual(inconsistent['state'], 'invalid')
+        self.assertEqual(inconsistent['reason'], 'mimetype_namespace_mismatch')
+        # A genuinely packaged UTF-16 ODF document is recognized, not deferred.
+        proper = (document.replace('&payload;', '')
+                  .replace('<office:document ', '<office:document-content ', 1)
+                  .replace('</office:document>', '</office:document-content>'))
+        valid = self.root / 'utf16-valid.odt'
+        with zipfile.ZipFile(valid, 'w') as z:
+            z.writestr('mimetype', 'application/vnd.oasis.opendocument.text')
+            z.writestr('content.xml', proper.encode('utf-16'))
+        proof = inspect_source_contract(valid)
+        self.assertEqual(proof['state'], 'recognized')
+        self.assertEqual(proof['expectedServices'], ['com.sun.star.text.TextDocument'])
 
     def test_malformed_flat_is_rejected_before_native_import_and_never_rewritten(self):
         source = self.flat('text-flat-xml', 'presentation')

@@ -1,0 +1,16 @@
+{
+  "scope": "isolated actual source_contract/errors modules; no package bootstrap, native LibreOffice or GUI",
+  "tests_run": 43,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "python": "3.13.5 (main, Jul 15 2026, 20:25:40) [GCC 14.2.0]",
+  "platform": "Linux-6.18.55-x86_64-with-glibc2.41",
+  "log": "guard-source-scan-v22-tests.log",
+  "not_run": [
+    "repository-wide suite",
+    "Windows native import",
+    "FULLTEST",
+    "EXE build"
+  ]
+}

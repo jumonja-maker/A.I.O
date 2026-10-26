@@ -1,0 +1,337 @@
+{
+  "scope": "structural source scan only; warm filesystem cache; generated fixtures",
+  "platform": "Linux-6.18.55-x86_64-with-glibc2.41",
+  "python": "3.13.5 (main, Jul 15 2026, 20:25:40) [GCC 14.2.0]",
+  "baseline_ref": "266a33a161fd5348a7d1dcf89bf27ec6d4ef6cee",
+  "baseline_blob": "6907d72b77b79dafcffa55e8e45c4624d9f2cf9c",
+  "candidate_blob": "933775c7c1911e3a6e1f074b66f1719faf705478",
+  "rounds": 9,
+  "iterations_per_round": 10,
+  "differential_paths": {
+    "cases": 60038,
+    "seed": 20261026,
+    "mismatches": 0
+  },
+  "cases": [
+    {
+      "case": "text-small.txt",
+      "source_bytes": 110,
+      "baseline_median_us": 8.031,
+      "candidate_median_us": 8.533,
+      "delta_percent": 6.25,
+      "baseline_round_means_us": [
+        15.043,
+        8.031,
+        8.128,
+        7.952,
+        7.941,
+        8.075,
+        11.146,
+        7.883,
+        7.85
+      ],
+      "candidate_round_means_us": [
+        8.533,
+        8.022,
+        11.139,
+        8.187,
+        26.861,
+        31.854,
+        7.842,
+        7.769,
+        19.184
+      ]
+    },
+    {
+      "case": "text-1MiB.txt",
+      "source_bytes": 1048576,
+      "baseline_median_us": 9.359,
+      "candidate_median_us": 7.671,
+      "delta_percent": -18.03,
+      "baseline_round_means_us": [
+        9.484,
+        9.336,
+        9.293,
+        9.257,
+        9.359,
+        11.599,
+        10.035,
+        9.26,
+        15.18
+      ],
+      "candidate_round_means_us": [
+        11.077,
+        7.693,
+        14.977,
+        7.671,
+        7.561,
+        7.533,
+        7.619,
+        7.592,
+        7.814
+      ]
+    },
+    {
+      "case": "flat-odf-small.fodt",
+      "source_bytes": 183,
+      "baseline_median_us": 22.778,
+      "candidate_median_us": 22.327,
+      "delta_percent": -1.98,
+      "baseline_round_means_us": [
+        24.019,
+        33.828,
+        30.853,
+        22.778,
+        20.228,
+        21.971,
+        20.188,
+        40.007,
+        20.672
+      ],
+      "candidate_round_means_us": [
+        17.361,
+        32.168,
+        22.327,
+        40.89,
+        20.945,
+        33.633,
+        20.749,
+        15.599,
+        23.625
+      ]
+    },
+    {
+      "case": "odf-small.odt",
+      "source_bytes": 354,
+      "baseline_median_us": 91.062,
+      "candidate_median_us": 90.736,
+      "delta_percent": -0.36,
+      "baseline_round_means_us": [
+        87.937,
+        94.704,
+        65.021,
+        91.062,
+        76.889,
+        118.578,
+        101.672,
+        67.202,
+        95.996
+      ],
+      "candidate_round_means_us": [
+        97.85,
+        93.744,
+        73.993,
+        60.694,
+        74.405,
+        185.231,
+        170.963,
+        90.535,
+        90.736
+      ]
+    },
+    {
+      "case": "odf-large.odt",
+      "source_bytes": 2707,
+      "baseline_median_us": 2354.285,
+      "candidate_median_us": 94.618,
+      "delta_percent": -95.98,
+      "baseline_round_means_us": [
+        2337.2,
+        2364.806,
+        2281.364,
+        2375.66,
+        2332.152,
+        2786.352,
+        2893.957,
+        2354.285,
+        2278.541
+      ],
+      "candidate_round_means_us": [
+        94.618,
+        83.656,
+        92.317,
+        187.747,
+        86.352,
+        68.341,
+        121.18,
+        105.937,
+        143.514
+      ]
+    },
+    {
+      "case": "flat-odf-large.fodt",
+      "source_bytes": 1200171,
+      "baseline_median_us": 2266.682,
+      "candidate_median_us": 29.658,
+      "delta_percent": -98.69,
+      "baseline_round_means_us": [
+        2076.664,
+        2245.476,
+        2261.219,
+        9403.53,
+        2233.048,
+        2389.685,
+        2266.682,
+        2912.611,
+        2267.147
+      ],
+      "candidate_round_means_us": [
+        29.658,
+        16.345,
+        41.925,
+        16.515,
+        49.858,
+        16.277,
+        31.398,
+        134.016,
+        25.052
+      ]
+    },
+    {
+      "case": "docx-small.docx",
+      "source_bytes": 716,
+      "baseline_median_us": 210.766,
+      "candidate_median_us": 193.226,
+      "delta_percent": -8.32,
+      "baseline_round_means_us": [
+        202.005,
+        168.968,
+        242.707,
+        223.348,
+        165.022,
+        234.036,
+        306.37,
+        178.931,
+        210.766
+      ],
+      "candidate_round_means_us": [
+        193.226,
+        166.186,
+        130.091,
+        194.909,
+        200.014,
+        186.036,
+        268.42,
+        196.134,
+        191.355
+      ]
+    },
+    {
+      "case": "xlsx-small.xlsx",
+      "source_bytes": 713,
+      "baseline_median_us": 201.89,
+      "candidate_median_us": 147.95,
+      "delta_percent": -26.72,
+      "baseline_round_means_us": [
+        210.057,
+        193.412,
+        150.722,
+        177.172,
+        222.429,
+        201.89,
+        204.225,
+        187.44,
+        218.072
+      ],
+      "candidate_round_means_us": [
+        217.785,
+        145.338,
+        132.295,
+        147.95,
+        172.841,
+        139.595,
+        184.036,
+        161.299,
+        141.883
+      ]
+    },
+    {
+      "case": "pptx-small.pptx",
+      "source_bytes": 716,
+      "baseline_median_us": 184.313,
+      "candidate_median_us": 175.114,
+      "delta_percent": -4.99,
+      "baseline_round_means_us": [
+        211.282,
+        237.999,
+        156.924,
+        236.436,
+        159.182,
+        147.546,
+        184.313,
+        229.419,
+        182.03
+      ],
+      "candidate_round_means_us": [
+        177.738,
+        199.001,
+        145.689,
+        248.934,
+        175.114,
+        163.187,
+        137.38,
+        145.217,
+        197.498
+      ]
+    },
+    {
+      "case": "xlsx-2000-parts.xlsx",
+      "source_bytes": 252493,
+      "baseline_median_us": 18816.07,
+      "candidate_median_us": 7175.584,
+      "delta_percent": -61.86,
+      "baseline_round_means_us": [
+        19186.336,
+        18610.666,
+        17805.812,
+        19502.098,
+        18816.07,
+        19029.489,
+        20497.14,
+        18114.976,
+        17613.383
+      ],
+      "candidate_round_means_us": [
+        7811.579,
+        7160.137,
+        6898.775,
+        13500.229,
+        7850.6,
+        7788.052,
+        6914.148,
+        7175.584,
+        6893.483
+      ]
+    },
+    {
+      "case": "pptx-3000-parts.pptx",
+      "source_bytes": 379496,
+      "baseline_median_us": 27373.395,
+      "candidate_median_us": 10775.071,
+      "delta_percent": -60.64,
+      "baseline_round_means_us": [
+        27018.806,
+        26749.159,
+        28252.915,
+        27478.973,
+        27373.395,
+        26476.762,
+        26751.893,
+        29357.594,
+        27439.987
+      ],
+      "candidate_round_means_us": [
+        10775.071,
+        15916.827,
+        10365.18,
+        10605.66,
+        16161.054,
+        16902.139,
+        9936.689,
+        16236.859,
+        10545.699
+      ]
+    }
+  ],
+  "equal_weight_corpus_delta_percent": -63.68
+}
