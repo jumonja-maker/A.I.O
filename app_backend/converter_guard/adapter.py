@@ -11,6 +11,7 @@ import time
 from ..libreoffice_catalog import catalog
 from ..libreoffice_engine import LibreOfficeError, convert_path, engine_binary, validated_outputs
 from .errors import GuardError
+from .writer_text_tail import TEXT_FILTERS, prepare_writer_text_source
 from .routes import registry
 from .csv_import import csv_import_hint, inspect_csv_stream
 from .export_recipe import native_export_recipe, automatic_recipe, validate_retry_recipe
@@ -1016,6 +1017,7 @@ class LibreOfficeAdapter:
             timeout = min(timeout, chart_budget) if timeout is not None else chart_budget
         control = (cancel if timeout is None and output_limit is None else
                    _RunControl(cancel, workspace, timeout, output_limit))
+        preparation_scope = ExitStack()
         try:
             native = self._registry()
             retry_recipe = getattr(self._local, 'retry_recipe', None)
@@ -1028,6 +1030,17 @@ class LibreOfficeAdapter:
                     self._local.export_info.update(automaticRecipe=retry_recipe,
                         automaticParameters=validate_retry_recipe(retry_recipe, target)['parameters'])
             export_args = {'convert_spec': recipe.cli_spec(target)} if recipe else {}
+            # Keep the original native importer/exporter and original bytes.
+            # Only a confirmed Writer plain-text recipe gets a disposable
+            # terminal paragraph; PDF/Office/Calc routes are untouched.
+            if recipe and recipe.filter_name in TEXT_FILTERS:
+                source, text_preparation = preparation_scope.enter_context(
+                    prepare_writer_text_source(source, workspace / 'writer-text-input', cancel=control))
+                if text_preparation:
+                    self._local.export_info['sourcePreparation'] = text_preparation
+                    self._local.export_info['warnings'] = tuple(dict.fromkeys(
+                        (*self._local.export_info.get('warnings', ()),
+                         *text_preparation['warnings'])))
             # The first requested native export identifies the actual model.
             # Filename hints never veto a file, including renamed/unlisted ones.
             batch = getattr(self._local, 'batch', None)
@@ -1176,6 +1189,7 @@ class LibreOfficeAdapter:
             raise GuardError('STORAGE_ERROR', 'Ошибка временного хранилища Guard.',
                              stage='storage', status=507) from error
         finally:
+            preparation_scope.close()
             if self._local.metrics is not None:
                 self._local.metrics['adapterMs'] = round((time.monotonic()-adapter_tick)*1000)
 
