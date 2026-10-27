@@ -271,6 +271,13 @@ def main(argv=None):
                 assert result['ok'] and result['value'].get('saved') is True, result
                 actual = saved_payload_hashes(destination, identity, args.files)
                 assert actual == expected, (actual, expected)
+                assert job.root.exists(), 'Verified save retains its sources/results for later analysis'
+                # The owner-requested lifecycle now keeps a saved session
+                # until explicit Close. Save itself must not discard it.
+                javascript('window.qaJourney=null;window.AllInOneBridge.converter.closeConversion('+json.dumps(identity)+').then(value=>window.qaJourney={ok:true,value}).catch(error=>window.qaJourney={ok:false,error:error.message});true')
+                until(lambda:javascript('window.qaJourney!==null'))
+                closed=json.loads(javascript('JSON.stringify(window.qaJourney)'))
+                assert closed['ok'] and closed['value'].get('closed') is True,closed
             else:
                 javascript('window.qaJourney=null;window.AllInOneBridge.converter.discardRetained(' + json.dumps(identity) + ').then(()=>window.qaJourney={ok:true}).catch(error=>window.qaJourney={ok:false,error:error.message});true')
                 until(lambda: javascript('window.qaJourney!==null'))
