@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: aio-b13-b31-fixture-python-selfhosted-qa
+  group: aio-b13-b31-fixture-quoted-selfhosted-qa
   cancel-in-progress: false
 
 env:
@@ -35,7 +35,7 @@ jobs:
       github.repository == 'jumonja-maker/A.I.O' &&
       github.actor == 'jumonja-maker' &&
       github.event.action == 'labeled' &&
-      github.event.label.name == 'aio-b13-b31-fixture-python-selfhosted-qa' &&
+      github.event.label.name == 'aio-b13-b31-fixture-quoted-selfhosted-qa' &&
       github.event.pull_request.number == 68 &&
       github.event.pull_request.user.login == 'jumonja-maker' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
@@ -150,7 +150,7 @@ jobs:
                   entries.append((key+(b'/' if directory else b''),(b'40000' if directory else b'100644')+b' '+key+b'\0'+oid(child)))
               raw=b''.join(value for _,value in sorted(entries,key=lambda row:row[0]))
               return hashlib.sha1(b'tree '+str(len(raw)).encode()+b'\0'+raw).digest()
-          expected={"addons":"124e1aa0eb38c08e7d8f617ef91fc300b626d22f","app_backend":"17ed779f94c1ac7e4e21c0368ead079d5623c1d6","assets":"207088b35bb505bb22f3160f0b1d96ba694fe795","index.html":"469620cf939e43f377803038384cef2dc7453743","launcher.py":"24d470fa43511a16f8f913ce7179591aa65c6bcf","src":"e67b56cca9d1e49c5ea92b54bd4d5482e6d00a44","tests/b28_dif_fixtures.py":"306e9432379c5672cd083a4af7bb011a08e73837","tests/b29_csv_fixtures.py":"efa51181b5aa33fb090ce141c9e47121ddccff26","tests/test_native_routes_b13_b31.py":"b44de51569e3f181e286bdcc5a62b1c481047f0d","tools/qa/guard_b28_dif_native_acceptance.py":"13cd9a07aa0f5da07b98831e4e6d813cf2c3ba85","tools/qa/guard_b29_csv_native_acceptance.py":"bf6efaac71afcfd367f6d57e006b18cc7c09114e","tools/qa/guard_native_routes_b13_b31.py":"40369d447e234076bf065395e3d2536d7e391f07"}
+          expected={'addons': '124e1aa0eb38c08e7d8f617ef91fc300b626d22f', 'app_backend': '17ed779f94c1ac7e4e21c0368ead079d5623c1d6', 'assets': '207088b35bb505bb22f3160f0b1d96ba694fe795', 'index.html': '469620cf939e43f377803038384cef2dc7453743', 'launcher.py': '24d470fa43511a16f8f913ce7179591aa65c6bcf', 'src': 'e67b56cca9d1e49c5ea92b54bd4d5482e6d00a44', 'tests/b28_dif_fixtures.py': '306e9432379c5672cd083a4af7bb011a08e73837', 'tests/b29_csv_fixtures.py': 'efa51181b5aa33fb090ce141c9e47121ddccff26', 'tests/test_native_routes_b13_b31.py': 'b44de51569e3f181e286bdcc5a62b1c481047f0d', 'tools/qa/guard_b28_dif_native_acceptance.py': '13cd9a07aa0f5da07b98831e4e6d813cf2c3ba85', 'tools/qa/guard_b29_csv_native_acceptance.py': 'bf6efaac71afcfd367f6d57e006b18cc7c09114e', 'tools/qa/guard_native_routes_b13_b31.py': '40369d447e234076bf065395e3d2536d7e391f07'}
           actual={key:oid(Path(key)).hex() for key in expected}
           if actual!=expected:raise SystemExit('PRIOR_NATIVE_PRODUCT_OR_GENERATORS_CHANGED')
           proof={'status':'PASS','scope':'native_product_and_generators_byte_identity_only','nativeSourceSHA':'5764ac196937fd2f003c3ca228fdd2137ed25956','nativeRunId':40573845377,'nativeRunConclusion':'failure_in_old_unit_fixture','nativeMatrices':'PASS','b28':48,'b29':108,'productAndGenerators':actual,'currentSourceSHA':os.environ['AIO_QA_SOURCE_SHA']}
