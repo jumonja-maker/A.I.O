@@ -174,6 +174,9 @@ class Registry:
     def route_reason(self, target, proof):
         if not proof:
             return None
+        html_reason = self.html_route_reason(target, proof)
+        if html_reason:
+            return html_reason
         if self.runtime_export_filter(target, proof):
             return None
         if (target == 'svm' and self.observed_decision(target, proof) == 'registered'):
@@ -182,8 +185,11 @@ class Registry:
         if self.valid and target not in self.uncertain_extensions:
             if target in self.imports and target not in self.exports:
                 return 'NATIVE_FORMAT_IMPORT_ONLY'
-            if target == 'orp' and not self.exports.get(target):
-                return 'NATIVE_REPORT_EXPORT_UNAVAILABLE'
+            if target == 'orp':
+                if not self.exports.get(target):
+                    return 'NATIVE_REPORT_EXPORT_UNAVAILABLE'
+                if 'com.sun.star.report.ReportDefinition' not in services:
+                    return 'NATIVE_REPORT_DEFINITION_REQUIRED'
             if (proof.get('state') == 'detected' and any(isinstance(s, str) for s in services)
                     and self.exports.get(target) and not set(services).intersection(self.exports[target])):
                 return 'NATIVE_DOCUMENT_SERVICE_MISMATCH'
@@ -191,6 +197,23 @@ class Registry:
             candidates = set().union(*(self.export_candidates.get((target, s), ()) for s in services))
             if candidates and candidates <= {'writer_svg_Export', 'calc_svg_Export'}:
                 return 'NATIVE_SVG_SELECTION_ONLY'
+        return None
+
+    def html_route_reason(self, target, proof):
+        if (target not in ('html', 'htm') or not self.valid or not proof
+                or proof.get('state') != 'detected'
+                or proof.get('registryFingerprint') != self.fingerprint):
+            return None
+        services = self.export_services(proof)
+        selected = self.export_filter(target, services)
+        if selected == 'draw_html_Export':
+            return 'NATIVE_DRAW_HTML_CONTENT_UNSUPPORTED'
+        if selected == 'impress_html_Export':
+            profile = proof.get('htmlContentProfile')
+            if not isinstance(profile, dict) or profile.get('complete') is not True:
+                return 'NATIVE_PRESENTATION_HTML_PROFILE_NOT_CHECKED'
+            if profile.get('graphicShapes') != 0:
+                return 'NATIVE_PRESENTATION_HTML_GRAPHICS_UNSUPPORTED'
         return None
 
     def services_for_type(self, type_name, filter_name=None):
@@ -243,6 +266,8 @@ class Registry:
                 'registryFingerprint': self.fingerprint, 'basis': 'native_selected_export_filter'}
 
     def observed_decision(self, target, proof):
+        if self.html_route_reason(target, proof):
+            return 'unavailable'
         if self.runtime_export_filter(target, proof):
             return 'registered'
         if (proof and proof.get('basis')=='native_preflight_chart_content'

@@ -448,6 +448,9 @@ class LibreOfficeAdapter:
                     'webp': 'Графический экспорт документа может менять размер полотна и формат представления.',
                     'pdf': 'PDF предназначен для просмотра: структура и редактируемость исходника могут измениться.',
                     'epub': 'EPUB без нативного импортёра открывается через HTML в порядке OPF spine. При смене формата вёрстка книги может измениться; активные, зашифрованные и фиксированные макеты требуют отдельной поддержки.',
+                    'orp': 'ORP — только определение отчёта LibreOffice Base ReportDefinition. Обычные документы Writer/Calc/Impress не являются отчётами Base. Положительный Base-контроль пока не проверен.',
+                    'html': 'HTML-экспорт Impress поддерживается для проверенной текстовой структуры. Графические объекты этим фильтром не сохраняются; используйте PDF. HTML-фильтр Draw не подтверждён; доступность XHTML проверяется отдельно.',
+                    'htm': 'HTM-экспорт Impress поддерживается для проверенной текстовой структуры. Графические объекты этим фильтром не сохраняются; используйте PDF. HTML-фильтр Draw не подтверждён; доступность XHTML проверяется отдельно.',
                     'xml': 'Для Writer/Calc/Impress/Draw используется установленный штатный фильтр Flat OpenDocument XML. Это не Excel/Word 2003 XML; точный фильтр указан в отчёте.'
                 }).get(ext, 'Проверка Guard подтверждает маршрут, но не гарантирует отсутствие смысловых или визуальных потерь.')}],
                 'unavailableReasons': reasons,
@@ -596,6 +599,7 @@ class LibreOfficeAdapter:
                         'drawPages':result.get('drawPages'),
                         'difNumericImport':result.get('difNumericImport'),
                         'nativeGraphicExports': result.get('nativeGraphicExports', []),
+                        'htmlContentProfile': result.get('htmlContentProfile'),
                         'nativeExportFilters': result.get('nativeExportFilters', {}),
                         'nativeExportInspection': result.get('nativeExportInspection', {}),
                         'registryFingerprint':native.fingerprint,'exported':False}
@@ -694,6 +698,11 @@ class LibreOfficeAdapter:
         from .qt_media import convert_media_frames, convert_document_pages
         proof = getattr(self._local, 'proof', None) or {}
         retry_recipe = getattr(self._local, 'retry_recipe', None)
+        html_reason = self._registry().html_route_reason(target, proof)
+        if html_reason:
+            raise GuardError(html_reason,
+                'Штатный HTML-фильтр не подтверждает сохранение графики этого документа. Используйте PDF либо отдельно проверенный XHTML.',
+                stage='plan')
         if retry_recipe is not None:
             validate_retry_recipe(retry_recipe, target)
             # A Qt/identity route cannot truthfully apply LibreOffice export

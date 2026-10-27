@@ -206,6 +206,36 @@ def export_table_sheets(model, desktop, prop, target, export_options):
     return outputs
 
 
+def inspect_html_content_profile(model):
+    """Inspect shapes only: never export during native preflight."""
+    profile = {'complete': False, 'textShapes': 0, 'graphicShapes': 0, 'pages': 0}
+    try:
+        pages = model.getDrawPages()
+        profile['pages'] = pages.getCount()
+        if not 1 <= profile['pages'] <= 256:
+            return profile
+        pending = [pages.getByIndex(i) for i in range(profile['pages'])]
+        visited = 0
+        while pending:
+            group = pending.pop()
+            for index in range(group.getCount()):
+                visited += 1
+                if visited > 10000:
+                    return profile
+                shape = group.getByIndex(index)
+                kind = shape.getShapeType()
+                if kind == 'com.sun.star.drawing.GroupShape':
+                    pending.append(shape)
+                elif kind.rsplit('.', 1)[-1] in ('TextShape', 'TitleTextShape', 'OutlinerShape'):
+                    profile['textShapes'] += 1
+                else:
+                    profile['graphicShapes'] += 1
+        profile['complete'] = True
+    except Exception:
+        pass
+    return profile
+
+
 def export_draw_svm(model, remote, prop, target):
     """Use LO's graphic encoder per page, never its import-only doc filter."""
     pages = model.getDrawPages()
@@ -388,6 +418,9 @@ def main(boot_name):
                         result['nativeExportFilters'] = text_exports
                     if text_document:
                         result['nativeExportInspection'] = {'txt': text_export_reason}
+                    if set(services).intersection(('com.sun.star.presentation.PresentationDocument',
+                                                   'com.sun.star.drawing.DrawingDocument')):
+                        result['htmlContentProfile'] = inspect_html_content_profile(model)
                     if 'com.sun.star.drawing.DrawingDocument' in services:
                         try:
                             result['drawPages'] = model.getDrawPages().getCount()
