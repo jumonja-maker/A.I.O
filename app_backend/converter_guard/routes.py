@@ -206,9 +206,18 @@ class Registry:
             return None
         services = self.export_services(proof)
         selected = self.export_filter(target, services)
-        if selected == 'draw_html_Export':
+        draw = 'com.sun.star.drawing.DrawingDocument'
+        presentation = 'com.sun.star.presentation.PresentationDocument'
+        # Preserve the already integrated native single-page XHTML recipe.
+        alternative = self.filters.get('XHTML Draw File')
+        if (services == [draw] and proof.get('drawPages') == 1 and alternative
+                and alternative[0] == draw and 'EXPORT' in alternative[2]
+                and 'xhtml' in alternative[1] and 'xhtml' not in self.uncertain_extensions):
+            return None
+        if selected == 'draw_html_Export' or (selected is None and services == [draw]):
             return 'NATIVE_DRAW_HTML_CONTENT_UNSUPPORTED'
-        if selected == 'impress_html_Export':
+        if selected == 'impress_html_Export' or (selected is None and services == [presentation]
+                and 'impress_html_Export' in self.filters):
             profile = proof.get('htmlContentProfile')
             if not isinstance(profile, dict) or profile.get('complete') is not True:
                 return 'NATIVE_PRESENTATION_HTML_PROFILE_NOT_CHECKED'

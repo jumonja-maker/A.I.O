@@ -46,3 +46,12 @@ class HtmlRouteSafety(unittest.TestCase):
             draw={**proof,'documentServices':[D]}
             self.assertEqual(native.observed_decision('html',draw),'unavailable')
             self.assertEqual(native.route_reason('html',draw),'NATIVE_DRAW_HTML_CONTENT_UNSUPPORTED')
+            # A known native single-page XHTML alternative is preserved.
+            native.filters['XHTML Draw File']=(D,{'xhtml'},{'EXPORT'})
+            single={**draw,'drawPages':1}
+            self.assertIsNone(native.html_route_reason('html',single))
+            # Ambiguous static overlays must not bypass the known automatic
+            # Impress HTML fallback's graphical-content restriction.
+            with patch.object(native,'export_filter',return_value=None):
+                bad={**proof,'htmlContentProfile':{'complete':True,'graphicShapes':1}}
+                self.assertEqual(native.observed_decision('html',bad),'unavailable')

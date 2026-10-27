@@ -50,7 +50,7 @@ def main():
                     assert proof['state']=='detected',proof
                     for target in ('html','htm'):
                         route=adapter.route_decision(target,proof)
-                        if kind=='text':
+                        if kind=='text' or kind=='draw' and level==1:
                             assert route=='registered',(kind,level,proof)
                             adapter.prepare_source(proof)
                             paths=adapter.convert(source,target,args.output/f'export-{kind}-{level}-{target}',cancel=cancel,timeout=120,on_started=lambda:None)
@@ -80,7 +80,7 @@ def main():
                     assert error.code==expected_code,error.code
                     report['negative'].append({'name':name,'status':'SAFE_REJECTION','code':error.code})
                 else:raise AssertionError('empty output accepted')
-        assert len(report['positive'])==16 and len(report['excluded'])==32 and len(report['negative'])==3
+        assert len(report['positive'])==18 and len(report['excluded'])==30 and len(report['negative'])==3
         report['status']='PASS'
     except Exception as error:report.update(status='FAIL',reason=str(error),code=getattr(error,'code',None));raise
     finally:
