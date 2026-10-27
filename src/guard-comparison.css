@@ -102,3 +102,4 @@
 .aio-pair-content pre{margin:0;padding:12px;background:var(--surface);color:var(--text);font:12px/1.6 monospace;white-space:pre-wrap;max-width:65ch;min-width:180px}
 .aio-pair-status,.aio-pair-note{display:block;padding:5px 7px;font-size:10px;line-height:1.4;color:var(--muted);background:var(--surface);border-top:1px solid var(--line);flex-shrink:0;overflow-wrap:anywhere}
 @media(max-width:680px){.aio-pair-grid{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(110px,1fr) minmax(110px,1fr)}.aio-pair-status{max-height:40px;overflow:auto}.aio-pair-toolbar{gap:3px}.aio-pair-toolbar button{padding:4px}.aio-pair-note{display:none}}
+.aio-pair-viewer:fullscreen{width:100vw;height:100vh;min-height:0;background:var(--surface);padding:8px;box-sizing:border-box}

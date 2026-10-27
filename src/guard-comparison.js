@@ -563,7 +563,7 @@
       '<footer class="aio-compare-actions"><button type="button" data-c-retry>Повторить с автонастройкой</button><details class="aio-compare-warning"><summary title="Об автонастройке" aria-label="Предупреждение об автонастройке">!</summary><p>Настройка не обязательно улучшит качество файла. Предыдущий результат будет сохранён.</p></details><label><input type="checkbox" data-c-include-source>Добавить исходник</label><button type="button" data-c-save-current>Сохранить выбранный выход и диагностику</button><button type="button" data-c-back hidden>Предыдущий пакет</button></footer></section></div></div>';
     document.body.append(dialog);
     $('[data-c-close]').addEventListener('click',closeComparison);
-    dialog.addEventListener('cancel',event=>{event.preventDefault();closeComparison();});
+    dialog.addEventListener('cancel',event=>{event.preventDefault();if(document.fullscreenElement){document.exitFullscreen().catch(()=>{});return;}closeComparison();});
     let outside=false;
     const isOutside=event=>{if(event.target!==dialog)return false;const r=dialog.getBoundingClientRect();return event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom;};
     dialog.addEventListener('pointerdown',event=>{outside=event.button===0&&isOutside(event);});

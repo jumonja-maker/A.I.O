@@ -3,9 +3,12 @@ import argparse
 from contextlib import contextmanager
 import hashlib
 import json
+import os
 from pathlib import Path
+from unittest.mock import patch
 import sys
 import time
+import tempfile
 import zipfile
 
 ROOT=Path(__file__).resolve().parents[2]
@@ -34,7 +37,7 @@ def main():
     parser.add_argument('--executable',type=Path,required=True);args=parser.parse_args()
     args.output.mkdir(parents=True,exist_ok=False)
     report={'status':'RUNNING','scope':'actual native LO queue/save/recovery/cancel; not FULLTEST or installed EXE', 'checks':[]}
-    guard=service=None
+    guard=service=None;cancel_workspace=None
     try:
         sources=fixtures(args.output/'fixtures');source=sources['xlsx'];original=sha(source)
         parent=args.output/'owned'
@@ -92,11 +95,18 @@ def main():
             archive.writestr('[Content_Types].xml','<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>')
             archive.writestr('_rels/.rels','<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="r1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>')
             archive.writestr('word/document.xml','<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>'+''.join('<w:p><w:r><w:t>AIO native cancellation marker %d with retained source data.</w:t></w:r></w:p>'%i for i in range(2000))+'<w:sectPr/></w:body></w:document>')
-        before=sha(source);offices=[];native_phases=[]
+        before=sha(source);offices=[];native_phases=[];native_logs=[]
         class TrackingAdapter(LibreOfficeAdapter):
             @contextmanager
             def batch(self,*values,**options):
                 with super().batch(*values,**options) as office:
+                    original_recycle=office.recycle
+                    def observed_recycle():
+                        logs=getattr(office,'logs',None)
+                        try:return original_recycle()
+                        finally:
+                            if logs and logs.text():native_logs.append(logs.text()[-4000:])
+                    office.recycle=observed_recycle
                     if hasattr(office,'request'):
                         original_request=office.request
                         def track(value,**request_options):
@@ -108,7 +118,11 @@ def main():
                             return original_request(value,**{**request_options,'on_stage':observed})
                         office.request=track
                     offices.append(office);yield office
-        guard=ConverterGuard(adapter=TrackingAdapter(args.executable),recovery_parent=args.output/'cancel-owned',
+        # The long Actions evidence prefix can exceed Windows/LO's private
+        # profile-path limits. Use a new short D: RUNNER_TEMP ownership root,
+        # never a shared/personal office profile. Keep originals/evidence here.
+        cancel_workspace=tempfile.TemporaryDirectory(prefix='aio-native-cancel-',dir=os.environ.get('RUNNER_TEMP',str(args.output)))
+        guard=ConverterGuard(adapter=TrackingAdapter(args.executable),recovery_parent=Path(cancel_workspace.name),
                              limits=GuardLimits(file_timeout=120))
         job=guard.create([{'id':'cancel','name':source.name,'size':source.stat().st_size}],prepare_only=True,retain_sources=True)['jobId']
         with source.open('rb') as stream:guard.upload(job,'cancel',stream,source.stat().st_size)
@@ -121,6 +135,7 @@ def main():
             if state['finished']:
                 report['cancelFailure']=guard.report(job)
                 report['officeStates']=[{'type':type(office).__name__,'starts':getattr(office,'starts',None),'disabled':getattr(office,'disabled',None)} for office in offices]
+                report['nativeStartupLogs']=native_logs
                 raise AssertionError('native cancellation opportunity not observed')
             time.sleep(.005)
         assert process is not None,'actual native worker not observed'
@@ -129,13 +144,41 @@ def main():
         assert process.poll() is not None and sha(source)==before
         report['checks'].append({'name':'actual-native-close-cancellation','status':'PASS',
             'phase':phase,'workerPid':process.pid,'workerExited':True,'originalSha256':before,
+            'nativeOwnershipRootLength':len(cancel_workspace.name),
             'descendantPidInventory':'not_independently_enumerated'})
+        guard.close();guard=None
+        # Cover the real native CLI fallback too, without substituting its
+        # process or conversion bytes. Only observe the owned process object.
+        from app_backend import libreoffice_engine
+        process_type=libreoffice_engine.ProcessTree;cli_processes=[]
+        class ObservedTree(process_type):
+            def __init__(self,*values,**options):
+                super().__init__(*values,**options);cli_processes.append(self.process)
+        with patch.dict(os.environ,{'AIO_GUARD_NATIVE_SESSION':'0'}):
+            guard=ConverterGuard(adapter=LibreOfficeAdapter(args.executable),recovery_parent=Path(cancel_workspace.name)/'cli',limits=GuardLimits(file_timeout=120))
+            job=guard.create([{'id':'cli','name':source.name,'size':source.stat().st_size}],prepare_only=True,retain_sources=True)['jobId']
+            with source.open('rb') as stream:guard.upload(job,'cli',stream,source.stat().st_size)
+            guard.preflight(job,timeout_seconds=120)
+            with patch.object(libreoffice_engine,'ProcessTree',ObservedTree):
+                guard.start(job,formats=['pdf'],file_ids=['cli'],only_verified=True,archive_mode='on_demand')
+                deadline=time.monotonic()+90
+                while not cli_processes and time.monotonic()<deadline:
+                    if guard.status(job)['finished']:raise AssertionError('real CLI conversion not observed')
+                    time.sleep(.005)
+                assert cli_processes and cli_processes[-1].poll() is None
+                owned=guard._jobs[job];outcome=guard.close_conversion(job,discard=True)
+                assert outcome['closed'];owned.future.result(timeout=30)
+                assert all(process.poll() is not None for process in cli_processes) and sha(source)==before
+        report['checks'].append({'name':'actual-native-cli-close-cancellation','status':'PASS','phase':'engine_process_running',
+            'ownedProcessPids':[process.pid for process in cli_processes],'ownedProcessesExited':True,'originalSha256':before,
+            'importExportPhase':'native_CLI_does_not_expose_individual_phases'})
         report['status']='PASS'
     except Exception as error:
         report.update(status='FAIL',code=getattr(error,'code',None),reason=str(error),error=type(error).__name__);raise
     finally:
         if service is not None:service.close()
         if guard is not None:guard.close()
+        if cancel_workspace is not None:cancel_workspace.cleanup()
         (args.output/'evidence.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
         print('SESSION_NATIVE='+json.dumps(report,ensure_ascii=True),flush=True)
 

@@ -15,11 +15,20 @@
     }
     const syncLabel=document.createElement('label'),sync=document.createElement('input');sync.type='checkbox';sync.checked=true;sync.dataset.viewerSync='';
     syncLabel.append(sync,document.createTextNode('Синхронно'));toolbar.append(syncLabel);
-    const full=button('На весь экран',()=>{
+    const full=button('На весь экран',async()=>{
       const dialog=root.closest('dialog');if(!dialog)return;
+      if(document.fullscreenElement===viewer){await document.exitFullscreen();return;}
+      if(typeof viewer.requestFullscreen==='function'){
+        try{await viewer.requestFullscreen();return;}
+        catch(error){onMessage('Полноэкранный режим недоступен. Просмотр развёрнут в пределах окна.');}
+      }
       const expanded=dialog.classList.toggle('aio-compare-maximized');full.setAttribute('aria-pressed',String(expanded));
       full.textContent=expanded?'Обычный размер':'На весь экран';zoom(scale);
     });full.dataset.viewerFullscreen='';toolbar.append(full);
+    const fullscreenChanged=()=>{const expanded=document.fullscreenElement===viewer;
+      root.closest('dialog')?.classList.toggle('aio-compare-maximized',expanded);
+      full.setAttribute('aria-pressed',String(expanded));full.textContent=expanded?'Обычный размер':'На весь экран';zoom(scale);};
+    document.addEventListener('fullscreenchange',fullscreenChanged);
     const grid=document.createElement('div');grid.className='aio-pair-grid';
     const note=document.createElement('small');note.className='aio-pair-note';note.textContent='Колесо — масштаб; перетаскивание — перемещение. Проверенные изменения описаны ниже.';
     viewer.append(toolbar,grid,note);root.append(viewer);
@@ -134,7 +143,7 @@
       await refresh();
     }
     const resized=()=>{if(scale==='fit')zoom(scale);};window.addEventListener('resize',resized);
-    return {ready:refresh(),destroy(){destroyed=true;revision++;controller.abort();for(const url of urls)URL.revokeObjectURL(url);urls.clear();window.removeEventListener('resize',resized);root.closest('dialog')?.classList.remove('aio-compare-maximized');viewer.remove();},zoom,changePage};
+    return {ready:refresh(),destroy(){destroyed=true;revision++;controller.abort();if(document.fullscreenElement===viewer)document.exitFullscreen().catch(()=>{});document.removeEventListener('fullscreenchange',fullscreenChanged);for(const url of urls)URL.revokeObjectURL(url);urls.clear();window.removeEventListener('resize',resized);root.closest('dialog')?.classList.remove('aio-compare-maximized');viewer.remove();},zoom,changePage};
   }
   window.AIOComparisonViewer=Object.freeze({mount});
 })();

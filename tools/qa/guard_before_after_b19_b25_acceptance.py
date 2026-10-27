@@ -96,8 +96,10 @@ def main():
                 click('[data-viewer-zoom="'+zoom+'"]')
                 assert js("[...document.querySelectorAll('.aio-pair-pane img')].every(i=>i.style.width==="+json.dumps(str(width)+'px')+")"),(theme,zoom)
             click('[data-viewer-zoom="fit"]');click('[data-viewer-fullscreen]')
+            until(lambda:js("!!document.fullscreenElement") and window.isFullScreen())
             assert js("document.querySelector('.aio-compare-dialog').classList.contains('aio-compare-maximized')")
             click('[data-viewer-fullscreen]')
+            until(lambda:not js("!!document.fullscreenElement") and not window.isFullScreen())
             window.resize(900,650)
             app.processEvents();QTest.qWait(150)
             shot=args.output/(theme+'.png');assert window.grab().save(str(shot));raw=shot.read_bytes();assert len(raw)<768*1024
