@@ -79,11 +79,13 @@ class PagePreview(unittest.TestCase):
         self.assertTrue(self.guard.status(state['jobId'])['finished'])
 
     def test_selected_apng_frame_has_correct_pixels_and_bounds(self):
-        from PySide6.QtGui import QImage
+        from PySide6.QtGui import QImage,QColor
         from app_backend.converter_guard.qt_media import _write_apng
         frames=[]
-        for colour in (0xffff0000,0xff0000ff):
-            image=QImage(80,40,QImage.Format.Format_RGBA8888);image.fill(colour);frames.append(image)
+        for colour in ((255,0,0,255),(0,0,255,255)):
+            image=QImage(80,40,QImage.Format.Format_RGBA8888);image.fill(QColor(*colour))
+            self.assertEqual(image.pixelColor(10,10).getRgb(),colour,'fixture must contain the intended source colour')
+            frames.append(image)
         stream=io.BytesIO();_write_apng(stream,iter(frames),{'width':80,'height':40,'frames':2,'pages':1,'durationsMs':[100,100]},None)
         raw=stream.getvalue();state=self.converted(name='frames.apng',formats=['apng'],data=raw)
         for page,expected in ((0,(255,0,0,255)),(1,(0,0,255,255))):
@@ -94,3 +96,5 @@ class PagePreview(unittest.TestCase):
                 self.assertEqual(response.headers['X-AIO-Preview-Pages'],'2')
                 self.assertEqual(response.headers['X-AIO-Preview-Page'],str(page))
         self.assertEqual(self.guard._jobs[state['jobId']].files[0].source.read_bytes(),raw)
+        query=urlencode({'job':state['jobId'],'task':state['files'][0]['targets'][0]['taskId'],'side':'result','page':2})
+        self.assertEqual(self.json_request('compare/preview?'+query)['kind'],'unavailable')
