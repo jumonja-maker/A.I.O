@@ -29,6 +29,15 @@ class Stress3EvidenceContracts(unittest.TestCase):
         self.assertEqual(stages['tiff'],{'cases':24,'negative':6})
         self.assertEqual(stages['html'],{'positive':18,'excluded':30,'negative':3})
         self.assertEqual(stages['viewer-150']['checks'],5)
+    def test_native_sheet_count_keys_and_tiff_case_paths_bind_real_sources(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            folder=Path(tmp)/'all-sheets';folder.mkdir()
+            path=folder/'book-4.xlsx';path.write_bytes(b'generated workbook bytes')
+            sha=qa.digest(path)
+            self.assertEqual(qa.referenced_sources(folder,{'sourceSHA256':{'4':sha}})[0]['file'],path.name)
+            tiff=Path(tmp)/'tiff';tiff.mkdir();source=tiff/'pages-8.tif';source.write_bytes(b'IFD control')
+            rows=qa.referenced_sources(tiff,{'cases':[{'source':source.name,'sourceSha256':qa.digest(source)}]})
+            self.assertEqual(rows[0]['file'],source.name)
     def test_new_parser_corpus_keeps_unknown_distinct_from_loss(self):
         with tempfile.TemporaryDirectory() as tmp:
             rows=qa.safety_negative_corpus(Path(tmp)/'new-controls')

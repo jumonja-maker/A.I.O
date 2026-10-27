@@ -66,8 +66,12 @@ def referenced_sources(folder,data):
     references=[]
     mapping=data.get('sourceSHA256',{})
     if isinstance(mapping,dict):
-        for name,sha in mapping.items():references.append((folder/name,sha,'native_input_control'))
-    for key in ('positive','excluded','negative'):
+        for name,sha in mapping.items():
+            # The accepted B30 child keys this map by sheet count; bind its
+            # explicit generated filename, never treat a count as a path.
+            path=folder/('book-'+name+'.xlsx' if folder.name=='all-sheets' and name in ('1','4') else name)
+            references.append((path,sha,'native_input_control'))
+    for key in ('cases','positive','excluded','negative'):
         for row in data.get(key,[]):
             if isinstance(row,dict) and isinstance(row.get('source'),str):
                 expected=row.get('sourceSha256') or row.get('sha256')
@@ -195,6 +199,8 @@ def native_positive_corpus(folder,executable):
                 adapter.prepare_source(proof)
                 paths=adapter.convert(seed,target,folder/f'native-{kind}-{level}',cancel=cancel,timeout=120,on_started=lambda:None)
                 if adapter.execution_mode()!='native_uno':raise ValueError('positive OOXML was not created by native UNO')
+                native_export=adapter.export_info()
+                if not native_export.get('filter'):raise ValueError('positive export filter was not recorded')
                 output=next(p for p in paths if p.suffix=='.'+target);before=digest(output)
                 if kind=='calc':
                     from openpyxl import load_workbook
@@ -222,6 +228,12 @@ def native_positive_corpus(folder,executable):
                 records.append({'level':level,'kind':kind,'target':target,'status':'PASS',
                     'file':output.relative_to(folder).as_posix(),'sha256':before,'bytes':output.stat().st_size,
                     'packageParts':parts,'sourceContract':contract,'nativeImportFilter':second.get('selectedImportFilter'),
+                    'seedImportFilter':proof.get('selectedImportFilter'),'exportFilter':native_export['filter'],
+                    'executionMode':'native_uno','conversionStatus':'ready','saveStatus':'not_requested',
+                    'readbackVerified':False,'qualityCheckRequested':False,'qualityCompared':False,
+                    'checkedFeatures':['ZIP_CRC','source_declarations','native_model_reimport','native_PDF_reimport']+
+                        (['cached_formula_values','text_ID_types'] if kind=='calc' else []),
+                    'unknownReasons':['full_visual_fidelity_not_compared','macro_preservation_not_tested'],
                     'pdfSha256':digest(pdf),'independentNativePdfModel':pdf_proof.get('documentServices'),
                     'macros':'not_present_not_tested'})
     if len(records)!=24:raise ValueError('incomplete native positive corpus')
