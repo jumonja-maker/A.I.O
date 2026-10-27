@@ -86,6 +86,32 @@ def main():
             position=receiver.mapFrom(window.view,QPoint(round(point['x']),round(point['y'])))
             QTest.mouseClick(receiver,Qt.MouseButton.LeftButton,Qt.KeyboardModifier.NoModifier,position)
             app.processEvents()
+        def painted_snapshot(name):
+            # DOM readiness is not a composited Qt frame. In particular, a
+            # fullscreen transition can leave an old backing-store image.
+            # Require real visible pixels at both current image coordinates.
+            js('window.__aioQAPaint=false;requestAnimationFrame(()=>requestAnimationFrame(()=>window.__aioQAPaint=true));true')
+            until(lambda:js('window.__aioQAPaint===true'),seconds=8)
+            rgba=image.pixelColor(0,0).getRgb();alpha=rgba[3]/255
+            expected=[tuple(round(c*alpha+bg*(1-alpha)) for c in rgba[:3]) for bg in (238,255)]
+            end=time.monotonic()+8;last=None
+            while time.monotonic()<end:
+                app.processEvents()
+                points=json.loads(js("JSON.stringify([...document.querySelectorAll('.aio-pair-pane img')].map(i=>{const r=i.getBoundingClientRect(),v=i.closest('.aio-pair-viewport').getBoundingClientRect(),left=Math.max(r.left,v.left,0),right=Math.min(r.right,v.right,innerWidth),top=Math.max(r.top,v.top,0),bottom=Math.min(r.bottom,v.bottom,innerHeight);return {x:(left+right)/2,y:(top+bottom)/2,width:right-left,height:bottom-top}}))"))
+                shot=window.grab();pixels=shot.toImage();colours=[]
+                for point in points:
+                    q=window.view.mapTo(window,QPoint(round(point['x']),round(point['y'])))
+                    x=min(pixels.width()-1,max(0,round(q.x()*pixels.width()/window.width())))
+                    y=min(pixels.height()-1,max(0,round(q.y()*pixels.height()/window.height())))
+                    colours.append(pixels.pixelColor(x,y).getRgb()[:3])
+                last={'points':points,'colours':colours,'expected':expected}
+                if len(points)==2 and all(p['width']>20 and p['height']>20 for p in points) and all(
+                        any(max(abs(a-b) for a,b in zip(colour,wanted))<=4 for wanted in expected) for colour in colours):
+                    path=args.output/name;assert shot.save(str(path));raw=path.read_bytes();assert len(raw)<768*1024
+                    print('PAIR_QT_SNAPSHOT='+json.dumps({'name':name,'pngBase64':base64.b64encode(raw).decode()}),flush=True)
+                    return path,last
+                QTest.qWait(50)
+            raise AssertionError('Qt frame did not paint the two current images: '+str(last))
         until(lambda:js("!!window.AIOGuardComparison&&!!window.AIOComparisonViewer"))
         js('window.AIOGuardComparison.open('+json.dumps(job)+');true')
         until(lambda:js("document.querySelector('[data-c-progress]')?.textContent.includes('Анализ завершён')"))
@@ -114,14 +140,13 @@ def main():
             until(lambda:js("!!document.fullscreenElement") and window.isFullScreen())
             assert js("document.querySelector('.aio-compare-dialog').classList.contains('aio-compare-maximized')")
             click('[data-viewer-fullscreen]')
-            until(lambda:not js("!!document.fullscreenElement") and not window.isFullScreen())
+            until(lambda:not js("!!document.fullscreenElement||document.querySelector('.aio-compare-dialog').classList.contains('aio-compare-maximized')") and not window.isFullScreen())
             window.resize(900,650)
-            app.processEvents();QTest.qWait(150)
-            shot=args.output/(theme+'.png');assert window.grab().save(str(shot));raw=shot.read_bytes();assert len(raw)<768*1024
-            print('PAIR_QT_SNAPSHOT='+json.dumps({'name':shot.name,'pngBase64':base64.b64encode(raw).decode()}),flush=True)
+            app.processEvents()
+            shot,paint=painted_snapshot(theme+'.png')
             geometry=json.loads(js("JSON.stringify((()=>{const d=document.querySelector('.aio-compare-dialog').getBoundingClientRect();return {x:d.x,y:d.y,width:d.width,height:d.height,viewportWidth:innerWidth,viewportHeight:innerHeight,panes:document.querySelectorAll('.aio-pair-pane').length,dpr:devicePixelRatio}})())"))
             assert geometry['x']>=0 and geometry['y']>=0 and geometry['x']+geometry['width']<=geometry['viewportWidth']+1 and geometry['y']+geometry['height']<=geometry['viewportHeight']+1
-            report['snapshots'].append({'name':shot.name,'sha256':sha(shot),'geometry':geometry})
+            report['snapshots'].append({'name':shot.name,'sha256':sha(shot),'geometry':geometry,'paintedImagePointsVerified':True,'paint':paint})
             report['checks'].append({'name':'qt-two-pane-4k-'+theme,'status':'PASS','nativeMouseFilter':True,'nativeKeyboardFilter':True,'zooms':[100,200,400],'sourcePixels':[3840,2160]})
             window.resize(1100,800)
         js('window.AIOGuardComparison.open('+json.dumps(frame_job)+');true')
@@ -134,9 +159,10 @@ def main():
         report['checks'].append({'name':'qt-synchronized-animation-frame-navigation','status':'PASS','frames':3})
         # Actual protected GIF refusal, not a manufactured analysis status.
         # The half-alpha PNG must never become a ready GIF or a fake preview.
-        bad=server.guard.create([{'id':'alpha','name':'half-alpha.png','size':source.stat().st_size}],['gif'],retain_sources=True)['jobId']
+        bad=server.guard.create([{'id':'alpha','name':'half-alpha.png','size':source.stat().st_size}],prepare_only=True,retain_sources=True)['jobId']
         server.guard.upload(bad,'alpha',io.BytesIO(source.read_bytes()),source.stat().st_size)
-        server.guard.start(bad,archive_mode='on_demand');failed=finished(bad)
+        server.guard.preflight(bad,timeout_seconds=120)
+        server.guard.start(bad,formats=['gif'],file_ids=['alpha'],only_verified=True,archive_mode='on_demand');failed=finished(bad)
         assert failed['succeeded']==0 and failed['failed']==1,failed
         target=failed['files'][0]['targets'][0]
         assert target['code']=='MEDIA_GIF_ALPHA_UNREPRESENTABLE',target

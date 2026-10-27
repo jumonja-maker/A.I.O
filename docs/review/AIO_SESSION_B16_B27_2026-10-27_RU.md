@@ -15,6 +15,14 @@
 
 Локально: 36 тестов жизненного цикла, сохранения, восстановления и реального JS bridge с управляемыми HTTP/native-save границами — PASS. Отдельные DOM проверки сохраняют проверки readback и добавляют постоянные кнопки, двойное закрытие, «Нет», закрытие сохранённого результата и очистку модели.
 
-Windows NIKITA: запланированы реальный LO import/export, частичное сохранение, restart/recovery, SHA/readback каждого файла, необязательная диагностика, анализ после сохранения и реальная отмена собственного native worker; Qt light/dark, narrow view, save/analysis journeys и полный source regression. До получения результатов это **pending**, не PASS.
+Windows NIKITA: **PASS**, [run 40570942757](https://github.com/jumonja-maker/A.I.O/actions/runs/40570942757), job `122424637590`.
+Tested source `6b29e4340485378e1186e885cf1875f5adac55ea`, tree `16c6b8ff1ed39e549ad28f577416e85746f9a151`.
+Полный набор: **1157 passed, 0 failed, 0 errors, 10 not_applicable**, 1167 discovered. Native v20/v21/v22/v08/recipes, Qt light/dark/narrow, save/recovery/analysis journeys — PASS.
+
+Три целевых native сценария PASS: реальное сохранение двух результатов с частичным save/restart/readback/необязательной диагностикой; Close во время реального UNO import с завершением собственного worker PID; Close во время реального CLI процесса с завершением всех наблюдавшихся owned PID. SHA оригиналов и сохранённых внешних файлов неизменны. Отдельный независимый перечень всех descendant PID не собирался; CLI не отделяет import/export фазу, и проверка не выдаётся за export-only cancellation. Полные JSON: `evidence/session/windows-accepted.json`.
+
+Сбои предыдущих запусков сохранены отдельными JSON с точными SHA. Исправлены: слишком длинный путь QA к UNO profile, пропущенный fileIds при запуске подготовленной очереди, старые ожидания auto-prune после Save, поздний terminal /jobs ответ после Close и тестовый Windows reader эксклюзивного owner.lock. Для последнего SHA всех файлов, включая lock, проверяется через действующий owner handle без пропусков. Assertions save/readback, остановки процессов и сохранности данных оставлены и повторно пройдены.
+
+Финальный коммит после tested source добавляет только этот отчёт/доказательства и удаляет одноразовый QA workflow; продукт не меняет.
 
 Этот этап не является пользовательским FULLTEST, сборкой EXE или ручной приёмкой установленного приложения на разных DPI. Полноценный двухпанельный preview и новые анализаторы относятся к следующему PR.
