@@ -14,7 +14,7 @@ ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT))
 from app_backend.converter_guard import LibreOfficeAdapter,GuardError
 from app_backend.converter_guard.presentation_evidence import check_presentation_html
 from app_backend.converter_guard.postconditions import check_native_output
-from guard_v16_bugbag_acceptance import presentation_seed,DRAW,OFFICE,SLIDE_MARKER
+from guard_v16_bugbag_acceptance import presentation_seed,writer_seed,DRAW,OFFICE,SLIDE_MARKER
 
 def chunk(kind,data):return struct.pack('>I',len(data))+kind+data+struct.pack('>I',zlib.crc32(kind+data)&0xffffffff)
 PNG=base64.b64encode(b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',32,24,8,2,0,0,0))+
@@ -70,11 +70,12 @@ def main():
                             report['excluded'].append({'status':'SAFE_UNAVAILABLE','source':source.name,'target':target,'reason':reason,'sourceSha256':before,'profile':proof['htmlContentProfile']})
                     assert sha(source)==before
             source=args.output/'graphics-1.fodp';empty=args.output/'graphics-1.html';empty.write_text('<html><head><title>shell</title></head><body></body></html>')
+            writer=args.output/'graphics-1.fodt';writer.write_text(writer_seed(),encoding='utf-8')
             missing_dir=args.output/'missing-resource';missing_dir.mkdir()
             missing=missing_dir/empty.name;missing.write_text('<html><body><p>Control</p><img src="missing.png"></body></html>')
-            for name,expected_code,check in (('empty_html','ENGINE_OUTPUT_CONTENT_EMPTY',lambda:check_native_output([empty],'html',source,cancel=cancel)),
+            for name,expected_code,check in (('empty_html','ENGINE_OUTPUT_CONTENT_EMPTY',lambda:check_native_output([empty],'html',writer,cancel=cancel)),
                                ('lost_slide_graphics','ENGINE_OUTPUT_CONTENT_LOSS',lambda:check_presentation_html([empty],'html',source,cancel=cancel)),
-                               ('missing_resource','ENGINE_OUTPUT_RESOURCE_MISSING',lambda:check_native_output([missing],'html',source,cancel=cancel))):
+                               ('missing_resource','ENGINE_OUTPUT_RESOURCE_MISSING',lambda:check_native_output([missing],'html',writer,cancel=cancel))):
                 try:check()
                 except GuardError as error:
                     assert error.code==expected_code,error.code
