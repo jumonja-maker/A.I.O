@@ -114,13 +114,16 @@ class MainWindow(QMainWindow):
     def _full_screen_requested(self, request):
         if request.toggleOn():
             origin=request.origin()
-            if (self._shutdown_started or origin.scheme()!='http' or origin.host()!='127.0.0.1'
+            if (self._shutdown_started or self._shutdown_done or origin.scheme()!='http' or origin.host()!='127.0.0.1'
                     or origin.port()!=self._server.server_port):
                 request.reject();return
             self._fullscreen_restore=(self.saveGeometry(),self.isMaximized())
             request.accept();self.showFullScreen()
         else:
-            request.accept();self.showNormal()
+            request.accept()
+            if self._shutdown_started or self._shutdown_done:
+                self._fullscreen_restore=None;return
+            self.showNormal()
             restore,self._fullscreen_restore=self._fullscreen_restore,None
             if restore:
                 self.restoreGeometry(restore[0])

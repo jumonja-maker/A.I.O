@@ -94,6 +94,14 @@ def main():
         for theme in ('dark','light'):
             js('document.documentElement.setAttribute("data-theme",'+json.dumps(theme)+');true')
             click('[data-c-filter-choice="all"]');until(lambda:js("document.querySelectorAll('.aio-compare-row').length===1"))
+            # Focus a real accessible button, then let WebEngine handle a
+            # native keyboard event (no programmatic click fallback).
+            js("document.querySelector('[data-c-filter-choice=problems]').focus();true")
+            QTest.keyClick(window.view.focusProxy() or window.view,Qt.Key.Key_Space)
+            until(lambda:js("document.querySelectorAll('.aio-compare-row').length===0"))
+            js("document.querySelector('[data-c-filter-choice=all]').focus();true")
+            QTest.keyClick(window.view.focusProxy() or window.view,Qt.Key.Key_Space)
+            until(lambda:js("document.querySelectorAll('.aio-compare-row').length===1"))
             js("document.querySelector('[data-task]').dispatchEvent(new MouseEvent('dblclick',{bubbles:true}));true")
             until(lambda:js("document.querySelectorAll('.aio-pair-pane img').length===2&&[...document.querySelectorAll('.aio-pair-pane img')].every(i=>i.naturalWidth===3840)"))
             for zoom,width in (('1',3840),('2',7680),('4',15360)):
@@ -111,7 +119,7 @@ def main():
             geometry=json.loads(js("JSON.stringify((()=>{const d=document.querySelector('.aio-compare-dialog').getBoundingClientRect();return {x:d.x,y:d.y,width:d.width,height:d.height,viewportWidth:innerWidth,viewportHeight:innerHeight,panes:document.querySelectorAll('.aio-pair-pane').length,dpr:devicePixelRatio}})())"))
             assert geometry['x']>=0 and geometry['y']>=0 and geometry['x']+geometry['width']<=geometry['viewportWidth']+1 and geometry['y']+geometry['height']<=geometry['viewportHeight']+1
             report['snapshots'].append({'name':shot.name,'sha256':sha(shot),'geometry':geometry})
-            report['checks'].append({'name':'qt-two-pane-4k-'+theme,'status':'PASS','nativeMouseFilter':True,'zooms':[100,200,400],'sourcePixels':[3840,2160]})
+            report['checks'].append({'name':'qt-two-pane-4k-'+theme,'status':'PASS','nativeMouseFilter':True,'nativeKeyboardFilter':True,'zooms':[100,200,400],'sourcePixels':[3840,2160]})
             window.resize(1100,800)
         js('window.AIOGuardComparison.open('+json.dumps(frame_job)+');true')
         until(lambda:js("document.querySelector('[data-c-progress]')?.textContent.includes('Анализ завершён')"))
@@ -121,6 +129,19 @@ def main():
         click('.aio-pair-pane[data-viewer-side="source"] .aio-pair-head button:last-child')
         until(lambda:js("[...document.querySelectorAll('.aio-pair-head span')].every(s=>s.textContent==='2 / 3')"))
         report['checks'].append({'name':'qt-synchronized-animation-frame-navigation','status':'PASS','frames':3})
+        # Actual protected GIF refusal, not a manufactured analysis status.
+        # The half-alpha PNG must never become a ready GIF or a fake preview.
+        bad=server.guard.create([{'id':'alpha','name':'half-alpha.png','size':source.stat().st_size}],['gif'],retain_sources=True)['jobId']
+        server.guard.upload(bad,'alpha',io.BytesIO(source.read_bytes()),source.stat().st_size)
+        server.guard.start(bad,archive_mode='on_demand');failed=finished(bad)
+        assert failed['succeeded']==0 and failed['failed']==1,failed
+        target=failed['files'][0]['targets'][0]
+        assert target['code']=='MEDIA_GIF_ALPHA_UNREPRESENTABLE',target
+        js('window.AIOGuardComparison.open('+json.dumps(bad)+');true')
+        until(lambda:js("document.querySelector('[data-c-progress]')?.textContent.includes('Анализ завершён')"))
+        click('[data-c-filter-choice="conversion_error"]')
+        until(lambda:js("document.querySelectorAll('.aio-compare-row').length===1&&document.querySelector('.aio-compare-kind').textContent==='Ошибка конвертации'"))
+        report['checks'].append({'name':'qt-failed-conversion-filter','status':'PASS','code':target['code'],'nativeMouseFilter':True})
         assert sha(source)==original
         report['sourceSha256']=original;report['status']='PASS'
     except Exception as error:report.update(status='FAIL',reason=str(error),error=type(error).__name__);raise

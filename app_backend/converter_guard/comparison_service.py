@@ -116,7 +116,7 @@ class ComparisonService:
 
     @staticmethod
     def _task_map(job):
-        return {job.id + ':' + str(task.index): (source.id, task.format, source.name)
+        return {job.id + ':' + str(task.index): (source.id, task.format, source.name, task.state)
                 for source in job.files for task in source.targets}
 
     def _row_payload(self, item, row):
@@ -129,6 +129,10 @@ class ComparisonService:
                 target != expected[1] or value.get('name') != name or name != expected[2]):
             raise GuardError('COMPARISON_REPORT_UNAVAILABLE',
                 'Строка отчёта не соответствует этому заданию. Выполните анализ заново; конвертированные файлы сохранены.', status=404)
+        # Conversion failure is separate from the optional analysis verdict.
+        # Derive it from Guard's owned task model, including recovered reports;
+        # an old/tampered report payload cannot invent a successful conversion.
+        value['conversionState'] = expected[3]
         return value
 
     def _validate_report(self, item, *, force=False):
@@ -550,7 +554,7 @@ class ComparisonService:
                     if db.execute('SELECT COUNT(*) FROM sessions').fetchone()[0] >= MAX_SESSIONS:
                         raise GuardError('COMPARISON_SESSION_LIMIT', 'Достигнут лимит сохранённых сеансов анализа этого задания. Сохраните результаты и начните новое задание.', status=409)
                 item = _Analysis(job_id, catalog=catalog, total=len(records))
-                item.expected_tasks = {record['taskId']: (record['fileId'], record['format'], record['name'])
+                item.expected_tasks = {record['taskId']: (record['fileId'], record['format'], record['name'], record['state'])
                                        for record in records}
                 item.root = job.root / 'comparison' / item.identity
                 item.root.mkdir()
@@ -770,7 +774,7 @@ class ComparisonService:
         job_id = item.job_id
         if type(offset) is not int or type(limit) is not int or offset < 0 or not 1 <= limit <= 100:
             raise GuardError('COMPARISON_PAGE', 'Неверная страница анализа.')
-        if filter not in ('all', 'problems', *STATUSES) or not isinstance(q, str) or len(q) > 200:
+        if filter not in ('all', 'problems', 'conversion_error', *STATUSES) or not isinstance(q, str) or len(q) > 200:
             raise GuardError('COMPARISON_FILTER', 'Неверный фильтр анализа.')
         with self.lock:
             active_retry_job = self._active_retry_job()
@@ -787,10 +791,12 @@ class ComparisonService:
                 'activeRetryJobId': active_retry_job,
                 'reportAvailable': bool(item.db and Path(item.db).is_file()),
                 'persistenceError': item.persistence_error, 'stale': not self._alive(job_id),
-                'historyRetention': 'owned_job_lifetime'}
+                'historyRetention': 'owned_job_lifetime',
+                'conversionFailures': sum(task[3] == 'error' for task in item.expected_tasks.values())}
         if include_report and item.db and Path(item.db).exists():
             clauses, params = [], []
             if filter == 'problems': clauses.append('status!=?'); params.append('checked')
+            elif filter == 'conversion_error': clauses.append('aio_conversion_error(task)=1')
             elif filter != 'all': clauses.append('status=?'); params.append(filter)
             if q:
                 clauses.append("search LIKE ? ESCAPE '\\'")
@@ -799,6 +805,11 @@ class ComparisonService:
                 params.append(pattern)
             where = ' WHERE ' + ' AND '.join(clauses) if clauses else ''
             with self._item_database(item) as db:
+                if filter == 'conversion_error':
+                    # Works for existing seven-column SQLite reports without
+                    # rewriting history or depending on JSON SQL extensions.
+                    failed = frozenset(task for task, proof in item.expected_tasks.items() if proof[3] == 'error')
+                    db.create_function('aio_conversion_error', 1, lambda task: int(task in failed))
                 result['totalFiltered'] = db.execute('SELECT COUNT(*) FROM results' + where, params).fetchone()[0]
                 result['items'] = [self._row_payload(item, row) for row in db.execute(
                     'SELECT task,name,format,status,payload FROM results' + where + ' ORDER BY rowid LIMIT ? OFFSET ?', [*params, limit, offset])]

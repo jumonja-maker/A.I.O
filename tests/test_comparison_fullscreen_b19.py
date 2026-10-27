@@ -13,7 +13,7 @@ class FullscreenOwnership(unittest.TestCase):
         method=next(n for n in cls.body if isinstance(n,ast.FunctionDef) and n.name=='_full_screen_requested')
         scope={};exec(compile(ast.Module(body=[method],type_ignores=[]),'actual-fullscreen-handler','exec'),scope)
         changes=[]
-        window=SimpleNamespace(_shutdown_started=False,_server=SimpleNamespace(server_port=1234),_fullscreen_restore=None,
+        window=SimpleNamespace(_shutdown_started=False,_shutdown_done=False,_server=SimpleNamespace(server_port=1234),_fullscreen_restore=None,
             saveGeometry=lambda:b'prior-geometry',isMaximized=lambda:True,
             showFullScreen=lambda:changes.append('fullscreen'),showNormal=lambda:changes.append('normal'),
             restoreGeometry=lambda value:changes.append(value),showMaximized=lambda:changes.append('maximized'))
@@ -27,3 +27,5 @@ class FullscreenOwnership(unittest.TestCase):
         handler(window,request());self.assertEqual(changes,['accepted','fullscreen']);changes.clear()
         handler(window,request(on=False));self.assertEqual(changes,['accepted','normal',b'prior-geometry','maximized'])
         self.assertIsNone(window._fullscreen_restore)
+        changes.clear();window._shutdown_started=True
+        handler(window,request(on=False));self.assertEqual(changes,['accepted'],'fullscreen exit cannot reopen a closing window')

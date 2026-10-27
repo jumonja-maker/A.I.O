@@ -297,8 +297,8 @@ class ComparisonLifecycleV21(unittest.TestCase):
                 path.write_bytes(b'header-not-decoded-by-metadata')
                 metadata = self.service._preview_meta('a' * 32, 'a' * 32 + ':0', 'result', path)
                 self.assertEqual(metadata['kind'], 'image')
-                self.assertIn('первый кадр', metadata['note'])
-                self.assertIn('первая страница', metadata['note'])
+                self.assertIn('исходном разрешении', metadata['note'])
+                self.assertIn('доступны страницы и кадры', metadata['note'])
 
     def test_real_preview_decodes_jpeg_aliases_apng_and_labels_tiff_limit(self):
         from PySide6.QtGui import QImage, QImageReader
@@ -338,7 +338,9 @@ class ComparisonLifecycleV21(unittest.TestCase):
                         self.assertFalse(shown.isNull())
                         self.assertLessEqual(shown.width(), 1400)
                         self.assertLessEqual(shown.height(), 1800)
-                        self.assertIn('первая страница', preview['note'])
+                        self.assertIn('Постраничный просмотр', preview['note'])
+                        if suffix in ('jpe','jfif','jif'):
+                            self.assertEqual((shown.width(),shown.height()),(12,8))
                 self.assertEqual(output.read_bytes(), content)
                 self.assertEqual(self.guard._jobs[identity].io, 0)
         self.assertGreaterEqual(decoded, 4)

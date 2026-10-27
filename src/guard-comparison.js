@@ -337,7 +337,7 @@
       const button=document.createElement('button');button.type='button';button.dataset.task=item.taskId;
       const name=document.createElement('span');name.className='aio-compare-name';name.textContent=plain(item.name);name.title=plain(item.name);button.append(name);
       const format=document.createElement('span');format.textContent='→ '+plain(item.format).toUpperCase();button.append(format);
-      const status=document.createElement('span');status.className='aio-compare-kind';status.textContent=labels[item.status]||'Проверяем';button.append(status);
+      const status=document.createElement('span');status.className='aio-compare-kind';status.textContent=item.conversionState==='error'?'Ошибка конвертации':labels[item.status]||'Проверяем';button.append(status);
       button.addEventListener('click',()=>focusItem(item,false));
       button.addEventListener('dblclick',()=>focusItem(item,true));
       button.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();focusItem(item,true);}});
@@ -575,7 +575,8 @@
       for(const button of dialog.querySelectorAll('[data-c-filter-choice]'))button.setAttribute('aria-pressed',String(button.dataset.cFilterChoice===value));refresh();}
     $('[data-c-filter]').addEventListener('change',event=>setFilter(event.target.value));
     const filterButtons=document.createElement('div');filterButtons.className='aio-compare-filter-buttons';filterButtons.setAttribute('role','group');filterButtons.setAttribute('aria-label','Фильтр анализа');
-    for(const [value,label]of [['problems','Проблемные'],['all','Все результаты'],['confirmed_loss','Потери'],['format_limitation','Ограничения'],['uncertain','Требуют проверки'],['not_checked','Не проверено'],['checked','Проверенная часть']]){
+    const failedOption=document.createElement('option');failedOption.value='conversion_error';failedOption.textContent='Ошибки конвертации';$('[data-c-filter]').append(failedOption);
+    for(const [value,label]of [['problems','Проблемные'],['all','Все результаты'],['conversion_error','Ошибки конвертации'],['confirmed_loss','Потери'],['format_limitation','Ограничения'],['uncertain','Требуют проверки'],['not_checked','Не проверено'],['checked','Проверенная часть']]){
       const b=document.createElement('button');b.type='button';b.textContent=label;b.dataset.cFilterChoice=value;b.setAttribute('aria-pressed',String(value===filter));b.addEventListener('click',()=>setFilter(value));filterButtons.append(b);}
     $('[data-c-filter]').hidden=true;$('[data-c-filter]').insertAdjacentElement('afterend',filterButtons);
     $('[data-c-prev]').addEventListener('click',()=>{offset=Math.max(0,offset-50);viewEpoch++;refresh();});
