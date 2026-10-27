@@ -12,12 +12,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: aio-b13-b31-second-selfhosted-qa
+  group: aio-b13-b31-third-selfhosted-qa
   cancel-in-progress: false
 
 env:
-  AIO_QA_SOURCE_SHA: 828212802a56a503ce90c84caf7969dd4449d131
-  AIO_QA_TREE_SHA: 153abed5de54d6d32742a44ef079d5eef13ebe95
+  AIO_QA_SOURCE_SHA: 90495d679b8c1745a3949265de92cf98d7314852
+  AIO_QA_TREE_SHA: 6eb3098e04258e415eae64b232a511d5176d060c
   PYTHONDONTWRITEBYTECODE: '1'
   PYTHONUTF8: '1'
   PYTHONIOENCODING: utf-8
@@ -35,7 +35,7 @@ jobs:
       github.repository == 'jumonja-maker/A.I.O' &&
       github.actor == 'jumonja-maker' &&
       github.event.action == 'labeled' &&
-      github.event.label.name == 'aio-b13-b31-second-selfhosted-qa' &&
+      github.event.label.name == 'aio-b13-b31-third-selfhosted-qa' &&
       github.event.pull_request.number == 68 &&
       github.event.pull_request.user.login == 'jumonja-maker' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
@@ -69,7 +69,7 @@ jobs:
           GIT_CONFIG_VALUE_0: 'false'
         with:
           repository: jumonja-maker/A.I.O
-          ref: 828212802a56a503ce90c84caf7969dd4449d131
+          ref: 90495d679b8c1745a3949265de92cf98d7314852
           path: aio-b13-b31-source-${{ github.run_id }}-${{ github.run_attempt }}
           persist-credentials: false
           clean: true
