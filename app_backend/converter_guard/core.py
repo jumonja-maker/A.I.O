@@ -1600,8 +1600,18 @@ class ConverterGuard:
             raise GuardError('ENGINE_OUTPUT_PATH', 'Недопустимое расположение результата.',
                              stage='result')
         artifacts, seen = [], set()
-        export = getattr(self.adapter, 'export_info', lambda: {})()
-        sheet_outputs = {entry['file']:entry for entry in export.get('sheetOutputs', [])}
+        # Optional adapter diagnostics must not turn verified files into a loss.
+        # The native adapter validates its mandatory all-sheet manifest before
+        # returning paths; this layer only retains the validated provenance.
+        try:
+            export = getattr(self.adapter, 'export_info', lambda: {})()
+            entries = export.get('sheetOutputs', []) if isinstance(export, dict) else []
+            sheet_outputs = {entry['file']:entry for entry in entries
+                if isinstance(entry, dict) and isinstance(entry.get('file'), str)
+                and type(entry.get('sourceSheetIndex')) is int and entry['sourceSheetIndex'] >= 0
+                and isinstance(entry.get('sourceSheetName'), str)} if isinstance(entries, list) else {}
+        except Exception:
+            sheet_outputs = {}
         for candidate in paths:
             path = Path(candidate)
             resolved = path.resolve(strict=True)
