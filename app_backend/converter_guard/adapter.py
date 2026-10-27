@@ -855,6 +855,25 @@ class LibreOfficeAdapter:
                 self._local.export_info['warnings'] = tuple(dict.fromkeys((
                     *self._local.export_info.get('warnings', ()),
                     'CSV_TEXT_IDS_NOT_CHECKED')))
+        from .sheet_outputs import read_sheet_manifest
+        sheets = read_sheet_manifest(paths, cancel=identity_control) if target in ('csv','tab','tsv') else None
+        if (target in ('csv','tab','tsv') and self._local.export_info.get('filter') == 'Text - txt - csv (StarCalc)'
+                and sheets is None):
+            raise GuardError('ENGINE_OUTPUT_VALIDATION_INCOMPLETE',
+                'Не подтверждена выгрузка всех листов книги.', stage='result', diagnostic='sheet_manifest_missing')
+        if sheets:
+            self._local.export_info['sheetOutputs'] = sheets['sheets']
+            unknown = sorted({e['contentCheck'].get('reason', 'sheet_values_not_checked')
+                for e in sheets['sheets'] if e['contentCheck'].get('status') == 'not_checked'})
+            self._local.export_info['resultChecks'] = list(self._local.export_info.get('resultChecks', ())) + [{
+                'check':'native_calc_all_sheets', 'status':'checked_subset',
+                'sheetCount':sheets['sheetCount'], 'manifest':'AIO-sheets.json',
+                'checkedFeatures':['sheet_count','sheet_output_mapping','output_sha256'] +
+                    ([] if unknown else ['native_sheet_values']),
+                'unknownReasons':unknown, 'qualityCompared':False}]
+            self._local.export_info['warnings'] = tuple(dict.fromkeys((
+                *self._local.export_info.get('warnings', ()), 'NATIVE_CSV_ALL_SHEETS',
+                *(['NATIVE_OUTPUT_NOT_CHECKED'] if unknown else []))))
         return paths
 
     def _prepare_dif_snapshot(self, source, workspace, *, cancel, import_hint=None):
@@ -938,7 +957,12 @@ class LibreOfficeAdapter:
             if self._local.metrics:
                 metrics.append(dict(self._local.metrics))
             return outputs
-        initial = export(source, 'fods', workspace / 'legacy-native-snapshot')
+        retry_recipe = getattr(self._local, 'retry_recipe', None)
+        self._local.retry_recipe = None
+        try:
+            initial = export(source, 'fods', workspace / 'legacy-native-snapshot')
+        finally:
+            self._local.retry_recipe = retry_recipe
         fods = next((p for p in initial if p.suffix.lower() == '.fods'), None)
         if fods is None:
             raise GuardError('ENGINE_OUTPUT_MISSING', 'Не создан полный снимок листов Calc.', stage='result')
@@ -949,18 +973,40 @@ class LibreOfficeAdapter:
                  getattr(self._local, 'import_options', None))
         output = workspace / 'output'
         output.mkdir(parents=True, exist_ok=False)
-        paths = []
+        paths, sheet_entries = [], []
+        is_csv = target in ('csv', 'tab', 'tsv')
+        previous_csv = getattr(self._local, 'csv_sheet_snapshot', False)
         try:
+            self._local.csv_sheet_snapshot = is_csv
             self._local.import_filter, self._local.import_options = flat, None
             for index, snapshot in enumerate(snapshots):
                 for result in export(snapshot, target, workspace / ('legacy-export-%04d' % index)):
                     control.is_set()
                     destination = output / result.name
+                    if is_csv:
+                        from .sheet_outputs import sheet_output_name, verify_fods_csv, sheet_file_evidence
+                        if result.suffix.lower() != '.' + target:
+                            raise GuardError('ENGINE_OUTPUT_CONTENT_LOSS', 'Неожиданный файл в выгрузке листа.', stage='result')
+                        destination = output / sheet_output_name(source.stem, index, target)
                     if destination.exists():
                         raise GuardError('ENGINE_OUTPUT_COLLISION', 'Совпали имена результатов листов.', stage='result')
                     result.replace(destination)
                     paths.append(destination)
+                    if is_csv:
+                        from .sheet_outputs import SheetOutputMismatch
+                        try:
+                            content_check = verify_fods_csv(snapshot, destination, target,
+                                raw_values=retry_recipe == 'csv_preserve_values', cancel=control)
+                            sheet_entries.append(sheet_file_evidence(destination, index,
+                                check['sheetNames'][index], content_check, cancel=control))
+                        except SheetOutputMismatch as error:
+                            raise GuardError('ENGINE_OUTPUT_CONTENT_LOSS',
+                                'CSV не сохранил проверенные значения листа.', stage='result', diagnostic=str(error)) from error
+            if is_csv:
+                from .sheet_outputs import write_sheet_manifest
+                paths.append(write_sheet_manifest(output, sheet_entries))
         finally:
+            self._local.csv_sheet_snapshot = previous_csv
             self._local.import_filter, self._local.import_options = saved
         self._local.execution_mode = 'native_cli'
         self._local.metrics = {'source': 'cli_process',
@@ -969,7 +1015,8 @@ class LibreOfficeAdapter:
         self._local.export_info = {'filter': native.export_filter(target,
             ['com.sun.star.sheet.SpreadsheetDocument']),
             'executionReason': 'native_cli_all_calc_sheets',
-            'warnings': ('NATIVE_TABLE_FORMAT_LIMITS',), 'resultChecks': [check]}
+            'warnings': ('NATIVE_CSV_ALL_SHEETS',) if is_csv else ('NATIVE_TABLE_FORMAT_LIMITS',),
+            'resultChecks': [check]}
         control.check_now()
         return paths
 
@@ -1178,6 +1225,18 @@ class LibreOfficeAdapter:
                             raise
                         office.disabled = True
                         output.rmdir()  # No requested export ran; original CLI remains available.
+            if (recipe and recipe.filter_name == 'Text - txt - csv (StarCalc)'
+                    and target in ('csv', 'tab', 'tsv')
+                    and not getattr(self._local, 'csv_sheet_snapshot', False)):
+                return self._convert_legacy_sheets(source, target, workspace,
+                    control=control, on_started=on_started, on_stage=on_stage)
+            if (recipe and target in ('csv', 'tab', 'tsv')
+                    and getattr(self._local, 'csv_sheet_snapshot', False)
+                    and recipe.filter_options):
+                tokens = recipe.filter_options.split(',')
+                if len(tokens) > 11:
+                    tokens[11] = '0'
+                export_args['convert_spec'] = target + ':' + recipe.filter_name + ':' + ','.join(tokens)
             prepare_profile(workspace / 'profile')
             self._local.execution_mode = 'native_cli'
             filtered = getattr(self._local, 'import_filter', None)
