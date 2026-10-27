@@ -106,7 +106,10 @@ def main():
             until(lambda:js("document.querySelectorAll('.aio-pair-pane img').length===2&&[...document.querySelectorAll('.aio-pair-pane img')].every(i=>i.naturalWidth===3840)"))
             for zoom,width in (('1',3840),('2',7680),('4',15360)):
                 click('[data-viewer-zoom="'+zoom+'"]')
-                assert js("[...document.querySelectorAll('.aio-pair-pane img')].every(i=>i.style.width==="+json.dumps(str(width)+'px')+")"),(theme,zoom)
+                # Native input and runJavaScript use different WebEngine IPC
+                # queues. Wait for the exact resulting pixel widths, as for
+                # filters/fullscreen; do not replace the native click.
+                until(lambda:js("[...document.querySelectorAll('.aio-pair-pane img')].every(i=>i.style.width==="+json.dumps(str(width)+'px')+")"),seconds=8)
             click('[data-viewer-zoom="fit"]');click('[data-viewer-fullscreen]')
             until(lambda:js("!!document.fullscreenElement") and window.isFullScreen())
             assert js("document.querySelector('.aio-compare-dialog').classList.contains('aio-compare-maximized')")
@@ -144,7 +147,16 @@ def main():
         report['checks'].append({'name':'qt-failed-conversion-filter','status':'PASS','code':target['code'],'nativeMouseFilter':True})
         assert sha(source)==original
         report['sourceSha256']=original;report['status']='PASS'
-    except Exception as error:report.update(status='FAIL',reason=str(error),error=type(error).__name__);raise
+    except Exception as error:
+        report.update(status='FAIL',reason=str(error),error=type(error).__name__)
+        if window is not None:
+            try:
+                report['failureView']=json.loads(js("JSON.stringify({images:[...document.querySelectorAll('.aio-pair-pane img')].map(i=>({naturalWidth:i.naturalWidth,width:i.style.width})),zoom:[...document.querySelectorAll('[data-viewer-zoom]')].map(b=>({zoom:b.dataset.viewerZoom,pressed:b.getAttribute('aria-pressed')})),fullscreen:!!document.fullscreenElement})"))
+                shot=args.output/'failure.png'
+                if window.grab().save(str(shot)) and shot.stat().st_size<768*1024:
+                    print('PAIR_QT_SNAPSHOT='+json.dumps({'name':shot.name,'pngBase64':base64.b64encode(shot.read_bytes()).decode()}),flush=True)
+            except Exception as capture_error:report['failureCaptureError']=type(capture_error).__name__
+        raise
     finally:
         if window is not None:window._shutdown_done=True;window.hide();window.page.deleteLater();app.processEvents()
         if server is not None:

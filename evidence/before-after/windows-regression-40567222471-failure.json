@@ -1,0 +1,95 @@
+{
+  "status": "FAIL",
+  "runId": 40567222471,
+  "jobId": 122411617803,
+  "testedSourceSHA": "db73ae78658ed75afbf070ab00d3a035d4ac9378",
+  "testedTreeSHA": "59cb0e6adca75cca7c85228956dffd30433924c2",
+  "evidence": [
+    {
+      "file": "D:\\actions-runner\\_work\\A.I.O\\A.I.O\\aio-before-after-evidence-40567222471-1\\before-after\\evidence.json",
+      "data": {
+        "status": "FAIL",
+        "scope": "source QtWebEngine/real preview codecs + native Writer HTML; not installed EXE or FULLTEST",
+        "scaleFactor": "1",
+        "checks": [
+          {
+            "name": "native-writer-html-analysis",
+            "status": "PASS",
+            "sourceSha256": "e79d6b76bfe20b40e2baacaa6e4167764fcabc921808c051385778717d104b68",
+            "analysis": {
+              "schemaVersion": 1,
+              "status": "checked",
+              "qualityCompared": true,
+              "scope": "verified_properties_only",
+              "findings": [],
+              "checkedFeatures": [
+                "cell_values_single_grid",
+                "normalized_text"
+              ],
+              "unknown": [
+                "colour_accuracy",
+                "comments_and_revisions",
+                "field_evaluation",
+                "fonts",
+                "formula_evaluation",
+                "hidden_text",
+                "html_css_layout",
+                "html_embedded_resource_rendering",
+                "html_text_visibility",
+                "semantic_meaning",
+                "textboxes_reading_order",
+                "visual_layout",
+                "word_table_structure"
+              ],
+              "recipeCandidates": [],
+              "before": {
+                "kind": "ooxml",
+                "documentClass": "text",
+                "complete": true,
+                "counts": {
+                  "tables": 1,
+                  "textParts": 1,
+                  "images": 0,
+                  "formulas": 0,
+                  "characters": 69
+                },
+                "textDigest": "9ac6226334ec41b81aa7b324684a7f9d998b012bfcf0fb2f3052b661973a6ba4",
+                "textCoverage": [
+                  "body"
+                ]
+              },
+              "after": {
+                "kind": "html",
+                "documentClass": "text",
+                "complete": true,
+                "counts": {
+                  "tables": 1,
+                  "images": 0,
+                  "characters": 69
+                },
+                "textDigest": "9ac6226334ec41b81aa7b324684a7f9d998b012bfcf0fb2f3052b661973a6ba4",
+                "textCoverage": [
+                  "html_body_markup"
+                ]
+              },
+              "outputScope": {
+                "totalFiles": 1,
+                "primaryFiles": 1,
+                "supplementalFiles": 0,
+                "inspectedPrimaryFiles": 1,
+                "inspectedSupplementalFiles": 0
+              },
+              "evaluatedFeatures": [
+                "cell_values_single_grid",
+                "normalized_text"
+              ]
+            }
+          }
+        ],
+        "snapshots": [],
+        "reason": "('dark', '1')",
+        "error": "AssertionError"
+      }
+    }
+  ]
+}
