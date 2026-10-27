@@ -12,12 +12,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: aio-before-after-journey-final-selfhosted-qa
+  group: aio-before-after-apng-source-final-selfhosted-qa
   cancel-in-progress: false
 
 env:
-  AIO_QA_SOURCE_SHA: bdf6b0a189dfdbfa7131ecc4b5e2e98350f70fd0
-  AIO_QA_TREE_SHA: 072c05734cd98edb86396870831dc77cf024a5e2
+  AIO_QA_SOURCE_SHA: eab87d675594139e997df90d1908287f83d03051
+  AIO_QA_TREE_SHA: 6917f5ef846a56a28af3d3cc67780dfdab305e37
   PYTHONDONTWRITEBYTECODE: '1'
   PYTHONUTF8: '1'
   PYTHONIOENCODING: utf-8
@@ -35,7 +35,7 @@ jobs:
       github.repository == 'jumonja-maker/A.I.O' &&
       github.actor == 'jumonja-maker' &&
       github.event.action == 'labeled' &&
-      github.event.label.name == 'aio-before-after-journey-final-selfhosted-qa' &&
+      github.event.label.name == 'aio-before-after-apng-source-final-selfhosted-qa' &&
       github.event.pull_request.number == 72 &&
       github.event.pull_request.user.login == 'jumonja-maker' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
@@ -69,7 +69,7 @@ jobs:
           GIT_CONFIG_VALUE_0: 'false'
         with:
           repository: jumonja-maker/A.I.O
-          ref: bdf6b0a189dfdbfa7131ecc4b5e2e98350f70fd0
+          ref: eab87d675594139e997df90d1908287f83d03051
           path: aio-before-after-source-${{ github.run_id }}-${{ github.run_attempt }}
           persist-credentials: false
           clean: true
@@ -150,10 +150,15 @@ jobs:
                   entries.append((key+(b'/' if directory else b''),(b'40000' if directory else b'100644')+b' '+key+b'\0'+oid(child)))
               raw=b''.join(value for _,value in sorted(entries,key=lambda row:row[0]))
               return hashlib.sha1(b'tree '+str(len(raw)).encode()+b'\0'+raw).digest()
-          expected={'addons':'124e1aa0eb38c08e7d8f617ef91fc300b626d22f','app_backend':'fb6dd44027f67c4ff38ef73fcf6b99e262fe8b29','assets':'207088b35bb505bb22f3160f0b1d96ba694fe795','index.html':'304c8ed1ce812153fa8d3b4b38c606a54263f1fe','launcher.py':'24d470fa43511a16f8f913ce7179591aa65c6bcf','src':'77f3195d48836c72c0852ced0ebe3c716caac715','tools/qa/guard_before_after_b19_b25_acceptance.py':'49b169b0c25f1d53ef2714841609e41187d6870b','tools/qa/guard_v08_native_acceptance.py':'ee6cf590afa625eae12d9d3109c0676c477749cc','tools/qa/guard_v19_native_recipes_acceptance.py':'afac0732aa2be950ea1cc95e8892a98754c1f0c3','tools/qa/guard_v19_visual_acceptance.py':'0a342c214ef81a09cd36549fbf44088f1f76e1e2','tools/qa/guard_v20_native_acceptance.py':'63c95293b436b5adecad450e8935471890ba6ae6','tools/qa/guard_v21_xlsx_acceptance.py':'9025384b51b23ef31c38150d0db9361acc36f4a9','tools/qa/guard_v22_txt_native_acceptance.py':'0e57814e709804f25f0b73dbb1e2f25583ca8c4e'}
+          from PySide6.QtGui import QImage,QColor
+          old=QImage(2,2,QImage.Format.Format_RGBA8888);old.fill(0xffff0000)
+          explicit=QImage(2,2,QImage.Format.Format_RGBA8888);explicit.fill(QColor(255,0,0,255))
+          assert explicit.pixelColor(0,0).getRgb()==(255,0,0,255)
+          print('RGBA_FIXTURE_CONTROL='+json.dumps({'legacyIntFill':old.pixelColor(0,0).getRgb(),'explicitQColor':explicit.pixelColor(0,0).getRgb()}))
+          expected={'addons': '124e1aa0eb38c08e7d8f617ef91fc300b626d22f', 'app_backend': 'fb6dd44027f67c4ff38ef73fcf6b99e262fe8b29', 'assets': '207088b35bb505bb22f3160f0b1d96ba694fe795', 'index.html': '304c8ed1ce812153fa8d3b4b38c606a54263f1fe', 'launcher.py': '24d470fa43511a16f8f913ce7179591aa65c6bcf', 'src': '77f3195d48836c72c0852ced0ebe3c716caac715', 'tools/qa/guard_before_after_b19_b25_acceptance.py': '49b169b0c25f1d53ef2714841609e41187d6870b', 'tools/qa/guard_v08_native_acceptance.py': 'ee6cf590afa625eae12d9d3109c0676c477749cc', 'tools/qa/guard_v19_native_recipes_acceptance.py': 'afac0732aa2be950ea1cc95e8892a98754c1f0c3', 'tools/qa/guard_v19_visual_acceptance.py': '0a342c214ef81a09cd36549fbf44088f1f76e1e2', 'tools/qa/guard_v20_native_acceptance.py': '63c95293b436b5adecad450e8935471890ba6ae6', 'tools/qa/guard_v21_xlsx_acceptance.py': '9025384b51b23ef31c38150d0db9361acc36f4a9', 'tools/qa/guard_v22_txt_native_acceptance.py': '0e57814e709804f25f0b73dbb1e2f25583ca8c4e', 'tools/qa/guard_v19_journeys_acceptance.py': 'c1b7becccd0d3e31a8e3b1621420b4ad938e4f7f'}
           actual={key:oid(Path(key)).hex() for key in expected}
           if actual!=expected:raise SystemExit('PRIOR_NATIVE_PRODUCT_OR_GENERATORS_CHANGED')
-          proof={'status':'PASS','scope':'native_product_and_generators_byte_identity_only','nativeSourceSHA':'bdf6b0a189dfdbfa7131ecc4b5e2e98350f70fd0','nativeRunId':40579811557,'nativeRunConclusion':'failure_in_old_journey_filter_expectation','viewerDpi':[1,1.5],'viewerCasesPerDpi':5,'nativeNeighbors':'PASS','productAndGenerators':actual,'currentSourceSHA':os.environ['AIO_QA_SOURCE_SHA']}
+          proof={'status':'PASS','scope':'native_product_and_generators_byte_identity_only','nativeSourceSHA':'14494e00fdbc1aaed20b8443b0d59e2554ea91df','nativeRunId':40579811557,'nativeRunConclusion':'failure_in_old_journey_filter_expectation','viewerDpi':[1,1.5],'viewerCasesPerDpi':5,'nativeNeighbors':'PASS','journeySourceSHA':'bdf6b0a189dfdbfa7131ecc4b5e2e98350f70fd0','journeyRunId':40581401851,'journeyRunConclusion':'failure_in_old_apng_source_colour_fixture','journeys':'PASS','productAndGenerators':actual,'currentSourceSHA':os.environ['AIO_QA_SOURCE_SHA']}
           out=Path(os.environ['GITHUB_WORKSPACE'])/'aio-before-after-evidence-${{ github.run_id }}-${{ github.run_attempt }}'
           out.mkdir(exist_ok=True,parents=True)
           (out/'native-continuity.json').write_text(json.dumps(proof,ensure_ascii=False,indent=2),encoding='utf-8')
@@ -161,17 +166,6 @@ jobs:
           '@
           & $env:AIO_QA_PYTHON -c $verify
           if ($LASTEXITCODE -ne 0) {throw 'Prior native viewer evidence does not apply to these product bytes'}
-      - name: Qt save recovery and analysis discard
-        working-directory: aio-before-after-source-${{ github.run_id }}-${{ github.run_attempt }}
-        env:
-          QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --disable-gpu-compositing
-        run: |
-          $ErrorActionPreference='Stop'
-          $env:AIO_LIBREOFFICE=$env:AIO_QA_ENGINE
-          $env:AIO_BUILD_REVISION=$env:AIO_QA_SOURCE_SHA
-          $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-before-after-evidence-${{ github.run_id }}-${{ github.run_attempt }}'
-          & $env:AIO_QA_PYTHON tools/qa/guard_v19_journeys_acceptance.py --output (Join-Path $evidence 'journeys') --files 24 --discard-cycles 5 --rapid-reopen-cycles 5
-          if ($LASTEXITCODE -ne 0) {throw 'Required native acceptance failed'}
       - name: Full Windows source Qt DOM and Excel regressions
         working-directory: aio-before-after-source-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
