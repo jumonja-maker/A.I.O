@@ -108,6 +108,12 @@ jobs:
           & $env:AIO_QA_PYTHON -m unittest discover -s tests -p test_dif_table_contract_v23.py -v
           if ($LASTEXITCODE -ne 0) { throw 'B28 new source tests failed' }
 
+      - name: All 32 affected routes plus 16 native controls with independent cell readback
+        run: |
+          $ErrorActionPreference='Stop'
+          & $env:AIO_QA_PYTHON tools/qa/guard_b28_dif_native_acceptance.py --output (Join-Path $env:B28_EVIDENCE 'b28-native') --executable $env:AIO_QA_ENGINE
+          if ($LASTEXITCODE -ne 0) { throw 'B28 native matrix failed' }
+
       - name: Full Windows source Qt DOM and existing Guard regressions
         run: |
           $ErrorActionPreference='Stop'
@@ -115,12 +121,6 @@ jobs:
           $env:AIO_QT_SAVE_QA='1'
           & $env:AIO_QA_PYTHON tools/qa/guard_v17_selfhosted_acceptance.py --unit-report (Join-Path $env:B28_EVIDENCE 'unit.json')
           if ($LASTEXITCODE -ne 0) { throw 'Full source regression failed' }
-
-      - name: All 32 affected routes plus 16 native controls with independent cell readback
-        run: |
-          $ErrorActionPreference='Stop'
-          & $env:AIO_QA_PYTHON tools/qa/guard_b28_dif_native_acceptance.py --output (Join-Path $env:B28_EVIDENCE 'b28-native') --executable $env:AIO_QA_ENGINE
-          if ($LASTEXITCODE -ne 0) { throw 'B28 native matrix failed' }
 
       - name: Native TXT v22 v20 XLSX and queue save regression
         run: |
