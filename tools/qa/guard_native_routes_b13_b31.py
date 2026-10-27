@@ -11,6 +11,7 @@ sys.path[:0]=[str(ROOT),str(ROOT/'tests')]
 from test_native_routes_b13_b31 import cp1251_dbf
 from test_guard_epub_v17 import create_epub
 from app_backend.converter_guard import LibreOfficeAdapter
+from app_backend.converter_guard.errors import GuardError
 from app_backend.converter_guard.media_fidelity import inspect_media
 from app_backend.converter_guard.qt_media import _frames, _qt, _write_tiff
 from openpyxl import load_workbook
