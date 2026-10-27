@@ -121,26 +121,56 @@ def main(request_path):
     if request.get('mode') == 'image_preview':
         if os.name != 'nt' and not os.environ.get('DISPLAY'):
             os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
+        import math
         from PySide6.QtGui import QGuiApplication, QImageReader
         from PySide6.QtCore import QSize
+        from .media_fidelity import inspect_media, display_dimensions, display_page_dimensions
         app = QGuiApplication.instance() or QGuiApplication([])
-        QImageReader.setAllocationLimit(64)  # MiB, disposable viewer only.
-        reader = QImageReader(str(source))
-        reader.setAutoTransform(True)
-        size = reader.size()
-        result = {'kind':'unavailable','note':'Изображение не удалось показать в пределах ресурсов просмотра. Конвертация и сохранение доступны.'}
-        if size.width() > 0 and size.height() > 0 and size.width()*size.height() <= 100_000_000:
-            factor = min(1,1400/size.width(),1800/size.height())
-            if factor < 1:
-                reader.setScaledSize(QSize(max(1,int(size.width()*factor)),max(1,int(size.height()*factor))))
-            image = reader.read()
-            if not image.isNull():
-                # Auto-transform may swap axes after the decoder's scaling.
-                from PySide6.QtCore import Qt
-                if image.width() > 1400 or image.height() > 1800:
-                    image = image.scaled(1400,1800,Qt.AspectRatioMode.KeepAspectRatio,Qt.TransformationMode.SmoothTransformation)
-                if image.save(str(root/'preview.png')):
-                    result = {'kind':'image','note':'Уменьшенный просмотр изображения; для анимации показан первый кадр, для многостраничного изображения — первая страница.'}
+        QImageReader.setAllocationLimit(192)  # MiB, disposable process only.
+        media = inspect_media(source, validate_container=True)
+        count = max(media.get('frames',1), media.get('pages',1)) if media else 1
+        page = request.get('page',0)
+        result = {'kind':'unavailable','note':'Не удалось показать выбранную страницу или кадр в пределах ресурсов просмотра.'}
+        if type(page) is int and 0 <= page < min(count,256):
+            reader = QImageReader(str(source));reader.setAutoTransform(True)
+            reader.setDecideFormatFromContent(True)
+            if media and media.get('format') == 'jpeg':reader.setFormat(b'jpeg')
+            tiff = bool(media and media.get('format') == 'tiff')
+            positioned = not(tiff and page) or reader.jumpToImage(media.get('pageImageIndexes',range(count))[page])
+            size = reader.size()
+            width,height = (display_page_dimensions(media)[page] if tiff and media.get('pageDimensions') else
+                            display_dimensions(media) if media else (size.width(),size.height()))
+            if positioned and size.width()>0 and size.height()>0 and width > 0 and height > 0 and width*height <= 100_000_000:
+                factor = min(1,8192/size.width(),8192/size.height(),math.sqrt(12_000_000/(width*height)))
+                if factor < 1:
+                    reader.setScaledSize(QSize(max(1,int(size.width()*factor)),max(1,int(size.height()*factor))))
+                image = None
+                if media and media.get('animationContainer'):
+                    from .qt_media import _apng_frames
+                    frames = _apng_frames(source,root,media,None)
+                    try:
+                        for index in range(page+1):image=next(frames)
+                    finally:frames.close()
+                else:
+                    jump = True
+                    if page:
+                        if tiff:
+                            pass  # Already positioned before size/scaling.
+                        elif reader.supportsAnimation():
+                            for index in range(page):
+                                previous=reader.read()
+                                if previous.isNull():jump=False;break
+                        else:jump=reader.jumpToImage(page)
+                    if jump:image=reader.read()
+                if image is not None and not image.isNull():
+                    from PySide6.QtCore import Qt
+                    if image.width()*image.height()>12_000_000 or image.width()>8192 or image.height()>8192:
+                        shrink=min(8192/image.width(),8192/image.height(),math.sqrt(12_000_000/(image.width()*image.height())))
+                        image=image.scaled(max(1,int(image.width()*shrink)),max(1,int(image.height()*shrink)),Qt.AspectRatioMode.KeepAspectRatio,Qt.TransformationMode.SmoothTransformation)
+                    if image.save(str(root/'preview.png')):
+                        result={'kind':'image','pages':count,'page':page,'width':width,'height':height,
+                            'renderedWidth':image.width(),'renderedHeight':image.height(),
+                            'note':'Постраничный просмотр изображения; исходное разрешение в пределах бюджета 12 млн пикселей. Уменьшение отмечено отдельно.'}
         _write_preview(root, source, request, result)
         return
     if request.get('mode') == 'pdf_preview':
@@ -170,7 +200,7 @@ def main(request_path):
                     painter.end()
                     image = paper
                 if not image.isNull() and image.save(str(root/'preview.png')):
-                    result = {'kind':'image','pages':count,'page':page,'note':'Постраничный просмотр PDF через QtPdf.'}
+                    result = {'kind':'image','pages':count,'page':page,'width':image.width(),'height':image.height(), 'renderedWidth':image.width(),'renderedHeight':image.height(),'note':'Постраничный просмотр PDF через QtPdf.'}
         document.close()
         _write_preview(root, source, request, result)
         return

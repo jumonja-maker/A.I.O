@@ -49,7 +49,8 @@ const rows=(id)=>Array.from({length:1000},(_,i)=>({taskId:id+':'+i,fileId:'f'+i,
   unknown:['colour_accuracy','fonts','formula_evaluation','semantic_meaning','visual_layout'] }));
 function packet(id,url){
   let items=emptyReport?[]:rows(id);const f=url.searchParams.get('filter'),q=url.searchParams.get('q');
-  if(f&&f!=='all')items=items.filter(row=>row.status===f);
+  if(f==='problems')items=items.filter(row=>row.status!=='checked');
+  else if(f&&f!=='all')items=items.filter(row=>row.status===f);
   if(q)items=items.filter(row=>(row.name+' '+row.format).includes(q));
   const offset=Number(url.searchParams.get('offset'))||0;
   let parent=parents[id],ancestors=[];for(let p=parent;p;p=parents[p])ancestors.unshift({jobId:p,label:p===job?'Исходный пакет':'Предыдущий повтор',available:true});
@@ -131,6 +132,10 @@ assert.equal(launch.hidden,false);assert.equal(document.querySelector('#save').d
 assert.equal(calls.length,0,'completion only offers the optional button');
 click(launch);await flush();
 const dialog=document.querySelector('.aio-compare-dialog'),$=selector=>dialog.querySelector(selector);
+assert.equal($('[data-c-filter]').value,'problems');
+assert.ok([...$('[data-c-files]').children].every(row=>row.dataset.status!=='checked'));
+click($('[data-c-filter-choice="all"]'));await flush();
+assert.equal($('[data-c-filter]').value,'all');
 assert.equal(dialog.open,true,$('[data-c-feedback]').textContent);assert.equal(calls.filter(r=>r.path.endsWith('/compare/start')).length,1);
 assert.equal($('[data-c-files]').children.length,50,'1000 inputs render only one page');
 assert.equal($('[data-c-files]').querySelectorAll('img,script').length,0,'untrusted filenames are literal text');

@@ -770,7 +770,7 @@ class ComparisonService:
         job_id = item.job_id
         if type(offset) is not int or type(limit) is not int or offset < 0 or not 1 <= limit <= 100:
             raise GuardError('COMPARISON_PAGE', 'Неверная страница анализа.')
-        if filter not in ('all', *STATUSES) or not isinstance(q, str) or len(q) > 200:
+        if filter not in ('all', 'problems', *STATUSES) or not isinstance(q, str) or len(q) > 200:
             raise GuardError('COMPARISON_FILTER', 'Неверный фильтр анализа.')
         with self.lock:
             active_retry_job = self._active_retry_job()
@@ -790,7 +790,8 @@ class ComparisonService:
                 'historyRetention': 'owned_job_lifetime'}
         if include_report and item.db and Path(item.db).exists():
             clauses, params = [], []
-            if filter != 'all': clauses.append('status=?'); params.append(filter)
+            if filter == 'problems': clauses.append('status!=?'); params.append('checked')
+            elif filter != 'all': clauses.append('status=?'); params.append(filter)
             if q:
                 clauses.append("search LIKE ? ESCAPE '\\'")
                 q = unicodedata.normalize('NFC', q).casefold()
@@ -1006,7 +1007,7 @@ class ComparisonService:
         return {'kind': kind, 'name': path.name, 'size': path.stat().st_size,
                 'url': '/api/converter-guard/compare/preview?' + urlencode(query),
                 'note': ('Текстовое представление; оформление не показано.' if kind == 'text' else
-                         'Уменьшенный просмотр изображения; для анимации показан первый кадр, для многостраничного изображения — первая страница.' if kind == 'image' else '')}
+                         'Просмотр изображения в исходном разрешении в пределах бюджета; доступны страницы и кадры. Уменьшение отмечено отдельно.' if kind == 'image' else '')}
 
     @contextmanager
     def preview(self, job_id, task_id, side, *, page=0, output_index=None, expected_analysis_id=None):
@@ -1077,7 +1078,7 @@ class ComparisonService:
             if output.is_file() and output.stat().st_size <= 1024 * 1024:
                 result = json.loads(output.read_text(encoding='utf-8'))
                 image = root/'preview.png'
-                if mode in ('pdf_preview','image_preview') and result.get('kind') == 'image' and image.is_file() and image.stat().st_size <= 16*1024*1024:
+                if mode in ('pdf_preview','image_preview') and result.get('kind') == 'image' and image.is_file() and image.stat().st_size <= 64*1024*1024:
                     result['png'] = image.read_bytes()
                 return result
             return {'kind':'unavailable','note':'Встроенный просмотр этого документа недоступен.'}

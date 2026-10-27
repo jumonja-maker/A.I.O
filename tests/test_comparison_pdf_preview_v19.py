@@ -56,16 +56,18 @@ class PagePreview(unittest.TestCase):
         stream=QBuffer();stream.open(QIODevice.OpenModeFlag.WriteOnly);self.assertTrue(picture.save(stream,'PNG'));raw=bytes(stream.data())
         state=self.converted(name='photo.png',formats=['png'],data=raw)
         meta=self.server.api.comparison._preview_meta(state['jobId'],state['files'][0]['targets'][0]['taskId'],'result',self.guard._jobs[state['jobId']].files[0].source)
-        self.assertIn('первый кадр',meta['note'])
+        self.assertIn('страницы и кадры',meta['note'])
         query=urlencode({'job':state['jobId'],'task':state['files'][0]['targets'][0]['taskId'],'side':'result'})
         with self.request('compare/preview?'+query) as response:
             preview=response.read();image=QImage.fromData(preview)
             self.assertEqual(response.headers['Content-Type'],'image/png')
-            self.assertEqual((image.width(),image.height()),(1400,700))
+            self.assertEqual((image.width(),image.height()),(2400,1200))
+            self.assertEqual(response.headers['X-AIO-Preview-Width'],'2400')
+            self.assertEqual(response.headers['X-AIO-Preview-Rendered-Width'],'2400')
             self.assertLess(image.pixelColor(0,0).alpha(),255)
         with self.guard.comparison_inputs(state['jobId']) as records:
             self.assertEqual(records[0]['paths'][0].read_bytes(),raw)
-        self.assertNotEqual(raw,preview)
+        self.assertTrue(preview)
 
     def test_huge_raster_header_is_not_sent_to_the_browser_decoder(self):
         def chunk(kind,data):return struct.pack('!I',len(data))+kind+data+struct.pack('!I',zlib.crc32(kind+data)&0xffffffff)
@@ -75,3 +77,20 @@ class PagePreview(unittest.TestCase):
         result=self.json_request('compare/preview?'+query)
         self.assertEqual(result['kind'],'unavailable')
         self.assertTrue(self.guard.status(state['jobId'])['finished'])
+
+    def test_selected_apng_frame_has_correct_pixels_and_bounds(self):
+        from PySide6.QtGui import QImage
+        from app_backend.converter_guard.qt_media import _write_apng
+        frames=[]
+        for colour in (0xffff0000,0xff0000ff):
+            image=QImage(80,40,QImage.Format.Format_RGBA8888);image.fill(colour);frames.append(image)
+        stream=io.BytesIO();_write_apng(stream,iter(frames),{'width':80,'height':40,'frames':2,'pages':1,'durationsMs':[100,100]},None)
+        raw=stream.getvalue();state=self.converted(name='frames.apng',formats=['apng'],data=raw)
+        for page,expected in ((0,(255,0,0,255)),(1,(0,0,255,255))):
+            query=urlencode({'job':state['jobId'],'task':state['files'][0]['targets'][0]['taskId'],'side':'result','page':page})
+            with self.request('compare/preview?'+query) as response:
+                image=QImage.fromData(response.read());self.assertFalse(image.isNull())
+                self.assertEqual(image.pixelColor(10,10).getRgb(),expected)
+                self.assertEqual(response.headers['X-AIO-Preview-Pages'],'2')
+                self.assertEqual(response.headers['X-AIO-Preview-Page'],str(page))
+        self.assertEqual(self.guard._jobs[state['jobId']].files[0].source.read_bytes(),raw)
