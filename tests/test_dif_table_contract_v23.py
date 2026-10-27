@@ -102,6 +102,33 @@ class DifTableContractV23(unittest.TestCase):
     def test_correct_fods(self):
         self.assertEqual(self.check(target='fods')['matchedCells'], 9)
 
+    def test_known_russian_decimal_comma_html_matches_numeric_cells(self):
+        output = self.root / 'result.html'
+        rendered = (html(ROWS)
+            .replace('sdval="1.43"', 'sdval="1,43" sdnum="1049;"')
+            .replace('sdval="-0.04"', 'sdval="-0,04" sdnum="1049;"'))
+        output.write_text(rendered, encoding='utf-8')
+        proof = check_dif_table([output], 'html', self.source)
+        self.assertEqual(proof['status'], 'checked_subset')
+        self.assertEqual(proof['matchedCells'], 9)
+
+    def test_russian_decimal_comma_changes_still_veto(self):
+        output = self.root / 'result.html'
+        rendered = (html(ROWS)
+            .replace('sdval="1.43"', 'sdval="1,44" sdnum="1049;"')
+            .replace('sdval="-0.04"', 'sdval="-0,04" sdnum="1049;"'))
+        output.write_text(rendered, encoding='utf-8')
+        with self.assertRaises(GuardError) as ctx:
+            check_dif_table([output], 'html', self.source)
+        self.assertEqual(ctx.exception.code, 'ENGINE_OUTPUT_CONTENT_LOSS')
+
+    def test_comma_without_verified_russian_locale_is_not_checked(self):
+        output = self.root / 'result.html'
+        rendered = (html(ROWS)
+            .replace('sdval="1.43"', 'sdval="1,43" sdnum="1033;"'))
+        output.write_text(rendered, encoding='utf-8')
+        self.assertEqual(check_dif_table([output], 'html', self.source)['status'], 'not_checked')
+
     def test_missing_tail_rejected(self):
         with self.assertRaises(GuardError) as ctx: self.check(rows=ROWS[:2])
         self.assertEqual(ctx.exception.code, 'ENGINE_OUTPUT_CONTENT_LOSS')
