@@ -253,7 +253,7 @@ class DifCliBoundaryV23(unittest.TestCase):
             prepared=root/'source.fods';prepared.write_text(fods(ROWS),encoding='utf-8')
             bad=root/'broken.html';bad.write_text(html(ROWS[:1]),encoding='utf-8')
             adapter=LibreOfficeAdapter(exe)
-            adapter._registry=lambda:SimpleNamespace(fingerprint='unit')
+            adapter._registry=lambda:SimpleNamespace(fingerprint='unit',html_route_reason=lambda *_:None)
             adapter._local.import_filter='DIF';adapter._local.import_options='76'
             summary={'kind':'native_dif_numeric_snapshot','numericCheck':{'status':'checked_subset'},'warnings':[]}
             with patch.object(adapter,'_prepare_dif_snapshot',return_value=(prepared,summary)), \

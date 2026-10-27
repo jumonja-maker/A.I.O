@@ -210,9 +210,11 @@ class Registry:
         presentation = 'com.sun.star.presentation.PresentationDocument'
         # Preserve the already integrated native single-page XHTML recipe.
         alternative = self.filters.get('XHTML Draw File')
-        if (services == [draw] and proof.get('drawPages') == 1 and alternative
+        candidates=self.export_candidates.get(('xhtml',draw),())
+        if (services == [draw] and type(proof.get('drawPages')) is int and proof['drawPages'] == 1 and alternative
                 and alternative[0] == draw and 'EXPORT' in alternative[2]
-                and 'xhtml' in alternative[1] and 'xhtml' not in self.uncertain_extensions):
+                and 'xhtml' in alternative[1] and 'xhtml' not in self.uncertain_extensions
+                and 'XHTML Draw File' in candidates and all(name in self.filters for name in candidates)):
             return None
         if selected == 'draw_html_Export' or (selected is None and services == [draw]):
             return 'NATIVE_DRAW_HTML_CONTENT_UNSUPPORTED'

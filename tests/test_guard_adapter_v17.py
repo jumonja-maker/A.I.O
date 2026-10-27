@@ -23,7 +23,7 @@ class AdapterRoutes(unittest.TestCase):
             corpus = Path(__file__).parent / 'data/guard_v17_fulltest_subset.zip'
             with zipfile.ZipFile(corpus) as archive:
                 source.write_bytes(archive.read('05_LEVEL_2.apng'))
-            native = SimpleNamespace(fingerprint='installed-test', filters={}, imports={}, valid=True,
+            native = SimpleNamespace(html_route_reason=lambda *_:None, fingerprint='installed-test', filters={}, imports={}, valid=True,
                 exports={}, external_filters=False, route_reason=lambda *args: None,
                 observed_decision=lambda *args: 'unavailable')
             adapter = LibreOfficeAdapter(sys.executable)

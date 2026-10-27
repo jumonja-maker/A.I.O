@@ -48,6 +48,7 @@ class HtmlRouteSafety(unittest.TestCase):
             self.assertEqual(native.route_reason('html',draw),'NATIVE_DRAW_HTML_CONTENT_UNSUPPORTED')
             # A known native single-page XHTML alternative is preserved.
             native.filters['XHTML Draw File']=(D,{'xhtml'},{'EXPORT'})
+            native.export_candidates['xhtml',D]={'XHTML Draw File'}
             single={**draw,'drawPages':1}
             self.assertIsNone(native.html_route_reason('html',single))
             # Ambiguous static overlays must not bypass the known automatic

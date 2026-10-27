@@ -40,22 +40,21 @@ class DrawRecipes(unittest.TestCase):
                 self.assertEqual(recipe.required_draw_pages,1)
                 self.assertEqual(recipe.cli_spec(target),target+':XHTML Draw File')
 
-    def test_unknown_or_multiple_pages_keep_native_default_with_explicit_risk(self):
+    def test_unknown_or_multiple_pages_are_unavailable_before_unsafe_default(self):
         for pages in (None,0,2,-1,True,'1'):
             with self.subTest(pages=pages):
                 recipe=native_export_recipe(self.native,'html',{**self.proof,'drawPages':pages})
-                self.assertEqual(recipe.filter_name,'draw_html_Export')
-                self.assertEqual(recipe.warnings,('NATIVE_DRAW_HTML_CONTENT_RISK',))
-                self.assertIsNone(recipe.required_draw_pages)
+                self.assertIsNone(recipe)
+                self.assertEqual(self.native.observed_decision('html',{**self.proof,'drawPages':pages}),'unavailable')
 
     def test_missing_ambiguous_or_overlay_xhtml_filter_is_not_forced(self):
         candidates=self.native.export_candidates['xhtml',DRAW]
         candidates.add('ambiguous')
-        self.assertEqual(native_export_recipe(self.native,'html',self.proof).filter_name,'draw_html_Export')
+        self.assertIsNone(native_export_recipe(self.native,'html',self.proof))
         candidates.clear()
-        self.assertEqual(native_export_recipe(self.native,'html',self.proof).filter_name,'draw_html_Export')
+        self.assertIsNone(native_export_recipe(self.native,'html',self.proof))
         candidates.add('XHTML Draw File');self.native.uncertain_extensions.add('xhtml')
-        self.assertEqual(native_export_recipe(self.native,'html',self.proof).filter_name,'draw_html_Export')
+        self.assertIsNone(native_export_recipe(self.native,'html',self.proof))
 
     def test_writer_and_stale_native_proofs_do_not_use_draw_recipe(self):
         recipe=native_export_recipe(self.native,'html',{**self.proof,'documentServices':[W]})
