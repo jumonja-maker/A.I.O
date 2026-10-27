@@ -1,0 +1,587 @@
+{
+  "status": "FAIL",
+  "run": 40563063940,
+  "testedSHA": "14cf683aad63b502f979186677e60c6ce4cd5ed5",
+  "testedTree": "996d11ec101a6f24a17127133c68a39ebca5de04",
+  "evidence": [
+    {
+      "path": "D:\\actions-runner\\_work\\A.I.O\\A.I.O\\aio-b13-b31-evidence-40563063940-1\\b13-b31\\evidence.json",
+      "data": {
+        "status": "FAIL",
+        "scope": "generated native controls; not preserved 680-file FULLTEST",
+        "dbf": [],
+        "jpeg": [],
+        "negative": [],
+        "sourceSHA256": {},
+        "orp": {
+          "status": "not_tested",
+          "reason": "no_positive_Base_report_fixture",
+          "installedExporters": [
+            "StarOffice XML (Base) Report"
+          ]
+        },
+        "tiffProbe": [
+          {
+            "pages": 6,
+            "sha256": "f27c20b8ddf217512e1c9c7dedcd156a5e6c5ab065693fb99dacfab8d49ea923",
+            "profile": {
+              "format": "tiff",
+              "width": 16,
+              "height": 12,
+              "frames": 1,
+              "pages": 6,
+              "alpha": true,
+              "durationsMs": [],
+              "orientation": 1,
+              "pageDimensions": [
+                [
+                  16,
+                  12
+                ],
+                [
+                  16,
+                  12
+                ],
+                [
+                  16,
+                  12
+                ],
+                [
+                  16,
+                  12
+                ],
+                [
+                  16,
+                  12
+                ],
+                [
+                  16,
+                  12
+                ]
+              ],
+              "bitDepth": 8,
+              "pageImageIndexes": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+              ],
+              "pageOrientations": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ],
+              "pageDpi": [
+                [
+                  99.9998,
+                  99.9998
+                ],
+                [
+                  99.9998,
+                  99.9998
+                ],
+                [
+                  99.9998,
+                  99.9998
+                ],
+                [
+                  99.9998,
+                  99.9998
+                ],
+                [
+                  99.9998,
+                  99.9998
+                ],
+                [
+                  99.9998,
+                  99.9998
+                ]
+              ]
+            },
+            "currentReader": [
+              {
+                "index": 0,
+                "before": 0,
+                "jump": true,
+                "after": 0,
+                "decoded": true
+              },
+              {
+                "index": 1,
+                "before": 0,
+                "jump": false,
+                "after": 0,
+                "decoded": false
+              },
+              {
+                "index": 2,
+                "before": 0,
+                "jump": true,
+                "after": 2,
+                "decoded": true
+              },
+              {
+                "index": 3,
+                "before": 2,
+                "jump": true,
+                "after": 3,
+                "decoded": true
+              },
+              {
+                "index": 4,
+                "before": 3,
+                "jump": true,
+                "after": 4,
+                "decoded": true
+              },
+              {
+                "index": 5,
+                "before": 4,
+                "jump": true,
+                "after": 5,
+                "decoded": true
+              }
+            ],
+            "freshReader": [
+              {
+                "index": 0,
+                "jump": true,
+                "decoded": true
+              },
+              {
+                "index": 1,
+                "jump": true,
+                "decoded": true
+              },
+              {
+                "index": 2,
+                "jump": true,
+                "decoded": true
+              },
+              {
+                "index": 3,
+                "jump": true,
+                "decoded": true
+              },
+              {
+                "index": 4,
+                "jump": true,
+                "decoded": true
+              },
+              {
+                "index": 5,
+                "jump": true,
+                "decoded": true
+              }
+            ],
+            "currentAioError": {
+              "code": "MEDIA_DECODE_FAILED",
+              "reason": "Qt РЅРµ СЃРјРѕРі РїРµСЂРµР№С‚Рё Рє СЃР»РµРґСѓСЋС‰РµР№ СЃС‚СЂР°РЅРёС†Рµ РёР·РѕР±СЂР°Р¶РµРЅРёСЏ."
+            }
+          },
+          {
+            "pages": 7,
+            "sha256": "1d145c8b603a2cbbe02ecba533f9197efe14a2878045e4e315905c943c421143",
+            "profile": {
+              "format": "tiff",
+              "width": 16,
+              "height": 12,
+              "frames": 1,
+              "pages": 7,
+              "alpha": true,
+              "durationsMs": [],
+              "orientation": 1,
+              "pageDimensions": [
+                [
+                  16,
+                  12
+                ],
+                [
+                  16,
+                  12
+                ],
+                [
+                  16,
+                  12
+                ],
+                [
+                  16,
+                  12
+                ],
+                [
+                  16,
+                  12
+                ],
+                [
+                  16,
+                  12
+                ],
+                [
+                  16,
+                  12
+                ]
+              ],
+              "bitDepth": 8,
+              "pageImageIndexes": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              "pageOrientations": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ],
+              "pageDpi": [
+                [
+                  99.9998,
+                  99.9998
+                ],
+                [
+                  99.9998,
+                  99.9998
+                ],
+                [
+                  99.9998,
+                  99.9998
+                ],
+                [
+                  99.9998,
+                  99.9998
+                ],
+                [
+                  99.9998,
+                  99.9998
+                ],
+                [
+                  99.9998,
+                  99.9998
+                ],
+                [
+                  99.9998,
+                  99.9998
+                ]
+              ]
+            },
+            "currentReader": [
+              {
+                "index": 0,
+                "before": 0,
+                "jump": true,
+                "after": 0,
+                "decoded": true
+              },
+              {
+                "index": 1,
+                "before": 0,
+                "jump": false,
+                "after": 0,
+                "decoded": false
+              },
+              {
+                "index": 2,
+                "before": 0,
+                "jump": true,
+                "after": 2,
+                "decoded": true
+              },
+              {
+                "index": 3,
+                "before": 2,
+                "jump": true,
+                "after": 3,
+                "decoded": true
+              },
+              {
+                "index": 4,
+                "before": 3,
+                "jump": true,
+                "after": 4,
+                "decoded": true
+              },
+              {
+                "index": 5,
+                "before": 4,
+                "jump": true,
+                "after": 5,
+                "decoded": true
+              },
+              {
+                "index": 6,
+                "before": 5,
+                "jump": true,
+                "after": 6,
+                "decoded": true
+              }
+            ],
+            "freshReader": [
+              {
+                "index": 0,
+                "jump": true,
+                "decoded": true
+              },
+              {
+                "index": 1,
+                "jump": true,
+                "decoded": true
+              },
+              {
+                "index": 2,
+                "jump": true,
+                "decoded": true
+              },
+              {
+                "index": 3,
+                "jump": true,
+                "decoded": true
+              },
+              {
+                "index": 4,
+                "jump": true,
+                "decoded": true
+              },
+              {
+                "index": 5,
+                "jump": true,
+                "decoded": true
+              },
+              {
+                "index": 6,
+                "jump": true,
+                "decoded": true
+              }
+            ],
+            "currentAioError": {
+              "code": "MEDIA_DECODE_FAILED",
+              "reason": "Qt РЅРµ СЃРјРѕРі РїРµСЂРµР№С‚Рё Рє СЃР»РµРґСѓСЋС‰РµР№ СЃС‚СЂР°РЅРёС†Рµ РёР·РѕР±СЂР°Р¶РµРЅРёСЏ."
+            }
+          },
+          {
+            "pages": 8,
+            "sha256": "80127d2a3cba9f6fc15a2afa8ed678e0bc5dfd122f455068f088d5dc4548f72c",
+            "profile": {
+              "format": "tiff",
+              "width": 16,
+              "height": 12,
+              "frames": 1,
+              "pages": 8,
+              "alpha": true,
+              "durationsMs": [],
+              "orientation": 1,
+              "pageDimensions": [
+                [
+                  16,
+                  12
+                ],
+                [
+                  16,
+                  12
+                ],
+                [
+                  16,
+                  12
+                ],
+                [
+                  16,
+                  12
+                ],
+                [
+                  16,
+                  12
+                ],
+                [
+                  16,
+                  12
+                ],
+                [
+                  16,
+                  12
+                ],
+                [
+                  16,
+                  12
+                ]
+              ],
+              "bitDepth": 8,
+              "pageImageIndexes": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+              ],
+              "pageOrientations": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ],
+              "pageDpi": [
+                [
+                  99.9998,
+                  99.9998
+                ],
+                [
+                  99.9998,
+                  99.9998
+                ],
+                [
+                  99.9998,
+                  99.9998
+                ],
+                [
+                  99.9998,
+                  99.9998
+                ],
+                [
+                  99.9998,
+                  99.9998
+                ],
+                [
+                  99.9998,
+                  99.9998
+                ],
+                [
+                  99.9998,
+                  99.9998
+                ],
+                [
+                  99.9998,
+                  99.9998
+                ]
+              ]
+            },
+            "currentReader": [
+              {
+                "index": 0,
+                "before": 0,
+                "jump": true,
+                "after": 0,
+                "decoded": true
+              },
+              {
+                "index": 1,
+                "before": 0,
+                "jump": false,
+                "after": 0,
+                "decoded": false
+              },
+              {
+                "index": 2,
+                "before": 0,
+                "jump": true,
+                "after": 2,
+                "decoded": true
+              },
+              {
+                "index": 3,
+                "before": 2,
+                "jump": true,
+                "after": 3,
+                "decoded": true
+              },
+              {
+                "index": 4,
+                "before": 3,
+                "jump": true,
+                "after": 4,
+                "decoded": true
+              },
+              {
+                "index": 5,
+                "before": 4,
+                "jump": true,
+                "after": 5,
+                "decoded": true
+              },
+              {
+                "index": 6,
+                "before": 5,
+                "jump": true,
+                "after": 6,
+                "decoded": true
+              },
+              {
+                "index": 7,
+                "before": 6,
+                "jump": true,
+                "after": 7,
+                "decoded": true
+              }
+            ],
+            "freshReader": [
+              {
+                "index": 0,
+                "jump": true,
+                "decoded": true
+              },
+              {
+                "index": 1,
+                "jump": true,
+                "decoded": true
+              },
+              {
+                "index": 2,
+                "jump": true,
+                "decoded": true
+              },
+              {
+                "index": 3,
+                "jump": true,
+                "decoded": true
+              },
+              {
+                "index": 4,
+                "jump": true,
+                "decoded": true
+              },
+              {
+                "index": 5,
+                "jump": true,
+                "decoded": true
+              },
+              {
+                "index": 6,
+                "jump": true,
+                "decoded": true
+              },
+              {
+                "index": 7,
+                "jump": true,
+                "decoded": true
+              }
+            ],
+            "currentAioError": {
+              "code": "MEDIA_DECODE_FAILED",
+              "reason": "Qt РЅРµ СЃРјРѕРі РїРµСЂРµР№С‚Рё Рє СЃР»РµРґСѓСЋС‰РµР№ СЃС‚СЂР°РЅРёС†Рµ РёР·РѕР±СЂР°Р¶РµРЅРёСЏ."
+            }
+          }
+        ],
+        "error": "NameError",
+        "code": null,
+        "diagnostic": null,
+        "reason": "name 'GuardError' is not defined"
+      }
+    }
+  ]
+}

@@ -17,7 +17,7 @@ from .csv_import import csv_import_hint, inspect_csv_stream
 from .export_recipe import native_export_recipe, automatic_recipe, validate_retry_recipe
 from .native_observation import NativeObservation
 from .native_metrics import clean_timings
-from .legacy_import import legacy_import_hint, validate_options
+from .legacy_import import legacy_import_hint, validate_options, validate_legacy_dbf_source
 from .postconditions import SourceEvidence, check_native_output
 from .source_contract import inspect_source_contract, source_import_hint, source_model_matches
 
@@ -501,6 +501,7 @@ class LibreOfficeAdapter:
         if not self.available:
             return {'state': 'undetermined', 'code': 'ENGINE_NOT_FOUND'}
         control = _RunControl(cancel, workspace, timeout, None)
+        validate_legacy_dbf_source(source,self._registry(),cancel=control)
         try:
             media = media_preflight(source, cancel=control)
         except GuardError as error:
@@ -551,7 +552,7 @@ class LibreOfficeAdapter:
         if contract.get('nativeImportRequired') and source_hint is None:
             return {'state': 'undetermined', 'code': 'SOURCE_NATIVE_IMPORT_FILTER_REQUIRED',
                     'sourceContract': contract, 'exported': False}
-        hint = source_hint or csv_import_hint(source, native) or legacy_import_hint(source, native)
+        hint = source_hint or csv_import_hint(source, native) or legacy_import_hint(source, native, cancel=cancel)
         # One streaming scan, only for a content-confirmed text hint. Large or
         # ambiguous inputs retain an explicit incomplete status, never a veto.
         csv_profile = (inspect_csv_stream(source, delimiter=chr(int(hint['options'].split(',')[0])),
@@ -702,6 +703,7 @@ class LibreOfficeAdapter:
         paths = None
         identity_control = (cancel if timeout is None and output_limit is None else
                             _RunControl(cancel, workspace, timeout, output_limit))
+        validate_legacy_dbf_source(source,self._registry(),cancel=identity_control)
         if (retry_recipe is None and proof.get('state') == 'detected'
                 and self.route_decision(target, proof) == 'registered'):
             paths = copy_media_identity(source, workspace / 'output', target, cancel=identity_control)
@@ -743,7 +745,7 @@ class LibreOfficeAdapter:
                 # TABLE is only an inexpensive content probe. The actual
                 # native import proof, or a confirmed legacy hint for a
                 # direct adapter call without proof, owns DIF admission.
-                direct_hint = (legacy_import_hint(source, native)
+                direct_hint = (legacy_import_hint(source, native, cancel=identity_control)
                                if not proof and selected_import is None else None)
                 if (selected_import == 'DIF' or
                         direct_hint is not None and direct_hint.get('filter') == 'DIF'):
@@ -800,6 +802,10 @@ class LibreOfficeAdapter:
                      *preparation.get('warnings', ()),
                      *(['ODF_IMPLICIT_COLUMNS_EXPLICIT'] if preparation.get('state') == 'prepared'
                        and preparation.get('kind') == 'odf_explicit_table_columns' else []))))
+        if target in ('jfif','jif','jpe') and self.execution_mode() in ('native_uno','native_cli'):
+            from .jpeg_alias import verify_native_jpeg_alias
+            alias_check = verify_native_jpeg_alias(paths, target, cancel=identity_control)
+            self._local.export_info['resultChecks'] = list(self._local.export_info.get('resultChecks', ())) + [alias_check]
         if target == 'bmp' and self.execution_mode() in ('native_uno', 'native_cli'):
             from .native_media_repair import repair_native_bmp_size
             repairs = repair_native_bmp_size(paths, cancel=identity_control)
@@ -875,7 +881,7 @@ class LibreOfficeAdapter:
         name = (import_hint or {}).get('filter', getattr(self._local, 'import_filter', None))
         options = (import_hint or {}).get('options', getattr(self._local, 'import_options', None))
         if name != 'DIF':
-            hint = legacy_import_hint(source, native)
+            hint = legacy_import_hint(source, native, cancel=cancel)
             if not hint or hint['filter'] != 'DIF':
                 raise GuardError('DIF_NATIVE_IMPORT_UNVERIFIED',
                     'Не подтверждены параметры нативного импорта DIF.', stage='import')
