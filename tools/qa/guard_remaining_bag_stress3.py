@@ -27,8 +27,8 @@ STAGES=(
     ('tiff','guard_b32_tiff_native_acceptance.py',{'cases':24,'negative':6}),
     ('html','guard_b33_html_native_acceptance.py',{'positive':18,'excluded':30,'negative':3}),
     ('session','guard_session_native_acceptance.py',{'checks':3}),
-    ('viewer-100','guard_before_after_b19_b25_acceptance.py',{'checks':4}),
-    ('viewer-150','guard_before_after_b19_b25_acceptance.py',{'checks':4}),
+    ('viewer-100','guard_before_after_b19_b25_acceptance.py',{'checks':5}),
+    ('viewer-150','guard_before_after_b19_b25_acceptance.py',{'checks':5}),
 )
 
 # These are parser/identity decisions, not claims about a native conversion.

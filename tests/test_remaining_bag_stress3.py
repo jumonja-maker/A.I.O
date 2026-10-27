@@ -28,7 +28,7 @@ class Stress3EvidenceContracts(unittest.TestCase):
         self.assertEqual(stages['dbf-jpeg'],{'dbf':8,'jpeg':120,'negative':6})
         self.assertEqual(stages['tiff'],{'cases':24,'negative':6})
         self.assertEqual(stages['html'],{'positive':18,'excluded':30,'negative':3})
-        self.assertEqual(stages['viewer-150']['checks'],4)
+        self.assertEqual(stages['viewer-150']['checks'],5)
     def test_new_parser_corpus_keeps_unknown_distinct_from_loss(self):
         with tempfile.TemporaryDirectory() as tmp:
             rows=qa.safety_negative_corpus(Path(tmp)/'new-controls')
