@@ -137,15 +137,15 @@ def main():
                 # filters/fullscreen; do not replace the native click.
                 until(lambda:js("[...document.querySelectorAll('.aio-pair-pane img')].every(i=>i.style.width==="+json.dumps(str(width)+'px')+")"),seconds=8)
             click('[data-viewer-zoom="fit"]');click('[data-viewer-fullscreen]')
-            until(lambda:js("!!document.fullscreenElement") and window.isFullScreen())
-            assert js("document.querySelector('.aio-compare-dialog').classList.contains('aio-compare-maximized')")
+            until(lambda:js("document.fullscreenElement===document.querySelector('.aio-pair-viewer')&&document.querySelector('.aio-compare-dialog').classList.contains('aio-compare-maximized')") and window.isFullScreen())
             click('[data-viewer-fullscreen]')
             until(lambda:not js("!!document.fullscreenElement||document.querySelector('.aio-compare-dialog').classList.contains('aio-compare-maximized')") and not window.isFullScreen())
             window.resize(900,650)
             app.processEvents()
             shot,paint=painted_snapshot(theme+'.png')
-            geometry=json.loads(js("JSON.stringify((()=>{const d=document.querySelector('.aio-compare-dialog').getBoundingClientRect();return {x:d.x,y:d.y,width:d.width,height:d.height,viewportWidth:innerWidth,viewportHeight:innerHeight,panes:document.querySelectorAll('.aio-pair-pane').length,dpr:devicePixelRatio}})())"))
+            geometry=json.loads(js("JSON.stringify((()=>{const d=document.querySelector('.aio-compare-dialog').getBoundingClientRect();return {x:d.x,y:d.y,width:d.width,height:d.height,viewportWidth:innerWidth,viewportHeight:innerHeight,panes:document.querySelectorAll('.aio-pair-pane').length,dpr:devicePixelRatio,previewBottom:document.querySelector('[data-c-preview]').getBoundingClientRect().bottom,reportTop:document.querySelector('[data-c-findings]').getBoundingClientRect().top,reportBottom:document.querySelector('[data-c-findings]').getBoundingClientRect().bottom,actionsTop:document.querySelector('.aio-compare-actions').getBoundingClientRect().top,actionsBottom:document.querySelector('.aio-compare-actions').getBoundingClientRect().bottom}})())"))
             assert geometry['x']>=0 and geometry['y']>=0 and geometry['x']+geometry['width']<=geometry['viewportWidth']+1 and geometry['y']+geometry['height']<=geometry['viewportHeight']+1
+            assert geometry['previewBottom']<=geometry['reportTop']+1 and geometry['reportBottom']<=geometry['actionsTop']+1 and geometry['actionsBottom']<=geometry['y']+geometry['height']+1,geometry
             report['snapshots'].append({'name':shot.name,'sha256':sha(shot),'geometry':geometry,'paintedImagePointsVerified':True,'paint':paint})
             report['checks'].append({'name':'qt-two-pane-4k-'+theme,'status':'PASS','nativeMouseFilter':True,'nativeKeyboardFilter':True,'zooms':[100,200,400],'sourcePixels':[3840,2160]})
             window.resize(1100,800)

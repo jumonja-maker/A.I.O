@@ -15,6 +15,7 @@
     }
     const syncLabel=document.createElement('label'),sync=document.createElement('input');sync.type='checkbox';sync.checked=true;sync.dataset.viewerSync='';
     syncLabel.append(sync,document.createTextNode('Синхронно'));toolbar.append(syncLabel);
+    sync.addEventListener('change',()=>zoom(scale));
     const full=button('На весь экран',async()=>{
       if(destroyed||fullscreenBusy)return;fullscreenBusy=true;full.disabled=true;
       try{
@@ -59,10 +60,12 @@
     function fit(pane){return pane.width?Math.min(1,Math.max(.01,(pane.viewport.clientWidth||500)/pane.width),Math.max(.01,(pane.viewport.clientHeight||300)/pane.height)):1;}
     function zoom(value){
       scale=value;
+      const imagePanes=panes.filter(p=>p.node?.tagName==='IMG');
+      const sharedFit=value==='fit'&&sync.checked&&imagePanes.length?Math.min(...imagePanes.map(fit)):null;
       for(const b of toolbar.querySelectorAll('[data-viewer-zoom]'))b.setAttribute('aria-pressed',String(String(value)===b.dataset.viewerZoom));
       for(const pane of panes){
         if(pane.node?.tagName!=='IMG')continue;
-        const factor=value==='fit'?fit(pane):value;
+        const factor=value==='fit'?(sharedFit??fit(pane)):value;
         const cx=(pane.viewport.scrollLeft+pane.viewport.clientWidth/2)/(pane.content.scrollWidth||1);
         const cy=(pane.viewport.scrollTop+pane.viewport.clientHeight/2)/(pane.content.scrollHeight||1);
         pane.node.style.width=Math.max(1,Math.round(pane.width*factor))+'px';pane.node.style.height='auto';

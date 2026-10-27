@@ -512,6 +512,11 @@
     selectedTask=item.taskId;setReport(item);
     for(const row of $('[data-c-files]')?.children||[])row.dataset.active=String(row.querySelector('[data-task]')?.dataset.task===item.taskId);
     if(!preview)return;
+    // A repeated open of the same pair starts a new preview generation too.
+    // Retire old controls/fullscreen before fetching detail, so late responses
+    // cannot replace a viewer the user is already zooming or expanding.
+    clearPreview();detail=null;renderOutputs();
+    placeholder('Готовим просмотр выбранной пары…');previewBusy=true;refreshActions();
     const version=epoch,number=++previewNumber,expectedId=analysis?.analysisId;
     try{
       const packet=await request('/compare/item?job='+encodeURIComponent(jobId)+'&task='+encodeURIComponent(item.taskId)+(expectedId?'&analysisId='+encodeURIComponent(expectedId):''));
@@ -524,6 +529,7 @@
       }
       detail=received;setReport(detail);renderOutputs();await showPreview();
     }catch(error){if(alive(version)&&selectedTask===item.taskId&&number===previewNumber&&analysis?.analysisId===expectedId&&error.name!=='AbortError')feedback(error.message);}
+    finally{if(alive(version)&&number===previewNumber){previewBusy=false;refreshActions();}}
   }
 
   async function action(work){

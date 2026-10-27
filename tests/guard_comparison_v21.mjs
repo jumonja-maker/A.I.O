@@ -54,6 +54,17 @@ const results=[];
 async function check(name,work){const h=create();try{await work(h);results.push({name,status:'PASS'})}finally{await h.close()}}
 const only=process.argv[2];
 const cases=[
+  ['same_pair_reload_retires_old_preview_before_detail',async h=>{
+    await h.window.AIOGuardComparison.open(job);h.event(h.$('[data-task]'),'dblclick');await flush();
+    assert.match(h.$('[data-c-preview]').textContent,/RESULT/);
+    const delayed=gate();h.override(url=>url.pathname.endsWith('/compare/item')?delayed.promise:undefined);
+    h.event(h.$('[data-task]'),'dblclick');await flush();
+    assert.doesNotMatch(h.$('[data-c-preview]').textContent,/RESULT/,'old preview must not remain interactive during reload');
+    assert.equal(h.$('[data-c-source]').disabled,true);assert.equal(h.$('[data-c-result]').disabled,true);
+    delayed.resolve(h.response({...h.item(job),previews:{result:{kind:'text',text:'RELOADED CURRENT RESULT'}}}));await flush();
+    assert.match(h.$('[data-c-preview]').textContent,/RELOADED CURRENT RESULT/);
+    assert.equal(h.$('[data-c-result]').disabled,false);
+  }],
   ['obsolete_refresh_error',async h=>{
     await h.window.AIOGuardComparison.open(job);h.event(h.$('[data-task]'),'dblclick');await flush();const delayed=gate();let used=false;
     h.override((url)=>{if(url.pathname.endsWith('/compare')&&!used){used=true;return delayed.promise}});
