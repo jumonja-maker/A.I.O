@@ -1,0 +1,25 @@
+{
+  "run": 40556601347,
+  "status": "FAIL",
+  "testedSHA": "051d188f13e80e5773dd3fab611e8a8a89166b2a",
+  "testedTree": "ee69ed058309d52e44876d6ca1e5cbe75ac3d6eb",
+  "evidence": {
+    "status": "FAIL",
+    "scope": "actual native LO queue/save/recovery/cancel; not FULLTEST or installed EXE",
+    "checks": [
+      {
+        "status": "PASS",
+        "name": "native-save-recovery-analysis-close",
+        "nativeResults": 2,
+        "partialSaveRestored": true,
+        "optionalDiagnosticDidNotChangeUnsaved": true,
+        "originalSha256": "7620c2746b4f83ffba990fae1f9a4998032f0be8ffb4139da4b8551684f31f4e",
+        "savedFirstSha256": "ca156038f14521fbf9724f2381023345fefff76ab7aed04dea52c7ba968c8be1",
+        "diagnosticSha256": "fe8e6c7debef95d80fcc3fe32ec6b4eb599ba62884d3480049638c79123dcea5"
+      }
+    ],
+    "code": null,
+    "reason": "native cancellation opportunity not observed",
+    "error": "AssertionError"
+  }
+}
