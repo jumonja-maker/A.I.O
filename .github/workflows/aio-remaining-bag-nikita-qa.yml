@@ -1,4 +1,4 @@
-name: AIO remaining bag B16 B27 session pinned NIKITA acceptance
+name: AIO remaining bag B19 B25 Before After pinned NIKITA acceptance
 
 # This one-shot workflow is separate from existing application/build workflows.
 # Owner authorized isolated Runner QA; only the fixed source below runs.
@@ -12,12 +12,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: aio-session-b16-b27-eighth-selfhosted-qa
+  group: aio-before-after-eighth-selfhosted-qa
   cancel-in-progress: false
 
 env:
-  AIO_QA_SOURCE_SHA: 6b29e4340485378e1186e885cf1875f5adac55ea
-  AIO_QA_TREE_SHA: 16c6b8ff1ed39e549ad28f577416e85746f9a151
+  AIO_QA_SOURCE_SHA: e28a625969cc679c3d258229c12aa2410e5d3b25
+  AIO_QA_TREE_SHA: b8b2303b4685fd7e8936f754a18a9e7076532491
   PYTHONDONTWRITEBYTECODE: '1'
   PYTHONUTF8: '1'
   PYTHONIOENCODING: utf-8
@@ -35,12 +35,12 @@ jobs:
       github.repository == 'jumonja-maker/A.I.O' &&
       github.actor == 'jumonja-maker' &&
       github.event.action == 'labeled' &&
-      github.event.label.name == 'aio-session-b16-b27-eighth-selfhosted-qa' &&
-      github.event.pull_request.number == 69 &&
+      github.event.label.name == 'aio-before-after-eighth-selfhosted-qa' &&
+      github.event.pull_request.number == 72 &&
       github.event.pull_request.user.login == 'jumonja-maker' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
-      github.event.pull_request.head.ref == 'fix/b16-b27-session-diagnostics-20261027' &&
-      github.event.pull_request.base.ref == 'fix/guard-v182-matrix-progress-cancel-20261025'
+      github.event.pull_request.head.ref == 'fix/b19-b25-before-after-viewer-20261027' &&
+      github.event.pull_request.base.ref == 'fix/b16-b27-session-diagnostics-20261027'
     runs-on: [self-hosted, Windows, X64, local-d-manual]
     timeout-minutes: 60
     defaults:
@@ -58,7 +58,7 @@ jobs:
             if ([string]::IsNullOrWhiteSpace($path) -or -not [IO.Path]::GetFullPath($path).StartsWith('D:\',[StringComparison]::OrdinalIgnoreCase)) { throw ($key+' must remain on D:') }
           }
           if ((Get-PSDrive -Name D -PSProvider FileSystem).Free -lt 30GB -or (Get-PSDrive -Name C -PSProvider FileSystem).Free -lt 10GB) { throw 'Required C/D free space unavailable' }
-          foreach($name in @('aio-session-b16-b27-source-${{ github.run_id }}-${{ github.run_attempt }}','aio-session-b16-b27-evidence-${{ github.run_id }}-${{ github.run_attempt }}')) {
+          foreach($name in @('aio-before-after-source-${{ github.run_id }}-${{ github.run_attempt }}','aio-before-after-evidence-${{ github.run_id }}-${{ github.run_attempt }}')) {
             if (Test-Path -LiteralPath (Join-Path $env:GITHUB_WORKSPACE $name)) { throw 'Run destination already exists' }
           }
       - name: Checkout immutable reviewed source
@@ -69,12 +69,12 @@ jobs:
           GIT_CONFIG_VALUE_0: 'false'
         with:
           repository: jumonja-maker/A.I.O
-          ref: 6b29e4340485378e1186e885cf1875f5adac55ea
-          path: aio-session-b16-b27-source-${{ github.run_id }}-${{ github.run_attempt }}
+          ref: e28a625969cc679c3d258229c12aa2410e5d3b25
+          path: aio-before-after-source-${{ github.run_id }}-${{ github.run_attempt }}
           persist-credentials: false
           clean: true
       - name: Verify Git tree and select existing offline tools
-        working-directory: aio-session-b16-b27-source-${{ github.run_id }}-${{ github.run_attempt }}
+        working-directory: aio-before-after-source-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           $ErrorActionPreference='Stop'
           $python='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\Scripts\python.exe'
@@ -126,116 +126,128 @@ jobs:
           'AIO_QA_ENGINE='+$engine | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Prepare verified offline test-only dependencies
         id: dependencies
-        working-directory: aio-session-b16-b27-source-${{ github.run_id }}-${{ github.run_attempt }}
+        working-directory: aio-before-after-source-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           $ErrorActionPreference='Stop'
-          $target=Join-Path $env:RUNNER_TEMP 'aio-session-b16-b27-deps-${{ github.run_id }}-${{ github.run_attempt }}-windows'
+          $target=Join-Path $env:RUNNER_TEMP 'aio-before-after-deps-${{ github.run_id }}-${{ github.run_attempt }}-windows'
           & $env:AIO_QA_PYTHON tools/qa/guard_v17_test_dependencies.py --output $target --github-env
           if ($LASTEXITCODE -ne 0) {throw 'Offline test dependency preparation failed'}
-      - name: B16 B27 session all sheets and real save recovery
-        working-directory: aio-session-b16-b27-source-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: B19 B25 Before After all sheets and real save recovery
+        working-directory: aio-before-after-source-${{ github.run_id }}-${{ github.run_attempt }}
         env:
           QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --disable-gpu-compositing
         run: |
           $ErrorActionPreference='Stop'
           $env:AIO_LIBREOFFICE=$env:AIO_QA_ENGINE
           $env:AIO_BUILD_REVISION=$env:AIO_QA_SOURCE_SHA
-          $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-session-b16-b27-evidence-${{ github.run_id }}-${{ github.run_attempt }}'
-          & $env:AIO_QA_PYTHON tools/qa/guard_session_native_acceptance.py --output (Join-Path $evidence 'session') --executable $env:AIO_QA_ENGINE
+          $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-before-after-evidence-${{ github.run_id }}-${{ github.run_attempt }}'
+          & $env:AIO_QA_PYTHON tools/qa/guard_before_after_b19_b25_acceptance.py --output (Join-Path $evidence 'before-after') --executable $env:AIO_QA_ENGINE
           if ($LASTEXITCODE -ne 0) {throw 'Required native acceptance failed'}
+      - name: Native Qt Before After at 150 percent DPI
+        working-directory: aio-before-after-source-${{ github.run_id }}-${{ github.run_attempt }}
+        env:
+          QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --disable-gpu-compositing
+          QT_SCALE_FACTOR: '1.5'
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:AIO_LIBREOFFICE=$env:AIO_QA_ENGINE
+          $env:AIO_BUILD_REVISION=$env:AIO_QA_SOURCE_SHA
+          $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-before-after-evidence-${{ github.run_id }}-${{ github.run_attempt }}'
+          & $env:AIO_QA_PYTHON tools/qa/guard_before_after_b19_b25_acceptance.py --output (Join-Path $evidence 'before-after-150') --executable $env:AIO_QA_ENGINE
+          if ($LASTEXITCODE -ne 0) {throw 'Native Qt DPI acceptance failed'}
       - name: Native v20 neighbor regression
-        working-directory: aio-session-b16-b27-source-${{ github.run_id }}-${{ github.run_attempt }}
+        working-directory: aio-before-after-source-${{ github.run_id }}-${{ github.run_attempt }}
         env:
           QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --disable-gpu-compositing
         run: |
           $ErrorActionPreference='Stop'
           $env:AIO_LIBREOFFICE=$env:AIO_QA_ENGINE
           $env:AIO_BUILD_REVISION=$env:AIO_QA_SOURCE_SHA
-          $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-session-b16-b27-evidence-${{ github.run_id }}-${{ github.run_attempt }}'
+          $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-before-after-evidence-${{ github.run_id }}-${{ github.run_attempt }}'
           & $env:AIO_QA_PYTHON tools/qa/guard_v20_native_acceptance.py --output (Join-Path $evidence 'v20') --executable $env:AIO_QA_ENGINE --require-mode native_uno
           if ($LASTEXITCODE -ne 0) {throw 'Required native acceptance failed'}
       - name: Native v21 XLSX regression
-        working-directory: aio-session-b16-b27-source-${{ github.run_id }}-${{ github.run_attempt }}
+        working-directory: aio-before-after-source-${{ github.run_id }}-${{ github.run_attempt }}
         env:
           QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --disable-gpu-compositing
         run: |
           $ErrorActionPreference='Stop'
           $env:AIO_LIBREOFFICE=$env:AIO_QA_ENGINE
           $env:AIO_BUILD_REVISION=$env:AIO_QA_SOURCE_SHA
-          $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-session-b16-b27-evidence-${{ github.run_id }}-${{ github.run_attempt }}'
+          $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-before-after-evidence-${{ github.run_id }}-${{ github.run_attempt }}'
           & $env:AIO_QA_PYTHON tools/qa/guard_v21_xlsx_acceptance.py --output (Join-Path $evidence 'v21') --executable $env:AIO_QA_ENGINE --require-mode native_uno
           if ($LASTEXITCODE -ne 0) {throw 'Required native acceptance failed'}
       - name: Native Writer TXT regression
-        working-directory: aio-session-b16-b27-source-${{ github.run_id }}-${{ github.run_attempt }}
+        working-directory: aio-before-after-source-${{ github.run_id }}-${{ github.run_attempt }}
         env:
           QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --disable-gpu-compositing
         run: |
           $ErrorActionPreference='Stop'
           $env:AIO_LIBREOFFICE=$env:AIO_QA_ENGINE
           $env:AIO_BUILD_REVISION=$env:AIO_QA_SOURCE_SHA
-          $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-session-b16-b27-evidence-${{ github.run_id }}-${{ github.run_attempt }}'
+          $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-before-after-evidence-${{ github.run_id }}-${{ github.run_attempt }}'
           & $env:AIO_QA_PYTHON tools/qa/guard_v22_txt_native_acceptance.py --output (Join-Path $evidence 'v22') --executable $env:AIO_QA_ENGINE
           if ($LASTEXITCODE -ne 0) {throw 'Required native acceptance failed'}
       - name: Native queue save CSV DBF regression
-        working-directory: aio-session-b16-b27-source-${{ github.run_id }}-${{ github.run_attempt }}
+        working-directory: aio-before-after-source-${{ github.run_id }}-${{ github.run_attempt }}
         env:
           QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --disable-gpu-compositing
         run: |
           $ErrorActionPreference='Stop'
           $env:AIO_LIBREOFFICE=$env:AIO_QA_ENGINE
           $env:AIO_BUILD_REVISION=$env:AIO_QA_SOURCE_SHA
-          $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-session-b16-b27-evidence-${{ github.run_id }}-${{ github.run_attempt }}'
+          $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-before-after-evidence-${{ github.run_id }}-${{ github.run_attempt }}'
           & $env:AIO_QA_PYTHON tools/qa/guard_v08_native_acceptance.py --output (Join-Path $evidence 'v08') --compare-cli
           if ($LASTEXITCODE -ne 0) {throw 'Required native acceptance failed'}
       - name: Native optional quality recipes
-        working-directory: aio-session-b16-b27-source-${{ github.run_id }}-${{ github.run_attempt }}
+        working-directory: aio-before-after-source-${{ github.run_id }}-${{ github.run_attempt }}
         env:
           QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --disable-gpu-compositing
         run: |
           $ErrorActionPreference='Stop'
           $env:AIO_LIBREOFFICE=$env:AIO_QA_ENGINE
           $env:AIO_BUILD_REVISION=$env:AIO_QA_SOURCE_SHA
-          $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-session-b16-b27-evidence-${{ github.run_id }}-${{ github.run_attempt }}'
+          $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-before-after-evidence-${{ github.run_id }}-${{ github.run_attempt }}'
           & $env:AIO_QA_PYTHON tools/qa/guard_v19_native_recipes_acceptance.py --output (Join-Path $evidence 'recipes') --executable $env:AIO_QA_ENGINE --require-mode native_uno
           if ($LASTEXITCODE -ne 0) {throw 'Required native acceptance failed'}
       - name: Qt narrow view both themes
-        working-directory: aio-session-b16-b27-source-${{ github.run_id }}-${{ github.run_attempt }}
+        working-directory: aio-before-after-source-${{ github.run_id }}-${{ github.run_attempt }}
         env:
           QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --disable-gpu-compositing
         run: |
           $ErrorActionPreference='Stop'
           $env:AIO_LIBREOFFICE=$env:AIO_QA_ENGINE
           $env:AIO_BUILD_REVISION=$env:AIO_QA_SOURCE_SHA
-          $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-session-b16-b27-evidence-${{ github.run_id }}-${{ github.run_attempt }}'
+          $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-before-after-evidence-${{ github.run_id }}-${{ github.run_attempt }}'
           & $env:AIO_QA_PYTHON tools/qa/guard_v19_visual_acceptance.py --output (Join-Path $evidence 'visual') 
           if ($LASTEXITCODE -ne 0) {throw 'Required native acceptance failed'}
       - name: Qt save recovery and analysis discard
-        working-directory: aio-session-b16-b27-source-${{ github.run_id }}-${{ github.run_attempt }}
+        working-directory: aio-before-after-source-${{ github.run_id }}-${{ github.run_attempt }}
         env:
           QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --disable-gpu-compositing
         run: |
           $ErrorActionPreference='Stop'
           $env:AIO_LIBREOFFICE=$env:AIO_QA_ENGINE
           $env:AIO_BUILD_REVISION=$env:AIO_QA_SOURCE_SHA
-          $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-session-b16-b27-evidence-${{ github.run_id }}-${{ github.run_attempt }}'
+          $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-before-after-evidence-${{ github.run_id }}-${{ github.run_attempt }}'
           & $env:AIO_QA_PYTHON tools/qa/guard_v19_journeys_acceptance.py --output (Join-Path $evidence 'journeys') --files 24 --discard-cycles 5 --rapid-reopen-cycles 5
           if ($LASTEXITCODE -ne 0) {throw 'Required native acceptance failed'}
       - name: Full Windows source Qt DOM and Excel regressions
-        working-directory: aio-session-b16-b27-source-${{ github.run_id }}-${{ github.run_attempt }}
+        working-directory: aio-before-after-source-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           $ErrorActionPreference='Stop'
           $env:AIO_LIBREOFFICE=$env:AIO_QA_ENGINE
           $env:AIO_LO_QA_MUST_HAVE_ENGINE='1'
           $env:AIO_QT_SAVE_QA='1'
-          $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-session-b16-b27-evidence-${{ github.run_id }}-${{ github.run_attempt }}'
+          $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-before-after-evidence-${{ github.run_id }}-${{ github.run_attempt }}'
           & $env:AIO_QA_PYTHON tools/qa/guard_v17_selfhosted_acceptance.py --unit-report (Join-Path $evidence 'windows-unit.json')
           if ($LASTEXITCODE -ne 0) {throw 'Windows source Qt DOM regression failed'}
       - name: Record exact version and evidence also on failure
         if: always()
-        working-directory: aio-session-b16-b27-source-${{ github.run_id }}-${{ github.run_attempt }}
+        working-directory: aio-before-after-source-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           $ErrorActionPreference='Continue'
           Write-Output ('AIO_TESTED_SHA='+$env:AIO_QA_SOURCE_SHA)
           Write-Output ('AIO_TESTED_TREE='+$env:AIO_QA_TREE_SHA)
-          $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-session-b16-b27-evidence-${{ github.run_id }}-${{ github.run_attempt }}'
+          $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-before-after-evidence-${{ github.run_id }}-${{ github.run_attempt }}'
           Get-ChildItem -LiteralPath $evidence -Filter '*.json' -File -Recurse -ErrorAction SilentlyContinue | ForEach-Object {Write-Output ('AIO_EVIDENCE_FILE='+$_.FullName); Get-Content -LiteralPath $_.FullName -Raw}
