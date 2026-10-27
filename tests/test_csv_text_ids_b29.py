@@ -1,7 +1,6 @@
 """B29: source strings and cell types, not appearance or a second converter."""
 import csv
 import hashlib
-import io
 import json
 from pathlib import Path
 import tempfile
@@ -232,31 +231,26 @@ class CsvTextIdsB29(unittest.TestCase):
         self.assertEqual(ctx.exception.code, 'SOURCE_CHANGED_DURING_PREPARATION')
 
     def test_cancel_mid_sheet_closes_handles(self):
+        from openpyxl.worksheet._read_only import ReadOnlyWorksheet
         path = self.xlsx()
-        calls = 0
-        class Cancel:
-            def is_set(self):
-                return calls > 0
-        original = ids._Budget.check
-        def check(budget):
-            nonlocal calls
-            import inspect
-            if any(frame.function == '_cells_by_row' for frame in inspect.stack()):
-                calls += 1
-            return original(budget)
-        # Deterministic end-of-scan cancellation instead of a timing race.
         event = threading.Event()
-        stamp = ids._stamp
-        def identity(p):
-            value = stamp(p)
-            if Path(p) == path:
-                calls += 1
-                if calls == 1:
-                    event.set()
-            return value
-        with patch.object(ids, '_stamp', side_effect=identity):
-            with self.assertRaises(GuardError):
+        original = ReadOnlyWorksheet._cells_by_row
+        closed = []
+        def interrupted(sheet, *args, **kwargs):
+            iterator = original(sheet, *args, **kwargs)
+            try:
+                for number, row in enumerate(iterator, 1):
+                    if number == 2:
+                        event.set()
+                    yield row
+            finally:
+                iterator.close()
+                closed.append(True)
+        with patch.object(ReadOnlyWorksheet, '_cells_by_row', interrupted):
+            with self.assertRaises(GuardError) as ctx:
                 self.check(path, cancel=event)
+        self.assertEqual(ctx.exception.code, 'CANCELLED')
+        self.assertTrue(closed)
         moved = path.with_name('moved.xlsx')
         path.rename(moved); moved.unlink()
 
