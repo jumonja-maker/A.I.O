@@ -96,9 +96,9 @@ def main():
             marker_colour=(19,73,181) if name.startswith('dark') else (181,73,19)
             marker_css='rgb('+','.join(map(str,marker_colour))+')'
             js("document.querySelectorAll('[data-aio-qa-paint]').forEach(e=>e.remove());"+
-               "for(const place of ['top:0;left:0','bottom:0;left:0','bottom:0;right:0']){"+
+               "for(const place of ['top:8px;left:8px','bottom:8px;left:8px','bottom:8px;right:8px']){"+
                "const e=document.createElement('i');e.dataset.aioQaPaint='';"+
-               "e.style.cssText='position:fixed;width:8px;height:8px;z-index:2147483647;pointer-events:none;'+place+';background:'+"+json.dumps(marker_css)+";document.body.append(e)};true")
+               "e.style.cssText='position:absolute;width:8px;height:8px;z-index:2147483647;pointer-events:none;'+place+';background:'+"+json.dumps(marker_css)+";document.querySelector('.aio-compare-dialog').append(e)};true")
             js('window.__aioQAPaint=false;requestAnimationFrame(()=>requestAnimationFrame(()=>window.__aioQAPaint=true));true')
             until(lambda:js('window.__aioQAPaint===true'),seconds=8)
             rgba=image.pixelColor(0,0).getRgb();alpha=rgba[3]/255
