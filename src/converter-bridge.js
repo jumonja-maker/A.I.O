@@ -10,6 +10,7 @@
   const headers = Object.freeze({'X-AIO-Token': token});
   const retained = new Map();
   const savingJobs = new Set();
+  const closingJobs = new Map();
   const htmlCompanions = new WeakMap();
   let active = null, progress = null, generation = 0;
   let prepared = null, preparing = null, inspectionSequence = 0;
@@ -503,7 +504,7 @@
       // started backend job. Explicit reset and confirmed empty terminal jobs
       // still release their ownership.
       if (op.jobId && (!op.startRequested || op.startRejected ||
-                      last?.finished && !last.result?.downloadUrl &&
+                      last?.finished && !last.failed && !last.cancelled && !last.result?.downloadUrl &&
                       !last.partialResult?.outputsCount))
         await releaseJob(op.jobId);
       // Losing the UI generation is not proof that a live/cancelled
@@ -539,7 +540,7 @@
       // A partial snapshot is not a request to stop conversion. An operation
       // that was still being observed also keeps its tickets until its caller
       // has consumed the terminal state, avoiding a /jobs -> 404 save race.
-      const release = acknowledgement.savedAll === true && !wasActive && active?.jobId !== jobId;
+      const release = false; // Saved sessions stay available for explicit До/После and Close.
       savingJobs.delete(jobId);
       const released=release ? await releaseJob(jobId) : false;
       // Notify both the preserved main controller and the queue about this
@@ -556,9 +557,79 @@
       if (!wasActive && result.progressRunId) progress?.finishSave({runId:result.progressRunId,saved});
     }
   }
+  function confirmCloseConversion() {
+    return new Promise(resolve=>{
+      const modal=document.createElement('dialog');modal.className='aio-conversion-close-dialog';
+      modal.setAttribute('aria-label','Закрыть конвертацию?');
+      const question=document.createElement('p');
+      question.textContent='Закрыть конвертацию? Несохранённые результаты будут удалены из временного хранилища.';
+      const yes=document.createElement('button'),no=document.createElement('button');
+      yes.type=no.type='button';yes.textContent='Да';no.textContent='Нет';
+      yes.dataset.closeYes='';no.dataset.closeNo='';
+      let settled=false;
+      const finish=value=>{if(settled)return;settled=true;modal.close();modal.remove();resolve(value);};
+      yes.addEventListener('click',()=>finish(true));no.addEventListener('click',()=>finish(false));
+      modal.addEventListener('cancel',event=>{event.preventDefault();finish(false);});
+      modal.append(question,yes,no);document.body.append(modal);modal.showModal();no.focus();
+    });
+  }
+  async function closeConversion(jobId) {
+    jobId=jobId||active?.jobId||lastRun?.report?.jobId;
+    if(!jobId)return {closed:true};
+    if(closingJobs.has(jobId))return closingJobs.get(jobId);
+    const operation=(async()=>{
+      if(savingJobs.has(jobId))throw errorOf('Дождитесь завершения сохранения.','SAVE_BUSY');
+      let outcome=await api('/close',{jobId});
+      if(outcome.confirmationRequired){
+        if(!await confirmCloseConversion())return {closed:false,cancelled:true};
+        outcome=await api('/close',{jobId,discard:true});
+      }
+      if(!outcome.closed)return outcome;
+      const op=active?.jobId===jobId?active:null;
+      if(op)op.cancelled=true;
+      retained.delete(jobId);
+      if(lastRun?.report?.jobId===jobId)lastRun=null;
+      if(prepared?.jobId===jobId)prepared=null;
+      if(typeof CustomEvent==='function')window.dispatchEvent(new CustomEvent('aio-guard-job-released',
+        {detail:{jobId,discarded:true,closed:true}}));
+      return outcome;
+    })();
+    closingJobs.set(jobId,operation);
+    try{return await operation;}finally{if(closingJobs.get(jobId)===operation)closingJobs.delete(jobId);}
+  }
+  async function clearInputList() {
+    const op=active;
+    await cancelInspection();
+    if(op?.jobId){
+      await cancel();
+      const deadline=Date.now()+30000;
+      while(true){
+        const state=await api('/jobs?job='+encodeURIComponent(op.jobId),undefined,'GET');
+        if(state.finished)break;
+        if(Date.now()>deadline)throw errorOf('Отмена ещё выполняется. Список пока сохранён; повторите очистку после остановки.','CANCEL_PENDING');
+        await new Promise(resolve=>setTimeout(resolve,100));
+      }
+    }
+    if(prepared&&!prepared.used){await releaseJob(prepared.jobId);prepared=null;}
+    inspected=null;resetProgress();return {cleared:true};
+  }
+  async function saveSelectedDiagnostic({jobId,analysisId,taskId,outputIndex,includeSource=false}) {
+    if(savingJobs.has(jobId))throw errorOf('Дождитесь завершения сохранения.','SAVE_BUSY');
+    const result=await api('/compare/export-selected',{jobId,analysisId,taskId,outputIndex,includeSource});
+    savingJobs.add(jobId);
+    try{
+      const outcome=await bridge.saveExcel({...result,verifySaved:true});
+      if(outcome?.saved!==true)return outcome;
+      if(window.AllInOneNativeShell&&outcome.readbackVerified!==true)
+        throw errorOf('Сохранённые диагностические байты не подтверждены.','SAVE_VERIFY_MISSING');
+      await api('/saved',{jobId,ticket:result.ticket,compact:true});
+      return {saved:true,optionalDiagnostic:true,readbackVerified:outcome.readbackVerified===true};
+    }finally{savingJobs.delete(jobId);}
+  }
   bridge.converter = Object.freeze({
     acceptedExtensions:'', directLibreOffice:true, converterGuard:true,
     inspectFiles,convert:run,convertMany:run,saveResult,cancel,resetProgress,cancelInspection,dispose,
+    closeConversion,clearInputList,saveSelectedDiagnostic,
     async pause(paused=true) {
       if(!active?.jobId)throw errorOf('Нет выполняющегося задания для паузы.', 'NO_ACTIVE_JOB');
       return control(active,'/pause',{jobId:active.jobId,paused});

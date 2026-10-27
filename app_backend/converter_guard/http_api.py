@@ -251,6 +251,16 @@ class GuardAPI:
             if path == PREFIX + '/compare/control':
                 return self._json(handler,200, self.comparison.control(identity, body.get('action'),
                     expected_analysis_id=expected_analysis_id))
+            if path == PREFIX + '/compare/export-selected':
+                detail = self.comparison.detail(identity,body.get('taskId'),
+                    expected_analysis_id=body.get('analysisId'))
+                from .diagnostic_export import diagnostic_package
+                return self._json(handler,201, diagnostic_package(self.guard,identity,body.get('taskId'),detail,
+                    output_index=body.get('outputIndex'),include_source=body.get('includeSource',False)))
+            if path == PREFIX + '/close':
+                outcome=self.guard.close_conversion(identity,discard=body.get('discard',False))
+                if outcome.get('closed'):self.comparison.release(identity)
+                return self._json(handler,200,outcome)
             if path == PREFIX + '/compare/retry':
                 return self._json(handler,202, self.comparison.retry(identity,
                     body.get('analysisId'), body.get('taskIds')))

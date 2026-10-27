@@ -198,7 +198,7 @@ def main(argv=None):
         Path(report_before.db).write_bytes(b'Controlled corrupt comparison report; synthetic QA only')
         open_comparison(recovered_job)
         until(lambda: javascript("document.querySelector('.aio-compare-dialog')?.open&&document.querySelector('[data-c-feedback]')?.textContent.includes('Отчёт')"))
-        assert javascript("!document.querySelector('[data-c-restart]').hidden&&!document.querySelector('[data-c-restart]').disabled&&!document.querySelector('[data-c-save-current]').disabled")
+        assert javascript("!document.querySelector('[data-c-restart]').hidden&&!document.querySelector('[data-c-restart]').disabled&&document.querySelector('[data-c-save-current]').disabled")
         assert not server.guard.adapter.calls
         # The damaged report stays damaged until the user's explicit action.
         assert Path(report_before.db).read_bytes().startswith(b'Controlled corrupt comparison report')
