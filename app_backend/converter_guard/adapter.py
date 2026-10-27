@@ -800,6 +800,10 @@ class LibreOfficeAdapter:
                      *preparation.get('warnings', ()),
                      *(['ODF_IMPLICIT_COLUMNS_EXPLICIT'] if preparation.get('state') == 'prepared'
                        and preparation.get('kind') == 'odf_explicit_table_columns' else []))))
+        if target in ('jfif','jif','jpe') and self.execution_mode() in ('native_uno','native_cli'):
+            from .jpeg_alias import verify_native_jpeg_alias
+            alias_check = verify_native_jpeg_alias(paths, target, cancel=identity_control)
+            self._local.export_info['resultChecks'] = list(self._local.export_info.get('resultChecks', ())) + [alias_check]
         if target == 'bmp' and self.execution_mode() in ('native_uno', 'native_cli'):
             from .native_media_repair import repair_native_bmp_size
             repairs = repair_native_bmp_size(paths, cancel=identity_control)

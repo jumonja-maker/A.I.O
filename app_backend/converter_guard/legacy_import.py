@@ -16,7 +16,7 @@ def legacy_import_hint(source, native):
         data = stream.read(1024 * 1024 + 1)
     if len(data) > 1024 * 1024:
         return None
-    name = None
+    name, options = None, '76'
     if is_dif:
         try:
             text = data.decode('utf-8')
@@ -26,16 +26,43 @@ def legacy_import_hint(source, native):
             name = 'DIF'
     elif is_dbf:
         records, header, length = struct.unpack_from('<IHH', data, 4)
-        # UTF-8 is safe for ASCII names/values only. Never guess an unknown
-        # legacy codepage from a handful of records.
-        if (header >= 33 and (header - 33) % 32 == 0 and length > 0
-                and header <= len(data) and data[header-1] == 13
-                and header + records * length <= len(data)
-                and all(all(c < 128 for c in data[p:p+11]) for p in range(32, header-1, 32))
-                and all(c < 128 for c in data[header:header + records * length])):
-            name = 'dBase'
+        end = header + records * length
+        if (header < 33 or (header - 33) % 32 or length < 1
+                or header > len(data) or data[header-1] != 13 or end > len(data)):
+            return None
+        fields = [data[p:p+32] for p in range(32, header-1, 32)]
+        if (any(any(c >= 128 for c in f[:11]) for f in fields)
+                or any(data[header+i*length] not in (32,42) for i in range(records))):
+            return None
+        body = data[header:end]
+        if all(c < 128 for c in body):
+            name = 'dBase'  # ASCII data has the same bytes in supported encodings.
+        elif (data[29] == 0xC9 and data[0] == 3 and fields
+                and 1 + sum(f[16] for f in fields) == length
+                and all(f[16] and f[11] in b'CNFLD' for f in fields)):
+            # dBase language-driver C9 declares Windows Cyrillic, not an
+            # extension/locale guess. Unknown drivers retain abort-on-dialog.
+            # A valid UTF-8 payload conflicting with this declaration remains
+            # ambiguous; never silently reinterpret it as Windows-1251.
+            try:
+                body.decode('utf-8')
+            except UnicodeDecodeError:
+                try:
+                    for i in range(records):
+                        record=data[header+i*length:header+(i+1)*length]
+                        offset=1
+                        for field in fields:
+                            value=record[offset:offset+field[16]]
+                            if field[11] == ord('C'):
+                                value.decode('cp1251', errors='strict')
+                            elif any(c >= 128 for c in value):
+                                return None
+                            offset += field[16]
+                except UnicodeDecodeError:
+                    return None
+                name, options = 'dBase', '34'  # RTL_TEXTENCODING_MS_1251, native LO.
     item = native.filters.get(name)
-    return ({'filter': name, 'options': '76', 'basis': 'content_confirmed_legacy'}
+    return ({'filter': name, 'options': options, 'basis': 'content_confirmed_legacy'}
             if item and item[0] == CALC and 'IMPORT' in item[2] else None)
 
 
@@ -43,8 +70,10 @@ def validate_options(name, options, native):
     item = native.filters.get(name)
     if not item or item[0] != CALC or 'IMPORT' not in item[2]:
         return False
-    if name in ('DIF', 'dBase'):
+    if name == 'DIF':
         return options == '76'
+    if name == 'dBase':
+        return options in ('76', '34')
     if 'csv' not in item[1] or not isinstance(options, str) or len(options) > 1024:
         return False
     defaults = {f'{n},34,76,1' for n in (44, 59, 9, 124)}
