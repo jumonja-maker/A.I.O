@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: aio-b13-b31-fixture-final-selfhosted-qa
+  group: aio-b13-b31-fixture-python-selfhosted-qa
   cancel-in-progress: false
 
 env:
@@ -35,7 +35,7 @@ jobs:
       github.repository == 'jumonja-maker/A.I.O' &&
       github.actor == 'jumonja-maker' &&
       github.event.action == 'labeled' &&
-      github.event.label.name == 'aio-b13-b31-fixture-final-selfhosted-qa' &&
+      github.event.label.name == 'aio-b13-b31-fixture-python-selfhosted-qa' &&
       github.event.pull_request.number == 68 &&
       github.event.pull_request.user.login == 'jumonja-maker' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
@@ -132,38 +132,35 @@ jobs:
           $target=Join-Path $env:RUNNER_TEMP 'aio-b13-b31-deps-${{ github.run_id }}-${{ github.run_attempt }}-windows'
           & $env:AIO_QA_PYTHON tools/qa/guard_v17_test_dependencies.py --output $target --github-env
           if ($LASTEXITCODE -ne 0) {throw 'Offline test dependency preparation failed'}
-      - name: Verify unchanged native product and generator bytes
+      - name: Verify unchanged native product and generator bytes with Python
         working-directory: aio-b13-b31-source-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           $ErrorActionPreference='Stop'
-          # Only the old invalid unit fixture changed. Native matrices already
-          # passed on 5764ac196937fd2f003c3ca228fdd2137ed25956 (run 40573845377).
-          # Never reuse their proof if any product/generator bytes changed.
-          $expected=@{
-            'addons'='124e1aa0eb38c08e7d8f617ef91fc300b626d22f'
-            'app_backend'='17ed779f94c1ac7e4e21c0368ead079d5623c1d6'
-            'assets'='207088b35bb505bb22f3160f0b1d96ba694fe795'
-            'index.html'='469620cf939e43f377803038384cef2dc7453743'
-            'launcher.py'='24d470fa43511a16f8f913ce7179591aa65c6bcf'
-            'src'='e67b56cca9d1e49c5ea92b54bd4d5482e6d00a44'
-            'tests/b28_dif_fixtures.py'='306e9432379c5672cd083a4af7bb011a08e73837'
-            'tests/b29_csv_fixtures.py'='efa51181b5aa33fb090ce141c9e47121ddccff26'
-            'tests/test_native_routes_b13_b31.py'='b44de51569e3f181e286bdcc5a62b1c481047f0d'
-            'tools/qa/guard_b28_dif_native_acceptance.py'='13cd9a07aa0f5da07b98831e4e6d813cf2c3ba85'
-            'tools/qa/guard_b29_csv_native_acceptance.py'='bf6efaac71afcfd367f6d57e006b18cc7c09114e'
-            'tools/qa/guard_native_routes_b13_b31.py'='40369d447e234076bf065395e3d2536d7e391f07'
-          }
-          $actual=@{}
-          foreach ($key in $expected.Keys) {
-            $value=(& git rev-parse ('HEAD:'+$key)).Trim()
-            if ($LASTEXITCODE -ne 0 -or $value -cne $expected[$key]) {throw ('Prior native evidence does not apply: '+$key)}
-            $actual[$key]=$value
-          }
-          $proof=[ordered]@{status='PASS';scope='native_product_and_generators_byte_identity_only';nativeSourceSHA='5764ac196937fd2f003c3ca228fdd2137ed25956';nativeRunId=40573845377;nativeRunConclusion='failure_in_old_unit_fixture';nativeMatrices='PASS';b28=48;b29=108;productAndGenerators=$actual;currentSourceSHA=$env:AIO_QA_SOURCE_SHA}
-          $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-b13-b31-evidence-${{ github.run_id }}-${{ github.run_attempt }}'
-          New-Item -ItemType Directory -Force -Path $evidence | Out-Null
-          [IO.File]::WriteAllText((Join-Path $evidence 'native-continuity.json'),($proof | ConvertTo-Json -Depth 6),[Text.UTF8Encoding]::new($false))
-          Write-Output ('NATIVE_CONTINUITY='+($proof | ConvertTo-Json -Depth 6 -Compress))
+          $verify=@'
+          import hashlib,json,os
+          from pathlib import Path
+          def oid(path):
+              if path.is_symlink():raise ValueError('Unexpected symlink')
+              if path.is_file():
+                  raw=path.read_bytes()
+                  return hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).digest()
+              entries=[]
+              for child in path.iterdir():
+                  key=child.name.encode('utf-8');directory=child.is_dir()
+                  entries.append((key+(b'/' if directory else b''),(b'40000' if directory else b'100644')+b' '+key+b'\0'+oid(child)))
+              raw=b''.join(value for _,value in sorted(entries,key=lambda row:row[0]))
+              return hashlib.sha1(b'tree '+str(len(raw)).encode()+b'\0'+raw).digest()
+          expected={"addons":"124e1aa0eb38c08e7d8f617ef91fc300b626d22f","app_backend":"17ed779f94c1ac7e4e21c0368ead079d5623c1d6","assets":"207088b35bb505bb22f3160f0b1d96ba694fe795","index.html":"469620cf939e43f377803038384cef2dc7453743","launcher.py":"24d470fa43511a16f8f913ce7179591aa65c6bcf","src":"e67b56cca9d1e49c5ea92b54bd4d5482e6d00a44","tests/b28_dif_fixtures.py":"306e9432379c5672cd083a4af7bb011a08e73837","tests/b29_csv_fixtures.py":"efa51181b5aa33fb090ce141c9e47121ddccff26","tests/test_native_routes_b13_b31.py":"b44de51569e3f181e286bdcc5a62b1c481047f0d","tools/qa/guard_b28_dif_native_acceptance.py":"13cd9a07aa0f5da07b98831e4e6d813cf2c3ba85","tools/qa/guard_b29_csv_native_acceptance.py":"bf6efaac71afcfd367f6d57e006b18cc7c09114e","tools/qa/guard_native_routes_b13_b31.py":"40369d447e234076bf065395e3d2536d7e391f07"}
+          actual={key:oid(Path(key)).hex() for key in expected}
+          if actual!=expected:raise SystemExit('PRIOR_NATIVE_PRODUCT_OR_GENERATORS_CHANGED')
+          proof={'status':'PASS','scope':'native_product_and_generators_byte_identity_only','nativeSourceSHA':'5764ac196937fd2f003c3ca228fdd2137ed25956','nativeRunId':40573845377,'nativeRunConclusion':'failure_in_old_unit_fixture','nativeMatrices':'PASS','b28':48,'b29':108,'productAndGenerators':actual,'currentSourceSHA':os.environ['AIO_QA_SOURCE_SHA']}
+          out=Path(os.environ['GITHUB_WORKSPACE'])/'aio-b13-b31-evidence-${{ github.run_id }}-${{ github.run_attempt }}'
+          out.mkdir(exist_ok=True,parents=True)
+          (out/'native-continuity.json').write_text(json.dumps(proof,ensure_ascii=False,indent=2),encoding='utf-8')
+          print('NATIVE_CONTINUITY='+json.dumps(proof))
+          '@
+          & $env:AIO_QA_PYTHON -c $verify
+          if ($LASTEXITCODE -ne 0) {throw 'Prior native evidence does not match these product bytes'}
       - name: Full Windows source Qt DOM and Excel regressions
         working-directory: aio-b13-b31-source-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
