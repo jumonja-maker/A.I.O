@@ -1,0 +1,19 @@
+{
+  "status": "PASS_TARGETED_QA",
+  "base": "b47578a6a401fef2ae20499748926b7ce7977a6e",
+  "workflowHead": "c6ce8d51fc6e1d9484cbe5157862569cd78de21c",
+  "windowsRun": 40509991660,
+  "sourceSeal": {
+    "app_backend/converter_guard/adapter.py": "4247c86a13ffd227411cd3ea06d6033ef6a42d94dcf9218e67ed924199f26fd8",
+    "app_backend/converter_guard/export_recipe.py": "1f408dd1cbbfd722db19425f236e6e45116ac848164a642aa04e5d6d05af3ecb",
+    "app_backend/converter_guard/dif_table_contract.py": "db0c6ebffbe046079c11bcc48f00c6823d00af7b76b5eac35501f628b55c377b",
+    "tests/b28_dif_fixtures.py": "d77fe07fc8b4ff7c77881982c9b44d91364ed9858ff416d1ad9704ceecc4993e",
+    "tests/test_dif_table_contract_v23.py": "9b3e8e79fd59424b5ec2665e2c32cafbcb15b0363918bf0fb5e3f7b4312d170d",
+    "tools/qa/guard_b28_dif_native_acceptance.py": "a1e1a493022a88408bf66e6edccfb1610d06736e5dea50b1e426791e33c105e5",
+    "docs/review/AIO_B28_DIF_V23_2026-10-27_RU.md": "20e8f077e892bd34d05d52d4da5015ac8b25969f127fc3dcd98b9eee949dcd93"
+  },
+  "fulltest": "NOT_RUN",
+  "installer": "NOT_RUN",
+  "mainChanged": false,
+  "scope": "B28 only, full source and native gates"
+}

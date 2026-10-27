@@ -828,6 +828,16 @@ class LibreOfficeAdapter:
                     if code not in warnings:
                         warnings.append(code)
             self._local.export_info['warnings'] = tuple(warnings)
+        # Mandatory DIF cell contract, independent from optional quality
+        # comparison. It checks the original against the final native result.
+        from .dif_table_contract import check_dif_table
+        table_check = check_dif_table(paths, target, source, cancel=identity_control)
+        if table_check:
+            self._local.export_info['resultChecks'] = list(
+                self._local.export_info.get('resultChecks', ())) + [table_check]
+            if table_check.get('status') == 'not_checked':
+                self._local.export_info['warnings'] = tuple(dict.fromkeys((
+                    *self._local.export_info.get('warnings', ()), 'DIF_TABLE_CONTENT_NOT_CHECKED')))
         return paths
 
     def _prepare_dif_snapshot(self, source, workspace, *, cancel, import_hint=None):
@@ -1155,6 +1165,26 @@ class LibreOfficeAdapter:
             self._local.execution_mode = 'native_cli'
             filtered = getattr(self._local, 'import_filter', None)
             filter_opts = getattr(self._local, 'import_options', None)
+            # A live UNO session does not imply this export uses UNO: ambiguous
+            # export recipes and launch-only fallback arrive here too. Protect
+            # the ACTUAL CLI boundary, not just the earlier session predicate.
+            from .dif_evidence import is_dif_source
+            if filtered == 'DIF' and is_dif_source(source):
+                from .dif_table_contract import check_dif_table
+                original_dif = source
+                source, summary = self._prepare_dif_snapshot(
+                    original_dif, workspace / 'dif-cli-input', cancel=control)
+                table_check = check_dif_table([source], 'fods', original_dif, cancel=control)
+                self._local.export_info['sourcePreparation'] = {**summary, 'tableCheck': table_check}
+                self._local.export_info['resultChecks'] = list(
+                    self._local.export_info.get('resultChecks', ())) + [summary['numericCheck']] + (
+                        [table_check] if table_check else [])
+                warnings = tuple(self._local.export_info.get('warnings', ())) + tuple(summary.get('warnings', ()))
+                if table_check and table_check.get('status') == 'not_checked':
+                    warnings += ('DIF_TABLE_CONTENT_NOT_CHECKED',)
+                self._local.export_info['warnings'] = tuple(dict.fromkeys(warnings))
+                self._local.export_info['difCliSnapshot'] = True
+                filtered, filter_opts = 'OpenDocument Spreadsheet Flat XML', None
             if filtered and filter_opts:
                 filtered = filtered + ':' + filter_opts
             if on_document_service is None or not native.valid:

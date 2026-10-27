@@ -1,0 +1,84 @@
+{
+  "schema": 1,
+  "status": "OBSERVED",
+  "scope": "B28 exact-source targeted native QA, not FULLTEST",
+  "baseline": true,
+  "cases": [
+    {
+      "level": 1,
+      "target": "html",
+      "mode": "native_cli",
+      "status": "FAIL",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "reason": "В результате DIF отсутствуют или изменены ячейки исходника. Результат не отмечен готовым.",
+      "elapsedMs": 3313
+    },
+    {
+      "level": 1,
+      "target": "xhtml",
+      "mode": "native_cli",
+      "status": "FAIL",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "reason": "В результате DIF отсутствуют или изменены ячейки исходника. Результат не отмечен готовым.",
+      "elapsedMs": 3266
+    },
+    {
+      "level": 1,
+      "target": "xlsm",
+      "mode": "native_cli",
+      "status": "FAIL",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "reason": "В результате DIF отсутствуют или изменены ячейки исходника. Результат не отмечен готовым.",
+      "elapsedMs": 3281
+    },
+    {
+      "level": 1,
+      "target": "xltx",
+      "mode": "native_cli",
+      "status": "FAIL",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "reason": "В результате DIF отсутствуют или изменены ячейки исходника. Результат не отмечен готовым.",
+      "elapsedMs": 3265
+    },
+    {
+      "level": 8,
+      "target": "html",
+      "mode": "native_cli",
+      "status": "FAIL",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "reason": "В результате DIF отсутствуют или изменены ячейки исходника. Результат не отмечен готовым.",
+      "elapsedMs": 3297
+    },
+    {
+      "level": 8,
+      "target": "xhtml",
+      "mode": "native_cli",
+      "status": "FAIL",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "reason": "В результате DIF отсутствуют или изменены ячейки исходника. Результат не отмечен готовым.",
+      "elapsedMs": 3281
+    },
+    {
+      "level": 8,
+      "target": "xlsm",
+      "mode": "native_cli",
+      "status": "FAIL",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "reason": "В результате DIF отсутствуют или изменены ячейки исходника. Результат не отмечен готовым.",
+      "elapsedMs": 3281
+    },
+    {
+      "level": 8,
+      "target": "xltx",
+      "mode": "native_cli",
+      "status": "FAIL",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS",
+      "reason": "В результате DIF отсутствуют или изменены ячейки исходника. Результат не отмечен готовым.",
+      "elapsedMs": 3297
+    }
+  ],
+  "fullQualityRequested": false,
+  "sourceBytesUnchanged": true,
+  "passed": 0,
+  "failed": 8
+}
