@@ -79,6 +79,19 @@ def main():
             product=adapter.export_info()
             check=check_dif_table(primary,target,source,cancel=cancel)
             control=independent_control(primary[0],target,level)
+            if check.get('status') != 'checked_subset':
+                # Diagnostic restricted to these generated fixtures; do not log
+                # real user values or paths. Capture numeric attribute syntax
+                # on Windows to distinguish a parser gap from lost cells.
+                samples = []
+                if target in ('html', 'xhtml'):
+                    import re
+                    raw = primary[0].read_text(encoding='utf-8-sig')
+                    samples = re.findall(r'\\b(?:sdval|sdnum)\\s*=\\s*["\\\']([^"\\\']+)["\\\']', raw)[:12]
+                print('B28_FIXTURE_NUMERIC_SYNTAX=' + json.dumps({
+                    'level': level, 'target': target, 'reason': check.get('reason'),
+                    'attributes': [str(x)[:48] for x in samples],
+                }, ensure_ascii=True), flush=True)
             assert check['status']=='checked_subset' and check['matchedCells']==(7+9*level)*6,check
             if not args.baseline:
                 emitted=[r for r in product.get('resultChecks',()) if r.get('check')=='dif_table_content']
