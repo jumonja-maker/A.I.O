@@ -19,10 +19,13 @@ def verify_native_jpeg_alias(paths, target, *, cancel):
             if stream.read(3) != b'\xff\xd8\xff':
                 raise GuardError('ENGINE_OUTPUT_INVALID','Результат не является JPEG.',stage='result')
         reader=reader_type(str(path))
-        reader.setDecideFormatFromContent(True)
+        # Aliases are not all recognized as filename suffixes by Qt. The
+        # signature has already established JPEG; bind that codec explicitly.
+        # Qt can clear format() after read(), so it is not a post-decode test.
+        reader.setFormat(b'jpeg')
         size=reader.size();_bounds(size.width(),size.height())
         image=reader.read()
-        if image.isNull() or bytes(reader.format()).lower() not in (b'jpg',b'jpeg'):
+        if image.isNull():
             raise GuardError('MEDIA_DECODE_FAILED','Qt не смог декодировать JPEG-результат.',
                              stage='result',diagnostic=reader.errorString())
         _bounds(image.width(),image.height())

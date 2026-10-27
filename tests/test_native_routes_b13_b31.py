@@ -4,6 +4,7 @@ import tempfile
 import threading
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 
 from app_backend.converter_guard.legacy_import import legacy_import_hint, validate_options
 from app_backend.converter_guard.export_recipe import native_export_recipe
@@ -27,6 +28,24 @@ def cp1251_dbf(level=1, *, driver=0xC9, utf8=False):
 
 
 class NativeRouteContracts(unittest.TestCase):
+    def test_jpeg_alias_binds_codec_and_accepts_a_reader_that_clears_format_after_read(self):
+        from app_backend.converter_guard.jpeg_alias import verify_native_jpeg_alias
+        codecs=[]
+        class Reader:
+            def __init__(self, path): pass
+            def setFormat(self, value): codecs.append(value)
+            def size(self): return SimpleNamespace(width=lambda:2, height=lambda:3)
+            def read(self): return SimpleNamespace(isNull=lambda:False, width=lambda:2, height=lambda:3)
+            def format(self): return b''
+        with tempfile.TemporaryDirectory() as tmp:
+            p=Path(tmp)/'result.jfif';p.write_bytes(b'\xff\xd8\xff'+b'native-test-boundary')
+            with patch('app_backend.converter_guard.qt_media._qt', return_value=(None,)*5+(Reader,)), \
+                 patch('app_backend.converter_guard.qt_media._bounds'):
+                result=verify_native_jpeg_alias([p], 'jfif', cancel=threading.Event())
+        self.assertEqual(codecs,[b'jpeg'])
+        self.assertEqual(result['status'],'checked_subset')
+        self.assertFalse(result['qualityCompared'])
+
     def test_c9_hint_requires_content_layout_and_declared_cyrillic(self):
         native=SimpleNamespace(filters={'dBase':(C,{'dbf'},{'IMPORT'})})
         with tempfile.TemporaryDirectory() as tmp:
