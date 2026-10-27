@@ -68,13 +68,45 @@ def main():
     parser.add_argument('--executable',type=Path,required=True);args=parser.parse_args()
     args.output.mkdir(parents=True,exist_ok=False)
     report={'status':'RUNNING','scope':'generated native controls; not preserved 680-file FULLTEST',
-            'dbf':[],'jpeg':[],'sourceSHA256':{},'orp':{'status':'not_tested','reason':'no_positive_Base_report_fixture'}}
+            'dbf':[],'jpeg':[],'negative':[],'sourceSHA256':{},'orp':{'status':'not_tested','reason':'no_positive_Base_report_fixture'}}
     cancel=threading.Event();adapter=LibreOfficeAdapter(args.executable)
     try:
         tiff_probe(args.output,report,cancel)
         with adapter.batch(args.output/'office'):
             native=adapter._registry()
             report['orp']['installedExporters']=sorted(native.export_candidates.get(('orp','com.sun.star.report.ReportDefinition'),()))
+            broken=bytearray(cp1251_dbf());broken[8]=0
+            for name,data,expected in (('unknown-driver',cp1251_dbf(driver=0),'DBF_ENCODING_NOT_CONFIRMED'),
+                    ('broken-header',bytes(broken),'DBF_SOURCE_LAYOUT_INVALID'),
+                    ('conflicting-encoding',cp1251_dbf(utf8=True),'DBF_ENCODING_AMBIGUOUS'),
+                    ('truncated',cp1251_dbf()[:-25],'DBF_SOURCE_TRUNCATED')):
+                source=args.output/(name+'.dbf');source.write_bytes(data);before=sha(source);started=[]
+                for operation in ('preflight','convert'):
+                    try:
+                        if operation=='preflight':adapter.preflight(source,args.output/(name+'-inspect'),cancel=cancel,timeout=30)
+                        else:adapter.convert(source,'xlsx',args.output/(name+'-output'),cancel=cancel,timeout=30,on_started=lambda:started.append(True))
+                    except GuardError as error:assert error.code==expected,(name,error.code,expected)
+                    else:raise AssertionError('ambiguous/damaged DBF reached native import')
+                assert not started and sha(source)==before
+                report['negative'].append({'source':source.name,'sha256':before,'status':'SAFE_REJECTION','code':expected,'nativeExportStarted':False})
+            # Explicit pre-import cancellation/deadline boundaries. These do
+            # not claim to time out a long-running DBF decode (owned native
+            # import cancellation is covered separately by the session QA).
+            control_source=args.output/'budget-control.dbf';control_source.write_bytes(cp1251_dbf())
+            control_hash=sha(control_source)
+            for name,control,timeout,expected in (
+                    ('cancelled',threading.Event(),30,('CANCELLED',)),
+                    ('expired-budget',threading.Event(),1e-9,('ENGINE_TIMEOUT','PREFLIGHT_TIMEOUT'))):
+                if name=='cancelled':control.set()
+                try:
+                    value=adapter.preflight(control_source,args.output/(name+'-inspect'),cancel=control,timeout=timeout)
+                    assert value.get('state')!='detected' and value.get('code') in expected,value
+                    code=value['code']
+                except GuardError as error:
+                    assert error.code in expected,error.code;code=error.code
+                assert sha(control_source)==control_hash
+                report['negative'].append({'source':control_source.name,'sha256':control_hash,'status':'SAFE_REJECTION',
+                    'code':code,'boundary':name,'scope':'before_native_import','nativeExportStarted':False})
             for level in range(1,9):
                 source=args.output/f'dbf-{level}.dbf';source.write_bytes(cp1251_dbf(level))
                 before=sha(source);report['sourceSHA256'][source.name]=before
@@ -136,7 +168,7 @@ def main():
                                  'decoded':image,'sourceSha256':before,'outputSha256':sha(primary)}
                             report['jpeg'].append(row);print('JPEG_CASE='+json.dumps(row,ensure_ascii=True),flush=True)
                     assert sha(source)==before
-        assert len(report['dbf'])==8 and len(report['jpeg'])==120
+        assert len(report['dbf'])==8 and len(report['jpeg'])==120 and len(report['negative'])==6
         report['status']='PASS'
     except Exception as error:
         report.update(status='FAIL',error=type(error).__name__,code=getattr(error,'code',None),

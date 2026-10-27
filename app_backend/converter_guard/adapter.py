@@ -17,7 +17,7 @@ from .csv_import import csv_import_hint, inspect_csv_stream
 from .export_recipe import native_export_recipe, automatic_recipe, validate_retry_recipe
 from .native_observation import NativeObservation
 from .native_metrics import clean_timings
-from .legacy_import import legacy_import_hint, validate_options
+from .legacy_import import legacy_import_hint, validate_options, validate_legacy_dbf_source
 from .postconditions import SourceEvidence, check_native_output
 from .source_contract import inspect_source_contract, source_import_hint, source_model_matches
 
@@ -500,6 +500,7 @@ class LibreOfficeAdapter:
         from .qt_media import media_preflight
         if not self.available:
             return {'state': 'undetermined', 'code': 'ENGINE_NOT_FOUND'}
+        validate_legacy_dbf_source(source,self._registry())
         control = _RunControl(cancel, workspace, timeout, None)
         try:
             media = media_preflight(source, cancel=control)
@@ -687,6 +688,7 @@ class LibreOfficeAdapter:
         self._local.execution_mode = None
         self._local.metrics = None
         self._local.export_info = {}
+        validate_legacy_dbf_source(source,self._registry())
         from .media_fidelity import copy_media_identity
         from .native_identity import copy_chart_identity
         from .native_metafile import native_metafile_target, wrap_native_metafiles

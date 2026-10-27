@@ -6,7 +6,8 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
-from app_backend.converter_guard.legacy_import import legacy_import_hint, validate_options
+from app_backend.converter_guard.legacy_import import legacy_import_hint, validate_options,validate_legacy_dbf_source
+from app_backend.converter_guard.errors import GuardError
 from app_backend.converter_guard.export_recipe import native_export_recipe
 from app_backend.converter_guard.routes import Registry
 from app_backend.libreoffice_engine import validated_outputs, LibreOfficeError
@@ -55,6 +56,7 @@ class NativeRouteContracts(unittest.TestCase):
                 self.assertEqual(legacy_import_hint(p,native),
                     {'filter':'dBase','options':'34','basis':'content_confirmed_legacy'})
                 self.assertEqual(p.read_bytes(),original)
+                validate_legacy_dbf_source(p,native)
             for damaged in (cp1251_dbf(driver=0),cp1251_dbf(utf8=True),cp1251_dbf()[:-25]):
                 p.write_bytes(damaged);self.assertIsNone(legacy_import_hint(p,native))
             for at in (8,10,48):
@@ -63,6 +65,19 @@ class NativeRouteContracts(unittest.TestCase):
             self.assertTrue(validate_options('dBase','34',native))
             self.assertFalse(validate_options('dBase','1251',native))
             self.assertFalse(validate_options('dBase','34,unsafe',native))
+
+    def test_ambiguous_or_broken_dbf_is_rejected_before_native_guessing(self):
+        native=SimpleNamespace(filters={'dBase':(C,{'dbf'},{'IMPORT'})})
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'renamed.unlisted'
+            damaged=bytearray(cp1251_dbf());damaged[8]=0
+            for data,code in ((cp1251_dbf(driver=0),'DBF_ENCODING_NOT_CONFIRMED'),
+                    (cp1251_dbf(utf8=True),'DBF_ENCODING_AMBIGUOUS'),
+                    (cp1251_dbf()[:-25],'DBF_SOURCE_TRUNCATED'),(damaged,'DBF_SOURCE_LAYOUT_INVALID')):
+                path.write_bytes(data)
+                with self.assertRaises(GuardError) as error:validate_legacy_dbf_source(path,native)
+                self.assertEqual(error.exception.code,code)
+                self.assertEqual(path.read_bytes(),data)
 
     def test_writer_web_alias_uses_installed_writer_jpeg_only_with_interface_proof(self):
         with tempfile.TemporaryDirectory() as tmp:
