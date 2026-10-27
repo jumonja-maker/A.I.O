@@ -60,8 +60,9 @@ def apply_lifecycle_ui(raw):
         const response=await adapter.clearInputList?.();
         if(response?.cleared&&alive){lifecycleGeneration++;files=[];selectedFileIds.clear();
           selectedFormats.clear();selectedFormat=null;formatValues={};analysis=null;
-          filters='';filterInput.value='';currentResult=retryResult=null;aioFailedBatchReport=null;
-          status='idle';statusMessage='';realProgress=null;render();typeFilter?.sync();}
+          filters='';filterInput.value='';
+          if(!currentResult&&!aioFailedBatchReport)status='idle';
+          statusMessage='';realProgress=null;render();typeFilter?.sync();}
       }catch(error){if(alive){statusMessage=error.userMessage||error.message;renderSummary();}}
       finally{lifecycleBusy=false;if(alive)renderSummary();}
     }

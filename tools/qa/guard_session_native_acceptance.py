@@ -91,12 +91,22 @@ def main():
         with zipfile.ZipFile(source,'x',compression=zipfile.ZIP_DEFLATED) as archive:
             archive.writestr('[Content_Types].xml','<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>')
             archive.writestr('_rels/.rels','<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="r1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>')
-            archive.writestr('word/document.xml','<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>'+''.join('<w:p><w:r><w:t>AIO native cancellation marker %d with retained source data.</w:t></w:r></w:p>'%i for i in range(20000))+'<w:sectPr/></w:body></w:document>')
-        before=sha(source);offices=[]
+            archive.writestr('word/document.xml','<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>'+''.join('<w:p><w:r><w:t>AIO native cancellation marker %d with retained source data.</w:t></w:r></w:p>'%i for i in range(2000))+'<w:sectPr/></w:body></w:document>')
+        before=sha(source);offices=[];native_phases=[]
         class TrackingAdapter(LibreOfficeAdapter):
             @contextmanager
             def batch(self,*values,**options):
                 with super().batch(*values,**options) as office:
+                    if hasattr(office,'request'):
+                        original_request=office.request
+                        def track(value,**request_options):
+                            callback=request_options.get('on_stage',lambda stage:None)
+                            def observed(stage):
+                                if value.get('operation')=='export' and stage in ('import','export') and office.tree:
+                                    native_phases.append((stage,office.tree.process))
+                                callback(stage)
+                            return original_request(value,**{**request_options,'on_stage':observed})
+                        office.request=track
                     offices.append(office);yield office
         guard=ConverterGuard(adapter=TrackingAdapter(args.executable),recovery_parent=args.output/'cancel-owned',
                              limits=GuardLimits(file_timeout=120))
@@ -106,9 +116,12 @@ def main():
         guard.start(job,formats=['pdf'],file_ids=['cancel'],only_verified=True,archive_mode='on_demand');deadline=time.monotonic()+60;phase=None;process=None
         while time.monotonic()<deadline:
             state=guard.status(job);phase=(state.get('currentTask') or {}).get('stage')
-            if phase in ('import','export') and offices and getattr(offices[-1],'tree',None):
-                process=offices[-1].tree.process;break
-            if state['finished']:raise AssertionError('native cancellation opportunity not observed')
+            if native_phases:
+                phase,process=native_phases[-1];break
+            if state['finished']:
+                report['cancelFailure']=guard.report(job)
+                report['officeStates']=[{'type':type(office).__name__,'starts':getattr(office,'starts',None),'disabled':getattr(office,'disabled',None)} for office in offices]
+                raise AssertionError('native cancellation opportunity not observed')
             time.sleep(.005)
         assert process is not None,'actual native worker not observed'
         owned=guard._jobs[job];outcome=guard.close_conversion(job,discard=True)

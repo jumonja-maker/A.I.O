@@ -98,9 +98,13 @@ window.AllInOneBridge.saveExcel=async result=>{
   downloaded++;return {saved:true};
 };
 save.click();await until(()=>document.querySelector('[data-cv-status]').classList.contains('aio-cv__saved')&&stable(),'confirmed unknown save');
+document.querySelector('[data-cv-clear-inputs]').click();
+await until(()=>rows().length===0&&stable(),'trash clears inputs after save');
+assert.equal(document.querySelector('[data-cv-result-actions]').hidden,false,'trash preserves retained result actions');
+assert.equal(document.querySelector('[data-cv-save]').disabled,false,'saved result remains available after trash');
 document.querySelector('[data-cv-close-result]').click();await until(()=>document.querySelector('[data-cv-result-actions]').hidden,'explicit close of saved session');
 assert.equal(document.querySelector('.aio-conversion-close-dialog'),null,'verified saved close asks no question');
-rows()[0].querySelector('[data-op="remove"]').click();
+if(rows().length)rows()[0].querySelector('[data-op="remove"]').click();
 await until(()=>rows().length===0&&stable(),'remove unknown');
 add([new File(['W'],'renamed.bmp'),new File(['BM'],'image.bmp'),new File(['a,b'],'table.csv')]);
 await until(()=>rows().length===3&&stable(),'three native models prepared');
