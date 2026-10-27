@@ -500,8 +500,8 @@ class LibreOfficeAdapter:
         from .qt_media import media_preflight
         if not self.available:
             return {'state': 'undetermined', 'code': 'ENGINE_NOT_FOUND'}
-        validate_legacy_dbf_source(source,self._registry())
         control = _RunControl(cancel, workspace, timeout, None)
+        validate_legacy_dbf_source(source,self._registry(),cancel=control)
         try:
             media = media_preflight(source, cancel=control)
         except GuardError as error:
@@ -552,7 +552,7 @@ class LibreOfficeAdapter:
         if contract.get('nativeImportRequired') and source_hint is None:
             return {'state': 'undetermined', 'code': 'SOURCE_NATIVE_IMPORT_FILTER_REQUIRED',
                     'sourceContract': contract, 'exported': False}
-        hint = source_hint or csv_import_hint(source, native) or legacy_import_hint(source, native)
+        hint = source_hint or csv_import_hint(source, native) or legacy_import_hint(source, native, cancel=cancel)
         # One streaming scan, only for a content-confirmed text hint. Large or
         # ambiguous inputs retain an explicit incomplete status, never a veto.
         csv_profile = (inspect_csv_stream(source, delimiter=chr(int(hint['options'].split(',')[0])),
@@ -688,7 +688,6 @@ class LibreOfficeAdapter:
         self._local.execution_mode = None
         self._local.metrics = None
         self._local.export_info = {}
-        validate_legacy_dbf_source(source,self._registry())
         from .media_fidelity import copy_media_identity
         from .native_identity import copy_chart_identity
         from .native_metafile import native_metafile_target, wrap_native_metafiles
@@ -704,6 +703,7 @@ class LibreOfficeAdapter:
         paths = None
         identity_control = (cancel if timeout is None and output_limit is None else
                             _RunControl(cancel, workspace, timeout, output_limit))
+        validate_legacy_dbf_source(source,self._registry(),cancel=identity_control)
         if (retry_recipe is None and proof.get('state') == 'detected'
                 and self.route_decision(target, proof) == 'registered'):
             paths = copy_media_identity(source, workspace / 'output', target, cancel=identity_control)
@@ -745,7 +745,7 @@ class LibreOfficeAdapter:
                 # TABLE is only an inexpensive content probe. The actual
                 # native import proof, or a confirmed legacy hint for a
                 # direct adapter call without proof, owns DIF admission.
-                direct_hint = (legacy_import_hint(source, native)
+                direct_hint = (legacy_import_hint(source, native, cancel=identity_control)
                                if not proof and selected_import is None else None)
                 if (selected_import == 'DIF' or
                         direct_hint is not None and direct_hint.get('filter') == 'DIF'):
@@ -881,7 +881,7 @@ class LibreOfficeAdapter:
         name = (import_hint or {}).get('filter', getattr(self._local, 'import_filter', None))
         options = (import_hint or {}).get('options', getattr(self._local, 'import_options', None))
         if name != 'DIF':
-            hint = legacy_import_hint(source, native)
+            hint = legacy_import_hint(source, native, cancel=cancel)
             if not hint or hint['filter'] != 'DIF':
                 raise GuardError('DIF_NATIVE_IMPORT_UNVERIFIED',
                     'Не подтверждены параметры нативного импорта DIF.', stage='import')

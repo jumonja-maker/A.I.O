@@ -8,7 +8,7 @@ import threading
 
 ROOT=Path(__file__).resolve().parents[2]
 sys.path[:0]=[str(ROOT),str(ROOT/'tests')]
-from test_native_routes_b13_b31 import cp1251_dbf
+from test_native_routes_b13_b31 import cp1251_dbf,large_cp1251_dbf
 from test_guard_epub_v17 import create_epub
 from app_backend.converter_guard import LibreOfficeAdapter
 from app_backend.converter_guard.errors import GuardError
@@ -69,7 +69,7 @@ def main():
     parser.add_argument('--executable',type=Path,required=True);args=parser.parse_args()
     args.output.mkdir(parents=True,exist_ok=False)
     report={'status':'RUNNING','scope':'generated native controls; not preserved 680-file FULLTEST',
-            'dbf':[],'jpeg':[],'negative':[],'sourceSHA256':{},'orp':{'status':'not_tested','reason':'no_positive_Base_report_fixture'}}
+            'dbf':[],'largeDbf':[],'jpeg':[],'negative':[],'sourceSHA256':{},'orp':{'status':'not_tested','reason':'no_positive_Base_report_fixture'}}
     cancel=threading.Event();adapter=LibreOfficeAdapter(args.executable)
     try:
         tiff_probe(args.output,report,cancel)
@@ -129,6 +129,27 @@ def main():
                      'nativeImportFilter':proof['selectedImportFilter'],'importOptions':proof['selectedImportOptions'],
                      'records':len(rows)-1,'lastRecord':rows[-1],'sourceSha256':before,'outputSha256':sha(primary)}
                 report['dbf'].append(row);print('DBF_CASE='+json.dumps(row,ensure_ascii=True),flush=True)
+            # Correct >1 MiB input must not be vetoed by an inspector's
+            # allocation shortcut. Independent full readback includes tail.
+            source=args.output/'large-c9.dbf';source.write_bytes(large_cp1251_dbf())
+            before=sha(source);report['sourceSHA256'][source.name]=before
+            proof=adapter.preflight(source,args.output/'large-dbf-inspect',cancel=cancel,timeout=120)
+            assert proof.get('state')=='detected' and proof.get('selectedImportOptions')=='34',proof
+            adapter.prepare_source(proof)
+            outputs=adapter.convert(source,'xlsx',args.output/'large-dbf-xlsx',cancel=cancel,timeout=180,on_started=lambda:None)
+            output=next(p for p in outputs if p.suffix=='.xlsx')
+            book=load_workbook(output,read_only=True,data_only=True,keep_links=False)
+            try:rows=list(book.active.values)
+            finally:book.close()
+            assert len(rows)==16385,len(rows)
+            for values in rows[1:-1]:
+                assert str(values[0]).strip()=='001' and values[1].strip()=='Строка 1 уровень 1' and float(values[2])==1.25,values
+            assert str(rows[-1][0]).strip()=='999' and rows[-1][1].strip()=='Последняя строка' and float(rows[-1][2])==9999.5,rows[-1]
+            assert sha(source)==before
+            report['largeDbf'].append({'status':'PASS','source':source.name,'sourceSha256':before,'sourceBytes':source.stat().st_size,
+                'records':16384,'allRowsIndependentlyRead':True,'nativeImportFilter':proof.get('selectedImportFilter'),
+                'importOptions':proof.get('selectedImportOptions'),'exportFilter':adapter.export_info().get('filter'),
+                'mode':adapter.execution_mode(),'outputSha256':sha(output)})
             for level in range(1,9):
                 html=args.output/f'web-{level}.html'
                 body='<html><head><meta charset="utf-8"/></head><body><h1>AIO JPEG L%d</h1><p>Кириллица и строки.</p>%s</body></html>'%(level,

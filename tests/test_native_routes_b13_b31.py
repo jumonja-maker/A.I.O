@@ -28,6 +28,13 @@ def cp1251_dbf(level=1, *, driver=0xC9, utf8=False):
     return bytes(header)+b''.join(records)+b'\x1a'
 
 
+def large_cp1251_dbf():
+    small=cp1251_dbf();header=bytearray(small[:129]);count=16384
+    struct.pack_into('<I',header,4,count)
+    last=b' '+b'999'+'Последняя строка'.encode('cp1251').ljust(64)+f'{9999.5:12.2f}'.encode()
+    return bytes(header)+small[129:209]*(count-1)+last+b'\x1a'
+
+
 class NativeRouteContracts(unittest.TestCase):
     def test_jpeg_alias_binds_codec_and_accepts_a_reader_that_clears_format_after_read(self):
         from app_backend.converter_guard.jpeg_alias import verify_native_jpeg_alias
@@ -78,6 +85,26 @@ class NativeRouteContracts(unittest.TestCase):
                 with self.assertRaises(GuardError) as error:validate_legacy_dbf_source(path,native)
                 self.assertEqual(error.exception.code,code)
                 self.assertEqual(path.read_bytes(),data)
+
+    def test_large_valid_dbf_has_no_size_veto_and_tail_or_cancel_cannot_pass(self):
+        native=SimpleNamespace(filters={'dBase':(C,{'dbf'},{'IMPORT'})})
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'large.bin';data=large_cp1251_dbf();self.assertGreater(len(data),1024*1024)
+            path.write_bytes(data);validate_legacy_dbf_source(path,native)
+            self.assertEqual(legacy_import_hint(path,native)['options'],'34')
+            damaged=bytearray(data);damaged[129+16383*80]=0 # deletion marker of last record
+            path.write_bytes(damaged)
+            with self.assertRaises(GuardError) as error:validate_legacy_dbf_source(path,native)
+            self.assertEqual(error.exception.code,'DBF_SOURCE_LAYOUT_INVALID')
+            path.write_bytes(data)
+            class CancelDuringScan:
+                checks=0
+                def is_set(self):
+                    self.checks+=1
+                    return self.checks>200
+            with self.assertRaises(GuardError) as error:
+                validate_legacy_dbf_source(path,native,cancel=CancelDuringScan())
+            self.assertEqual(error.exception.code,'CANCELLED');self.assertEqual(path.read_bytes(),data)
 
     def test_writer_web_alias_uses_installed_writer_jpeg_only_with_interface_proof(self):
         with tempfile.TemporaryDirectory() as tmp:
