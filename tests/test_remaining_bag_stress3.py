@@ -29,3 +29,10 @@ class Stress3EvidenceContracts(unittest.TestCase):
         self.assertEqual(stages['tiff'],{'cases':24,'negative':6})
         self.assertEqual(stages['html'],{'positive':18,'excluded':30,'negative':3})
         self.assertEqual(stages['viewer-150']['checks'],4)
+    def test_new_parser_corpus_keeps_unknown_distinct_from_loss(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            rows=qa.safety_negative_corpus(Path(tmp)/'new-controls')
+            self.assertEqual(len(rows),12)
+            self.assertEqual({row['name']:row['actualDecision'] for row in rows},qa.SAFETY_DECISIONS)
+            self.assertEqual(next(r for r in rows if r['name']=='empty-result')['actualDecision'],'confirmed_loss')
+            self.assertEqual(next(r for r in rows if r['name']=='dtd-entity')['actualDecision'],'not_checked')

@@ -31,6 +31,17 @@ STAGES=(
     ('viewer-150','guard_before_after_b19_b25_acceptance.py',{'checks':4}),
 )
 
+# These are parser/identity decisions, not claims about a native conversion.
+# Native corrupt IFD/DBF, timeout/cancel and restart are separate child stages.
+SAFETY_DECISIONS={
+    'truncated-zip':'not_checked','truncated-xml':'not_checked',
+    'dtd-entity':'not_checked','missing-html-resource':'not_checked',
+    'dynamic-hidden-html':'not_checked','text-mismatch':'uncertain',
+    'empty-result':'confirmed_loss','conflicting-mime':'invalid',
+    'renamed-writer':'recognized','inspection-budget':'not_checked',
+    'changed-source-preview':'unavailable','changed-result-preview':'unavailable',
+}
+
 
 def digest(path):
     with Path(path).open('rb') as stream:return hashlib.file_digest(stream,'sha256').hexdigest()
@@ -84,6 +95,72 @@ def referenced_sources(folder,data):
         if actual!=expected:raise ValueError('corpus source changed: '+relative)
         rows.append({'file':relative,'bytes':path.stat().st_size,'sha256':actual,'role':role})
     return rows
+
+
+def safety_negative_corpus(folder):
+    """New bytes through real inert parsers and the isolated preview worker.
+
+    No importer mocks, network requests, external entity expansion or reduced
+    production limits. Inspection-budget exercises the public bounded API.
+    """
+    from app_backend.converter_guard.comparison_analysis import analyze_pair
+    from app_backend.converter_guard.source_contract import inspect_source_contract
+    folder.mkdir();records=[]
+    office='urn:oasis:names:tc:opendocument:xmlns:office:1.0'
+    text='urn:oasis:names:tc:opendocument:xmlns:text:1.0'
+    writer=(f'<office:document xmlns:office="{office}" xmlns:text="{text}" '
+        'office:mimetype="application/vnd.oasis.opendocument.text"><office:body>'
+        '<office:text><text:p>ALPHA 001 OMEGA</text:p></office:text></office:body></office:document>')
+    result=folder/'result.txt';result.write_text('ALPHA 001 OMEGA',encoding='utf-8')
+    sentinel=folder/'entity-private.txt';sentinel.write_text('ENTITY_MUST_NEVER_BE_EXPANDED',encoding='utf-8')
+    controls={
+        'truncated-zip':('broken.docx',b'PK\x03\x04'+b'x'*64),
+        'truncated-xml':('broken.fodt',f'<office:document xmlns:office="{office}"'.encode()),
+        'dtd-entity':('entity.fodt',('<!DOCTYPE office:document [<!ENTITY private SYSTEM "'+sentinel.resolve().as_uri()+'">]>'+writer.replace('ALPHA 001 OMEGA','&private;')).encode()),
+        'missing-html-resource':('missing.html',b'<html><body><p>ALPHA 001 OMEGA</p><img src="absent.png"></body></html>'),
+        'dynamic-hidden-html':('dynamic.html',b'<html><body><p hidden>ALPHA</p><script>throw Error("MUST_NOT_EXECUTE")</script><p>OMEGA</p></body></html>'),
+        'text-mismatch':('mismatch.txt',b'OTHER 123 VALUE'),
+        'empty-result':('empty-source.txt',b'ALPHA 001 OMEGA'),
+        'conflicting-mime':('conflicting.fods',writer.replace('opendocument.text','opendocument.spreadsheet').encode()),
+        'renamed-writer':('writer-renamed.xlsx',writer.encode()),
+        'inspection-budget':('bounded.fodt',writer.encode()),
+    }
+    for name,(filename,raw) in controls.items():
+        source=folder/filename;source.write_bytes(raw);before=digest(source)
+        if name in ('conflicting-mime','renamed-writer','inspection-budget'):
+            outcome=inspect_source_contract(source,**({'budget':8} if name=='inspection-budget' else {}))
+            actual=outcome['state']
+        else:
+            output=result
+            if name=='empty-result':output=folder/'empty.txt';output.write_bytes(b'')
+            outcome=analyze_pair(source,[output],'txt');actual=outcome['status']
+            if actual in ('not_checked','uncertain') and outcome['checkedFeatures']:
+                raise ValueError(name+': unsupported control acquired quality proof')
+        if actual!=SAFETY_DECISIONS[name]:raise ValueError(name+': unexpected decision '+actual)
+        if digest(source)!=before:raise ValueError(name+': parser changed original')
+        if 'ENTITY_MUST_NEVER_BE_EXPANDED' in json.dumps(outcome):raise ValueError('entity expansion leaked')
+        records.append({'name':name,'file':filename,'sha256':before,'status':'PASS',
+            'expectedDecision':SAFETY_DECISIONS[name],'actualDecision':actual,
+            'scope':'bounded_source_declaration' if 'state' in outcome else 'inert_pair_analysis',
+            'evidence':outcome})
+    for side in ('source','result'):
+        name='changed-'+side+'-preview';case=folder/name;case.mkdir()
+        source=case/'data.txt';source.write_bytes(b'NEW BYTES');before=digest(source)
+        request=case/'request.json';write(request,{'source':str(source.resolve()),'mode':'preview',
+            'previewSide':side,'expectedSha256':hashlib.sha256(b'OLD BYTES').hexdigest()})
+        run=subprocess.run([sys.executable,'-m','app_backend.converter_guard.comparison_worker',str(request.resolve())],
+            cwd=ROOT,capture_output=True,timeout=30)
+        if run.returncode:raise ValueError(name+': preview worker failed '+run.stderr.decode(errors='replace')[-1000:])
+        outcome=json.loads((case/'preview.json').read_text(encoding='utf-8'))
+        if outcome.get('kind')!='unavailable' or outcome.get('code')!=side.upper()+'_CHANGED' or (case/'preview.png').exists():
+            raise ValueError(name+': changed bytes were published as the old report')
+        if digest(source)!=before:raise ValueError(name+': preview changed original')
+        records.append({'name':name,'file':source.relative_to(folder).as_posix(),'sha256':before,
+            'status':'PASS','expectedDecision':'unavailable','actualDecision':outcome['kind'],
+            'scope':'preview_identity_boundary','evidence':outcome})
+    if set(row['name'] for row in records)!=set(SAFETY_DECISIONS):raise ValueError('incomplete safety corpus')
+    write(folder/'manifest.json',{'status':'PASS','controls':records})
+    return records
 
 
 def native_positive_corpus(folder,executable):
@@ -159,6 +236,7 @@ def main():
     args.output.mkdir(parents=True,exist_ok=False)
     plan={'schema':1,'scope':'remaining_bag_targeted_stress3_not_FULLTEST','releaseBuild':False,'historicalInputs':'not_available',
           'stages':[{'name':name,'script':script,'expected':expected} for name,script,expected in STAGES],
+          'parserAndIdentityControls':SAFETY_DECISIONS,
           'coverageExceptions':[{'area':'Base ORP','status':'not_tested','reason':'no genuine Base ReportDefinition fixture'},
               {'area':'installed EXE/manual user acceptance','status':'not_tested','reason':'no build or FULLTEST authorization'},
               {'area':'macro-bearing positives and original 680 corpus','status':'not_tested','reason':'fixtures not supplied'}]}
@@ -170,6 +248,7 @@ def main():
             'stages':[],'corpus':[],'coverageExceptions':plan['coverageExceptions'],
             'falseRejections':None,'silentSuccesses':None,'expectedUnavailable':None}
     try:
+        report['parserAndIdentityControls']=safety_negative_corpus(args.output/'safety-controls')
         positives=native_positive_corpus(args.output/'native-positives',args.executable)
         report['nativePositiveControls']=positives
         for name,script,expected in STAGES:
@@ -190,7 +269,8 @@ def main():
                       countingScope='only fixed controls in expected-decisions.json; not historical corpus rates')
     except Exception as error:report.update(status='FAIL',reason=str(error));raise
     finally:
-        write(args.output/'corpus-manifest.json',{'schema':1,'nativePositiveControls':report.get('nativePositiveControls',[]),'stages':report['corpus']})
+        write(args.output/'corpus-manifest.json',{'schema':1,'nativePositiveControls':report.get('nativePositiveControls',[]),
+            'parserAndIdentityControls':report.get('parserAndIdentityControls',[]),'stages':report['corpus']})
         write(args.output/'evidence.json',report)
         print('STRESS3_SUMMARY='+json.dumps({k:v for k,v in report.items() if k not in ('corpus','nativePositiveControls')},ensure_ascii=True),flush=True)
     return 0
