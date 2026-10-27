@@ -90,6 +90,15 @@ def main():
             # DOM readiness is not a composited Qt frame. In particular, a
             # fullscreen transition can leave an old backing-store image.
             # Require real visible pixels at both current image coordinates.
+            # Three QA-only corner markers bind the grabbed compositor frame
+            # to this theme and viewport. A broad, uniform image colour alone
+            # can also match the previous fullscreen/backing-store frame.
+            marker_colour=(19,73,181) if name.startswith('dark') else (181,73,19)
+            marker_css='rgb('+','.join(map(str,marker_colour))+')'
+            js("document.querySelectorAll('[data-aio-qa-paint]').forEach(e=>e.remove());"+
+               "for(const place of ['top:0;left:0','bottom:0;left:0','bottom:0;right:0']){"+
+               "const e=document.createElement('i');e.dataset.aioQaPaint='';"+
+               "e.style.cssText='position:fixed;width:8px;height:8px;z-index:2147483647;pointer-events:none;'+place+';background:'+"+json.dumps(marker_css)+";document.body.append(e)};true")
             js('window.__aioQAPaint=false;requestAnimationFrame(()=>requestAnimationFrame(()=>window.__aioQAPaint=true));true')
             until(lambda:js('window.__aioQAPaint===true'),seconds=8)
             rgba=image.pixelColor(0,0).getRgb();alpha=rgba[3]/255
@@ -98,17 +107,21 @@ def main():
             while time.monotonic()<end:
                 app.processEvents()
                 points=json.loads(js("JSON.stringify([...document.querySelectorAll('.aio-pair-pane img')].map(i=>{const r=i.getBoundingClientRect(),v=i.closest('.aio-pair-viewport').getBoundingClientRect(),left=Math.max(r.left,v.left,0),right=Math.min(r.right,v.right,innerWidth),top=Math.max(r.top,v.top,0),bottom=Math.min(r.bottom,v.bottom,innerHeight);return {x:(left+right)/2,y:(top+bottom)/2,width:right-left,height:bottom-top}}))"))
+                markers=json.loads(js("JSON.stringify([...document.querySelectorAll('[data-aio-qa-paint]')].map(e=>{const r=e.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}}))"))
                 shot=window.grab();pixels=shot.toImage();colours=[]
-                for point in points:
+                marker_pixels=[]
+                for index,point in enumerate(points+markers):
                     q=window.view.mapTo(window,QPoint(round(point['x']),round(point['y'])))
                     x=min(pixels.width()-1,max(0,round(q.x()*pixels.width()/window.width())))
                     y=min(pixels.height()-1,max(0,round(q.y()*pixels.height()/window.height())))
-                    colours.append(pixels.pixelColor(x,y).getRgb()[:3])
-                last={'points':points,'colours':colours,'expected':expected}
+                    (colours if index<len(points) else marker_pixels).append(pixels.pixelColor(x,y).getRgb()[:3])
+                last={'points':points,'colours':colours,'expected':expected,'frameMarkers':markers,'frameMarkerPixels':marker_pixels,'expectedMarkerColour':marker_colour}
                 if len(points)==2 and all(p['width']>20 and p['height']>20 for p in points) and all(
-                        any(max(abs(a-b) for a,b in zip(colour,wanted))<=4 for wanted in expected) for colour in colours):
+                        any(max(abs(a-b) for a,b in zip(colour,wanted))<=4 for wanted in expected) for colour in colours) and len(marker_pixels)==3 and all(
+                        max(abs(a-b) for a,b in zip(colour,marker_colour))<=2 for colour in marker_pixels):
                     path=args.output/name;assert shot.save(str(path));raw=path.read_bytes();assert len(raw)<768*1024
                     print('PAIR_QT_SNAPSHOT='+json.dumps({'name':name,'pngBase64':base64.b64encode(raw).decode()}),flush=True)
+                    js("document.querySelectorAll('[data-aio-qa-paint]').forEach(e=>e.remove());true")
                     return path,last
                 QTest.qWait(50)
             raise AssertionError('Qt frame did not paint the two current images: '+str(last))
