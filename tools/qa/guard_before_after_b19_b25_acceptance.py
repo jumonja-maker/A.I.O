@@ -80,8 +80,12 @@ def main():
         def click(selector):
             # Native mouse interaction, including the replacement for Qt's
             # unreliable select popup in a modal WebEngine dialog.
-            point=json.loads(js("JSON.stringify((()=>{const r=document.querySelector("+json.dumps(selector)+").getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}})())"))
-            QTest.mouseClick(window.view,Qt.MouseButton.LeftButton,Qt.KeyboardModifier.NoModifier,QPoint(round(point['x']),round(point['y'])))
+            point=json.loads(js("JSON.stringify((()=>{const e=document.querySelector("+json.dumps(selector)+"),r=e.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2;return {x,y,width:r.width,height:r.height,unobscured:e.contains(document.elementFromPoint(x,y))}})())"))
+            assert point['width']>0 and point['height']>0 and point['unobscured'],(selector,point)
+            receiver=window.view.focusProxy() or window.view
+            position=receiver.mapFrom(window.view,QPoint(round(point['x']),round(point['y'])))
+            QTest.mouseClick(receiver,Qt.MouseButton.LeftButton,Qt.KeyboardModifier.NoModifier,position)
+            app.processEvents()
         until(lambda:js("!!window.AIOGuardComparison&&!!window.AIOComparisonViewer"))
         js('window.AIOGuardComparison.open('+json.dumps(job)+');true')
         until(lambda:js("document.querySelector('[data-c-progress]')?.textContent.includes('Анализ завершён')"))

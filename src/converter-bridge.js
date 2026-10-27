@@ -113,6 +113,7 @@
     return state;
   }
   const check = (operation, allowCancelled = false) => {
+    if(operation.closed)throw errorOf('Конвертация закрыта.','CANCELLED');
     if ((!allowCancelled && operation.cancelled) || operation.generation !== generation)
       throw errorOf('Задание отменено.', 'CANCELLED');
   };
@@ -354,7 +355,7 @@
     return (await prepareInputs(inputs, {signal,force,timeoutSeconds,onlyUndetermined})).inspection;
   }
   function update(report, op, onProgress) {
-    if (!report || op.generation !== generation) return;
+    if (!report || op.closed || op.generation !== generation) return;
     const changed = report.changedFileIds ? new Set(report.changedFileIds) : null;
     // Backend snapshots contain planned inputs only; unplanned UI files have
     // already been marked skipped. Apply this subset without requiring a
@@ -510,7 +511,7 @@
       // Losing the UI generation is not proof that a live/cancelled
       // job has no outputs. Preserve it until explicit acknowledgement.
       if (active === op) active = null;
-      if(op.generation===generation && last?.finished)publish(last);
+      if(!op.closed&&op.generation===generation && last?.finished)publish(last);
     }
   }
   async function saveResult({result, mode} = {}) {
@@ -586,7 +587,7 @@
       }
       if(!outcome.closed)return outcome;
       const op=active?.jobId===jobId?active:null;
-      if(op)op.cancelled=true;
+      if(op){op.cancelled=true;op.closed=true;}
       retained.delete(jobId);
       if(lastRun?.report?.jobId===jobId)lastRun=null;
       if(prepared?.jobId===jobId)prepared=null;
