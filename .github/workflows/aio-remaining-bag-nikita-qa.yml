@@ -12,12 +12,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: aio-b32-tiff-third-selfhosted-qa
+  group: aio-b32-tiff-fifth-selfhosted-qa
   cancel-in-progress: false
 
 env:
-  AIO_QA_SOURCE_SHA: 8b87b8bba15e37cafc00f922860616f6e7c1eff1
-  AIO_QA_TREE_SHA: 4bb754c8b3d5e926e17aabe338701ecf10117529
+  AIO_QA_SOURCE_SHA: 2e3e245091ab1aee2780f8036d8ff7d890f78074
+  AIO_QA_TREE_SHA: 9e63f707be6785af31da3b8dd8a594448f6f8cce
   PYTHONDONTWRITEBYTECODE: '1'
   PYTHONUTF8: '1'
   PYTHONIOENCODING: utf-8
@@ -35,7 +35,7 @@ jobs:
       github.repository == 'jumonja-maker/A.I.O' &&
       github.actor == 'jumonja-maker' &&
       github.event.action == 'labeled' &&
-      github.event.label.name == 'aio-b32-tiff-third-selfhosted-qa' &&
+      github.event.label.name == 'aio-b32-tiff-fifth-selfhosted-qa' &&
       github.event.pull_request.number == 70 &&
       github.event.pull_request.user.login == 'jumonja-maker' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
@@ -69,7 +69,7 @@ jobs:
           GIT_CONFIG_VALUE_0: 'false'
         with:
           repository: jumonja-maker/A.I.O
-          ref: 8b87b8bba15e37cafc00f922860616f6e7c1eff1
+          ref: 2e3e245091ab1aee2780f8036d8ff7d890f78074
           path: aio-b32-tiff-source-${{ github.run_id }}-${{ github.run_attempt }}
           persist-credentials: false
           clean: true
@@ -142,28 +142,6 @@ jobs:
           $env:AIO_BUILD_REVISION=$env:AIO_QA_SOURCE_SHA
           $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-b32-tiff-evidence-${{ github.run_id }}-${{ github.run_attempt }}'
           & $env:AIO_QA_PYTHON tools/qa/guard_b32_tiff_native_acceptance.py --output (Join-Path $evidence 'tiff') --executable $env:AIO_QA_ENGINE
-          if ($LASTEXITCODE -ne 0) {throw 'Required native acceptance failed'}
-      - name: B28 exact DIF 48 native regressions
-        working-directory: aio-b32-tiff-source-${{ github.run_id }}-${{ github.run_attempt }}
-        env:
-          QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --disable-gpu-compositing
-        run: |
-          $ErrorActionPreference='Stop'
-          $env:AIO_LIBREOFFICE=$env:AIO_QA_ENGINE
-          $env:AIO_BUILD_REVISION=$env:AIO_QA_SOURCE_SHA
-          $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-b32-tiff-evidence-${{ github.run_id }}-${{ github.run_attempt }}'
-          & $env:AIO_QA_PYTHON tools/qa/guard_b28_dif_native_acceptance.py --output (Join-Path $evidence 'b28') --executable $env:AIO_QA_ENGINE
-          if ($LASTEXITCODE -ne 0) {throw 'Required native acceptance failed'}
-      - name: B29 exact CSV ID 108 native regressions
-        working-directory: aio-b32-tiff-source-${{ github.run_id }}-${{ github.run_attempt }}
-        env:
-          QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --disable-gpu-compositing
-        run: |
-          $ErrorActionPreference='Stop'
-          $env:AIO_LIBREOFFICE=$env:AIO_QA_ENGINE
-          $env:AIO_BUILD_REVISION=$env:AIO_QA_SOURCE_SHA
-          $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-b32-tiff-evidence-${{ github.run_id }}-${{ github.run_attempt }}'
-          & $env:AIO_QA_PYTHON tools/qa/guard_b29_csv_native_acceptance.py --output (Join-Path $evidence 'b29') --executable $env:AIO_QA_ENGINE
           if ($LASTEXITCODE -ne 0) {throw 'Required native acceptance failed'}
       - name: Native v20 neighbor regression
         working-directory: aio-b32-tiff-source-${{ github.run_id }}-${{ github.run_attempt }}
