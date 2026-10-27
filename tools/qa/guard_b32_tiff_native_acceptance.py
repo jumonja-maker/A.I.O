@@ -50,7 +50,7 @@ def webp_frames(path):
             assert data[:6]==b'\0'*6
             assert int.from_bytes(data[6:9],'little')+1==W and int.from_bytes(data[9:12],'little')+1==H
             payload=data[16:];static=b'RIFF'+(4+len(payload)).to_bytes(4,'little')+b'WEBP'+payload
-            image=QImage.fromData(static,b'webp');assert not image.isNull()
+            image=QImage.fromData(static);assert not image.isNull()
             frames.append(rgba(image))
     return frames
 def pdf_frames(path):
