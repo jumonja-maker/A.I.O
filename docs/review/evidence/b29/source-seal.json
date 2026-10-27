@@ -1,0 +1,15 @@
+{
+  "base": "e627c0fe3b8165ff6a5dd24d89845d8949ffb1b4",
+  "testedHead": "a7cf3515ef352b6b136011a3e39bc3e59d5f68f6",
+  "files": {
+    "app_backend/converter_guard/csv_id_contract.py": "a0cce07f0bac3053075687bc46e83a3dba69e69fabcca41aaa39c63d63a3b8f6",
+    "app_backend/converter_guard/csv_import.py": "d5bca0dad78a6d99d698e03ad274143541870cb993ef302f9b769bd994f5c3b2",
+    "app_backend/converter_guard/legacy_import.py": "373b23ea65f65ac9df472eefaa880e97bf8061ca14630c9cea271f10826c2f35",
+    "app_backend/converter_guard/adapter.py": "db75a1be30bb8aeeb6bb4c32f5b9966b3e5ca06ec96ce7d2a30b877cda3f15b7",
+    "app_backend/converter_guard/export_recipe.py": "a37e8062192acc5c7d7fe5111b1f87a6c33bf056b2e3ea51fd0ed62e9bc09c5c",
+    "tests/test_csv_text_ids_b29.py": "4d8b79b3636b5424230c5962f071953cf5bb740dd23951e9c707b81211281802",
+    "tests/b29_csv_fixtures.py": "27a7301d161abfd7d2878c5926c6fcb8716dbfbe59f044c72f171b078149d86d",
+    "tools/qa/guard_b29_csv_native_acceptance.py": "2e949fdc455ce3bf74439cbfc26fb502d24207284ec323114b901f81b26d06f3",
+    "docs/review/AIO_B29_CSV_IDS_2026-10-27_RU.md": "12354b5292de77159f82396031d47d76aff4cc9eac7c1b31716e942c506ca8cf"
+  }
+}
