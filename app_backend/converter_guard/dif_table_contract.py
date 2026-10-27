@@ -361,7 +361,18 @@ class _HTMLTable(HTMLParser):
             if self.cell is None: raise _Unknown('dif_table_html_cell_mapping')
             attrs, parts = self.cell
             value = ''.join(parts).strip()
-            if 'sdval' in attrs: decoded = ('n', _number(attrs['sdval']))
+            if 'sdval' in attrs:
+                raw_number = attrs['sdval']
+                # Native Calc HTML can use a comma decimal for a known
+                # document locale. Do not misread arbitrary comma grouping
+                # as decimals: RU/1049 uses decimal comma, space grouping.
+                if not NUMBER.fullmatch(raw_number):
+                    locale_id = attrs.get('sdnum', '').split(';', 1)[0]
+                    if (locale_id != '1049' or not re.fullmatch(
+                            r'[+-]?[0-9]+,[0-9]{1,15}(?:[Ee][+-]?[0-9]+)?', raw_number)):
+                        raise _Unknown('dif_table_html_numeric_locale_unverified')
+                    raw_number = raw_number.replace(',', '.', 1)
+                decoded = ('n', _number(raw_number))
             elif attrs.get('data-sheets-value'):
                 meta = json.loads(attrs['data-sheets-value'])
                 if not isinstance(meta, dict):
