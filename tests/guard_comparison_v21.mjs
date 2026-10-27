@@ -55,7 +55,7 @@ async function check(name,work){const h=create();try{await work(h);results.push(
 const only=process.argv[2];
 const cases=[
   ['obsolete_refresh_error',async h=>{
-    await h.window.AIOGuardComparison.open(job);const delayed=gate();let used=false;
+    await h.window.AIOGuardComparison.open(job);h.event(h.$('[data-task]'),'dblclick');await flush();const delayed=gate();let used=false;
     h.override((url)=>{if(url.pathname.endsWith('/compare')&&!used){used=true;return delayed.promise}});
     h.$('[data-c-filter]').value='confirmed_loss';h.event(h.$('[data-c-filter]'),'change');await flush();
     h.$('[data-c-filter]').value='all';h.event(h.$('[data-c-filter]'),'change');await flush(); // newer successful response owns the page

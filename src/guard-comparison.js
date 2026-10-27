@@ -212,7 +212,8 @@
     $('[data-c-refresh]').disabled=unavailable||busyAction;
     $('[data-c-cancel]').disabled=unavailable||busyAction||(!waiting&&!['queued','running','paused'].includes(state));
     $('[data-c-cancel]').textContent=waiting?'Остановить повтор':'Остановить анализ';
-    $('[data-c-save-current]').disabled=unavailable||busyAction;
+    $('[data-c-save-current]').disabled=unavailable||busyAction||!selectedTask;
+    $('[data-c-save-retry]').hidden=true;
     const rows=attempts(),attempt=currentAttempt(),children=childrenOf(attempt);
     if(attempt)historyRunId=attemptId(attempt);
     const history=$('[data-c-history]');history.hidden=!rows.length&&!historyTotal;
@@ -542,7 +543,7 @@
       '<div class="aio-compare-body"><aside class="aio-compare-sidebar"><details class="aio-compare-history" data-c-history hidden><summary>Повторы и версии</summary><div class="aio-compare-history-body"><select data-c-attempt aria-label="Попытка повторной конвертации"></select><div class="aio-compare-pages"><button type="button" data-c-history-prev aria-label="Новые попытки">←</button><span data-c-history-page></span><button type="button" data-c-history-next aria-label="Предыдущие попытки">→</button></div><div class="aio-compare-candidate" data-c-candidate hidden><small data-c-retry-verdict></small><select data-c-retry-job aria-label="Пакет повторной конвертации"></select><button type="button" data-c-show-retry>Открыть этот пакет</button><button type="button" data-c-save-retry>Сохранить этот пакет</button><details class="aio-compare-verification" data-c-verification-details hidden><summary>Проверка всех преобразований попытки</summary><ul data-c-verification-list></ul><div class="aio-compare-pages"><button type="button" data-c-verification-prev>←</button><span data-c-verification-page></span><button type="button" data-c-verification-next>→</button></div></details></div></div></details><div class="aio-compare-tools"><input type="search" maxlength="200" data-c-search placeholder="Файл или формат" aria-label="Поиск по результатам анализа"><select data-c-filter aria-label="Фильтр результатов анализа"><option value="all">Все результаты</option><option value="confirmed_loss">Подтверждённые потери</option><option value="format_limitation">Ограничения формата</option><option value="uncertain">Требуют проверки</option><option value="not_checked">Не удалось проверить</option><option value="checked">Проверенная часть сохранена</option></select></div>'+
       '<div class="aio-compare-selection"><button type="button" data-c-select-all>Выбрать все с рекомендацией</button><button type="button" data-c-clear>Снять выбор</button><span data-c-selected>Выбрано: 0</span></div><div class="aio-compare-files" data-c-files role="list" aria-label="Преобразования"></div><div class="aio-compare-pages"><button type="button" data-c-prev>Назад</button><span data-c-page></span><button type="button" data-c-next>Далее</button></div></aside>'+
       '<section class="aio-compare-right" aria-label="Просмотр и описание изменений"><div class="aio-compare-preview-head"><button type="button" data-c-source aria-pressed="false">Исходник</button><button type="button" data-c-result aria-pressed="true">Результат</button><div class="aio-compare-pdf-controls" data-c-pdf-controls role="group" aria-label="Страницы PDF" hidden><button type="button" data-c-pdf-prev aria-label="Предыдущая страница PDF">←</button><small data-c-pdf-page>1 / …</small><button type="button" data-c-pdf-next aria-label="Следующая страница PDF">→</button></div><span data-c-preview-label></span><div class="aio-compare-output-controls" data-c-output-controls hidden><button type="button" data-c-output-prev aria-label="Предыдущие выходные файлы">←</button><select data-c-output aria-label="Выходной файл выбранного преобразования"></select><button type="button" data-c-output-next aria-label="Следующие выходные файлы">→</button></div></div><div class="aio-compare-preview" data-c-preview></div><div class="aio-compare-report" data-c-findings></div>'+
-      '<footer class="aio-compare-actions"><button type="button" data-c-retry>Повторить с автонастройкой</button><details class="aio-compare-warning"><summary title="Об автонастройке" aria-label="Предупреждение об автонастройке">!</summary><p>Настройка не обязательно улучшит качество файла. Предыдущий результат будет сохранён.</p></details><button type="button" data-c-save-current>Сохранить текущий пакет</button><button type="button" data-c-back hidden>Предыдущий пакет</button></footer></section></div></div>';
+      '<footer class="aio-compare-actions"><button type="button" data-c-retry>Повторить с автонастройкой</button><details class="aio-compare-warning"><summary title="Об автонастройке" aria-label="Предупреждение об автонастройке">!</summary><p>Настройка не обязательно улучшит качество файла. Предыдущий результат будет сохранён.</p></details><label><input type="checkbox" data-c-include-source>Добавить исходник</label><button type="button" data-c-save-current>Сохранить выбранный выход и диагностику</button><button type="button" data-c-back hidden>Предыдущий пакет</button></footer></section></div></div>';
     document.body.append(dialog);
     $('[data-c-close]').addEventListener('click',closeComparison);
     dialog.addEventListener('cancel',event=>{event.preventDefault();closeComparison();});
@@ -571,7 +572,7 @@
       selected.clear();historyOffset=0;historyPage=[];historyRunId=null;candidateJobId=null;clearVerifications();$('[data-c-history]').setAttribute('open','');
     }));
     $('[data-c-show-retry]').addEventListener('click',()=>{const candidate=$('[data-c-retry-job]').value;if(candidate)open(candidate,{parent:jobId,opener:$('[data-c-show-retry]')});});
-    $('[data-c-save-retry]').addEventListener('click',()=>action(async()=>{const candidate=$('[data-c-retry-job]').value;if(!candidate)throw Error('Повторный результат ещё не готов.');const response=await window.AllInOneBridge?.converter?.saveRetained(candidate,window.AllInOneNativeShell?'folder':'zip');if(response?.saved!==true)throw Error('Сохранение отменено. Оба результата остаются в AIO.');}));
+    $('[data-c-save-retry]').hidden=true;
     $('[data-c-back]').addEventListener('click',()=>{const previous=parentJob;if(previous)open(previous,{opener});});
     $('[data-c-resume]').addEventListener('click',()=>action(()=>request('/compare/control',{jobId,analysisId:analysis?.analysisId,action:'resume'})));
     $('[data-c-restart]').addEventListener('click',()=>action(async current=>{
@@ -581,8 +582,12 @@
     }));
     $('[data-c-refresh]').addEventListener('click',()=>action(async()=>{refreshFailures=0;if(!analysis)await request('/compare/start',{jobId});}));
     $('[data-c-save-current]').addEventListener('click',()=>action(async()=>{
-      const response=await window.AllInOneBridge?.converter?.saveRetained(jobId,window.AllInOneNativeShell?'folder':'zip');
-      if(response?.saved!==true)throw Error('Сохранение отменено. Пакет остаётся в AIO.');
+      if(!selectedTask)throw Error('Выберите преобразование и конкретный выходной файл.');
+      const response=await window.AllInOneBridge?.converter?.saveSelectedDiagnostic({jobId,
+        analysisId:analysis?.analysisId,taskId:selectedTask,
+        outputIndex:detail?.outputsTotal>0?outputIndex:null,
+        includeSource:$('[data-c-include-source]').checked});
+      if(response?.saved!==true)throw Error('Сохранение отменено. Результаты остаются в AIO.');
     }));
     $('[data-c-output]').addEventListener('change',event=>{outputIndex=Number(event.target.value);outputChosen=true;showPreview();});
     for(const [selector,direction] of [['[data-c-output-prev]',-1],['[data-c-output-next]',1]])$(selector).addEventListener('click',()=>{
@@ -635,11 +640,11 @@
     if(root!==launchRoot){launch?.remove();launch=null;launchRoot=root;}
     if(!root)return;
     const footer=root.querySelector('.aio-cv__footer');if(!footer)return;
-    if(!launch){launch=document.createElement('button');launch.type='button';launch.className='aio-compare-launch';launch.textContent='Анализ до/после';launch.setAttribute('aria-haspopup','dialog');launch.setAttribute('aria-expanded','false');launch.dataset.aioCompareLaunch='';launch.addEventListener('click',()=>{if(lastState?.jobId)open(lastState.jobId,{opener:launch}).catch(error=>feedback(error.message));});}
+    if(!launch){launch=root.querySelector('[data-cv-beforeafter]')||document.createElement('button');launch.type='button';launch.className='aio-compare-launch';launch.textContent='До/После';launch.setAttribute('aria-haspopup','dialog');launch.setAttribute('aria-expanded','false');launch.dataset.aioCompareLaunch='';launch.addEventListener('click',()=>{if(lastState?.jobId)open(lastState.jobId,{opener:launch}).catch(error=>feedback(error.message));});}
     if(!launch.isConnected){const save=[...footer.querySelectorAll('button')].find(b=>!b.closest('.aio-guard-queue')&&/Сохранить/.test(b.textContent));if(save)save.insertAdjacentElement('afterend',launch);else footer.append(launch);}
-    launch.hidden=!(lastState?.finished&&lastState.result?.ticket&&lastState.succeeded>0);
+    launch.hidden=!(lastState?.finished&&(lastState.result?.ticket||lastState.failed>0));
     footer.classList.toggle('aio-compare-ready',!launch.hidden);
-    launch.disabled=false;
+    launch.disabled=!lastState?.finished;
     launch.title=lastState?.comparisonAvailable===false?'Служебные исходники недоступны. Анализ покажет ограничения; результат можно просмотреть.':'';
   }
   window.addEventListener('aio-guard-state',event=>{lastState=event.detail||null;attach();});
