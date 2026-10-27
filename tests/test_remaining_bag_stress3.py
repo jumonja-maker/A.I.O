@@ -25,7 +25,7 @@ class Stress3EvidenceContracts(unittest.TestCase):
             with self.assertRaises(ValueError):qa.referenced_sources(folder,{'sourceSHA256':{'../outside.csv':hashlib.sha256(b'x').hexdigest()}})
     def test_fixed_plan_has_real_positive_negative_and_ui_scopes(self):
         stages={name:expected for name,_,expected in qa.STAGES}
-        self.assertEqual(stages['dbf-jpeg'],{'dbf':8,'jpeg':120,'negative':6})
+        self.assertEqual(stages['dbf-jpeg'],{'dbf':8,'largeDbf':1,'jpeg':120,'negative':6})
         self.assertEqual(stages['tiff'],{'cases':24,'negative':6})
         self.assertEqual(stages['html'],{'positive':18,'excluded':30,'negative':3})
         self.assertEqual(stages['viewer-150']['checks'],5)
@@ -38,6 +38,8 @@ class Stress3EvidenceContracts(unittest.TestCase):
             tiff=Path(tmp)/'tiff';tiff.mkdir();source=tiff/'pages-8.tif';source.write_bytes(b'IFD control')
             rows=qa.referenced_sources(tiff,{'cases':[{'source':source.name,'sourceSha256':qa.digest(source)}]})
             self.assertEqual(rows[0]['file'],source.name)
+            with self.assertRaises(ValueError):
+                qa.referenced_sources(tiff,{'checks':[{'originalSha256':'0'*64}]})
     def test_new_parser_corpus_keeps_unknown_distinct_from_loss(self):
         with tempfile.TemporaryDirectory() as tmp:
             rows=qa.safety_negative_corpus(Path(tmp)/'new-controls')

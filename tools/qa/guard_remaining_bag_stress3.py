@@ -23,7 +23,7 @@ STAGES=(
     ('dif-regression','guard_b28_dif_native_acceptance.py',{'cases':48}),
     ('text-id-regression','guard_b29_csv_native_acceptance.py',{'cases':108}),
     ('all-sheets','guard_b30_native_acceptance.py',{'cases':9}),
-    ('dbf-jpeg','guard_native_routes_b13_b31.py',{'dbf':8,'jpeg':120,'negative':6}),
+    ('dbf-jpeg','guard_native_routes_b13_b31.py',{'dbf':8,'largeDbf':1,'jpeg':120,'negative':6}),
     ('tiff','guard_b32_tiff_native_acceptance.py',{'cases':24,'negative':6}),
     ('html','guard_b33_html_native_acceptance.py',{'positive':18,'excluded':30,'negative':3}),
     ('session','guard_session_native_acceptance.py',{'checks':3}),
@@ -82,12 +82,16 @@ def referenced_sources(folder,data):
     # case. Index matching files too; never invent an original corpus path.
     hashes={row.get('check',{}).get('sourceSHA256') for row in data.get('cases',[]) if isinstance(row,dict)}
     hashes.update(row.get('independent',{}).get('originalSha256') for row in data.get('cases',[]) if isinstance(row,dict))
+    hashes.update(row.get('originalSha256') for row in data.get('checks',[]) if isinstance(row,dict))
     hashes.discard(None)
     if hashes:
+        found=set()
         for path in folder.rglob('*'):
             if path.is_file() and not path.is_symlink() and path.stat().st_size<4*1024*1024:
                 sha=digest(path)
-                if sha in hashes:references.append((path,sha,'exact_existing_regression_input'))
+                if sha in hashes:
+                    references.append((path,sha,'exact_existing_regression_input'));found.add(sha)
+        if hashes-found:raise ValueError('reported original hashes do not bind to retained corpus files')
     rows=[];seen=set();root=folder.resolve()
     for path,expected,role in references:
         resolved=path.resolve(strict=True)
