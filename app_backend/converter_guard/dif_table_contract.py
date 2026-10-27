@@ -51,7 +51,7 @@ class _Budget:
         if self.cancel is not None and self.cancel.is_set():
             raise GuardError('CANCELLED', 'Проверка содержимого DIF отменена.', stage='result')
         self.used += size
-        if self.used > MAX_BYTES or time.monotonic() - self.started > self.seconds:
+        if self.used > MAX_BYTES or self.seconds <= 0 or time.monotonic() - self.started >= self.seconds:
             raise _Unknown('dif_table_inspection_budget')
 
     def read(self, stream):
