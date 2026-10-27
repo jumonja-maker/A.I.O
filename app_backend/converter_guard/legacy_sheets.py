@@ -114,7 +114,8 @@ def _index(stream, tags, cancel):
             offset = parser.CurrentByteIndex
             tag_end, self_closing = _tag_end(tags, offset, cancel)
             opened = {'start': offset, 'openEnd': tag_end, 'selfClosing': self_closing,
-                      'depth': len(stack) + 1, 'namespaces': dict(namespaces)}
+                      'depth': len(stack) + 1, 'namespaces': dict(namespaces),
+                      'name': next((v for k,v in attrs.items() if _expanded(k,namespaces) == (TABLE,'name')), '')}
         if opened and expanded == (TABLE, 'table-cell'):
             attributes = {_expanded(key, namespaces): value for key, value in attrs.items()}
             if (TABLE, 'formula') in attributes:
@@ -260,7 +261,8 @@ def prepare_calc_sheet_snapshots(native_fods, output, *, stem=None, cancel):
                    for field in ('st_dev', 'st_ino', 'st_size', 'st_mtime_ns', 'st_ctime_ns')):
                 _invalid('native_flat_file_changed')
         return paths, {'check': 'native_calc_all_sheets', 'status': 'snapshot_prepared',
-                       'sheetCount': len(sheets), 'cachedFormulaCells': formula_cells,
+                       'sheetCount': len(sheets), 'sheetNames': [s['name'] for s in sheets],
+                       'cachedFormulaCells': formula_cells,
                        'valuesOnly': True, 'qualityCompared': False}
     except BaseException:
         shutil.rmtree(output, ignore_errors=True)

@@ -662,6 +662,15 @@
           level:'risk',formats:[target.format],message:warning.message,advice:'Сохраните исходник.'})));
         for(const target of targets){
           const q=target.quality;
+          if(target.checkedFeatures?.length)findings.push({level:'info',formats:[target.format],
+            message:'Проверены отдельные свойства: '+target.checkedFeatures.join(', ')+'.',
+            advice:'Это не проверка полной сохранности содержимого и оформления.'});
+          if(target.saveStatus)findings.push({level:'info',formats:[target.format],
+            message:'Сохранение: '+({saved:'сохранено',partial:'сохранено частично',unsaved:'не сохранено',
+              not_applicable:'нет готовых файлов'}[target.saveStatus]||target.saveStatus)+
+              (target.readbackVerified?' · сохранённые байты прочитаны и сверены.':'. Чтение сохранённой копии не подтверждено.'),advice:''});
+          if(target.unknownReasons?.length)findings.push({level:'not_checked',formats:[target.format],
+            message:'Границы проверки: '+target.unknownReasons.join(', ')+'.',advice:'Причины сохранены в отчёте.'});
           for(const risk of q?.risks||[])findings.push({level:'risk',formats:[target.format],
             message:'Проверка структуры: '+({TEXT_DIFFERS:'текст отличается',CELL_VALUES_DIFFER:'значения ячеек отличаются',
               STRUCTURE_COUNT_DECREASED:'меньше элементов ('+risk.feature+')'}[risk.code]||risk.code)+'. Требуется проверка.',advice:'Сравните с исходником.'});
@@ -672,7 +681,7 @@
         return {...file,complete:false,facts:[],fonts:[],findings:[...findings,
           {level:'not_checked',formats:[],message:'Готовность результата не гарантирует сохранение оформления. Проверка структуры включается перед конвертацией в «Состояние».',advice:''}]};
       }),result:{checks:[{state:'not_checked',
-          message:'Проверка сохранности оформления и содержимого пока не выполнялась.'}]},
+          message:'Полная сохранность оформления и содержимого не подтверждена. Выполненные проверки перечислены отдельно.'}]},
         scope:['Guard использует реестр LibreOffice и реальную native-модель.',
           'Статус готовности означает создание результата, а не доказанное сохранение качества.',
           'Все направления, ошибки и выбранные фильтры доступны в техническом отчёте панели «Состояние».']};

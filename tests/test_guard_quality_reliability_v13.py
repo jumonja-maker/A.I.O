@@ -158,7 +158,8 @@ class SaveAndRecovery(unittest.TestCase):
         self.assertEqual(len(restored['outputs']),2)
 
     def test_malformed_optional_export_diagnostics_cannot_lose_good_outputs(self):
-        for info in (None,{'filter':123,'warnings':None},{'filter':'x'*1000,'warnings':[['invalid']]}):
+        for info in (None,{'filter':123,'warnings':None},{'filter':'x'*1000,'warnings':[['invalid']]},
+                     {'sheetOutputs':None}, {'sheetOutputs':[None, {'file':'x'}]}):
             with self.subTest(info=info):
                 class DiagnosticAdapter(FakeAdapter):
                     def export_info(self):return info
