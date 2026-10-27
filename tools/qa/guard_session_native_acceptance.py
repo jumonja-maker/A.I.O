@@ -103,7 +103,7 @@ def main():
         job=guard.create([{'id':'cancel','name':source.name,'size':source.stat().st_size}],prepare_only=True,retain_sources=True)['jobId']
         with source.open('rb') as stream:guard.upload(job,'cancel',stream,source.stat().st_size)
         guard.preflight(job,timeout_seconds=120)
-        guard.start(job,formats=['pdf'],only_verified=True,archive_mode='on_demand');deadline=time.monotonic()+60;phase=None;process=None
+        guard.start(job,formats=['pdf'],file_ids=['cancel'],only_verified=True,archive_mode='on_demand');deadline=time.monotonic()+60;phase=None;process=None
         while time.monotonic()<deadline:
             state=guard.status(job);phase=(state.get('currentTask') or {}).get('stage')
             if phase in ('import','export') and offices and getattr(offices[-1],'tree',None):
