@@ -43,4 +43,14 @@ text=true;const inert=mount();await inert.ready;assert.equal(root.querySelectorA
 let resolve;hold=new Promise(r=>resolve=r);const delayed=mount();delayed.destroy();resolve();await delayed.ready;
 assert.equal(requests.at(-1).options.signal.aborted,true);assert.equal(root.children.length,0);
 assert.deepEqual([...created].sort(),[...revoked].sort());
+const fullscreen=mount();await fullscreen.ready;
+const section=root.querySelector('.aio-pair-viewer');let fullscreenResolve,exits=0;
+section.requestFullscreen=()=>new Promise(resolve=>fullscreenResolve=resolve);
+document.exitFullscreen=async()=>{exits++;document.fullscreenElement=null;};
+root.querySelector('[data-viewer-fullscreen]').click();
+assert.equal(root.querySelector('[data-viewer-fullscreen]').disabled,true);
+fullscreen.destroy();document.fullscreenElement=section;fullscreenResolve();
+await new Promise(resolve=>setTimeout(resolve,0));
+assert.equal(exits,1);assert.equal(document.fullscreenElement,null);assert.equal(root.children.length,0);
+assert.deepEqual([...created].sort(),[...revoked].sort());
 console.log(JSON.stringify({status:'PASS',scope:'real viewer + DOM, controlled image transport',twoPanes:true,zoom:[100,200,400],synchronizedPages:true,synchronizedPan:true,fullscreen:true,inertText:true,boundURLs:true,stalePreviewDiscarded:true,allBlobURLsRevoked:true}));

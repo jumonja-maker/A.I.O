@@ -3,7 +3,7 @@
   'use strict';
   const prefix='/api/converter-guard/compare/preview';
   function mount(root,{source,result,context,onMessage=()=>{}}){
-    let destroyed=false,revision=0,syncing=false,scale='fit';
+    let destroyed=false,revision=0,syncing=false,scale='fit',fullscreenBusy=false;
     const controller=new AbortController(),urls=new Set();
     const panes=[];
     root.replaceChildren();
@@ -16,14 +16,17 @@
     const syncLabel=document.createElement('label'),sync=document.createElement('input');sync.type='checkbox';sync.checked=true;sync.dataset.viewerSync='';
     syncLabel.append(sync,document.createTextNode('Синхронно'));toolbar.append(syncLabel);
     const full=button('На весь экран',async()=>{
+      if(destroyed||fullscreenBusy)return;fullscreenBusy=true;full.disabled=true;
+      try{
       const dialog=root.closest('dialog');if(!dialog)return;
       if(document.fullscreenElement===viewer){await document.exitFullscreen();return;}
       if(typeof viewer.requestFullscreen==='function'){
-        try{await viewer.requestFullscreen();return;}
-        catch(error){onMessage('Полноэкранный режим недоступен. Просмотр развёрнут в пределах окна.');}
+        try{await viewer.requestFullscreen();if(destroyed&&document.fullscreenElement===viewer)await document.exitFullscreen();return;}
+        catch(error){if(destroyed)return;onMessage('Полноэкранный режим недоступен. Просмотр развёрнут в пределах окна.');}
       }
       const expanded=dialog.classList.toggle('aio-compare-maximized');full.setAttribute('aria-pressed',String(expanded));
       full.textContent=expanded?'Обычный размер':'На весь экран';zoom(scale);
+      }finally{fullscreenBusy=false;if(!destroyed)full.disabled=false;}
     });full.dataset.viewerFullscreen='';toolbar.append(full);
     const fullscreenChanged=()=>{const expanded=document.fullscreenElement===viewer;
       root.closest('dialog')?.classList.toggle('aio-compare-maximized',expanded);
