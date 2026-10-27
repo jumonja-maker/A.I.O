@@ -87,7 +87,7 @@ def main():
                 if target in ('html', 'xhtml'):
                     import re
                     raw = primary[0].read_text(encoding='utf-8-sig')
-                    samples = re.findall(r'\\b(?:sdval|sdnum)\\s*=\\s*["\\\']([^"\\\']+)["\\\']', raw)[:12]
+                    samples = re.findall(r"\b(?:sdval|sdnum)\s*=\s*['\"]([^'\"]+)['\"]", raw)[:12]
                 print('B28_FIXTURE_NUMERIC_SYNTAX=' + json.dumps({
                     'level': level, 'target': target, 'reason': check.get('reason'),
                     'attributes': [str(x)[:48] for x in samples],
