@@ -37,13 +37,24 @@ class SessionLifecycleContracts(unittest.TestCase):
         self.assertTrue((self.root/saved['name']).is_dir())
     def test_close_without_confirmation_is_a_read_only_decision(self):
         guard,job,state=self.ready();root=guard._jobs[job].root
-        before={p.relative_to(root).as_posix():hashlib.sha256(p.read_bytes()).hexdigest()
-                for p in root.rglob('*') if p.is_file()}
+        def inventory():
+            files={}
+            for path in root.rglob('*'):
+                if not path.is_file():continue
+                if path==root/'owner.lock':
+                    # Windows denies a second reader over the locked byte.
+                    # Hash through the existing owner handle; do not omit it.
+                    owner=guard._jobs[job].store.owner;position=owner.tell()
+                    try:owner.seek(0);data=owner.read()
+                    finally:owner.seek(position)
+                else:data=path.read_bytes()
+                files[path.relative_to(root).as_posix()]=hashlib.sha256(data).hexdigest()
+            return files
+        before=inventory()
         result=guard.close_conversion(job)
         self.assertFalse(result['closed']);self.assertTrue(result['confirmationRequired'])
         self.assertFalse(guard._jobs[job].cancel.is_set())
-        self.assertEqual(before,{p.relative_to(root).as_posix():hashlib.sha256(p.read_bytes()).hexdigest()
-                for p in root.rglob('*') if p.is_file()})
+        self.assertEqual(before,inventory())
     def test_confirmed_close_removes_only_own_spool_and_preserves_saved_copy_and_other_job(self):
         guard,job,state=self.ready();artifact=state['result']['outputs'][0]
         saved_path=self.root/'user-saved.pdf'
