@@ -45,4 +45,26 @@ def validate_options(name, options, native):
         return False
     if name in ('DIF', 'dBase'):
         return options == '76'
-    return ('csv' in item[1] and options in {f'{n},34,76,1' for n in (44, 59, 9, 124)})
+    if 'csv' not in item[1] or not isinstance(options, str) or len(options) > 1024:
+        return False
+    defaults = {f'{n},34,76,1' for n in (44, 59, 9, 124)}
+    if options in defaults:
+        return True
+    # Calc CSV token 5: 1-based column / native format 2 (Text). Never
+    # accept user-selected macros, code or unbounded native FilterOptions.
+    # This grammar cannot switch the document importer or admit a route.
+    if name != 'Text - txt - csv (StarCalc)':
+        return False
+    tokens = options.split(',')
+    if len(tokens) != 5 or ','.join(tokens[:4]) not in defaults:
+        return False
+    pairs = tokens[4].split('/')
+    if len(pairs) < 2 or len(pairs) > 128 or len(pairs) % 2:
+        return False
+    last = 0
+    for position, code in zip(pairs[::2], pairs[1::2]):
+        if (not position.isdecimal() or code != '2' or
+                not last < int(position) <= 256):
+            return False
+        last = int(position)
+    return True

@@ -838,6 +838,23 @@ class LibreOfficeAdapter:
             if table_check.get('status') == 'not_checked':
                 self._local.export_info['warnings'] = tuple(dict.fromkeys((
                     *self._local.export_info.get('warnings', ()), 'DIF_TABLE_CONTENT_NOT_CHECKED')))
+        # B29: a real Calc Text CSV/TAB/TSV source may carry identifiers
+        # such as "001". Independently compare original text AND Excel cell
+        # type on supported targets; numeric cell formatted as 000 is not
+        # a preserved textual identifier. Does not need optional quality QA.
+        from .csv_id_contract import check_csv_text_ids
+        text_ids = check_csv_text_ids(
+            paths, target, source,
+            import_filter=getattr(self._local, 'import_filter', None),
+            import_options=getattr(self._local, 'import_options', None),
+            cancel=identity_control)
+        if text_ids:
+            self._local.export_info['resultChecks'] = list(
+                self._local.export_info.get('resultChecks', ())) + [text_ids]
+            if text_ids.get('status') == 'not_checked':
+                self._local.export_info['warnings'] = tuple(dict.fromkeys((
+                    *self._local.export_info.get('warnings', ()),
+                    'CSV_TEXT_IDS_NOT_CHECKED')))
         return paths
 
     def _prepare_dif_snapshot(self, source, workspace, *, cancel, import_hint=None):
