@@ -20,11 +20,13 @@ sys.path[:0]=[str(ROOT),str(ROOT/'tests'),str(ROOT/'tools/qa')]
 # Expected decisions are fixed before any child starts. A successful exit code
 # alone is insufficient: exact result counts and each expected verdict matter.
 STAGES=(
+    ('dif-regression','guard_b28_dif_native_acceptance.py',{'cases':48}),
+    ('text-id-regression','guard_b29_csv_native_acceptance.py',{'cases':108}),
     ('all-sheets','guard_b30_native_acceptance.py',{'cases':9}),
-    ('dbf-jpeg','guard_native_routes_b13_b31.py',{'dbf':8,'jpeg':120}),
+    ('dbf-jpeg','guard_native_routes_b13_b31.py',{'dbf':8,'jpeg':120,'negative':6}),
     ('tiff','guard_b32_tiff_native_acceptance.py',{'cases':24,'negative':6}),
     ('html','guard_b33_html_native_acceptance.py',{'positive':18,'excluded':30,'negative':3}),
-    ('session','guard_session_native_acceptance.py',{'checks':2}),
+    ('session','guard_session_native_acceptance.py',{'checks':3}),
     ('viewer-100','guard_before_after_b19_b25_acceptance.py',{'checks':4}),
     ('viewer-150','guard_before_after_b19_b25_acceptance.py',{'checks':4}),
 )
@@ -61,6 +63,16 @@ def referenced_sources(folder,data):
                 if expected:references.append((folder/row['source'],expected,'expected_'+key))
     if data.get('sourceSha256') and (folder/'native-4k.png').is_file():
         references.append((folder/'native-4k.png',data['sourceSha256'],'qt_4k_alpha_control'))
+    # Exact existing DIF/CSV controls retain their checked input hash in each
+    # case. Index matching files too; never invent an original corpus path.
+    hashes={row.get('check',{}).get('sourceSHA256') for row in data.get('cases',[]) if isinstance(row,dict)}
+    hashes.update(row.get('independent',{}).get('originalSha256') for row in data.get('cases',[]) if isinstance(row,dict))
+    hashes.discard(None)
+    if hashes:
+        for path in folder.rglob('*'):
+            if path.is_file() and not path.is_symlink() and path.stat().st_size<4*1024*1024:
+                sha=digest(path)
+                if sha in hashes:references.append((path,sha,'exact_existing_regression_input'))
     rows=[];seen=set();root=folder.resolve()
     for path,expected,role in references:
         resolved=path.resolve(strict=True)

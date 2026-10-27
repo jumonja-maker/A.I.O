@@ -25,7 +25,7 @@ class Stress3EvidenceContracts(unittest.TestCase):
             with self.assertRaises(ValueError):qa.referenced_sources(folder,{'sourceSHA256':{'../outside.csv':hashlib.sha256(b'x').hexdigest()}})
     def test_fixed_plan_has_real_positive_negative_and_ui_scopes(self):
         stages={name:expected for name,_,expected in qa.STAGES}
-        self.assertEqual(stages['dbf-jpeg'],{'dbf':8,'jpeg':120})
+        self.assertEqual(stages['dbf-jpeg'],{'dbf':8,'jpeg':120,'negative':6})
         self.assertEqual(stages['tiff'],{'cases':24,'negative':6})
         self.assertEqual(stages['html'],{'positive':18,'excluded':30,'negative':3})
         self.assertEqual(stages['viewer-150']['checks'],4)
