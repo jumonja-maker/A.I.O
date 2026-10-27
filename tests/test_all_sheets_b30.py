@@ -99,6 +99,19 @@ class AllSheetsContracts(unittest.TestCase):
             out.write_text('7\n')
             with self.assertRaises(SheetOutputMismatch):verify_fods_csv(fods,out,'csv')
 
+    def test_native_empty_repeated_tail_does_not_exhaust_value_budget(self):
+        body=('<t:table t:name="Data"><t:table-row><t:table-cell o:value-type="string">'
+            '<x:p>001</x:p></t:table-cell><t:table-cell t:number-columns-repeated="16383"/>'
+            '</t:table-row><t:table-row t:number-rows-repeated="1048575">'
+            '<t:table-cell t:number-columns-repeated="16384"/></t:table-row></t:table>')
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);fods=root/'native.fods';csv_file=root/'native.csv'
+            fods.write_bytes(native_flat(body));csv_file.write_text('001\n')
+            check=verify_fods_csv(fods,csv_file,'csv')
+            self.assertEqual(check['status'],'checked_subset')
+            csv_file.write_text('1\n')
+            with self.assertRaises(SheetOutputMismatch):verify_fods_csv(fods,csv_file,'csv')
+
     def test_ready_save_readback_and_quality_remain_independent(self):
         artifacts=[SimpleNamespace(saved=True,readback_verified=True),SimpleNamespace(saved=False,readback_verified=False)]
         task=SimpleNamespace(artifacts=artifacts,quality=None,state='ready',format='csv',code=None,

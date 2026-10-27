@@ -161,16 +161,16 @@ def verify_fods_csv(snapshot, output, extension, *, raw_values=False, cancel=Non
         tables = root.findall('{%s}body/{%s}spreadsheet/{%s}table' % (OFFICE, OFFICE, TABLE))
         if len(tables) != 1:
             raise SheetOutputMismatch('native_snapshot_sheet_count')
-        row, columns = 0, 0
+        row, used_rows, used_columns = 0, 1, 1
         for record in tables[0].iter('{%s}table-row' % TABLE):
             _sheet_cancel(cancel)
             repeated = int(record.get('{%s}number-rows-repeated' % TABLE, '1'))
-            values, column = [], 0
+            values, column = {}, 0
             for cell in record:
                 if cell.tag not in ('{%s}table-cell' % TABLE, '{%s}covered-table-cell' % TABLE):
                     continue
                 count = int(cell.get('{%s}number-columns-repeated' % TABLE, '1'))
-                if count < 1 or repeated < 1 or column + count > SHEET_CELL_BUDGET:
+                if count < 1 or repeated < 1:
                     raise OverflowError('native_snapshot_expansion_budget')
                 paragraphs = cell.findall('{%s}p' % text_ns)
                 value = '\n'.join(shown(p) for p in paragraphs)
@@ -179,17 +179,24 @@ def verify_fods_csv(snapshot, output, extension, *, raw_values=False, cancel=Non
                 kind = cell.get('{%s}value-type' % OFFICE)
                 if raw_values and kind in ('float', 'currency', 'percentage'):
                     value = _SheetDecimal(cell.get('{%s}value' % OFFICE))
-                values.extend([value] * count)
+                if value != '':
+                    if (row + repeated) * (column + count) > SHEET_CELL_BUDGET:
+                        raise OverflowError('native_snapshot_expansion_budget')
+                    for offset in range(count):
+                        values[column + offset] = value
+                    used_rows = max(used_rows, row + repeated)
+                    used_columns = max(used_columns, column + count)
+                # Native FODS can repeat styled *empty* cells to the edge of
+                # the Calc grid. Advance coordinates without expanding them.
                 column += count
-            if (row + repeated) * max(columns, column, 1) > SHEET_CELL_BUDGET:
-                raise OverflowError('native_snapshot_expansion_budget')
-            for offset in range(repeated):
-                for c, value in enumerate(values):
-                    if value != '':
+            if values:
+                if used_rows * used_columns > SHEET_CELL_BUDGET:
+                    raise OverflowError('native_snapshot_expansion_budget')
+                for offset in range(repeated):
+                    for c, value in values.items():
                         cells[row + offset, c] = value
             row += repeated
-            columns = max(columns, column)
-        return verify_csv_sheet(output, extension, row, columns,
+        return verify_csv_sheet(output, extension, used_rows, used_columns,
             lambda r,c: cells.get((r,c), ''), raw_values=raw_values, cancel=cancel)
     except (OverflowError, _SheetInvalid, TypeError, ET.ParseError) as error:
         return {'status':'not_checked', 'reason':'native_snapshot_values_unavailable',

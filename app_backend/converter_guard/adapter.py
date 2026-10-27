@@ -702,6 +702,20 @@ class LibreOfficeAdapter:
         paths = None
         identity_control = (cancel if timeout is None and output_limit is None else
                             _RunControl(cancel, workspace, timeout, output_limit))
+        if target in ('csv','tab','tsv') and on_document_service is not None:
+            # Legacy/unprepared queues have no model proof. A first-sheet
+            # observation export cannot establish whole-workbook completeness.
+            # Use the existing native preflight once before choosing the route.
+            inspected = self.preflight(source, workspace / 'csv-source-preflight',
+                cancel=identity_control, timeout=timeout or 120)
+            if inspected.get('state') != 'detected':
+                raise GuardError('PREFLIGHT_ROUTE_UNDETERMINED',
+                    'Не удалось подтвердить модель и состав книги перед CSV-экспортом.', stage='preflight')
+            self.prepare_source(inspected)
+            proof = inspected
+            on_document_service(inspected)
+            on_document_service = None
+
         if (retry_recipe is None and proof.get('state') == 'detected'
                 and self.route_decision(target, proof) == 'registered'):
             paths = copy_media_identity(source, workspace / 'output', target, cancel=identity_control)
