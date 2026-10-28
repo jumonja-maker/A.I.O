@@ -93,13 +93,15 @@ def main():
             receiver = window.view.focusProxy() or window.view
             position = receiver.mapFrom(window.view, QPoint(round(point['x']), round(point['y'])))
             if double:
-                # A QWidget double-click event is the second press in the
-                # native sequence. WebEngine must also see the preceding
-                # click and final release; no scripted DOM click fallback.
-                QTest.mouseClick(receiver, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, position)
-                QTest.qWait(20)
-                QTest.mouseDClick(receiver, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, position)
-                QTest.mouseRelease(receiver, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, position, 10)
+                # QTest's QWidget path can add 500 ms after a release to
+                # suppress accidental doubles. Its synthetic dbl event alone
+                # was observed as two trusted single clicks in Chromium.
+                # QWindow's QPA sequence has both presses/releases and an
+                # explicit 10 ms timestamp step; no DOM event is synthesized.
+                handle = receiver.window().windowHandle()
+                assert handle is not None
+                qposition = handle.mapFromGlobal(receiver.mapToGlobal(position))
+                QTest.mouseDClick(handle, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, qposition, 10)
             else:
                 QTest.mouseClick(receiver, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, position)
             app.processEvents()
