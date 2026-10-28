@@ -34,7 +34,7 @@
       full.setAttribute('aria-pressed',String(expanded));full.textContent=expanded?'Обычный размер':'На весь экран';zoom(scale);};
     document.addEventListener('fullscreenchange',fullscreenChanged);
     const grid=document.createElement('div');grid.className='aio-pair-grid';
-    const note=document.createElement('small');note.className='aio-pair-note';note.textContent='Колесо — масштаб; перетаскивание — перемещение. Проверенные изменения описаны ниже.';
+    const note=document.createElement('small');note.className='aio-pair-note';note.textContent='Колесо — масштаб; перетаскивание — перемещение. Увеличение не добавляет деталей. Проверенные изменения описаны ниже.';
     viewer.append(toolbar,grid,note);root.append(viewer);
     for(const [side,label,description]of [['source','До · исходник',source],['result','После · выбранный выход',result]]){
       const section=document.createElement('section');section.className='aio-pair-pane';section.dataset.viewerSide=side;
@@ -57,7 +57,9 @@
       viewport.addEventListener('wheel',e=>{if(!pane.node||pane.node.tagName!=='IMG')return;e.preventDefault();zoom(Math.max(.1,Math.min(8,(scale==='fit'?fit(pane):scale)*(e.deltaY<0?1.2:1/1.2))));},{passive:false});
     }
     function current(n){return !destroyed&&n===revision&&root.contains(viewer);}
-    function fit(pane){return pane.width?Math.min(1,Math.max(.01,(pane.viewport.clientWidth||500)/pane.width),Math.max(.01,(pane.viewport.clientHeight||300)/pane.height)):1;}
+    // Fit enlarges small originals as well as shrinking large ones. It remains
+    // bounded like wheel zoom; 100% still means the original pixel dimensions.
+    function fit(pane){return pane.width&&pane.height?Math.min(8,Math.max(.01,(pane.viewport.clientWidth||500)/pane.width),Math.max(.01,(pane.viewport.clientHeight||300)/pane.height)):1;}
     function zoom(value){
       scale=value;
       const imagePanes=panes.filter(p=>p.node?.tagName==='IMG');
