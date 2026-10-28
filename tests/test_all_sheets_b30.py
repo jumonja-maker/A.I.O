@@ -18,6 +18,21 @@ from test_guard_legacy_sheets_v17 import native_flat, sheet
 
 
 class AllSheetsContracts(unittest.TestCase):
+    def test_manifest_is_a_required_companion_not_fifth_user_document(self):
+        from app_backend.converter_guard.core import _Artifact
+        sheet=_Artifact('a'*32,Path('book-sheet-1.csv'),'book-sheet-1.csv',
+                        12,'sheet-ticket',format='csv',
+                        source_sheet={'index':0,'name':'Sheet1','indexBase':0})
+        manifest=_Artifact('a'*32,Path('AIO-sheets.json'),'AIO-sheets.json',
+                           32,'manifest-ticket',format='csv')
+        self.assertFalse(sheet.companion)
+        self.assertTrue(manifest.companion)
+        self.assertFalse(sheet.metadata()['supportingFile'])
+        self.assertTrue(manifest.metadata()['supportingFile'])
+        # The sidecar is still a real, unsaved owned artifact until copied and
+        # independently read back. It must not be silently marked saved.
+        self.assertFalse(manifest.saved)
+
     def test_safe_names_do_not_depend_on_untrusted_sheet_names(self):
         for stem in ('../CON', 'NUL', 'COM1.ext', 'AUX', 'LPT9', 'a\\b', '.', 'x'*1000, 'Книга'):
             names = [sheet_output_name(stem, i, 'csv') for i in range(4)]
