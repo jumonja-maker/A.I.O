@@ -1,0 +1,3038 @@
+{
+  "status": "PASS",
+  "scope": "24 generated TIFF controls; not historical corpus or FULLTEST",
+  "cases": [
+    {
+      "source": "pages-6.tif",
+      "target": "pdf",
+      "status": "PASS",
+      "pages": 6,
+      "firstLastAndAllPixelsVerified": true,
+      "sourceSha256": "d25391871877f4b9d69787f32e097a04e49a14789d85fb4c1606b5fd3a0138c4",
+      "outputSha256": "efb0f5f7fe7b4c429849d8ecc59db26bf09fd26bf88db979013f0d42b29ce3e7",
+      "mode": "qt_media_frames",
+      "checks": [
+        {
+          "check": "media_properties",
+          "status": "checked_subset",
+          "qualityCompared": false,
+          "source": {
+            "format": "tiff",
+            "width": 32,
+            "height": 24,
+            "frames": 1,
+            "pages": 6,
+            "alpha": true,
+            "durationsMs": [],
+            "orientation": 1,
+            "pageDimensions": [
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ]
+            ],
+            "bitDepth": 8,
+            "pageImageIndexes": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "pageOrientations": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ],
+            "pageDpi": [
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ]
+            ]
+          },
+          "result": {
+            "format": "pdf",
+            "pages": 6
+          },
+          "expectedLosses": []
+        }
+      ]
+    },
+    {
+      "source": "pages-6.tif",
+      "target": "png",
+      "status": "PASS",
+      "pages": 6,
+      "firstLastAndAllPixelsVerified": true,
+      "sourceSha256": "d25391871877f4b9d69787f32e097a04e49a14789d85fb4c1606b5fd3a0138c4",
+      "outputSha256": "9e2528a93e6f64f0be2571638fda210956c16071e328ef6401f5630c11376fa9",
+      "mode": "qt_media_frames",
+      "checks": [
+        {
+          "check": "media_properties",
+          "status": "checked_subset",
+          "qualityCompared": false,
+          "source": {
+            "format": "tiff",
+            "width": 32,
+            "height": 24,
+            "frames": 1,
+            "pages": 6,
+            "alpha": true,
+            "durationsMs": [],
+            "orientation": 1,
+            "pageDimensions": [
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ]
+            ],
+            "bitDepth": 8,
+            "pageImageIndexes": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "pageOrientations": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ],
+            "pageDpi": [
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ]
+            ]
+          },
+          "result": {
+            "format": "png",
+            "width": 32,
+            "height": 24,
+            "frames": 6,
+            "pages": 1,
+            "alpha": true,
+            "durationsMs": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "orientation": 1,
+            "animationContainer": true,
+            "loopCount": 1,
+            "bitDepth": 8
+          },
+          "expectedLosses": [
+            "page_semantics_as_frames"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "pages-6.tif",
+      "target": "webp",
+      "status": "PASS",
+      "pages": 6,
+      "firstLastAndAllPixelsVerified": true,
+      "sourceSha256": "d25391871877f4b9d69787f32e097a04e49a14789d85fb4c1606b5fd3a0138c4",
+      "outputSha256": "fbecf411e9449ae01815a0ae6c252d418917d211c48da20c6986cb01819a370a",
+      "mode": "qt_media_frames",
+      "checks": [
+        {
+          "check": "media_properties",
+          "status": "checked_subset",
+          "qualityCompared": false,
+          "source": {
+            "format": "tiff",
+            "width": 32,
+            "height": 24,
+            "frames": 1,
+            "pages": 6,
+            "alpha": true,
+            "durationsMs": [],
+            "orientation": 1,
+            "pageDimensions": [
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ]
+            ],
+            "bitDepth": 8,
+            "pageImageIndexes": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "pageOrientations": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ],
+            "pageDpi": [
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ]
+            ]
+          },
+          "result": {
+            "format": "webp",
+            "width": 32,
+            "height": 24,
+            "frames": 6,
+            "pages": 1,
+            "alpha": true,
+            "durationsMs": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "orientation": 1,
+            "loopCount": 1
+          },
+          "expectedLosses": [
+            "page_semantics_as_frames"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "pages-6.tif",
+      "target": "apng",
+      "status": "PASS",
+      "pages": 6,
+      "firstLastAndAllPixelsVerified": true,
+      "sourceSha256": "d25391871877f4b9d69787f32e097a04e49a14789d85fb4c1606b5fd3a0138c4",
+      "outputSha256": "9e2528a93e6f64f0be2571638fda210956c16071e328ef6401f5630c11376fa9",
+      "mode": "qt_media_frames",
+      "checks": [
+        {
+          "check": "media_properties",
+          "status": "checked_subset",
+          "qualityCompared": false,
+          "source": {
+            "format": "tiff",
+            "width": 32,
+            "height": 24,
+            "frames": 1,
+            "pages": 6,
+            "alpha": true,
+            "durationsMs": [],
+            "orientation": 1,
+            "pageDimensions": [
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ]
+            ],
+            "bitDepth": 8,
+            "pageImageIndexes": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "pageOrientations": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ],
+            "pageDpi": [
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ]
+            ]
+          },
+          "result": {
+            "format": "png",
+            "width": 32,
+            "height": 24,
+            "frames": 6,
+            "pages": 1,
+            "alpha": true,
+            "durationsMs": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "orientation": 1,
+            "animationContainer": true,
+            "loopCount": 1,
+            "bitDepth": 8
+          },
+          "expectedLosses": [
+            "page_semantics_as_frames"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "pages-6.tiff",
+      "target": "pdf",
+      "status": "PASS",
+      "pages": 6,
+      "firstLastAndAllPixelsVerified": true,
+      "sourceSha256": "d25391871877f4b9d69787f32e097a04e49a14789d85fb4c1606b5fd3a0138c4",
+      "outputSha256": "2c7d3dd641b9ac1e6f58f27e2abb9902d21a13f230bf8aac1b052d169b481580",
+      "mode": "qt_media_frames",
+      "checks": [
+        {
+          "check": "media_properties",
+          "status": "checked_subset",
+          "qualityCompared": false,
+          "source": {
+            "format": "tiff",
+            "width": 32,
+            "height": 24,
+            "frames": 1,
+            "pages": 6,
+            "alpha": true,
+            "durationsMs": [],
+            "orientation": 1,
+            "pageDimensions": [
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ]
+            ],
+            "bitDepth": 8,
+            "pageImageIndexes": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "pageOrientations": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ],
+            "pageDpi": [
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ]
+            ]
+          },
+          "result": {
+            "format": "pdf",
+            "pages": 6
+          },
+          "expectedLosses": []
+        }
+      ]
+    },
+    {
+      "source": "pages-6.tiff",
+      "target": "png",
+      "status": "PASS",
+      "pages": 6,
+      "firstLastAndAllPixelsVerified": true,
+      "sourceSha256": "d25391871877f4b9d69787f32e097a04e49a14789d85fb4c1606b5fd3a0138c4",
+      "outputSha256": "9e2528a93e6f64f0be2571638fda210956c16071e328ef6401f5630c11376fa9",
+      "mode": "qt_media_frames",
+      "checks": [
+        {
+          "check": "media_properties",
+          "status": "checked_subset",
+          "qualityCompared": false,
+          "source": {
+            "format": "tiff",
+            "width": 32,
+            "height": 24,
+            "frames": 1,
+            "pages": 6,
+            "alpha": true,
+            "durationsMs": [],
+            "orientation": 1,
+            "pageDimensions": [
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ]
+            ],
+            "bitDepth": 8,
+            "pageImageIndexes": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "pageOrientations": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ],
+            "pageDpi": [
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ]
+            ]
+          },
+          "result": {
+            "format": "png",
+            "width": 32,
+            "height": 24,
+            "frames": 6,
+            "pages": 1,
+            "alpha": true,
+            "durationsMs": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "orientation": 1,
+            "animationContainer": true,
+            "loopCount": 1,
+            "bitDepth": 8
+          },
+          "expectedLosses": [
+            "page_semantics_as_frames"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "pages-6.tiff",
+      "target": "webp",
+      "status": "PASS",
+      "pages": 6,
+      "firstLastAndAllPixelsVerified": true,
+      "sourceSha256": "d25391871877f4b9d69787f32e097a04e49a14789d85fb4c1606b5fd3a0138c4",
+      "outputSha256": "fbecf411e9449ae01815a0ae6c252d418917d211c48da20c6986cb01819a370a",
+      "mode": "qt_media_frames",
+      "checks": [
+        {
+          "check": "media_properties",
+          "status": "checked_subset",
+          "qualityCompared": false,
+          "source": {
+            "format": "tiff",
+            "width": 32,
+            "height": 24,
+            "frames": 1,
+            "pages": 6,
+            "alpha": true,
+            "durationsMs": [],
+            "orientation": 1,
+            "pageDimensions": [
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ]
+            ],
+            "bitDepth": 8,
+            "pageImageIndexes": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "pageOrientations": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ],
+            "pageDpi": [
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ]
+            ]
+          },
+          "result": {
+            "format": "webp",
+            "width": 32,
+            "height": 24,
+            "frames": 6,
+            "pages": 1,
+            "alpha": true,
+            "durationsMs": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "orientation": 1,
+            "loopCount": 1
+          },
+          "expectedLosses": [
+            "page_semantics_as_frames"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "pages-6.tiff",
+      "target": "apng",
+      "status": "PASS",
+      "pages": 6,
+      "firstLastAndAllPixelsVerified": true,
+      "sourceSha256": "d25391871877f4b9d69787f32e097a04e49a14789d85fb4c1606b5fd3a0138c4",
+      "outputSha256": "9e2528a93e6f64f0be2571638fda210956c16071e328ef6401f5630c11376fa9",
+      "mode": "qt_media_frames",
+      "checks": [
+        {
+          "check": "media_properties",
+          "status": "checked_subset",
+          "qualityCompared": false,
+          "source": {
+            "format": "tiff",
+            "width": 32,
+            "height": 24,
+            "frames": 1,
+            "pages": 6,
+            "alpha": true,
+            "durationsMs": [],
+            "orientation": 1,
+            "pageDimensions": [
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ]
+            ],
+            "bitDepth": 8,
+            "pageImageIndexes": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "pageOrientations": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ],
+            "pageDpi": [
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ]
+            ]
+          },
+          "result": {
+            "format": "png",
+            "width": 32,
+            "height": 24,
+            "frames": 6,
+            "pages": 1,
+            "alpha": true,
+            "durationsMs": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "orientation": 1,
+            "animationContainer": true,
+            "loopCount": 1,
+            "bitDepth": 8
+          },
+          "expectedLosses": [
+            "page_semantics_as_frames"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "pages-7.tif",
+      "target": "pdf",
+      "status": "PASS",
+      "pages": 7,
+      "firstLastAndAllPixelsVerified": true,
+      "sourceSha256": "8e169b4a428bd2aa5488f4f2572de24e4021e54ce9bc6cd8aa94be484fde82a5",
+      "outputSha256": "f0fd55570ab7fd9bbe25eca77a55f6641eebe45eb836d4b241ad65ebbba47641",
+      "mode": "qt_media_frames",
+      "checks": [
+        {
+          "check": "media_properties",
+          "status": "checked_subset",
+          "qualityCompared": false,
+          "source": {
+            "format": "tiff",
+            "width": 32,
+            "height": 24,
+            "frames": 1,
+            "pages": 7,
+            "alpha": true,
+            "durationsMs": [],
+            "orientation": 1,
+            "pageDimensions": [
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ]
+            ],
+            "bitDepth": 8,
+            "pageImageIndexes": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "pageOrientations": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ],
+            "pageDpi": [
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ]
+            ]
+          },
+          "result": {
+            "format": "pdf",
+            "pages": 7
+          },
+          "expectedLosses": []
+        }
+      ]
+    },
+    {
+      "source": "pages-7.tif",
+      "target": "png",
+      "status": "PASS",
+      "pages": 7,
+      "firstLastAndAllPixelsVerified": true,
+      "sourceSha256": "8e169b4a428bd2aa5488f4f2572de24e4021e54ce9bc6cd8aa94be484fde82a5",
+      "outputSha256": "7d73104a8659850265c4d882357790d53648166827001514c02c953f048d90e0",
+      "mode": "qt_media_frames",
+      "checks": [
+        {
+          "check": "media_properties",
+          "status": "checked_subset",
+          "qualityCompared": false,
+          "source": {
+            "format": "tiff",
+            "width": 32,
+            "height": 24,
+            "frames": 1,
+            "pages": 7,
+            "alpha": true,
+            "durationsMs": [],
+            "orientation": 1,
+            "pageDimensions": [
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ]
+            ],
+            "bitDepth": 8,
+            "pageImageIndexes": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "pageOrientations": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ],
+            "pageDpi": [
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ]
+            ]
+          },
+          "result": {
+            "format": "png",
+            "width": 32,
+            "height": 24,
+            "frames": 7,
+            "pages": 1,
+            "alpha": true,
+            "durationsMs": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "orientation": 1,
+            "animationContainer": true,
+            "loopCount": 1,
+            "bitDepth": 8
+          },
+          "expectedLosses": [
+            "page_semantics_as_frames"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "pages-7.tif",
+      "target": "webp",
+      "status": "PASS",
+      "pages": 7,
+      "firstLastAndAllPixelsVerified": true,
+      "sourceSha256": "8e169b4a428bd2aa5488f4f2572de24e4021e54ce9bc6cd8aa94be484fde82a5",
+      "outputSha256": "a20117b33bf238aabb28c420d26a1f91fdc4adb66c181722e1ade039f56c5908",
+      "mode": "qt_media_frames",
+      "checks": [
+        {
+          "check": "media_properties",
+          "status": "checked_subset",
+          "qualityCompared": false,
+          "source": {
+            "format": "tiff",
+            "width": 32,
+            "height": 24,
+            "frames": 1,
+            "pages": 7,
+            "alpha": true,
+            "durationsMs": [],
+            "orientation": 1,
+            "pageDimensions": [
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ]
+            ],
+            "bitDepth": 8,
+            "pageImageIndexes": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "pageOrientations": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ],
+            "pageDpi": [
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ]
+            ]
+          },
+          "result": {
+            "format": "webp",
+            "width": 32,
+            "height": 24,
+            "frames": 7,
+            "pages": 1,
+            "alpha": true,
+            "durationsMs": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "orientation": 1,
+            "loopCount": 1
+          },
+          "expectedLosses": [
+            "page_semantics_as_frames"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "pages-7.tif",
+      "target": "apng",
+      "status": "PASS",
+      "pages": 7,
+      "firstLastAndAllPixelsVerified": true,
+      "sourceSha256": "8e169b4a428bd2aa5488f4f2572de24e4021e54ce9bc6cd8aa94be484fde82a5",
+      "outputSha256": "7d73104a8659850265c4d882357790d53648166827001514c02c953f048d90e0",
+      "mode": "qt_media_frames",
+      "checks": [
+        {
+          "check": "media_properties",
+          "status": "checked_subset",
+          "qualityCompared": false,
+          "source": {
+            "format": "tiff",
+            "width": 32,
+            "height": 24,
+            "frames": 1,
+            "pages": 7,
+            "alpha": true,
+            "durationsMs": [],
+            "orientation": 1,
+            "pageDimensions": [
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ]
+            ],
+            "bitDepth": 8,
+            "pageImageIndexes": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "pageOrientations": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ],
+            "pageDpi": [
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ]
+            ]
+          },
+          "result": {
+            "format": "png",
+            "width": 32,
+            "height": 24,
+            "frames": 7,
+            "pages": 1,
+            "alpha": true,
+            "durationsMs": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "orientation": 1,
+            "animationContainer": true,
+            "loopCount": 1,
+            "bitDepth": 8
+          },
+          "expectedLosses": [
+            "page_semantics_as_frames"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "pages-7.tiff",
+      "target": "pdf",
+      "status": "PASS",
+      "pages": 7,
+      "firstLastAndAllPixelsVerified": true,
+      "sourceSha256": "8e169b4a428bd2aa5488f4f2572de24e4021e54ce9bc6cd8aa94be484fde82a5",
+      "outputSha256": "3b50931bbf78b9c5c4d3bd5f6ad77a187383d482df58c4801e239667d110b4c9",
+      "mode": "qt_media_frames",
+      "checks": [
+        {
+          "check": "media_properties",
+          "status": "checked_subset",
+          "qualityCompared": false,
+          "source": {
+            "format": "tiff",
+            "width": 32,
+            "height": 24,
+            "frames": 1,
+            "pages": 7,
+            "alpha": true,
+            "durationsMs": [],
+            "orientation": 1,
+            "pageDimensions": [
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ]
+            ],
+            "bitDepth": 8,
+            "pageImageIndexes": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "pageOrientations": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ],
+            "pageDpi": [
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ]
+            ]
+          },
+          "result": {
+            "format": "pdf",
+            "pages": 7
+          },
+          "expectedLosses": []
+        }
+      ]
+    },
+    {
+      "source": "pages-7.tiff",
+      "target": "png",
+      "status": "PASS",
+      "pages": 7,
+      "firstLastAndAllPixelsVerified": true,
+      "sourceSha256": "8e169b4a428bd2aa5488f4f2572de24e4021e54ce9bc6cd8aa94be484fde82a5",
+      "outputSha256": "7d73104a8659850265c4d882357790d53648166827001514c02c953f048d90e0",
+      "mode": "qt_media_frames",
+      "checks": [
+        {
+          "check": "media_properties",
+          "status": "checked_subset",
+          "qualityCompared": false,
+          "source": {
+            "format": "tiff",
+            "width": 32,
+            "height": 24,
+            "frames": 1,
+            "pages": 7,
+            "alpha": true,
+            "durationsMs": [],
+            "orientation": 1,
+            "pageDimensions": [
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ]
+            ],
+            "bitDepth": 8,
+            "pageImageIndexes": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "pageOrientations": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ],
+            "pageDpi": [
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ]
+            ]
+          },
+          "result": {
+            "format": "png",
+            "width": 32,
+            "height": 24,
+            "frames": 7,
+            "pages": 1,
+            "alpha": true,
+            "durationsMs": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "orientation": 1,
+            "animationContainer": true,
+            "loopCount": 1,
+            "bitDepth": 8
+          },
+          "expectedLosses": [
+            "page_semantics_as_frames"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "pages-7.tiff",
+      "target": "webp",
+      "status": "PASS",
+      "pages": 7,
+      "firstLastAndAllPixelsVerified": true,
+      "sourceSha256": "8e169b4a428bd2aa5488f4f2572de24e4021e54ce9bc6cd8aa94be484fde82a5",
+      "outputSha256": "a20117b33bf238aabb28c420d26a1f91fdc4adb66c181722e1ade039f56c5908",
+      "mode": "qt_media_frames",
+      "checks": [
+        {
+          "check": "media_properties",
+          "status": "checked_subset",
+          "qualityCompared": false,
+          "source": {
+            "format": "tiff",
+            "width": 32,
+            "height": 24,
+            "frames": 1,
+            "pages": 7,
+            "alpha": true,
+            "durationsMs": [],
+            "orientation": 1,
+            "pageDimensions": [
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ]
+            ],
+            "bitDepth": 8,
+            "pageImageIndexes": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "pageOrientations": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ],
+            "pageDpi": [
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ]
+            ]
+          },
+          "result": {
+            "format": "webp",
+            "width": 32,
+            "height": 24,
+            "frames": 7,
+            "pages": 1,
+            "alpha": true,
+            "durationsMs": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "orientation": 1,
+            "loopCount": 1
+          },
+          "expectedLosses": [
+            "page_semantics_as_frames"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "pages-7.tiff",
+      "target": "apng",
+      "status": "PASS",
+      "pages": 7,
+      "firstLastAndAllPixelsVerified": true,
+      "sourceSha256": "8e169b4a428bd2aa5488f4f2572de24e4021e54ce9bc6cd8aa94be484fde82a5",
+      "outputSha256": "7d73104a8659850265c4d882357790d53648166827001514c02c953f048d90e0",
+      "mode": "qt_media_frames",
+      "checks": [
+        {
+          "check": "media_properties",
+          "status": "checked_subset",
+          "qualityCompared": false,
+          "source": {
+            "format": "tiff",
+            "width": 32,
+            "height": 24,
+            "frames": 1,
+            "pages": 7,
+            "alpha": true,
+            "durationsMs": [],
+            "orientation": 1,
+            "pageDimensions": [
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ]
+            ],
+            "bitDepth": 8,
+            "pageImageIndexes": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "pageOrientations": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ],
+            "pageDpi": [
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ]
+            ]
+          },
+          "result": {
+            "format": "png",
+            "width": 32,
+            "height": 24,
+            "frames": 7,
+            "pages": 1,
+            "alpha": true,
+            "durationsMs": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "orientation": 1,
+            "animationContainer": true,
+            "loopCount": 1,
+            "bitDepth": 8
+          },
+          "expectedLosses": [
+            "page_semantics_as_frames"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "pages-8.tif",
+      "target": "pdf",
+      "status": "PASS",
+      "pages": 8,
+      "firstLastAndAllPixelsVerified": true,
+      "sourceSha256": "3b91624482b8d21afe8484f27d01ae39dd4592c3ff07515eef5a61323bae21d5",
+      "outputSha256": "bf5847e2c239edd978cf8e93a7a8464ddf52e1e42cb459d33471000b2ae7ce18",
+      "mode": "qt_media_frames",
+      "checks": [
+        {
+          "check": "media_properties",
+          "status": "checked_subset",
+          "qualityCompared": false,
+          "source": {
+            "format": "tiff",
+            "width": 32,
+            "height": 24,
+            "frames": 1,
+            "pages": 8,
+            "alpha": true,
+            "durationsMs": [],
+            "orientation": 1,
+            "pageDimensions": [
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ]
+            ],
+            "bitDepth": 8,
+            "pageImageIndexes": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7
+            ],
+            "pageOrientations": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ],
+            "pageDpi": [
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ]
+            ]
+          },
+          "result": {
+            "format": "pdf",
+            "pages": 8
+          },
+          "expectedLosses": []
+        }
+      ]
+    },
+    {
+      "source": "pages-8.tif",
+      "target": "png",
+      "status": "PASS",
+      "pages": 8,
+      "firstLastAndAllPixelsVerified": true,
+      "sourceSha256": "3b91624482b8d21afe8484f27d01ae39dd4592c3ff07515eef5a61323bae21d5",
+      "outputSha256": "0f3f15ce3fc5570c3be4e691ca662dbe7d5eede0cd2d47f6310e450e3e107fff",
+      "mode": "qt_media_frames",
+      "checks": [
+        {
+          "check": "media_properties",
+          "status": "checked_subset",
+          "qualityCompared": false,
+          "source": {
+            "format": "tiff",
+            "width": 32,
+            "height": 24,
+            "frames": 1,
+            "pages": 8,
+            "alpha": true,
+            "durationsMs": [],
+            "orientation": 1,
+            "pageDimensions": [
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ]
+            ],
+            "bitDepth": 8,
+            "pageImageIndexes": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7
+            ],
+            "pageOrientations": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ],
+            "pageDpi": [
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ]
+            ]
+          },
+          "result": {
+            "format": "png",
+            "width": 32,
+            "height": 24,
+            "frames": 8,
+            "pages": 1,
+            "alpha": true,
+            "durationsMs": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "orientation": 1,
+            "animationContainer": true,
+            "loopCount": 1,
+            "bitDepth": 8
+          },
+          "expectedLosses": [
+            "page_semantics_as_frames"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "pages-8.tif",
+      "target": "webp",
+      "status": "PASS",
+      "pages": 8,
+      "firstLastAndAllPixelsVerified": true,
+      "sourceSha256": "3b91624482b8d21afe8484f27d01ae39dd4592c3ff07515eef5a61323bae21d5",
+      "outputSha256": "0ef78b42aa85b184d08cf096a5ec70a99a833183419fa38c9410ad22c8ca2adf",
+      "mode": "qt_media_frames",
+      "checks": [
+        {
+          "check": "media_properties",
+          "status": "checked_subset",
+          "qualityCompared": false,
+          "source": {
+            "format": "tiff",
+            "width": 32,
+            "height": 24,
+            "frames": 1,
+            "pages": 8,
+            "alpha": true,
+            "durationsMs": [],
+            "orientation": 1,
+            "pageDimensions": [
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ]
+            ],
+            "bitDepth": 8,
+            "pageImageIndexes": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7
+            ],
+            "pageOrientations": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ],
+            "pageDpi": [
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ]
+            ]
+          },
+          "result": {
+            "format": "webp",
+            "width": 32,
+            "height": 24,
+            "frames": 8,
+            "pages": 1,
+            "alpha": true,
+            "durationsMs": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "orientation": 1,
+            "loopCount": 1
+          },
+          "expectedLosses": [
+            "page_semantics_as_frames"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "pages-8.tif",
+      "target": "apng",
+      "status": "PASS",
+      "pages": 8,
+      "firstLastAndAllPixelsVerified": true,
+      "sourceSha256": "3b91624482b8d21afe8484f27d01ae39dd4592c3ff07515eef5a61323bae21d5",
+      "outputSha256": "0f3f15ce3fc5570c3be4e691ca662dbe7d5eede0cd2d47f6310e450e3e107fff",
+      "mode": "qt_media_frames",
+      "checks": [
+        {
+          "check": "media_properties",
+          "status": "checked_subset",
+          "qualityCompared": false,
+          "source": {
+            "format": "tiff",
+            "width": 32,
+            "height": 24,
+            "frames": 1,
+            "pages": 8,
+            "alpha": true,
+            "durationsMs": [],
+            "orientation": 1,
+            "pageDimensions": [
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ]
+            ],
+            "bitDepth": 8,
+            "pageImageIndexes": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7
+            ],
+            "pageOrientations": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ],
+            "pageDpi": [
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ]
+            ]
+          },
+          "result": {
+            "format": "png",
+            "width": 32,
+            "height": 24,
+            "frames": 8,
+            "pages": 1,
+            "alpha": true,
+            "durationsMs": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "orientation": 1,
+            "animationContainer": true,
+            "loopCount": 1,
+            "bitDepth": 8
+          },
+          "expectedLosses": [
+            "page_semantics_as_frames"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "pages-8.tiff",
+      "target": "pdf",
+      "status": "PASS",
+      "pages": 8,
+      "firstLastAndAllPixelsVerified": true,
+      "sourceSha256": "3b91624482b8d21afe8484f27d01ae39dd4592c3ff07515eef5a61323bae21d5",
+      "outputSha256": "22730900725857d354d1ba6b13cf586b573db67a01b79a3fcaaba21887b3159f",
+      "mode": "qt_media_frames",
+      "checks": [
+        {
+          "check": "media_properties",
+          "status": "checked_subset",
+          "qualityCompared": false,
+          "source": {
+            "format": "tiff",
+            "width": 32,
+            "height": 24,
+            "frames": 1,
+            "pages": 8,
+            "alpha": true,
+            "durationsMs": [],
+            "orientation": 1,
+            "pageDimensions": [
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ]
+            ],
+            "bitDepth": 8,
+            "pageImageIndexes": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7
+            ],
+            "pageOrientations": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ],
+            "pageDpi": [
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ]
+            ]
+          },
+          "result": {
+            "format": "pdf",
+            "pages": 8
+          },
+          "expectedLosses": []
+        }
+      ]
+    },
+    {
+      "source": "pages-8.tiff",
+      "target": "png",
+      "status": "PASS",
+      "pages": 8,
+      "firstLastAndAllPixelsVerified": true,
+      "sourceSha256": "3b91624482b8d21afe8484f27d01ae39dd4592c3ff07515eef5a61323bae21d5",
+      "outputSha256": "0f3f15ce3fc5570c3be4e691ca662dbe7d5eede0cd2d47f6310e450e3e107fff",
+      "mode": "qt_media_frames",
+      "checks": [
+        {
+          "check": "media_properties",
+          "status": "checked_subset",
+          "qualityCompared": false,
+          "source": {
+            "format": "tiff",
+            "width": 32,
+            "height": 24,
+            "frames": 1,
+            "pages": 8,
+            "alpha": true,
+            "durationsMs": [],
+            "orientation": 1,
+            "pageDimensions": [
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ]
+            ],
+            "bitDepth": 8,
+            "pageImageIndexes": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7
+            ],
+            "pageOrientations": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ],
+            "pageDpi": [
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ]
+            ]
+          },
+          "result": {
+            "format": "png",
+            "width": 32,
+            "height": 24,
+            "frames": 8,
+            "pages": 1,
+            "alpha": true,
+            "durationsMs": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "orientation": 1,
+            "animationContainer": true,
+            "loopCount": 1,
+            "bitDepth": 8
+          },
+          "expectedLosses": [
+            "page_semantics_as_frames"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "pages-8.tiff",
+      "target": "webp",
+      "status": "PASS",
+      "pages": 8,
+      "firstLastAndAllPixelsVerified": true,
+      "sourceSha256": "3b91624482b8d21afe8484f27d01ae39dd4592c3ff07515eef5a61323bae21d5",
+      "outputSha256": "0ef78b42aa85b184d08cf096a5ec70a99a833183419fa38c9410ad22c8ca2adf",
+      "mode": "qt_media_frames",
+      "checks": [
+        {
+          "check": "media_properties",
+          "status": "checked_subset",
+          "qualityCompared": false,
+          "source": {
+            "format": "tiff",
+            "width": 32,
+            "height": 24,
+            "frames": 1,
+            "pages": 8,
+            "alpha": true,
+            "durationsMs": [],
+            "orientation": 1,
+            "pageDimensions": [
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ]
+            ],
+            "bitDepth": 8,
+            "pageImageIndexes": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7
+            ],
+            "pageOrientations": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ],
+            "pageDpi": [
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ]
+            ]
+          },
+          "result": {
+            "format": "webp",
+            "width": 32,
+            "height": 24,
+            "frames": 8,
+            "pages": 1,
+            "alpha": true,
+            "durationsMs": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "orientation": 1,
+            "loopCount": 1
+          },
+          "expectedLosses": [
+            "page_semantics_as_frames"
+          ]
+        }
+      ]
+    },
+    {
+      "source": "pages-8.tiff",
+      "target": "apng",
+      "status": "PASS",
+      "pages": 8,
+      "firstLastAndAllPixelsVerified": true,
+      "sourceSha256": "3b91624482b8d21afe8484f27d01ae39dd4592c3ff07515eef5a61323bae21d5",
+      "outputSha256": "0f3f15ce3fc5570c3be4e691ca662dbe7d5eede0cd2d47f6310e450e3e107fff",
+      "mode": "qt_media_frames",
+      "checks": [
+        {
+          "check": "media_properties",
+          "status": "checked_subset",
+          "qualityCompared": false,
+          "source": {
+            "format": "tiff",
+            "width": 32,
+            "height": 24,
+            "frames": 1,
+            "pages": 8,
+            "alpha": true,
+            "durationsMs": [],
+            "orientation": 1,
+            "pageDimensions": [
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ],
+              [
+                32,
+                24
+              ]
+            ],
+            "bitDepth": 8,
+            "pageImageIndexes": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7
+            ],
+            "pageOrientations": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ],
+            "pageDpi": [
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ],
+              [
+                99.9998,
+                99.9998
+              ]
+            ]
+          },
+          "result": {
+            "format": "png",
+            "width": 32,
+            "height": 24,
+            "frames": 8,
+            "pages": 1,
+            "alpha": true,
+            "durationsMs": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "orientation": 1,
+            "animationContainer": true,
+            "loopCount": 1,
+            "bitDepth": 8
+          },
+          "expectedLosses": [
+            "page_semantics_as_frames"
+          ]
+        }
+      ]
+    }
+  ],
+  "negative": [
+    {
+      "status": "SAFE_REJECTION",
+      "source": "truncated-6-tif.tiff",
+      "sha256": "678186b858431855705b665c1afc88f20a9100186c327746adeca290660ed192",
+      "code": "MEDIA_OUTPUT_INVALID"
+    },
+    {
+      "status": "SAFE_REJECTION",
+      "source": "truncated-6-tiff.tiff",
+      "sha256": "678186b858431855705b665c1afc88f20a9100186c327746adeca290660ed192",
+      "code": "MEDIA_OUTPUT_INVALID"
+    },
+    {
+      "status": "SAFE_REJECTION",
+      "source": "truncated-7-tif.tiff",
+      "sha256": "9f60fe3076387ad716837c1820729964844ec88b66f932c496f999e3cea8971b",
+      "code": "MEDIA_OUTPUT_INVALID"
+    },
+    {
+      "status": "SAFE_REJECTION",
+      "source": "truncated-7-tiff.tiff",
+      "sha256": "9f60fe3076387ad716837c1820729964844ec88b66f932c496f999e3cea8971b",
+      "code": "MEDIA_OUTPUT_INVALID"
+    },
+    {
+      "status": "SAFE_REJECTION",
+      "source": "truncated-8-tif.tiff",
+      "sha256": "d83c21beb94d155168e6160e377f0fc6a30d4b2fb967aa6a2bc4ec5e11b0a8c0",
+      "code": "MEDIA_OUTPUT_INVALID"
+    },
+    {
+      "status": "SAFE_REJECTION",
+      "source": "truncated-8-tiff.tiff",
+      "sha256": "d83c21beb94d155168e6160e377f0fc6a30d4b2fb967aa6a2bc4ec5e11b0a8c0",
+      "code": "MEDIA_OUTPUT_INVALID"
+    }
+  ]
+}

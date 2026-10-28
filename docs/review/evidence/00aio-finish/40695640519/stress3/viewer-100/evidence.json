@@ -1,0 +1,316 @@
+{
+  "status": "PASS",
+  "scope": "source QtWebEngine/real preview codecs + native Writer HTML; not installed EXE or FULLTEST",
+  "scaleFactor": "1",
+  "checks": [
+    {
+      "name": "native-writer-html-analysis",
+      "status": "PASS",
+      "sourceSha256": "882e9ebed7106b63042cd461e8400cfb54876c0b08b143936ceaaf46b281f171",
+      "analysis": {
+        "schemaVersion": 1,
+        "status": "checked",
+        "qualityCompared": true,
+        "scope": "verified_properties_only",
+        "findings": [],
+        "checkedFeatures": [
+          "cell_values_single_grid",
+          "normalized_text"
+        ],
+        "unknown": [
+          "colour_accuracy",
+          "comments_and_revisions",
+          "field_evaluation",
+          "fonts",
+          "formula_evaluation",
+          "hidden_text",
+          "html_css_layout",
+          "html_embedded_resource_rendering",
+          "html_text_visibility",
+          "semantic_meaning",
+          "textboxes_reading_order",
+          "visual_layout",
+          "word_table_structure"
+        ],
+        "recipeCandidates": [],
+        "before": {
+          "kind": "ooxml",
+          "documentClass": "text",
+          "complete": true,
+          "counts": {
+            "tables": 1,
+            "textParts": 1,
+            "images": 0,
+            "formulas": 0,
+            "characters": 69
+          },
+          "textDigest": "9ac6226334ec41b81aa7b324684a7f9d998b012bfcf0fb2f3052b661973a6ba4",
+          "textCoverage": [
+            "body"
+          ]
+        },
+        "after": {
+          "kind": "html",
+          "documentClass": "text",
+          "complete": true,
+          "counts": {
+            "tables": 1,
+            "images": 0,
+            "characters": 69
+          },
+          "textDigest": "9ac6226334ec41b81aa7b324684a7f9d998b012bfcf0fb2f3052b661973a6ba4",
+          "textCoverage": [
+            "html_body_markup"
+          ]
+        },
+        "outputScope": {
+          "totalFiles": 1,
+          "primaryFiles": 1,
+          "supplementalFiles": 0,
+          "inspectedPrimaryFiles": 1,
+          "inspectedSupplementalFiles": 0
+        },
+        "evaluatedFeatures": [
+          "cell_values_single_grid",
+          "normalized_text"
+        ]
+      }
+    },
+    {
+      "name": "qt-two-pane-4k-dark",
+      "status": "PASS",
+      "nativeMouseFilter": true,
+      "nativeKeyboardFilter": true,
+      "zooms": [
+        100,
+        200,
+        400
+      ],
+      "sourcePixels": [
+        3840,
+        2160
+      ]
+    },
+    {
+      "name": "qt-two-pane-4k-light",
+      "status": "PASS",
+      "nativeMouseFilter": true,
+      "nativeKeyboardFilter": true,
+      "zooms": [
+        100,
+        200,
+        400
+      ],
+      "sourcePixels": [
+        3840,
+        2160
+      ]
+    },
+    {
+      "name": "qt-synchronized-animation-frame-navigation",
+      "status": "PASS",
+      "frames": 3
+    },
+    {
+      "name": "qt-failed-conversion-filter",
+      "status": "PASS",
+      "code": "MEDIA_GIF_ALPHA_UNREPRESENTABLE",
+      "nativeMouseFilter": true
+    }
+  ],
+  "snapshots": [
+    {
+      "name": "dark.png",
+      "sha256": "5e6ddd3e9b6fada146c6927ec625491f86a1a47328a281fd38d1306f08157c7b",
+      "geometry": {
+        "x": 16,
+        "y": 16,
+        "width": 868,
+        "height": 618,
+        "viewportWidth": 900,
+        "viewportHeight": 650,
+        "panes": 2,
+        "dpr": 1,
+        "previewBottom": 430.109375,
+        "reportTop": 430.109375,
+        "reportBottom": 539,
+        "actionsTop": 539,
+        "actionsBottom": 633
+      },
+      "paintedImagePointsVerified": true,
+      "paint": {
+        "points": [
+          {
+            "x": 376.765625,
+            "y": 310.5546875,
+            "width": 148,
+            "height": 83.109375
+          },
+          {
+            "x": 666.875,
+            "y": 310.5546875,
+            "width": 148,
+            "height": 83.109375
+          }
+        ],
+        "colours": [
+          [
+            248,
+            208,
+            144
+          ],
+          [
+            248,
+            208,
+            144
+          ]
+        ],
+        "expected": [
+          [
+            239,
+            199,
+            135
+          ],
+          [
+            248,
+            208,
+            144
+          ]
+        ],
+        "frameMarkers": [
+          {
+            "x": 29,
+            "y": 29
+          },
+          {
+            "x": 29,
+            "y": 621
+          },
+          {
+            "x": 871,
+            "y": 621
+          }
+        ],
+        "frameMarkerPixels": [
+          [
+            19,
+            73,
+            181
+          ],
+          [
+            19,
+            73,
+            181
+          ],
+          [
+            19,
+            73,
+            181
+          ]
+        ],
+        "expectedMarkerColour": [
+          19,
+          73,
+          181
+        ]
+      }
+    },
+    {
+      "name": "light.png",
+      "sha256": "0c1fd2e694e20667ce731c6c44d9787ba5f33e33e92414a1c561b3aca7a99ee1",
+      "geometry": {
+        "x": 16,
+        "y": 16,
+        "width": 868,
+        "height": 618,
+        "viewportWidth": 900,
+        "viewportHeight": 650,
+        "panes": 2,
+        "dpr": 1,
+        "previewBottom": 430.109375,
+        "reportTop": 430.109375,
+        "reportBottom": 539,
+        "actionsTop": 539,
+        "actionsBottom": 633
+      },
+      "paintedImagePointsVerified": true,
+      "paint": {
+        "points": [
+          {
+            "x": 376.765625,
+            "y": 310.5546875,
+            "width": 148,
+            "height": 83.109375
+          },
+          {
+            "x": 666.875,
+            "y": 310.5546875,
+            "width": 148,
+            "height": 83.109375
+          }
+        ],
+        "colours": [
+          [
+            248,
+            208,
+            144
+          ],
+          [
+            248,
+            208,
+            144
+          ]
+        ],
+        "expected": [
+          [
+            239,
+            199,
+            135
+          ],
+          [
+            248,
+            208,
+            144
+          ]
+        ],
+        "frameMarkers": [
+          {
+            "x": 29,
+            "y": 29
+          },
+          {
+            "x": 29,
+            "y": 621
+          },
+          {
+            "x": 871,
+            "y": 621
+          }
+        ],
+        "frameMarkerPixels": [
+          [
+            181,
+            73,
+            19
+          ],
+          [
+            181,
+            73,
+            19
+          ],
+          [
+            181,
+            73,
+            19
+          ]
+        ],
+        "expectedMarkerColour": [
+          181,
+          73,
+          19
+        ]
+      }
+    }
+  ],
+  "sourceSha256": "20d333b20be85caacbe46aa78dcd1f721cadbe19a69cc1725455f2084e447c29"
+}

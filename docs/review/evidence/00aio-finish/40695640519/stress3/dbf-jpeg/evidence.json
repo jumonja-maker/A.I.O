@@ -1,0 +1,2837 @@
+{
+  "status": "PASS",
+  "scope": "generated native controls; not preserved 680-file FULLTEST",
+  "dbf": [
+    {
+      "level": 1,
+      "status": "PASS",
+      "mode": "native_uno",
+      "nativeImportFilter": "dBase",
+      "importOptions": "34",
+      "records": 3,
+      "lastRecord": [
+        "003",
+        "Строка 3 уровень 1",
+        3.75
+      ],
+      "sourceSha256": "baae17c703147c6cd9e172b4098cfd7a96ca8f4cefa9c43c0e882161dfaf733a",
+      "outputSha256": "db8de70f09eb360931adac92b68ad30dee6bc83133918cba79af1880225ca5fe"
+    },
+    {
+      "level": 2,
+      "status": "PASS",
+      "mode": "native_uno",
+      "nativeImportFilter": "dBase",
+      "importOptions": "34",
+      "records": 4,
+      "lastRecord": [
+        "004",
+        "Строка 4 уровень 2",
+        5
+      ],
+      "sourceSha256": "9d4e989978d5d861d555ba9d33d2c25945402b245565df3d102bfbc672cf6436",
+      "outputSha256": "41866c09e13897732b1f725bf051e3457a114d6da7e2477fef85399ba895f9f9"
+    },
+    {
+      "level": 3,
+      "status": "PASS",
+      "mode": "native_uno",
+      "nativeImportFilter": "dBase",
+      "importOptions": "34",
+      "records": 5,
+      "lastRecord": [
+        "005",
+        "Строка 5 уровень 3",
+        6.25
+      ],
+      "sourceSha256": "8b58d4bfde7307a932d598f67c97c65f003e990624c36d6ddc6f1383ad4a8be8",
+      "outputSha256": "52eae1eacf9b52c0e0b09fe2800c9891c319efcd1ad26bdbc0b703b450baa3ef"
+    },
+    {
+      "level": 4,
+      "status": "PASS",
+      "mode": "native_uno",
+      "nativeImportFilter": "dBase",
+      "importOptions": "34",
+      "records": 6,
+      "lastRecord": [
+        "006",
+        "Строка 6 уровень 4",
+        7.5
+      ],
+      "sourceSha256": "e677ad2d12dd20b63952e2dc030a76f0843663d338e4f0a039b9046f2c29b0fa",
+      "outputSha256": "ad7bee358ed17c41e3a86c2886d713e8e7401b34709204cf81a6a9c0467653a2"
+    },
+    {
+      "level": 5,
+      "status": "PASS",
+      "mode": "native_uno",
+      "nativeImportFilter": "dBase",
+      "importOptions": "34",
+      "records": 7,
+      "lastRecord": [
+        "007",
+        "Строка 7 уровень 5",
+        8.75
+      ],
+      "sourceSha256": "ce7a6e8a3641dd93e9c75ca3e42a978293a720d193d1c1d3efb2281dc420e72b",
+      "outputSha256": "cec38bee8ca0a881fd9f67461549201c833693043f239c09734ea5785e741207"
+    },
+    {
+      "level": 6,
+      "status": "PASS",
+      "mode": "native_uno",
+      "nativeImportFilter": "dBase",
+      "importOptions": "34",
+      "records": 8,
+      "lastRecord": [
+        "008",
+        "Строка 8 уровень 6",
+        10
+      ],
+      "sourceSha256": "103bf6da094855a2a93339deb6e61a9fec2fd838cd86fd888de4534885751a39",
+      "outputSha256": "df12e621badd0fa04e8cf20a07f0e80ba0d43032f68bb2665cfb3723ce1cdccd"
+    },
+    {
+      "level": 7,
+      "status": "PASS",
+      "mode": "native_uno",
+      "nativeImportFilter": "dBase",
+      "importOptions": "34",
+      "records": 9,
+      "lastRecord": [
+        "009",
+        "Строка 9 уровень 7",
+        11.25
+      ],
+      "sourceSha256": "e7b8214f7e3840c4d3c6e89a115b9ca9960eb529f1874590cf7797b73020d8bb",
+      "outputSha256": "a46416e1bf542370aec59ea586a9661e00d11ba5354654e9ea56af88eb88ff77"
+    },
+    {
+      "level": 8,
+      "status": "PASS",
+      "mode": "native_uno",
+      "nativeImportFilter": "dBase",
+      "importOptions": "34",
+      "records": 10,
+      "lastRecord": [
+        "010",
+        "Строка 10 уровень 8",
+        12.5
+      ],
+      "sourceSha256": "fb1fdf9f2af88e5fc12309778e54063b19d8a35b9424e9a3d490a15c9ce41672",
+      "outputSha256": "99b0abf52b13e230b52122a45f460502753ec39ed38acb1b8121a470835ec64c"
+    }
+  ],
+  "largeDbf": [
+    {
+      "status": "PASS",
+      "source": "large-c9.dbf",
+      "sourceSha256": "e0f8a1135ba2eb202edd9b95c106088f88494c1a33bc650b0f660493673287a7",
+      "sourceBytes": 1310850,
+      "records": 16384,
+      "allRowsIndependentlyRead": true,
+      "nativeImportFilter": "dBase",
+      "importOptions": "34",
+      "exportFilter": "Calc MS Excel 2007 XML",
+      "mode": "native_uno",
+      "outputSha256": "ecd787509476ad4d2a0d1fd49845da8420b0a5a5274401c72a4f5ecf3b47565d"
+    }
+  ],
+  "jpeg": [
+    {
+      "extension": "html",
+      "level": 1,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "73b0656e9e4f08f899ac455cb82f2e878e059f9b48ea1b983ec5b7de6c3434f7"
+      },
+      "sourceSha256": "9b5ac3d9b002aab402b98867192511f5f9c1e94fe57757a2027ad837614c83a6",
+      "outputSha256": "e7a7eb455a55603c9df57c53d1e5742fe1356a466493bf921a648e272f638f15"
+    },
+    {
+      "extension": "html",
+      "level": 1,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "73b0656e9e4f08f899ac455cb82f2e878e059f9b48ea1b983ec5b7de6c3434f7"
+      },
+      "sourceSha256": "9b5ac3d9b002aab402b98867192511f5f9c1e94fe57757a2027ad837614c83a6",
+      "outputSha256": "e7a7eb455a55603c9df57c53d1e5742fe1356a466493bf921a648e272f638f15"
+    },
+    {
+      "extension": "html",
+      "level": 1,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "73b0656e9e4f08f899ac455cb82f2e878e059f9b48ea1b983ec5b7de6c3434f7"
+      },
+      "sourceSha256": "9b5ac3d9b002aab402b98867192511f5f9c1e94fe57757a2027ad837614c83a6",
+      "outputSha256": "e7a7eb455a55603c9df57c53d1e5742fe1356a466493bf921a648e272f638f15"
+    },
+    {
+      "extension": "htm",
+      "level": 1,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "73b0656e9e4f08f899ac455cb82f2e878e059f9b48ea1b983ec5b7de6c3434f7"
+      },
+      "sourceSha256": "9b5ac3d9b002aab402b98867192511f5f9c1e94fe57757a2027ad837614c83a6",
+      "outputSha256": "e7a7eb455a55603c9df57c53d1e5742fe1356a466493bf921a648e272f638f15"
+    },
+    {
+      "extension": "htm",
+      "level": 1,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "73b0656e9e4f08f899ac455cb82f2e878e059f9b48ea1b983ec5b7de6c3434f7"
+      },
+      "sourceSha256": "9b5ac3d9b002aab402b98867192511f5f9c1e94fe57757a2027ad837614c83a6",
+      "outputSha256": "e7a7eb455a55603c9df57c53d1e5742fe1356a466493bf921a648e272f638f15"
+    },
+    {
+      "extension": "htm",
+      "level": 1,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "73b0656e9e4f08f899ac455cb82f2e878e059f9b48ea1b983ec5b7de6c3434f7"
+      },
+      "sourceSha256": "9b5ac3d9b002aab402b98867192511f5f9c1e94fe57757a2027ad837614c83a6",
+      "outputSha256": "e7a7eb455a55603c9df57c53d1e5742fe1356a466493bf921a648e272f638f15"
+    },
+    {
+      "extension": "xhtml",
+      "level": 1,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "73b0656e9e4f08f899ac455cb82f2e878e059f9b48ea1b983ec5b7de6c3434f7"
+      },
+      "sourceSha256": "9b5ac3d9b002aab402b98867192511f5f9c1e94fe57757a2027ad837614c83a6",
+      "outputSha256": "e7a7eb455a55603c9df57c53d1e5742fe1356a466493bf921a648e272f638f15"
+    },
+    {
+      "extension": "xhtml",
+      "level": 1,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "73b0656e9e4f08f899ac455cb82f2e878e059f9b48ea1b983ec5b7de6c3434f7"
+      },
+      "sourceSha256": "9b5ac3d9b002aab402b98867192511f5f9c1e94fe57757a2027ad837614c83a6",
+      "outputSha256": "e7a7eb455a55603c9df57c53d1e5742fe1356a466493bf921a648e272f638f15"
+    },
+    {
+      "extension": "xhtml",
+      "level": 1,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "73b0656e9e4f08f899ac455cb82f2e878e059f9b48ea1b983ec5b7de6c3434f7"
+      },
+      "sourceSha256": "9b5ac3d9b002aab402b98867192511f5f9c1e94fe57757a2027ad837614c83a6",
+      "outputSha256": "e7a7eb455a55603c9df57c53d1e5742fe1356a466493bf921a648e272f638f15"
+    },
+    {
+      "extension": "epub",
+      "level": 1,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "40431400cb42affedffc8cf76bad6769098c4468a2c97f5c16f051acafb989ae"
+      },
+      "sourceSha256": "51ae1a4ab7e3ece68319665cba4c727bdc3d654058942363cac851a4ae5aeaa3",
+      "outputSha256": "319103edc50901a21c77b786f23235f8f3462b88a978bbc36b7bb64c2b50ee0f"
+    },
+    {
+      "extension": "epub",
+      "level": 1,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "40431400cb42affedffc8cf76bad6769098c4468a2c97f5c16f051acafb989ae"
+      },
+      "sourceSha256": "51ae1a4ab7e3ece68319665cba4c727bdc3d654058942363cac851a4ae5aeaa3",
+      "outputSha256": "319103edc50901a21c77b786f23235f8f3462b88a978bbc36b7bb64c2b50ee0f"
+    },
+    {
+      "extension": "epub",
+      "level": 1,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "40431400cb42affedffc8cf76bad6769098c4468a2c97f5c16f051acafb989ae"
+      },
+      "sourceSha256": "51ae1a4ab7e3ece68319665cba4c727bdc3d654058942363cac851a4ae5aeaa3",
+      "outputSha256": "319103edc50901a21c77b786f23235f8f3462b88a978bbc36b7bb64c2b50ee0f"
+    },
+    {
+      "extension": "oth",
+      "level": 1,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "writerweb8_writer_template",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "73b0656e9e4f08f899ac455cb82f2e878e059f9b48ea1b983ec5b7de6c3434f7"
+      },
+      "sourceSha256": "203a269d2c50f3e8aa604002008ac085e42cb16e05ed6cad3daea61882ab3e75",
+      "outputSha256": "e7a7eb455a55603c9df57c53d1e5742fe1356a466493bf921a648e272f638f15"
+    },
+    {
+      "extension": "oth",
+      "level": 1,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "writerweb8_writer_template",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "73b0656e9e4f08f899ac455cb82f2e878e059f9b48ea1b983ec5b7de6c3434f7"
+      },
+      "sourceSha256": "203a269d2c50f3e8aa604002008ac085e42cb16e05ed6cad3daea61882ab3e75",
+      "outputSha256": "e7a7eb455a55603c9df57c53d1e5742fe1356a466493bf921a648e272f638f15"
+    },
+    {
+      "extension": "oth",
+      "level": 1,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "writerweb8_writer_template",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "73b0656e9e4f08f899ac455cb82f2e878e059f9b48ea1b983ec5b7de6c3434f7"
+      },
+      "sourceSha256": "203a269d2c50f3e8aa604002008ac085e42cb16e05ed6cad3daea61882ab3e75",
+      "outputSha256": "e7a7eb455a55603c9df57c53d1e5742fe1356a466493bf921a648e272f638f15"
+    },
+    {
+      "extension": "html",
+      "level": 2,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "39b94b6bc706e21453131d17dc2833cd4324ff374178b0a95942243b67872e6f"
+      },
+      "sourceSha256": "4f912c210fe55b462a01bf69465fe3ff16fee0b317bf59900e73c2d3be315866",
+      "outputSha256": "a502d795777da15d96557d09a632b3d18d0ec43618436d46795adb44d1554560"
+    },
+    {
+      "extension": "html",
+      "level": 2,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "39b94b6bc706e21453131d17dc2833cd4324ff374178b0a95942243b67872e6f"
+      },
+      "sourceSha256": "4f912c210fe55b462a01bf69465fe3ff16fee0b317bf59900e73c2d3be315866",
+      "outputSha256": "a502d795777da15d96557d09a632b3d18d0ec43618436d46795adb44d1554560"
+    },
+    {
+      "extension": "html",
+      "level": 2,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "39b94b6bc706e21453131d17dc2833cd4324ff374178b0a95942243b67872e6f"
+      },
+      "sourceSha256": "4f912c210fe55b462a01bf69465fe3ff16fee0b317bf59900e73c2d3be315866",
+      "outputSha256": "a502d795777da15d96557d09a632b3d18d0ec43618436d46795adb44d1554560"
+    },
+    {
+      "extension": "htm",
+      "level": 2,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "39b94b6bc706e21453131d17dc2833cd4324ff374178b0a95942243b67872e6f"
+      },
+      "sourceSha256": "4f912c210fe55b462a01bf69465fe3ff16fee0b317bf59900e73c2d3be315866",
+      "outputSha256": "a502d795777da15d96557d09a632b3d18d0ec43618436d46795adb44d1554560"
+    },
+    {
+      "extension": "htm",
+      "level": 2,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "39b94b6bc706e21453131d17dc2833cd4324ff374178b0a95942243b67872e6f"
+      },
+      "sourceSha256": "4f912c210fe55b462a01bf69465fe3ff16fee0b317bf59900e73c2d3be315866",
+      "outputSha256": "a502d795777da15d96557d09a632b3d18d0ec43618436d46795adb44d1554560"
+    },
+    {
+      "extension": "htm",
+      "level": 2,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "39b94b6bc706e21453131d17dc2833cd4324ff374178b0a95942243b67872e6f"
+      },
+      "sourceSha256": "4f912c210fe55b462a01bf69465fe3ff16fee0b317bf59900e73c2d3be315866",
+      "outputSha256": "a502d795777da15d96557d09a632b3d18d0ec43618436d46795adb44d1554560"
+    },
+    {
+      "extension": "xhtml",
+      "level": 2,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "39b94b6bc706e21453131d17dc2833cd4324ff374178b0a95942243b67872e6f"
+      },
+      "sourceSha256": "4f912c210fe55b462a01bf69465fe3ff16fee0b317bf59900e73c2d3be315866",
+      "outputSha256": "a502d795777da15d96557d09a632b3d18d0ec43618436d46795adb44d1554560"
+    },
+    {
+      "extension": "xhtml",
+      "level": 2,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "39b94b6bc706e21453131d17dc2833cd4324ff374178b0a95942243b67872e6f"
+      },
+      "sourceSha256": "4f912c210fe55b462a01bf69465fe3ff16fee0b317bf59900e73c2d3be315866",
+      "outputSha256": "a502d795777da15d96557d09a632b3d18d0ec43618436d46795adb44d1554560"
+    },
+    {
+      "extension": "xhtml",
+      "level": 2,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "39b94b6bc706e21453131d17dc2833cd4324ff374178b0a95942243b67872e6f"
+      },
+      "sourceSha256": "4f912c210fe55b462a01bf69465fe3ff16fee0b317bf59900e73c2d3be315866",
+      "outputSha256": "a502d795777da15d96557d09a632b3d18d0ec43618436d46795adb44d1554560"
+    },
+    {
+      "extension": "epub",
+      "level": 2,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "40431400cb42affedffc8cf76bad6769098c4468a2c97f5c16f051acafb989ae"
+      },
+      "sourceSha256": "c6bf13d58b0c51a2710077c86e32393ac87ed4825bd3d47f4aeff5247513f940",
+      "outputSha256": "319103edc50901a21c77b786f23235f8f3462b88a978bbc36b7bb64c2b50ee0f"
+    },
+    {
+      "extension": "epub",
+      "level": 2,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "40431400cb42affedffc8cf76bad6769098c4468a2c97f5c16f051acafb989ae"
+      },
+      "sourceSha256": "c6bf13d58b0c51a2710077c86e32393ac87ed4825bd3d47f4aeff5247513f940",
+      "outputSha256": "319103edc50901a21c77b786f23235f8f3462b88a978bbc36b7bb64c2b50ee0f"
+    },
+    {
+      "extension": "epub",
+      "level": 2,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "40431400cb42affedffc8cf76bad6769098c4468a2c97f5c16f051acafb989ae"
+      },
+      "sourceSha256": "c6bf13d58b0c51a2710077c86e32393ac87ed4825bd3d47f4aeff5247513f940",
+      "outputSha256": "319103edc50901a21c77b786f23235f8f3462b88a978bbc36b7bb64c2b50ee0f"
+    },
+    {
+      "extension": "oth",
+      "level": 2,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "writerweb8_writer_template",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "39b94b6bc706e21453131d17dc2833cd4324ff374178b0a95942243b67872e6f"
+      },
+      "sourceSha256": "8caecfa1eced9a0082cc245bda81d6db93c8f646c0ab2e733430301c8d5d5405",
+      "outputSha256": "a502d795777da15d96557d09a632b3d18d0ec43618436d46795adb44d1554560"
+    },
+    {
+      "extension": "oth",
+      "level": 2,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "writerweb8_writer_template",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "39b94b6bc706e21453131d17dc2833cd4324ff374178b0a95942243b67872e6f"
+      },
+      "sourceSha256": "8caecfa1eced9a0082cc245bda81d6db93c8f646c0ab2e733430301c8d5d5405",
+      "outputSha256": "a502d795777da15d96557d09a632b3d18d0ec43618436d46795adb44d1554560"
+    },
+    {
+      "extension": "oth",
+      "level": 2,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "writerweb8_writer_template",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "39b94b6bc706e21453131d17dc2833cd4324ff374178b0a95942243b67872e6f"
+      },
+      "sourceSha256": "8caecfa1eced9a0082cc245bda81d6db93c8f646c0ab2e733430301c8d5d5405",
+      "outputSha256": "a502d795777da15d96557d09a632b3d18d0ec43618436d46795adb44d1554560"
+    },
+    {
+      "extension": "html",
+      "level": 3,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "7d57214b13a62a714e187c8cb78e5cdef4435b250fe36b617e5a71a36af23033"
+      },
+      "sourceSha256": "8bc6638d6284eca33641f8cf21ab7eca6b9d01d40fad22a20fa25f4119b64cae",
+      "outputSha256": "9561ea35305c22a75b81a7b1d9c69e4fe9050f8cce2c9a0fddec79c95b610be2"
+    },
+    {
+      "extension": "html",
+      "level": 3,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "7d57214b13a62a714e187c8cb78e5cdef4435b250fe36b617e5a71a36af23033"
+      },
+      "sourceSha256": "8bc6638d6284eca33641f8cf21ab7eca6b9d01d40fad22a20fa25f4119b64cae",
+      "outputSha256": "9561ea35305c22a75b81a7b1d9c69e4fe9050f8cce2c9a0fddec79c95b610be2"
+    },
+    {
+      "extension": "html",
+      "level": 3,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "7d57214b13a62a714e187c8cb78e5cdef4435b250fe36b617e5a71a36af23033"
+      },
+      "sourceSha256": "8bc6638d6284eca33641f8cf21ab7eca6b9d01d40fad22a20fa25f4119b64cae",
+      "outputSha256": "9561ea35305c22a75b81a7b1d9c69e4fe9050f8cce2c9a0fddec79c95b610be2"
+    },
+    {
+      "extension": "htm",
+      "level": 3,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "7d57214b13a62a714e187c8cb78e5cdef4435b250fe36b617e5a71a36af23033"
+      },
+      "sourceSha256": "8bc6638d6284eca33641f8cf21ab7eca6b9d01d40fad22a20fa25f4119b64cae",
+      "outputSha256": "9561ea35305c22a75b81a7b1d9c69e4fe9050f8cce2c9a0fddec79c95b610be2"
+    },
+    {
+      "extension": "htm",
+      "level": 3,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "7d57214b13a62a714e187c8cb78e5cdef4435b250fe36b617e5a71a36af23033"
+      },
+      "sourceSha256": "8bc6638d6284eca33641f8cf21ab7eca6b9d01d40fad22a20fa25f4119b64cae",
+      "outputSha256": "9561ea35305c22a75b81a7b1d9c69e4fe9050f8cce2c9a0fddec79c95b610be2"
+    },
+    {
+      "extension": "htm",
+      "level": 3,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "7d57214b13a62a714e187c8cb78e5cdef4435b250fe36b617e5a71a36af23033"
+      },
+      "sourceSha256": "8bc6638d6284eca33641f8cf21ab7eca6b9d01d40fad22a20fa25f4119b64cae",
+      "outputSha256": "9561ea35305c22a75b81a7b1d9c69e4fe9050f8cce2c9a0fddec79c95b610be2"
+    },
+    {
+      "extension": "xhtml",
+      "level": 3,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "7d57214b13a62a714e187c8cb78e5cdef4435b250fe36b617e5a71a36af23033"
+      },
+      "sourceSha256": "8bc6638d6284eca33641f8cf21ab7eca6b9d01d40fad22a20fa25f4119b64cae",
+      "outputSha256": "9561ea35305c22a75b81a7b1d9c69e4fe9050f8cce2c9a0fddec79c95b610be2"
+    },
+    {
+      "extension": "xhtml",
+      "level": 3,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "7d57214b13a62a714e187c8cb78e5cdef4435b250fe36b617e5a71a36af23033"
+      },
+      "sourceSha256": "8bc6638d6284eca33641f8cf21ab7eca6b9d01d40fad22a20fa25f4119b64cae",
+      "outputSha256": "9561ea35305c22a75b81a7b1d9c69e4fe9050f8cce2c9a0fddec79c95b610be2"
+    },
+    {
+      "extension": "xhtml",
+      "level": 3,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "7d57214b13a62a714e187c8cb78e5cdef4435b250fe36b617e5a71a36af23033"
+      },
+      "sourceSha256": "8bc6638d6284eca33641f8cf21ab7eca6b9d01d40fad22a20fa25f4119b64cae",
+      "outputSha256": "9561ea35305c22a75b81a7b1d9c69e4fe9050f8cce2c9a0fddec79c95b610be2"
+    },
+    {
+      "extension": "epub",
+      "level": 3,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "40431400cb42affedffc8cf76bad6769098c4468a2c97f5c16f051acafb989ae"
+      },
+      "sourceSha256": "093fb937ab50daf53d6c16d8918021a8003f7d112030c2d2a38f8f20d26760f5",
+      "outputSha256": "319103edc50901a21c77b786f23235f8f3462b88a978bbc36b7bb64c2b50ee0f"
+    },
+    {
+      "extension": "epub",
+      "level": 3,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "40431400cb42affedffc8cf76bad6769098c4468a2c97f5c16f051acafb989ae"
+      },
+      "sourceSha256": "093fb937ab50daf53d6c16d8918021a8003f7d112030c2d2a38f8f20d26760f5",
+      "outputSha256": "319103edc50901a21c77b786f23235f8f3462b88a978bbc36b7bb64c2b50ee0f"
+    },
+    {
+      "extension": "epub",
+      "level": 3,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "40431400cb42affedffc8cf76bad6769098c4468a2c97f5c16f051acafb989ae"
+      },
+      "sourceSha256": "093fb937ab50daf53d6c16d8918021a8003f7d112030c2d2a38f8f20d26760f5",
+      "outputSha256": "319103edc50901a21c77b786f23235f8f3462b88a978bbc36b7bb64c2b50ee0f"
+    },
+    {
+      "extension": "oth",
+      "level": 3,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "writerweb8_writer_template",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "7d57214b13a62a714e187c8cb78e5cdef4435b250fe36b617e5a71a36af23033"
+      },
+      "sourceSha256": "d40f712aefc6ff1a5b1bd40746d7940ce1ca825a4d40e1722704460120646bdb",
+      "outputSha256": "9561ea35305c22a75b81a7b1d9c69e4fe9050f8cce2c9a0fddec79c95b610be2"
+    },
+    {
+      "extension": "oth",
+      "level": 3,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "writerweb8_writer_template",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "7d57214b13a62a714e187c8cb78e5cdef4435b250fe36b617e5a71a36af23033"
+      },
+      "sourceSha256": "d40f712aefc6ff1a5b1bd40746d7940ce1ca825a4d40e1722704460120646bdb",
+      "outputSha256": "9561ea35305c22a75b81a7b1d9c69e4fe9050f8cce2c9a0fddec79c95b610be2"
+    },
+    {
+      "extension": "oth",
+      "level": 3,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "writerweb8_writer_template",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "7d57214b13a62a714e187c8cb78e5cdef4435b250fe36b617e5a71a36af23033"
+      },
+      "sourceSha256": "d40f712aefc6ff1a5b1bd40746d7940ce1ca825a4d40e1722704460120646bdb",
+      "outputSha256": "9561ea35305c22a75b81a7b1d9c69e4fe9050f8cce2c9a0fddec79c95b610be2"
+    },
+    {
+      "extension": "html",
+      "level": 4,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "eec19609b9cdd37d5f93c35ae597950ab00bb74324cf4bdf11e80d69740a570a"
+      },
+      "sourceSha256": "5a8034ba626779c1ab755930cd038a1c382910d48c70836be736c476ff553fdf",
+      "outputSha256": "ca287e8c9c0950c6bb0dd2f0e962430ceaa8f8f639f1e157024cfd4dcaa13f9d"
+    },
+    {
+      "extension": "html",
+      "level": 4,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "eec19609b9cdd37d5f93c35ae597950ab00bb74324cf4bdf11e80d69740a570a"
+      },
+      "sourceSha256": "5a8034ba626779c1ab755930cd038a1c382910d48c70836be736c476ff553fdf",
+      "outputSha256": "ca287e8c9c0950c6bb0dd2f0e962430ceaa8f8f639f1e157024cfd4dcaa13f9d"
+    },
+    {
+      "extension": "html",
+      "level": 4,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "eec19609b9cdd37d5f93c35ae597950ab00bb74324cf4bdf11e80d69740a570a"
+      },
+      "sourceSha256": "5a8034ba626779c1ab755930cd038a1c382910d48c70836be736c476ff553fdf",
+      "outputSha256": "ca287e8c9c0950c6bb0dd2f0e962430ceaa8f8f639f1e157024cfd4dcaa13f9d"
+    },
+    {
+      "extension": "htm",
+      "level": 4,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "eec19609b9cdd37d5f93c35ae597950ab00bb74324cf4bdf11e80d69740a570a"
+      },
+      "sourceSha256": "5a8034ba626779c1ab755930cd038a1c382910d48c70836be736c476ff553fdf",
+      "outputSha256": "ca287e8c9c0950c6bb0dd2f0e962430ceaa8f8f639f1e157024cfd4dcaa13f9d"
+    },
+    {
+      "extension": "htm",
+      "level": 4,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "eec19609b9cdd37d5f93c35ae597950ab00bb74324cf4bdf11e80d69740a570a"
+      },
+      "sourceSha256": "5a8034ba626779c1ab755930cd038a1c382910d48c70836be736c476ff553fdf",
+      "outputSha256": "ca287e8c9c0950c6bb0dd2f0e962430ceaa8f8f639f1e157024cfd4dcaa13f9d"
+    },
+    {
+      "extension": "htm",
+      "level": 4,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "eec19609b9cdd37d5f93c35ae597950ab00bb74324cf4bdf11e80d69740a570a"
+      },
+      "sourceSha256": "5a8034ba626779c1ab755930cd038a1c382910d48c70836be736c476ff553fdf",
+      "outputSha256": "ca287e8c9c0950c6bb0dd2f0e962430ceaa8f8f639f1e157024cfd4dcaa13f9d"
+    },
+    {
+      "extension": "xhtml",
+      "level": 4,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "eec19609b9cdd37d5f93c35ae597950ab00bb74324cf4bdf11e80d69740a570a"
+      },
+      "sourceSha256": "5a8034ba626779c1ab755930cd038a1c382910d48c70836be736c476ff553fdf",
+      "outputSha256": "ca287e8c9c0950c6bb0dd2f0e962430ceaa8f8f639f1e157024cfd4dcaa13f9d"
+    },
+    {
+      "extension": "xhtml",
+      "level": 4,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "eec19609b9cdd37d5f93c35ae597950ab00bb74324cf4bdf11e80d69740a570a"
+      },
+      "sourceSha256": "5a8034ba626779c1ab755930cd038a1c382910d48c70836be736c476ff553fdf",
+      "outputSha256": "ca287e8c9c0950c6bb0dd2f0e962430ceaa8f8f639f1e157024cfd4dcaa13f9d"
+    },
+    {
+      "extension": "xhtml",
+      "level": 4,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "eec19609b9cdd37d5f93c35ae597950ab00bb74324cf4bdf11e80d69740a570a"
+      },
+      "sourceSha256": "5a8034ba626779c1ab755930cd038a1c382910d48c70836be736c476ff553fdf",
+      "outputSha256": "ca287e8c9c0950c6bb0dd2f0e962430ceaa8f8f639f1e157024cfd4dcaa13f9d"
+    },
+    {
+      "extension": "epub",
+      "level": 4,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "40431400cb42affedffc8cf76bad6769098c4468a2c97f5c16f051acafb989ae"
+      },
+      "sourceSha256": "134a0b18c661038c88653e7682eae184ed8f6495bff74fac21597e0de3e3b591",
+      "outputSha256": "319103edc50901a21c77b786f23235f8f3462b88a978bbc36b7bb64c2b50ee0f"
+    },
+    {
+      "extension": "epub",
+      "level": 4,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "40431400cb42affedffc8cf76bad6769098c4468a2c97f5c16f051acafb989ae"
+      },
+      "sourceSha256": "134a0b18c661038c88653e7682eae184ed8f6495bff74fac21597e0de3e3b591",
+      "outputSha256": "319103edc50901a21c77b786f23235f8f3462b88a978bbc36b7bb64c2b50ee0f"
+    },
+    {
+      "extension": "epub",
+      "level": 4,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "40431400cb42affedffc8cf76bad6769098c4468a2c97f5c16f051acafb989ae"
+      },
+      "sourceSha256": "134a0b18c661038c88653e7682eae184ed8f6495bff74fac21597e0de3e3b591",
+      "outputSha256": "319103edc50901a21c77b786f23235f8f3462b88a978bbc36b7bb64c2b50ee0f"
+    },
+    {
+      "extension": "oth",
+      "level": 4,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "writerweb8_writer_template",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "eec19609b9cdd37d5f93c35ae597950ab00bb74324cf4bdf11e80d69740a570a"
+      },
+      "sourceSha256": "462cc7d5b9ad7eebaa5823850bd4273d655a6ae4633ed3711a1ba457a21222d9",
+      "outputSha256": "ca287e8c9c0950c6bb0dd2f0e962430ceaa8f8f639f1e157024cfd4dcaa13f9d"
+    },
+    {
+      "extension": "oth",
+      "level": 4,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "writerweb8_writer_template",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "eec19609b9cdd37d5f93c35ae597950ab00bb74324cf4bdf11e80d69740a570a"
+      },
+      "sourceSha256": "462cc7d5b9ad7eebaa5823850bd4273d655a6ae4633ed3711a1ba457a21222d9",
+      "outputSha256": "ca287e8c9c0950c6bb0dd2f0e962430ceaa8f8f639f1e157024cfd4dcaa13f9d"
+    },
+    {
+      "extension": "oth",
+      "level": 4,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "writerweb8_writer_template",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "eec19609b9cdd37d5f93c35ae597950ab00bb74324cf4bdf11e80d69740a570a"
+      },
+      "sourceSha256": "462cc7d5b9ad7eebaa5823850bd4273d655a6ae4633ed3711a1ba457a21222d9",
+      "outputSha256": "ca287e8c9c0950c6bb0dd2f0e962430ceaa8f8f639f1e157024cfd4dcaa13f9d"
+    },
+    {
+      "extension": "html",
+      "level": 5,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "dc3d5db909f8abf85f4526815be1773655ee2e55a10cfbcc1a307933109b53c9"
+      },
+      "sourceSha256": "ae5b4aefba3a395b4f3f293f961cbf2970d59f247bcc1312a2b147cfa59bdeb1",
+      "outputSha256": "af461bbf537163185bc0333c4ed461a6fd06eb6c1f2deb57b8163f633ac1519c"
+    },
+    {
+      "extension": "html",
+      "level": 5,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "dc3d5db909f8abf85f4526815be1773655ee2e55a10cfbcc1a307933109b53c9"
+      },
+      "sourceSha256": "ae5b4aefba3a395b4f3f293f961cbf2970d59f247bcc1312a2b147cfa59bdeb1",
+      "outputSha256": "af461bbf537163185bc0333c4ed461a6fd06eb6c1f2deb57b8163f633ac1519c"
+    },
+    {
+      "extension": "html",
+      "level": 5,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "dc3d5db909f8abf85f4526815be1773655ee2e55a10cfbcc1a307933109b53c9"
+      },
+      "sourceSha256": "ae5b4aefba3a395b4f3f293f961cbf2970d59f247bcc1312a2b147cfa59bdeb1",
+      "outputSha256": "af461bbf537163185bc0333c4ed461a6fd06eb6c1f2deb57b8163f633ac1519c"
+    },
+    {
+      "extension": "htm",
+      "level": 5,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "dc3d5db909f8abf85f4526815be1773655ee2e55a10cfbcc1a307933109b53c9"
+      },
+      "sourceSha256": "ae5b4aefba3a395b4f3f293f961cbf2970d59f247bcc1312a2b147cfa59bdeb1",
+      "outputSha256": "af461bbf537163185bc0333c4ed461a6fd06eb6c1f2deb57b8163f633ac1519c"
+    },
+    {
+      "extension": "htm",
+      "level": 5,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "dc3d5db909f8abf85f4526815be1773655ee2e55a10cfbcc1a307933109b53c9"
+      },
+      "sourceSha256": "ae5b4aefba3a395b4f3f293f961cbf2970d59f247bcc1312a2b147cfa59bdeb1",
+      "outputSha256": "af461bbf537163185bc0333c4ed461a6fd06eb6c1f2deb57b8163f633ac1519c"
+    },
+    {
+      "extension": "htm",
+      "level": 5,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "dc3d5db909f8abf85f4526815be1773655ee2e55a10cfbcc1a307933109b53c9"
+      },
+      "sourceSha256": "ae5b4aefba3a395b4f3f293f961cbf2970d59f247bcc1312a2b147cfa59bdeb1",
+      "outputSha256": "af461bbf537163185bc0333c4ed461a6fd06eb6c1f2deb57b8163f633ac1519c"
+    },
+    {
+      "extension": "xhtml",
+      "level": 5,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "dc3d5db909f8abf85f4526815be1773655ee2e55a10cfbcc1a307933109b53c9"
+      },
+      "sourceSha256": "ae5b4aefba3a395b4f3f293f961cbf2970d59f247bcc1312a2b147cfa59bdeb1",
+      "outputSha256": "af461bbf537163185bc0333c4ed461a6fd06eb6c1f2deb57b8163f633ac1519c"
+    },
+    {
+      "extension": "xhtml",
+      "level": 5,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "dc3d5db909f8abf85f4526815be1773655ee2e55a10cfbcc1a307933109b53c9"
+      },
+      "sourceSha256": "ae5b4aefba3a395b4f3f293f961cbf2970d59f247bcc1312a2b147cfa59bdeb1",
+      "outputSha256": "af461bbf537163185bc0333c4ed461a6fd06eb6c1f2deb57b8163f633ac1519c"
+    },
+    {
+      "extension": "xhtml",
+      "level": 5,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "dc3d5db909f8abf85f4526815be1773655ee2e55a10cfbcc1a307933109b53c9"
+      },
+      "sourceSha256": "ae5b4aefba3a395b4f3f293f961cbf2970d59f247bcc1312a2b147cfa59bdeb1",
+      "outputSha256": "af461bbf537163185bc0333c4ed461a6fd06eb6c1f2deb57b8163f633ac1519c"
+    },
+    {
+      "extension": "epub",
+      "level": 5,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "40431400cb42affedffc8cf76bad6769098c4468a2c97f5c16f051acafb989ae"
+      },
+      "sourceSha256": "1488b01ac15e23c690595495bc716ddd3ad9c841b07b0872ad3017e51fe77ead",
+      "outputSha256": "319103edc50901a21c77b786f23235f8f3462b88a978bbc36b7bb64c2b50ee0f"
+    },
+    {
+      "extension": "epub",
+      "level": 5,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "40431400cb42affedffc8cf76bad6769098c4468a2c97f5c16f051acafb989ae"
+      },
+      "sourceSha256": "1488b01ac15e23c690595495bc716ddd3ad9c841b07b0872ad3017e51fe77ead",
+      "outputSha256": "319103edc50901a21c77b786f23235f8f3462b88a978bbc36b7bb64c2b50ee0f"
+    },
+    {
+      "extension": "epub",
+      "level": 5,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "40431400cb42affedffc8cf76bad6769098c4468a2c97f5c16f051acafb989ae"
+      },
+      "sourceSha256": "1488b01ac15e23c690595495bc716ddd3ad9c841b07b0872ad3017e51fe77ead",
+      "outputSha256": "319103edc50901a21c77b786f23235f8f3462b88a978bbc36b7bb64c2b50ee0f"
+    },
+    {
+      "extension": "oth",
+      "level": 5,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "writerweb8_writer_template",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "dc3d5db909f8abf85f4526815be1773655ee2e55a10cfbcc1a307933109b53c9"
+      },
+      "sourceSha256": "884dcd4d6a471985167c651820f23dde129eb44777dc7888fbf48bf230c7593e",
+      "outputSha256": "af461bbf537163185bc0333c4ed461a6fd06eb6c1f2deb57b8163f633ac1519c"
+    },
+    {
+      "extension": "oth",
+      "level": 5,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "writerweb8_writer_template",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "dc3d5db909f8abf85f4526815be1773655ee2e55a10cfbcc1a307933109b53c9"
+      },
+      "sourceSha256": "884dcd4d6a471985167c651820f23dde129eb44777dc7888fbf48bf230c7593e",
+      "outputSha256": "af461bbf537163185bc0333c4ed461a6fd06eb6c1f2deb57b8163f633ac1519c"
+    },
+    {
+      "extension": "oth",
+      "level": 5,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "writerweb8_writer_template",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "dc3d5db909f8abf85f4526815be1773655ee2e55a10cfbcc1a307933109b53c9"
+      },
+      "sourceSha256": "884dcd4d6a471985167c651820f23dde129eb44777dc7888fbf48bf230c7593e",
+      "outputSha256": "af461bbf537163185bc0333c4ed461a6fd06eb6c1f2deb57b8163f633ac1519c"
+    },
+    {
+      "extension": "html",
+      "level": 6,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "2cc11d56a27b2255eeb3c4b919531cfffab1b3ac5d5a7d0ace2e68d7f1234652"
+      },
+      "sourceSha256": "6240fd29698cfa0342b75410c188788353f3a2e0051b401049aeae887ce9385e",
+      "outputSha256": "f141384ab704413f9fc80b517202e3d4e3855dd404e07d4e45b3fd31a544876d"
+    },
+    {
+      "extension": "html",
+      "level": 6,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "2cc11d56a27b2255eeb3c4b919531cfffab1b3ac5d5a7d0ace2e68d7f1234652"
+      },
+      "sourceSha256": "6240fd29698cfa0342b75410c188788353f3a2e0051b401049aeae887ce9385e",
+      "outputSha256": "f141384ab704413f9fc80b517202e3d4e3855dd404e07d4e45b3fd31a544876d"
+    },
+    {
+      "extension": "html",
+      "level": 6,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "2cc11d56a27b2255eeb3c4b919531cfffab1b3ac5d5a7d0ace2e68d7f1234652"
+      },
+      "sourceSha256": "6240fd29698cfa0342b75410c188788353f3a2e0051b401049aeae887ce9385e",
+      "outputSha256": "f141384ab704413f9fc80b517202e3d4e3855dd404e07d4e45b3fd31a544876d"
+    },
+    {
+      "extension": "htm",
+      "level": 6,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "2cc11d56a27b2255eeb3c4b919531cfffab1b3ac5d5a7d0ace2e68d7f1234652"
+      },
+      "sourceSha256": "6240fd29698cfa0342b75410c188788353f3a2e0051b401049aeae887ce9385e",
+      "outputSha256": "f141384ab704413f9fc80b517202e3d4e3855dd404e07d4e45b3fd31a544876d"
+    },
+    {
+      "extension": "htm",
+      "level": 6,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "2cc11d56a27b2255eeb3c4b919531cfffab1b3ac5d5a7d0ace2e68d7f1234652"
+      },
+      "sourceSha256": "6240fd29698cfa0342b75410c188788353f3a2e0051b401049aeae887ce9385e",
+      "outputSha256": "f141384ab704413f9fc80b517202e3d4e3855dd404e07d4e45b3fd31a544876d"
+    },
+    {
+      "extension": "htm",
+      "level": 6,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "2cc11d56a27b2255eeb3c4b919531cfffab1b3ac5d5a7d0ace2e68d7f1234652"
+      },
+      "sourceSha256": "6240fd29698cfa0342b75410c188788353f3a2e0051b401049aeae887ce9385e",
+      "outputSha256": "f141384ab704413f9fc80b517202e3d4e3855dd404e07d4e45b3fd31a544876d"
+    },
+    {
+      "extension": "xhtml",
+      "level": 6,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "2cc11d56a27b2255eeb3c4b919531cfffab1b3ac5d5a7d0ace2e68d7f1234652"
+      },
+      "sourceSha256": "6240fd29698cfa0342b75410c188788353f3a2e0051b401049aeae887ce9385e",
+      "outputSha256": "f141384ab704413f9fc80b517202e3d4e3855dd404e07d4e45b3fd31a544876d"
+    },
+    {
+      "extension": "xhtml",
+      "level": 6,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "2cc11d56a27b2255eeb3c4b919531cfffab1b3ac5d5a7d0ace2e68d7f1234652"
+      },
+      "sourceSha256": "6240fd29698cfa0342b75410c188788353f3a2e0051b401049aeae887ce9385e",
+      "outputSha256": "f141384ab704413f9fc80b517202e3d4e3855dd404e07d4e45b3fd31a544876d"
+    },
+    {
+      "extension": "xhtml",
+      "level": 6,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "2cc11d56a27b2255eeb3c4b919531cfffab1b3ac5d5a7d0ace2e68d7f1234652"
+      },
+      "sourceSha256": "6240fd29698cfa0342b75410c188788353f3a2e0051b401049aeae887ce9385e",
+      "outputSha256": "f141384ab704413f9fc80b517202e3d4e3855dd404e07d4e45b3fd31a544876d"
+    },
+    {
+      "extension": "epub",
+      "level": 6,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "40431400cb42affedffc8cf76bad6769098c4468a2c97f5c16f051acafb989ae"
+      },
+      "sourceSha256": "a676d557561bec5aa69a79a659a0cad7bfd96d31c3ef0c8c1b3e5cb52089a65e",
+      "outputSha256": "319103edc50901a21c77b786f23235f8f3462b88a978bbc36b7bb64c2b50ee0f"
+    },
+    {
+      "extension": "epub",
+      "level": 6,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "40431400cb42affedffc8cf76bad6769098c4468a2c97f5c16f051acafb989ae"
+      },
+      "sourceSha256": "a676d557561bec5aa69a79a659a0cad7bfd96d31c3ef0c8c1b3e5cb52089a65e",
+      "outputSha256": "319103edc50901a21c77b786f23235f8f3462b88a978bbc36b7bb64c2b50ee0f"
+    },
+    {
+      "extension": "epub",
+      "level": 6,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "40431400cb42affedffc8cf76bad6769098c4468a2c97f5c16f051acafb989ae"
+      },
+      "sourceSha256": "a676d557561bec5aa69a79a659a0cad7bfd96d31c3ef0c8c1b3e5cb52089a65e",
+      "outputSha256": "319103edc50901a21c77b786f23235f8f3462b88a978bbc36b7bb64c2b50ee0f"
+    },
+    {
+      "extension": "oth",
+      "level": 6,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "writerweb8_writer_template",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "2cc11d56a27b2255eeb3c4b919531cfffab1b3ac5d5a7d0ace2e68d7f1234652"
+      },
+      "sourceSha256": "991cf48d871bb7ecdaf4b180fa09bf3205df716f880b7c1576c6b73654ffb7f8",
+      "outputSha256": "f141384ab704413f9fc80b517202e3d4e3855dd404e07d4e45b3fd31a544876d"
+    },
+    {
+      "extension": "oth",
+      "level": 6,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "writerweb8_writer_template",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "2cc11d56a27b2255eeb3c4b919531cfffab1b3ac5d5a7d0ace2e68d7f1234652"
+      },
+      "sourceSha256": "991cf48d871bb7ecdaf4b180fa09bf3205df716f880b7c1576c6b73654ffb7f8",
+      "outputSha256": "f141384ab704413f9fc80b517202e3d4e3855dd404e07d4e45b3fd31a544876d"
+    },
+    {
+      "extension": "oth",
+      "level": 6,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "writerweb8_writer_template",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "2cc11d56a27b2255eeb3c4b919531cfffab1b3ac5d5a7d0ace2e68d7f1234652"
+      },
+      "sourceSha256": "991cf48d871bb7ecdaf4b180fa09bf3205df716f880b7c1576c6b73654ffb7f8",
+      "outputSha256": "f141384ab704413f9fc80b517202e3d4e3855dd404e07d4e45b3fd31a544876d"
+    },
+    {
+      "extension": "html",
+      "level": 7,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "3936d73417f4c0302c048a40d9e490967a899fd7166e0c35f5ec324804c3f19f"
+      },
+      "sourceSha256": "b691472965aa62e8660f67722a107814adce228fb66c214f637d8c3382100728",
+      "outputSha256": "49ee31993454da99331f30f867a1b63bb18eb43bdfd9e4c5ced03c93186cbc69"
+    },
+    {
+      "extension": "html",
+      "level": 7,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "3936d73417f4c0302c048a40d9e490967a899fd7166e0c35f5ec324804c3f19f"
+      },
+      "sourceSha256": "b691472965aa62e8660f67722a107814adce228fb66c214f637d8c3382100728",
+      "outputSha256": "49ee31993454da99331f30f867a1b63bb18eb43bdfd9e4c5ced03c93186cbc69"
+    },
+    {
+      "extension": "html",
+      "level": 7,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "3936d73417f4c0302c048a40d9e490967a899fd7166e0c35f5ec324804c3f19f"
+      },
+      "sourceSha256": "b691472965aa62e8660f67722a107814adce228fb66c214f637d8c3382100728",
+      "outputSha256": "49ee31993454da99331f30f867a1b63bb18eb43bdfd9e4c5ced03c93186cbc69"
+    },
+    {
+      "extension": "htm",
+      "level": 7,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "3936d73417f4c0302c048a40d9e490967a899fd7166e0c35f5ec324804c3f19f"
+      },
+      "sourceSha256": "b691472965aa62e8660f67722a107814adce228fb66c214f637d8c3382100728",
+      "outputSha256": "49ee31993454da99331f30f867a1b63bb18eb43bdfd9e4c5ced03c93186cbc69"
+    },
+    {
+      "extension": "htm",
+      "level": 7,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "3936d73417f4c0302c048a40d9e490967a899fd7166e0c35f5ec324804c3f19f"
+      },
+      "sourceSha256": "b691472965aa62e8660f67722a107814adce228fb66c214f637d8c3382100728",
+      "outputSha256": "49ee31993454da99331f30f867a1b63bb18eb43bdfd9e4c5ced03c93186cbc69"
+    },
+    {
+      "extension": "htm",
+      "level": 7,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "3936d73417f4c0302c048a40d9e490967a899fd7166e0c35f5ec324804c3f19f"
+      },
+      "sourceSha256": "b691472965aa62e8660f67722a107814adce228fb66c214f637d8c3382100728",
+      "outputSha256": "49ee31993454da99331f30f867a1b63bb18eb43bdfd9e4c5ced03c93186cbc69"
+    },
+    {
+      "extension": "xhtml",
+      "level": 7,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "3936d73417f4c0302c048a40d9e490967a899fd7166e0c35f5ec324804c3f19f"
+      },
+      "sourceSha256": "b691472965aa62e8660f67722a107814adce228fb66c214f637d8c3382100728",
+      "outputSha256": "49ee31993454da99331f30f867a1b63bb18eb43bdfd9e4c5ced03c93186cbc69"
+    },
+    {
+      "extension": "xhtml",
+      "level": 7,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "3936d73417f4c0302c048a40d9e490967a899fd7166e0c35f5ec324804c3f19f"
+      },
+      "sourceSha256": "b691472965aa62e8660f67722a107814adce228fb66c214f637d8c3382100728",
+      "outputSha256": "49ee31993454da99331f30f867a1b63bb18eb43bdfd9e4c5ced03c93186cbc69"
+    },
+    {
+      "extension": "xhtml",
+      "level": 7,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "3936d73417f4c0302c048a40d9e490967a899fd7166e0c35f5ec324804c3f19f"
+      },
+      "sourceSha256": "b691472965aa62e8660f67722a107814adce228fb66c214f637d8c3382100728",
+      "outputSha256": "49ee31993454da99331f30f867a1b63bb18eb43bdfd9e4c5ced03c93186cbc69"
+    },
+    {
+      "extension": "epub",
+      "level": 7,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "40431400cb42affedffc8cf76bad6769098c4468a2c97f5c16f051acafb989ae"
+      },
+      "sourceSha256": "3efc38fbfc1afe9d31e7d5c17d0195d3eb21113ff60b9079d128b9ca8ca96d85",
+      "outputSha256": "319103edc50901a21c77b786f23235f8f3462b88a978bbc36b7bb64c2b50ee0f"
+    },
+    {
+      "extension": "epub",
+      "level": 7,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "40431400cb42affedffc8cf76bad6769098c4468a2c97f5c16f051acafb989ae"
+      },
+      "sourceSha256": "3efc38fbfc1afe9d31e7d5c17d0195d3eb21113ff60b9079d128b9ca8ca96d85",
+      "outputSha256": "319103edc50901a21c77b786f23235f8f3462b88a978bbc36b7bb64c2b50ee0f"
+    },
+    {
+      "extension": "epub",
+      "level": 7,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "40431400cb42affedffc8cf76bad6769098c4468a2c97f5c16f051acafb989ae"
+      },
+      "sourceSha256": "3efc38fbfc1afe9d31e7d5c17d0195d3eb21113ff60b9079d128b9ca8ca96d85",
+      "outputSha256": "319103edc50901a21c77b786f23235f8f3462b88a978bbc36b7bb64c2b50ee0f"
+    },
+    {
+      "extension": "oth",
+      "level": 7,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "writerweb8_writer_template",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "3936d73417f4c0302c048a40d9e490967a899fd7166e0c35f5ec324804c3f19f"
+      },
+      "sourceSha256": "a590442d4c0e0156b0615a2404193540d0bab147fcea8431f7af245eaa74092b",
+      "outputSha256": "49ee31993454da99331f30f867a1b63bb18eb43bdfd9e4c5ced03c93186cbc69"
+    },
+    {
+      "extension": "oth",
+      "level": 7,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "writerweb8_writer_template",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "3936d73417f4c0302c048a40d9e490967a899fd7166e0c35f5ec324804c3f19f"
+      },
+      "sourceSha256": "a590442d4c0e0156b0615a2404193540d0bab147fcea8431f7af245eaa74092b",
+      "outputSha256": "49ee31993454da99331f30f867a1b63bb18eb43bdfd9e4c5ced03c93186cbc69"
+    },
+    {
+      "extension": "oth",
+      "level": 7,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "writerweb8_writer_template",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "3936d73417f4c0302c048a40d9e490967a899fd7166e0c35f5ec324804c3f19f"
+      },
+      "sourceSha256": "a590442d4c0e0156b0615a2404193540d0bab147fcea8431f7af245eaa74092b",
+      "outputSha256": "49ee31993454da99331f30f867a1b63bb18eb43bdfd9e4c5ced03c93186cbc69"
+    },
+    {
+      "extension": "html",
+      "level": 8,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "d7a5c992be898cc2317816990b2fea80305284779af1fee00d23a81f765029de"
+      },
+      "sourceSha256": "f0e8837db9fd435e430b49c5399ddd88d3c5e07386ad961745a3dbe5ad79ad4c",
+      "outputSha256": "b957db2b7b0e9e7890557416074341ec8b12f7ea59dcb31d05eb33413fb1fa05"
+    },
+    {
+      "extension": "html",
+      "level": 8,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "d7a5c992be898cc2317816990b2fea80305284779af1fee00d23a81f765029de"
+      },
+      "sourceSha256": "f0e8837db9fd435e430b49c5399ddd88d3c5e07386ad961745a3dbe5ad79ad4c",
+      "outputSha256": "b957db2b7b0e9e7890557416074341ec8b12f7ea59dcb31d05eb33413fb1fa05"
+    },
+    {
+      "extension": "html",
+      "level": 8,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "d7a5c992be898cc2317816990b2fea80305284779af1fee00d23a81f765029de"
+      },
+      "sourceSha256": "f0e8837db9fd435e430b49c5399ddd88d3c5e07386ad961745a3dbe5ad79ad4c",
+      "outputSha256": "b957db2b7b0e9e7890557416074341ec8b12f7ea59dcb31d05eb33413fb1fa05"
+    },
+    {
+      "extension": "htm",
+      "level": 8,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "d7a5c992be898cc2317816990b2fea80305284779af1fee00d23a81f765029de"
+      },
+      "sourceSha256": "f0e8837db9fd435e430b49c5399ddd88d3c5e07386ad961745a3dbe5ad79ad4c",
+      "outputSha256": "b957db2b7b0e9e7890557416074341ec8b12f7ea59dcb31d05eb33413fb1fa05"
+    },
+    {
+      "extension": "htm",
+      "level": 8,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "d7a5c992be898cc2317816990b2fea80305284779af1fee00d23a81f765029de"
+      },
+      "sourceSha256": "f0e8837db9fd435e430b49c5399ddd88d3c5e07386ad961745a3dbe5ad79ad4c",
+      "outputSha256": "b957db2b7b0e9e7890557416074341ec8b12f7ea59dcb31d05eb33413fb1fa05"
+    },
+    {
+      "extension": "htm",
+      "level": 8,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "d7a5c992be898cc2317816990b2fea80305284779af1fee00d23a81f765029de"
+      },
+      "sourceSha256": "f0e8837db9fd435e430b49c5399ddd88d3c5e07386ad961745a3dbe5ad79ad4c",
+      "outputSha256": "b957db2b7b0e9e7890557416074341ec8b12f7ea59dcb31d05eb33413fb1fa05"
+    },
+    {
+      "extension": "xhtml",
+      "level": 8,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "d7a5c992be898cc2317816990b2fea80305284779af1fee00d23a81f765029de"
+      },
+      "sourceSha256": "f0e8837db9fd435e430b49c5399ddd88d3c5e07386ad961745a3dbe5ad79ad4c",
+      "outputSha256": "b957db2b7b0e9e7890557416074341ec8b12f7ea59dcb31d05eb33413fb1fa05"
+    },
+    {
+      "extension": "xhtml",
+      "level": 8,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "d7a5c992be898cc2317816990b2fea80305284779af1fee00d23a81f765029de"
+      },
+      "sourceSha256": "f0e8837db9fd435e430b49c5399ddd88d3c5e07386ad961745a3dbe5ad79ad4c",
+      "outputSha256": "b957db2b7b0e9e7890557416074341ec8b12f7ea59dcb31d05eb33413fb1fa05"
+    },
+    {
+      "extension": "xhtml",
+      "level": 8,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "d7a5c992be898cc2317816990b2fea80305284779af1fee00d23a81f765029de"
+      },
+      "sourceSha256": "f0e8837db9fd435e430b49c5399ddd88d3c5e07386ad961745a3dbe5ad79ad4c",
+      "outputSha256": "b957db2b7b0e9e7890557416074341ec8b12f7ea59dcb31d05eb33413fb1fa05"
+    },
+    {
+      "extension": "epub",
+      "level": 8,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "40431400cb42affedffc8cf76bad6769098c4468a2c97f5c16f051acafb989ae"
+      },
+      "sourceSha256": "fd0a7c957323c7ab549ba83fc3e5a523b9d67d029bbc4151b7ee54c90e2502f0",
+      "outputSha256": "319103edc50901a21c77b786f23235f8f3462b88a978bbc36b7bb64c2b50ee0f"
+    },
+    {
+      "extension": "epub",
+      "level": 8,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "40431400cb42affedffc8cf76bad6769098c4468a2c97f5c16f051acafb989ae"
+      },
+      "sourceSha256": "fd0a7c957323c7ab549ba83fc3e5a523b9d67d029bbc4151b7ee54c90e2502f0",
+      "outputSha256": "319103edc50901a21c77b786f23235f8f3462b88a978bbc36b7bb64c2b50ee0f"
+    },
+    {
+      "extension": "epub",
+      "level": 8,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "HTML",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "40431400cb42affedffc8cf76bad6769098c4468a2c97f5c16f051acafb989ae"
+      },
+      "sourceSha256": "fd0a7c957323c7ab549ba83fc3e5a523b9d67d029bbc4151b7ee54c90e2502f0",
+      "outputSha256": "319103edc50901a21c77b786f23235f8f3462b88a978bbc36b7bb64c2b50ee0f"
+    },
+    {
+      "extension": "oth",
+      "level": 8,
+      "target": "jfif",
+      "status": "PASS",
+      "nativeImportFilter": "writerweb8_writer_template",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "d7a5c992be898cc2317816990b2fea80305284779af1fee00d23a81f765029de"
+      },
+      "sourceSha256": "2b88389fd74cd721d755f27e14990234b7de5f40fefbef656062c0e4551b864c",
+      "outputSha256": "b957db2b7b0e9e7890557416074341ec8b12f7ea59dcb31d05eb33413fb1fa05"
+    },
+    {
+      "extension": "oth",
+      "level": 8,
+      "target": "jif",
+      "status": "PASS",
+      "nativeImportFilter": "writerweb8_writer_template",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "d7a5c992be898cc2317816990b2fea80305284779af1fee00d23a81f765029de"
+      },
+      "sourceSha256": "2b88389fd74cd721d755f27e14990234b7de5f40fefbef656062c0e4551b864c",
+      "outputSha256": "b957db2b7b0e9e7890557416074341ec8b12f7ea59dcb31d05eb33413fb1fa05"
+    },
+    {
+      "extension": "oth",
+      "level": 8,
+      "target": "jpe",
+      "status": "PASS",
+      "nativeImportFilter": "writerweb8_writer_template",
+      "nativeTextDocument": true,
+      "mode": "native_uno",
+      "nativeExportFilter": "writer_jpg_Export",
+      "decoded": {
+        "width": 993,
+        "height": 1404,
+        "rgbaSha256": "d7a5c992be898cc2317816990b2fea80305284779af1fee00d23a81f765029de"
+      },
+      "sourceSha256": "2b88389fd74cd721d755f27e14990234b7de5f40fefbef656062c0e4551b864c",
+      "outputSha256": "b957db2b7b0e9e7890557416074341ec8b12f7ea59dcb31d05eb33413fb1fa05"
+    }
+  ],
+  "negative": [
+    {
+      "source": "unknown-driver.dbf",
+      "sha256": "c6ad76e57aaeb707dc0fc0bd54eea65c2430ae0bc53215c8684a8f3d524e532b",
+      "status": "SAFE_REJECTION",
+      "code": "DBF_ENCODING_NOT_CONFIRMED",
+      "nativeExportStarted": false
+    },
+    {
+      "source": "broken-header.dbf",
+      "sha256": "352c8a5b189f9294d27b0edb53979b8944f1924641261d60bde3439d8a26dc96",
+      "status": "SAFE_REJECTION",
+      "code": "DBF_SOURCE_LAYOUT_INVALID",
+      "nativeExportStarted": false
+    },
+    {
+      "source": "conflicting-encoding.dbf",
+      "sha256": "1233ca1a6f4dfb9b4044ce6d03b8f9dc30e70e5b0c701c9a9fe142c6e0a3a10b",
+      "status": "SAFE_REJECTION",
+      "code": "DBF_ENCODING_AMBIGUOUS",
+      "nativeExportStarted": false
+    },
+    {
+      "source": "truncated.dbf",
+      "sha256": "029093563c48a389ad4497b05eeb3cb0d2d1fc99cf8669fefbe2afd329e0fd3b",
+      "status": "SAFE_REJECTION",
+      "code": "DBF_SOURCE_TRUNCATED",
+      "nativeExportStarted": false
+    },
+    {
+      "source": "budget-control.dbf",
+      "sha256": "baae17c703147c6cd9e172b4098cfd7a96ca8f4cefa9c43c0e882161dfaf733a",
+      "status": "SAFE_REJECTION",
+      "code": "CANCELLED",
+      "boundary": "cancelled",
+      "scope": "before_native_import",
+      "nativeExportStarted": false
+    },
+    {
+      "source": "budget-control.dbf",
+      "sha256": "baae17c703147c6cd9e172b4098cfd7a96ca8f4cefa9c43c0e882161dfaf733a",
+      "status": "SAFE_REJECTION",
+      "code": "PREFLIGHT_TIMEOUT",
+      "boundary": "expired-budget",
+      "scope": "before_native_import",
+      "nativeExportStarted": false
+    }
+  ],
+  "sourceSHA256": {
+    "dbf-1.dbf": "baae17c703147c6cd9e172b4098cfd7a96ca8f4cefa9c43c0e882161dfaf733a",
+    "dbf-2.dbf": "9d4e989978d5d861d555ba9d33d2c25945402b245565df3d102bfbc672cf6436",
+    "dbf-3.dbf": "8b58d4bfde7307a932d598f67c97c65f003e990624c36d6ddc6f1383ad4a8be8",
+    "dbf-4.dbf": "e677ad2d12dd20b63952e2dc030a76f0843663d338e4f0a039b9046f2c29b0fa",
+    "dbf-5.dbf": "ce7a6e8a3641dd93e9c75ca3e42a978293a720d193d1c1d3efb2281dc420e72b",
+    "dbf-6.dbf": "103bf6da094855a2a93339deb6e61a9fec2fd838cd86fd888de4534885751a39",
+    "dbf-7.dbf": "e7b8214f7e3840c4d3c6e89a115b9ca9960eb529f1874590cf7797b73020d8bb",
+    "dbf-8.dbf": "fb1fdf9f2af88e5fc12309778e54063b19d8a35b9424e9a3d490a15c9ce41672",
+    "large-c9.dbf": "e0f8a1135ba2eb202edd9b95c106088f88494c1a33bc650b0f660493673287a7",
+    "web-1.html": "9b5ac3d9b002aab402b98867192511f5f9c1e94fe57757a2027ad837614c83a6",
+    "web-1.htm": "9b5ac3d9b002aab402b98867192511f5f9c1e94fe57757a2027ad837614c83a6",
+    "web-1.xhtml": "9b5ac3d9b002aab402b98867192511f5f9c1e94fe57757a2027ad837614c83a6",
+    "book-1.epub": "51ae1a4ab7e3ece68319665cba4c727bdc3d654058942363cac851a4ae5aeaa3",
+    "create-oth-1\\output\\web-1.oth": "203a269d2c50f3e8aa604002008ac085e42cb16e05ed6cad3daea61882ab3e75",
+    "web-2.html": "4f912c210fe55b462a01bf69465fe3ff16fee0b317bf59900e73c2d3be315866",
+    "web-2.htm": "4f912c210fe55b462a01bf69465fe3ff16fee0b317bf59900e73c2d3be315866",
+    "web-2.xhtml": "4f912c210fe55b462a01bf69465fe3ff16fee0b317bf59900e73c2d3be315866",
+    "book-2.epub": "c6bf13d58b0c51a2710077c86e32393ac87ed4825bd3d47f4aeff5247513f940",
+    "create-oth-2\\output\\web-2.oth": "8caecfa1eced9a0082cc245bda81d6db93c8f646c0ab2e733430301c8d5d5405",
+    "web-3.html": "8bc6638d6284eca33641f8cf21ab7eca6b9d01d40fad22a20fa25f4119b64cae",
+    "web-3.htm": "8bc6638d6284eca33641f8cf21ab7eca6b9d01d40fad22a20fa25f4119b64cae",
+    "web-3.xhtml": "8bc6638d6284eca33641f8cf21ab7eca6b9d01d40fad22a20fa25f4119b64cae",
+    "book-3.epub": "093fb937ab50daf53d6c16d8918021a8003f7d112030c2d2a38f8f20d26760f5",
+    "create-oth-3\\output\\web-3.oth": "d40f712aefc6ff1a5b1bd40746d7940ce1ca825a4d40e1722704460120646bdb",
+    "web-4.html": "5a8034ba626779c1ab755930cd038a1c382910d48c70836be736c476ff553fdf",
+    "web-4.htm": "5a8034ba626779c1ab755930cd038a1c382910d48c70836be736c476ff553fdf",
+    "web-4.xhtml": "5a8034ba626779c1ab755930cd038a1c382910d48c70836be736c476ff553fdf",
+    "book-4.epub": "134a0b18c661038c88653e7682eae184ed8f6495bff74fac21597e0de3e3b591",
+    "create-oth-4\\output\\web-4.oth": "462cc7d5b9ad7eebaa5823850bd4273d655a6ae4633ed3711a1ba457a21222d9",
+    "web-5.html": "ae5b4aefba3a395b4f3f293f961cbf2970d59f247bcc1312a2b147cfa59bdeb1",
+    "web-5.htm": "ae5b4aefba3a395b4f3f293f961cbf2970d59f247bcc1312a2b147cfa59bdeb1",
+    "web-5.xhtml": "ae5b4aefba3a395b4f3f293f961cbf2970d59f247bcc1312a2b147cfa59bdeb1",
+    "book-5.epub": "1488b01ac15e23c690595495bc716ddd3ad9c841b07b0872ad3017e51fe77ead",
+    "create-oth-5\\output\\web-5.oth": "884dcd4d6a471985167c651820f23dde129eb44777dc7888fbf48bf230c7593e",
+    "web-6.html": "6240fd29698cfa0342b75410c188788353f3a2e0051b401049aeae887ce9385e",
+    "web-6.htm": "6240fd29698cfa0342b75410c188788353f3a2e0051b401049aeae887ce9385e",
+    "web-6.xhtml": "6240fd29698cfa0342b75410c188788353f3a2e0051b401049aeae887ce9385e",
+    "book-6.epub": "a676d557561bec5aa69a79a659a0cad7bfd96d31c3ef0c8c1b3e5cb52089a65e",
+    "create-oth-6\\output\\web-6.oth": "991cf48d871bb7ecdaf4b180fa09bf3205df716f880b7c1576c6b73654ffb7f8",
+    "web-7.html": "b691472965aa62e8660f67722a107814adce228fb66c214f637d8c3382100728",
+    "web-7.htm": "b691472965aa62e8660f67722a107814adce228fb66c214f637d8c3382100728",
+    "web-7.xhtml": "b691472965aa62e8660f67722a107814adce228fb66c214f637d8c3382100728",
+    "book-7.epub": "3efc38fbfc1afe9d31e7d5c17d0195d3eb21113ff60b9079d128b9ca8ca96d85",
+    "create-oth-7\\output\\web-7.oth": "a590442d4c0e0156b0615a2404193540d0bab147fcea8431f7af245eaa74092b",
+    "web-8.html": "f0e8837db9fd435e430b49c5399ddd88d3c5e07386ad961745a3dbe5ad79ad4c",
+    "web-8.htm": "f0e8837db9fd435e430b49c5399ddd88d3c5e07386ad961745a3dbe5ad79ad4c",
+    "web-8.xhtml": "f0e8837db9fd435e430b49c5399ddd88d3c5e07386ad961745a3dbe5ad79ad4c",
+    "book-8.epub": "fd0a7c957323c7ab549ba83fc3e5a523b9d67d029bbc4151b7ee54c90e2502f0",
+    "create-oth-8\\output\\web-8.oth": "2b88389fd74cd721d755f27e14990234b7de5f40fefbef656062c0e4551b864c"
+  },
+  "orp": {
+    "status": "not_tested",
+    "reason": "no_positive_Base_report_fixture",
+    "installedExporters": [
+      "StarOffice XML (Base) Report"
+    ]
+  },
+  "tiffProbe": [
+    {
+      "pages": 6,
+      "sha256": "f27c20b8ddf217512e1c9c7dedcd156a5e6c5ab065693fb99dacfab8d49ea923",
+      "profile": {
+        "format": "tiff",
+        "width": 16,
+        "height": 12,
+        "frames": 1,
+        "pages": 6,
+        "alpha": true,
+        "durationsMs": [],
+        "orientation": 1,
+        "pageDimensions": [
+          [
+            16,
+            12
+          ],
+          [
+            16,
+            12
+          ],
+          [
+            16,
+            12
+          ],
+          [
+            16,
+            12
+          ],
+          [
+            16,
+            12
+          ],
+          [
+            16,
+            12
+          ]
+        ],
+        "bitDepth": 8,
+        "pageImageIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "pageOrientations": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "pageDpi": [
+          [
+            99.9998,
+            99.9998
+          ],
+          [
+            99.9998,
+            99.9998
+          ],
+          [
+            99.9998,
+            99.9998
+          ],
+          [
+            99.9998,
+            99.9998
+          ],
+          [
+            99.9998,
+            99.9998
+          ],
+          [
+            99.9998,
+            99.9998
+          ]
+        ]
+      },
+      "currentReader": [
+        {
+          "index": 0,
+          "before": 0,
+          "jump": true,
+          "after": 0,
+          "decoded": true
+        },
+        {
+          "index": 1,
+          "before": 0,
+          "jump": false,
+          "after": 0,
+          "decoded": false
+        },
+        {
+          "index": 2,
+          "before": 0,
+          "jump": true,
+          "after": 2,
+          "decoded": true
+        },
+        {
+          "index": 3,
+          "before": 2,
+          "jump": true,
+          "after": 3,
+          "decoded": true
+        },
+        {
+          "index": 4,
+          "before": 3,
+          "jump": true,
+          "after": 4,
+          "decoded": true
+        },
+        {
+          "index": 5,
+          "before": 4,
+          "jump": true,
+          "after": 5,
+          "decoded": true
+        }
+      ],
+      "freshReader": [
+        {
+          "index": 0,
+          "jump": true,
+          "decoded": true
+        },
+        {
+          "index": 1,
+          "jump": true,
+          "decoded": true
+        },
+        {
+          "index": 2,
+          "jump": true,
+          "decoded": true
+        },
+        {
+          "index": 3,
+          "jump": true,
+          "decoded": true
+        },
+        {
+          "index": 4,
+          "jump": true,
+          "decoded": true
+        },
+        {
+          "index": 5,
+          "jump": true,
+          "decoded": true
+        }
+      ],
+      "currentAioDecoded": 6
+    },
+    {
+      "pages": 7,
+      "sha256": "1d145c8b603a2cbbe02ecba533f9197efe14a2878045e4e315905c943c421143",
+      "profile": {
+        "format": "tiff",
+        "width": 16,
+        "height": 12,
+        "frames": 1,
+        "pages": 7,
+        "alpha": true,
+        "durationsMs": [],
+        "orientation": 1,
+        "pageDimensions": [
+          [
+            16,
+            12
+          ],
+          [
+            16,
+            12
+          ],
+          [
+            16,
+            12
+          ],
+          [
+            16,
+            12
+          ],
+          [
+            16,
+            12
+          ],
+          [
+            16,
+            12
+          ],
+          [
+            16,
+            12
+          ]
+        ],
+        "bitDepth": 8,
+        "pageImageIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "pageOrientations": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "pageDpi": [
+          [
+            99.9998,
+            99.9998
+          ],
+          [
+            99.9998,
+            99.9998
+          ],
+          [
+            99.9998,
+            99.9998
+          ],
+          [
+            99.9998,
+            99.9998
+          ],
+          [
+            99.9998,
+            99.9998
+          ],
+          [
+            99.9998,
+            99.9998
+          ],
+          [
+            99.9998,
+            99.9998
+          ]
+        ]
+      },
+      "currentReader": [
+        {
+          "index": 0,
+          "before": 0,
+          "jump": true,
+          "after": 0,
+          "decoded": true
+        },
+        {
+          "index": 1,
+          "before": 0,
+          "jump": false,
+          "after": 0,
+          "decoded": false
+        },
+        {
+          "index": 2,
+          "before": 0,
+          "jump": true,
+          "after": 2,
+          "decoded": true
+        },
+        {
+          "index": 3,
+          "before": 2,
+          "jump": true,
+          "after": 3,
+          "decoded": true
+        },
+        {
+          "index": 4,
+          "before": 3,
+          "jump": true,
+          "after": 4,
+          "decoded": true
+        },
+        {
+          "index": 5,
+          "before": 4,
+          "jump": true,
+          "after": 5,
+          "decoded": true
+        },
+        {
+          "index": 6,
+          "before": 5,
+          "jump": true,
+          "after": 6,
+          "decoded": true
+        }
+      ],
+      "freshReader": [
+        {
+          "index": 0,
+          "jump": true,
+          "decoded": true
+        },
+        {
+          "index": 1,
+          "jump": true,
+          "decoded": true
+        },
+        {
+          "index": 2,
+          "jump": true,
+          "decoded": true
+        },
+        {
+          "index": 3,
+          "jump": true,
+          "decoded": true
+        },
+        {
+          "index": 4,
+          "jump": true,
+          "decoded": true
+        },
+        {
+          "index": 5,
+          "jump": true,
+          "decoded": true
+        },
+        {
+          "index": 6,
+          "jump": true,
+          "decoded": true
+        }
+      ],
+      "currentAioDecoded": 7
+    },
+    {
+      "pages": 8,
+      "sha256": "80127d2a3cba9f6fc15a2afa8ed678e0bc5dfd122f455068f088d5dc4548f72c",
+      "profile": {
+        "format": "tiff",
+        "width": 16,
+        "height": 12,
+        "frames": 1,
+        "pages": 8,
+        "alpha": true,
+        "durationsMs": [],
+        "orientation": 1,
+        "pageDimensions": [
+          [
+            16,
+            12
+          ],
+          [
+            16,
+            12
+          ],
+          [
+            16,
+            12
+          ],
+          [
+            16,
+            12
+          ],
+          [
+            16,
+            12
+          ],
+          [
+            16,
+            12
+          ],
+          [
+            16,
+            12
+          ],
+          [
+            16,
+            12
+          ]
+        ],
+        "bitDepth": 8,
+        "pageImageIndexes": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "pageOrientations": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "pageDpi": [
+          [
+            99.9998,
+            99.9998
+          ],
+          [
+            99.9998,
+            99.9998
+          ],
+          [
+            99.9998,
+            99.9998
+          ],
+          [
+            99.9998,
+            99.9998
+          ],
+          [
+            99.9998,
+            99.9998
+          ],
+          [
+            99.9998,
+            99.9998
+          ],
+          [
+            99.9998,
+            99.9998
+          ],
+          [
+            99.9998,
+            99.9998
+          ]
+        ]
+      },
+      "currentReader": [
+        {
+          "index": 0,
+          "before": 0,
+          "jump": true,
+          "after": 0,
+          "decoded": true
+        },
+        {
+          "index": 1,
+          "before": 0,
+          "jump": false,
+          "after": 0,
+          "decoded": false
+        },
+        {
+          "index": 2,
+          "before": 0,
+          "jump": true,
+          "after": 2,
+          "decoded": true
+        },
+        {
+          "index": 3,
+          "before": 2,
+          "jump": true,
+          "after": 3,
+          "decoded": true
+        },
+        {
+          "index": 4,
+          "before": 3,
+          "jump": true,
+          "after": 4,
+          "decoded": true
+        },
+        {
+          "index": 5,
+          "before": 4,
+          "jump": true,
+          "after": 5,
+          "decoded": true
+        },
+        {
+          "index": 6,
+          "before": 5,
+          "jump": true,
+          "after": 6,
+          "decoded": true
+        },
+        {
+          "index": 7,
+          "before": 6,
+          "jump": true,
+          "after": 7,
+          "decoded": true
+        }
+      ],
+      "freshReader": [
+        {
+          "index": 0,
+          "jump": true,
+          "decoded": true
+        },
+        {
+          "index": 1,
+          "jump": true,
+          "decoded": true
+        },
+        {
+          "index": 2,
+          "jump": true,
+          "decoded": true
+        },
+        {
+          "index": 3,
+          "jump": true,
+          "decoded": true
+        },
+        {
+          "index": 4,
+          "jump": true,
+          "decoded": true
+        },
+        {
+          "index": 5,
+          "jump": true,
+          "decoded": true
+        },
+        {
+          "index": 6,
+          "jump": true,
+          "decoded": true
+        },
+        {
+          "index": 7,
+          "jump": true,
+          "decoded": true
+        }
+      ],
+      "currentAioDecoded": 8
+    }
+  ]
+}

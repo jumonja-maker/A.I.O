@@ -1,0 +1,495 @@
+{
+  "status": "PASS",
+  "controls": [
+    {
+      "name": "truncated-zip",
+      "file": "broken.docx",
+      "sha256": "7be7a512a4ee374dd72515d7ea0194e028655156d29647f3ebabfbcf4a37d96f",
+      "status": "PASS",
+      "expectedDecision": "not_checked",
+      "actualDecision": "not_checked",
+      "scope": "inert_pair_analysis",
+      "evidence": {
+        "schemaVersion": 1,
+        "status": "not_checked",
+        "qualityCompared": false,
+        "scope": "verified_properties_only",
+        "findings": [
+          {
+            "code": "ANALYSIS_INCOMPLETE",
+            "category": "not_checked",
+            "message": "Часть свойств не удалось надёжно проверить.",
+            "certainty": "unknown",
+            "reason": "inspection_failed"
+          }
+        ],
+        "checkedFeatures": [],
+        "unknown": [
+          "colour_accuracy",
+          "fonts",
+          "formula_evaluation",
+          "incomplete_source_inspection",
+          "semantic_meaning",
+          "visual_layout"
+        ],
+        "recipeCandidates": [],
+        "before": {
+          "kind": "unknown",
+          "documentClass": "unknown",
+          "complete": false,
+          "counts": {},
+          "reason": "inspection_failed"
+        },
+        "after": {
+          "kind": "text",
+          "documentClass": "text",
+          "complete": true,
+          "counts": {
+            "characters": 15
+          },
+          "textDigest": "e74e7c757db01133fba44fe0795a07a74c3558128ea62ef6b845ff44bc3b3c10"
+        },
+        "outputScope": {
+          "totalFiles": 1,
+          "primaryFiles": 1,
+          "supplementalFiles": 0,
+          "inspectedPrimaryFiles": 1,
+          "inspectedSupplementalFiles": 0
+        },
+        "evaluatedFeatures": []
+      }
+    },
+    {
+      "name": "truncated-xml",
+      "file": "broken.fodt",
+      "sha256": "33f61e8affc243e513e08e45ad87ac17e969bd550c03de793eed3ac5904e97db",
+      "status": "PASS",
+      "expectedDecision": "not_checked",
+      "actualDecision": "not_checked",
+      "scope": "inert_pair_analysis",
+      "evidence": {
+        "schemaVersion": 1,
+        "status": "not_checked",
+        "qualityCompared": false,
+        "scope": "verified_properties_only",
+        "findings": [
+          {
+            "code": "ANALYSIS_INCOMPLETE",
+            "category": "not_checked",
+            "message": "Часть свойств не удалось надёжно проверить.",
+            "certainty": "unknown",
+            "reason": "inspection_failed"
+          }
+        ],
+        "checkedFeatures": [],
+        "unknown": [
+          "colour_accuracy",
+          "fonts",
+          "formula_evaluation",
+          "incomplete_source_inspection",
+          "semantic_meaning",
+          "visual_layout"
+        ],
+        "recipeCandidates": [],
+        "before": {
+          "kind": "unknown",
+          "documentClass": "unknown",
+          "complete": false,
+          "counts": {},
+          "reason": "inspection_failed"
+        },
+        "after": {
+          "kind": "text",
+          "documentClass": "text",
+          "complete": true,
+          "counts": {
+            "characters": 15
+          },
+          "textDigest": "e74e7c757db01133fba44fe0795a07a74c3558128ea62ef6b845ff44bc3b3c10"
+        },
+        "outputScope": {
+          "totalFiles": 1,
+          "primaryFiles": 1,
+          "supplementalFiles": 0,
+          "inspectedPrimaryFiles": 1,
+          "inspectedSupplementalFiles": 0
+        },
+        "evaluatedFeatures": []
+      }
+    },
+    {
+      "name": "dtd-entity",
+      "file": "entity.fodt",
+      "sha256": "cfcc66973888691a5a73fd11f32a001cc59532ac1eb015fbdf051c615fc7fbb5",
+      "status": "PASS",
+      "expectedDecision": "not_checked",
+      "actualDecision": "not_checked",
+      "scope": "inert_pair_analysis",
+      "evidence": {
+        "schemaVersion": 1,
+        "status": "not_checked",
+        "qualityCompared": false,
+        "scope": "verified_properties_only",
+        "findings": [
+          {
+            "code": "ANALYSIS_INCOMPLETE",
+            "category": "not_checked",
+            "message": "Часть свойств не удалось надёжно проверить.",
+            "certainty": "unknown",
+            "reason": "xml_declarations_not_inspected"
+          }
+        ],
+        "checkedFeatures": [],
+        "unknown": [
+          "colour_accuracy",
+          "fonts",
+          "formula_evaluation",
+          "incomplete_source_inspection",
+          "semantic_meaning",
+          "visual_layout"
+        ],
+        "recipeCandidates": [],
+        "before": {
+          "kind": "unknown",
+          "documentClass": "unknown",
+          "complete": false,
+          "counts": {},
+          "reason": "xml_declarations_not_inspected"
+        },
+        "after": {
+          "kind": "text",
+          "documentClass": "text",
+          "complete": true,
+          "counts": {
+            "characters": 15
+          },
+          "textDigest": "e74e7c757db01133fba44fe0795a07a74c3558128ea62ef6b845ff44bc3b3c10"
+        },
+        "outputScope": {
+          "totalFiles": 1,
+          "primaryFiles": 1,
+          "supplementalFiles": 0,
+          "inspectedPrimaryFiles": 1,
+          "inspectedSupplementalFiles": 0
+        },
+        "evaluatedFeatures": []
+      }
+    },
+    {
+      "name": "missing-html-resource",
+      "file": "missing.html",
+      "sha256": "fe3c6bc70f8cb7a7cc67e2112df1cc9b144c650750e54ab1fcbc99a94c9d10c4",
+      "status": "PASS",
+      "expectedDecision": "not_checked",
+      "actualDecision": "not_checked",
+      "scope": "inert_pair_analysis",
+      "evidence": {
+        "schemaVersion": 1,
+        "status": "not_checked",
+        "qualityCompared": false,
+        "scope": "verified_properties_only",
+        "findings": [
+          {
+            "code": "ANALYSIS_INCOMPLETE",
+            "category": "not_checked",
+            "message": "Часть свойств не удалось надёжно проверить.",
+            "certainty": "unknown",
+            "reason": "inspection_failed"
+          }
+        ],
+        "checkedFeatures": [],
+        "unknown": [
+          "colour_accuracy",
+          "fonts",
+          "formula_evaluation",
+          "incomplete_source_inspection",
+          "semantic_meaning",
+          "visual_layout"
+        ],
+        "recipeCandidates": [],
+        "before": {
+          "kind": "unknown",
+          "documentClass": "unknown",
+          "complete": false,
+          "counts": {},
+          "reason": "inspection_failed"
+        },
+        "after": {
+          "kind": "text",
+          "documentClass": "text",
+          "complete": true,
+          "counts": {
+            "characters": 15
+          },
+          "textDigest": "e74e7c757db01133fba44fe0795a07a74c3558128ea62ef6b845ff44bc3b3c10"
+        },
+        "outputScope": {
+          "totalFiles": 1,
+          "primaryFiles": 1,
+          "supplementalFiles": 0,
+          "inspectedPrimaryFiles": 1,
+          "inspectedSupplementalFiles": 0
+        },
+        "evaluatedFeatures": []
+      }
+    },
+    {
+      "name": "dynamic-hidden-html",
+      "file": "dynamic.html",
+      "sha256": "c93919a2ae0f6dd2fe4f34bbbb11103e359b05619f7f90225449163b6e34de51",
+      "status": "PASS",
+      "expectedDecision": "not_checked",
+      "actualDecision": "not_checked",
+      "scope": "inert_pair_analysis",
+      "evidence": {
+        "schemaVersion": 1,
+        "status": "not_checked",
+        "qualityCompared": false,
+        "scope": "verified_properties_only",
+        "findings": [],
+        "checkedFeatures": [],
+        "unknown": [
+          "colour_accuracy",
+          "fonts",
+          "formula_evaluation",
+          "html_css_layout",
+          "html_dynamic_content",
+          "html_embedded_resource_rendering",
+          "html_hidden_content",
+          "html_text_visibility",
+          "semantic_meaning",
+          "visual_layout"
+        ],
+        "recipeCandidates": [],
+        "before": {
+          "kind": "html",
+          "documentClass": "text",
+          "complete": true,
+          "counts": {
+            "tables": 0,
+            "images": 0,
+            "characters": 11
+          },
+          "textDigest": "0556d10508509bc743c6759de2f984cfe5ccf1c44abb572189939359c50cf447",
+          "textCoverage": [
+            "html_body_markup"
+          ]
+        },
+        "after": {
+          "kind": "text",
+          "documentClass": "text",
+          "complete": true,
+          "counts": {
+            "characters": 15
+          },
+          "textDigest": "e74e7c757db01133fba44fe0795a07a74c3558128ea62ef6b845ff44bc3b3c10"
+        },
+        "outputScope": {
+          "totalFiles": 1,
+          "primaryFiles": 1,
+          "supplementalFiles": 0,
+          "inspectedPrimaryFiles": 1,
+          "inspectedSupplementalFiles": 0
+        },
+        "evaluatedFeatures": []
+      }
+    },
+    {
+      "name": "text-mismatch",
+      "file": "mismatch.txt",
+      "sha256": "bb7c83425e1be22dae6746dee1024166351c5af08353e416f939ef8e9beb4156",
+      "status": "PASS",
+      "expectedDecision": "uncertain",
+      "actualDecision": "uncertain",
+      "scope": "inert_pair_analysis",
+      "evidence": {
+        "schemaVersion": 1,
+        "status": "uncertain",
+        "qualityCompared": false,
+        "scope": "verified_properties_only",
+        "findings": [
+          {
+            "code": "TEXT_REPRESENTATION_DIFFERS",
+            "category": "uncertain",
+            "feature": "text",
+            "message": "Извлечённый текст отличается; это ещё не доказывает исчезновение текста в документе.",
+            "certainty": "requires_review"
+          }
+        ],
+        "checkedFeatures": [],
+        "unknown": [
+          "colour_accuracy",
+          "fonts",
+          "formula_evaluation",
+          "semantic_meaning",
+          "visual_layout"
+        ],
+        "recipeCandidates": [],
+        "before": {
+          "kind": "text",
+          "documentClass": "text",
+          "complete": true,
+          "counts": {
+            "characters": 15
+          },
+          "textDigest": "bb7c83425e1be22dae6746dee1024166351c5af08353e416f939ef8e9beb4156"
+        },
+        "after": {
+          "kind": "text",
+          "documentClass": "text",
+          "complete": true,
+          "counts": {
+            "characters": 15
+          },
+          "textDigest": "e74e7c757db01133fba44fe0795a07a74c3558128ea62ef6b845ff44bc3b3c10"
+        },
+        "outputScope": {
+          "totalFiles": 1,
+          "primaryFiles": 1,
+          "supplementalFiles": 0,
+          "inspectedPrimaryFiles": 1,
+          "inspectedSupplementalFiles": 0
+        },
+        "evaluatedFeatures": []
+      }
+    },
+    {
+      "name": "empty-result",
+      "file": "empty-source.txt",
+      "sha256": "e74e7c757db01133fba44fe0795a07a74c3558128ea62ef6b845ff44bc3b3c10",
+      "status": "PASS",
+      "expectedDecision": "confirmed_loss",
+      "actualDecision": "confirmed_loss",
+      "scope": "inert_pair_analysis",
+      "evidence": {
+        "schemaVersion": 1,
+        "status": "confirmed_loss",
+        "qualityCompared": true,
+        "scope": "verified_properties_only",
+        "findings": [
+          {
+            "code": "TEXT_OUTPUT_EMPTY",
+            "category": "confirmed_loss",
+            "feature": "text",
+            "message": "В исходнике извлечён текст, а текстовый результат пуст.",
+            "before": 15,
+            "after": 0,
+            "certainty": "confirmed_subset"
+          }
+        ],
+        "checkedFeatures": [],
+        "unknown": [
+          "colour_accuracy",
+          "fonts",
+          "formula_evaluation",
+          "semantic_meaning",
+          "visual_layout"
+        ],
+        "recipeCandidates": [],
+        "before": {
+          "kind": "text",
+          "documentClass": "text",
+          "complete": true,
+          "counts": {
+            "characters": 15
+          },
+          "textDigest": "e74e7c757db01133fba44fe0795a07a74c3558128ea62ef6b845ff44bc3b3c10"
+        },
+        "after": {
+          "kind": "text",
+          "documentClass": "text",
+          "complete": true,
+          "counts": {
+            "characters": 0
+          },
+          "textDigest": null
+        },
+        "outputScope": {
+          "totalFiles": 1,
+          "primaryFiles": 1,
+          "supplementalFiles": 0,
+          "inspectedPrimaryFiles": 1,
+          "inspectedSupplementalFiles": 0
+        },
+        "evaluatedFeatures": [
+          "text"
+        ]
+      }
+    },
+    {
+      "name": "conflicting-mime",
+      "file": "conflicting.fods",
+      "sha256": "85f404d3ffa47a24235f850c4595120dcac9e356deed53dd8dbb7d651a297157",
+      "status": "PASS",
+      "expectedDecision": "invalid",
+      "actualDecision": "invalid",
+      "scope": "bounded_source_declaration",
+      "evidence": {
+        "state": "invalid",
+        "code": "SOURCE_CONTAINER_INCONSISTENT",
+        "reason": "mimetype_body_mismatch",
+        "contentClass": "odf",
+        "expectedServices": []
+      }
+    },
+    {
+      "name": "renamed-writer",
+      "file": "writer-renamed.xlsx",
+      "sha256": "3e2cf8bdfa1c84426a931d140aca3b2b9086f7bfe3cca5799e2f4209855f8a51",
+      "status": "PASS",
+      "expectedDecision": "recognized",
+      "actualDecision": "recognized",
+      "scope": "bounded_source_declaration",
+      "evidence": {
+        "state": "recognized",
+        "contentClass": "flat_odf",
+        "mimetype": "application/vnd.oasis.opendocument.text",
+        "expectedServices": [
+          "com.sun.star.text.TextDocument"
+        ],
+        "bodyObserved": true
+      }
+    },
+    {
+      "name": "inspection-budget",
+      "file": "bounded.fodt",
+      "sha256": "3e2cf8bdfa1c84426a931d140aca3b2b9086f7bfe3cca5799e2f4209855f8a51",
+      "status": "PASS",
+      "expectedDecision": "not_checked",
+      "actualDecision": "not_checked",
+      "scope": "bounded_source_declaration",
+      "evidence": {
+        "state": "not_checked",
+        "reason": "source_contract_budget"
+      }
+    },
+    {
+      "name": "changed-source-preview",
+      "file": "changed-source-preview/data.txt",
+      "sha256": "8b0dae4b88ad579df597e41a18b7a66fc73b06380970346bad07afe801a99463",
+      "status": "PASS",
+      "expectedDecision": "unavailable",
+      "actualDecision": "unavailable",
+      "scope": "preview_identity_boundary",
+      "evidence": {
+        "kind": "unavailable",
+        "code": "SOURCE_CHANGED",
+        "note": "Файл изменился после конвертации. Сохранённый отчёт относится к прежним байтам; запустите анализ заново."
+      }
+    },
+    {
+      "name": "changed-result-preview",
+      "file": "changed-result-preview/data.txt",
+      "sha256": "8b0dae4b88ad579df597e41a18b7a66fc73b06380970346bad07afe801a99463",
+      "status": "PASS",
+      "expectedDecision": "unavailable",
+      "actualDecision": "unavailable",
+      "scope": "preview_identity_boundary",
+      "evidence": {
+        "kind": "unavailable",
+        "code": "RESULT_CHANGED",
+        "note": "Файл изменился после конвертации. Сохранённый отчёт относится к прежним байтам; запустите анализ заново."
+      }
+    }
+  ]
+}
