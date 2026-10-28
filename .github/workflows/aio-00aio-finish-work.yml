@@ -1,0 +1,124 @@
+name: 00AIO finish WORK pinned native gates
+on:
+  pull_request:
+    types: [synchronize, reopened]
+    paths:
+      - 'app_backend/**'
+      - 'src/**'
+      - 'tests/**'
+      - 'tools/qa/**'
+      - '.github/workflows/aio-00aio-finish-work.yml'
+permissions:
+  contents: write
+concurrency:
+  group: aio-00aio-finish-native
+  cancel-in-progress: false
+env:
+  AIO_SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
+  AIO_FEATURE_BRANCH: ${{ github.event.pull_request.head.ref }}
+  PYTHONDONTWRITEBYTECODE: '1'
+  PYTHONUTF8: '1'
+  PYTHONIOENCODING: utf-8
+  PIP_NO_INDEX: '1'
+  PIP_NO_INPUT: '1'
+  PIP_DISABLE_PIP_VERSION_CHECK: '1'
+  AIO_BLACKBOX_EVENTS: ''
+  QT_QPA_PLATFORM: offscreen
+  QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --disable-gpu-compositing
+  OMP_NUM_THREADS: '2'
+  OPENBLAS_NUM_THREADS: '2'
+  AIO_LO_QA_MUST_HAVE_ENGINE: '1'
+  AIO_QT_SAVE_QA: '1'
+jobs:
+  pinned-windows:
+    if: >-
+      github.repository == 'jumonja-maker/A.I.O' &&
+      github.actor == 'jumonja-maker' &&
+      github.event.pull_request.user.login == 'jumonja-maker' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.base.ref == 'fix/guard-v182-matrix-progress-cancel-20261025' &&
+      ((github.event.pull_request.number == 75 && github.event.pull_request.head.ref == 'fix/native-profile-owned-job-drain-20261028') ||
+       (github.event.pull_request.number == 74 && github.event.pull_request.head.ref == 'test/remaining-bag-integration-20261028'))
+    runs-on: [self-hosted, Windows, X64, local-d-manual]
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - name: Check trusted non-elevated runner and unused paths
+        run: |
+          $ErrorActionPreference='Stop'
+          if ($env:RUNNER_NAME -cne 'NIKITA' -or $env:RUNNER_OS -cne 'Windows' -or $env:USERNAME -ine 'aio-runner') { throw 'Untrusted runner' }
+          $p=New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+          if ($p.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Elevated QA prohibited' }
+          foreach($key in @('GITHUB_WORKSPACE','RUNNER_TEMP','TEMP','TMP')) {
+            $v=[Environment]::GetEnvironmentVariable($key)
+            if ([string]::IsNullOrWhiteSpace($v) -or -not [IO.Path]::GetFullPath($v).StartsWith('D:\',[StringComparison]::OrdinalIgnoreCase)) { throw 'Unsafe path' }
+          }
+          if ((Get-PSDrive D -PSProvider FileSystem).Free -lt 30GB -or (Get-PSDrive C -PSProvider FileSystem).Free -lt 10GB) { throw 'Insufficient disk; no cleanup attempted' }
+          $src=Join-Path $env:GITHUB_WORKSPACE 'q-${{ github.run_id }}-${{ github.run_attempt }}'
+          $out=Join-Path $env:RUNNER_TEMP 'f-${{ github.run_id }}-${{ github.run_attempt }}'
+          if ((Test-Path -LiteralPath $src) -or (Test-Path -LiteralPath $out)) { throw 'Existing destination; refusing overwrite' }
+          'AIO_GATE_OUTPUT='+$out | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Checkout exact owner feature head
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        env:
+          GIT_CONFIG_COUNT: '1'
+          GIT_CONFIG_KEY_0: core.autocrlf
+          GIT_CONFIG_VALUE_0: 'false'
+        with:
+          repository: jumonja-maker/A.I.O
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: q-${{ github.run_id }}-${{ github.run_attempt }}
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Select pre-existing tools and independently verify source tree
+        working-directory: q-${{ github.run_id }}-${{ github.run_attempt }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $python='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\Scripts\python.exe'
+          $marker='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\.00aio-test-only-venv.txt'
+          if (-not (Test-Path -LiteralPath $python) -or -not (Test-Path -LiteralPath $marker) -or (Get-Content -LiteralPath $marker -Raw).Trim() -cne '00AIO NIKITA ISOLATED DOCX PDF QA PY311 QT6103') { throw 'Approved environment absent' }
+          & $python tools/qa/_finish_work_gates.py verify --output $env:AIO_GATE_OUTPUT
+          if ($LASTEXITCODE -ne 0) { throw 'Immutable tree verification failed' }
+          'AIO_QA_PYTHON='+$python | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          'AIO_BUILD_REVISION='+$env:AIO_SOURCE_SHA | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          $engine='D:\LBR\program\soffice.com'
+          if (-not (Test-Path -LiteralPath $engine) -or -not (Test-Path -LiteralPath 'D:\LBR\program\soffice.bin') -or -not (Test-Path -LiteralPath 'D:\LBR\share')) { throw 'Complete offline LibreOffice absent' }
+          'AIO_LIBREOFFICE='+$engine | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          $node=Get-Command node -ErrorAction SilentlyContinue
+          if ($node) { $node=$node.Source } else {
+            $runnerRoot=Split-Path -Parent (Split-Path -Parent $env:RUNNER_TEMP)
+            $candidates=@((Join-Path $runnerRoot 'externals\node24\bin\node.exe'),(Join-Path $runnerRoot 'externals\node20\bin\node.exe'),'D:\AIO-Lab\nodejs\node.exe')
+            $found=@($candidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1)
+            if ($found.Count -ne 1) { throw 'Existing Node absent' }; $node=$found[0]
+          }
+          [IO.Path]::GetDirectoryName($node) | Out-File $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Offline test-only dependencies
+        working-directory: q-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $deps=Join-Path $env:RUNNER_TEMP 'fd-${{ github.run_id }}-${{ github.run_attempt }}'
+          if (Test-Path -LiteralPath $deps) { throw 'Dependency folder exists' }
+          & $env:AIO_QA_PYTHON tools/qa/guard_v17_test_dependencies.py --output $deps --github-env
+          if ($LASTEXITCODE -ne 0) { throw 'Offline test dependencies failed' }
+      - name: Original failing test then full source and native gates
+        working-directory: q-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          & $env:AIO_QA_PYTHON tools/qa/_finish_work_gates.py run --output $env:AIO_GATE_OUTPUT --engine $env:AIO_LIBREOFFICE
+          if ($LASTEXITCODE -ne 0) { throw 'Completion gates failed; no merge permitted' }
+      - name: Preserve evidence only on the exact owning feature branch
+        if: always()
+        working-directory: q-${{ github.run_id }}-${{ github.run_attempt }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          if (Test-Path -LiteralPath (Join-Path $env:AIO_GATE_OUTPUT 'acceptance.json')) {
+            & $env:AIO_QA_PYTHON tools/qa/_finish_work_gates.py publish --output $env:AIO_GATE_OUTPUT
+            if ($LASTEXITCODE -ne 0) { throw 'Evidence publication failed; retained on D drive' }
+          }
+          Write-Host 'MAIN_UNCHANGED;NO_BUILD;NO_INSTALL;NO_RELEASE;USER_FULLTEST_NOT_RUN'
