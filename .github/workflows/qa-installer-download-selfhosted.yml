@@ -74,13 +74,22 @@ jobs:
           if (-not $sumText.Contains($env:AIO_EXPECTED_SETUP_SHA+'  '+[IO.Path]::GetFileName($setup)) -or -not $sumText.Contains($env:AIO_EXPECTED_ZIP_SHA+'  '+[IO.Path]::GetFileName($zip))) { throw 'SHA256SUMS original record mismatch' }
           $buildText=Get-Content -LiteralPath $build -Raw -Encoding utf8
           $recoveryText=Get-Content -LiteralPath $recovery -Raw -Encoding utf8
-          if (-not $buildText.Contains('SOURCE='+$env:AIO_PRODUCT_SOURCE_SHA) -or
-              -not $buildText.Contains('TREE='+$env:AIO_PRODUCT_TREE_SHA) -or
-              -not $buildText.Contains('INSTALLED=NO;RELEASED=NO') -or
-              -not $recoveryText.Contains('QA_FROZEN_RECOVERY=PASS') -or
-              -not $recoveryText.Contains('SOURCE='+$env:AIO_PRODUCT_SOURCE_SHA) -or
-              -not $recoveryText.Contains('FILE_SHA256_READBACK=PASS') -or
-              -not $recoveryText.Contains('INSTALL=NOT_RUN;FULLTEST=NOT_RUN;RELEASE=NOT_RUN')) { throw 'Accepted QA evidence or provenance invalid' }
+          $checks=[ordered]@{
+            'build_source_sha'=$buildText.Contains('SOURCE='+$env:AIO_PRODUCT_SOURCE_SHA)
+            'build_tree_sha'=$buildText.Contains('TREE='+$env:AIO_PRODUCT_TREE_SHA)
+            'build_uninstalled'=$buildText.Contains('INSTALLED=NO')
+            'build_unreleased'=$buildText.Contains('RELEASED=NO')
+            'recovery_pass'=$recoveryText.Contains('QA_FROZEN_RECOVERY=PASS')
+            'recovery_source_sha'=$recoveryText.Contains('SOURCE='+$env:AIO_PRODUCT_SOURCE_SHA)
+            'recovery_readback'=$recoveryText.Contains('FILE_SHA256_READBACK=PASS')
+            'recovery_not_installed'=$recoveryText.Contains('INSTALL=NOT_RUN')
+            'recovery_not_fulltest'=$recoveryText.Contains('FULLTEST=NOT_RUN')
+            'recovery_not_released'=$recoveryText.Contains('RELEASE=NOT_RUN')
+          }
+          foreach($name in $checks.Keys) {
+            Write-Host ('QA_PROVENANCE_'+$name+'='+$checks[$name])
+            if (-not $checks[$name]) { throw ('QA provenance mismatch: '+$name) }
+          }
           $ev=Get-Content -LiteralPath $frozen -Raw -Encoding utf8 | ConvertFrom-Json
           if ($ev.status -cne 'PASS' -or $ev.frozenVerified -ne $true -or $ev.fixturesUnchanged -ne $true -or
               $ev.assets.status -cne 'PASS' -or $ev.operations.'png-preview'.png.width -ne 2400 -or
