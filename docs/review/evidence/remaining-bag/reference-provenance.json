@@ -1,0 +1,20 @@
+[
+  {
+    "file": "AIO_GPT_WORK_TZ_REMAINING_BAG_2026-10-27_RU(1).md",
+    "bytes": 35123,
+    "sha256": "7f077353116daa36b3e7d9d18245496775da3dbf2f5087da29aedc6fc8c51887",
+    "use": "requirements_and_historical_context_only"
+  },
+  {
+    "file": "AIO_conversion_audit_2026-10-27.pdf",
+    "bytes": 95656,
+    "sha256": "4790a0e482fbc1f325451052c6ed8da27362b621fc06b2bcd12815af41566f29",
+    "use": "requirements_and_historical_context_only"
+  },
+  {
+    "file": "AIO_conversion_audit_2026-10-27.xlsx",
+    "bytes": 2913838,
+    "sha256": "7a8991c86a03cdc7f47be4620b729895837d96ca1fb996e4850f951fa1b1c31f",
+    "use": "requirements_and_historical_context_only"
+  }
+]

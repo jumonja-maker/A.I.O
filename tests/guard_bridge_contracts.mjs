@@ -55,6 +55,7 @@ function environment(options={}) {
     }
     if(path==='/saved') {events.push('ack:'+body.ticket);return reply({jobId,saved:true,savedAll:true});}
     if(path==='/release') {events.push('release');return reply({ok:true});}
+    if(path==='/close') {events.push('close');return reply({closed:true,confirmationRequired:false});}
     throw Error('Unexpected route: '+path);
   };
   const progress={};
@@ -87,7 +88,11 @@ const completed=[];
   await new Promise(r=>setTimeout(r,1));
   assert.equal(e.events.some(x=>typeof x==='string'&&x.startsWith('ack:')),false);
   gate.resolve();await saving;
-  assert.ok(e.events.indexOf('ack:'+ticket)<e.events.indexOf('release'));
+  assert.ok(e.events.indexOf('ack:'+ticket)>=0,'save must be acknowledged after the native save finishes');
+  assert.equal(e.events.includes('release'),false,'verified Save retains the session for analysis');
+  assert.equal(e.events.includes('close'),false,'Save does not implicitly Close');
+  await e.bridge.closeConversion(jobId);
+  assert.ok(e.events.indexOf('ack:'+ticket)<e.events.indexOf('close'),'only explicit Close follows save acknowledgement');
   completed.push('preflight before complete plan and native-save acknowledgement ordering');
 }
 {
@@ -144,7 +149,9 @@ const completed=[];
   assert.equal(saved.length,2,'one save request per user attempt, never one per output');
   assert.equal(e.events.filter(x=>typeof x==='string'&&x.startsWith('ack:')).length,0,
     'native bulk save confirms the whole manifest itself');
-  assert.equal(e.events.at(-2),'release');
+  assert.equal(e.events.includes('release'),false,'verified folder save retains the session');
+  await e.bridge.closeConversion(jobId);
+  assert.equal(e.events.at(-1),'close');
   completed.push('archive failure uses one folder save and retains files after cancelled save');
 }
 {

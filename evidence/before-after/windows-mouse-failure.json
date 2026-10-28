@@ -1,0 +1,89 @@
+{
+  "run": 40564777460,
+  "status": "FAIL",
+  "testedSHA": "7d8c2774d1f208d7a277900a7f91574bd0d46aa1",
+  "testedTree": "6f5177cbe6f1c16fe6d36a64ac65e768b8f9ed87",
+  "evidence": {
+    "status": "FAIL",
+    "scope": "source QtWebEngine/real preview codecs + native Writer HTML; not installed EXE or FULLTEST",
+    "scaleFactor": "1",
+    "checks": [
+      {
+        "name": "native-writer-html-analysis",
+        "status": "PASS",
+        "sourceSha256": "e1c91312a56119146ecb089ab41dac7826fad39dd712cb8815d9266f52caadc6",
+        "analysis": {
+          "schemaVersion": 1,
+          "status": "checked",
+          "qualityCompared": true,
+          "scope": "verified_properties_only",
+          "findings": [],
+          "checkedFeatures": [
+            "cell_values_single_grid",
+            "normalized_text"
+          ],
+          "unknown": [
+            "colour_accuracy",
+            "comments_and_revisions",
+            "field_evaluation",
+            "fonts",
+            "formula_evaluation",
+            "hidden_text",
+            "html_css_layout",
+            "html_embedded_resource_rendering",
+            "html_text_visibility",
+            "semantic_meaning",
+            "textboxes_reading_order",
+            "visual_layout",
+            "word_table_structure"
+          ],
+          "recipeCandidates": [],
+          "before": {
+            "kind": "ooxml",
+            "documentClass": "text",
+            "complete": true,
+            "counts": {
+              "tables": 1,
+              "textParts": 1,
+              "images": 0,
+              "formulas": 0,
+              "characters": 69
+            },
+            "textDigest": "9ac6226334ec41b81aa7b324684a7f9d998b012bfcf0fb2f3052b661973a6ba4",
+            "textCoverage": [
+              "body"
+            ]
+          },
+          "after": {
+            "kind": "html",
+            "documentClass": "text",
+            "complete": true,
+            "counts": {
+              "tables": 1,
+              "images": 0,
+              "characters": 69
+            },
+            "textDigest": "9ac6226334ec41b81aa7b324684a7f9d998b012bfcf0fb2f3052b661973a6ba4",
+            "textCoverage": [
+              "html_body_markup"
+            ]
+          },
+          "outputScope": {
+            "totalFiles": 1,
+            "primaryFiles": 1,
+            "supplementalFiles": 0,
+            "inspectedPrimaryFiles": 1,
+            "inspectedSupplementalFiles": 0
+          },
+          "evaluatedFeatures": [
+            "cell_values_single_grid",
+            "normalized_text"
+          ]
+        }
+      }
+    ],
+    "snapshots": [],
+    "reason": "Qt before/after condition did not become true: ",
+    "error": "TimeoutError"
+  }
+}

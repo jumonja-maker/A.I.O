@@ -1,0 +1,112 @@
+{
+  "runId": 40605053344,
+  "jobId": 122542362115,
+  "runConclusion": "success",
+  "testedSourceSHA": "eab87d675594139e997df90d1908287f83d03051",
+  "testedTree": "6917f5ef846a56a28af3d3cc67780dfdab305e37",
+  "rgbaControl": "RGBA_FIXTURE_CONTROL={\"legacyIntFill\": [0, 0, 255, 255], \"explicitQColor\": [255, 0, 0, 255]}",
+  "files": [
+    {
+      "file": "D:\\actions-runner\\_work\\A.I.O\\A.I.O\\aio-before-after-evidence-40605053344-1\\native-continuity.json",
+      "data": {
+        "status": "PASS",
+        "scope": "native_product_and_generators_byte_identity_only",
+        "nativeSourceSHA": "14494e00fdbc1aaed20b8443b0d59e2554ea91df",
+        "nativeRunId": 40579811557,
+        "nativeRunConclusion": "failure_in_old_journey_filter_expectation",
+        "viewerDpi": [
+          1,
+          1.5
+        ],
+        "viewerCasesPerDpi": 5,
+        "nativeNeighbors": "PASS",
+        "journeySourceSHA": "bdf6b0a189dfdbfa7131ecc4b5e2e98350f70fd0",
+        "journeyRunId": 40581401851,
+        "journeyRunConclusion": "failure_in_old_apng_source_colour_fixture",
+        "journeys": "PASS",
+        "productAndGenerators": {
+          "addons": "124e1aa0eb38c08e7d8f617ef91fc300b626d22f",
+          "app_backend": "fb6dd44027f67c4ff38ef73fcf6b99e262fe8b29",
+          "assets": "207088b35bb505bb22f3160f0b1d96ba694fe795",
+          "index.html": "304c8ed1ce812153fa8d3b4b38c606a54263f1fe",
+          "launcher.py": "24d470fa43511a16f8f913ce7179591aa65c6bcf",
+          "src": "77f3195d48836c72c0852ced0ebe3c716caac715",
+          "tools/qa/guard_before_after_b19_b25_acceptance.py": "49b169b0c25f1d53ef2714841609e41187d6870b",
+          "tools/qa/guard_v08_native_acceptance.py": "ee6cf590afa625eae12d9d3109c0676c477749cc",
+          "tools/qa/guard_v19_native_recipes_acceptance.py": "afac0732aa2be950ea1cc95e8892a98754c1f0c3",
+          "tools/qa/guard_v19_visual_acceptance.py": "0a342c214ef81a09cd36549fbf44088f1f76e1e2",
+          "tools/qa/guard_v20_native_acceptance.py": "63c95293b436b5adecad450e8935471890ba6ae6",
+          "tools/qa/guard_v21_xlsx_acceptance.py": "9025384b51b23ef31c38150d0db9361acc36f4a9",
+          "tools/qa/guard_v22_txt_native_acceptance.py": "0e57814e709804f25f0b73dbb1e2f25583ca8c4e",
+          "tools/qa/guard_v19_journeys_acceptance.py": "c1b7becccd0d3e31a8e3b1621420b4ad938e4f7f"
+        },
+        "currentSourceSHA": "eab87d675594139e997df90d1908287f83d03051"
+      }
+    },
+    {
+      "file": "D:\\actions-runner\\_work\\A.I.O\\A.I.O\\aio-before-after-evidence-40605053344-1\\windows-unit.json",
+      "data": {
+        "status": "PASS",
+        "discovered": 1175,
+        "passed": 1165,
+        "failed": 0,
+        "errors": 0,
+        "skipped": [
+          {
+            "test": "test_comparison_recovery_v20.ComparisonRecoverySafety.test_dangling_catalogue_link_cannot_create_an_external_database",
+            "reason": "Host cannot create the controlled symlink",
+            "status": "not_applicable"
+          },
+          {
+            "test": "test_converter_guard_process_v02.ControlledProcessTests.test_deadline_kills_own_process_tree_and_next_file_runs",
+            "reason": "POSIX test fixture; real Windows Job Object needs Windows acceptance",
+            "status": "not_applicable"
+          },
+          {
+            "test": "test_converter_guard_process_v02.ControlledProcessTests.test_live_output_quota_stops_only_the_growing_process",
+            "reason": "POSIX test fixture; real Windows Job Object needs Windows acceptance",
+            "status": "not_applicable"
+          },
+          {
+            "test": "test_converter_guard_process_v02.ControlledProcessTests.test_slow_cleanup_does_not_hold_the_global_metadata_lock",
+            "reason": "POSIX test fixture; real Windows Job Object needs Windows acceptance",
+            "status": "not_applicable"
+          },
+          {
+            "test": "test_guard_media_v20.BmpNativeRepair.test_source_symlink_is_never_rewritten",
+            "reason": "Symlinks unavailable on this filesystem",
+            "status": "not_applicable"
+          },
+          {
+            "test": "test_guard_native_metrics_v11.NativeMetricsQA.test_cli_measures_process_time_without_inventing_import_or_export_times",
+            "reason": "Executable generated fixture uses a POSIX shebang",
+            "status": "not_applicable"
+          },
+          {
+            "test": "test_guard_native_metrics_v11.NativeMetricsQA.test_twenty_worker_recycles_leave_no_live_readers_profiles_or_pipe_descriptors",
+            "reason": "Owned POSIX worker lifecycle; not Windows Job Object QA",
+            "status": "not_applicable"
+          },
+          {
+            "test": "test_guard_quarantine_v20.DiagnosticQuarantineV20.test_symlink_output_and_linked_diagnostic_destination_are_not_followed",
+            "reason": "[WinError 1314] РљР»РёРµРЅС‚ РЅРµ РѕР±Р»Р°РґР°РµС‚ С‚СЂРµР±СѓРµРјС‹РјРё РїСЂР°РІР°РјРё: 'D:\\\\actions-runner\\\\temp\\\\tmp7xv4sgyd\\\\job\\\\input\\\\original.docx' -> 'D:\\\\actions-runner\\\\temp\\\\tmp7xv4sgyd\\\\job\\\\work\\\\1\\\\output\\\\link.docx'",
+            "status": "not_applicable"
+          },
+          {
+            "test": "test_guard_queue_audit_v18.ResultDeltaTests.test_unsupported_hardlinks_use_exclusive_copy_and_independent_readback",
+            "reason": "POSIX link-unsupported fallback",
+            "status": "not_applicable"
+          },
+          {
+            "test": "test_guard_queue_audit_v18.ResultDeltaTests.test_unsupported_link_fallback_still_rejects_a_competing_target",
+            "reason": "POSIX link-unsupported fallback",
+            "status": "not_applicable"
+          }
+        ],
+        "failureDetails": [],
+        "expectedFailures": [],
+        "unexpectedSuccesses": []
+      }
+    }
+  ]
+}

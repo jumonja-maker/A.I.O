@@ -1,0 +1,4786 @@
+{
+  "status": "FAIL",
+  "runId": 40566745254,
+  "jobId": 122409930163,
+  "sourceSHA": "d02b0ec6e97fbbfae8e95f0435f6c195dc2588c3",
+  "treeSHA": "3d8105f3ff6078e5862b2fdf876e82032b0f7c56",
+  "reason": "Native session and neighbors PASS; old bridge Save auto-release assertion and Windows lock-file test reader failed",
+  "evidence": [
+    {
+      "file": "D:\\actions-runner\\_work\\A.I.O\\A.I.O\\aio-session-b16-b27-evidence-40566745254-1\\windows-unit.json",
+      "data": {
+        "status": "FAIL",
+        "discovered": 1167,
+        "passed": 1155,
+        "failed": 1,
+        "errors": 1,
+        "skipped": [
+          {
+            "test": "test_comparison_recovery_v20.ComparisonRecoverySafety.test_dangling_catalogue_link_cannot_create_an_external_database",
+            "reason": "Host cannot create the controlled symlink",
+            "status": "not_applicable"
+          },
+          {
+            "test": "test_converter_guard_process_v02.ControlledProcessTests.test_deadline_kills_own_process_tree_and_next_file_runs",
+            "reason": "POSIX test fixture; real Windows Job Object needs Windows acceptance",
+            "status": "not_applicable"
+          },
+          {
+            "test": "test_converter_guard_process_v02.ControlledProcessTests.test_live_output_quota_stops_only_the_growing_process",
+            "reason": "POSIX test fixture; real Windows Job Object needs Windows acceptance",
+            "status": "not_applicable"
+          },
+          {
+            "test": "test_converter_guard_process_v02.ControlledProcessTests.test_slow_cleanup_does_not_hold_the_global_metadata_lock",
+            "reason": "POSIX test fixture; real Windows Job Object needs Windows acceptance",
+            "status": "not_applicable"
+          },
+          {
+            "test": "test_guard_media_v20.BmpNativeRepair.test_source_symlink_is_never_rewritten",
+            "reason": "Symlinks unavailable on this filesystem",
+            "status": "not_applicable"
+          },
+          {
+            "test": "test_guard_native_metrics_v11.NativeMetricsQA.test_cli_measures_process_time_without_inventing_import_or_export_times",
+            "reason": "Executable generated fixture uses a POSIX shebang",
+            "status": "not_applicable"
+          },
+          {
+            "test": "test_guard_native_metrics_v11.NativeMetricsQA.test_twenty_worker_recycles_leave_no_live_readers_profiles_or_pipe_descriptors",
+            "reason": "Owned POSIX worker lifecycle; not Windows Job Object QA",
+            "status": "not_applicable"
+          },
+          {
+            "test": "test_guard_quarantine_v20.DiagnosticQuarantineV20.test_symlink_output_and_linked_diagnostic_destination_are_not_followed",
+            "reason": "[WinError 1314] РљР»РёРµРЅС‚ РЅРµ РѕР±Р»Р°РґР°РµС‚ С‚СЂРµР±СѓРµРјС‹РјРё РїСЂР°РІР°РјРё: 'D:\\\\actions-runner\\\\temp\\\\tmp4i40f0mo\\\\job\\\\input\\\\original.docx' -> 'D:\\\\actions-runner\\\\temp\\\\tmp4i40f0mo\\\\job\\\\work\\\\1\\\\output\\\\link.docx'",
+            "status": "not_applicable"
+          },
+          {
+            "test": "test_guard_queue_audit_v18.ResultDeltaTests.test_unsupported_hardlinks_use_exclusive_copy_and_independent_readback",
+            "reason": "POSIX link-unsupported fallback",
+            "status": "not_applicable"
+          },
+          {
+            "test": "test_guard_queue_audit_v18.ResultDeltaTests.test_unsupported_link_fallback_still_rejects_a_competing_target",
+            "reason": "POSIX link-unsupported fallback",
+            "status": "not_applicable"
+          }
+        ],
+        "failureDetails": [
+          {
+            "test": "test_guard_bridge_v05.GuardBridgeV05Tests.test_actual_bridge_lifecycle_and_complete_plans",
+            "traceback": "Traceback (most recent call last):\n  File \"D:\\actions-runner\\_work\\A.I.O\\A.I.O\\aio-session-b16-b27-source-40566745254-1\\tests\\test_guard_bridge_v05.py\", line 13, in test_actual_bridge_lifecycle_and_complete_plans\n    self.assertEqual(result.returncode, 0, result.stdout + '\\n' + result.stderr)\nAssertionError: 1 != 0 : \nnode:internal/modules/run_main:107\n    triggerUncaughtException(\n    ^\n\nAssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:\n\n  assert.ok(e.events.indexOf('ack:'+ticket)<e.events.indexOf('release'))\n\n    at file:///D:/actions-runner/_work/A.I.O/A.I.O/aio-session-b16-b27-source-40566745254-1/tests/guard_bridge_contracts.mjs:90:10 {\n  generatedMessage: true,\n  code: 'ERR_ASSERTION',\n  actual: false,\n  expected: true,\n  operator: '==',\n  diff: 'simple'\n}\n\nNode.js v24.21.0\n\n"
+          },
+          {
+            "test": "test_session_lifecycle_b16_b27.SessionLifecycleContracts.test_close_without_confirmation_is_a_read_only_decision",
+            "traceback": "Traceback (most recent call last):\n  File \"D:\\actions-runner\\_work\\A.I.O\\A.I.O\\aio-session-b16-b27-source-40566745254-1\\tests\\test_session_lifecycle_b16_b27.py\", line 40, in test_close_without_confirmation_is_a_read_only_decision\n    before={p.relative_to(root).as_posix():hashlib.sha256(p.read_bytes()).hexdigest()\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\actions-runner\\_work\\A.I.O\\A.I.O\\aio-session-b16-b27-source-40566745254-1\\tests\\test_session_lifecycle_b16_b27.py\", line 40, in <dictcomp>\n    before={p.relative_to(root).as_posix():hashlib.sha256(p.read_bytes()).hexdigest()\n                                                          ^^^^^^^^^^^^^^\n  File \"D:\\AIO-Lab\\Python311\\Lib\\pathlib.py\", line 1051, in read_bytes\n    return f.read()\n           ^^^^^^^^\nPermissionError: [Errno 13] Permission denied\n"
+          }
+        ],
+        "expectedFailures": [],
+        "unexpectedSuccesses": []
+      }
+    },
+    {
+      "file": "D:\\actions-runner\\_work\\A.I.O\\A.I.O\\aio-session-b16-b27-evidence-40566745254-1\\journeys\\evidence.json",
+      "data": {
+        "schema": 1,
+        "status": "PASS",
+        "platform": "win32",
+        "sourceSha": "d02b0ec6e97fbbfae8e95f0435f6c195dc2588c3",
+        "scope": "actual QtWebEngine + production bridge/native folder save + real isolated comparison workers; native conversion fixture controlled",
+        "picker": "new synthetic QA folder supplied; all file copies and independent readback are production code",
+        "fullFormatMatrix": "NOT_RUN",
+        "packagedEXE": "NOT_RUN",
+        "manualVisibleGuiAcceptance": "NOT_RUN",
+        "journeys": [
+          {
+            "name": "recovered_report_and_second_output",
+            "status": "PASS",
+            "sameAnalysisId": true,
+            "nativeExportsOnReopen": 0,
+            "secondSheetVisible": true
+          },
+          {
+            "name": "corrupt_report_requires_explicit_restart",
+            "status": "PASS",
+            "restartOffered": true,
+            "automaticRestart": false,
+            "newAnalysisId": true,
+            "originalAndConvertedBytesUnchanged": true,
+            "nativeExports": 0
+          },
+          {
+            "name": "native_dialog_close_reopen_preserves_new_session",
+            "status": "PASS",
+            "cycles": 5,
+            "lateNativeCloseEventsObserved": 5,
+            "newJobReportVisible": true,
+            "newAnalysisCancelledByOldClose": false
+          },
+          {
+            "name": "close_comparison_then_save_during_real_analysis",
+            "status": "PASS",
+            "cycle": 1,
+            "processedBeforeClose": 1,
+            "total": 24,
+            "liveWorkerObserved": true,
+            "releasedAllLeases": true,
+            "privateJobRemoved": true,
+            "qtTimerTicks": 46,
+            "savedByteHashesMatch": true,
+            "nativeExportsDuringAnalysis": 0,
+            "releasedJobView": {
+              "open": true,
+              "feedback": "РџР°РєРµС‚ РѕСЃРІРѕР±РѕР¶РґС‘РЅ РёР»Рё СѓРґР°Р»С‘РЅ. РЎСЂР°РІРЅРµРЅРёРµ Р±РѕР»СЊС€Рµ РЅРµРґРѕСЃС‚СѓРїРЅРѕ.",
+              "retryDisabled": true,
+              "resumeDisabled": true,
+              "restartDisabled": true
+            }
+          },
+          {
+            "name": "close_comparison_then_discard_during_real_analysis",
+            "status": "PASS",
+            "cycle": 1,
+            "processedBeforeClose": 1,
+            "total": 24,
+            "liveWorkerObserved": true,
+            "releasedAllLeases": true,
+            "privateJobRemoved": true,
+            "qtTimerTicks": 30,
+            "savedByteHashesMatch": false,
+            "nativeExportsDuringAnalysis": 0,
+            "releasedJobView": {
+              "open": true,
+              "feedback": "РџР°РєРµС‚ РѕСЃРІРѕР±РѕР¶РґС‘РЅ РёР»Рё СѓРґР°Р»С‘РЅ. РЎСЂР°РІРЅРµРЅРёРµ Р±РѕР»СЊС€Рµ РЅРµРґРѕСЃС‚СѓРїРЅРѕ.",
+              "retryDisabled": true,
+              "resumeDisabled": true,
+              "restartDisabled": true
+            }
+          },
+          {
+            "name": "close_comparison_then_discard_during_real_analysis",
+            "status": "PASS",
+            "cycle": 2,
+            "processedBeforeClose": 1,
+            "total": 24,
+            "liveWorkerObserved": true,
+            "releasedAllLeases": true,
+            "privateJobRemoved": true,
+            "qtTimerTicks": 30,
+            "savedByteHashesMatch": false,
+            "nativeExportsDuringAnalysis": 0,
+            "releasedJobView": {
+              "open": true,
+              "feedback": "РџР°РєРµС‚ РѕСЃРІРѕР±РѕР¶РґС‘РЅ РёР»Рё СѓРґР°Р»С‘РЅ. РЎСЂР°РІРЅРµРЅРёРµ Р±РѕР»СЊС€Рµ РЅРµРґРѕСЃС‚СѓРїРЅРѕ.",
+              "retryDisabled": true,
+              "resumeDisabled": true,
+              "restartDisabled": true
+            }
+          },
+          {
+            "name": "close_comparison_then_discard_during_real_analysis",
+            "status": "PASS",
+            "cycle": 3,
+            "processedBeforeClose": 1,
+            "total": 24,
+            "liveWorkerObserved": true,
+            "releasedAllLeases": true,
+            "privateJobRemoved": true,
+            "qtTimerTicks": 33,
+            "savedByteHashesMatch": false,
+            "nativeExportsDuringAnalysis": 0,
+            "releasedJobView": {
+              "open": true,
+              "feedback": "РџР°РєРµС‚ РѕСЃРІРѕР±РѕР¶РґС‘РЅ РёР»Рё СѓРґР°Р»С‘РЅ. РЎСЂР°РІРЅРµРЅРёРµ Р±РѕР»СЊС€Рµ РЅРµРґРѕСЃС‚СѓРїРЅРѕ.",
+              "retryDisabled": true,
+              "resumeDisabled": true,
+              "restartDisabled": true
+            }
+          },
+          {
+            "name": "close_comparison_then_discard_during_real_analysis",
+            "status": "PASS",
+            "cycle": 4,
+            "processedBeforeClose": 1,
+            "total": 24,
+            "liveWorkerObserved": true,
+            "releasedAllLeases": true,
+            "privateJobRemoved": true,
+            "qtTimerTicks": 30,
+            "savedByteHashesMatch": false,
+            "nativeExportsDuringAnalysis": 0,
+            "releasedJobView": {
+              "open": true,
+              "feedback": "РџР°РєРµС‚ РѕСЃРІРѕР±РѕР¶РґС‘РЅ РёР»Рё СѓРґР°Р»С‘РЅ. РЎСЂР°РІРЅРµРЅРёРµ Р±РѕР»СЊС€Рµ РЅРµРґРѕСЃС‚СѓРїРЅРѕ.",
+              "retryDisabled": true,
+              "resumeDisabled": true,
+              "restartDisabled": true
+            }
+          },
+          {
+            "name": "close_comparison_then_discard_during_real_analysis",
+            "status": "PASS",
+            "cycle": 5,
+            "processedBeforeClose": 1,
+            "total": 24,
+            "liveWorkerObserved": true,
+            "releasedAllLeases": true,
+            "privateJobRemoved": true,
+            "qtTimerTicks": 29,
+            "savedByteHashesMatch": false,
+            "nativeExportsDuringAnalysis": 0,
+            "releasedJobView": {
+              "open": true,
+              "feedback": "РџР°РєРµС‚ РѕСЃРІРѕР±РѕР¶РґС‘РЅ РёР»Рё СѓРґР°Р»С‘РЅ. РЎСЂР°РІРЅРµРЅРёРµ Р±РѕР»СЊС€Рµ РЅРµРґРѕСЃС‚СѓРїРЅРѕ.",
+              "retryDisabled": true,
+              "resumeDisabled": true,
+              "restartDisabled": true
+            }
+          }
+        ],
+        "snapshots": [
+          "recovered-second-output.png",
+          "corrupt-report-explicit-restart.png",
+          "closed-analysis-save.png",
+          "closed-analysis-discard-1.png",
+          "closed-analysis-discard-2.png",
+          "closed-analysis-discard-3.png",
+          "closed-analysis-discard-4.png",
+          "closed-analysis-discard-5.png"
+        ],
+        "lifecycle": [
+          {
+            "event": "close-event",
+            "open": true,
+            "progress": "РџСЂРѕРІРµСЂСЏРµРј СЂРµР·СѓР»СЊС‚Р°С‚С‹ В· 0 РёР· 4"
+          },
+          {
+            "event": "close-call",
+            "open": true
+          },
+          {
+            "event": "close-event",
+            "open": false,
+            "progress": "РђРЅР°Р»РёР· Р·Р°РІРµСЂС€С‘РЅ В· 4 РёР· 4"
+          },
+          {
+            "event": "open-call",
+            "job": "9d9aecaa0ee438c5d5d613f43d9eee37",
+            "open": false
+          },
+          {
+            "event": "close-call",
+            "open": true
+          },
+          {
+            "event": "open-call",
+            "job": "5a2255cfad6bdfb4bd2f410be165b4ae",
+            "open": false
+          },
+          {
+            "event": "close-event",
+            "open": true,
+            "progress": "РџСЂРѕРІРµСЂСЏРµРј СЂРµР·СѓР»СЊС‚Р°С‚С‹ В· 0 РёР· 4"
+          },
+          {
+            "event": "close-call",
+            "open": true
+          },
+          {
+            "event": "close-event",
+            "open": false,
+            "progress": "РђРЅР°Р»РёР· Р·Р°РІРµСЂС€С‘РЅ В· 4 РёР· 4"
+          },
+          {
+            "event": "open-call",
+            "job": "9d9aecaa0ee438c5d5d613f43d9eee37",
+            "open": false
+          },
+          {
+            "event": "close-call",
+            "open": true
+          },
+          {
+            "event": "open-call",
+            "job": "7aa93720bef9f7d6d38380ac9548bd90",
+            "open": false
+          },
+          {
+            "event": "close-event",
+            "open": true,
+            "progress": "Р—Р°РіСЂСѓР¶Р°РµРј Р°РЅР°Р»РёР·вЂ¦"
+          },
+          {
+            "event": "close-call",
+            "open": true
+          },
+          {
+            "event": "close-event",
+            "open": false,
+            "progress": "РђРЅР°Р»РёР· Р·Р°РІРµСЂС€С‘РЅ В· 4 РёР· 4"
+          },
+          {
+            "event": "open-call",
+            "job": "42833cc12c54cec109e8b33010909b7d",
+            "open": false
+          },
+          {
+            "event": "close-call",
+            "open": true
+          },
+          {
+            "event": "close-event",
+            "open": false,
+            "progress": "РџСЂРѕРІРµСЂСЏРµРј СЂРµР·СѓР»СЊС‚Р°С‚С‹ В· 0 РёР· 24"
+          },
+          {
+            "event": "open-call",
+            "job": "42833cc12c54cec109e8b33010909b7d",
+            "open": false
+          },
+          {
+            "event": "close-call",
+            "open": true
+          },
+          {
+            "event": "open-call",
+            "job": "7f85e1ccdc962bb64823c666ea68c15e",
+            "open": false
+          },
+          {
+            "event": "close-event",
+            "open": true,
+            "progress": "Р—Р°РіСЂСѓР¶Р°РµРј Р°РЅР°Р»РёР·вЂ¦"
+          },
+          {
+            "event": "close-call",
+            "open": true
+          },
+          {
+            "event": "close-event",
+            "open": false,
+            "progress": "РџСЂРѕРІРµСЂСЏРµРј СЂРµР·СѓР»СЊС‚Р°С‚С‹ В· 0 РёР· 24"
+          },
+          {
+            "event": "open-call",
+            "job": "7f85e1ccdc962bb64823c666ea68c15e",
+            "open": false
+          },
+          {
+            "event": "close-call",
+            "open": true
+          },
+          {
+            "event": "open-call",
+            "job": "05abfa8937b24e50ab4de1ee34d5b8b4",
+            "open": false
+          },
+          {
+            "event": "close-event",
+            "open": true,
+            "progress": "Р—Р°РіСЂСѓР¶Р°РµРј Р°РЅР°Р»РёР·вЂ¦"
+          },
+          {
+            "event": "close-call",
+            "open": true
+          },
+          {
+            "event": "close-event",
+            "open": false,
+            "progress": "РџСЂРѕРІРµСЂСЏРµРј СЂРµР·СѓР»СЊС‚Р°С‚С‹ В· 0 РёР· 24"
+          },
+          {
+            "event": "open-call",
+            "job": "05abfa8937b24e50ab4de1ee34d5b8b4",
+            "open": false
+          },
+          {
+            "event": "close-call",
+            "open": true
+          },
+          {
+            "event": "open-call",
+            "job": "64aa91f217b8077e093ad65380858372",
+            "open": false
+          },
+          {
+            "event": "close-event",
+            "open": true,
+            "progress": "Р—Р°РіСЂСѓР¶Р°РµРј Р°РЅР°Р»РёР·вЂ¦"
+          },
+          {
+            "event": "close-call",
+            "open": true
+          },
+          {
+            "event": "open-call",
+            "job": "64aa91f217b8077e093ad65380858372",
+            "open": false
+          },
+          {
+            "event": "close-event",
+            "open": true,
+            "progress": "Р—Р°РіСЂСѓР¶Р°РµРј Р°РЅР°Р»РёР·вЂ¦"
+          },
+          {
+            "event": "close-call",
+            "open": true
+          },
+          {
+            "event": "open-call",
+            "job": "3313fa40c64abb897e61ad656478cc6c",
+            "open": false
+          },
+          {
+            "event": "close-event",
+            "open": true,
+            "progress": "Р—Р°РіСЂСѓР¶Р°РµРј Р°РЅР°Р»РёР·вЂ¦"
+          },
+          {
+            "event": "close-call",
+            "open": true
+          },
+          {
+            "event": "open-call",
+            "job": "3313fa40c64abb897e61ad656478cc6c",
+            "open": false
+          },
+          {
+            "event": "close-event",
+            "open": true,
+            "progress": "РџР°РєРµС‚ РЅРµРґРѕСЃС‚СѓРїРµРЅ"
+          },
+          {
+            "event": "close-call",
+            "open": true
+          },
+          {
+            "event": "open-call",
+            "job": "e0ff73d61f12c1658a297dd36854f0c7",
+            "open": false
+          },
+          {
+            "event": "close-event",
+            "open": true,
+            "progress": "Р—Р°РіСЂСѓР¶Р°РµРј Р°РЅР°Р»РёР·вЂ¦"
+          },
+          {
+            "event": "close-call",
+            "open": true
+          },
+          {
+            "event": "close-event",
+            "open": false,
+            "progress": "РџСЂРѕРІРµСЂСЏРµРј СЂРµР·СѓР»СЊС‚Р°С‚С‹ В· 0 РёР· 24"
+          },
+          {
+            "event": "open-call",
+            "job": "e0ff73d61f12c1658a297dd36854f0c7",
+            "open": false
+          },
+          {
+            "event": "close-call",
+            "open": true
+          }
+        ],
+        "apiEvents": [
+          {
+            "phase": "request",
+            "path": "/api/converter-guard/compare/start",
+            "at": 30683.718
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare/start",
+            "status": 202,
+            "code": null,
+            "jobId": "9d9aecaa0ee438c5d5d613f43d9eee37",
+            "state": "completed",
+            "processed": 1,
+            "at": 30683.718
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare",
+            "status": 200,
+            "code": null,
+            "jobId": "9d9aecaa0ee438c5d5d613f43d9eee37",
+            "state": "completed",
+            "processed": 1,
+            "at": 30683.765
+          },
+          {
+            "phase": "request",
+            "path": "/api/converter-guard/compare/start",
+            "at": 30683.859
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare/start",
+            "status": 202,
+            "code": null,
+            "jobId": "97956c4f01e9baa4a64220a3741d84cb",
+            "state": "queued",
+            "processed": 0,
+            "at": 30683.921
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare",
+            "status": 200,
+            "code": null,
+            "jobId": "97956c4f01e9baa4a64220a3741d84cb",
+            "state": "running",
+            "processed": 0,
+            "at": 30683.953
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare",
+            "status": 200,
+            "code": null,
+            "jobId": "97956c4f01e9baa4a64220a3741d84cb",
+            "state": "running",
+            "processed": 3,
+            "at": 30685
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare",
+            "status": 200,
+            "code": null,
+            "jobId": "97956c4f01e9baa4a64220a3741d84cb",
+            "state": "completed",
+            "processed": 4,
+            "at": 30686.046
+          },
+          {
+            "phase": "request",
+            "path": "/api/converter-guard/compare/start",
+            "at": 30686.171
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare/start",
+            "status": 202,
+            "code": null,
+            "jobId": "9d9aecaa0ee438c5d5d613f43d9eee37",
+            "state": "completed",
+            "processed": 1,
+            "at": 30686.171
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare",
+            "status": 200,
+            "code": null,
+            "jobId": "9d9aecaa0ee438c5d5d613f43d9eee37",
+            "state": "completed",
+            "processed": 1,
+            "at": 30686.203
+          },
+          {
+            "phase": "request",
+            "path": "/api/converter-guard/compare/start",
+            "at": 30686.296
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare/start",
+            "status": 202,
+            "code": null,
+            "jobId": "3dd1d3667548ba61ca419c65b17b13cb",
+            "state": "queued",
+            "processed": 0,
+            "at": 30686.343
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare",
+            "status": 200,
+            "code": null,
+            "jobId": "3dd1d3667548ba61ca419c65b17b13cb",
+            "state": "running",
+            "processed": 0,
+            "at": 30686.359
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare",
+            "status": 200,
+            "code": null,
+            "jobId": "3dd1d3667548ba61ca419c65b17b13cb",
+            "state": "running",
+            "processed": 3,
+            "at": 30687.406
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare",
+            "status": 200,
+            "code": null,
+            "jobId": "3dd1d3667548ba61ca419c65b17b13cb",
+            "state": "completed",
+            "processed": 4,
+            "at": 30688.453
+          },
+          {
+            "phase": "request",
+            "path": "/api/converter-guard/compare/start",
+            "at": 30688.625
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare/start",
+            "status": 202,
+            "code": null,
+            "jobId": "9d9aecaa0ee438c5d5d613f43d9eee37",
+            "state": "completed",
+            "processed": 1,
+            "at": 30688.625
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare",
+            "status": 200,
+            "code": null,
+            "jobId": "9d9aecaa0ee438c5d5d613f43d9eee37",
+            "state": "completed",
+            "processed": 1,
+            "at": 30688.687
+          },
+          {
+            "phase": "request",
+            "path": "/api/converter-guard/compare/start",
+            "at": 30688.781
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare/start",
+            "status": 202,
+            "code": null,
+            "jobId": "07be051d4b4da7f1714078e2fd10d2a1",
+            "state": "queued",
+            "processed": 0,
+            "at": 30688.875
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare",
+            "status": 200,
+            "code": null,
+            "jobId": "07be051d4b4da7f1714078e2fd10d2a1",
+            "state": "running",
+            "processed": 0,
+            "at": 30688.921
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare",
+            "status": 200,
+            "code": null,
+            "jobId": "07be051d4b4da7f1714078e2fd10d2a1",
+            "state": "running",
+            "processed": 2,
+            "at": 30689.968
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare",
+            "status": 200,
+            "code": null,
+            "jobId": "07be051d4b4da7f1714078e2fd10d2a1",
+            "state": "completed",
+            "processed": 4,
+            "at": 30691.031
+          },
+          {
+            "phase": "request",
+            "path": "/api/converter-guard/compare/start",
+            "at": 30691.156
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare/start",
+            "status": 202,
+            "code": null,
+            "jobId": "9d9aecaa0ee438c5d5d613f43d9eee37",
+            "state": "completed",
+            "processed": 1,
+            "at": 30691.156
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare",
+            "status": 200,
+            "code": null,
+            "jobId": "9d9aecaa0ee438c5d5d613f43d9eee37",
+            "state": "completed",
+            "processed": 1,
+            "at": 30691.203
+          },
+          {
+            "phase": "request",
+            "path": "/api/converter-guard/compare/start",
+            "at": 30691.281
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare/start",
+            "status": 202,
+            "code": null,
+            "jobId": "5a2255cfad6bdfb4bd2f410be165b4ae",
+            "state": "queued",
+            "processed": 0,
+            "at": 30691.328
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare",
+            "status": 200,
+            "code": null,
+            "jobId": "5a2255cfad6bdfb4bd2f410be165b4ae",
+            "state": "running",
+            "processed": 0,
+            "at": 30691.359
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare",
+            "status": 200,
+            "code": null,
+            "jobId": "5a2255cfad6bdfb4bd2f410be165b4ae",
+            "state": "running",
+            "processed": 2,
+            "at": 30692.39
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare",
+            "status": 200,
+            "code": null,
+            "jobId": "5a2255cfad6bdfb4bd2f410be165b4ae",
+            "state": "completed",
+            "processed": 4,
+            "at": 30693.437
+          },
+          {
+            "phase": "request",
+            "path": "/api/converter-guard/compare/start",
+            "at": 30693.578
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare/start",
+            "status": 202,
+            "code": null,
+            "jobId": "9d9aecaa0ee438c5d5d613f43d9eee37",
+            "state": "completed",
+            "processed": 1,
+            "at": 30693.578
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare",
+            "status": 200,
+            "code": null,
+            "jobId": "9d9aecaa0ee438c5d5d613f43d9eee37",
+            "state": "completed",
+            "processed": 1,
+            "at": 30693.625
+          },
+          {
+            "phase": "request",
+            "path": "/api/converter-guard/compare/start",
+            "at": 30693.718
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare/start",
+            "status": 202,
+            "code": null,
+            "jobId": "7aa93720bef9f7d6d38380ac9548bd90",
+            "state": "queued",
+            "processed": 0,
+            "at": 30693.781
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare",
+            "status": 200,
+            "code": null,
+            "jobId": "7aa93720bef9f7d6d38380ac9548bd90",
+            "state": "running",
+            "processed": 0,
+            "at": 30693.812
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare",
+            "status": 200,
+            "code": null,
+            "jobId": "7aa93720bef9f7d6d38380ac9548bd90",
+            "state": "running",
+            "processed": 2,
+            "at": 30694.859
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare",
+            "status": 200,
+            "code": null,
+            "jobId": "7aa93720bef9f7d6d38380ac9548bd90",
+            "state": "completed",
+            "processed": 4,
+            "at": 30695.906
+          },
+          {
+            "phase": "request",
+            "path": "/api/converter-guard/compare/start",
+            "at": 30696.156
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare/start",
+            "status": 202,
+            "code": null,
+            "jobId": "42833cc12c54cec109e8b33010909b7d",
+            "state": "queued",
+            "processed": 0,
+            "at": 30696.25
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare",
+            "status": 200,
+            "code": null,
+            "jobId": "42833cc12c54cec109e8b33010909b7d",
+            "state": "running",
+            "processed": 0,
+            "at": 30696.296
+          },
+          {
+            "phase": "request",
+            "path": "/api/converter-guard/compare/start",
+            "at": 30697.109
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare/start",
+            "status": 404,
+            "code": "JOB_NOT_FOUND",
+            "jobId": null,
+            "state": null,
+            "processed": null,
+            "at": 30697.109
+          },
+          {
+            "phase": "request",
+            "path": "/api/converter-guard/compare/start",
+            "at": 30697.671
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare/start",
+            "status": 202,
+            "code": null,
+            "jobId": "7f85e1ccdc962bb64823c666ea68c15e",
+            "state": "queued",
+            "processed": 0,
+            "at": 30697.765
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare",
+            "status": 200,
+            "code": null,
+            "jobId": "7f85e1ccdc962bb64823c666ea68c15e",
+            "state": "running",
+            "processed": 0,
+            "at": 30697.812
+          },
+          {
+            "phase": "request",
+            "path": "/api/converter-guard/release",
+            "at": 30698.187
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/release",
+            "status": 200,
+            "code": null,
+            "jobId": null,
+            "state": null,
+            "processed": null,
+            "at": 30698.187
+          },
+          {
+            "phase": "request",
+            "path": "/api/converter-guard/compare/start",
+            "at": 30698.281
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare/start",
+            "status": 404,
+            "code": "JOB_NOT_FOUND",
+            "jobId": null,
+            "state": null,
+            "processed": null,
+            "at": 30698.281
+          },
+          {
+            "phase": "request",
+            "path": "/api/converter-guard/compare/start",
+            "at": 30698.89
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare/start",
+            "status": 202,
+            "code": null,
+            "jobId": "05abfa8937b24e50ab4de1ee34d5b8b4",
+            "state": "queued",
+            "processed": 0,
+            "at": 30698.984
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare",
+            "status": 200,
+            "code": null,
+            "jobId": "05abfa8937b24e50ab4de1ee34d5b8b4",
+            "state": "running",
+            "processed": 0,
+            "at": 30699.046
+          },
+          {
+            "phase": "request",
+            "path": "/api/converter-guard/release",
+            "at": 30699.406
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/release",
+            "status": 200,
+            "code": null,
+            "jobId": null,
+            "state": null,
+            "processed": null,
+            "at": 30699.406
+          },
+          {
+            "phase": "request",
+            "path": "/api/converter-guard/compare/start",
+            "at": 30699.515
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare/start",
+            "status": 404,
+            "code": "JOB_NOT_FOUND",
+            "jobId": null,
+            "state": null,
+            "processed": null,
+            "at": 30699.515
+          },
+          {
+            "phase": "request",
+            "path": "/api/converter-guard/compare/start",
+            "at": 30700.171
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare/start",
+            "status": 202,
+            "code": null,
+            "jobId": "64aa91f217b8077e093ad65380858372",
+            "state": "queued",
+            "processed": 0,
+            "at": 30700.265
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare",
+            "status": 200,
+            "code": null,
+            "jobId": "64aa91f217b8077e093ad65380858372",
+            "state": "running",
+            "processed": 0,
+            "at": 30700.312
+          },
+          {
+            "phase": "request",
+            "path": "/api/converter-guard/release",
+            "at": 30700.687
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/release",
+            "status": 200,
+            "code": null,
+            "jobId": null,
+            "state": null,
+            "processed": null,
+            "at": 30700.687
+          },
+          {
+            "phase": "request",
+            "path": "/api/converter-guard/compare/start",
+            "at": 30700.796
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare/start",
+            "status": 404,
+            "code": "JOB_NOT_FOUND",
+            "jobId": null,
+            "state": null,
+            "processed": null,
+            "at": 30700.796
+          },
+          {
+            "phase": "request",
+            "path": "/api/converter-guard/compare/start",
+            "at": 30701.375
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare/start",
+            "status": 202,
+            "code": null,
+            "jobId": "3313fa40c64abb897e61ad656478cc6c",
+            "state": "queued",
+            "processed": 0,
+            "at": 30701.468
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare",
+            "status": 200,
+            "code": null,
+            "jobId": "3313fa40c64abb897e61ad656478cc6c",
+            "state": "running",
+            "processed": 0,
+            "at": 30701.515
+          },
+          {
+            "phase": "request",
+            "path": "/api/converter-guard/release",
+            "at": 30701.828
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/release",
+            "status": 200,
+            "code": null,
+            "jobId": null,
+            "state": null,
+            "processed": null,
+            "at": 30701.828
+          },
+          {
+            "phase": "request",
+            "path": "/api/converter-guard/compare/start",
+            "at": 30701.921
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare/start",
+            "status": 404,
+            "code": "JOB_NOT_FOUND",
+            "jobId": null,
+            "state": null,
+            "processed": null,
+            "at": 30701.921
+          },
+          {
+            "phase": "request",
+            "path": "/api/converter-guard/compare/start",
+            "at": 30702.562
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare/start",
+            "status": 202,
+            "code": null,
+            "jobId": "e0ff73d61f12c1658a297dd36854f0c7",
+            "state": "queued",
+            "processed": 0,
+            "at": 30702.656
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare",
+            "status": 200,
+            "code": null,
+            "jobId": "e0ff73d61f12c1658a297dd36854f0c7",
+            "state": "running",
+            "processed": 0,
+            "at": 30702.703
+          },
+          {
+            "phase": "request",
+            "path": "/api/converter-guard/release",
+            "at": 30703.031
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/release",
+            "status": 200,
+            "code": null,
+            "jobId": null,
+            "state": null,
+            "processed": null,
+            "at": 30703.031
+          },
+          {
+            "phase": "request",
+            "path": "/api/converter-guard/compare/start",
+            "at": 30703.125
+          },
+          {
+            "phase": "response",
+            "path": "/api/converter-guard/compare/start",
+            "status": 404,
+            "code": "JOB_NOT_FOUND",
+            "jobId": null,
+            "state": null,
+            "processed": null,
+            "at": 30703.125
+          }
+        ]
+      }
+    },
+    {
+      "file": "D:\\actions-runner\\_work\\A.I.O\\A.I.O\\aio-session-b16-b27-evidence-40566745254-1\\recipes\\evidence.json",
+      "data": {
+        "schema": 1,
+        "status": "PASS",
+        "platform": "win32",
+        "scope": "actual installed LO: one synthetic RGB image and two CSV sheets",
+        "fullFormatMatrix": "NOT_RUN",
+        "windowsGUI": "NOT_RUN",
+        "arbitraryLocalizedCSV": "NOT_PROVED",
+        "executions": {
+          "ordinary-before": {
+            "mode": "native_uno",
+            "export": {
+              "filter": "calc_pdf_Export",
+              "warnings": [],
+              "executionReason": "native_session"
+            },
+            "timings": {
+              "source": "uno_document",
+              "importMs": 49,
+              "exportMs": 413,
+              "operationMs": 472,
+              "adapterMs": 469,
+              "closeMs": 7,
+              "workerStartupMs": 0
+            },
+            "files": [
+              {
+                "name": "РџСЂРёРјРµСЂ РєРЅРёРіРё СЃ СЂРёСЃСѓРЅРєРѕРј.pdf",
+                "sha256": "65f13bbef6ea2149230412e428fd5e61e2382c08c337440a6348acb2d6924f55"
+              }
+            ]
+          },
+          "pdf-retry": {
+            "mode": "native_uno",
+            "export": {
+              "filter": "calc_pdf_Export",
+              "warnings": [
+                "AUTOMATIC_RETRY_MAY_NOT_IMPROVE"
+              ],
+              "automaticRecipe": "pdf_preserve_images",
+              "automaticParameters": {
+                "UseLosslessCompression": true,
+                "ReduceImageResolution": false
+              },
+              "executionReason": "native_session"
+            },
+            "timings": {
+              "source": "uno_document",
+              "importMs": 54,
+              "exportMs": 383,
+              "operationMs": 448,
+              "adapterMs": 453,
+              "closeMs": 8,
+              "workerStartupMs": 0
+            },
+            "files": [
+              {
+                "name": "РџСЂРёРјРµСЂ РєРЅРёРіРё СЃ СЂРёСЃСѓРЅРєРѕРј.pdf",
+                "sha256": "d0ca8a17d767ce33d23b940881ff0554d91de922df21073492a510f42ec5c7ea"
+              }
+            ]
+          },
+          "ordinary-after": {
+            "mode": "native_uno",
+            "export": {
+              "filter": "calc_pdf_Export",
+              "warnings": [],
+              "executionReason": "native_session"
+            },
+            "timings": {
+              "source": "uno_document",
+              "importMs": 45,
+              "exportMs": 371,
+              "operationMs": 427,
+              "adapterMs": 438,
+              "closeMs": 9,
+              "workerStartupMs": 0
+            },
+            "files": [
+              {
+                "name": "РџСЂРёРјРµСЂ РєРЅРёРіРё СЃ СЂРёСЃСѓРЅРєРѕРј.pdf",
+                "sha256": "8bfc4a1505b663cc9454546fe2f874a3d059c0d8d2d5f2930a516fce52e0cfba"
+              }
+            ]
+          },
+          "csv-retry": {
+            "mode": "native_uno",
+            "export": {
+              "filter": "Text - txt - csv (StarCalc)",
+              "warnings": [
+                "AUTOMATIC_RETRY_MAY_NOT_IMPROVE",
+                "AUTOMATIC_CSV_RAW_VALUES"
+              ],
+              "automaticRecipe": "csv_preserve_values",
+              "automaticParameters": {
+                "encoding": "UTF-8",
+                "SaveAsShown": false,
+                "ExportFormulas": false,
+                "ExportAllSheets": true,
+                "IncludeBOM": true
+              },
+              "executionReason": "native_session"
+            },
+            "timings": {
+              "source": "uno_document",
+              "importMs": 44,
+              "exportMs": 11,
+              "operationMs": 62,
+              "adapterMs": 62,
+              "closeMs": 4,
+              "workerStartupMs": 0
+            },
+            "files": [
+              {
+                "name": "РџСЂРёРјРµСЂ РєРЅРёРіРё СЃ СЂРёСЃСѓРЅРєРѕРј-Precision.csv",
+                "sha256": "2db54a51e1d2eb38c030ef8db9eeafe0d9fef96f5ce8253dc8dcbefd6dbebc03"
+              },
+              {
+                "name": "РџСЂРёРјРµСЂ РєРЅРёРіРё СЃ СЂРёСЃСѓРЅРєРѕРј-Second.csv",
+                "sha256": "030fb2a643911ef11ae40e320c719721f73d4a738f611d17a0a07675bac3762c"
+              }
+            ]
+          }
+        },
+        "source": {
+          "name": "РџСЂРёРјРµСЂ РєРЅРёРіРё СЃ СЂРёСЃСѓРЅРєРѕРј.xlsx",
+          "sha256": "4336fb1934e6b7284098ccb612483fe923d6f5329abf86f253607568fce1c54e",
+          "imageWidth": 1024,
+          "imageHeight": 512,
+          "imageDisplayPixels": [
+            192,
+            96
+          ],
+          "rgbSha256": "84282e4934a3d26f25a8cefa367a5fb1eb5cd1e218b24453f18520a547cc6c60",
+          "sheets": [
+            "Precision",
+            "Second"
+          ],
+          "numericControlLocale": "en-US",
+          "numberFormat": "[$-409]0.00"
+        },
+        "requiredProductionMode": "native_uno",
+        "proof": {
+          "state": "detected",
+          "basis": "native_preflight_uno_document",
+          "modelLoaded": true,
+          "nativeTextDocument": false,
+          "nativeImportMs": 71,
+          "documentServices": [
+            "com.sun.star.sheet.SpreadsheetDocument"
+          ],
+          "typeName": null,
+          "filterName": "Calc MS Excel 2007 XML",
+          "selectedImportFilter": "Calc MS Excel 2007 XML",
+          "selectedImportOptions": null,
+          "sourceContract": {
+            "state": "recognized",
+            "contentClass": "ooxml_package",
+            "mainContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+            "contentTypeBasis": "override",
+            "expectedServices": [
+              "com.sun.star.sheet.SpreadsheetDocument"
+            ]
+          },
+          "csvImportSampleOnly": false,
+          "csvInspection": null,
+          "drawPages": null,
+          "difNumericImport": null,
+          "nativeGraphicExports": [],
+          "nativeExportFilters": {},
+          "nativeExportInspection": {},
+          "registryFingerprint": "9b38ba68fa4cbc7fb077798ac86d25d3bf7c5ef0c8f1f4395d929c535bcb7bf7",
+          "exported": false
+        },
+        "ordinaryPDFSpecBefore": "pdf:calc_pdf_Export",
+        "ordinaryImagesBefore": [
+          {
+            "name": "/Im22",
+            "width": 600,
+            "height": 300,
+            "colourSpace": "/DeviceRGB",
+            "bitsPerComponent": 8,
+            "filters": [
+              "/DCTDecode"
+            ],
+            "decodedBytes": 128699,
+            "decodedRGB": false,
+            "decodedRGBSha256": null
+          }
+        ],
+        "candidateImages": [
+          {
+            "name": "/Im4",
+            "width": 1024,
+            "height": 512,
+            "colourSpace": "/DeviceRGB",
+            "bitsPerComponent": 8,
+            "filters": [
+              "/FlateDecode"
+            ],
+            "decodedBytes": 1572864,
+            "decodedRGB": true,
+            "decodedRGBSha256": "84282e4934a3d26f25a8cefa367a5fb1eb5cd1e218b24453f18520a547cc6c60"
+          }
+        ],
+        "ordinaryImagesAfter": [
+          {
+            "name": "/Im22",
+            "width": 600,
+            "height": 300,
+            "colourSpace": "/DeviceRGB",
+            "bitsPerComponent": 8,
+            "filters": [
+              "/DCTDecode"
+            ],
+            "decodedBytes": 128699,
+            "decodedRGB": false,
+            "decodedRGBSha256": null
+          }
+        ],
+        "ordinaryPDFSpecAfter": "pdf:calc_pdf_Export",
+        "lossyControl": {
+          "mode": "native_cli",
+          "filter": "calc_pdf_Export",
+          "explicitControlParameters": {
+            "UseLosslessCompression": {
+              "type": "boolean",
+              "value": false
+            },
+            "ReduceImageResolution": {
+              "type": "boolean",
+              "value": true
+            },
+            "MaxImageResolution": {
+              "type": "long",
+              "value": 75
+            },
+            "Quality": {
+              "type": "long",
+              "value": 35
+            }
+          },
+          "images": [
+            {
+              "name": "/Im4",
+              "width": 150,
+              "height": 75,
+              "colourSpace": "/DeviceRGB",
+              "bitsPerComponent": 8,
+              "filters": [
+                "/DCTDecode"
+              ],
+              "decodedBytes": 968,
+              "decodedRGB": false,
+              "decodedRGBSha256": null
+            }
+          ]
+        },
+        "csvSheets": {
+          "РџСЂРёРјРµСЂ РєРЅРёРіРё СЃ СЂРёСЃСѓРЅРєРѕРј-Precision.csv": [
+            [
+              "code",
+              "amount",
+              "note"
+            ],
+            [
+              "00123",
+              "1.23456789012345",
+              "РџСЂРёРІРµС‚"
+            ]
+          ],
+          "РџСЂРёРјРµСЂ РєРЅРёРіРё СЃ СЂРёСЃСѓРЅРєРѕРј-Second.csv": [
+            [
+              "OTHER_SHEET",
+              "code"
+            ],
+            [
+              "РЎРѕС…СЂР°РЅС‘РЅ РІС‚РѕСЂРѕР№ Р»РёСЃС‚",
+              "00500"
+            ]
+          ]
+        },
+        "sourceUnchanged": true,
+        "firstPDFUnchanged": true,
+        "elapsedSeconds": 11
+      }
+    },
+    {
+      "file": "D:\\actions-runner\\_work\\A.I.O\\A.I.O\\aio-session-b16-b27-evidence-40566745254-1\\session\\evidence.json",
+      "data": {
+        "status": "PASS",
+        "scope": "actual native LO queue/save/recovery/cancel; not FULLTEST or installed EXE",
+        "checks": [
+          {
+            "status": "PASS",
+            "name": "native-save-recovery-analysis-close",
+            "nativeResults": 2,
+            "partialSaveRestored": true,
+            "optionalDiagnosticDidNotChangeUnsaved": true,
+            "originalSha256": "0608f7e2cacdfeb26dba8bb58fd6243107de42253b84ba9e23b690c48f21568e",
+            "savedFirstSha256": "1f93ee451996dcad8c1e9817a9a9d19ae983daf79fc8855e3a007724eea0eeaf",
+            "diagnosticSha256": "cd54b1af6ef2944f1ac43b657c18005ef514fa98e85ae81355590a513271afa6"
+          },
+          {
+            "name": "actual-native-close-cancellation",
+            "status": "PASS",
+            "phase": "import",
+            "workerPid": 18848,
+            "workerExited": true,
+            "originalSha256": "8ed1fcab53db3689e45ef51e39891033247bba355a7b61e6a842f99ade7658b8",
+            "nativeOwnershipRootLength": 56,
+            "descendantPidInventory": "not_independently_enumerated"
+          },
+          {
+            "name": "actual-native-cli-close-cancellation",
+            "status": "PASS",
+            "phase": "engine_process_running",
+            "ownedProcessPids": [
+              5600
+            ],
+            "ownedProcessesExited": true,
+            "originalSha256": "8ed1fcab53db3689e45ef51e39891033247bba355a7b61e6a842f99ade7658b8",
+            "importExportPhase": "native_CLI_does_not_expose_individual_phases"
+          }
+        ]
+      }
+    },
+    {
+      "file": "D:\\actions-runner\\_work\\A.I.O\\A.I.O\\aio-session-b16-b27-evidence-40566745254-1\\v08\\evidence.json",
+      "data": {
+        "status": "PASS",
+        "scope": "real local LibreOffice, generated 4-file / 11-export corpus; not full visual QA",
+        "engine": "soffice.com",
+        "preflightMs": 5484,
+        "elapsedMs": 22703,
+        "officeStarts": 1,
+        "quality": {
+          "officeContainers": "PASS",
+          "textAndTableMarkers": "PASS",
+          "sourceBytesUnchanged": "PASS",
+          "pdfText": "PASS",
+          "pdfPageGeometryMatchesCLI": "PASS",
+          "csvMatchesNativeCLI": "PASS"
+        },
+        "baseline": {
+          "docxMs": 5328,
+          "xlsxMs": 4078
+        },
+        "sourceSHA256": {
+          "docx": "eea93011c0097c673f017c5edb6145bb229f97be81805ac3e805c2663125e469",
+          "xlsx": "c8b3507d177b0cd592f1fe2cd8c6eac0170fda8a781b58e8d18db21acdf728a3",
+          "csv": "e8078ccdcad81cbae566326ea6dc91cf26657535bb23b123b39d85c2ac64a847",
+          "bmp": "a7beb5056325b28509539b4f84f7444a1333692b32806406fe21d7d6f991ee8b"
+        },
+        "report": {
+          "schemaVersion": 3,
+          "total": 11,
+          "completed": 11,
+          "attempted": 11,
+          "succeeded": 11,
+          "failed": 0,
+          "cancelled": 0,
+          "filtered": 0,
+          "pending": 0,
+          "preflightChecks": 4,
+          "buildIdentity": {
+            "scope": "report_runtime",
+            "sourceRevision": "d02b0ec6e97fbbfae8e95f0435f6c195dc2588c3",
+            "basis": "configured"
+          },
+          "nativeRegistryFingerprints": [
+            "9b38ba68fa4cbc7fb077798ac86d25d3bf7c5ef0c8f1f4395d929c535bcb7bf7"
+          ],
+          "inputsUploaded": 4,
+          "inputsPlanned": 4,
+          "inputsWithoutTasks": [],
+          "recoveryError": null,
+          "files": [
+            {
+              "fileId": "docx",
+              "name": "document.docx",
+              "sourceSha256": "eea93011c0097c673f017c5edb6145bb229f97be81805ac3e805c2663125e469",
+              "nativeRoute": {
+                "state": "detected",
+                "basis": "native_preflight_uno_document",
+                "modelLoaded": true,
+                "nativeTextDocument": true,
+                "nativeImportMs": 712,
+                "documentServices": [
+                  "com.sun.star.text.TextDocument"
+                ],
+                "typeName": null,
+                "filterName": "MS Word 2007 XML",
+                "selectedImportFilter": "MS Word 2007 XML",
+                "selectedImportOptions": null,
+                "sourceContract": {
+                  "state": "recognized",
+                  "contentClass": "ooxml_package",
+                  "mainContentType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml",
+                  "contentTypeBasis": "override",
+                  "expectedServices": [
+                    "com.sun.star.text.TextDocument"
+                  ]
+                },
+                "csvImportSampleOnly": false,
+                "csvInspection": null,
+                "drawPages": null,
+                "difNumericImport": null,
+                "nativeGraphicExports": [],
+                "nativeExportFilters": {
+                  "txt": "Text (encoded)"
+                },
+                "nativeExportInspection": {
+                  "txt": "verified"
+                },
+                "registryFingerprint": "9b38ba68fa4cbc7fb077798ac86d25d3bf7c5ef0c8f1f4395d929c535bcb7bf7",
+                "exported": false
+              },
+              "warnings": [],
+              "targets": [
+                {
+                  "taskId": "46016e6d488aa94bbe8c7c4c8814504d:0",
+                  "format": "pdf",
+                  "state": "saved",
+                  "code": null,
+                  "error": null,
+                  "stage": "result",
+                  "diagnostic": "",
+                  "executionMode": "native_uno",
+                  "executionReason": "native_session",
+                  "resultChecks": [],
+                  "automaticRecipe": null,
+                  "automaticParameters": null,
+                  "durationMs": 5234,
+                  "nativeTimings": {
+                    "source": "uno_document",
+                    "exportMs": 51,
+                    "adapterMs": 5203,
+                    "workerStartupMs": 4406,
+                    "operationMs": 796,
+                    "importMs": 737,
+                    "closeMs": 6
+                  },
+                  "exportFilter": "writer_pdf_Export",
+                  "warnings": [],
+                  "quality": null,
+                  "outputs": [
+                    {
+                      "path": "0001-pdf/document.pdf",
+                      "size": 28884,
+                      "sha256": "7159256ddd2fd419f96ffe8a7882ca1e02a0098ea28e86d8ed95b4cdd0e45073"
+                    }
+                  ],
+                  "route": null,
+                  "libreOfficeStarted": true
+                },
+                {
+                  "taskId": "46016e6d488aa94bbe8c7c4c8814504d:1",
+                  "format": "odt",
+                  "state": "saved",
+                  "code": null,
+                  "error": null,
+                  "stage": "result",
+                  "diagnostic": "",
+                  "executionMode": "native_uno",
+                  "executionReason": "native_session",
+                  "resultChecks": [],
+                  "automaticRecipe": null,
+                  "automaticParameters": null,
+                  "durationMs": 469,
+                  "nativeTimings": {
+                    "source": "uno_document",
+                    "exportMs": 128,
+                    "adapterMs": 453,
+                    "workerStartupMs": 0,
+                    "operationMs": 464,
+                    "importMs": 327,
+                    "closeMs": 6
+                  },
+                  "exportFilter": "writer8",
+                  "warnings": [],
+                  "quality": null,
+                  "outputs": [
+                    {
+                      "path": "0002-odt/document.odt",
+                      "size": 11222,
+                      "sha256": "7126eabd54951fcb3bc18b7363fd744cf5494e5557d21ec23fbd8363401c9c0d"
+                    }
+                  ],
+                  "route": null,
+                  "libreOfficeStarted": true
+                },
+                {
+                  "taskId": "46016e6d488aa94bbe8c7c4c8814504d:2",
+                  "format": "docx",
+                  "state": "saved",
+                  "code": null,
+                  "error": null,
+                  "stage": "result",
+                  "diagnostic": "",
+                  "executionMode": "native_uno",
+                  "executionReason": "native_session",
+                  "resultChecks": [],
+                  "automaticRecipe": null,
+                  "automaticParameters": null,
+                  "durationMs": 344,
+                  "nativeTimings": {
+                    "source": "uno_document",
+                    "exportMs": 22,
+                    "adapterMs": 344,
+                    "workerStartupMs": 0,
+                    "operationMs": 346,
+                    "importMs": 316,
+                    "closeMs": 5
+                  },
+                  "exportFilter": "MS Word 2007 XML",
+                  "warnings": [],
+                  "quality": null,
+                  "outputs": [
+                    {
+                      "path": "0003-docx/document.docx",
+                      "size": 5293,
+                      "sha256": "d5a19919333fd91808cf4c1f76c20cfe2a7014055359a9ff9f95afca539f4421"
+                    }
+                  ],
+                  "route": null,
+                  "libreOfficeStarted": true
+                }
+              ]
+            },
+            {
+              "fileId": "xlsx",
+              "name": "sheet.xlsx",
+              "sourceSha256": "c8b3507d177b0cd592f1fe2cd8c6eac0170fda8a781b58e8d18db21acdf728a3",
+              "nativeRoute": {
+                "state": "detected",
+                "basis": "native_preflight_uno_document",
+                "modelLoaded": true,
+                "nativeTextDocument": false,
+                "nativeImportMs": 44,
+                "documentServices": [
+                  "com.sun.star.sheet.SpreadsheetDocument"
+                ],
+                "typeName": null,
+                "filterName": "Calc MS Excel 2007 XML",
+                "selectedImportFilter": "Calc MS Excel 2007 XML",
+                "selectedImportOptions": null,
+                "sourceContract": {
+                  "state": "recognized",
+                  "contentClass": "ooxml_package",
+                  "mainContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+                  "contentTypeBasis": "override",
+                  "expectedServices": [
+                    "com.sun.star.sheet.SpreadsheetDocument"
+                  ]
+                },
+                "csvImportSampleOnly": false,
+                "csvInspection": null,
+                "drawPages": null,
+                "difNumericImport": null,
+                "nativeGraphicExports": [],
+                "nativeExportFilters": {},
+                "nativeExportInspection": {},
+                "registryFingerprint": "9b38ba68fa4cbc7fb077798ac86d25d3bf7c5ef0c8f1f4395d929c535bcb7bf7",
+                "exported": false
+              },
+              "warnings": [],
+              "targets": [
+                {
+                  "taskId": "46016e6d488aa94bbe8c7c4c8814504d:3",
+                  "format": "pdf",
+                  "state": "saved",
+                  "code": null,
+                  "error": null,
+                  "stage": "result",
+                  "diagnostic": "",
+                  "executionMode": "native_uno",
+                  "executionReason": "native_session",
+                  "resultChecks": [],
+                  "automaticRecipe": null,
+                  "automaticParameters": null,
+                  "durationMs": 406,
+                  "nativeTimings": {
+                    "source": "uno_document",
+                    "exportMs": 351,
+                    "adapterMs": 406,
+                    "workerStartupMs": 0,
+                    "operationMs": 399,
+                    "importMs": 40,
+                    "closeMs": 6
+                  },
+                  "exportFilter": "calc_pdf_Export",
+                  "warnings": [],
+                  "quality": null,
+                  "outputs": [
+                    {
+                      "path": "0004-pdf/sheet.pdf",
+                      "size": 14643,
+                      "sha256": "804bd4f8215936c786c680c18ba64862ee49947c3cbc9c662820db5e4ce421b1"
+                    }
+                  ],
+                  "route": null,
+                  "libreOfficeStarted": true
+                },
+                {
+                  "taskId": "46016e6d488aa94bbe8c7c4c8814504d:4",
+                  "format": "xlsx",
+                  "state": "saved",
+                  "code": null,
+                  "error": null,
+                  "stage": "result",
+                  "diagnostic": "",
+                  "executionMode": "native_uno",
+                  "executionReason": "native_session",
+                  "resultChecks": [],
+                  "automaticRecipe": null,
+                  "automaticParameters": null,
+                  "durationMs": 78,
+                  "nativeTimings": {
+                    "source": "uno_document",
+                    "exportMs": 40,
+                    "adapterMs": 78,
+                    "workerStartupMs": 0,
+                    "operationMs": 79,
+                    "importMs": 32,
+                    "closeMs": 4
+                  },
+                  "exportFilter": "Calc MS Excel 2007 XML",
+                  "warnings": [],
+                  "quality": null,
+                  "outputs": [
+                    {
+                      "path": "0005-xlsx/sheet.xlsx",
+                      "size": 5601,
+                      "sha256": "4c942829c6fb644764fdae6487e39cdb40e9be32fb498501b6e6fe48065b86ca"
+                    }
+                  ],
+                  "route": null,
+                  "libreOfficeStarted": true
+                },
+                {
+                  "taskId": "46016e6d488aa94bbe8c7c4c8814504d:5",
+                  "format": "csv",
+                  "state": "saved",
+                  "code": null,
+                  "error": null,
+                  "stage": "result",
+                  "diagnostic": "",
+                  "executionMode": "native_uno",
+                  "executionReason": "native_session",
+                  "resultChecks": [],
+                  "automaticRecipe": null,
+                  "automaticParameters": null,
+                  "durationMs": 46,
+                  "nativeTimings": {
+                    "source": "uno_document",
+                    "exportMs": 14,
+                    "adapterMs": 46,
+                    "workerStartupMs": 0,
+                    "operationMs": 49,
+                    "importMs": 29,
+                    "closeMs": 4
+                  },
+                  "exportFilter": "Text - txt - csv (StarCalc)",
+                  "warnings": [],
+                  "quality": null,
+                  "outputs": [
+                    {
+                      "path": "0006-csv/sheet.csv",
+                      "size": 54,
+                      "sha256": "8e66fb4787d3a51b4929e7ad283f3c8335428707933243310adbb69a948724ae"
+                    }
+                  ],
+                  "route": null,
+                  "libreOfficeStarted": true
+                }
+              ]
+            },
+            {
+              "fileId": "csv",
+              "name": "table.csv",
+              "sourceSha256": "e8078ccdcad81cbae566326ea6dc91cf26657535bb23b123b39d85c2ac64a847",
+              "nativeRoute": {
+                "state": "detected",
+                "basis": "native_preflight_uno_document",
+                "modelLoaded": true,
+                "nativeTextDocument": false,
+                "nativeImportMs": 24,
+                "documentServices": [
+                  "com.sun.star.sheet.SpreadsheetDocument"
+                ],
+                "typeName": null,
+                "filterName": "Text - txt - csv (StarCalc)",
+                "selectedImportFilter": "Text - txt - csv (StarCalc)",
+                "selectedImportOptions": "44,34,76,1",
+                "sourceContract": {
+                  "state": "not_applicable"
+                },
+                "csvImportSampleOnly": false,
+                "csvInspection": {
+                  "schema": 1,
+                  "status": "checked",
+                  "complete": true,
+                  "encoding": "utf-8",
+                  "delimiter": ",",
+                  "valuesAnalyzed": false,
+                  "rows": 3,
+                  "columns": 2,
+                  "raggedRows": 0,
+                  "emptyRows": 0,
+                  "typeRisks": {
+                    "leadingZeros": 0,
+                    "formulaLike": 0,
+                    "dateLike": 0,
+                    "scientificLike": 0
+                  },
+                  "valuesDigest": null,
+                  "durationMs": 0
+                },
+                "drawPages": null,
+                "difNumericImport": null,
+                "nativeGraphicExports": [],
+                "nativeExportFilters": {},
+                "nativeExportInspection": {},
+                "registryFingerprint": "9b38ba68fa4cbc7fb077798ac86d25d3bf7c5ef0c8f1f4395d929c535bcb7bf7",
+                "exported": false
+              },
+              "warnings": [],
+              "targets": [
+                {
+                  "taskId": "46016e6d488aa94bbe8c7c4c8814504d:6",
+                  "format": "pdf",
+                  "state": "saved",
+                  "code": null,
+                  "error": null,
+                  "stage": "result",
+                  "diagnostic": "",
+                  "executionMode": "native_uno",
+                  "executionReason": "native_session",
+                  "resultChecks": [],
+                  "automaticRecipe": null,
+                  "automaticParameters": null,
+                  "durationMs": 375,
+                  "nativeTimings": {
+                    "source": "uno_document",
+                    "exportMs": 329,
+                    "adapterMs": 360,
+                    "workerStartupMs": 0,
+                    "operationMs": 361,
+                    "importMs": 23,
+                    "closeMs": 6
+                  },
+                  "exportFilter": "calc_pdf_Export",
+                  "warnings": [],
+                  "quality": null,
+                  "outputs": [
+                    {
+                      "path": "0007-pdf/table.pdf",
+                      "size": 15603,
+                      "sha256": "c7ea83670694972501f45e85a320170fc84238f56f6d3284e4476eb4d429a52d"
+                    }
+                  ],
+                  "route": null,
+                  "libreOfficeStarted": true
+                },
+                {
+                  "taskId": "46016e6d488aa94bbe8c7c4c8814504d:7",
+                  "format": "xlsx",
+                  "state": "saved",
+                  "code": null,
+                  "error": null,
+                  "stage": "result",
+                  "diagnostic": "",
+                  "executionMode": "native_uno",
+                  "executionReason": "native_session",
+                  "resultChecks": [],
+                  "automaticRecipe": null,
+                  "automaticParameters": null,
+                  "durationMs": 63,
+                  "nativeTimings": {
+                    "source": "uno_document",
+                    "exportMs": 37,
+                    "adapterMs": 63,
+                    "workerStartupMs": 0,
+                    "operationMs": 62,
+                    "importMs": 18,
+                    "closeMs": 5
+                  },
+                  "exportFilter": "Calc MS Excel 2007 XML",
+                  "warnings": [],
+                  "quality": null,
+                  "outputs": [
+                    {
+                      "path": "0008-xlsx/table.xlsx",
+                      "size": 5686,
+                      "sha256": "da761d0080bcf9cb94f1a2a1e672d430580cd64bc2d01625b760821db02f08bc"
+                    }
+                  ],
+                  "route": null,
+                  "libreOfficeStarted": true
+                },
+                {
+                  "taskId": "46016e6d488aa94bbe8c7c4c8814504d:8",
+                  "format": "dbf",
+                  "state": "saved",
+                  "code": null,
+                  "error": null,
+                  "stage": "result",
+                  "diagnostic": "",
+                  "executionMode": "native_uno",
+                  "executionReason": "native_session",
+                  "resultChecks": [],
+                  "automaticRecipe": null,
+                  "automaticParameters": null,
+                  "durationMs": 78,
+                  "nativeTimings": {
+                    "source": "uno_document",
+                    "exportMs": 41,
+                    "adapterMs": 78,
+                    "workerStartupMs": 0,
+                    "operationMs": 64,
+                    "importMs": 16,
+                    "closeMs": 4
+                  },
+                  "exportFilter": "dBase",
+                  "warnings": [
+                    {
+                      "code": "NATIVE_TABLE_FORMAT_LIMITS",
+                      "message": "DBF/DIF РёРјРµСЋС‚ РѕРіСЂР°РЅРёС‡РµРЅРёСЏ СЃС‚СЂСѓРєС‚СѓСЂС‹, С‚РёРїРѕРІ Рё РѕС„РѕСЂРјР»РµРЅРёСЏ. РќР°Р»РёС‡РёРµ РЅР°С‚РёРІРЅРѕРіРѕ РјР°СЂС€СЂСѓС‚Р° РЅРµ РїРѕРґС‚РІРµСЂР¶РґР°РµС‚ СЃРѕС…СЂР°РЅРЅРѕСЃС‚СЊ РІСЃРµС… РґР°РЅРЅС‹С…. Р’ РїР°РєРµС‚РЅРѕРј UNO-СЂРµР¶РёРјРµ РєР°Р¶РґС‹Р№ Р»РёСЃС‚ СЃРѕС…СЂР°РЅСЏРµС‚СЃСЏ РѕС‚РґРµР»СЊРЅС‹Рј С„Р°Р№Р»РѕРј; С„РѕСЂРјСѓР»С‹ СЃС‚Р°РЅРѕРІСЏС‚СЃСЏ РІС‹С‡РёСЃР»РµРЅРЅС‹РјРё Р·РЅР°С‡РµРЅРёСЏРјРё, РѕС„РѕСЂРјР»РµРЅРёРµ РѕРіСЂР°РЅРёС‡РµРЅРѕ С„РѕСЂРјР°С‚РѕРј."
+                    }
+                  ],
+                  "quality": null,
+                  "outputs": [
+                    {
+                      "path": "0009-dbf/table.dbf",
+                      "size": 116,
+                      "sha256": "29f2de2430fc0d0738459bc182bb48cb7b65666cd9580a853a1ae012791e81cf"
+                    }
+                  ],
+                  "route": null,
+                  "libreOfficeStarted": true
+                }
+              ]
+            },
+            {
+              "fileId": "bmp",
+              "name": "picture.bmp",
+              "sourceSha256": "a7beb5056325b28509539b4f84f7444a1333692b32806406fe21d7d6f991ee8b",
+              "nativeRoute": {
+                "state": "detected",
+                "basis": "native_preflight_uno_document",
+                "modelLoaded": true,
+                "nativeTextDocument": false,
+                "nativeImportMs": 86,
+                "documentServices": [
+                  "com.sun.star.drawing.DrawingDocument"
+                ],
+                "typeName": null,
+                "filterName": "BMP - MS Windows",
+                "selectedImportFilter": "BMP - MS Windows",
+                "selectedImportOptions": null,
+                "sourceContract": {
+                  "state": "not_applicable"
+                },
+                "csvImportSampleOnly": false,
+                "csvInspection": null,
+                "drawPages": 1,
+                "difNumericImport": null,
+                "nativeGraphicExports": [
+                  "svm"
+                ],
+                "nativeExportFilters": {},
+                "nativeExportInspection": {},
+                "registryFingerprint": "9b38ba68fa4cbc7fb077798ac86d25d3bf7c5ef0c8f1f4395d929c535bcb7bf7",
+                "exported": false,
+                "mediaProfile": {
+                  "format": "bmp",
+                  "width": 2,
+                  "height": 2,
+                  "frames": 1,
+                  "pages": 1,
+                  "alpha": false,
+                  "durationsMs": [],
+                  "orientation": 1
+                },
+                "qtMediaTargets": [
+                  "apng",
+                  "bmp",
+                  "gif",
+                  "jfif",
+                  "jif",
+                  "jpe",
+                  "jpeg",
+                  "jpg",
+                  "png",
+                  "tif",
+                  "tiff",
+                  "webp"
+                ],
+                "mediaDecoder": "qt_image_reader"
+              },
+              "warnings": [],
+              "targets": [
+                {
+                  "taskId": "46016e6d488aa94bbe8c7c4c8814504d:9",
+                  "format": "pdf",
+                  "state": "saved",
+                  "code": null,
+                  "error": null,
+                  "stage": "result",
+                  "diagnostic": "",
+                  "executionMode": "native_uno",
+                  "executionReason": "native_session",
+                  "resultChecks": [],
+                  "automaticRecipe": null,
+                  "automaticParameters": null,
+                  "durationMs": 109,
+                  "nativeTimings": {
+                    "source": "uno_document",
+                    "exportMs": 22,
+                    "adapterMs": 109,
+                    "workerStartupMs": 0,
+                    "operationMs": 102,
+                    "importMs": 72,
+                    "closeMs": 6
+                  },
+                  "exportFilter": "draw_pdf_Export",
+                  "warnings": [],
+                  "quality": null,
+                  "outputs": [
+                    {
+                      "path": "0010-pdf/picture.pdf",
+                      "size": 7197,
+                      "sha256": "522fdf366f10f2b084bc0e517778dc3354e8f35cf6d604984cbfcf1777ae3d51"
+                    }
+                  ],
+                  "route": null,
+                  "libreOfficeStarted": true
+                },
+                {
+                  "taskId": "46016e6d488aa94bbe8c7c4c8814504d:10",
+                  "format": "png",
+                  "state": "saved",
+                  "code": null,
+                  "error": null,
+                  "stage": "result",
+                  "diagnostic": "",
+                  "executionMode": "qt_media_frames",
+                  "executionReason": "qt_media_frames",
+                  "resultChecks": [
+                    {
+                      "check": "media_properties",
+                      "status": "checked_subset",
+                      "qualityCompared": false,
+                      "source": {
+                        "format": "bmp",
+                        "width": 2,
+                        "height": 2,
+                        "frames": 1,
+                        "pages": 1,
+                        "alpha": false,
+                        "durationsMs": [],
+                        "orientation": 1
+                      },
+                      "result": {
+                        "format": "png",
+                        "width": 2,
+                        "height": 2,
+                        "frames": 1,
+                        "pages": 1,
+                        "alpha": false,
+                        "durationsMs": [],
+                        "orientation": 1,
+                        "animationContainer": false,
+                        "loopCount": 1,
+                        "bitDepth": 8
+                      },
+                      "expectedLosses": []
+                    }
+                  ],
+                  "automaticRecipe": null,
+                  "automaticParameters": null,
+                  "durationMs": 0,
+                  "nativeTimings": {
+                    "source": "qt_media",
+                    "adapterMs": 0
+                  },
+                  "exportFilter": null,
+                  "warnings": [],
+                  "quality": null,
+                  "outputs": [
+                    {
+                      "path": "0011-png/picture.png",
+                      "size": 100,
+                      "sha256": "27d49547fee4c0ebbd89899ed125341dc20d245b2cebc61e137a0676e6de3b09"
+                    }
+                  ],
+                  "route": null,
+                  "libreOfficeStarted": true
+                }
+              ]
+            }
+          ],
+          "timings": {
+            "journalMs": 16,
+            "preflight_startedMs": 16,
+            "preflight_doneMs": 5500,
+            "planMs": 47,
+            "job_queuedMs": 5547,
+            "job_startedMs": 5547,
+            "engine_startedMs": 10000,
+            "packaging_startedMs": 12844,
+            "bundle_readyMs": 12875,
+            "archiveMs": 31,
+            "job_finishedMs": 12875
+          },
+          "qualityCheckRequested": false,
+          "qualityCompared": false,
+          "retainSources": false,
+          "comparisonParentJobId": null,
+          "comparisonRecipe": null,
+          "comparisonParentTasks": [],
+          "jobId": "46016e6d488aa94bbe8c7c4c8814504d",
+          "state": "ready",
+          "officeStarts": 1,
+          "trace": {
+            "events": [
+              {
+                "sequence": 1,
+                "elapsedMs": 0,
+                "stage": "job_created",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 2,
+                "elapsedMs": 0,
+                "stage": "input_stored",
+                "fileId": "docx",
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 3,
+                "elapsedMs": 0,
+                "stage": "input_stored",
+                "fileId": "xlsx",
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 4,
+                "elapsedMs": 0,
+                "stage": "input_stored",
+                "fileId": "csv",
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 5,
+                "elapsedMs": 16,
+                "stage": "input_stored",
+                "fileId": "bmp",
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 6,
+                "elapsedMs": 16,
+                "stage": "preflight_started",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 7,
+                "elapsedMs": 172,
+                "stage": "preflight_file_started",
+                "fileId": "docx",
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 8,
+                "elapsedMs": 4906,
+                "stage": "preflight_finished",
+                "fileId": "docx",
+                "format": null,
+                "code": "NATIVE_KIND_DETECTED",
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 9,
+                "elapsedMs": 4906,
+                "stage": "preflight_file_started",
+                "fileId": "xlsx",
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 10,
+                "elapsedMs": 4969,
+                "stage": "preflight_finished",
+                "fileId": "xlsx",
+                "format": null,
+                "code": "NATIVE_KIND_DETECTED",
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 11,
+                "elapsedMs": 4969,
+                "stage": "preflight_file_started",
+                "fileId": "csv",
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 12,
+                "elapsedMs": 5000,
+                "stage": "preflight_finished",
+                "fileId": "csv",
+                "format": null,
+                "code": "NATIVE_KIND_DETECTED",
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 13,
+                "elapsedMs": 5000,
+                "stage": "preflight_file_started",
+                "fileId": "bmp",
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 14,
+                "elapsedMs": 5203,
+                "stage": "preflight_finished",
+                "fileId": "bmp",
+                "format": null,
+                "code": "NATIVE_KIND_DETECTED",
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 15,
+                "elapsedMs": 5234,
+                "stage": "preflight_matrix_started",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 16,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 17,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 18,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 19,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 20,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 21,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 22,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 23,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 24,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 25,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 26,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 27,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 28,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 29,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 30,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 31,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 32,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 33,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 34,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 35,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 36,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 37,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 38,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 39,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 40,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 41,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 42,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 43,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 44,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 45,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 46,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 47,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 48,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 49,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 50,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 51,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 52,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 53,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 54,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 55,
+                "elapsedMs": 5484,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 56,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 57,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 58,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 59,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 60,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 61,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 62,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 63,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 64,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 65,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 66,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 67,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 68,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 69,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 70,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 71,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 72,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 73,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 74,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 75,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 76,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 77,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 78,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 79,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 80,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 81,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 82,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 83,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 84,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 85,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 86,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 87,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 88,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 89,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 90,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 91,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 92,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 93,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 94,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 95,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 96,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 97,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 98,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 99,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 100,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 101,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 102,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 103,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 104,
+                "elapsedMs": 5500,
+                "stage": "preflight_matrix_progress",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 105,
+                "elapsedMs": 5500,
+                "stage": "preflight_done",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 106,
+                "elapsedMs": 5547,
+                "stage": "job_queued",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 107,
+                "elapsedMs": 5547,
+                "stage": "job_started",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 108,
+                "elapsedMs": 5594,
+                "stage": "route_selected",
+                "fileId": "docx",
+                "format": "pdf",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 109,
+                "elapsedMs": 10000,
+                "stage": "engine_started",
+                "fileId": "docx",
+                "format": "pdf",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 110,
+                "elapsedMs": 10000,
+                "stage": "native_stage",
+                "fileId": "docx",
+                "format": "pdf",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 111,
+                "elapsedMs": 10750,
+                "stage": "native_stage",
+                "fileId": "docx",
+                "format": "pdf",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 112,
+                "elapsedMs": 10797,
+                "stage": "native_stage",
+                "fileId": "docx",
+                "format": "pdf",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 113,
+                "elapsedMs": 10828,
+                "stage": "result_retaining",
+                "fileId": "docx",
+                "format": "pdf",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 114,
+                "elapsedMs": 10828,
+                "stage": "result_ready",
+                "fileId": "docx",
+                "format": "pdf",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 115,
+                "elapsedMs": 10828,
+                "stage": "task_finished",
+                "fileId": "docx",
+                "format": "pdf",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 116,
+                "elapsedMs": 10828,
+                "stage": "route_selected",
+                "fileId": "docx",
+                "format": "odt",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 117,
+                "elapsedMs": 10828,
+                "stage": "engine_started",
+                "fileId": "docx",
+                "format": "odt",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 118,
+                "elapsedMs": 10828,
+                "stage": "native_stage",
+                "fileId": "docx",
+                "format": "odt",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 119,
+                "elapsedMs": 11156,
+                "stage": "native_stage",
+                "fileId": "docx",
+                "format": "odt",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 120,
+                "elapsedMs": 11281,
+                "stage": "native_stage",
+                "fileId": "docx",
+                "format": "odt",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 121,
+                "elapsedMs": 11297,
+                "stage": "result_retaining",
+                "fileId": "docx",
+                "format": "odt",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 122,
+                "elapsedMs": 11297,
+                "stage": "result_ready",
+                "fileId": "docx",
+                "format": "odt",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 123,
+                "elapsedMs": 11297,
+                "stage": "task_finished",
+                "fileId": "docx",
+                "format": "odt",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 124,
+                "elapsedMs": 11297,
+                "stage": "route_selected",
+                "fileId": "docx",
+                "format": "docx",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 125,
+                "elapsedMs": 11297,
+                "stage": "engine_started",
+                "fileId": "docx",
+                "format": "docx",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 126,
+                "elapsedMs": 11297,
+                "stage": "native_stage",
+                "fileId": "docx",
+                "format": "docx",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 127,
+                "elapsedMs": 11609,
+                "stage": "native_stage",
+                "fileId": "docx",
+                "format": "docx",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 128,
+                "elapsedMs": 11641,
+                "stage": "native_stage",
+                "fileId": "docx",
+                "format": "docx",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 129,
+                "elapsedMs": 11641,
+                "stage": "result_retaining",
+                "fileId": "docx",
+                "format": "docx",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 130,
+                "elapsedMs": 11641,
+                "stage": "result_ready",
+                "fileId": "docx",
+                "format": "docx",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 131,
+                "elapsedMs": 11641,
+                "stage": "task_finished",
+                "fileId": "docx",
+                "format": "docx",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 132,
+                "elapsedMs": 11641,
+                "stage": "input_finished",
+                "fileId": "docx",
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 133,
+                "elapsedMs": 11641,
+                "stage": "route_selected",
+                "fileId": "xlsx",
+                "format": "pdf",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 134,
+                "elapsedMs": 11641,
+                "stage": "engine_started",
+                "fileId": "xlsx",
+                "format": "pdf",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 135,
+                "elapsedMs": 11641,
+                "stage": "native_stage",
+                "fileId": "xlsx",
+                "format": "pdf",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 136,
+                "elapsedMs": 11687,
+                "stage": "native_stage",
+                "fileId": "xlsx",
+                "format": "pdf",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 137,
+                "elapsedMs": 12047,
+                "stage": "native_stage",
+                "fileId": "xlsx",
+                "format": "pdf",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 138,
+                "elapsedMs": 12047,
+                "stage": "result_retaining",
+                "fileId": "xlsx",
+                "format": "pdf",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 139,
+                "elapsedMs": 12047,
+                "stage": "result_ready",
+                "fileId": "xlsx",
+                "format": "pdf",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 140,
+                "elapsedMs": 12047,
+                "stage": "task_finished",
+                "fileId": "xlsx",
+                "format": "pdf",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 141,
+                "elapsedMs": 12047,
+                "stage": "route_selected",
+                "fileId": "xlsx",
+                "format": "xlsx",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 142,
+                "elapsedMs": 12047,
+                "stage": "engine_started",
+                "fileId": "xlsx",
+                "format": "xlsx",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 143,
+                "elapsedMs": 12047,
+                "stage": "native_stage",
+                "fileId": "xlsx",
+                "format": "xlsx",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 144,
+                "elapsedMs": 12094,
+                "stage": "native_stage",
+                "fileId": "xlsx",
+                "format": "xlsx",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 145,
+                "elapsedMs": 12125,
+                "stage": "native_stage",
+                "fileId": "xlsx",
+                "format": "xlsx",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 146,
+                "elapsedMs": 12125,
+                "stage": "result_retaining",
+                "fileId": "xlsx",
+                "format": "xlsx",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 147,
+                "elapsedMs": 12141,
+                "stage": "result_ready",
+                "fileId": "xlsx",
+                "format": "xlsx",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 148,
+                "elapsedMs": 12141,
+                "stage": "task_finished",
+                "fileId": "xlsx",
+                "format": "xlsx",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 149,
+                "elapsedMs": 12141,
+                "stage": "route_selected",
+                "fileId": "xlsx",
+                "format": "csv",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 150,
+                "elapsedMs": 12141,
+                "stage": "engine_started",
+                "fileId": "xlsx",
+                "format": "csv",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 151,
+                "elapsedMs": 12141,
+                "stage": "native_stage",
+                "fileId": "xlsx",
+                "format": "csv",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 152,
+                "elapsedMs": 12172,
+                "stage": "native_stage",
+                "fileId": "xlsx",
+                "format": "csv",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 153,
+                "elapsedMs": 12187,
+                "stage": "native_stage",
+                "fileId": "xlsx",
+                "format": "csv",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 154,
+                "elapsedMs": 12187,
+                "stage": "result_retaining",
+                "fileId": "xlsx",
+                "format": "csv",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 155,
+                "elapsedMs": 12187,
+                "stage": "result_ready",
+                "fileId": "xlsx",
+                "format": "csv",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 156,
+                "elapsedMs": 12187,
+                "stage": "task_finished",
+                "fileId": "xlsx",
+                "format": "csv",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 157,
+                "elapsedMs": 12187,
+                "stage": "input_finished",
+                "fileId": "xlsx",
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 158,
+                "elapsedMs": 12187,
+                "stage": "route_selected",
+                "fileId": "csv",
+                "format": "pdf",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 159,
+                "elapsedMs": 12187,
+                "stage": "engine_started",
+                "fileId": "csv",
+                "format": "pdf",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 160,
+                "elapsedMs": 12187,
+                "stage": "native_stage",
+                "fileId": "csv",
+                "format": "pdf",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 161,
+                "elapsedMs": 12219,
+                "stage": "native_stage",
+                "fileId": "csv",
+                "format": "pdf",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 162,
+                "elapsedMs": 12547,
+                "stage": "native_stage",
+                "fileId": "csv",
+                "format": "pdf",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 163,
+                "elapsedMs": 12562,
+                "stage": "result_retaining",
+                "fileId": "csv",
+                "format": "pdf",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 164,
+                "elapsedMs": 12562,
+                "stage": "result_ready",
+                "fileId": "csv",
+                "format": "pdf",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 165,
+                "elapsedMs": 12562,
+                "stage": "task_finished",
+                "fileId": "csv",
+                "format": "pdf",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 166,
+                "elapsedMs": 12562,
+                "stage": "route_selected",
+                "fileId": "csv",
+                "format": "xlsx",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 167,
+                "elapsedMs": 12562,
+                "stage": "engine_started",
+                "fileId": "csv",
+                "format": "xlsx",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 168,
+                "elapsedMs": 12562,
+                "stage": "native_stage",
+                "fileId": "csv",
+                "format": "xlsx",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 169,
+                "elapsedMs": 12578,
+                "stage": "native_stage",
+                "fileId": "csv",
+                "format": "xlsx",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 170,
+                "elapsedMs": 12609,
+                "stage": "native_stage",
+                "fileId": "csv",
+                "format": "xlsx",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 171,
+                "elapsedMs": 12625,
+                "stage": "result_retaining",
+                "fileId": "csv",
+                "format": "xlsx",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 172,
+                "elapsedMs": 12625,
+                "stage": "result_ready",
+                "fileId": "csv",
+                "format": "xlsx",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 173,
+                "elapsedMs": 12625,
+                "stage": "task_finished",
+                "fileId": "csv",
+                "format": "xlsx",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 174,
+                "elapsedMs": 12625,
+                "stage": "route_selected",
+                "fileId": "csv",
+                "format": "dbf",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 175,
+                "elapsedMs": 12625,
+                "stage": "engine_started",
+                "fileId": "csv",
+                "format": "dbf",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 176,
+                "elapsedMs": 12625,
+                "stage": "native_stage",
+                "fileId": "csv",
+                "format": "dbf",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 177,
+                "elapsedMs": 12641,
+                "stage": "native_stage",
+                "fileId": "csv",
+                "format": "dbf",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 178,
+                "elapsedMs": 12687,
+                "stage": "native_stage",
+                "fileId": "csv",
+                "format": "dbf",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 179,
+                "elapsedMs": 12703,
+                "stage": "result_retaining",
+                "fileId": "csv",
+                "format": "dbf",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 180,
+                "elapsedMs": 12703,
+                "stage": "result_ready",
+                "fileId": "csv",
+                "format": "dbf",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 181,
+                "elapsedMs": 12703,
+                "stage": "task_finished",
+                "fileId": "csv",
+                "format": "dbf",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 182,
+                "elapsedMs": 12703,
+                "stage": "input_finished",
+                "fileId": "csv",
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 183,
+                "elapsedMs": 12703,
+                "stage": "route_selected",
+                "fileId": "bmp",
+                "format": "pdf",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 184,
+                "elapsedMs": 12703,
+                "stage": "engine_started",
+                "fileId": "bmp",
+                "format": "pdf",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 185,
+                "elapsedMs": 12703,
+                "stage": "native_stage",
+                "fileId": "bmp",
+                "format": "pdf",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 186,
+                "elapsedMs": 12781,
+                "stage": "native_stage",
+                "fileId": "bmp",
+                "format": "pdf",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 187,
+                "elapsedMs": 12797,
+                "stage": "native_stage",
+                "fileId": "bmp",
+                "format": "pdf",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 188,
+                "elapsedMs": 12812,
+                "stage": "result_retaining",
+                "fileId": "bmp",
+                "format": "pdf",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 189,
+                "elapsedMs": 12812,
+                "stage": "result_ready",
+                "fileId": "bmp",
+                "format": "pdf",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 190,
+                "elapsedMs": 12812,
+                "stage": "task_finished",
+                "fileId": "bmp",
+                "format": "pdf",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 191,
+                "elapsedMs": 12812,
+                "stage": "route_selected",
+                "fileId": "bmp",
+                "format": "png",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 192,
+                "elapsedMs": 12812,
+                "stage": "engine_started",
+                "fileId": "bmp",
+                "format": "png",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 193,
+                "elapsedMs": 12812,
+                "stage": "result_retaining",
+                "fileId": "bmp",
+                "format": "png",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 194,
+                "elapsedMs": 12812,
+                "stage": "result_ready",
+                "fileId": "bmp",
+                "format": "png",
+                "code": null,
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 195,
+                "elapsedMs": 12812,
+                "stage": "task_finished",
+                "fileId": "bmp",
+                "format": "png",
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 196,
+                "elapsedMs": 12812,
+                "stage": "input_finished",
+                "fileId": "bmp",
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 197,
+                "elapsedMs": 12844,
+                "stage": "packaging_started",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 198,
+                "elapsedMs": 12844,
+                "stage": "results_available",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 199,
+                "elapsedMs": 12875,
+                "stage": "bundle_ready",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 200,
+                "elapsedMs": 12875,
+                "stage": "job_finished",
+                "fileId": null,
+                "format": null,
+                "code": "ready",
+                "libreOfficeStarted": true
+              },
+              {
+                "sequence": 201,
+                "elapsedMs": 12875,
+                "stage": "worker_finished",
+                "fileId": null,
+                "format": null,
+                "code": "ready",
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 202,
+                "elapsedMs": 12906,
+                "stage": "save_started",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 203,
+                "elapsedMs": 13000,
+                "stage": "save_confirmed",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              },
+              {
+                "sequence": 204,
+                "elapsedMs": 13000,
+                "stage": "save_idle",
+                "fileId": null,
+                "format": null,
+                "code": null,
+                "libreOfficeStarted": false
+              }
+            ],
+            "droppedEvents": 0
+          },
+          "fileTimeoutSeconds": 90
+        }
+      }
+    },
+    {
+      "file": "D:\\actions-runner\\_work\\A.I.O\\A.I.O\\aio-session-b16-b27-evidence-40566745254-1\\v20\\evidence.json",
+      "data": {
+        "status": "PASS",
+        "platform": "win32",
+        "scope": "synthetic native safety controls; not all-format or visual certification",
+        "requireMode": "native_uno",
+        "cases": [
+          {
+            "source": "docx",
+            "target": "docm",
+            "status": "PASS",
+            "mode": "native_uno",
+            "elapsedMs": 375,
+            "filter": "MS Word 2007 XML VBA",
+            "checks": [],
+            "outputs": [
+              {
+                "name": "document.docm",
+                "size": 5306,
+                "sha256": "694829ba2f775a0f8b950d3f9d8e30bb176c354eeb8b6f51a633ec8291762993"
+              }
+            ]
+          },
+          {
+            "source": "docx",
+            "target": "dotx",
+            "status": "PASS",
+            "mode": "native_uno",
+            "elapsedMs": 328,
+            "filter": "MS Word 2007 XML Template",
+            "checks": [],
+            "outputs": [
+              {
+                "name": "document.dotx",
+                "size": 5296,
+                "sha256": "5a8526df3f65b3cd1b347aceef6d6a0a174bdf290056a3b5c571d96812d753bf"
+              }
+            ]
+          },
+          {
+            "source": "docx",
+            "target": "pdf",
+            "status": "PASS",
+            "mode": "native_uno",
+            "elapsedMs": 375,
+            "filter": "writer_pdf_Export",
+            "checks": [],
+            "outputs": [
+              {
+                "name": "document.pdf",
+                "size": 28884,
+                "sha256": "08fee908b9e02ed68f7e2e22a8b80775075bd4f8d5816cc0163f0b3bc8251bce"
+              }
+            ]
+          },
+          {
+            "source": "default_xlsx",
+            "target": "xlsx",
+            "status": "PASS",
+            "mode": "native_uno",
+            "elapsedMs": 62,
+            "filter": "Calc MS Excel 2007 XML",
+            "checks": [],
+            "outputs": [
+              {
+                "name": "default.xlsx",
+                "size": 5601,
+                "sha256": "4cad3e073d22ef922b0050e28dcfe53b3d4fa0bbaa1d1429adebd67194034b5c"
+              }
+            ]
+          },
+          {
+            "source": "math",
+            "target": "pdf",
+            "status": "PASS",
+            "mode": "native_uno",
+            "elapsedMs": 359,
+            "filter": "math_pdf_Export",
+            "checks": [],
+            "outputs": [
+              {
+                "name": "formula.pdf",
+                "size": 25905,
+                "sha256": "7bf5fa1528d8485f1f07de6b70f790cd9ff930821ef2111f4c5627fed32ca51a"
+              }
+            ]
+          },
+          {
+            "source": "dif",
+            "target": "fods",
+            "status": "PASS",
+            "mode": "native_uno",
+            "elapsedMs": 187,
+            "filter": "OpenDocument Spreadsheet Flat XML",
+            "checks": [
+              {
+                "check": "dif_numeric_import",
+                "status": "checked_subset",
+                "numericCells": 2,
+                "valuesCompared": true,
+                "typesCompared": true,
+                "comparisonDomain": "ieee754_double",
+                "qualityCompared": false
+              },
+              {
+                "check": "dif_table_content",
+                "qualityCompared": false,
+                "scope": "cell_coordinates_values_and_available_types",
+                "fullDocumentFidelity": false,
+                "sourceRows": 3,
+                "sourceColumns": 2,
+                "sourceNonEmptyCells": 6,
+                "sourceSHA256": "f0e44472913f723db3ca57a65631a44122de891049aff8a7be322713830bfc8a",
+                "resultNonEmptyCells": 6,
+                "matchedCells": 6,
+                "status": "checked_subset",
+                "valuesCompared": true,
+                "typesCompared": true
+              }
+            ],
+            "outputs": [
+              {
+                "name": "numbers.fods",
+                "size": 23451,
+                "sha256": "4198991e0ddbaa8ae8ebef77268c6fe687d783bbc219fd3998fd01eb8d4c1802"
+              }
+            ]
+          },
+          {
+            "source": "dif",
+            "target": "xlsx",
+            "status": "PASS",
+            "mode": "native_uno",
+            "elapsedMs": 156,
+            "filter": "Calc MS Excel 2007 XML",
+            "checks": [
+              {
+                "check": "dif_numeric_import",
+                "status": "checked_subset",
+                "numericCells": 2,
+                "valuesCompared": true,
+                "typesCompared": true,
+                "comparisonDomain": "ieee754_double",
+                "qualityCompared": false
+              },
+              {
+                "check": "dif_table_content",
+                "qualityCompared": false,
+                "scope": "cell_coordinates_values_and_available_types",
+                "fullDocumentFidelity": false,
+                "sourceRows": 3,
+                "sourceColumns": 2,
+                "sourceNonEmptyCells": 6,
+                "sourceSHA256": "f0e44472913f723db3ca57a65631a44122de891049aff8a7be322713830bfc8a",
+                "resultNonEmptyCells": 6,
+                "matchedCells": 6,
+                "status": "checked_subset",
+                "valuesCompared": true,
+                "typesCompared": true
+              }
+            ],
+            "outputs": [
+              {
+                "name": "numbers.xlsx",
+                "size": 5715,
+                "sha256": "47f6728f4699aeef196b42255ef35154e389142575e722ae1febdda6b650c94c"
+              }
+            ]
+          },
+          {
+            "source": "dif",
+            "target": "pdf",
+            "status": "PASS",
+            "mode": "native_uno",
+            "elapsedMs": 485,
+            "filter": "calc_pdf_Export",
+            "checks": [
+              {
+                "check": "dif_numeric_import",
+                "status": "checked_subset",
+                "numericCells": 2,
+                "valuesCompared": true,
+                "typesCompared": true,
+                "comparisonDomain": "ieee754_double",
+                "qualityCompared": false
+              }
+            ],
+            "outputs": [
+              {
+                "name": "numbers.pdf",
+                "size": 16419,
+                "sha256": "667738bc09184be0fc1140fcb8960e9a5d993012a6534fb4158a594bc73260e4"
+              }
+            ]
+          },
+          {
+            "source": "bmp",
+            "target": "png",
+            "status": "PASS",
+            "mode": "qt_media_frames",
+            "elapsedMs": 0,
+            "filter": null,
+            "checks": [
+              {
+                "check": "media_properties",
+                "status": "checked_subset",
+                "qualityCompared": false,
+                "source": {
+                  "format": "bmp",
+                  "width": 2,
+                  "height": 2,
+                  "frames": 1,
+                  "pages": 1,
+                  "alpha": false,
+                  "durationsMs": [],
+                  "orientation": 1
+                },
+                "result": {
+                  "format": "png",
+                  "width": 2,
+                  "height": 2,
+                  "frames": 1,
+                  "pages": 1,
+                  "alpha": false,
+                  "durationsMs": [],
+                  "orientation": 1,
+                  "animationContainer": false,
+                  "loopCount": 1,
+                  "bitDepth": 8
+                },
+                "expectedLosses": []
+              }
+            ],
+            "outputs": [
+              {
+                "name": "picture.png",
+                "size": 100,
+                "sha256": "27d49547fee4c0ebbd89899ed125341dc20d245b2cebc61e137a0676e6de3b09"
+              }
+            ]
+          },
+          {
+            "source": "bmp",
+            "target": "jfif",
+            "status": "PASS",
+            "mode": "qt_media_frames",
+            "elapsedMs": 15,
+            "filter": null,
+            "checks": [
+              {
+                "check": "media_properties",
+                "status": "checked_subset",
+                "qualityCompared": false,
+                "source": {
+                  "format": "bmp",
+                  "width": 2,
+                  "height": 2,
+                  "frames": 1,
+                  "pages": 1,
+                  "alpha": false,
+                  "durationsMs": [],
+                  "orientation": 1
+                },
+                "result": {
+                  "format": "jpeg",
+                  "width": 2,
+                  "height": 2,
+                  "frames": 1,
+                  "pages": 1,
+                  "alpha": false,
+                  "durationsMs": [],
+                  "orientation": 1
+                },
+                "expectedLosses": []
+              }
+            ],
+            "outputs": [
+              {
+                "name": "picture.jfif",
+                "size": 667,
+                "sha256": "23ef60b9ec85ca512c62b101f58a032bf8d564ad2c36deecd12a8ef1417414e5"
+              }
+            ]
+          },
+          {
+            "source": "bmp",
+            "target": "jif",
+            "status": "PASS",
+            "mode": "qt_media_frames",
+            "elapsedMs": 0,
+            "filter": null,
+            "checks": [
+              {
+                "check": "media_properties",
+                "status": "checked_subset",
+                "qualityCompared": false,
+                "source": {
+                  "format": "bmp",
+                  "width": 2,
+                  "height": 2,
+                  "frames": 1,
+                  "pages": 1,
+                  "alpha": false,
+                  "durationsMs": [],
+                  "orientation": 1
+                },
+                "result": {
+                  "format": "jpeg",
+                  "width": 2,
+                  "height": 2,
+                  "frames": 1,
+                  "pages": 1,
+                  "alpha": false,
+                  "durationsMs": [],
+                  "orientation": 1
+                },
+                "expectedLosses": []
+              }
+            ],
+            "outputs": [
+              {
+                "name": "picture.jif",
+                "size": 667,
+                "sha256": "23ef60b9ec85ca512c62b101f58a032bf8d564ad2c36deecd12a8ef1417414e5"
+              }
+            ]
+          },
+          {
+            "source": "bmp",
+            "target": "jpe",
+            "status": "PASS",
+            "mode": "qt_media_frames",
+            "elapsedMs": 0,
+            "filter": null,
+            "checks": [
+              {
+                "check": "media_properties",
+                "status": "checked_subset",
+                "qualityCompared": false,
+                "source": {
+                  "format": "bmp",
+                  "width": 2,
+                  "height": 2,
+                  "frames": 1,
+                  "pages": 1,
+                  "alpha": false,
+                  "durationsMs": [],
+                  "orientation": 1
+                },
+                "result": {
+                  "format": "jpeg",
+                  "width": 2,
+                  "height": 2,
+                  "frames": 1,
+                  "pages": 1,
+                  "alpha": false,
+                  "durationsMs": [],
+                  "orientation": 1
+                },
+                "expectedLosses": []
+              }
+            ],
+            "outputs": [
+              {
+                "name": "picture.jpe",
+                "size": 667,
+                "sha256": "23ef60b9ec85ca512c62b101f58a032bf8d564ad2c36deecd12a8ef1417414e5"
+              }
+            ]
+          },
+          {
+            "source": "presentation",
+            "target": "bmp",
+            "status": "PASS",
+            "mode": "native_uno",
+            "elapsedMs": 125,
+            "filter": "impress_bmp_Export",
+            "checks": [
+              {
+                "check": "native_bmp_header_size",
+                "status": "repaired_header",
+                "qualityCompared": false,
+                "file": "slides.bmp",
+                "declaredSizeBefore": 3937302,
+                "actualSize": 2955222,
+                "headerField": "bfSize",
+                "headerBytesTouched": 4,
+                "pixelBytesChanged": 0,
+                "sourceOutputSha256": "136d3a4b9808a7031c738dcf0a276c356cd6b4bc772c90b93bd8da104df9ef19",
+                "width": 1323,
+                "height": 744,
+                "bitDepth": 24
+              },
+              {
+                "check": "media_properties",
+                "status": "checked_subset",
+                "qualityCompared": false,
+                "source": null,
+                "result": {
+                  "format": "bmp",
+                  "width": 1323,
+                  "height": 744,
+                  "frames": 1,
+                  "pages": 1,
+                  "alpha": false,
+                  "durationsMs": [],
+                  "orientation": 1
+                },
+                "expectedLosses": []
+              }
+            ],
+            "outputs": [
+              {
+                "name": "slides.bmp",
+                "size": 2955222,
+                "sha256": "23bf8ead6744e99506e94d4e064f159d4f6ea0416eab81d19263b6af0a9e4d25"
+              }
+            ]
+          },
+          {
+            "source": "presentation",
+            "target": "htm",
+            "status": "PASS",
+            "mode": "native_uno",
+            "elapsedMs": 78,
+            "filter": "impress_html_Export",
+            "checks": [
+              {
+                "check": "html_body",
+                "status": "content_present",
+                "qualityCompared": false,
+                "inspectedBytes": 458,
+                "localResourcesChecked": true
+              },
+              {
+                "check": "presentation_html_content",
+                "qualityCompared": false,
+                "sourceTextParagraphs": 1,
+                "sourceImageOccurrences": 0,
+                "status": "checked_subset",
+                "comparedScope": "body_text_and_graphic_presence",
+                "bodyTextInspected": true,
+                "imageReferences": 0,
+                "visualLayoutCompared": false
+              }
+            ],
+            "outputs": [
+              {
+                "name": "slides.htm",
+                "size": 458,
+                "sha256": "e5ec0c0b28e75147a62836fba1e7e7dd41371cff88eabf77b5a0790df5afe335"
+              }
+            ]
+          },
+          {
+            "source": "flat_presentation_alias",
+            "target": "odp",
+            "status": "PASS",
+            "mode": "native_uno",
+            "elapsedMs": 156,
+            "filter": "impress8",
+            "checks": [],
+            "outputs": [
+              {
+                "name": "presentation-alias.odp",
+                "size": 11296,
+                "sha256": "cf84d129abf94347a96507d063a3ac200c133370e6c696aa22ca4883ab6c5c4c"
+              }
+            ]
+          },
+          {
+            "source": "flat_text_alias",
+            "target": "odt",
+            "status": "PASS",
+            "mode": "native_uno",
+            "elapsedMs": 141,
+            "filter": "writer8",
+            "checks": [],
+            "outputs": [
+              {
+                "name": "text-alias.odt",
+                "size": 15384,
+                "sha256": "974bc04df3b95f3df2bdd16925e35d212c5f6e7968537124cbceb14da358527c"
+              }
+            ]
+          }
+        ],
+        "sourceSHA256": {
+          "docx": "f228157f97b902a1142ab824d5bfc88329c12500aa0bf0de3ff308d8e65766b5",
+          "xlsx": "c5a4bc050e3a08d4dedf5f6f7a2a731e67960bb906798d4f6d5580b185410651",
+          "csv": "e8078ccdcad81cbae566326ea6dc91cf26657535bb23b123b39d85c2ac64a847",
+          "bmp": "a7beb5056325b28509539b4f84f7444a1333692b32806406fe21d7d6f991ee8b",
+          "dif": "f0e44472913f723db3ca57a65631a44122de891049aff8a7be322713830bfc8a",
+          "default_xlsx": "eac48f45632ff83075d35eb5f54bbaac07bf77d19881d38be13bf265f65bb3ba",
+          "math": "06b65b534043a36e7b4da2fe06f3f2bbddfca6f7a50771dfd78c33df8508bdf8",
+          "presentation": "ce9e827036d118cc76c37df9c78d696a48f1c7abb25f28ef6b9d831df85b558d",
+          "flat_presentation_alias": "d7c7ac85388f5b63854a3ed4ab925d016c9461cd369b37aad1846ed584514287",
+          "flat_text_alias": "536c88a7bd28e19486d2d29b278e660f94ba32e816323748e86e682701ec0618"
+        },
+        "sourceBytesUnchanged": true,
+        "elapsedMs": 17125
+      }
+    },
+    {
+      "file": "D:\\actions-runner\\_work\\A.I.O\\A.I.O\\aio-session-b16-b27-evidence-40566745254-1\\v21\\evidence.json",
+      "data": {
+        "status": "PASS",
+        "scope": "2 synthetic native XLSX value/route controls",
+        "cases": [
+          {
+            "case": "strict",
+            "status": "PASS",
+            "mode": "native_uno",
+            "verifiedCells": 4,
+            "inspectionComplete": false,
+            "qualityComplete": false,
+            "sourceSHA256": "a335ca998e4cf796129f25556c0a40d3a50c046a3a27a79f50f286a5c752002f",
+            "resultSHA256": "b958d83d40ea012373dd29c5ed5b2fe42f36fec1a68dde1871b5ed7c83b863f0",
+            "sourceUnchanged": true,
+            "elapsedMs": 4015
+          },
+          {
+            "case": "stale_dimension",
+            "status": "PASS",
+            "mode": "native_uno",
+            "verifiedCells": 4,
+            "inspectionComplete": true,
+            "qualityComplete": true,
+            "sourceSHA256": "ff4adab5d0f31adbf7cb0003f9da4befeb73269bfe0be7794e3dd045e587e44e",
+            "resultSHA256": "a13dd850a1a03a69da1cd764b33417d0537e849303819aa67377dd042328bd5c",
+            "sourceUnchanged": true,
+            "elapsedMs": 125
+          }
+        ]
+      }
+    },
+    {
+      "file": "D:\\actions-runner\\_work\\A.I.O\\A.I.O\\aio-session-b16-b27-evidence-40566745254-1\\v22\\evidence.json",
+      "data": {
+        "status": "PASS",
+        "scope": "synthetic native Writer text regression; not a FULLTEST",
+        "cases": [
+          {
+            "source": "docx",
+            "target": "txt",
+            "status": "PASS",
+            "mode": "native_uno",
+            "elapsedMs": 359,
+            "bytes": 90,
+            "sha256": "e3b07912e8c111d1dbbb449e8d104628f812a962709b7cd8bcb41dff7dd3bf41",
+            "prepared": true,
+            "allMarkersExactlyOnce": true
+          },
+          {
+            "source": "docx",
+            "target": "csv",
+            "status": "PASS",
+            "mode": "native_uno",
+            "elapsedMs": 360,
+            "bytes": 90,
+            "sha256": "e3b07912e8c111d1dbbb449e8d104628f812a962709b7cd8bcb41dff7dd3bf41",
+            "prepared": true,
+            "allMarkersExactlyOnce": true
+          },
+          {
+            "source": "docx",
+            "target": "tsv",
+            "status": "PASS",
+            "mode": "native_uno",
+            "elapsedMs": 328,
+            "bytes": 90,
+            "sha256": "e3b07912e8c111d1dbbb449e8d104628f812a962709b7cd8bcb41dff7dd3bf41",
+            "prepared": true,
+            "allMarkersExactlyOnce": true
+          },
+          {
+            "source": "docx",
+            "target": "tab",
+            "status": "PASS",
+            "mode": "native_uno",
+            "elapsedMs": 406,
+            "bytes": 90,
+            "sha256": "e3b07912e8c111d1dbbb449e8d104628f812a962709b7cd8bcb41dff7dd3bf41",
+            "prepared": true,
+            "allMarkersExactlyOnce": true
+          },
+          {
+            "source": "docm",
+            "target": "txt",
+            "status": "PASS",
+            "mode": "native_uno",
+            "elapsedMs": 406,
+            "bytes": 90,
+            "sha256": "e3b07912e8c111d1dbbb449e8d104628f812a962709b7cd8bcb41dff7dd3bf41",
+            "prepared": true,
+            "allMarkersExactlyOnce": true
+          },
+          {
+            "source": "docm",
+            "target": "csv",
+            "status": "PASS",
+            "mode": "native_uno",
+            "elapsedMs": 360,
+            "bytes": 90,
+            "sha256": "e3b07912e8c111d1dbbb449e8d104628f812a962709b7cd8bcb41dff7dd3bf41",
+            "prepared": true,
+            "allMarkersExactlyOnce": true
+          },
+          {
+            "source": "docm",
+            "target": "tsv",
+            "status": "PASS",
+            "mode": "native_uno",
+            "elapsedMs": 328,
+            "bytes": 90,
+            "sha256": "e3b07912e8c111d1dbbb449e8d104628f812a962709b7cd8bcb41dff7dd3bf41",
+            "prepared": true,
+            "allMarkersExactlyOnce": true
+          },
+          {
+            "source": "docm",
+            "target": "tab",
+            "status": "PASS",
+            "mode": "native_uno",
+            "elapsedMs": 328,
+            "bytes": 90,
+            "sha256": "e3b07912e8c111d1dbbb449e8d104628f812a962709b7cd8bcb41dff7dd3bf41",
+            "prepared": true,
+            "allMarkersExactlyOnce": true
+          },
+          {
+            "source": "healthy",
+            "target": "txt",
+            "status": "PASS",
+            "mode": "native_uno",
+            "elapsedMs": 313,
+            "bytes": 90,
+            "sha256": "e3b07912e8c111d1dbbb449e8d104628f812a962709b7cd8bcb41dff7dd3bf41",
+            "prepared": false,
+            "allMarkersExactlyOnce": true
+          },
+          {
+            "source": "docx",
+            "target": "docx",
+            "status": "PASS",
+            "mode": "native_uno",
+            "textPreparationUsed": false
+          },
+          {
+            "source": "docx",
+            "target": "pdf",
+            "status": "PASS",
+            "mode": "native_uno",
+            "textPreparationUsed": false
+          },
+          {
+            "source": "docx",
+            "target": "txt",
+            "status": "PASS",
+            "mode": "native_cli",
+            "elapsedMs": 4406,
+            "bytes": 90,
+            "sha256": "e3b07912e8c111d1dbbb449e8d104628f812a962709b7cd8bcb41dff7dd3bf41",
+            "allMarkersExactlyOnce": true
+          },
+          {
+            "source": "docm",
+            "target": "txt",
+            "status": "PASS",
+            "mode": "native_cli",
+            "elapsedMs": 4437,
+            "bytes": 90,
+            "sha256": "e3b07912e8c111d1dbbb449e8d104628f812a962709b7cd8bcb41dff7dd3bf41",
+            "allMarkersExactlyOnce": true
+          }
+        ],
+        "sourceSHA256": {
+          "docx": "1c6bc82a2544eb96be1f8361ed0f60f7075ff0aa97e588af1e6f46483f0defcb",
+          "docm": "b832835451bafb9bbb851986c1f7dffb3b8cfc9702bd05e709369b8225ccfa12",
+          "healthy": "24dc8c43c702a9f8252061102228e1ca3298f80793398e38fbfb3d2ef78b1c45"
+        },
+        "telemetryEnabled": false,
+        "sourceBytesUnchanged": true
+      }
+    },
+    {
+      "file": "D:\\actions-runner\\_work\\A.I.O\\A.I.O\\aio-session-b16-b27-evidence-40566745254-1\\visual\\evidence.json",
+      "data": {
+        "status": "PASS",
+        "scope": "real QtWebEngine local UI and HTTP/isolated analysis; native output fixture controlled",
+        "windowsGUI": "NOT_RUN",
+        "scenes": [
+          {
+            "name": "dark",
+            "geometry": {
+              "width": 1280,
+              "height": 800,
+              "dialog": {
+                "x": 100,
+                "y": 30,
+                "width": 1080,
+                "height": 740
+              },
+              "rows": 2,
+              "red": 1,
+              "yellow": 1,
+              "preview": "РќР°Р·РІР°РЅРёРµ,Р—РЅР°С‡РµРЅРёРµ\r\nРўРѕРІР°СЂ,0\r\n"
+            },
+            "screenshot": "dark.png"
+          },
+          {
+            "name": "light",
+            "geometry": {
+              "width": 1280,
+              "height": 800,
+              "dialog": {
+                "x": 100,
+                "y": 30,
+                "width": 1080,
+                "height": 740
+              },
+              "rows": 2,
+              "red": 1,
+              "yellow": 1,
+              "preview": "РќР°Р·РІР°РЅРёРµ,Р—РЅР°С‡РµРЅРёРµ\r\nРўРѕРІР°СЂ,0\r\n"
+            },
+            "screenshot": "light.png"
+          },
+          {
+            "name": "narrow",
+            "geometry": {
+              "width": 900,
+              "height": 650,
+              "dialog": {
+                "x": 16,
+                "y": 16,
+                "width": 868,
+                "height": 618
+              },
+              "rows": 2,
+              "red": 1,
+              "yellow": 1,
+              "preview": "РќР°Р·РІР°РЅРёРµ,Р—РЅР°С‡РµРЅРёРµ\r\nРўРѕРІР°СЂ,0\r\n"
+            },
+            "screenshot": "narrow.png"
+          },
+          {
+            "name": "pdf",
+            "metadata": {
+              "naturalWidth": 1400,
+              "iframes": 0
+            },
+            "screenshot": "pdf.png"
+          }
+        ]
+      }
+    }
+  ]
+}

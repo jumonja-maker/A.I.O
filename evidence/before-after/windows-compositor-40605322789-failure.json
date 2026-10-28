@@ -1,0 +1,127 @@
+{
+  "runId": 40605322789,
+  "jobId": 122543261289,
+  "status": "FAIL",
+  "testedSourceSHA": "1e54d7725d9e06e3f058b1e5cd163b377cbaeab2",
+  "testedTreeSHA": "c2975230a2edae3fba770235303ca8a15c5899c9",
+  "reason": "QA frame markers were mounted below the modal dialog backdrop, which darkened their pixels. Move markers into the dialog top layer; keep exact pixel assertions.",
+  "evidence": [
+    {
+      "file": "D:\\actions-runner\\_work\\A.I.O\\A.I.O\\aio-before-after-evidence-40605322789-1\\before-after\\evidence.json",
+      "data": {
+        "status": "FAIL",
+        "scope": "source QtWebEngine/real preview codecs + native Writer HTML; not installed EXE or FULLTEST",
+        "scaleFactor": "1",
+        "checks": [
+          {
+            "name": "native-writer-html-analysis",
+            "status": "PASS",
+            "sourceSha256": "13df3d4b672564491ce40032b61167b988c775598fe8936c81fd700dd45c06e6",
+            "analysis": {
+              "schemaVersion": 1,
+              "status": "checked",
+              "qualityCompared": true,
+              "scope": "verified_properties_only",
+              "findings": [],
+              "checkedFeatures": [
+                "cell_values_single_grid",
+                "normalized_text"
+              ],
+              "unknown": [
+                "colour_accuracy",
+                "comments_and_revisions",
+                "field_evaluation",
+                "fonts",
+                "formula_evaluation",
+                "hidden_text",
+                "html_css_layout",
+                "html_embedded_resource_rendering",
+                "html_text_visibility",
+                "semantic_meaning",
+                "textboxes_reading_order",
+                "visual_layout",
+                "word_table_structure"
+              ],
+              "recipeCandidates": [],
+              "before": {
+                "kind": "ooxml",
+                "documentClass": "text",
+                "complete": true,
+                "counts": {
+                  "tables": 1,
+                  "textParts": 1,
+                  "images": 0,
+                  "formulas": 0,
+                  "characters": 69
+                },
+                "textDigest": "9ac6226334ec41b81aa7b324684a7f9d998b012bfcf0fb2f3052b661973a6ba4",
+                "textCoverage": [
+                  "body"
+                ]
+              },
+              "after": {
+                "kind": "html",
+                "documentClass": "text",
+                "complete": true,
+                "counts": {
+                  "tables": 1,
+                  "images": 0,
+                  "characters": 69
+                },
+                "textDigest": "9ac6226334ec41b81aa7b324684a7f9d998b012bfcf0fb2f3052b661973a6ba4",
+                "textCoverage": [
+                  "html_body_markup"
+                ]
+              },
+              "outputScope": {
+                "totalFiles": 1,
+                "primaryFiles": 1,
+                "supplementalFiles": 0,
+                "inspectedPrimaryFiles": 1,
+                "inspectedSupplementalFiles": 0
+              },
+              "evaluatedFeatures": [
+                "cell_values_single_grid",
+                "normalized_text"
+              ]
+            }
+          }
+        ],
+        "snapshots": [],
+        "reason": "Qt frame did not paint the two current images: {'points': [{'x': 388.765625, 'y': 317.375, 'width': 172, 'height': 96.75}, {'x': 678.875, 'y': 317.375, 'width': 172, 'height': 96.75}], 'colours': [(248, 208, 144), (248, 208, 144)], 'expected': [(239, 199, 135), (248, 208, 144)], 'frameMarkers': [{'x': 4, 'y': 4}, {'x': 4, 'y': 646}, {'x': 896, 'y': 646}], 'frameMarkerPixels': [(8, 33, 83), (8, 31, 77), (8, 31, 77)], 'expectedMarkerColour': (19, 73, 181)}",
+        "error": "AssertionError",
+        "failureView": {
+          "images": [
+            {
+              "naturalWidth": 3840,
+              "width": "172px"
+            },
+            {
+              "naturalWidth": 3840,
+              "width": "172px"
+            }
+          ],
+          "zoom": [
+            {
+              "zoom": "fit",
+              "pressed": "true"
+            },
+            {
+              "zoom": "1",
+              "pressed": "false"
+            },
+            {
+              "zoom": "2",
+              "pressed": "false"
+            },
+            {
+              "zoom": "4",
+              "pressed": "false"
+            }
+          ],
+          "fullscreen": false
+        }
+      }
+    }
+  ]
+}

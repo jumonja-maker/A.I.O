@@ -10,7 +10,7 @@ const {window,document}=parseHTML('<html><body data-aio-token="unit-token"><div 
 const job='a'.repeat(32),child='b'.repeat(32),otherChild='c'.repeat(32),grandchild='d'.repeat(32),oldChild='e'.repeat(32),calls=[],saved=[],created=[],revoked=[];
 window.location={href:'http://127.0.0.1:5123/',origin:'http://127.0.0.1:5123'};
 window.AllInOneNativeShell=true;
-window.AllInOneBridge={converter:{async saveRetained(id,mode){saved.push([id,mode]);return {saved:true};}}};
+window.AllInOneBridge={converter:{async saveSelectedDiagnostic(selection){saved.push(selection);return {saved:true};}}};
 window.HTMLElement.prototype.showModal=function(){this.open=true;this.setAttribute('open','');};
 window.HTMLElement.prototype.close=function(){
   if(!this.open)return;
@@ -49,7 +49,8 @@ const rows=(id)=>Array.from({length:1000},(_,i)=>({taskId:id+':'+i,fileId:'f'+i,
   unknown:['colour_accuracy','fonts','formula_evaluation','semantic_meaning','visual_layout'] }));
 function packet(id,url){
   let items=emptyReport?[]:rows(id);const f=url.searchParams.get('filter'),q=url.searchParams.get('q');
-  if(f&&f!=='all')items=items.filter(row=>row.status===f);
+  if(f==='problems')items=items.filter(row=>row.status!=='checked');
+  else if(f&&f!=='all')items=items.filter(row=>row.status===f);
   if(q)items=items.filter(row=>(row.name+' '+row.format).includes(q));
   const offset=Number(url.searchParams.get('offset'))||0;
   let parent=parents[id],ancestors=[];for(let p=parent;p;p=parents[p])ancestors.unshift({jobId:p,label:p===job?'Исходный пакет':'Предыдущий повтор',available:true});
@@ -131,6 +132,10 @@ assert.equal(launch.hidden,false);assert.equal(document.querySelector('#save').d
 assert.equal(calls.length,0,'completion only offers the optional button');
 click(launch);await flush();
 const dialog=document.querySelector('.aio-compare-dialog'),$=selector=>dialog.querySelector(selector);
+assert.equal($('[data-c-filter]').value,'problems');
+assert.ok([...$('[data-c-files]').children].every(row=>row.dataset.status!=='checked'));
+click($('[data-c-filter-choice="all"]'));await flush();
+assert.equal($('[data-c-filter]').value,'all');
 assert.equal(dialog.open,true,$('[data-c-feedback]').textContent);assert.equal(calls.filter(r=>r.path.endsWith('/compare/start')).length,1);
 assert.equal($('[data-c-files]').children.length,50,'1000 inputs render only one page');
 assert.equal($('[data-c-files]').querySelectorAll('img,script').length,0,'untrusted filenames are literal text');
@@ -179,7 +184,8 @@ assert.match($('[data-c-retry-verdict]').textContent,/улучшение не п
 assert.equal($('[data-c-retry-job]').querySelectorAll('option').length,2,'all mixed-recipe candidate jobs remain reachable');
 $('[data-c-retry-job]').value=child;emit($('[data-c-retry-job]'),'change');
 assert.match($('[data-c-retry-verdict]').textContent,/улучшились проверенные свойства/,'verdict follows selected child, not the other recipe');
-click($('[data-c-save-retry]'));await flush();assert.deepEqual(saved,[[child,'folder']]);
+assert.equal($('[data-c-save-retry]').hidden,true,'analysis cannot Save All a retry package');
+assert.deepEqual(saved,[]);
 click($('[data-c-show-retry]'));await flush();assert.equal(calls.filter(r=>r.path.endsWith('/compare/start')).at(-1).body.jobId,child);
 assert.equal($('[data-c-back]').hidden,false);click($('[data-c-back]'));await flush();
 assert.equal(calls.filter(r=>r.path.endsWith('/compare/start')).at(-1).body.jobId,job);
@@ -298,7 +304,8 @@ $('[data-c-attempt]').value='old';emit($('[data-c-attempt]'),'change');
 assert.equal($('[data-c-retry-job]').value,oldChild);
 assert.equal($('[data-c-show-retry]').disabled,false,'completed partial child remains accessible after failed overall run');
 assert.match($('[data-c-retry-verdict]').textContent,/улучшились проверенные свойства/);
-click($('[data-c-save-retry]'));await flush();assert.deepEqual(saved.at(-1),[oldChild,'folder']);
+assert.equal($('[data-c-save-retry]').hidden,true,'older attempts also require explicit output selection');
+assert.deepEqual(saved,[]);
 $('[data-c-attempt]').value='new';emit($('[data-c-attempt]'),'change');
 assert.match($('[data-c-retry-verdict]').textContent,/нельзя надёжно сопоставить/,'no improvement from the other attempt is reused');
 history[0].children[0].available=false;click($('[data-c-refresh]'));await flush();
@@ -329,7 +336,7 @@ finalizing=false;click($('[data-c-refresh]'));await flush();assert.equal($('[dat
 
 // Saving cancellation leaves the current view usable. Explicit release aborts previews and polling.
 emit($('[data-task]'),'dblclick');await flush();
-window.AllInOneBridge.converter.saveRetained=async()=>({saved:false});
+window.AllInOneBridge.converter.saveSelectedDiagnostic=async()=>({saved:false});
 click($('[data-c-save-current]'));await flush();assert.match($('[data-c-feedback]').textContent,/Сохранение отменено/);
 assert.equal($('[data-c-source]').disabled,false);
 window.dispatchEvent(new window.CustomEvent('aio-guard-job-released',{detail:{jobId:job,discarded:true}}));await flush();
@@ -354,7 +361,7 @@ for(const code of ['COMPARISON_REPORT_UNAVAILABLE','COMPARISON_NOT_STARTED']){
     assert.doesNotMatch($(selector).textContent,/нет проверяемых пар|нет подтверждённой связи|исходник.*недоступ/i,'a corrupt report does not imply missing task mapping or originals');
   }
   assert.equal($('[data-c-restart]').disabled,false,'existing Guard outputs permit an explicit new analysis');
-  assert.equal($('[data-c-save-current]').disabled,false,'report failure leaves retained results savable');
+  assert.equal($('[data-c-save-current]').disabled,true,'a missing report offers no selected output; main result save remains separate');
   assert.equal($('[data-c-retry]').disabled,true);
   assert.equal(calls.length,before+1,'opening a corrupt report does not rescan or poll');
   assert.equal(calls.at(-1).body.restart,undefined);

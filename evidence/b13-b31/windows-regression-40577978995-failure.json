@@ -1,0 +1,9 @@
+{
+  "status": "FAIL",
+  "runId": 40577978995,
+  "jobId": 122449404711,
+  "testedSourceSHA": "601a73056017b55096159f236aae48ba05b21577",
+  "testedTreeSHA": "51cfa0ea0ac5673ddbee0dab25696e5b54253614",
+  "scope": "orchestration failed before unit execution: git absent from PATH",
+  "evidence": []
+}

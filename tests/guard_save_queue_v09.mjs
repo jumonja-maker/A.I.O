@@ -57,6 +57,7 @@ function fixture(options={}){
     if(path==='/saved')return response({jobId,saved:true,savedAll:true,outputs:2});
     if(path==='/bundle'){bundled=true;revision++;return response(state(),202);}
     if(path==='/release')return response({ok:true});
+    if(path==='/close')return response({jobId,closed:true});
     if(path==='/pause'){paused=body.paused;revision++;return response(state());}
     if(path==='/cancel-file'){revision++;return response({...state(),files:state().files.map(f=>({...f,cancellationRequested:true}))});}
     if(path==='/cancel'){
@@ -73,6 +74,18 @@ function fixture(options={}){
 }
 
 const completed=[];
+{
+  const gate=deferred(),f=fixture({poll:async({state})=>{await gate.promise;return {...state,finished:true,state:'ready',result:artifact(bundleTicket)};}});
+  const running=f.bridge.convertMany({files:input,formatIds:['pdf','html']});
+  const rejected=assert.rejects(running,error=>error.code==='CANCELLED');
+  await until(()=>f.polled()>0);
+  assert.equal((await f.bridge.closeConversion(jobId)).closed,true);
+  const before=f.events.filter(e=>e.type==='aio-guard-state').length;
+  gate.resolve();await rejected;
+  assert.equal(f.events.filter(e=>e.type==='aio-guard-state').length,before,'late terminal poll cannot republish a closed session');
+  assert.equal(f.calls.filter(c=>c.path==='/close').length,1);
+  completed.push('confirmed Close rejects a late terminal poll without republishing the closed session');
+}
 {
   const f=fixture({hostSave:async result=>{
     assert.equal(result.verifySaved,true,'native readback is requested by default');

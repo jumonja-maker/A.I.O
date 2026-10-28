@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "scope": "supplementary POSIX and symlink controls; not Windows Job Object or installed EXE acceptance",
+  "recordedAtUTC": "2026-10-28T00:07:00.036356+00:00",
+  "localSnapshotCommit": "6282f1a4ae3198e31b05a6398da500bf0a8a11c9",
+  "localSnapshotIsUpstreamCommit": false,
+  "executionSession": 68663,
+  "exitCode": 0,
+  "passed": 9,
+  "failed": 0,
+  "errors": 0,
+  "skipped": 0,
+  "seconds": 1.874,
+  "tests": [
+    "test_converter_guard_process_v02.ControlledProcessTests.test_deadline_kills_own_process_tree_and_next_file_runs",
+    "test_converter_guard_process_v02.ControlledProcessTests.test_live_output_quota_stops_only_the_growing_process",
+    "test_converter_guard_process_v02.ControlledProcessTests.test_slow_cleanup_does_not_hold_the_global_metadata_lock",
+    "test_guard_native_metrics_v11.NativeMetricsQA.test_cli_measures_process_time_without_inventing_import_or_export_times",
+    "test_guard_native_metrics_v11.NativeMetricsQA.test_twenty_worker_recycles_leave_no_live_readers_profiles_or_pipe_descriptors",
+    "test_comparison_recovery_v20.ComparisonRecoverySafety.test_dangling_catalogue_link_cannot_create_an_external_database",
+    "test_guard_quarantine_v20.DiagnosticQuarantineV20.test_symlink_output_and_linked_diagnostic_destination_are_not_followed",
+    "test_guard_queue_audit_v18.ResultDeltaTests.test_unsupported_hardlinks_use_exclusive_copy_and_independent_readback",
+    "test_guard_queue_audit_v18.ResultDeltaTests.test_unsupported_link_fallback_still_rejects_a_competing_target"
+  ],
+  "testGitBlobs": {
+    "tests/test_converter_guard_process_v02.py": "643557b396be09f3a16b5e6d7af5c9643fbc8e30",
+    "tests/test_guard_native_metrics_v11.py": "f8abf75296a7d7968dc830f13333b4f376065395",
+    "tests/test_comparison_recovery_v20.py": "4f3a913b08a05170934456439e251922d87c843d",
+    "tests/test_guard_quarantine_v20.py": "eae2fd93700d3ab5c1bbc40e9574b7f91c108bd8",
+    "tests/test_guard_queue_audit_v18.py": "57512028f0c9a6c3afdba1ffad80191eed7a955a"
+  }
+}

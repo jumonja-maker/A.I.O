@@ -17,7 +17,7 @@ from .csv_import import csv_import_hint, inspect_csv_stream
 from .export_recipe import native_export_recipe, automatic_recipe, validate_retry_recipe
 from .native_observation import NativeObservation
 from .native_metrics import clean_timings
-from .legacy_import import legacy_import_hint, validate_options
+from .legacy_import import legacy_import_hint, validate_options, validate_legacy_dbf_source
 from .postconditions import SourceEvidence, check_native_output
 from .source_contract import inspect_source_contract, source_import_hint, source_model_matches
 
@@ -448,6 +448,9 @@ class LibreOfficeAdapter:
                     'webp': 'Графический экспорт документа может менять размер полотна и формат представления.',
                     'pdf': 'PDF предназначен для просмотра: структура и редактируемость исходника могут измениться.',
                     'epub': 'EPUB без нативного импортёра открывается через HTML в порядке OPF spine. При смене формата вёрстка книги может измениться; активные, зашифрованные и фиксированные макеты требуют отдельной поддержки.',
+                    'orp': 'ORP — только определение отчёта LibreOffice Base ReportDefinition. Обычные документы Writer/Calc/Impress не являются отчётами Base. Положительный Base-контроль пока не проверен.',
+                    'html': 'HTML-экспорт Impress поддерживается для проверенной текстовой структуры. Графические объекты этим фильтром не сохраняются; используйте PDF. HTML-фильтр Draw не подтверждён; доступность XHTML проверяется отдельно.',
+                    'htm': 'HTM-экспорт Impress поддерживается для проверенной текстовой структуры. Графические объекты этим фильтром не сохраняются; используйте PDF. HTML-фильтр Draw не подтверждён; доступность XHTML проверяется отдельно.',
                     'xml': 'Для Writer/Calc/Impress/Draw используется установленный штатный фильтр Flat OpenDocument XML. Это не Excel/Word 2003 XML; точный фильтр указан в отчёте.'
                 }).get(ext, 'Проверка Guard подтверждает маршрут, но не гарантирует отсутствие смысловых или визуальных потерь.')}],
                 'unavailableReasons': reasons,
@@ -501,6 +504,7 @@ class LibreOfficeAdapter:
         if not self.available:
             return {'state': 'undetermined', 'code': 'ENGINE_NOT_FOUND'}
         control = _RunControl(cancel, workspace, timeout, None)
+        validate_legacy_dbf_source(source,self._registry(),cancel=control)
         try:
             media = media_preflight(source, cancel=control)
         except GuardError as error:
@@ -551,7 +555,7 @@ class LibreOfficeAdapter:
         if contract.get('nativeImportRequired') and source_hint is None:
             return {'state': 'undetermined', 'code': 'SOURCE_NATIVE_IMPORT_FILTER_REQUIRED',
                     'sourceContract': contract, 'exported': False}
-        hint = source_hint or csv_import_hint(source, native) or legacy_import_hint(source, native)
+        hint = source_hint or csv_import_hint(source, native) or legacy_import_hint(source, native, cancel=cancel)
         # One streaming scan, only for a content-confirmed text hint. Large or
         # ambiguous inputs retain an explicit incomplete status, never a veto.
         csv_profile = (inspect_csv_stream(source, delimiter=chr(int(hint['options'].split(',')[0])),
@@ -596,6 +600,7 @@ class LibreOfficeAdapter:
                         'drawPages':result.get('drawPages'),
                         'difNumericImport':result.get('difNumericImport'),
                         'nativeGraphicExports': result.get('nativeGraphicExports', []),
+                        'htmlContentProfile': result.get('htmlContentProfile'),
                         'nativeExportFilters': result.get('nativeExportFilters', {}),
                         'nativeExportInspection': result.get('nativeExportInspection', {}),
                         'registryFingerprint':native.fingerprint,'exported':False}
@@ -694,6 +699,11 @@ class LibreOfficeAdapter:
         from .qt_media import convert_media_frames, convert_document_pages
         proof = getattr(self._local, 'proof', None) or {}
         retry_recipe = getattr(self._local, 'retry_recipe', None)
+        html_reason = self._registry().html_route_reason(target, proof)
+        if html_reason:
+            raise GuardError(html_reason,
+                'Штатный HTML-фильтр не подтверждает сохранение графики этого документа. Используйте PDF либо отдельно проверенный XHTML.',
+                stage='plan')
         if retry_recipe is not None:
             validate_retry_recipe(retry_recipe, target)
             # A Qt/identity route cannot truthfully apply LibreOffice export
@@ -702,6 +712,7 @@ class LibreOfficeAdapter:
         paths = None
         identity_control = (cancel if timeout is None and output_limit is None else
                             _RunControl(cancel, workspace, timeout, output_limit))
+        validate_legacy_dbf_source(source,self._registry(),cancel=identity_control)
         if target in ('csv','tab','tsv') and on_document_service is not None:
             # Legacy/unprepared queues have no model proof. A first-sheet
             # observation export cannot establish whole-workbook completeness.
@@ -757,7 +768,7 @@ class LibreOfficeAdapter:
                 # TABLE is only an inexpensive content probe. The actual
                 # native import proof, or a confirmed legacy hint for a
                 # direct adapter call without proof, owns DIF admission.
-                direct_hint = (legacy_import_hint(source, native)
+                direct_hint = (legacy_import_hint(source, native, cancel=identity_control)
                                if not proof and selected_import is None else None)
                 if (selected_import == 'DIF' or
                         direct_hint is not None and direct_hint.get('filter') == 'DIF'):
@@ -814,6 +825,10 @@ class LibreOfficeAdapter:
                      *preparation.get('warnings', ()),
                      *(['ODF_IMPLICIT_COLUMNS_EXPLICIT'] if preparation.get('state') == 'prepared'
                        and preparation.get('kind') == 'odf_explicit_table_columns' else []))))
+        if target in ('jfif','jif','jpe') and self.execution_mode() in ('native_uno','native_cli'):
+            from .jpeg_alias import verify_native_jpeg_alias
+            alias_check = verify_native_jpeg_alias(paths, target, cancel=identity_control)
+            self._local.export_info['resultChecks'] = list(self._local.export_info.get('resultChecks', ())) + [alias_check]
         if target == 'bmp' and self.execution_mode() in ('native_uno', 'native_cli'):
             from .native_media_repair import repair_native_bmp_size
             repairs = repair_native_bmp_size(paths, cancel=identity_control)
@@ -908,7 +923,7 @@ class LibreOfficeAdapter:
         name = (import_hint or {}).get('filter', getattr(self._local, 'import_filter', None))
         options = (import_hint or {}).get('options', getattr(self._local, 'import_options', None))
         if name != 'DIF':
-            hint = legacy_import_hint(source, native)
+            hint = legacy_import_hint(source, native, cancel=cancel)
             if not hint or hint['filter'] != 'DIF':
                 raise GuardError('DIF_NATIVE_IMPORT_UNVERIFIED',
                     'Не подтверждены параметры нативного импорта DIF.', stage='import')

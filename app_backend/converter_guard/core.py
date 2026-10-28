@@ -184,6 +184,8 @@ class _Job:
     io: int = 0
     future: object = None
     artifacts: list = field(default_factory=list)
+    diagnostic_artifacts: list = field(default_factory=list)
+    diagnostic_building: bool = False
     bundle: object = None
     archive_mode: str = 'auto'
     bundle_deferred: bool = False
@@ -780,7 +782,9 @@ class ConverterGuard:
                               'comparisonParentTasks': list(j.comparison_parent_tasks),
                               'salvaged': j.salvage, 'qualityCompared': False}
                              for j in self._jobs.values() if not j.released
-                             and (j.recovery_error or any(not a.saved for a in j.artifacts))]}
+                             and (j.recovery_error or any(not a.saved for a in j.artifacts) or
+                                  j.retain_sources and not j.preparation and (j.artifacts or
+                                  any(t.state in DONE for f in j.files for t in f.targets)))]}
 
     def _cached_proof(self, key):
         # Metadata only: no source bytes, processes, timers or disk copies.
@@ -1012,7 +1016,7 @@ class ConverterGuard:
             now = time.monotonic()
             expired = [j for j in self._jobs.values() if j.released or (
                 not j.running and not j.io and not j.pending_journal and (
-                    reap_saved and self._saved_all(j) or not j.artifacts and not j.recovery_error
+                    reap_saved and self._saved_all(j) and not j.retain_sources or not j.artifacts and not j.recovery_error
                     and now - j.touched > self.limits.retention_seconds))]
             for job in expired:
                 job.released = True
@@ -2848,6 +2852,29 @@ class ConverterGuard:
                 self._io_drained.notify_all()
             self._cleanup(job)
 
+    def close_conversion(self, job_id, *, discard=False):
+        if type(discard) is not bool:
+            raise GuardError('DISCARD_REQUEST','Некорректное подтверждение закрытия.')
+        with self._lock:
+            job=self._get(job_id)
+            if job.saving or job.diagnostic_building:
+                raise GuardError('SAVE_BUSY','Дождитесь завершения сохранения.',status=409)
+            unsaved=sum(not artifact.saved for artifact in job.artifacts)
+            if unsaved and not discard:
+                return {'jobId':job.id,'closed':False,'confirmationRequired':True,'unsavedOutputs':unsaved}
+            # Commit ownership/cancellation atomically with the save check.
+            # Slow worker interruption and filesystem cleanup run after unlock.
+            job.bundle_cancel.set();job.save_cancel.set();job.released=True
+            callbacks=self._stop(job)
+            for artifact in job.artifacts + job.diagnostic_artifacts + ([job.bundle] if job.bundle else []):
+                self._tickets.pop(artifact.ticket,None)
+            outcome={'jobId':job.id,'closed':True,'confirmationRequired':False,
+                     'cancellationRequested':job.cancel.is_set(),'cleanupPending':job.running or job.io>0}
+        self._interrupt(callbacks)
+        if not job.running:self._flush_journal(job)
+        self._cleanup(job)
+        return outcome
+
     def release(self, job_id, *, discard=False):
         if type(discard) is not bool:
             raise GuardError('DISCARD_REQUEST', 'Некорректное подтверждение удаления.')
@@ -2866,7 +2893,7 @@ class ConverterGuard:
                 job.save_cancel.set()
                 job.released = True
                 callbacks = self._stop(job)
-                for artifact in job.artifacts + ([job.bundle] if job.bundle else []):
+                for artifact in job.artifacts + job.diagnostic_artifacts + ([job.bundle] if job.bundle else []):
                     self._tickets.pop(artifact.ticket, None)
         self._interrupt(callbacks)
         if not job.running:
@@ -2909,7 +2936,7 @@ class ConverterGuard:
                 self._record(job, 'cleanup_deferred', code='CLEANUP_RETRY')
             return
         with self._lock:
-            for artifact in job.artifacts + ([job.bundle] if job.bundle else []):
+            for artifact in job.artifacts + job.diagnostic_artifacts + ([job.bundle] if job.bundle else []):
                 self._tickets.pop(artifact.ticket, None)
             if self._jobs.pop(job.id, None) is not None:
                 self._reserved -= job.reserved
