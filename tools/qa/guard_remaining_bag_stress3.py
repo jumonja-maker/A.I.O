@@ -21,9 +21,10 @@ sys.path[:0]=[str(ROOT),str(ROOT/'tests'),str(ROOT/'tools/qa')]
 # Expected decisions are fixed before any child starts. A successful exit code
 # alone is insufficient: exact result counts and each expected verdict matter.
 STAGES=(
+    ('native-profile','guard_native_profile_acceptance.py',{'checks':4}),
+    ('all-sheets','guard_b30_native_acceptance.py',{'cases':9}),
     ('dif-regression','guard_b28_dif_native_acceptance.py',{'cases':48}),
     ('text-id-regression','guard_b29_csv_native_acceptance.py',{'cases':108}),
-    ('all-sheets','guard_b30_native_acceptance.py',{'cases':9}),
     ('dbf-jpeg','guard_native_routes_b13_b31.py',{'dbf':8,'largeDbf':1,'jpeg':120,'negative':6}),
     ('tiff','guard_b32_tiff_native_acceptance.py',{'cases':24,'negative':6}),
     ('html','guard_b33_html_native_acceptance.py',{'positive':18,'excluded':30,'negative':3}),
