@@ -100,10 +100,14 @@ jobs:
           node --check src/bridge.js
       - name: Preserve original Excel regression suite
         working-directory: aio-clean-contracts-${{ github.run_id }}-${{ github.run_attempt }}
-        run: "$AIO_QA_PYTHON" -m unittest discover -s tests -p 'test_excel.py' -v
+        run: |
+          set -euo pipefail
+          "$AIO_QA_PYTHON" -m unittest discover -s tests -p 'test_excel.py' -v
       - name: Verify shell visual designer Guard boundary and Excel API
         working-directory: aio-clean-contracts-${{ github.run_id }}-${{ github.run_attempt }}
-        run: "$AIO_QA_PYTHON" -m unittest discover -s tests -p 'test_clean_foundation.py' -v
+        run: |
+          set -euo pipefail
+          "$AIO_QA_PYTHON" -m unittest discover -s tests -p 'test_clean_foundation.py' -v
       - name: Run code-audit reliability regressions
         working-directory: aio-clean-contracts-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
