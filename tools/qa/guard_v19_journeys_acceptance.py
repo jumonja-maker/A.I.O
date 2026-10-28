@@ -177,6 +177,8 @@ def main(argv=None):
         restored = server.guard_api.comparison.snapshot(recovered_job)
         assert restored['analysisId'] == prior['analysisId'] and restored['recovered'], restored
         assert not server.guard.adapter.calls, 'Recovered report UI must not repeat native exports'
+        javascript("document.querySelector('[data-c-filter-choice=all]')?.click();true")
+        until(lambda:javascript("!!document.querySelector('[data-task]')"))
         javascript("document.querySelector('[data-task]').dispatchEvent(new MouseEvent('dblclick',{bubbles:true}));true")
         until(lambda: javascript("document.querySelector('[data-c-output]')?.options.length===2&&!document.querySelector('[data-c-output]').disabled"))
         javascript("(()=>{let s=document.querySelector('[data-c-output]');s.value='1';s.dispatchEvent(new Event('change',{bubbles:true}));return true})()")
@@ -198,7 +200,7 @@ def main(argv=None):
         Path(report_before.db).write_bytes(b'Controlled corrupt comparison report; synthetic QA only')
         open_comparison(recovered_job)
         until(lambda: javascript("document.querySelector('.aio-compare-dialog')?.open&&document.querySelector('[data-c-feedback]')?.textContent.includes('Отчёт')"))
-        assert javascript("!document.querySelector('[data-c-restart]').hidden&&!document.querySelector('[data-c-restart]').disabled&&!document.querySelector('[data-c-save-current]').disabled")
+        assert javascript("!document.querySelector('[data-c-restart]').hidden&&!document.querySelector('[data-c-restart]').disabled&&document.querySelector('[data-c-save-current]').disabled")
         assert not server.guard.adapter.calls
         # The damaged report stays damaged until the user's explicit action.
         assert Path(report_before.db).read_bytes().startswith(b'Controlled corrupt comparison report')
@@ -225,6 +227,10 @@ def main(argv=None):
             # queues the old dialog's native close event after the new open.
             open_comparison(identity, close_first=True)
             target_prefix = json.dumps(identity + ':')
+            until(lambda: javascript("document.querySelector('.aio-compare-dialog')?.open&&document.querySelector('[data-c-progress]')?.textContent.includes('Анализ завершён')&&document.querySelector('[data-c-progress]')?.textContent.includes('4 из 4')"))
+            # All four controls are checked. The owner requires a problem-only
+            # default; choose the technical All view before inspecting rows.
+            javascript("document.querySelector('[data-c-filter-choice=all]').click();true")
             until(lambda: javascript("document.querySelector('.aio-compare-dialog')?.open&&document.querySelector('[data-c-progress]')?.textContent.includes('Анализ завершён')&&document.querySelectorAll('[data-task]').length===4&&document.querySelector('[data-task]')?.dataset.task.startsWith(" + target_prefix + ")"))
             report = server.guard_api.comparison.snapshot(identity)
             assert report['state'] == 'completed' and report['processed'] == report['total'] == 4
@@ -271,6 +277,13 @@ def main(argv=None):
                 assert result['ok'] and result['value'].get('saved') is True, result
                 actual = saved_payload_hashes(destination, identity, args.files)
                 assert actual == expected, (actual, expected)
+                assert job.root.exists(), 'Verified save retains its sources/results for later analysis'
+                # The owner-requested lifecycle now keeps a saved session
+                # until explicit Close. Save itself must not discard it.
+                javascript('window.qaJourney=null;window.AllInOneBridge.converter.closeConversion('+json.dumps(identity)+').then(value=>window.qaJourney={ok:true,value}).catch(error=>window.qaJourney={ok:false,error:error.message});true')
+                until(lambda:javascript('window.qaJourney!==null'))
+                closed=json.loads(javascript('JSON.stringify(window.qaJourney)'))
+                assert closed['ok'] and closed['value'].get('closed') is True,closed
             else:
                 javascript('window.qaJourney=null;window.AllInOneBridge.converter.discardRetained(' + json.dumps(identity) + ').then(()=>window.qaJourney={ok:true}).catch(error=>window.qaJourney={ok:false,error:error.message});true')
                 until(lambda: javascript('window.qaJourney!==null'))

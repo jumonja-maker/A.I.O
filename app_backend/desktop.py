@@ -13,7 +13,7 @@ from PySide6.QtGui import QIcon, QDesktopServices
 from PySide6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QProgressDialog
 from PySide6.QtWebEngineCore import (
     QWebEnginePage, QWebEngineProfile, QWebEngineScript,
-    QWebEngineDownloadRequest, QWebEngineUrlRequestInterceptor)
+    QWebEngineDownloadRequest, QWebEngineUrlRequestInterceptor, QWebEngineSettings)
 from PySide6.QtWebEngineWidgets import QWebEngineView
 
 from .server import start_server, asset_root
@@ -76,6 +76,7 @@ class MainWindow(QMainWindow):
         self._folder_signals.shutdown_finished.connect(self._finish_shutdown, Qt.ConnectionType.QueuedConnection)
         self._shutdown_started = False
         self._shutdown_done = False
+        self._fullscreen_restore = None
         self._server = server
         self._gui_observation = None
         if server.telemetry is not None:
@@ -101,12 +102,32 @@ class MainWindow(QMainWindow):
 
         self.view = QWebEngineView(self)
         self.page = AppPage(self.profile, self.view, port)
+        self.page.settings().setAttribute(QWebEngineSettings.WebAttribute.FullScreenSupportEnabled, True)
+        self.page.fullScreenRequested.connect(self._full_screen_requested)
         # Page destruction releases its engine adapter before QObject children;
         # owning the profile here keeps it alive until the page is finished.
         self.profile.setParent(self.page)
         self.view.setPage(self.page)
         self.setCentralWidget(self.view)
         self.view.load(QUrl(f'http://127.0.0.1:{port}/'))
+
+    def _full_screen_requested(self, request):
+        if request.toggleOn():
+            origin=request.origin()
+            if (self._shutdown_started or self._shutdown_done or origin.scheme()!='http' or origin.host()!='127.0.0.1'
+                    or origin.port()!=self._server.server_port):
+                request.reject();return
+            self._fullscreen_restore=(self.saveGeometry(),self.isMaximized())
+            request.accept();self.showFullScreen()
+        else:
+            request.accept()
+            if self._shutdown_started or self._shutdown_done:
+                self._fullscreen_restore=None;return
+            self.showNormal()
+            restore,self._fullscreen_restore=self._fullscreen_restore,None
+            if restore:
+                self.restoreGeometry(restore[0])
+                if restore[1]:self.showMaximized()
 
     def _notify_download(self, status, name, source_url, **extra):
         data = json.dumps({'status':status, 'name':name, 'sourceUrl':source_url, **extra},

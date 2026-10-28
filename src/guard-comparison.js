@@ -12,6 +12,8 @@
     semantic_equivalence:'смысловая эквивалентность',normalized_text:'извлечённый текст',
     image_dimensions:'размеры изображения',frames:'кадры',pages:'страницы',alpha:'прозрачность',
     cell_values:'значения ячеек',alpha_channel:'канал прозрачности',width:'ширина',height:'высота',identical_file_bytes:'побайтовое совпадение',all_sheet_values_unordered:'значения всех листов',
+    all_sheet_values_by_index_name:'значения всех листов с проверкой их имён и индексов',
+    html_css_layout:'вёрстка HTML/CSS',html_text_visibility:'видимость текста HTML',html_embedded_resource_rendering:'отображение ресурсов HTML',html_complex_table_mapping:'сложная структура таблиц HTML',html_dynamic_content:'динамическое содержимое HTML',html_hidden_content:'скрытое содержимое HTML',
     all_sheet_outputs_mapping:'соответствие файлов всем листам книги',spreadsheet_values:'значения ячеек',cell_values_single_grid:'значения одной таблицы',
     comments_and_revisions:'комментарии и история правок',hidden_text:'скрытый текст',field_evaluation:'вычисление полей',textboxes_reading_order:'порядок текста в надписях',word_table_structure:'структура таблиц Word',
     presentation_notes:'заметки к слайдам',presentation_masters_and_layouts:'образцы и макеты слайдов',presentation_animations:'анимации презентации',charts_and_smartart:'диаграммы и SmartArt',embedded_objects:'встроенные объекты',table_to_slide_mapping:'соответствие таблиц слайдам',slide_object_positions:'расположение объектов слайда',
@@ -21,7 +23,8 @@
   const terminal=new Set(['completed','cancelled','interrupted','failed']);
   const validJob=id=>typeof id==='string'&&/^[0-9a-f]{32}$/.test(id);
   let dialog=null,launch=null,launchRoot=null,lastState=null,jobId=null,analysis=null,selectedTask=null,detail=null;
-  let side='result',offset=0,query='',filter='all',timer=null,controller=null,previewController=null,previewURL=null;
+  let side='result',offset=0,query='',filter='problems',timer=null,controller=null,previewController=null,previewURL=null;
+  let pairedMode=true,pairedViewer=null;
   let epoch=0,viewEpoch=0,requestNumber=0,previewNumber=0,busyAction=false,searchTimer=null;
   let dialogGeneration=0,cleanedDialogGeneration=-1;
   let opener=null,parentJob=null,unavailable=false,refreshFailures=0,restoreTask=null;
@@ -50,7 +53,7 @@
     let column=Number(location.column),label='';const row=Number(location.row);
     if(!Number.isSafeInteger(column)||column<1||column>1000000||!Number.isSafeInteger(row)||row<1)return 'Ячейка';
     while(column>0){column--;label=String.fromCharCode(65+column%26)+label;column=Math.floor(column/26);}
-    return label+row;
+    return (location.sheetName?'['+plain(location.sheetName)+']!':'')+label+row;
   }
   const eligible=item=>item?.sourceAvailable!==false&&Array.isArray(item?.recipeCandidates)&&item.recipeCandidates.length>0;
   const attemptId=attempt=>attempt?.runId||'latest';
@@ -122,6 +125,7 @@
   }
 
   function clearPreview(){
+    pairedViewer?.destroy();pairedViewer=null;
     previewNumber++;
     previewBusy=false;
     previewController?.abort();previewController=null;
@@ -212,7 +216,8 @@
     $('[data-c-refresh]').disabled=unavailable||busyAction;
     $('[data-c-cancel]').disabled=unavailable||busyAction||(!waiting&&!['queued','running','paused'].includes(state));
     $('[data-c-cancel]').textContent=waiting?'Остановить повтор':'Остановить анализ';
-    $('[data-c-save-current]').disabled=unavailable||busyAction;
+    $('[data-c-save-current]').disabled=unavailable||busyAction||!selectedTask;
+    $('[data-c-save-retry]').hidden=true;
     const rows=attempts(),attempt=currentAttempt(),children=childrenOf(attempt);
     if(attempt)historyRunId=attemptId(attempt);
     const history=$('[data-c-history]');history.hidden=!rows.length&&!historyTotal;
@@ -251,7 +256,10 @@
     $('[data-c-source]').disabled=unavailable||!detail;
     $('[data-c-result]').disabled=unavailable||!detail;
     $('[data-c-output]').disabled=unavailable||previewBusy||!detail;
-    const pdf=previewDescription()?.kind==='pdf',key=pageKey();
+    const pairActive=pairedMode&&!!window.AIOComparisonViewer;
+    $('[data-c-pair]').hidden=!window.AIOComparisonViewer;
+    $('[data-c-pair]').setAttribute('aria-pressed',String(pairActive));
+    const pdf=!pairActive&&previewDescription()?.kind==='pdf',key=pageKey();
     $('[data-c-pdf-controls]').hidden=!pdf;
     $('[data-c-pdf-page]').textContent=((pdfPages[key]||0)+1)+' / '+(pdfPageCounts[key]||'…');
     $('[data-c-pdf-prev]').disabled=unavailable||!pdf||previewBusy||!pdfPages[key];
@@ -329,7 +337,7 @@
       const button=document.createElement('button');button.type='button';button.dataset.task=item.taskId;
       const name=document.createElement('span');name.className='aio-compare-name';name.textContent=plain(item.name);name.title=plain(item.name);button.append(name);
       const format=document.createElement('span');format.textContent='→ '+plain(item.format).toUpperCase();button.append(format);
-      const status=document.createElement('span');status.className='aio-compare-kind';status.textContent=labels[item.status]||'Проверяем';button.append(status);
+      const status=document.createElement('span');status.className='aio-compare-kind';status.textContent=item.conversionState==='error'?'Ошибка конвертации':labels[item.status]||'Проверяем';button.append(status);
       button.addEventListener('click',()=>focusItem(item,false));
       button.addEventListener('dblclick',()=>focusItem(item,true));
       button.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();focusItem(item,true);}});
@@ -337,9 +345,10 @@
     }
     list.scrollTop=scroll;
     if(focusedTask){const row=[...list.children].find(node=>node.querySelector('[data-task]')?.dataset.task===focusedTask);(focusedCheck?row?.querySelector('input'):row?.querySelector('[data-task]'))?.focus({preventScroll:true});}
-    if(count===0&&terminal.has(analysis.state)){
-      const note=document.createElement('p');note.className='aio-compare-placeholder';note.textContent=analysis.reportUnavailable?'Отчёт недоступен. Запустите анализ заново. Результаты можно сохранить.':'В пакете нет подтверждённой связи результатов с исходниками. Результаты можно сохранить.';list.append(note);
-      $('[data-c-findings]').replaceChildren();const detailNote=document.createElement('p');detailNote.textContent=analysis.reportUnavailable?'Отчёт недоступен. Запустите анализ заново.':'Сравнение содержимого не выполнено: нет проверяемых пар.';$('[data-c-findings]').append(detailNote);
+    if(!(analysis.items||[]).length&&terminal.has(analysis.state)){
+      const filteredEmpty=!analysis.reportUnavailable&&analysis.processed>0;
+      const note=document.createElement('p');note.className='aio-compare-placeholder';note.textContent=filteredEmpty?'По текущему фильтру результатов нет. Нажмите «Все результаты», чтобы открыть проверенные пары.':analysis.reportUnavailable?'Отчёт недоступен. Запустите анализ заново. Результаты можно сохранить.':'В пакете нет подтверждённой связи результатов с исходниками. Результаты можно сохранить.';list.append(note);
+      $('[data-c-findings]').replaceChildren();const detailNote=document.createElement('p');detailNote.textContent=filteredEmpty?'Выберите «Все результаты» или измените фильтр.':analysis.reportUnavailable?'Отчёт недоступен. Запустите анализ заново.':'Сравнение содержимого не выполнено: нет проверяемых пар.';$('[data-c-findings]').append(detailNote);
     }
     const total=Number(analysis.totalFiltered??analysis.total)||0;
     $('[data-c-page]').textContent=(total?Math.floor(offset/50)+1:0)+' / '+Math.max(1,Math.ceil(total/50))+' · '+total;
@@ -420,6 +429,15 @@
     if(unavailable)return;
     clearPreview();refreshActions();
     if(!detail){placeholder('Дважды нажмите на файл слева, чтобы открыть сравнение.');return;}
+    if(pairedMode&&window.AIOComparisonViewer){
+      const version=epoch,number=previewNumber;previewBusy=true;refreshActions();
+      const output=detail.outputPreviews?.find(row=>row.outputIndex===outputIndex)||detail.previews?.result;
+      pairedViewer=window.AIOComparisonViewer.mount($('[data-c-preview]'),{
+        source:detail.previews?.source,result:output,
+        context:{jobId,taskId:selectedTask,analysisId:analysis?.analysisId,outputIndex},onMessage:feedback});
+      try{await pairedViewer.ready;}finally{if(alive(version)&&number===previewNumber){previewBusy=false;refreshActions();}}
+      return;
+    }
     const description=previewDescription();
     $('[data-c-preview-label]').textContent=description?.name||detail.name||'';
     if(!description||description.kind==='unavailable'||description.available===false){placeholder(description?.note||'Предпросмотр этого формата недоступен. Результаты анализа приведены ниже.');return;}
@@ -494,6 +512,11 @@
     selectedTask=item.taskId;setReport(item);
     for(const row of $('[data-c-files]')?.children||[])row.dataset.active=String(row.querySelector('[data-task]')?.dataset.task===item.taskId);
     if(!preview)return;
+    // A repeated open of the same pair starts a new preview generation too.
+    // Retire old controls/fullscreen before fetching detail, so late responses
+    // cannot replace a viewer the user is already zooming or expanding.
+    clearPreview();detail=null;renderOutputs();
+    placeholder('Готовим просмотр выбранной пары…');previewBusy=true;refreshActions();
     const version=epoch,number=++previewNumber,expectedId=analysis?.analysisId;
     try{
       const packet=await request('/compare/item?job='+encodeURIComponent(jobId)+'&task='+encodeURIComponent(item.taskId)+(expectedId?'&analysisId='+encodeURIComponent(expectedId):''));
@@ -506,6 +529,7 @@
       }
       detail=received;setReport(detail);renderOutputs();await showPreview();
     }catch(error){if(alive(version)&&selectedTask===item.taskId&&number===previewNumber&&analysis?.analysisId===expectedId&&error.name!=='AbortError')feedback(error.message);}
+    finally{if(alive(version)&&number===previewNumber){previewBusy=false;refreshActions();}}
   }
 
   async function action(work){
@@ -539,13 +563,13 @@
     dialog.innerHTML='<div class="aio-compare-shell"><header class="aio-compare-head"><div><h2 id="aio-compare-title">До / после конвертации</h2><small data-c-summary>Анализ запускается по вашему запросу</small></div><button type="button" data-c-close aria-label="Закрыть сравнение">×</button></header>'+
       '<nav class="aio-compare-breadcrumbs" data-c-breadcrumbs aria-label="Путь пакета" hidden></nav>'+
       '<div class="aio-compare-progress"><progress value="0" max="1" aria-label="Прогресс анализа"></progress><span data-c-progress role="status" aria-live="polite"></span><button type="button" data-c-pause>Пауза</button><button type="button" data-c-cancel>Остановить анализ</button><button type="button" data-c-resume hidden>Продолжить анализ</button><button type="button" data-c-restart hidden>Начать заново</button><button type="button" data-c-refresh>Обновить</button></div><p class="aio-compare-feedback" data-c-feedback role="status" aria-live="polite"></p>'+
-      '<div class="aio-compare-body"><aside class="aio-compare-sidebar"><details class="aio-compare-history" data-c-history hidden><summary>Повторы и версии</summary><div class="aio-compare-history-body"><select data-c-attempt aria-label="Попытка повторной конвертации"></select><div class="aio-compare-pages"><button type="button" data-c-history-prev aria-label="Новые попытки">←</button><span data-c-history-page></span><button type="button" data-c-history-next aria-label="Предыдущие попытки">→</button></div><div class="aio-compare-candidate" data-c-candidate hidden><small data-c-retry-verdict></small><select data-c-retry-job aria-label="Пакет повторной конвертации"></select><button type="button" data-c-show-retry>Открыть этот пакет</button><button type="button" data-c-save-retry>Сохранить этот пакет</button><details class="aio-compare-verification" data-c-verification-details hidden><summary>Проверка всех преобразований попытки</summary><ul data-c-verification-list></ul><div class="aio-compare-pages"><button type="button" data-c-verification-prev>←</button><span data-c-verification-page></span><button type="button" data-c-verification-next>→</button></div></details></div></div></details><div class="aio-compare-tools"><input type="search" maxlength="200" data-c-search placeholder="Файл или формат" aria-label="Поиск по результатам анализа"><select data-c-filter aria-label="Фильтр результатов анализа"><option value="all">Все результаты</option><option value="confirmed_loss">Подтверждённые потери</option><option value="format_limitation">Ограничения формата</option><option value="uncertain">Требуют проверки</option><option value="not_checked">Не удалось проверить</option><option value="checked">Проверенная часть сохранена</option></select></div>'+
+      '<div class="aio-compare-body"><aside class="aio-compare-sidebar"><details class="aio-compare-history" data-c-history hidden><summary>Повторы и версии</summary><div class="aio-compare-history-body"><select data-c-attempt aria-label="Попытка повторной конвертации"></select><div class="aio-compare-pages"><button type="button" data-c-history-prev aria-label="Новые попытки">←</button><span data-c-history-page></span><button type="button" data-c-history-next aria-label="Предыдущие попытки">→</button></div><div class="aio-compare-candidate" data-c-candidate hidden><small data-c-retry-verdict></small><select data-c-retry-job aria-label="Пакет повторной конвертации"></select><button type="button" data-c-show-retry>Открыть этот пакет</button><button type="button" data-c-save-retry>Сохранить этот пакет</button><details class="aio-compare-verification" data-c-verification-details hidden><summary>Проверка всех преобразований попытки</summary><ul data-c-verification-list></ul><div class="aio-compare-pages"><button type="button" data-c-verification-prev>←</button><span data-c-verification-page></span><button type="button" data-c-verification-next>→</button></div></details></div></div></details><div class="aio-compare-tools"><input type="search" maxlength="200" data-c-search placeholder="Файл или формат" aria-label="Поиск по результатам анализа"><select data-c-filter aria-label="Фильтр результатов анализа"><option value="problems">Проблемные результаты</option><option value="all">Все результаты</option><option value="confirmed_loss">Подтверждённые потери</option><option value="format_limitation">Ограничения формата</option><option value="uncertain">Требуют проверки</option><option value="not_checked">Не удалось проверить</option><option value="checked">Проверенная часть сохранена</option></select></div>'+
       '<div class="aio-compare-selection"><button type="button" data-c-select-all>Выбрать все с рекомендацией</button><button type="button" data-c-clear>Снять выбор</button><span data-c-selected>Выбрано: 0</span></div><div class="aio-compare-files" data-c-files role="list" aria-label="Преобразования"></div><div class="aio-compare-pages"><button type="button" data-c-prev>Назад</button><span data-c-page></span><button type="button" data-c-next>Далее</button></div></aside>'+
-      '<section class="aio-compare-right" aria-label="Просмотр и описание изменений"><div class="aio-compare-preview-head"><button type="button" data-c-source aria-pressed="false">Исходник</button><button type="button" data-c-result aria-pressed="true">Результат</button><div class="aio-compare-pdf-controls" data-c-pdf-controls role="group" aria-label="Страницы PDF" hidden><button type="button" data-c-pdf-prev aria-label="Предыдущая страница PDF">←</button><small data-c-pdf-page>1 / …</small><button type="button" data-c-pdf-next aria-label="Следующая страница PDF">→</button></div><span data-c-preview-label></span><div class="aio-compare-output-controls" data-c-output-controls hidden><button type="button" data-c-output-prev aria-label="Предыдущие выходные файлы">←</button><select data-c-output aria-label="Выходной файл выбранного преобразования"></select><button type="button" data-c-output-next aria-label="Следующие выходные файлы">→</button></div></div><div class="aio-compare-preview" data-c-preview></div><div class="aio-compare-report" data-c-findings></div>'+
-      '<footer class="aio-compare-actions"><button type="button" data-c-retry>Повторить с автонастройкой</button><details class="aio-compare-warning"><summary title="Об автонастройке" aria-label="Предупреждение об автонастройке">!</summary><p>Настройка не обязательно улучшит качество файла. Предыдущий результат будет сохранён.</p></details><button type="button" data-c-save-current>Сохранить текущий пакет</button><button type="button" data-c-back hidden>Предыдущий пакет</button></footer></section></div></div>';
+      '<section class="aio-compare-right" aria-label="Просмотр и описание изменений"><div class="aio-compare-preview-head"><button type="button" data-c-source aria-pressed="false">Исходник</button><button type="button" data-c-result aria-pressed="true">Результат</button><button type="button" data-c-pair aria-pressed="true">Рядом</button><div class="aio-compare-pdf-controls" data-c-pdf-controls role="group" aria-label="Страницы PDF" hidden><button type="button" data-c-pdf-prev aria-label="Предыдущая страница PDF">←</button><small data-c-pdf-page>1 / …</small><button type="button" data-c-pdf-next aria-label="Следующая страница PDF">→</button></div><span data-c-preview-label></span><div class="aio-compare-output-controls" data-c-output-controls hidden><button type="button" data-c-output-prev aria-label="Предыдущие выходные файлы">←</button><select data-c-output aria-label="Выходной файл выбранного преобразования"></select><button type="button" data-c-output-next aria-label="Следующие выходные файлы">→</button></div></div><div class="aio-compare-preview" data-c-preview></div><div class="aio-compare-report" data-c-findings></div>'+
+      '<footer class="aio-compare-actions"><button type="button" data-c-retry>Повторить с автонастройкой</button><details class="aio-compare-warning"><summary title="Об автонастройке" aria-label="Предупреждение об автонастройке">!</summary><p>Настройка не обязательно улучшит качество файла. Предыдущий результат будет сохранён.</p></details><label><input type="checkbox" data-c-include-source>Добавить исходник</label><button type="button" data-c-save-current>Сохранить выбранный выход и диагностику</button><button type="button" data-c-back hidden>Предыдущий пакет</button></footer></section></div></div>';
     document.body.append(dialog);
     $('[data-c-close]').addEventListener('click',closeComparison);
-    dialog.addEventListener('cancel',event=>{event.preventDefault();closeComparison();});
+    dialog.addEventListener('cancel',event=>{event.preventDefault();if(document.fullscreenElement){document.exitFullscreen().catch(()=>{});return;}closeComparison();});
     let outside=false;
     const isOutside=event=>{if(event.target!==dialog)return false;const r=dialog.getBoundingClientRect();return event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom;};
     dialog.addEventListener('pointerdown',event=>{outside=event.button===0&&isOutside(event);});
@@ -553,11 +577,19 @@
     dialog.addEventListener('pointercancel',()=>{outside=false;});
     dialog.addEventListener('close',cleanupClosedView);
     $('[data-c-search]').addEventListener('input',event=>{query=event.target.value;offset=0;viewEpoch++;clearTimeout(searchTimer);searchTimer=setTimeout(()=>refresh(),180);});
-    $('[data-c-filter]').addEventListener('change',event=>{filter=event.target.value;offset=0;viewEpoch++;refresh();});
+    function setFilter(value){filter=value;offset=0;viewEpoch++;$('[data-c-filter]').value=value;
+      for(const button of dialog.querySelectorAll('[data-c-filter-choice]'))button.setAttribute('aria-pressed',String(button.dataset.cFilterChoice===value));refresh();}
+    $('[data-c-filter]').addEventListener('change',event=>setFilter(event.target.value));
+    const filterButtons=document.createElement('div');filterButtons.className='aio-compare-filter-buttons';filterButtons.setAttribute('role','group');filterButtons.setAttribute('aria-label','Фильтр анализа');
+    const failedOption=document.createElement('option');failedOption.value='conversion_error';failedOption.textContent='Ошибки конвертации';$('[data-c-filter]').append(failedOption);
+    for(const [value,label]of [['problems','Проблемные'],['all','Все результаты'],['conversion_error','Ошибки конвертации'],['confirmed_loss','Потери'],['format_limitation','Ограничения'],['uncertain','Требуют проверки'],['not_checked','Не проверено'],['checked','Проверенная часть']]){
+      const b=document.createElement('button');b.type='button';b.textContent=label;b.dataset.cFilterChoice=value;b.setAttribute('aria-pressed',String(value===filter));b.addEventListener('click',()=>setFilter(value));filterButtons.append(b);}
+    $('[data-c-filter]').hidden=true;$('[data-c-filter]').insertAdjacentElement('afterend',filterButtons);
     $('[data-c-prev]').addEventListener('click',()=>{offset=Math.max(0,offset-50);viewEpoch++;refresh();});
     $('[data-c-next]').addEventListener('click',()=>{offset+=50;viewEpoch++;refresh();});
-    $('[data-c-source]').addEventListener('click',()=>{side='source';showPreview();});
-    $('[data-c-result]').addEventListener('click',()=>{side='result';showPreview();});
+    $('[data-c-source]').addEventListener('click',()=>{pairedMode=false;side='source';showPreview();});
+    $('[data-c-result]').addEventListener('click',()=>{pairedMode=false;side='result';showPreview();});
+    $('[data-c-pair]').addEventListener('click',()=>{pairedMode=true;showPreview();});
     $('[data-c-pdf-prev]').addEventListener('click',()=>{const key=pageKey();if(pdfPages[key]>0){pdfPages[key]--;showPreview();}});
     $('[data-c-pdf-next]').addEventListener('click',()=>{const key=pageKey();if(pdfPageCounts[key]&&(pdfPages[key]||0)+1<pdfPageCounts[key]){pdfPages[key]=(pdfPages[key]||0)+1;showPreview();}});
     $('[data-c-select-all]').addEventListener('click',chooseAll);
@@ -571,7 +603,7 @@
       selected.clear();historyOffset=0;historyPage=[];historyRunId=null;candidateJobId=null;clearVerifications();$('[data-c-history]').setAttribute('open','');
     }));
     $('[data-c-show-retry]').addEventListener('click',()=>{const candidate=$('[data-c-retry-job]').value;if(candidate)open(candidate,{parent:jobId,opener:$('[data-c-show-retry]')});});
-    $('[data-c-save-retry]').addEventListener('click',()=>action(async()=>{const candidate=$('[data-c-retry-job]').value;if(!candidate)throw Error('Повторный результат ещё не готов.');const response=await window.AllInOneBridge?.converter?.saveRetained(candidate,window.AllInOneNativeShell?'folder':'zip');if(response?.saved!==true)throw Error('Сохранение отменено. Оба результата остаются в AIO.');}));
+    $('[data-c-save-retry]').hidden=true;
     $('[data-c-back]').addEventListener('click',()=>{const previous=parentJob;if(previous)open(previous,{opener});});
     $('[data-c-resume]').addEventListener('click',()=>action(()=>request('/compare/control',{jobId,analysisId:analysis?.analysisId,action:'resume'})));
     $('[data-c-restart]').addEventListener('click',()=>action(async current=>{
@@ -581,8 +613,12 @@
     }));
     $('[data-c-refresh]').addEventListener('click',()=>action(async()=>{refreshFailures=0;if(!analysis)await request('/compare/start',{jobId});}));
     $('[data-c-save-current]').addEventListener('click',()=>action(async()=>{
-      const response=await window.AllInOneBridge?.converter?.saveRetained(jobId,window.AllInOneNativeShell?'folder':'zip');
-      if(response?.saved!==true)throw Error('Сохранение отменено. Пакет остаётся в AIO.');
+      if(!selectedTask)throw Error('Выберите преобразование и конкретный выходной файл.');
+      const response=await window.AllInOneBridge?.converter?.saveSelectedDiagnostic({jobId,
+        analysisId:analysis?.analysisId,taskId:selectedTask,
+        outputIndex:detail?.outputsTotal>0?outputIndex:null,
+        includeSource:$('[data-c-include-source]').checked});
+      if(response?.saved!==true)throw Error('Сохранение отменено. Результаты остаются в AIO.');
     }));
     $('[data-c-output]').addEventListener('change',event=>{outputIndex=Number(event.target.value);outputChosen=true;showPreview();});
     for(const [selector,direction] of [['[data-c-output-prev]',-1],['[data-c-output-next]',1]])$(selector).addEventListener('click',()=>{
@@ -605,7 +641,7 @@
     const previous=views.get(id);
     controller=new AbortController();jobId=id;analysis=null;detail=null;selected.clear();unavailable=false;refreshFailures=0;
     selectedTask=previous?.selectedTask||null;restoreTask=previous?.previewed?selectedTask:null;
-    side=previous?.side||'result';offset=previous?.offset||0;query=previous?.query||'';filter=previous?.filter||'all';busyAction=false;
+    side=previous?.side||'result';offset=previous?.offset||0;query=previous?.query||'';filter=previous?.filter||'problems';busyAction=false;
     outputIndex=previous?.outputIndex||0;outputOffset=previous?.outputOffset||0;outputChosen=previous?.outputChosen===true;
     for(const index of previous?.selected||[])selected.add(id+':'+index);
     pdfPages={...(previous?.pdfPages||{})};pdfPageCounts={...(previous?.pdfPageCounts||{})};
@@ -615,6 +651,7 @@
     const requestedOpener=options.opener||document.activeElement;
     if(requestedOpener&&(!dialog.open||!dialog.contains(requestedOpener)))opener=requestedOpener;
     $('[data-c-search]').value=query;$('[data-c-filter]').value=filter;$('[data-c-files]').replaceChildren();
+    for(const button of dialog.querySelectorAll('[data-c-filter-choice]'))button.setAttribute('aria-pressed',String(button.dataset.cFilterChoice===filter));
     $('[data-c-output-controls]').hidden=true;clearVerifications();
     $('[data-c-progress]').textContent='Загружаем анализ…';$('[data-c-preview-label]').textContent='';
     setReport(null);placeholder('Дважды нажмите на файл слева, чтобы открыть сравнение.');feedback('');
@@ -635,11 +672,11 @@
     if(root!==launchRoot){launch?.remove();launch=null;launchRoot=root;}
     if(!root)return;
     const footer=root.querySelector('.aio-cv__footer');if(!footer)return;
-    if(!launch){launch=document.createElement('button');launch.type='button';launch.className='aio-compare-launch';launch.textContent='Анализ до/после';launch.setAttribute('aria-haspopup','dialog');launch.setAttribute('aria-expanded','false');launch.dataset.aioCompareLaunch='';launch.addEventListener('click',()=>{if(lastState?.jobId)open(lastState.jobId,{opener:launch}).catch(error=>feedback(error.message));});}
+    if(!launch){launch=root.querySelector('[data-cv-beforeafter]')||document.createElement('button');launch.type='button';launch.className='aio-compare-launch';launch.textContent='До/После';launch.setAttribute('aria-haspopup','dialog');launch.setAttribute('aria-expanded','false');launch.dataset.aioCompareLaunch='';launch.addEventListener('click',()=>{if(lastState?.jobId)open(lastState.jobId,{opener:launch}).catch(error=>feedback(error.message));});}
     if(!launch.isConnected){const save=[...footer.querySelectorAll('button')].find(b=>!b.closest('.aio-guard-queue')&&/Сохранить/.test(b.textContent));if(save)save.insertAdjacentElement('afterend',launch);else footer.append(launch);}
-    launch.hidden=!(lastState?.finished&&lastState.result?.ticket&&lastState.succeeded>0);
+    launch.hidden=!(lastState?.finished&&(lastState.result?.ticket||lastState.failed>0));
     footer.classList.toggle('aio-compare-ready',!launch.hidden);
-    launch.disabled=false;
+    launch.disabled=!lastState?.finished;
     launch.title=lastState?.comparisonAvailable===false?'Служебные исходники недоступны. Анализ покажет ограничения; результат можно просмотреть.':'';
   }
   window.addEventListener('aio-guard-state',event=>{lastState=event.detail||null;attach();});

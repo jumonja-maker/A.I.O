@@ -153,11 +153,20 @@ class _Artifact:
     archive_name: str = ''
     saved: bool = False
     sha256: str | None = None
+    readback_verified: bool = False
+    source_sheet: dict | None = None
+
+    @property
+    def companion(self):
+        # Generated whole-workbook manifest is a necessary sidecar, not a
+        # fifth converted spreadsheet. It must still be durably saved.
+        return self.name == 'AIO-sheets.json' and self.source_sheet is None and self.format in ('csv','tab','tsv')
 
     def metadata(self):
-        return {'fileId': self.file_id, 'format': self.format, 'name': self.name,
+        return {'supportingFile': self.companion, 'fileId': self.file_id, 'format': self.format, 'name': self.name,
                 'archiveName': self.archive_name, 'size': self.size, 'saved': self.saved,
-                'sha256': self.sha256,
+                'sha256': self.sha256, 'readbackVerified':self.readback_verified,
+                'sourceSheet':copy.deepcopy(self.source_sheet),
                 'ticket': self.ticket,
                 'mime': mime_for(self.path.suffix.lower().lstrip('.')),
                 'downloadUrl': '/api/converter-guard/result?ticket=' + self.ticket}
@@ -181,6 +190,8 @@ class _Job:
     io: int = 0
     future: object = None
     artifacts: list = field(default_factory=list)
+    diagnostic_artifacts: list = field(default_factory=list)
+    diagnostic_building: bool = False
     bundle: object = None
     archive_mode: str = 'auto'
     bundle_deferred: bool = False
@@ -595,7 +606,7 @@ class ConverterGuard:
                         if isinstance(automatic_recipe, str) and re.fullmatch(r'[a-z0-9_]{1,64}', automatic_recipe):
                             task.automatic_recipe = automatic_recipe
                         task.automatic_parameters = self._automatic_parameters(record.get('automaticParameters'))
-                        task.result_checks=record.get('resultChecks', [])[:4]
+                        task.result_checks=record.get('resultChecks', [])[:8]
                         task.native_timings=clean_timings(record.get('nativeTimings'))
                         task.quality = record.get('quality') if isinstance(record.get('quality'),dict) else None
                         if task.quality and task.quality.get('qualityCompared'):
@@ -620,7 +631,9 @@ class ConverterGuard:
                                     raise ValueError('Invalid archive name')
                                 artifact = _Artifact(identity, path, path.name, output['size'],
                                     secrets.token_urlsafe(32), item.id, task.format, archive_name,
-                                    saved=relative in saved, sha256=output.get('sha256'))
+                                    saved=relative in saved, sha256=output.get('sha256'),
+                                    readback_verified=relative in header.get('readbackVerifiedPaths', []),
+                                    source_sheet=output.get('sourceSheet'))
                                 if artifact.sha256 is not None:
                                     if not isinstance(artifact.sha256, str) or not re.fullmatch('[0-9a-f]{64}', artifact.sha256):
                                         raise ValueError('Invalid output fingerprint')
@@ -765,6 +778,8 @@ class ConverterGuard:
                               'outputs': len(j.artifacts), 'bytes': sum(a.size for a in j.artifacts),
                               'state': j.state, 'running': j.running, 'saveInProgress': j.saving,
                               'unsavedOutputs': sum(not a.saved for a in j.artifacts),
+                              'unsavedCompanionFiles': sum(not a.saved and a.companion for a in j.artifacts),
+                              'unsavedDocuments': sum(not a.saved and not a.companion for a in j.artifacts),
                               'unsavedBytes': sum(a.size for a in j.artifacts if not a.saved),
                               'recoveryDurable': bool(j.store and not j.recovery_error),
                               'retainSources': j.retain_sources,
@@ -775,7 +790,9 @@ class ConverterGuard:
                               'comparisonParentTasks': list(j.comparison_parent_tasks),
                               'salvaged': j.salvage, 'qualityCompared': False}
                              for j in self._jobs.values() if not j.released
-                             and (j.recovery_error or any(not a.saved for a in j.artifacts))]}
+                             and (j.recovery_error or any(not a.saved for a in j.artifacts) or
+                                  j.retain_sources and not j.preparation and (j.artifacts or
+                                  any(t.state in DONE for f in j.files for t in f.targets)))]}
 
     def _cached_proof(self, key):
         # Metadata only: no source bytes, processes, timers or disk copies.
@@ -1007,7 +1024,7 @@ class ConverterGuard:
             now = time.monotonic()
             expired = [j for j in self._jobs.values() if j.released or (
                 not j.running and not j.io and not j.pending_journal and (
-                    reap_saved and self._saved_all(j) or not j.artifacts and not j.recovery_error
+                    reap_saved and self._saved_all(j) and not j.retain_sources or not j.artifacts and not j.recovery_error
                     and now - j.touched > self.limits.retention_seconds))]
             for job in expired:
                 job.released = True
@@ -1595,6 +1612,18 @@ class ConverterGuard:
             raise GuardError('ENGINE_OUTPUT_PATH', 'Недопустимое расположение результата.',
                              stage='result')
         artifacts, seen = [], set()
+        # Optional adapter diagnostics must not turn verified files into a loss.
+        # The native adapter validates its mandatory all-sheet manifest before
+        # returning paths; this layer only retains the validated provenance.
+        try:
+            export = getattr(self.adapter, 'export_info', lambda: {})()
+            entries = export.get('sheetOutputs', []) if isinstance(export, dict) else []
+            sheet_outputs = {entry['file']:entry for entry in entries
+                if isinstance(entry, dict) and isinstance(entry.get('file'), str)
+                and type(entry.get('sourceSheetIndex')) is int and entry['sourceSheetIndex'] >= 0
+                and isinstance(entry.get('sourceSheetName'), str)} if isinstance(entries, list) else {}
+        except Exception:
+            sheet_outputs = {}
         for candidate in paths:
             path = Path(candidate)
             resolved = path.resolve(strict=True)
@@ -1616,7 +1645,10 @@ class ConverterGuard:
                 raise
             artifacts.append(_Artifact(job.id, resolved, path.name, retained_size,
                 secrets.token_urlsafe(32), item.id, task.format,
-                f'{task.index + 1:04d}-{task.format}/' + relative, sha256=retained_sha256))
+                f'{task.index + 1:04d}-{task.format}/' + relative, sha256=retained_sha256,
+                source_sheet=({'index':sheet_outputs[path.name]['sourceSheetIndex'],
+                               'name':sheet_outputs[path.name]['sourceSheetName'], 'indexBase':0}
+                              if path.name in sheet_outputs else None)))
         if not artifacts:
             raise GuardError('ENGINE_OUTPUT_MISSING', 'LibreOffice не создал результат.',
                              stage='result')
@@ -1967,6 +1999,7 @@ class ConverterGuard:
         return dict(job.counts) if job.counts is not None else ConverterGuard._scan_counts(job.files)
 
     def _report(self, job):
+        from .evidence_status import task_evidence
         return {'schemaVersion': 3, **self._counts(job), 'preflightChecks':job.preflight_checks,
                 'buildIdentity':dict(self.build_identity),
                 'nativeRegistryFingerprints': sorted({f.native_route['registryFingerprint'] for f in job.files
@@ -1980,7 +2013,7 @@ class ConverterGuard:
              'nativeRoute': f.native_route, 'warnings': (
                 ['SOURCE_NAME_NORMALIZED'] if f.name_normalized else []),
              'targets': [{'taskId': job.id + ':' + str(t.index), 'format': t.format, 'state': t.state, 'code': t.code,
-                          'error': t.error, 'stage': t.stage,
+                          'error': t.error, 'stage': t.stage, **task_evidence(t, quality_requested=job.quality_check),
                           'diagnostic': t.diagnostic,
                           'executionMode': t.execution_mode,
                           'executionReason': t.execution_reason, 'resultChecks':copy.deepcopy(t.result_checks),
@@ -1990,7 +2023,9 @@ class ConverterGuard:
                           'nativeTimings': clean_timings(t.native_timings),
                           'exportFilter': t.export_filter, 'warnings': warning_details(t.warnings),
                           'quality':copy.deepcopy(t.quality) if t.quality else None,
-                          'outputs': [{'path': a.archive_name, 'size': a.size, 'sha256':a.sha256} for a in t.artifacts],
+                          'outputs': [{'path': a.archive_name, 'size': a.size, 'sha256':a.sha256,
+                                       'saved':a.saved, 'readbackVerified':a.readback_verified,
+                                       'sourceSheet':copy.deepcopy(a.source_sheet)} for a in t.artifacts],
                           'route': t.route,
                           'libreOfficeStarted': t.lo_started} for t in f.targets]}
             for f in job.files], 'timings':dict(job.timings),'qualityCheckRequested':job.quality_check,
@@ -2038,7 +2073,7 @@ class ConverterGuard:
         report = json.dumps(report_value, ensure_ascii=False, indent=2).encode('utf-8')
         manifest_budget = len(json.dumps({'schema':2, 'jobId':job.id, 'outputs':[
             {'path':a.archive_name, 'size':a.size, 'sha256':'0'*64,
-             'fileId':a.file_id, 'format':a.format} for a in job.artifacts]},
+             'fileId':a.file_id, 'format':a.format, 'sourceSheet':a.source_sheet} for a in job.artifacts]},
             ensure_ascii=False).encode('utf-8'))
         with self._lock:
             budget = (sum(a.size + 512 + 2 * len(a.archive_name.encode('utf-8')) for a in job.artifacts)
@@ -2077,7 +2112,7 @@ class ConverterGuard:
                     manifest.append({'path':artifact.archive_name, 'size':written,
                                      'sha256':digest.hexdigest(), 'fileId':artifact.file_id,
                                      'format':artifact.format, 'exportSha256':artifact.sha256,
-                                     'copySha256':digest.hexdigest()})
+                                     'copySha256':digest.hexdigest(), 'sourceSheet':copy.deepcopy(artifact.source_sheet)})
                 with archive.open('AIO-conversion-report.json', 'w', force_zip64=True) as output:
                     output.write(report)
                 with archive.open('AIO-results-manifest.json', 'w', force_zip64=True) as output:
@@ -2154,13 +2189,13 @@ class ConverterGuard:
         return bool(job.artifacts) and not job.running and not job.recovery_error and all(
             artifact.saved for artifact in job.artifacts)
 
-    def _acknowledge_outputs(self, job, copies):
+    def _acknowledge_outputs(self, job, copies, *, readback_verified=False):
         # Hold an I/O lease, not the global state lock, across durable journal I/O.
         # ResultStore serializes its own records with conversion transactions.
         journal_failed = False
         if job.store:
             try:
-                job.store.saved(copies)
+                job.store.saved(copies, readback_verified=readback_verified)
             except OSError:
                 journal_failed = True
         with self._lock:
@@ -2168,6 +2203,7 @@ class ConverterGuard:
                 job.recovery_error = 'RECOVERY_WRITE_FAILED'
             for artifact in copies:
                 artifact.saved = True
+                artifact.readback_verified = artifact.readback_verified or readback_verified
             for item in job.files:
                 for task in item.targets:
                     if task.state in SUCCESS and task.artifacts and all(a.saved for a in task.artifacts):
@@ -2179,6 +2215,8 @@ class ConverterGuard:
                     'incompleteRecovery': bool(job.recovery_error),
                     'jobRunning': job.running,
                     'remainingOutputs': sum(not a.saved for a in job.artifacts),
+                    'remainingCompanionFiles': sum(not a.saved and a.companion for a in job.artifacts),
+                    'remainingDocuments': sum(not a.saved and not a.companion for a in job.artifacts),
                     'outputs': len(copies)}
 
     def save_folder(self, ticket, destination, *, cancel=None, on_progress=lambda current, total: None,
@@ -2286,7 +2324,7 @@ class ConverterGuard:
                 manifest.append({'path': artifact.archive_name, 'size': written,
                                  'sha256': digest.hexdigest(), 'fileId': artifact.file_id,
                                  'format': artifact.format, 'exportSha256':artifact.sha256,
-                                 'copySha256':digest.hexdigest()})
+                                 'copySha256':digest.hexdigest(), 'sourceSheet':copy.deepcopy(artifact.source_sheet)})
                 if self.telemetry is not None:
                     try:
                         self.telemetry.emit('save_file_written',
@@ -2322,7 +2360,7 @@ class ConverterGuard:
             # any source. Every output has been independently read back from
             # its final disk path. This verifies bytes, not document fidelity.
             atomic_json(folder / 'AIO-save-status.json', save_status('completed'))
-            outcome = self._acknowledge_outputs(job, copies)
+            outcome = self._acknowledge_outputs(job, copies, readback_verified=True)
             return {**outcome, 'saveId': save_id, 'snapshotComplete': True,
                     'snapshotRevision': snapshot_revision, 'bytesWritten': bytes_written,
                     **verification, 'name': folder.name}
@@ -2376,6 +2414,9 @@ class ConverterGuard:
             actual = size, digest
             if expected != actual or not unchanged:
                 raise GuardError('SAVE_VERIFY_FAILED', 'Сохранённые байты отличаются от результата Guard.', stage='save')
+            with self._lock:
+                if retained is self._tickets.get(ticket):
+                    retained.readback_verified = True
             return {'readbackVerified':True, 'verificationScope':'download_bytes', 'bytesVerified':actual[0]}
 
     def owns_path(self, path):
@@ -2392,6 +2433,7 @@ class ConverterGuard:
         return any(resolved.is_relative_to(root.resolve()) for root in roots)
 
     def _snapshot(self, job, include_trace=False, only_files=None, result_delta=False):
+        from .evidence_status import task_evidence
         rows = []
         # Delta readers merge by immutable file ID. Do not walk all admitted
         # inputs to find one changed row in a long-running batch.
@@ -2401,6 +2443,7 @@ class ConverterGuard:
         for item in selected:
             targets = [{'taskId': job.id + ':' + str(t.index), 'format': t.format, 'state': t.state, 'code': t.code, 'error': t.error,
                         'stage': t.stage, 'libreOfficeStarted': t.lo_started,
+                        **task_evidence(t, quality_requested=job.quality_check),
                         'executionMode':t.execution_mode,
                         'executionReason':t.execution_reason, 'resultChecks':copy.deepcopy(t.result_checks),
                         'automaticRecipe':t.automatic_recipe,
@@ -2441,6 +2484,8 @@ class ConverterGuard:
         snapshot = {'schemaVersion': 3, 'jobId': job.id, 'revision': job.revision,
                 'state': job.state, 'finished': finished,
                 'diagnosticBytes':job.diagnostic_bytes,
+                'unsavedCompanionFiles':sum(not a.saved and a.companion for a in job.artifacts),
+                'unsavedDocuments':sum(not a.saved and not a.companion for a in job.artifacts),
                 'currentTask': current, 'pauseRequested': job.paused,
                 'fileTimeoutSeconds': job.file_timeout, 'officeStarts': job.office_starts,
                 'recovered': job.recovered, 'salvaged': job.salvage, 'recoveryError': job.recovery_error,
@@ -2807,7 +2852,7 @@ class ConverterGuard:
             job.io += 1
             self._record(job, 'save_started')
         try:
-            outcome = self._acknowledge_outputs(job, copies)
+            outcome = self._acknowledge_outputs(job, copies, readback_verified=artifact.readback_verified)
             with self._lock:
                 artifact.saved = True
                 return outcome if compact else self._snapshot(job)
@@ -2818,6 +2863,36 @@ class ConverterGuard:
                 self._record(job, 'save_idle')
                 self._io_drained.notify_all()
             self._cleanup(job)
+
+    def close_conversion(self, job_id, *, discard=False):
+        if type(discard) is not bool:
+            raise GuardError('DISCARD_REQUEST','Некорректное подтверждение закрытия.')
+        with self._lock:
+            job=self._get(job_id)
+            if job.saving or job.diagnostic_building:
+                raise GuardError('SAVE_BUSY','Дождитесь завершения сохранения.',status=409)
+            unsaved=sum(not artifact.saved for artifact in job.artifacts)
+            active=bool(job.running or job.state not in TERMINAL)
+            recovery_warning=bool(job.recovery_error)
+            # A zero-output running queue still has valuable unfinished work.
+            # An incomplete recovery ledger may have unindexed files, even
+            # when every currently indexed artifact was saved.
+            if (unsaved or active or recovery_warning) and not discard:
+                return {'jobId':job.id,'closed':False,'confirmationRequired':True,
+                        'unsavedOutputs':unsaved,'activeConversion':active,
+                        'recoveryWarning':recovery_warning}
+            # Commit ownership/cancellation atomically with the save check.
+            # Slow worker interruption and filesystem cleanup run after unlock.
+            job.bundle_cancel.set();job.save_cancel.set();job.released=True
+            callbacks=self._stop(job)
+            for artifact in job.artifacts + job.diagnostic_artifacts + ([job.bundle] if job.bundle else []):
+                self._tickets.pop(artifact.ticket,None)
+            outcome={'jobId':job.id,'closed':True,'confirmationRequired':False,
+                     'cancellationRequested':job.cancel.is_set(),'cleanupPending':job.running or job.io>0}
+        self._interrupt(callbacks)
+        if not job.running:self._flush_journal(job)
+        self._cleanup(job)
+        return outcome
 
     def release(self, job_id, *, discard=False):
         if type(discard) is not bool:
@@ -2837,7 +2912,7 @@ class ConverterGuard:
                 job.save_cancel.set()
                 job.released = True
                 callbacks = self._stop(job)
-                for artifact in job.artifacts + ([job.bundle] if job.bundle else []):
+                for artifact in job.artifacts + job.diagnostic_artifacts + ([job.bundle] if job.bundle else []):
                     self._tickets.pop(artifact.ticket, None)
         self._interrupt(callbacks)
         if not job.running:
@@ -2880,7 +2955,7 @@ class ConverterGuard:
                 self._record(job, 'cleanup_deferred', code='CLEANUP_RETRY')
             return
         with self._lock:
-            for artifact in job.artifacts + ([job.bundle] if job.bundle else []):
+            for artifact in job.artifacts + job.diagnostic_artifacts + ([job.bundle] if job.bundle else []):
                 self._tickets.pop(artifact.ticket, None)
             if self._jobs.pop(job.id, None) is not None:
                 self._reserved -= job.reserved
@@ -2929,5 +3004,7 @@ class ConverterGuard:
                     'retainedJobs': sum(bool(j.artifacts) for j in jobs),
                     'unsavedJobs': sum(any(not a.saved for a in j.artifacts) for j in jobs),
                     'unsavedOutputs': sum(not a.saved for j in jobs for a in j.artifacts),
+                'unsavedCompanionFiles': sum(not a.saved and a.companion for j in jobs for a in j.artifacts),
+                'unsavedDocuments': sum(not a.saved and not a.companion for j in jobs for a in j.artifacts),
                     'unsavedBytes': sum(a.size for j in jobs for a in j.artifacts if not a.saved),
                     'recoveryWriteFailures': sum(bool(j.recovery_error) for j in jobs)}

@@ -659,6 +659,9 @@ def collect_source_summary(source, *, cancel=None):
             result.update(_odf_summary(root, mime, budget, flat=True))
         elif source.suffix.lower() in ('.csv', '.tsv', '.tab'):
             result.update(_csv_summary(source, budget))
+        elif source.suffix.lower() in ('.html','.htm','.xhtml') or magic.lstrip().lower().startswith((b'<!doctype html',b'<html')):
+            from .comparison_html import summarize_html
+            result.update(summarize_html(source,budget,_decode_text,_value,MAX_TEXT,MAX_CELLS))
         elif source.suffix.lower() in ('.txt', '.text', '.md'):
             with source.open('rb') as stream:
                 raw = budget.read(stream, MAX_TEXT * 4)
@@ -925,13 +928,17 @@ def _compare_media_sequences(a, b, target, findings, checked, unknown):
     unknown.update(('image_pixel_values', 'colour_profile', 'exif_and_other_metadata'))
 
 
-def _multi_csv_summary(paths, before, budget, findings, checked, unknown):
+def _multi_csv_summary(paths, before, budget, findings, checked, unknown, manifest=None):
     """Prove all sheet VALUES by multiplicity without guessing sheet order.
 
     This does not certify names or map an ambiguous mismatch to a source row.
     Complete equal multiset evidence is useful for existing all-sheet exports.
     """
     from collections import Counter
+    if manifest is not None:
+        from .comparison_sheet_manifest import mapped_csv_summary
+        return mapped_csv_summary(manifest,paths,before,budget,findings,checked,unknown,
+            identity=_identity,csv_summary=_csv_summary,compare_grids=_compare_grids)
     if len(paths) > 256:
         raise _Limited('sheet_output_budget')
     identities = [_identity(path) for path in paths]
@@ -998,12 +1005,17 @@ def analyze_pair(source, paths, target, *, cancel=None, source_evidence=None):
         report['outputScope'].update(primaryFiles=len(candidates), supplementalFiles=len(paths) - len(candidates))
         if len(paths) != len(candidates):
             unknown.add('supplemental_outputs_not_inspected')
-        multi_csv = len(candidates) > 1 and target in ('csv', 'tsv', 'tab')
+        manifests=[p for p in paths if p.name=='AIO-sheets.json'] if target in ('csv','tsv','tab') else []
+        if len(manifests)>1:raise _Limited('sheet_manifest_ambiguous')
+        multi_csv = target in ('csv', 'tsv', 'tab') and (len(candidates)>1 or bool(manifests))
         if len(candidates) != 1 and not multi_csv:
             raise _Limited('primary_output_mapping_not_determined')
         primary = candidates[0]
-        after = (_multi_csv_summary(candidates, before, budget, findings, checked, unknown)
+        after = (_multi_csv_summary(candidates, before, budget, findings, checked, unknown,manifest=manifests[0] if manifests else None)
                  if multi_csv else collect_source_summary(primary, cancel=cancel))
+        if manifests:
+            report['outputScope']['inspectedSupplementalFiles']=1
+            if len(paths)==len(candidates)+1:unknown.discard('supplemental_outputs_not_inspected')
         report['outputScope']['inspectedPrimaryFiles'] = len(candidates)
         report['after'] = _public(after)
         required_models = {
@@ -1113,9 +1125,18 @@ def analyze_pair(source, paths, target, *, cancel=None, source_evidence=None):
                 findings.append({'code': 'PDF_TEXT_NOT_EXTRACTED', 'category': 'uncertain', 'feature': 'text',
                     'message': 'Текст PDF не извлечён. Это не доказательство потери видимого текста.', 'certainty': 'requires_review'})
             elif text_a and not text_b and after.get('kind') == 'text':
+                if before.get('kind')=='html' and not before.get('_text_complete',True):
+                    unknown.add('html_text_visibility')
+                    findings.append({'code':'HTML_VISIBLE_TEXT_NOT_CONFIRMED','category':'uncertain',
+                        'feature':'text','certainty':'requires_review',
+                        'message':'В HTML есть скрытое или динамическое содержимое. Пустой текстовый выход требует проверки; потеря видимого текста не установлена.'})
+                    continue_text=False
+                else:continue_text=True
                 auxiliary_only = (before.get('kind') == 'ooxml' and before.get('documentClass') == 'text'
                                   and not _normal(before.get('_body_text', '')))
-                if auxiliary_only:
+                if not continue_text:
+                    pass
+                elif auxiliary_only:
                     # Conventional headers/notes are included for recovery and
                     # preview even if detached. Their mere presence cannot
                     # prove that an empty body lost visible text during export.
@@ -1135,7 +1156,8 @@ def analyze_pair(source, paths, target, *, cancel=None, source_evidence=None):
             if target in ('csv', 'tsv', 'tab') and any(f['code'] in ('CELL_VALUES_CHANGED', 'CELL_REPRESENTATION_CHANGED') for f in findings):
                 report['recipeCandidates'].append('csv_preserve_values')
         if (before.get('documentClass') == 'spreadsheet' and target in ('csv', 'tsv', 'tab')
-                and len(before.get('_grids', [])) > 1 and 'all_sheet_values_unordered' not in checked):
+                and len(before.get('_grids', [])) > 1 and 'all_sheet_values_unordered' not in checked
+                and 'all_sheet_outputs_mapping' not in checked):
             unknown.add('all_sheet_outputs_mapping')
         if 'identical_file_bytes' in checked:
             # Identical files have no conversion changes, even if a subset
@@ -1149,6 +1171,8 @@ def analyze_pair(source, paths, target, *, cancel=None, source_evidence=None):
         if multi_csv and any(tuple(identity) != _identity(path)
                              for path, identity in zip(candidates, after.get('_identities', ()))):
             raise _Limited('result_changed_during_analysis')
+        if after.get('_manifestPath') and tuple(after['_manifestIdentity'])!=_identity(after['_manifestPath']):
+            raise _Limited('sheet_manifest_changed_during_analysis')
         categories = {f['category'] for f in findings}
         report['status'] = ('confirmed_loss' if 'confirmed_loss' in categories else
                             'uncertain' if 'uncertain' in categories else

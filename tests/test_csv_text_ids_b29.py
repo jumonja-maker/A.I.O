@@ -268,7 +268,7 @@ class CsvTextIdsB29(unittest.TestCase):
         from app_backend.converter_guard.adapter import LibreOfficeAdapter
         exe = self.root / 'soffice.exe'; exe.touch()
         adapter = LibreOfficeAdapter(exe)
-        adapter._registry = lambda: SimpleNamespace(fingerprint='b29-fixture')
+        adapter._registry = lambda: SimpleNamespace(fingerprint='b29-fixture', html_route_reason=lambda *_:None)
         adapter._local.import_filter = FILTER
         adapter._local.import_options = '44,34,76,1,1/2'
         broken = self.xlsx([ROWS[0], [1, 'Строка ё', 42], [2, 'Tail', -7]])

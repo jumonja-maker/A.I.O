@@ -109,7 +109,8 @@
           'Команда принята. Обновляем состояние…';
         feedbackRevision=state?.revision;
         text('[data-g-warning]',result?.saved?'Сохранено файлов: '+(result.outputs??'')+
-          (result.savedAll?'':' · остальные результаты остаются в AIO.'):'Запрос принят.');
+          (result.savedAll?'':(result.remainingCompanionFiles&&!result.remainingDocuments
+            ?' · остался несохранённый служебный манифест листов.':' · остальные результаты остаются в AIO.')):'Запрос принят.');
         renderCurrent();
         await refresh();
       }catch(error){
@@ -313,7 +314,7 @@
       state?.state==='checking'?'Проверено '+(state.preflightCompleted??0)+' / '+(state.preflightTotal??0)+
         ' · подготовка направлений…':
       state?.state==='paused'?'Очередь на паузе':state?.state==='prepared'?'Исходники проверены. Выберите форматы.':state&&!state.finished?'Подготовка результатов…':
-      jobs.length?'Есть несохранённые результаты: '+jobs.length:warnings.length?'Проблемы восстановления предыдущих заданий: '+warnings.length:'Обработка завершена');
+      jobs.some(job=>job.unsavedOutputs>0)?'Есть несохранённые результаты: '+jobs.reduce((sum,job)=>sum+(job.unsavedOutputs||0),0):warnings.length?'Проблемы восстановления предыдущих заданий: '+warnings.length:'Обработка завершена');
   }
   async function loadPreview(){
     if(!bar)return;

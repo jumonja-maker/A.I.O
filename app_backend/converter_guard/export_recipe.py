@@ -16,6 +16,11 @@ WRITER = 'com.sun.star.text.TextDocument'
 CALC_TEXT = 'Text - txt - csv (StarCalc)'
 TEXT_OPTIONS = {'csv': '44,34,76,1,', 'tsv': '9,34,76,1,', 'tab': '9,34,76,1,'}
 WARNING_TEXT = {
+    'NATIVE_CSV_ALL_SHEETS': (
+        'Каждый лист книги сохранён отдельным файлом CSV/TAB/TSV; индекс и имя листа '
+        'указаны в AIO-sheets.json. Формулы представлены вычисленными значениями. '
+        'Оформление и диаграммы эти форматы не сохраняют. Проверка значений относится '
+        'к импортированной модели LibreOffice, не к полному качеству исходника.'),
     'CSV_TEXT_IDS_NOT_CHECKED': (
         'Не удалось доказать сохранность всех идентификаторов с ведущими нулями '
         'при импорте CSV/TAB/TSV в Excel: превышен бюджет, неизвестна структура '
@@ -249,9 +254,9 @@ def native_export_recipe(native, target, proof):
         item = native.filters.get('Text (encoded)')
         if item and item[0] == WRITER and 'EXPORT' in item[2]:
             return ExportRecipe('Text (encoded)', 'UTF8', warnings=('NATIVE_WRITER_TEXT_ONLY',))
-    if (target in ('png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif', 'tif', 'tiff')
+    if (target in ('png', 'jpg', 'jpeg', 'jfif', 'jif', 'jpe', 'webp', 'bmp', 'gif', 'tif', 'tiff')
             and WRITER in services):
-        alternative = native.export_filter(target, [WRITER])
+        alternative = native.export_filter('jpg' if target in ('jfif','jif','jpe') else target, [WRITER])
         if alternative:
             selected = alternative
     if not selected:

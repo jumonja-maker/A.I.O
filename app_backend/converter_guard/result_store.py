@@ -219,11 +219,13 @@ class ResultStore:
             yield {'kind':'output','transaction':transaction,
                        'output':{'path':artifact.path.relative_to(self.root).as_posix(),
                                  'archiveName':artifact.archive_name,'name':artifact.name,'size':artifact.size,
-                                 'sha256':getattr(artifact,'sha256',None)}}
+                                 'sha256':getattr(artifact,'sha256',None),
+                                 'sourceSheet':getattr(artifact,'source_sheet',None)}}
         yield {'kind':'task_commit','transaction':transaction}
 
-    def saved(self, artifacts):
-        self.append_many({'kind':'saved','paths':[a.path.relative_to(self.root).as_posix()]} for a in artifacts)
+    def saved(self, artifacts, *, readback_verified=False):
+        self.append_many({'kind':'saved','paths':[a.path.relative_to(self.root).as_posix()],
+            'readbackVerified':readback_verified or getattr(a, 'readback_verified', False)} for a in artifacts)
 
     def finish(self, job):
         self.append({'kind':'summary','timings':dict(job.timings),'officeStarts':job.office_starts,
@@ -241,6 +243,7 @@ class ResultStore:
             raise ValueError('Recovery header checksum mismatch')
         records = {}
         saved = set()
+        readback = set()
         pending = {}
         # A damaged middle record is not an ordinary EOF. Its unindexed
         # artifacts may still exist and MUST NOT be deleted after a partial save.
@@ -295,6 +298,8 @@ class ResultStore:
                             records[complete['index']]=complete
                         elif record.get('kind') == 'saved':
                             saved.update(p for p in record.get('paths', []) if isinstance(p, str))
+                            if record.get('readbackVerified') is True:
+                                readback.update(p for p in record.get('paths', []) if isinstance(p, str))
                         elif record.get('kind') == 'summary':
                             value['summary']=record
                     except (ValueError, TypeError, AttributeError, KeyError):
@@ -302,6 +307,7 @@ class ResultStore:
                         break
         if pending and integrity == 'complete':
             integrity = 'incomplete_transaction'
+        value['readbackVerifiedPaths'] = sorted(readback)
         return value, records, saved, integrity
 
     def output_path(self, relative, size):
