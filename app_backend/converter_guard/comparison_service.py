@@ -795,7 +795,11 @@ class ComparisonService:
                 'conversionFailures': sum(task[3] == 'error' for task in item.expected_tasks.values())}
         if include_report and item.db and Path(item.db).exists():
             clauses, params = [], []
-            if filter == 'problems': clauses.append('status!=?'); params.append('checked')
+            if filter == 'problems':
+                # Default to evidenced losses, explicit format limitations,
+                # and actual failed conversions. Unknown/uncertain statuses
+                # have their own filters and must not flood the problems list.
+                clauses.append("(status IN ('confirmed_loss','format_limitation') OR aio_conversion_error(task)=1)")
             elif filter == 'conversion_error': clauses.append('aio_conversion_error(task)=1')
             elif filter != 'all': clauses.append('status=?'); params.append(filter)
             if q:
@@ -805,7 +809,7 @@ class ComparisonService:
                 params.append(pattern)
             where = ' WHERE ' + ' AND '.join(clauses) if clauses else ''
             with self._item_database(item) as db:
-                if filter == 'conversion_error':
+                if filter in ('problems', 'conversion_error'):
                     # Works for existing seven-column SQLite reports without
                     # rewriting history or depending on JSON SQL extensions.
                     failed = frozenset(task for task, proof in item.expected_tasks.items() if proof[3] == 'error')
