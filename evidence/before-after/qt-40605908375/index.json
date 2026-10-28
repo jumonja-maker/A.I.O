@@ -1,0 +1,401 @@
+{
+  "status": "PASS",
+  "runId": 40605908375,
+  "testedSourceSHA": "56991581b23da0695981d7106c734d7954af016f",
+  "testedTreeSHA": "5b8545dd4044f5178343a08d94fed7352712f4c4",
+  "visualReview": "all four decoded images inspected; both panels and footer visible in both themes and DPI; coloured corner markers are QA-only",
+  "screenshots": [
+    {
+      "name": "dark.png",
+      "sha256": "def74f91de36ce47244fc67f457b6c774c44f742711d19f412a3df4091389132",
+      "geometry": {
+        "x": 16,
+        "y": 16,
+        "width": 868,
+        "height": 618,
+        "viewportWidth": 900,
+        "viewportHeight": 650,
+        "panes": 2,
+        "dpr": 1,
+        "previewBottom": 430.109375,
+        "reportTop": 430.109375,
+        "reportBottom": 539,
+        "actionsTop": 539,
+        "actionsBottom": 633
+      },
+      "paintedImagePointsVerified": true,
+      "paint": {
+        "points": [
+          {
+            "x": 388.765625,
+            "y": 317.375,
+            "width": 172,
+            "height": 96.75
+          },
+          {
+            "x": 678.875,
+            "y": 317.375,
+            "width": 172,
+            "height": 96.75
+          }
+        ],
+        "colours": [
+          [
+            248,
+            208,
+            144
+          ],
+          [
+            248,
+            208,
+            144
+          ]
+        ],
+        "expected": [
+          [
+            239,
+            199,
+            135
+          ],
+          [
+            248,
+            208,
+            144
+          ]
+        ],
+        "frameMarkers": [
+          {
+            "x": 29,
+            "y": 29
+          },
+          {
+            "x": 29,
+            "y": 621
+          },
+          {
+            "x": 871,
+            "y": 621
+          }
+        ],
+        "frameMarkerPixels": [
+          [
+            19,
+            73,
+            181
+          ],
+          [
+            19,
+            73,
+            181
+          ],
+          [
+            19,
+            73,
+            181
+          ]
+        ],
+        "expectedMarkerColour": [
+          19,
+          73,
+          181
+        ]
+      },
+      "path": "qt-40605908375/1/dark.png",
+      "scaleFactor": "1"
+    },
+    {
+      "name": "light.png",
+      "sha256": "7c02bb9a2b23627c7d714382157109b44d208ab33b517f8b36eafed927f52595",
+      "geometry": {
+        "x": 16,
+        "y": 16,
+        "width": 868,
+        "height": 618,
+        "viewportWidth": 900,
+        "viewportHeight": 650,
+        "panes": 2,
+        "dpr": 1,
+        "previewBottom": 430.109375,
+        "reportTop": 430.109375,
+        "reportBottom": 539,
+        "actionsTop": 539,
+        "actionsBottom": 633
+      },
+      "paintedImagePointsVerified": true,
+      "paint": {
+        "points": [
+          {
+            "x": 388.765625,
+            "y": 317.375,
+            "width": 172,
+            "height": 96.75
+          },
+          {
+            "x": 678.875,
+            "y": 317.375,
+            "width": 172,
+            "height": 96.75
+          }
+        ],
+        "colours": [
+          [
+            248,
+            208,
+            144
+          ],
+          [
+            248,
+            208,
+            144
+          ]
+        ],
+        "expected": [
+          [
+            239,
+            199,
+            135
+          ],
+          [
+            248,
+            208,
+            144
+          ]
+        ],
+        "frameMarkers": [
+          {
+            "x": 29,
+            "y": 29
+          },
+          {
+            "x": 29,
+            "y": 621
+          },
+          {
+            "x": 871,
+            "y": 621
+          }
+        ],
+        "frameMarkerPixels": [
+          [
+            181,
+            73,
+            19
+          ],
+          [
+            181,
+            73,
+            19
+          ],
+          [
+            181,
+            73,
+            19
+          ]
+        ],
+        "expectedMarkerColour": [
+          181,
+          73,
+          19
+        ]
+      },
+      "path": "qt-40605908375/1/light.png",
+      "scaleFactor": "1"
+    },
+    {
+      "name": "dark.png",
+      "sha256": "84522be6e40136f5baed17dc5e1768e38c7319f2d1f52b7a6bcaef556e176703",
+      "geometry": {
+        "x": 16,
+        "y": 16,
+        "width": 869.3333740234375,
+        "height": 619.3333740234375,
+        "viewportWidth": 901,
+        "viewportHeight": 651,
+        "panes": 2,
+        "dpr": 1.5,
+        "previewBottom": 432.78125,
+        "reportTop": 432.78125,
+        "reportBottom": 542.3333358764648,
+        "actionsTop": 542.3333740234375,
+        "actionsBottom": 634.6667098999023
+      },
+      "paintedImagePointsVerified": true,
+      "paint": {
+        "points": [
+          {
+            "x": 395.60418701171875,
+            "y": 317.3645935058594,
+            "width": 185,
+            "height": 104.0625
+          },
+          {
+            "x": 686.3854370117188,
+            "y": 317.3645935058594,
+            "width": 185,
+            "height": 104.0625
+          }
+        ],
+        "colours": [
+          [
+            239,
+            199,
+            135
+          ],
+          [
+            239,
+            199,
+            135
+          ]
+        ],
+        "expected": [
+          [
+            239,
+            199,
+            135
+          ],
+          [
+            248,
+            208,
+            144
+          ]
+        ],
+        "frameMarkers": [
+          {
+            "x": 28.666667938232422,
+            "y": 28.666667938232422
+          },
+          {
+            "x": 28.666667938232422,
+            "y": 622.6666870117188
+          },
+          {
+            "x": 872.6666870117188,
+            "y": 622.6666870117188
+          }
+        ],
+        "frameMarkerPixels": [
+          [
+            19,
+            73,
+            181
+          ],
+          [
+            19,
+            73,
+            181
+          ],
+          [
+            19,
+            73,
+            181
+          ]
+        ],
+        "expectedMarkerColour": [
+          19,
+          73,
+          181
+        ]
+      },
+      "path": "qt-40605908375/1.5/dark.png",
+      "scaleFactor": "1.5"
+    },
+    {
+      "name": "light.png",
+      "sha256": "a14cd1b0360fac45b95fb96aa0b8591622e15fa0bc63c968161d937883cc0874",
+      "geometry": {
+        "x": 16,
+        "y": 16,
+        "width": 869.3333740234375,
+        "height": 619.3333740234375,
+        "viewportWidth": 901,
+        "viewportHeight": 651,
+        "panes": 2,
+        "dpr": 1.5,
+        "previewBottom": 432.78125,
+        "reportTop": 432.78125,
+        "reportBottom": 542.3333358764648,
+        "actionsTop": 542.3333740234375,
+        "actionsBottom": 634.6667098999023
+      },
+      "paintedImagePointsVerified": true,
+      "paint": {
+        "points": [
+          {
+            "x": 395.60418701171875,
+            "y": 317.3645935058594,
+            "width": 185,
+            "height": 104.0625
+          },
+          {
+            "x": 686.3854370117188,
+            "y": 317.3645935058594,
+            "width": 185,
+            "height": 104.0625
+          }
+        ],
+        "colours": [
+          [
+            239,
+            199,
+            135
+          ],
+          [
+            239,
+            199,
+            135
+          ]
+        ],
+        "expected": [
+          [
+            239,
+            199,
+            135
+          ],
+          [
+            248,
+            208,
+            144
+          ]
+        ],
+        "frameMarkers": [
+          {
+            "x": 28.666667938232422,
+            "y": 28.666667938232422
+          },
+          {
+            "x": 28.666667938232422,
+            "y": 622.6666870117188
+          },
+          {
+            "x": 872.6666870117188,
+            "y": 622.6666870117188
+          }
+        ],
+        "frameMarkerPixels": [
+          [
+            181,
+            73,
+            19
+          ],
+          [
+            181,
+            73,
+            19
+          ],
+          [
+            181,
+            73,
+            19
+          ]
+        ],
+        "expectedMarkerColour": [
+          181,
+          73,
+          19
+        ]
+      },
+      "path": "qt-40605908375/1.5/light.png",
+      "scaleFactor": "1.5"
+    }
+  ]
+}

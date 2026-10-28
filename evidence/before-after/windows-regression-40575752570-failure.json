@@ -1,0 +1,426 @@
+{
+  "status": "FAIL",
+  "runId": 40575752570,
+  "jobId": 122441603975,
+  "testedSourceSHA": "5666bd33683174dfcaa94841b3b24633e98b8717",
+  "testedTreeSHA": "aff22877a8c9c1597a5b2e7301f23bd7bee46704",
+  "scope": "100% viewer PASS; 150% same-pair reload/fullscreen race",
+  "evidence": [
+    {
+      "file": "D:\\actions-runner\\_work\\A.I.O\\A.I.O\\aio-before-after-evidence-40575752570-1\\before-after\\evidence.json",
+      "data": {
+        "status": "PASS",
+        "scope": "source QtWebEngine/real preview codecs + native Writer HTML; not installed EXE or FULLTEST",
+        "scaleFactor": "1",
+        "checks": [
+          {
+            "name": "native-writer-html-analysis",
+            "status": "PASS",
+            "sourceSha256": "aee988a232759007fbc63a32e22b08339951e2ab6b58f258c86b5943720bcf77",
+            "analysis": {
+              "schemaVersion": 1,
+              "status": "checked",
+              "qualityCompared": true,
+              "scope": "verified_properties_only",
+              "findings": [],
+              "checkedFeatures": [
+                "cell_values_single_grid",
+                "normalized_text"
+              ],
+              "unknown": [
+                "colour_accuracy",
+                "comments_and_revisions",
+                "field_evaluation",
+                "fonts",
+                "formula_evaluation",
+                "hidden_text",
+                "html_css_layout",
+                "html_embedded_resource_rendering",
+                "html_text_visibility",
+                "semantic_meaning",
+                "textboxes_reading_order",
+                "visual_layout",
+                "word_table_structure"
+              ],
+              "recipeCandidates": [],
+              "before": {
+                "kind": "ooxml",
+                "documentClass": "text",
+                "complete": true,
+                "counts": {
+                  "tables": 1,
+                  "textParts": 1,
+                  "images": 0,
+                  "formulas": 0,
+                  "characters": 69
+                },
+                "textDigest": "9ac6226334ec41b81aa7b324684a7f9d998b012bfcf0fb2f3052b661973a6ba4",
+                "textCoverage": [
+                  "body"
+                ]
+              },
+              "after": {
+                "kind": "html",
+                "documentClass": "text",
+                "complete": true,
+                "counts": {
+                  "tables": 1,
+                  "images": 0,
+                  "characters": 69
+                },
+                "textDigest": "9ac6226334ec41b81aa7b324684a7f9d998b012bfcf0fb2f3052b661973a6ba4",
+                "textCoverage": [
+                  "html_body_markup"
+                ]
+              },
+              "outputScope": {
+                "totalFiles": 1,
+                "primaryFiles": 1,
+                "supplementalFiles": 0,
+                "inspectedPrimaryFiles": 1,
+                "inspectedSupplementalFiles": 0
+              },
+              "evaluatedFeatures": [
+                "cell_values_single_grid",
+                "normalized_text"
+              ]
+            }
+          },
+          {
+            "name": "qt-two-pane-4k-dark",
+            "status": "PASS",
+            "nativeMouseFilter": true,
+            "nativeKeyboardFilter": true,
+            "zooms": [
+              100,
+              200,
+              400
+            ],
+            "sourcePixels": [
+              3840,
+              2160
+            ]
+          },
+          {
+            "name": "qt-two-pane-4k-light",
+            "status": "PASS",
+            "nativeMouseFilter": true,
+            "nativeKeyboardFilter": true,
+            "zooms": [
+              100,
+              200,
+              400
+            ],
+            "sourcePixels": [
+              3840,
+              2160
+            ]
+          },
+          {
+            "name": "qt-synchronized-animation-frame-navigation",
+            "status": "PASS",
+            "frames": 3
+          },
+          {
+            "name": "qt-failed-conversion-filter",
+            "status": "PASS",
+            "code": "MEDIA_GIF_ALPHA_UNREPRESENTABLE",
+            "nativeMouseFilter": true
+          }
+        ],
+        "snapshots": [
+          {
+            "name": "dark.png",
+            "sha256": "033f489cd277007c7433ca34046e655785d8f655da396aaa8c5c093ac021b9a6",
+            "geometry": {
+              "x": 16,
+              "y": 16,
+              "width": 868,
+              "height": 618,
+              "viewportWidth": 900,
+              "viewportHeight": 650,
+              "panes": 2,
+              "dpr": 1
+            },
+            "paintedImagePointsVerified": true,
+            "paint": {
+              "points": [
+                {
+                  "x": 408.765625,
+                  "y": 328.5,
+                  "width": 212,
+                  "height": 119
+                },
+                {
+                  "x": 683.375,
+                  "y": 319.90625,
+                  "width": 181,
+                  "height": 101.8125
+                }
+              ],
+              "colours": [
+                [
+                  248,
+                  208,
+                  144
+                ],
+                [
+                  239,
+                  199,
+                  135
+                ]
+              ],
+              "expected": [
+                [
+                  239,
+                  199,
+                  135
+                ],
+                [
+                  248,
+                  208,
+                  144
+                ]
+              ]
+            }
+          },
+          {
+            "name": "light.png",
+            "sha256": "2af038c71be571c9f19840f4f7ca1688bdafd5adaa73469ac833d7acc101e927",
+            "geometry": {
+              "x": 16,
+              "y": 16,
+              "width": 868,
+              "height": 618,
+              "viewportWidth": 900,
+              "viewportHeight": 650,
+              "panes": 2,
+              "dpr": 1
+            },
+            "paintedImagePointsVerified": true,
+            "paint": {
+              "points": [
+                {
+                  "x": 408.765625,
+                  "y": 328.5,
+                  "width": 212,
+                  "height": 119
+                },
+                {
+                  "x": 698.875,
+                  "y": 328.5,
+                  "width": 212,
+                  "height": 119
+                }
+              ],
+              "colours": [
+                [
+                  248,
+                  208,
+                  144
+                ],
+                [
+                  248,
+                  208,
+                  144
+                ]
+              ],
+              "expected": [
+                [
+                  239,
+                  199,
+                  135
+                ],
+                [
+                  248,
+                  208,
+                  144
+                ]
+              ]
+            }
+          }
+        ],
+        "sourceSha256": "20d333b20be85caacbe46aa78dcd1f721cadbe19a69cc1725455f2084e447c29"
+      }
+    },
+    {
+      "file": "D:\\actions-runner\\_work\\A.I.O\\A.I.O\\aio-before-after-evidence-40575752570-1\\before-after-150\\evidence.json",
+      "data": {
+        "status": "FAIL",
+        "scope": "source QtWebEngine/real preview codecs + native Writer HTML; not installed EXE or FULLTEST",
+        "scaleFactor": "1.5",
+        "checks": [
+          {
+            "name": "native-writer-html-analysis",
+            "status": "PASS",
+            "sourceSha256": "23955d2d904d4820825e281f4c825411224d00c9983aaef0ad7ddaae4b8cd83b",
+            "analysis": {
+              "schemaVersion": 1,
+              "status": "checked",
+              "qualityCompared": true,
+              "scope": "verified_properties_only",
+              "findings": [],
+              "checkedFeatures": [
+                "cell_values_single_grid",
+                "normalized_text"
+              ],
+              "unknown": [
+                "colour_accuracy",
+                "comments_and_revisions",
+                "field_evaluation",
+                "fonts",
+                "formula_evaluation",
+                "hidden_text",
+                "html_css_layout",
+                "html_embedded_resource_rendering",
+                "html_text_visibility",
+                "semantic_meaning",
+                "textboxes_reading_order",
+                "visual_layout",
+                "word_table_structure"
+              ],
+              "recipeCandidates": [],
+              "before": {
+                "kind": "ooxml",
+                "documentClass": "text",
+                "complete": true,
+                "counts": {
+                  "tables": 1,
+                  "textParts": 1,
+                  "images": 0,
+                  "formulas": 0,
+                  "characters": 69
+                },
+                "textDigest": "9ac6226334ec41b81aa7b324684a7f9d998b012bfcf0fb2f3052b661973a6ba4",
+                "textCoverage": [
+                  "body"
+                ]
+              },
+              "after": {
+                "kind": "html",
+                "documentClass": "text",
+                "complete": true,
+                "counts": {
+                  "tables": 1,
+                  "images": 0,
+                  "characters": 69
+                },
+                "textDigest": "9ac6226334ec41b81aa7b324684a7f9d998b012bfcf0fb2f3052b661973a6ba4",
+                "textCoverage": [
+                  "html_body_markup"
+                ]
+              },
+              "outputScope": {
+                "totalFiles": 1,
+                "primaryFiles": 1,
+                "supplementalFiles": 0,
+                "inspectedPrimaryFiles": 1,
+                "inspectedSupplementalFiles": 0
+              },
+              "evaluatedFeatures": [
+                "cell_values_single_grid",
+                "normalized_text"
+              ]
+            }
+          },
+          {
+            "name": "qt-two-pane-4k-dark",
+            "status": "PASS",
+            "nativeMouseFilter": true,
+            "nativeKeyboardFilter": true,
+            "zooms": [
+              100,
+              200,
+              400
+            ],
+            "sourcePixels": [
+              3840,
+              2160
+            ]
+          }
+        ],
+        "snapshots": [
+          {
+            "name": "dark.png",
+            "sha256": "18ac385b56b4d58a21d8aa803a96ce6ea68188d626fde7512af510b705170fd5",
+            "geometry": {
+              "x": 16,
+              "y": 16,
+              "width": 869.3333740234375,
+              "height": 619.3333740234375,
+              "viewportWidth": 901,
+              "viewportHeight": 651,
+              "panes": 2,
+              "dpr": 1.5
+            },
+            "paintedImagePointsVerified": true,
+            "paint": {
+              "points": [
+                {
+                  "x": 410.60418701171875,
+                  "y": 325.8020935058594,
+                  "width": 215,
+                  "height": 120.9375
+                },
+                {
+                  "x": 701.3854370117188,
+                  "y": 325.8020935058594,
+                  "width": 215,
+                  "height": 120.9375
+                }
+              ],
+              "colours": [
+                [
+                  248,
+                  208,
+                  144
+                ],
+                [
+                  248,
+                  208,
+                  144
+                ]
+              ],
+              "expected": [
+                [
+                  239,
+                  199,
+                  135
+                ],
+                [
+                  248,
+                  208,
+                  144
+                ]
+              ]
+            }
+          }
+        ],
+        "reason": "",
+        "error": "AssertionError",
+        "failureView": {
+          "images": [],
+          "zoom": [
+            {
+              "zoom": "fit",
+              "pressed": "true"
+            },
+            {
+              "zoom": "1",
+              "pressed": "false"
+            },
+            {
+              "zoom": "2",
+              "pressed": "false"
+            },
+            {
+              "zoom": "4",
+              "pressed": "false"
+            }
+          ],
+          "fullscreen": true
+        }
+      }
+    }
+  ]
+}

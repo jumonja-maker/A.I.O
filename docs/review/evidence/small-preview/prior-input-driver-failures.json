@@ -1,0 +1,10 @@
+{
+  "schema":1,
+  "scope":"Supplemental QA input-driver failures; product bytes unchanged in all three attempts",
+  "attempts":[
+    {"runId":40698538452,"jobId":122851734263,"source":"aea86344d9cab15ca2024a080c84223ab6c3d0c6","status":"FAIL","exception":"TimeoutError","location":"guard_small_preview_completion.py:103","observed":"No two image nodes after QWidget mouseDClick. Image-fit assertions were not reached; cause not determined by this first attempt."},
+    {"runId":40700744882,"jobId":122859559112,"source":"96d32456f62417f256ef757a9c85d9850d962e69","status":"FAIL","exception":"TimeoutError","location":"guard_small_preview_completion.py:114","observed":"Two trusted single-click sequences, detail=1 for both; no dblclick, images=[]; UI remained at double-click/Enter hint. Pixel assertions were not reached."}
+  ],
+  "correction":"Only QA input dispatch changed to the QWindow mouseDClick overload with an explicit 10ms timestamp step. No product code or image, geometry, SHA, painted-pixel or trusted-event assertion was relaxed. Final run 40701628448 receives trusted detail=2 dblclick and passes both themes/DPI settings.",
+  "rawLogsRetained":true
+}

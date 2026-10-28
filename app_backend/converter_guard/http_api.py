@@ -377,6 +377,10 @@ class GuardAPI:
                 if 'pages' in value:
                     handler.send_header('X-AIO-Preview-Pages', str(value['pages']))
                     handler.send_header('X-AIO-Preview-Page', str(value['page']))
+                for key, header in (('width','Width'),('height','Height'),
+                                    ('renderedWidth','Rendered-Width'),('renderedHeight','Rendered-Height')):
+                    if type(value.get(key)) is int and value[key] > 0:
+                        handler.send_header('X-AIO-Preview-'+header, str(value[key]))
                 handler.end_headers()
                 while block := value['stream'].read(CHUNK):
                     handler.wfile.write(block)

@@ -177,6 +177,8 @@ def main(argv=None):
         restored = server.guard_api.comparison.snapshot(recovered_job)
         assert restored['analysisId'] == prior['analysisId'] and restored['recovered'], restored
         assert not server.guard.adapter.calls, 'Recovered report UI must not repeat native exports'
+        javascript("document.querySelector('[data-c-filter-choice=all]')?.click();true")
+        until(lambda:javascript("!!document.querySelector('[data-task]')"))
         javascript("document.querySelector('[data-task]').dispatchEvent(new MouseEvent('dblclick',{bubbles:true}));true")
         until(lambda: javascript("document.querySelector('[data-c-output]')?.options.length===2&&!document.querySelector('[data-c-output]').disabled"))
         javascript("(()=>{let s=document.querySelector('[data-c-output]');s.value='1';s.dispatchEvent(new Event('change',{bubbles:true}));return true})()")
@@ -225,6 +227,10 @@ def main(argv=None):
             # queues the old dialog's native close event after the new open.
             open_comparison(identity, close_first=True)
             target_prefix = json.dumps(identity + ':')
+            until(lambda: javascript("document.querySelector('.aio-compare-dialog')?.open&&document.querySelector('[data-c-progress]')?.textContent.includes('Анализ завершён')&&document.querySelector('[data-c-progress]')?.textContent.includes('4 из 4')"))
+            # All four controls are checked. The owner requires a problem-only
+            # default; choose the technical All view before inspecting rows.
+            javascript("document.querySelector('[data-c-filter-choice=all]').click();true")
             until(lambda: javascript("document.querySelector('.aio-compare-dialog')?.open&&document.querySelector('[data-c-progress]')?.textContent.includes('Анализ завершён')&&document.querySelectorAll('[data-task]').length===4&&document.querySelector('[data-task]')?.dataset.task.startsWith(" + target_prefix + ")"))
             report = server.guard_api.comparison.snapshot(identity)
             assert report['state'] == 'completed' and report['processed'] == report['total'] == 4
