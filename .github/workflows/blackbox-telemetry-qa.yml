@@ -1,7 +1,9 @@
 name: BLACK.BOX telemetry contract (A.I.O isolated QA)
 
+# Explicit owner opt-in only: never schedule PR source on a personal runner automatically.
 on:
   pull_request:
+    types: [labeled]
     paths:
       - "app_backend/blackbox_telemetry.py"
       - "app_backend/converter_guard/**"
@@ -15,29 +17,80 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: aio-blackbox-contracts-selfhosted
+  cancel-in-progress: false
+
 jobs:
   telemetry-contract:
     if: >-
       github.repository == 'jumonja-maker/A.I.O' &&
-      (github.event_name == 'workflow_dispatch' ||
-       (github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor == 'jumonja-maker' &&
+      ((github.event_name == 'workflow_dispatch' && github.ref_name != 'main') ||
+       (github.event_name == 'pull_request' &&
+        github.event.action == 'labeled' &&
+        github.event.label.name == 'aio-selfhosted-contracts-approved-once' &&
+        github.event.pull_request.head.repo.full_name == github.repository &&
         github.event.pull_request.user.login == 'jumonja-maker'))
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, aio-vm-isolated]
     timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+    env:
+      PYTHONUTF8: '1'
+      PYTHONDONTWRITEBYTECODE: '1'
+      PIP_NO_INDEX: '1'
+      PIP_NO_INPUT: '1'
+      AIO_BLACKBOX_EVENTS: ''
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-        with:
-          persist-credentials: false
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
-        with:
-          python-version: '3.11'
-      - name: Compile diagnostic source and integrations
+      - name: Verify isolated unprivileged AIO-UBUNTU and unique workspace
         run: |
-          python -m py_compile app_backend/blackbox_telemetry.py \
+          set -euo pipefail
+          test "$RUNNER_NAME" = 'AIO-UBUNTU'
+          test "$RUNNER_OS" = 'Linux'
+          test "$(id -un)" = 'aio-runner'
+          test "$(id -u)" -ne 0
+          for path in "$GITHUB_WORKSPACE" "$RUNNER_TEMP"; do
+            case "$path" in /home/aio-runner/*) ;; *) echo 'Runner path outside approved home'; exit 1;; esac
+          done
+          test ! -e "$GITHUB_WORKSPACE/aio-blackbox-contracts-${{ github.run_id }}-${{ github.run_attempt }}"
+          printf 'TMPDIR=%s\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+      - name: Checkout immutable selected source without credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: jumonja-maker/A.I.O
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: aio-blackbox-contracts-${{ github.run_id }}-${{ github.run_attempt }}
+          persist-credentials: false
+          clean: true
+      - name: Select existing offline Python 3.11
+        working-directory: aio-blackbox-contracts-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          source_sha='${{ github.event.pull_request.head.sha || github.sha }}'
+          [[ "$source_sha" =~ ^[0-9a-f]{40}$ ]] || { echo 'Invalid source SHA'; exit 1; }
+          echo "AIO_TESTED_SOURCE_SHA=$source_sha"
+          python_bin=''
+          for candidate in /home/aio-runner/AIO-Lab/AIO-QA-Env/bin/python /home/aio-runner/AIO-QA-Env/bin/python /home/aio-runner/AIO-Lab/venv/bin/python /usr/bin/python3; do
+            if test -x "$candidate" && "$candidate" -c 'import sys; assert sys.version_info[:2] == (3,11)' >/dev/null 2>&1; then
+              python_bin="$candidate"
+              break
+            fi
+          done
+          test -n "$python_bin" || { echo 'Approved preinstalled offline Python 3.11 unavailable; no network install'; exit 1; }
+          printf 'AIO_QA_PYTHON=%s\n' "$python_bin" >> "$GITHUB_ENV"
+      - name: Compile diagnostic source and integrations
+        working-directory: aio-blackbox-contracts-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          "$AIO_QA_PYTHON" -m py_compile app_backend/blackbox_telemetry.py \
             app_backend/converter_guard/core.py \
             app_backend/converter_transport.py \
             app_backend/server.py
       - name: Check BLACK.BOX event emitter contracts and Guard isolation
+        working-directory: aio-blackbox-contracts-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
-          python -m unittest discover -s tests -p 'test_blackbox_telemetry.py' -v
-          python -m unittest discover -s tests -p 'test_blackbox_audit_v02.py' -v
+          set -euo pipefail
+          "$AIO_QA_PYTHON" -m unittest discover -s tests -p 'test_blackbox_telemetry.py' -v
+          "$AIO_QA_PYTHON" -m unittest discover -s tests -p 'test_blackbox_audit_v02.py' -v
