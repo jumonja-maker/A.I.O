@@ -1,0 +1,2540 @@
+{
+  "status": "PASS",
+  "scope": "real local LibreOffice, generated 4-file / 11-export corpus; not full visual QA",
+  "engine": "soffice.com",
+  "preflightMs": 5672,
+  "elapsedMs": 23766,
+  "officeStarts": 1,
+  "quality": {
+    "officeContainers": "PASS",
+    "textAndTableMarkers": "PASS",
+    "sourceBytesUnchanged": "PASS",
+    "pdfText": "PASS",
+    "pdfPageGeometryMatchesCLI": "PASS",
+    "csvMatchesNativeCLI": "PASS"
+  },
+  "baseline": {
+    "docxMs": 4781,
+    "xlsxMs": 4282
+  },
+  "sourceSHA256": {
+    "docx": "b2cbee7a6b08345627af1c2a8cb5bce0eba636986840f8836860697f2b59cf8a",
+    "xlsx": "a04cd70418403555d6f77a687a21b6f624a89b4055e400370198e8d25687931a",
+    "csv": "e8078ccdcad81cbae566326ea6dc91cf26657535bb23b123b39d85c2ac64a847",
+    "bmp": "a7beb5056325b28509539b4f84f7444a1333692b32806406fe21d7d6f991ee8b"
+  },
+  "report": {
+    "schemaVersion": 3,
+    "total": 11,
+    "completed": 11,
+    "attempted": 11,
+    "succeeded": 11,
+    "failed": 0,
+    "cancelled": 0,
+    "filtered": 0,
+    "pending": 0,
+    "preflightChecks": 4,
+    "buildIdentity": {
+      "scope": "report_runtime",
+      "sourceRevision": "80c1a89ab6095fd76835acc2c67be96a810c5dcc",
+      "basis": "configured"
+    },
+    "nativeRegistryFingerprints": [
+      "9b38ba68fa4cbc7fb077798ac86d25d3bf7c5ef0c8f1f4395d929c535bcb7bf7"
+    ],
+    "inputsUploaded": 4,
+    "inputsPlanned": 4,
+    "inputsWithoutTasks": [],
+    "recoveryError": null,
+    "files": [
+      {
+        "fileId": "docx",
+        "name": "document.docx",
+        "sourceSha256": "b2cbee7a6b08345627af1c2a8cb5bce0eba636986840f8836860697f2b59cf8a",
+        "nativeRoute": {
+          "state": "detected",
+          "basis": "native_preflight_uno_document",
+          "modelLoaded": true,
+          "nativeTextDocument": true,
+          "nativeImportMs": 683,
+          "documentServices": [
+            "com.sun.star.text.TextDocument"
+          ],
+          "typeName": null,
+          "filterName": "MS Word 2007 XML",
+          "selectedImportFilter": "MS Word 2007 XML",
+          "selectedImportOptions": null,
+          "sourceContract": {
+            "state": "recognized",
+            "contentClass": "ooxml_package",
+            "mainContentType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml",
+            "contentTypeBasis": "override",
+            "expectedServices": [
+              "com.sun.star.text.TextDocument"
+            ]
+          },
+          "csvImportSampleOnly": false,
+          "csvInspection": null,
+          "drawPages": null,
+          "difNumericImport": null,
+          "nativeGraphicExports": [],
+          "nativeExportFilters": {
+            "txt": "Text (encoded)"
+          },
+          "nativeExportInspection": {
+            "txt": "verified"
+          },
+          "registryFingerprint": "9b38ba68fa4cbc7fb077798ac86d25d3bf7c5ef0c8f1f4395d929c535bcb7bf7",
+          "exported": false
+        },
+        "warnings": [],
+        "targets": [
+          {
+            "taskId": "742c7b09aa545941a09c6c49e544de21:0",
+            "format": "pdf",
+            "state": "saved",
+            "code": null,
+            "error": null,
+            "stage": "result",
+            "diagnostic": "",
+            "executionMode": "native_uno",
+            "executionReason": "native_session",
+            "resultChecks": [],
+            "automaticRecipe": null,
+            "automaticParameters": null,
+            "durationMs": 5562,
+            "nativeTimings": {
+              "source": "uno_document",
+              "closeMs": 6,
+              "workerStartupMs": 4657,
+              "adapterMs": 5532,
+              "importMs": 809,
+              "exportMs": 55,
+              "operationMs": 873
+            },
+            "exportFilter": "writer_pdf_Export",
+            "warnings": [],
+            "quality": null,
+            "outputs": [
+              {
+                "path": "0001-pdf/document.pdf",
+                "size": 28884,
+                "sha256": "a017d6f865896bde569ed0b207967f14362675b37c06bcc2c7d58b26e2d732ca"
+              }
+            ],
+            "route": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "taskId": "742c7b09aa545941a09c6c49e544de21:1",
+            "format": "odt",
+            "state": "saved",
+            "code": null,
+            "error": null,
+            "stage": "result",
+            "diagnostic": "",
+            "executionMode": "native_uno",
+            "executionReason": "native_session",
+            "resultChecks": [],
+            "automaticRecipe": null,
+            "automaticParameters": null,
+            "durationMs": 485,
+            "nativeTimings": {
+              "source": "uno_document",
+              "closeMs": 6,
+              "workerStartupMs": 0,
+              "adapterMs": 485,
+              "importMs": 344,
+              "exportMs": 130,
+              "operationMs": 483
+            },
+            "exportFilter": "writer8",
+            "warnings": [],
+            "quality": null,
+            "outputs": [
+              {
+                "path": "0002-odt/document.odt",
+                "size": 11222,
+                "sha256": "60660e4479c4ebe0710961be6207fa408d0cf480b637c9da44e5a83fdfb9a7e5"
+              }
+            ],
+            "route": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "taskId": "742c7b09aa545941a09c6c49e544de21:2",
+            "format": "docx",
+            "state": "saved",
+            "code": null,
+            "error": null,
+            "stage": "result",
+            "diagnostic": "",
+            "executionMode": "native_uno",
+            "executionReason": "native_session",
+            "resultChecks": [],
+            "automaticRecipe": null,
+            "automaticParameters": null,
+            "durationMs": 468,
+            "nativeTimings": {
+              "source": "uno_document",
+              "closeMs": 5,
+              "workerStartupMs": 0,
+              "adapterMs": 468,
+              "importMs": 330,
+              "exportMs": 131,
+              "operationMs": 469
+            },
+            "exportFilter": "MS Word 2007 XML",
+            "warnings": [],
+            "quality": null,
+            "outputs": [
+              {
+                "path": "0003-docx/document.docx",
+                "size": 5293,
+                "sha256": "6856fa77d3e69ae11b86ed5d7ad5a22434da8dfd11e7c910e863de4890a400b9"
+              }
+            ],
+            "route": null,
+            "libreOfficeStarted": true
+          }
+        ]
+      },
+      {
+        "fileId": "xlsx",
+        "name": "sheet.xlsx",
+        "sourceSha256": "a04cd70418403555d6f77a687a21b6f624a89b4055e400370198e8d25687931a",
+        "nativeRoute": {
+          "state": "detected",
+          "basis": "native_preflight_uno_document",
+          "modelLoaded": true,
+          "nativeTextDocument": false,
+          "nativeImportMs": 36,
+          "documentServices": [
+            "com.sun.star.sheet.SpreadsheetDocument"
+          ],
+          "typeName": null,
+          "filterName": "Calc MS Excel 2007 XML",
+          "selectedImportFilter": "Calc MS Excel 2007 XML",
+          "selectedImportOptions": null,
+          "sourceContract": {
+            "state": "recognized",
+            "contentClass": "ooxml_package",
+            "mainContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+            "contentTypeBasis": "override",
+            "expectedServices": [
+              "com.sun.star.sheet.SpreadsheetDocument"
+            ]
+          },
+          "csvImportSampleOnly": false,
+          "csvInspection": null,
+          "drawPages": null,
+          "difNumericImport": null,
+          "nativeGraphicExports": [],
+          "nativeExportFilters": {},
+          "nativeExportInspection": {},
+          "registryFingerprint": "9b38ba68fa4cbc7fb077798ac86d25d3bf7c5ef0c8f1f4395d929c535bcb7bf7",
+          "exported": false
+        },
+        "warnings": [],
+        "targets": [
+          {
+            "taskId": "742c7b09aa545941a09c6c49e544de21:3",
+            "format": "pdf",
+            "state": "saved",
+            "code": null,
+            "error": null,
+            "stage": "result",
+            "diagnostic": "",
+            "executionMode": "native_uno",
+            "executionReason": "native_session",
+            "resultChecks": [],
+            "automaticRecipe": null,
+            "automaticParameters": null,
+            "durationMs": 406,
+            "nativeTimings": {
+              "source": "uno_document",
+              "closeMs": 8,
+              "workerStartupMs": 0,
+              "adapterMs": 406,
+              "importMs": 35,
+              "exportMs": 363,
+              "operationMs": 409
+            },
+            "exportFilter": "calc_pdf_Export",
+            "warnings": [],
+            "quality": null,
+            "outputs": [
+              {
+                "path": "0004-pdf/sheet.pdf",
+                "size": 14643,
+                "sha256": "c795858b8bfd4eb29dba30197a9d28dc6bac2356f3d8eb63eb71b9071188cfb4"
+              }
+            ],
+            "route": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "taskId": "742c7b09aa545941a09c6c49e544de21:4",
+            "format": "xlsx",
+            "state": "saved",
+            "code": null,
+            "error": null,
+            "stage": "result",
+            "diagnostic": "",
+            "executionMode": "native_uno",
+            "executionReason": "native_session",
+            "resultChecks": [],
+            "automaticRecipe": null,
+            "automaticParameters": null,
+            "durationMs": 78,
+            "nativeTimings": {
+              "source": "uno_document",
+              "closeMs": 4,
+              "workerStartupMs": 0,
+              "adapterMs": 78,
+              "importMs": 29,
+              "exportMs": 41,
+              "operationMs": 77
+            },
+            "exportFilter": "Calc MS Excel 2007 XML",
+            "warnings": [],
+            "quality": null,
+            "outputs": [
+              {
+                "path": "0005-xlsx/sheet.xlsx",
+                "size": 5601,
+                "sha256": "f985ed3e84d4fb5f6f2843864481cacf3641fbdcbcfb3d271623ef85ee3bd617"
+              }
+            ],
+            "route": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "taskId": "742c7b09aa545941a09c6c49e544de21:5",
+            "format": "csv",
+            "state": "saved",
+            "code": null,
+            "error": null,
+            "stage": "result",
+            "diagnostic": "",
+            "executionMode": "native_uno",
+            "executionReason": "native_session",
+            "resultChecks": [],
+            "automaticRecipe": null,
+            "automaticParameters": null,
+            "durationMs": 63,
+            "nativeTimings": {
+              "source": "uno_document",
+              "closeMs": 6,
+              "workerStartupMs": 0,
+              "adapterMs": 47,
+              "importMs": 28,
+              "exportMs": 9,
+              "operationMs": 46
+            },
+            "exportFilter": "Text - txt - csv (StarCalc)",
+            "warnings": [],
+            "quality": null,
+            "outputs": [
+              {
+                "path": "0006-csv/sheet.csv",
+                "size": 54,
+                "sha256": "8e66fb4787d3a51b4929e7ad283f3c8335428707933243310adbb69a948724ae"
+              }
+            ],
+            "route": null,
+            "libreOfficeStarted": true
+          }
+        ]
+      },
+      {
+        "fileId": "csv",
+        "name": "table.csv",
+        "sourceSha256": "e8078ccdcad81cbae566326ea6dc91cf26657535bb23b123b39d85c2ac64a847",
+        "nativeRoute": {
+          "state": "detected",
+          "basis": "native_preflight_uno_document",
+          "modelLoaded": true,
+          "nativeTextDocument": false,
+          "nativeImportMs": 23,
+          "documentServices": [
+            "com.sun.star.sheet.SpreadsheetDocument"
+          ],
+          "typeName": null,
+          "filterName": "Text - txt - csv (StarCalc)",
+          "selectedImportFilter": "Text - txt - csv (StarCalc)",
+          "selectedImportOptions": "44,34,76,1",
+          "sourceContract": {
+            "state": "not_applicable"
+          },
+          "csvImportSampleOnly": false,
+          "csvInspection": {
+            "schema": 1,
+            "status": "checked",
+            "complete": true,
+            "encoding": "utf-8",
+            "delimiter": ",",
+            "valuesAnalyzed": false,
+            "rows": 3,
+            "columns": 2,
+            "raggedRows": 0,
+            "emptyRows": 0,
+            "typeRisks": {
+              "leadingZeros": 0,
+              "formulaLike": 0,
+              "dateLike": 0,
+              "scientificLike": 0
+            },
+            "valuesDigest": null,
+            "durationMs": 0
+          },
+          "drawPages": null,
+          "difNumericImport": null,
+          "nativeGraphicExports": [],
+          "nativeExportFilters": {},
+          "nativeExportInspection": {},
+          "registryFingerprint": "9b38ba68fa4cbc7fb077798ac86d25d3bf7c5ef0c8f1f4395d929c535bcb7bf7",
+          "exported": false
+        },
+        "warnings": [],
+        "targets": [
+          {
+            "taskId": "742c7b09aa545941a09c6c49e544de21:6",
+            "format": "pdf",
+            "state": "saved",
+            "code": null,
+            "error": null,
+            "stage": "result",
+            "diagnostic": "",
+            "executionMode": "native_uno",
+            "executionReason": "native_session",
+            "resultChecks": [],
+            "automaticRecipe": null,
+            "automaticParameters": null,
+            "durationMs": 359,
+            "nativeTimings": {
+              "source": "uno_document",
+              "closeMs": 9,
+              "workerStartupMs": 0,
+              "adapterMs": 359,
+              "importMs": 21,
+              "exportMs": 331,
+              "operationMs": 363
+            },
+            "exportFilter": "calc_pdf_Export",
+            "warnings": [],
+            "quality": null,
+            "outputs": [
+              {
+                "path": "0007-pdf/table.pdf",
+                "size": 15603,
+                "sha256": "662d34856c656f56719ceec3efd6a384f8cbb57904fbfff095c8e52f6e778a9b"
+              }
+            ],
+            "route": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "taskId": "742c7b09aa545941a09c6c49e544de21:7",
+            "format": "xlsx",
+            "state": "saved",
+            "code": null,
+            "error": null,
+            "stage": "result",
+            "diagnostic": "",
+            "executionMode": "native_uno",
+            "executionReason": "native_session",
+            "resultChecks": [],
+            "automaticRecipe": null,
+            "automaticParameters": null,
+            "durationMs": 78,
+            "nativeTimings": {
+              "source": "uno_document",
+              "closeMs": 5,
+              "workerStartupMs": 0,
+              "adapterMs": 78,
+              "importMs": 22,
+              "exportMs": 42,
+              "operationMs": 71
+            },
+            "exportFilter": "Calc MS Excel 2007 XML",
+            "warnings": [],
+            "quality": null,
+            "outputs": [
+              {
+                "path": "0008-xlsx/table.xlsx",
+                "size": 5686,
+                "sha256": "f5b0b1b8a0211e1ae8ef8e26f9e3deae9cccae477e90b0383550b3bc8f335f8c"
+              }
+            ],
+            "route": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "taskId": "742c7b09aa545941a09c6c49e544de21:8",
+            "format": "dbf",
+            "state": "saved",
+            "code": null,
+            "error": null,
+            "stage": "result",
+            "diagnostic": "",
+            "executionMode": "native_uno",
+            "executionReason": "native_session",
+            "resultChecks": [],
+            "automaticRecipe": null,
+            "automaticParameters": null,
+            "durationMs": 110,
+            "nativeTimings": {
+              "source": "uno_document",
+              "closeMs": 5,
+              "workerStartupMs": 0,
+              "adapterMs": 94,
+              "importMs": 22,
+              "exportMs": 56,
+              "operationMs": 86
+            },
+            "exportFilter": "dBase",
+            "warnings": [
+              {
+                "code": "NATIVE_TABLE_FORMAT_LIMITS",
+                "message": "DBF/DIF имеют ограничения структуры, типов и оформления. Наличие нативного маршрута не подтверждает сохранность всех данных. В пакетном UNO-режиме каждый лист сохраняется отдельным файлом; формулы становятся вычисленными значениями, оформление ограничено форматом."
+              }
+            ],
+            "quality": null,
+            "outputs": [
+              {
+                "path": "0009-dbf/table.dbf",
+                "size": 116,
+                "sha256": "69257bcd02f5a412a0605a46fcdabc43db1b924f4898583c03d2756392ef287c"
+              }
+            ],
+            "route": null,
+            "libreOfficeStarted": true
+          }
+        ]
+      },
+      {
+        "fileId": "bmp",
+        "name": "picture.bmp",
+        "sourceSha256": "a7beb5056325b28509539b4f84f7444a1333692b32806406fe21d7d6f991ee8b",
+        "nativeRoute": {
+          "state": "detected",
+          "basis": "native_preflight_uno_document",
+          "modelLoaded": true,
+          "nativeTextDocument": false,
+          "nativeImportMs": 42,
+          "documentServices": [
+            "com.sun.star.drawing.DrawingDocument"
+          ],
+          "typeName": null,
+          "filterName": "BMP - MS Windows",
+          "selectedImportFilter": "BMP - MS Windows",
+          "selectedImportOptions": null,
+          "sourceContract": {
+            "state": "not_applicable"
+          },
+          "csvImportSampleOnly": false,
+          "csvInspection": null,
+          "drawPages": 1,
+          "difNumericImport": null,
+          "nativeGraphicExports": [
+            "svm"
+          ],
+          "nativeExportFilters": {},
+          "nativeExportInspection": {},
+          "registryFingerprint": "9b38ba68fa4cbc7fb077798ac86d25d3bf7c5ef0c8f1f4395d929c535bcb7bf7",
+          "exported": false,
+          "mediaProfile": {
+            "format": "bmp",
+            "width": 2,
+            "height": 2,
+            "frames": 1,
+            "pages": 1,
+            "alpha": false,
+            "durationsMs": [],
+            "orientation": 1
+          },
+          "qtMediaTargets": [
+            "apng",
+            "bmp",
+            "gif",
+            "jfif",
+            "jif",
+            "jpe",
+            "jpeg",
+            "jpg",
+            "png",
+            "tif",
+            "tiff",
+            "webp"
+          ],
+          "mediaDecoder": "qt_image_reader"
+        },
+        "warnings": [],
+        "targets": [
+          {
+            "taskId": "742c7b09aa545941a09c6c49e544de21:9",
+            "format": "pdf",
+            "state": "saved",
+            "code": null,
+            "error": null,
+            "stage": "result",
+            "diagnostic": "",
+            "executionMode": "native_uno",
+            "executionReason": "native_session",
+            "resultChecks": [],
+            "automaticRecipe": null,
+            "automaticParameters": null,
+            "durationMs": 156,
+            "nativeTimings": {
+              "source": "uno_document",
+              "closeMs": 8,
+              "workerStartupMs": 0,
+              "adapterMs": 156,
+              "importMs": 125,
+              "exportMs": 23,
+              "operationMs": 158
+            },
+            "exportFilter": "draw_pdf_Export",
+            "warnings": [],
+            "quality": null,
+            "outputs": [
+              {
+                "path": "0010-pdf/picture.pdf",
+                "size": 7197,
+                "sha256": "9860f203fcb226c591d709ddb062419a14fa8cefe615b9cfd648ea9a40f28817"
+              }
+            ],
+            "route": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "taskId": "742c7b09aa545941a09c6c49e544de21:10",
+            "format": "png",
+            "state": "saved",
+            "code": null,
+            "error": null,
+            "stage": "result",
+            "diagnostic": "",
+            "executionMode": "qt_media_frames",
+            "executionReason": "qt_media_frames",
+            "resultChecks": [
+              {
+                "check": "media_properties",
+                "status": "checked_subset",
+                "qualityCompared": false,
+                "source": {
+                  "format": "bmp",
+                  "width": 2,
+                  "height": 2,
+                  "frames": 1,
+                  "pages": 1,
+                  "alpha": false,
+                  "durationsMs": [],
+                  "orientation": 1
+                },
+                "result": {
+                  "format": "png",
+                  "width": 2,
+                  "height": 2,
+                  "frames": 1,
+                  "pages": 1,
+                  "alpha": false,
+                  "durationsMs": [],
+                  "orientation": 1,
+                  "animationContainer": false,
+                  "loopCount": 1,
+                  "bitDepth": 8
+                },
+                "expectedLosses": []
+              }
+            ],
+            "automaticRecipe": null,
+            "automaticParameters": null,
+            "durationMs": 16,
+            "nativeTimings": {
+              "source": "qt_media",
+              "adapterMs": 0
+            },
+            "exportFilter": null,
+            "warnings": [],
+            "quality": null,
+            "outputs": [
+              {
+                "path": "0011-png/picture.png",
+                "size": 100,
+                "sha256": "27d49547fee4c0ebbd89899ed125341dc20d245b2cebc61e137a0676e6de3b09"
+              }
+            ],
+            "route": null,
+            "libreOfficeStarted": true
+          }
+        ]
+      }
+    ],
+    "timings": {
+      "journalMs": 16,
+      "preflight_startedMs": 0,
+      "preflight_doneMs": 5672,
+      "planMs": 47,
+      "job_queuedMs": 5719,
+      "job_startedMs": 5734,
+      "engine_startedMs": 10438,
+      "packaging_startedMs": 13625,
+      "bundle_readyMs": 13656,
+      "archiveMs": 31,
+      "job_finishedMs": 13656
+    },
+    "qualityCheckRequested": false,
+    "qualityCompared": false,
+    "retainSources": false,
+    "comparisonParentJobId": null,
+    "comparisonRecipe": null,
+    "comparisonParentTasks": [],
+    "jobId": "742c7b09aa545941a09c6c49e544de21",
+    "state": "ready",
+    "officeStarts": 1,
+    "trace": {
+      "events": [
+        {
+          "sequence": 1,
+          "elapsedMs": 0,
+          "stage": "job_created",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 2,
+          "elapsedMs": 0,
+          "stage": "input_stored",
+          "fileId": "docx",
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 3,
+          "elapsedMs": 0,
+          "stage": "input_stored",
+          "fileId": "xlsx",
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 4,
+          "elapsedMs": 0,
+          "stage": "input_stored",
+          "fileId": "csv",
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 5,
+          "elapsedMs": 0,
+          "stage": "input_stored",
+          "fileId": "bmp",
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 6,
+          "elapsedMs": 0,
+          "stage": "preflight_started",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 7,
+          "elapsedMs": 172,
+          "stage": "preflight_file_started",
+          "fileId": "docx",
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 8,
+          "elapsedMs": 5188,
+          "stage": "preflight_finished",
+          "fileId": "docx",
+          "format": null,
+          "code": "NATIVE_KIND_DETECTED",
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 9,
+          "elapsedMs": 5188,
+          "stage": "preflight_file_started",
+          "fileId": "xlsx",
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 10,
+          "elapsedMs": 5234,
+          "stage": "preflight_finished",
+          "fileId": "xlsx",
+          "format": null,
+          "code": "NATIVE_KIND_DETECTED",
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 11,
+          "elapsedMs": 5234,
+          "stage": "preflight_file_started",
+          "fileId": "csv",
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 12,
+          "elapsedMs": 5266,
+          "stage": "preflight_finished",
+          "fileId": "csv",
+          "format": null,
+          "code": "NATIVE_KIND_DETECTED",
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 13,
+          "elapsedMs": 5266,
+          "stage": "preflight_file_started",
+          "fileId": "bmp",
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 14,
+          "elapsedMs": 5422,
+          "stage": "preflight_finished",
+          "fileId": "bmp",
+          "format": null,
+          "code": "NATIVE_KIND_DETECTED",
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 15,
+          "elapsedMs": 5484,
+          "stage": "preflight_matrix_started",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 16,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 17,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 18,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 19,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 20,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 21,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 22,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 23,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 24,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 25,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 26,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 27,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 28,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 29,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 30,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 31,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 32,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 33,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 34,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 35,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 36,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 37,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 38,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 39,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 40,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 41,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 42,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 43,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 44,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 45,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 46,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 47,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 48,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 49,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 50,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 51,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 52,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 53,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 54,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 55,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 56,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 57,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 58,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 59,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 60,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 61,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 62,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 63,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 64,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 65,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 66,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 67,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 68,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 69,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 70,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 71,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 72,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 73,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 74,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 75,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 76,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 77,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 78,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 79,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 80,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 81,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 82,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 83,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 84,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 85,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 86,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 87,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 88,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 89,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 90,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 91,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 92,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 93,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 94,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 95,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 96,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 97,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 98,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 99,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 100,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 101,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 102,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 103,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 104,
+          "elapsedMs": 5672,
+          "stage": "preflight_matrix_progress",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 105,
+          "elapsedMs": 5672,
+          "stage": "preflight_done",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 106,
+          "elapsedMs": 5719,
+          "stage": "job_queued",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 107,
+          "elapsedMs": 5734,
+          "stage": "job_started",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 108,
+          "elapsedMs": 5766,
+          "stage": "route_selected",
+          "fileId": "docx",
+          "format": "pdf",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 109,
+          "elapsedMs": 10438,
+          "stage": "engine_started",
+          "fileId": "docx",
+          "format": "pdf",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 110,
+          "elapsedMs": 10438,
+          "stage": "native_stage",
+          "fileId": "docx",
+          "format": "pdf",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 111,
+          "elapsedMs": 11250,
+          "stage": "native_stage",
+          "fileId": "docx",
+          "format": "pdf",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 112,
+          "elapsedMs": 11297,
+          "stage": "native_stage",
+          "fileId": "docx",
+          "format": "pdf",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 113,
+          "elapsedMs": 11328,
+          "stage": "result_retaining",
+          "fileId": "docx",
+          "format": "pdf",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 114,
+          "elapsedMs": 11328,
+          "stage": "result_ready",
+          "fileId": "docx",
+          "format": "pdf",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 115,
+          "elapsedMs": 11328,
+          "stage": "task_finished",
+          "fileId": "docx",
+          "format": "pdf",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 116,
+          "elapsedMs": 11328,
+          "stage": "route_selected",
+          "fileId": "docx",
+          "format": "odt",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 117,
+          "elapsedMs": 11328,
+          "stage": "engine_started",
+          "fileId": "docx",
+          "format": "odt",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 118,
+          "elapsedMs": 11328,
+          "stage": "native_stage",
+          "fileId": "docx",
+          "format": "odt",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 119,
+          "elapsedMs": 11672,
+          "stage": "native_stage",
+          "fileId": "docx",
+          "format": "odt",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 120,
+          "elapsedMs": 11813,
+          "stage": "native_stage",
+          "fileId": "docx",
+          "format": "odt",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 121,
+          "elapsedMs": 11813,
+          "stage": "result_retaining",
+          "fileId": "docx",
+          "format": "odt",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 122,
+          "elapsedMs": 11813,
+          "stage": "result_ready",
+          "fileId": "docx",
+          "format": "odt",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 123,
+          "elapsedMs": 11813,
+          "stage": "task_finished",
+          "fileId": "docx",
+          "format": "odt",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 124,
+          "elapsedMs": 11813,
+          "stage": "route_selected",
+          "fileId": "docx",
+          "format": "docx",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 125,
+          "elapsedMs": 11813,
+          "stage": "engine_started",
+          "fileId": "docx",
+          "format": "docx",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 126,
+          "elapsedMs": 11813,
+          "stage": "native_stage",
+          "fileId": "docx",
+          "format": "docx",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 127,
+          "elapsedMs": 12156,
+          "stage": "native_stage",
+          "fileId": "docx",
+          "format": "docx",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 128,
+          "elapsedMs": 12281,
+          "stage": "native_stage",
+          "fileId": "docx",
+          "format": "docx",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 129,
+          "elapsedMs": 12281,
+          "stage": "result_retaining",
+          "fileId": "docx",
+          "format": "docx",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 130,
+          "elapsedMs": 12297,
+          "stage": "result_ready",
+          "fileId": "docx",
+          "format": "docx",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 131,
+          "elapsedMs": 12297,
+          "stage": "task_finished",
+          "fileId": "docx",
+          "format": "docx",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 132,
+          "elapsedMs": 12297,
+          "stage": "input_finished",
+          "fileId": "docx",
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 133,
+          "elapsedMs": 12297,
+          "stage": "route_selected",
+          "fileId": "xlsx",
+          "format": "pdf",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 134,
+          "elapsedMs": 12297,
+          "stage": "engine_started",
+          "fileId": "xlsx",
+          "format": "pdf",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 135,
+          "elapsedMs": 12297,
+          "stage": "native_stage",
+          "fileId": "xlsx",
+          "format": "pdf",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 136,
+          "elapsedMs": 12328,
+          "stage": "native_stage",
+          "fileId": "xlsx",
+          "format": "pdf",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 137,
+          "elapsedMs": 12688,
+          "stage": "native_stage",
+          "fileId": "xlsx",
+          "format": "pdf",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 138,
+          "elapsedMs": 12703,
+          "stage": "result_retaining",
+          "fileId": "xlsx",
+          "format": "pdf",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 139,
+          "elapsedMs": 12703,
+          "stage": "result_ready",
+          "fileId": "xlsx",
+          "format": "pdf",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 140,
+          "elapsedMs": 12703,
+          "stage": "task_finished",
+          "fileId": "xlsx",
+          "format": "pdf",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 141,
+          "elapsedMs": 12703,
+          "stage": "route_selected",
+          "fileId": "xlsx",
+          "format": "xlsx",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 142,
+          "elapsedMs": 12703,
+          "stage": "engine_started",
+          "fileId": "xlsx",
+          "format": "xlsx",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 143,
+          "elapsedMs": 12703,
+          "stage": "native_stage",
+          "fileId": "xlsx",
+          "format": "xlsx",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 144,
+          "elapsedMs": 12734,
+          "stage": "native_stage",
+          "fileId": "xlsx",
+          "format": "xlsx",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 145,
+          "elapsedMs": 12781,
+          "stage": "native_stage",
+          "fileId": "xlsx",
+          "format": "xlsx",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 146,
+          "elapsedMs": 12781,
+          "stage": "result_retaining",
+          "fileId": "xlsx",
+          "format": "xlsx",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 147,
+          "elapsedMs": 12781,
+          "stage": "result_ready",
+          "fileId": "xlsx",
+          "format": "xlsx",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 148,
+          "elapsedMs": 12781,
+          "stage": "task_finished",
+          "fileId": "xlsx",
+          "format": "xlsx",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 149,
+          "elapsedMs": 12781,
+          "stage": "route_selected",
+          "fileId": "xlsx",
+          "format": "csv",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 150,
+          "elapsedMs": 12781,
+          "stage": "engine_started",
+          "fileId": "xlsx",
+          "format": "csv",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 151,
+          "elapsedMs": 12781,
+          "stage": "native_stage",
+          "fileId": "xlsx",
+          "format": "csv",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 152,
+          "elapsedMs": 12813,
+          "stage": "native_stage",
+          "fileId": "xlsx",
+          "format": "csv",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 153,
+          "elapsedMs": 12828,
+          "stage": "native_stage",
+          "fileId": "xlsx",
+          "format": "csv",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 154,
+          "elapsedMs": 12844,
+          "stage": "result_retaining",
+          "fileId": "xlsx",
+          "format": "csv",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 155,
+          "elapsedMs": 12844,
+          "stage": "result_ready",
+          "fileId": "xlsx",
+          "format": "csv",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 156,
+          "elapsedMs": 12844,
+          "stage": "task_finished",
+          "fileId": "xlsx",
+          "format": "csv",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 157,
+          "elapsedMs": 12844,
+          "stage": "input_finished",
+          "fileId": "xlsx",
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 158,
+          "elapsedMs": 12844,
+          "stage": "route_selected",
+          "fileId": "csv",
+          "format": "pdf",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 159,
+          "elapsedMs": 12844,
+          "stage": "engine_started",
+          "fileId": "csv",
+          "format": "pdf",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 160,
+          "elapsedMs": 12844,
+          "stage": "native_stage",
+          "fileId": "csv",
+          "format": "pdf",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 161,
+          "elapsedMs": 12859,
+          "stage": "native_stage",
+          "fileId": "csv",
+          "format": "pdf",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 162,
+          "elapsedMs": 13188,
+          "stage": "native_stage",
+          "fileId": "csv",
+          "format": "pdf",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 163,
+          "elapsedMs": 13203,
+          "stage": "result_retaining",
+          "fileId": "csv",
+          "format": "pdf",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 164,
+          "elapsedMs": 13203,
+          "stage": "result_ready",
+          "fileId": "csv",
+          "format": "pdf",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 165,
+          "elapsedMs": 13203,
+          "stage": "task_finished",
+          "fileId": "csv",
+          "format": "pdf",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 166,
+          "elapsedMs": 13203,
+          "stage": "route_selected",
+          "fileId": "csv",
+          "format": "xlsx",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 167,
+          "elapsedMs": 13203,
+          "stage": "engine_started",
+          "fileId": "csv",
+          "format": "xlsx",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 168,
+          "elapsedMs": 13203,
+          "stage": "native_stage",
+          "fileId": "csv",
+          "format": "xlsx",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 169,
+          "elapsedMs": 13234,
+          "stage": "native_stage",
+          "fileId": "csv",
+          "format": "xlsx",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 170,
+          "elapsedMs": 13281,
+          "stage": "native_stage",
+          "fileId": "csv",
+          "format": "xlsx",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 171,
+          "elapsedMs": 13281,
+          "stage": "result_retaining",
+          "fileId": "csv",
+          "format": "xlsx",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 172,
+          "elapsedMs": 13281,
+          "stage": "result_ready",
+          "fileId": "csv",
+          "format": "xlsx",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 173,
+          "elapsedMs": 13281,
+          "stage": "task_finished",
+          "fileId": "csv",
+          "format": "xlsx",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 174,
+          "elapsedMs": 13281,
+          "stage": "route_selected",
+          "fileId": "csv",
+          "format": "dbf",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 175,
+          "elapsedMs": 13281,
+          "stage": "engine_started",
+          "fileId": "csv",
+          "format": "dbf",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 176,
+          "elapsedMs": 13297,
+          "stage": "native_stage",
+          "fileId": "csv",
+          "format": "dbf",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 177,
+          "elapsedMs": 13313,
+          "stage": "native_stage",
+          "fileId": "csv",
+          "format": "dbf",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 178,
+          "elapsedMs": 13375,
+          "stage": "native_stage",
+          "fileId": "csv",
+          "format": "dbf",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 179,
+          "elapsedMs": 13391,
+          "stage": "result_retaining",
+          "fileId": "csv",
+          "format": "dbf",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 180,
+          "elapsedMs": 13391,
+          "stage": "result_ready",
+          "fileId": "csv",
+          "format": "dbf",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 181,
+          "elapsedMs": 13391,
+          "stage": "task_finished",
+          "fileId": "csv",
+          "format": "dbf",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 182,
+          "elapsedMs": 13391,
+          "stage": "input_finished",
+          "fileId": "csv",
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 183,
+          "elapsedMs": 13391,
+          "stage": "route_selected",
+          "fileId": "bmp",
+          "format": "pdf",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 184,
+          "elapsedMs": 13391,
+          "stage": "engine_started",
+          "fileId": "bmp",
+          "format": "pdf",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 185,
+          "elapsedMs": 13391,
+          "stage": "native_stage",
+          "fileId": "bmp",
+          "format": "pdf",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 186,
+          "elapsedMs": 13516,
+          "stage": "native_stage",
+          "fileId": "bmp",
+          "format": "pdf",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 187,
+          "elapsedMs": 13531,
+          "stage": "native_stage",
+          "fileId": "bmp",
+          "format": "pdf",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 188,
+          "elapsedMs": 13547,
+          "stage": "result_retaining",
+          "fileId": "bmp",
+          "format": "pdf",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 189,
+          "elapsedMs": 13547,
+          "stage": "result_ready",
+          "fileId": "bmp",
+          "format": "pdf",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 190,
+          "elapsedMs": 13547,
+          "stage": "task_finished",
+          "fileId": "bmp",
+          "format": "pdf",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 191,
+          "elapsedMs": 13547,
+          "stage": "route_selected",
+          "fileId": "bmp",
+          "format": "png",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 192,
+          "elapsedMs": 13547,
+          "stage": "engine_started",
+          "fileId": "bmp",
+          "format": "png",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 193,
+          "elapsedMs": 13563,
+          "stage": "result_retaining",
+          "fileId": "bmp",
+          "format": "png",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 194,
+          "elapsedMs": 13563,
+          "stage": "result_ready",
+          "fileId": "bmp",
+          "format": "png",
+          "code": null,
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 195,
+          "elapsedMs": 13563,
+          "stage": "task_finished",
+          "fileId": "bmp",
+          "format": "png",
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 196,
+          "elapsedMs": 13563,
+          "stage": "input_finished",
+          "fileId": "bmp",
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 197,
+          "elapsedMs": 13625,
+          "stage": "packaging_started",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 198,
+          "elapsedMs": 13625,
+          "stage": "results_available",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 199,
+          "elapsedMs": 13656,
+          "stage": "bundle_ready",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 200,
+          "elapsedMs": 13656,
+          "stage": "job_finished",
+          "fileId": null,
+          "format": null,
+          "code": "ready",
+          "libreOfficeStarted": true
+        },
+        {
+          "sequence": 201,
+          "elapsedMs": 13656,
+          "stage": "worker_finished",
+          "fileId": null,
+          "format": null,
+          "code": "ready",
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 202,
+          "elapsedMs": 13688,
+          "stage": "save_started",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 203,
+          "elapsedMs": 13813,
+          "stage": "save_confirmed",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        },
+        {
+          "sequence": 204,
+          "elapsedMs": 13813,
+          "stage": "save_idle",
+          "fileId": null,
+          "format": null,
+          "code": null,
+          "libreOfficeStarted": false
+        }
+      ],
+      "droppedEvents": 0
+    },
+    "fileTimeoutSeconds": 90
+  }
+}

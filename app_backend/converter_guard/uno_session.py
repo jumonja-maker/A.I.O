@@ -18,6 +18,7 @@ from ..native_process import ProcessTree
 from .errors import GuardError
 from .native_logs import NativeLogs, close_native_pipes
 from .dif_evidence import DIF_CORE_SOURCE
+from .native_profile import PrivateNativeProfile, private_profile_required
 
 WORKER_SOURCE = DIF_CORE_SOURCE + r'''
 import json, os, sys, time, subprocess
@@ -514,6 +515,7 @@ class UnoSession:
         self.completed = self.starts = 0
         self.responses = queue.Queue(maxsize=8)
         self.profile = self.pipe = None
+        self._profile_owner = None
         self.disabled = False
         self.import_timeout, self.close_timeout = 60, 15
 
@@ -590,7 +592,13 @@ class UnoSession:
             return
         try:
             self.workspace.mkdir(parents=True,exist_ok=True)
-            self.profile = self.workspace / secrets.token_hex(8)
+            if private_profile_required():
+                self._profile_owner = PrivateNativeProfile()
+                # The profile factory historically receives a new path.
+                # Keep that contract inside our exclusively owned short root.
+                self.profile = self._profile_owner.path / 'p'
+            else:
+                self.profile = self.workspace / secrets.token_hex(8)
             self.prepare_profile(self.profile)
             self.pipe = 'aio_guard_' + secrets.token_hex(16)
             worker, boot = self.workspace/'worker.py', self.workspace/'boot.json'
@@ -650,6 +658,7 @@ class UnoSession:
 
     def recycle(self):
         tree, reader, logs, profile = self.tree, self.reader, self.logs, self.profile
+        owner, self._profile_owner = self._profile_owner, None
         self.tree = self.reader = self.logs = self.profile = self.pipe = None
         stopped = False
         try:
@@ -674,7 +683,9 @@ class UnoSession:
                 finally:
                     if stopped and tree:
                         close_native_pipes(getattr(tree, 'process', None))
-                    if profile:
+                    if owner and stopped:
+                        owner.cleanup()
+                    elif profile and owner is None:
                         shutil.rmtree(profile,ignore_errors=True)
 
     def __enter__(self):return self

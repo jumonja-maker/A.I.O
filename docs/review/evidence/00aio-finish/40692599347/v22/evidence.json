@@ -1,0 +1,146 @@
+{
+  "status": "PASS",
+  "scope": "synthetic native Writer text regression; not a FULLTEST",
+  "cases": [
+    {
+      "source": "docx",
+      "target": "txt",
+      "status": "PASS",
+      "mode": "native_uno",
+      "elapsedMs": 437,
+      "bytes": 90,
+      "sha256": "e3b07912e8c111d1dbbb449e8d104628f812a962709b7cd8bcb41dff7dd3bf41",
+      "prepared": true,
+      "allMarkersExactlyOnce": true
+    },
+    {
+      "source": "docx",
+      "target": "csv",
+      "status": "PASS",
+      "mode": "native_uno",
+      "elapsedMs": 391,
+      "bytes": 90,
+      "sha256": "e3b07912e8c111d1dbbb449e8d104628f812a962709b7cd8bcb41dff7dd3bf41",
+      "prepared": true,
+      "allMarkersExactlyOnce": true
+    },
+    {
+      "source": "docx",
+      "target": "tsv",
+      "status": "PASS",
+      "mode": "native_uno",
+      "elapsedMs": 390,
+      "bytes": 90,
+      "sha256": "e3b07912e8c111d1dbbb449e8d104628f812a962709b7cd8bcb41dff7dd3bf41",
+      "prepared": true,
+      "allMarkersExactlyOnce": true
+    },
+    {
+      "source": "docx",
+      "target": "tab",
+      "status": "PASS",
+      "mode": "native_uno",
+      "elapsedMs": 391,
+      "bytes": 90,
+      "sha256": "e3b07912e8c111d1dbbb449e8d104628f812a962709b7cd8bcb41dff7dd3bf41",
+      "prepared": true,
+      "allMarkersExactlyOnce": true
+    },
+    {
+      "source": "docm",
+      "target": "txt",
+      "status": "PASS",
+      "mode": "native_uno",
+      "elapsedMs": 375,
+      "bytes": 90,
+      "sha256": "e3b07912e8c111d1dbbb449e8d104628f812a962709b7cd8bcb41dff7dd3bf41",
+      "prepared": true,
+      "allMarkersExactlyOnce": true
+    },
+    {
+      "source": "docm",
+      "target": "csv",
+      "status": "PASS",
+      "mode": "native_uno",
+      "elapsedMs": 422,
+      "bytes": 90,
+      "sha256": "e3b07912e8c111d1dbbb449e8d104628f812a962709b7cd8bcb41dff7dd3bf41",
+      "prepared": true,
+      "allMarkersExactlyOnce": true
+    },
+    {
+      "source": "docm",
+      "target": "tsv",
+      "status": "PASS",
+      "mode": "native_uno",
+      "elapsedMs": 407,
+      "bytes": 90,
+      "sha256": "e3b07912e8c111d1dbbb449e8d104628f812a962709b7cd8bcb41dff7dd3bf41",
+      "prepared": true,
+      "allMarkersExactlyOnce": true
+    },
+    {
+      "source": "docm",
+      "target": "tab",
+      "status": "PASS",
+      "mode": "native_uno",
+      "elapsedMs": 468,
+      "bytes": 90,
+      "sha256": "e3b07912e8c111d1dbbb449e8d104628f812a962709b7cd8bcb41dff7dd3bf41",
+      "prepared": true,
+      "allMarkersExactlyOnce": true
+    },
+    {
+      "source": "healthy",
+      "target": "txt",
+      "status": "PASS",
+      "mode": "native_uno",
+      "elapsedMs": 469,
+      "bytes": 90,
+      "sha256": "e3b07912e8c111d1dbbb449e8d104628f812a962709b7cd8bcb41dff7dd3bf41",
+      "prepared": false,
+      "allMarkersExactlyOnce": true
+    },
+    {
+      "source": "docx",
+      "target": "docx",
+      "status": "PASS",
+      "mode": "native_uno",
+      "textPreparationUsed": false
+    },
+    {
+      "source": "docx",
+      "target": "pdf",
+      "status": "PASS",
+      "mode": "native_uno",
+      "textPreparationUsed": false
+    },
+    {
+      "source": "docx",
+      "target": "txt",
+      "status": "PASS",
+      "mode": "native_cli",
+      "elapsedMs": 5282,
+      "bytes": 90,
+      "sha256": "e3b07912e8c111d1dbbb449e8d104628f812a962709b7cd8bcb41dff7dd3bf41",
+      "allMarkersExactlyOnce": true
+    },
+    {
+      "source": "docm",
+      "target": "txt",
+      "status": "PASS",
+      "mode": "native_cli",
+      "elapsedMs": 5250,
+      "bytes": 90,
+      "sha256": "e3b07912e8c111d1dbbb449e8d104628f812a962709b7cd8bcb41dff7dd3bf41",
+      "allMarkersExactlyOnce": true
+    }
+  ],
+  "sourceSHA256": {
+    "docx": "66ba44049e7cd0de2b7c7d0f346af5d76b2555a4bdde17f55c201cf59b544f3d",
+    "docm": "021547ee512e5269583d69d771027a5e17b54d2fc42ab3708911a8319fda1fff",
+    "healthy": "b371e9c36b26fbc8f5f043c36b1dc2ebcd5f4e8e06f3028cbbef05c0eb083b32"
+  },
+  "telemetryEnabled": false,
+  "sourceBytesUnchanged": true
+}

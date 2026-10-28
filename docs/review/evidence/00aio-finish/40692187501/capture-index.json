@@ -1,0 +1,15 @@
+{
+  "source": "6a2806babcf5d9f6cee34da088fb6cf35f587576",
+  "files": [
+    {
+      "file": "acceptance.json",
+      "size": 532,
+      "sha256": "6d648d7e7f25815aad704f3a229d262b970ee22a77886128baaa022a2297402d"
+    },
+    {
+      "file": "source.json",
+      "size": 223,
+      "sha256": "3313ba9607b9be3e93433f7319fc066010816e907e50064683cb543b3db85ba1"
+    }
+  ]
+}

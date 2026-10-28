@@ -1,0 +1,501 @@
+{
+  "status": "PASS",
+  "platform": "win32",
+  "scope": "synthetic native safety controls; not all-format or visual certification",
+  "requireMode": "native_uno",
+  "cases": [
+    {
+      "source": "docx",
+      "target": "docm",
+      "status": "PASS",
+      "mode": "native_uno",
+      "elapsedMs": 6891,
+      "filter": "MS Word 2007 XML VBA",
+      "checks": [],
+      "outputs": [
+        {
+          "name": "document.docm",
+          "size": 5306,
+          "sha256": "8238383e796133d3cb36eb8eeee074fb4aa20ce17ef1bbb0314e030e8e2ab728"
+        }
+      ]
+    },
+    {
+      "source": "docx",
+      "target": "dotx",
+      "status": "PASS",
+      "mode": "native_uno",
+      "elapsedMs": 5906,
+      "filter": "MS Word 2007 XML Template",
+      "checks": [],
+      "outputs": [
+        {
+          "name": "document.dotx",
+          "size": 5296,
+          "sha256": "8acdc0d7372ab498f2220473425409e9c3292bb9ee598fb2501bed1a8ee098d1"
+        }
+      ]
+    },
+    {
+      "source": "docx",
+      "target": "pdf",
+      "status": "PASS",
+      "mode": "native_uno",
+      "elapsedMs": 625,
+      "filter": "writer_pdf_Export",
+      "checks": [],
+      "outputs": [
+        {
+          "name": "document.pdf",
+          "size": 28884,
+          "sha256": "b412715464425335b0a6f41ecdc0a07eb46b39786c39fdf50644e1439c6b9aaf"
+        }
+      ]
+    },
+    {
+      "source": "default_xlsx",
+      "target": "xlsx",
+      "status": "PASS",
+      "mode": "native_uno",
+      "elapsedMs": 125,
+      "filter": "Calc MS Excel 2007 XML",
+      "checks": [],
+      "outputs": [
+        {
+          "name": "default.xlsx",
+          "size": 5601,
+          "sha256": "0f7768d7084114004ba5e34f4c6979b30893764382e05abfe22c10a2ecdbebeb"
+        }
+      ]
+    },
+    {
+      "source": "math",
+      "target": "pdf",
+      "status": "PASS",
+      "mode": "native_uno",
+      "elapsedMs": 515,
+      "filter": "math_pdf_Export",
+      "checks": [],
+      "outputs": [
+        {
+          "name": "formula.pdf",
+          "size": 25905,
+          "sha256": "5a1e534d1f54fe1f58abd70ebdcfa5da9e75a0a142e6feb4f84e3241b198046f"
+        }
+      ]
+    },
+    {
+      "source": "dif",
+      "target": "fods",
+      "status": "PASS",
+      "mode": "native_uno",
+      "elapsedMs": 157,
+      "filter": "OpenDocument Spreadsheet Flat XML",
+      "checks": [
+        {
+          "check": "dif_numeric_import",
+          "status": "checked_subset",
+          "numericCells": 2,
+          "valuesCompared": true,
+          "typesCompared": true,
+          "comparisonDomain": "ieee754_double",
+          "qualityCompared": false
+        },
+        {
+          "check": "dif_table_content",
+          "qualityCompared": false,
+          "scope": "cell_coordinates_values_and_available_types",
+          "fullDocumentFidelity": false,
+          "sourceRows": 3,
+          "sourceColumns": 2,
+          "sourceNonEmptyCells": 6,
+          "sourceSHA256": "f0e44472913f723db3ca57a65631a44122de891049aff8a7be322713830bfc8a",
+          "resultNonEmptyCells": 6,
+          "matchedCells": 6,
+          "status": "checked_subset",
+          "valuesCompared": true,
+          "typesCompared": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "numbers.fods",
+          "size": 23451,
+          "sha256": "9f472ee4376c74ca8272aeaad88b1748c5a90d625b2b520b94815f01486314eb"
+        }
+      ]
+    },
+    {
+      "source": "dif",
+      "target": "xlsx",
+      "status": "PASS",
+      "mode": "native_uno",
+      "elapsedMs": 140,
+      "filter": "Calc MS Excel 2007 XML",
+      "checks": [
+        {
+          "check": "dif_numeric_import",
+          "status": "checked_subset",
+          "numericCells": 2,
+          "valuesCompared": true,
+          "typesCompared": true,
+          "comparisonDomain": "ieee754_double",
+          "qualityCompared": false
+        },
+        {
+          "check": "dif_table_content",
+          "qualityCompared": false,
+          "scope": "cell_coordinates_values_and_available_types",
+          "fullDocumentFidelity": false,
+          "sourceRows": 3,
+          "sourceColumns": 2,
+          "sourceNonEmptyCells": 6,
+          "sourceSHA256": "f0e44472913f723db3ca57a65631a44122de891049aff8a7be322713830bfc8a",
+          "resultNonEmptyCells": 6,
+          "matchedCells": 6,
+          "status": "checked_subset",
+          "valuesCompared": true,
+          "typesCompared": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "numbers.xlsx",
+          "size": 5715,
+          "sha256": "ce0d5d93eb3f35c68ad805f01aa70bd5232fca2ec50a92ee3b011575f4845057"
+        }
+      ]
+    },
+    {
+      "source": "dif",
+      "target": "pdf",
+      "status": "PASS",
+      "mode": "native_uno",
+      "elapsedMs": 453,
+      "filter": "calc_pdf_Export",
+      "checks": [
+        {
+          "check": "dif_numeric_import",
+          "status": "checked_subset",
+          "numericCells": 2,
+          "valuesCompared": true,
+          "typesCompared": true,
+          "comparisonDomain": "ieee754_double",
+          "qualityCompared": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "numbers.pdf",
+          "size": 16419,
+          "sha256": "4e62909f98c44421ce0cac03e115b876905097f23299dc400974e4185eabaf09"
+        }
+      ]
+    },
+    {
+      "source": "bmp",
+      "target": "png",
+      "status": "PASS",
+      "mode": "qt_media_frames",
+      "elapsedMs": 16,
+      "filter": null,
+      "checks": [
+        {
+          "check": "media_properties",
+          "status": "checked_subset",
+          "qualityCompared": false,
+          "source": {
+            "format": "bmp",
+            "width": 2,
+            "height": 2,
+            "frames": 1,
+            "pages": 1,
+            "alpha": false,
+            "durationsMs": [],
+            "orientation": 1
+          },
+          "result": {
+            "format": "png",
+            "width": 2,
+            "height": 2,
+            "frames": 1,
+            "pages": 1,
+            "alpha": false,
+            "durationsMs": [],
+            "orientation": 1,
+            "animationContainer": false,
+            "loopCount": 1,
+            "bitDepth": 8
+          },
+          "expectedLosses": []
+        }
+      ],
+      "outputs": [
+        {
+          "name": "picture.png",
+          "size": 100,
+          "sha256": "27d49547fee4c0ebbd89899ed125341dc20d245b2cebc61e137a0676e6de3b09"
+        }
+      ]
+    },
+    {
+      "source": "bmp",
+      "target": "jfif",
+      "status": "PASS",
+      "mode": "qt_media_frames",
+      "elapsedMs": 16,
+      "filter": null,
+      "checks": [
+        {
+          "check": "media_properties",
+          "status": "checked_subset",
+          "qualityCompared": false,
+          "source": {
+            "format": "bmp",
+            "width": 2,
+            "height": 2,
+            "frames": 1,
+            "pages": 1,
+            "alpha": false,
+            "durationsMs": [],
+            "orientation": 1
+          },
+          "result": {
+            "format": "jpeg",
+            "width": 2,
+            "height": 2,
+            "frames": 1,
+            "pages": 1,
+            "alpha": false,
+            "durationsMs": [],
+            "orientation": 1
+          },
+          "expectedLosses": []
+        }
+      ],
+      "outputs": [
+        {
+          "name": "picture.jfif",
+          "size": 667,
+          "sha256": "23ef60b9ec85ca512c62b101f58a032bf8d564ad2c36deecd12a8ef1417414e5"
+        }
+      ]
+    },
+    {
+      "source": "bmp",
+      "target": "jif",
+      "status": "PASS",
+      "mode": "qt_media_frames",
+      "elapsedMs": 0,
+      "filter": null,
+      "checks": [
+        {
+          "check": "media_properties",
+          "status": "checked_subset",
+          "qualityCompared": false,
+          "source": {
+            "format": "bmp",
+            "width": 2,
+            "height": 2,
+            "frames": 1,
+            "pages": 1,
+            "alpha": false,
+            "durationsMs": [],
+            "orientation": 1
+          },
+          "result": {
+            "format": "jpeg",
+            "width": 2,
+            "height": 2,
+            "frames": 1,
+            "pages": 1,
+            "alpha": false,
+            "durationsMs": [],
+            "orientation": 1
+          },
+          "expectedLosses": []
+        }
+      ],
+      "outputs": [
+        {
+          "name": "picture.jif",
+          "size": 667,
+          "sha256": "23ef60b9ec85ca512c62b101f58a032bf8d564ad2c36deecd12a8ef1417414e5"
+        }
+      ]
+    },
+    {
+      "source": "bmp",
+      "target": "jpe",
+      "status": "PASS",
+      "mode": "qt_media_frames",
+      "elapsedMs": 0,
+      "filter": null,
+      "checks": [
+        {
+          "check": "media_properties",
+          "status": "checked_subset",
+          "qualityCompared": false,
+          "source": {
+            "format": "bmp",
+            "width": 2,
+            "height": 2,
+            "frames": 1,
+            "pages": 1,
+            "alpha": false,
+            "durationsMs": [],
+            "orientation": 1
+          },
+          "result": {
+            "format": "jpeg",
+            "width": 2,
+            "height": 2,
+            "frames": 1,
+            "pages": 1,
+            "alpha": false,
+            "durationsMs": [],
+            "orientation": 1
+          },
+          "expectedLosses": []
+        }
+      ],
+      "outputs": [
+        {
+          "name": "picture.jpe",
+          "size": 667,
+          "sha256": "23ef60b9ec85ca512c62b101f58a032bf8d564ad2c36deecd12a8ef1417414e5"
+        }
+      ]
+    },
+    {
+      "source": "presentation",
+      "target": "bmp",
+      "status": "PASS",
+      "mode": "native_uno",
+      "elapsedMs": 141,
+      "filter": "impress_bmp_Export",
+      "checks": [
+        {
+          "check": "native_bmp_header_size",
+          "status": "repaired_header",
+          "qualityCompared": false,
+          "file": "slides.bmp",
+          "declaredSizeBefore": 3937302,
+          "actualSize": 2955222,
+          "headerField": "bfSize",
+          "headerBytesTouched": 4,
+          "pixelBytesChanged": 0,
+          "sourceOutputSha256": "136d3a4b9808a7031c738dcf0a276c356cd6b4bc772c90b93bd8da104df9ef19",
+          "width": 1323,
+          "height": 744,
+          "bitDepth": 24
+        },
+        {
+          "check": "media_properties",
+          "status": "checked_subset",
+          "qualityCompared": false,
+          "source": null,
+          "result": {
+            "format": "bmp",
+            "width": 1323,
+            "height": 744,
+            "frames": 1,
+            "pages": 1,
+            "alpha": false,
+            "durationsMs": [],
+            "orientation": 1
+          },
+          "expectedLosses": []
+        }
+      ],
+      "outputs": [
+        {
+          "name": "slides.bmp",
+          "size": 2955222,
+          "sha256": "23bf8ead6744e99506e94d4e064f159d4f6ea0416eab81d19263b6af0a9e4d25"
+        }
+      ]
+    },
+    {
+      "source": "presentation",
+      "target": "htm",
+      "status": "PASS",
+      "mode": "native_uno",
+      "elapsedMs": 93,
+      "filter": "impress_html_Export",
+      "checks": [
+        {
+          "check": "html_body",
+          "status": "content_present",
+          "qualityCompared": false,
+          "inspectedBytes": 458,
+          "localResourcesChecked": true
+        },
+        {
+          "check": "presentation_html_content",
+          "qualityCompared": false,
+          "sourceTextParagraphs": 1,
+          "sourceImageOccurrences": 0,
+          "status": "checked_subset",
+          "comparedScope": "body_text_and_graphic_presence",
+          "bodyTextInspected": true,
+          "imageReferences": 0,
+          "visualLayoutCompared": false
+        }
+      ],
+      "outputs": [
+        {
+          "name": "slides.htm",
+          "size": 458,
+          "sha256": "e5ec0c0b28e75147a62836fba1e7e7dd41371cff88eabf77b5a0790df5afe335"
+        }
+      ]
+    },
+    {
+      "source": "flat_presentation_alias",
+      "target": "odp",
+      "status": "PASS",
+      "mode": "native_uno",
+      "elapsedMs": 563,
+      "filter": "impress8",
+      "checks": [],
+      "outputs": [
+        {
+          "name": "presentation-alias.odp",
+          "size": 11296,
+          "sha256": "51a30f12075dd1cc9cf44afc0167e340ff1eb71ee50e19a8f6ceb64303681b27"
+        }
+      ]
+    },
+    {
+      "source": "flat_text_alias",
+      "target": "odt",
+      "status": "PASS",
+      "mode": "native_uno",
+      "elapsedMs": 250,
+      "filter": "writer8",
+      "checks": [],
+      "outputs": [
+        {
+          "name": "text-alias.odt",
+          "size": 15384,
+          "sha256": "b1cc75dd475d2565b81ed6ba6e315c79bd02829f4ba664b17c45b487f8796a31"
+        }
+      ]
+    }
+  ],
+  "sourceSHA256": {
+    "docx": "85126a4376b80186f56c04fffd254554057fc61e400f37c2b9b6f5850b2b4d7d",
+    "xlsx": "3290c90ad0d16ee9fef6e3ce1747f7d3d9d83958c2c50e6a8105f89194b53b48",
+    "csv": "e8078ccdcad81cbae566326ea6dc91cf26657535bb23b123b39d85c2ac64a847",
+    "bmp": "a7beb5056325b28509539b4f84f7444a1333692b32806406fe21d7d6f991ee8b",
+    "dif": "f0e44472913f723db3ca57a65631a44122de891049aff8a7be322713830bfc8a",
+    "default_xlsx": "f9607ce2163190078a0d846a4bacdddebaa2701470dd233238fb8b74e4d1efe6",
+    "math": "bc96be01e8b50b16a45515e4974b8cfbe7a321bfe7a91d0fb1cd94d6dcf4da99",
+    "presentation": "ce9e827036d118cc76c37df9c78d696a48f1c7abb25f28ef6b9d831df85b558d",
+    "flat_presentation_alias": "d7c7ac85388f5b63854a3ed4ab925d016c9461cd369b37aad1846ed584514287",
+    "flat_text_alias": "536c88a7bd28e19486d2d29b278e660f94ba32e816323748e86e682701ec0618"
+  },
+  "sourceBytesUnchanged": true,
+  "elapsedMs": 34047
+}
