@@ -82,7 +82,9 @@ def main():
                 app.processEvents()
                 if check(): return
                 time.sleep(.02)
-            raise TimeoutError('Small viewer condition: ' + str(js("document.querySelector('[data-c-feedback]')?.textContent")))
+            debug = js("JSON.stringify({input:window.__smallInput||[],preview:document.querySelector('[data-c-preview]')?.textContent,feedback:document.querySelector('[data-c-feedback]')?.textContent,images:[...document.querySelectorAll('.aio-pair-pane img')].map(i=>[i.naturalWidth,i.naturalHeight,i.style.width])})")
+            result['lastObservedUi'] = json.loads(debug) if debug else None
+            raise TimeoutError('Small viewer condition: ' + str(debug))
 
         def click(selector, double=False):
             value = js("JSON.stringify((()=>{const e=document.querySelector(" + json.dumps(selector) + "),r=e.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2;return{x,y,w:r.width,h:r.height,visible:e.contains(document.elementFromPoint(x,y))}})())")
@@ -90,17 +92,28 @@ def main():
             assert point['w'] > 0 and point['h'] > 0 and point['visible'], (selector, point)
             receiver = window.view.focusProxy() or window.view
             position = receiver.mapFrom(window.view, QPoint(round(point['x']), round(point['y'])))
-            method = QTest.mouseDClick if double else QTest.mouseClick
-            method(receiver, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, position)
+            if double:
+                # A QWidget double-click event is the second press in the
+                # native sequence. WebEngine must also see the preceding
+                # click and final release; no scripted DOM click fallback.
+                QTest.mouseClick(receiver, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, position)
+                QTest.qWait(20)
+                QTest.mouseDClick(receiver, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, position)
+                QTest.mouseRelease(receiver, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, position, 10)
+            else:
+                QTest.mouseClick(receiver, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, position)
             app.processEvents()
 
         until(lambda: js('!!window.AIOGuardComparison&&!!window.AIOComparisonViewer'))
+        js("window.__smallInput=[];for(const type of ['mousedown','mouseup','click','dblclick'])document.addEventListener(type,e=>{if(e.target.closest('[data-task]'))window.__smallInput.push({type,detail:e.detail,trusted:e.isTrusted})},true);true")
         js('window.AIOGuardComparison.open(' + json.dumps(job) + ');true')
         until(lambda: js("document.querySelector('[data-c-progress]')?.textContent.includes('Анализ завершён')"))
         click('[data-c-filter-choice="all"]')
         until(lambda: js("document.querySelectorAll('.aio-compare-row').length===1"))
         click('[data-task]', double=True)
         until(lambda: js("document.querySelectorAll('.aio-pair-pane img').length===2&&[...document.querySelectorAll('.aio-pair-pane img')].every(i=>i.naturalWidth===140&&i.naturalHeight===105)"))
+        result['nativeRowInput'] = json.loads(js('JSON.stringify(window.__smallInput)'))
+        assert any(event['type'] == 'dblclick' and event['trusted'] for event in result['nativeRowInput']), result['nativeRowInput']
         for theme in ('dark', 'light'):
             js('document.documentElement.setAttribute("data-theme",' + json.dumps(theme) + ');true')
             for scale, width in (('1', 140), ('2', 280), ('4', 560)):
