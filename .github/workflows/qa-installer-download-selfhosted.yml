@@ -1,0 +1,114 @@
+name: AIO QA installer download (NIKITA self-hosted, no rebuild)
+
+# Owner-approved one-shot distribution of an already verified QA installer.
+# Never use GitHub-hosted runners, reinstall tools, rebuild, release or clean files.
+on:
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aio-qa-installer-download-20261028-once
+  cancel-in-progress: false
+
+jobs:
+  qa-installer-download:
+    if: >-
+      github.repository == 'jumonja-maker/A.I.O' &&
+      github.actor == 'jumonja-maker' &&
+      github.event.action == 'labeled' &&
+      github.event.label.name == 'aio-qa-installer-download-approved-once' &&
+      github.event.pull_request.user.login == 'jumonja-maker' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'ops/qa-installer-download-selfhosted-20261028' &&
+      github.event.pull_request.base.ref == 'fix/guard-v182-matrix-progress-cancel-20261025'
+    runs-on: [self-hosted, Windows, X64, local-d-manual]
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: powershell
+    env:
+      AIO_QA_PACKAGE_DIR: D:\AIO-Lab\AIO-QA-Dist\qa-head-20261028-frozen-accepted-40746579695-1
+      AIO_EXPECTED_SETUP_SHA: d7690fdbaee12ab554abb9704d9242df14a537c12027eaf4d3845128bbccdb98
+      AIO_EXPECTED_ZIP_SHA: 07937b67ce13b8b1540b8e7871635d88c04df26e5d8736bf59963f98249710dd
+      AIO_PRODUCT_SOURCE_SHA: d57e4cf75cc0f46f0bfbfa1da01a23d22018c3dc
+      AIO_PRODUCT_TREE_SHA: bc48522b79c5365d3fc2f6f65effec43f824d3b0
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUTF8: '1'
+      PIP_NO_INDEX: '1'
+    steps:
+      - name: Verify authorized self-hosted NIKITA identity and provenance
+        id: verify
+        run: |
+          $ErrorActionPreference='Stop'
+          if ($env:RUNNER_NAME -cne 'NIKITA' -or $env:RUNNER_OS -cne 'Windows' -or $env:USERNAME -ine 'aio-runner') { throw 'Unexpected runner or identity' }
+          $principal=New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+          if ($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Elevated delivery forbidden' }
+          $root=$env:AIO_QA_PACKAGE_DIR
+          if (-not [IO.Path]::GetFullPath($root).StartsWith('D:\AIO-Lab\AIO-QA-Dist\',[StringComparison]::OrdinalIgnoreCase)) { throw 'Unapproved QA package directory' }
+          foreach($dir in @('D:\AIO-Lab','D:\AIO-Lab\AIO-QA-Dist',$root)) {
+            if (-not (Test-Path -LiteralPath $dir -PathType Container)) { throw ('Accepted QA archive missing: '+$dir) }
+            if (((Get-Item -LiteralPath $dir).Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { throw ('Linked archive directory not trusted: '+$dir) }
+          }
+          $setup=Join-Path $root 'AIO-Guard-QA-20261028-win-x64.exe'
+          $zip=Join-Path $root 'AIO-Guard-QA-20261028-PORTABLE.zip'
+          $sum=Join-Path $root 'SHA256SUMS.txt'
+          $build=Join-Path $root 'BUILD-STATUS.txt'
+          $recovery=Join-Path $root 'QA-RECOVERY-STATUS.txt'
+          $frozen=Join-Path $root 'FROZEN-ACCEPTANCE.json'
+          foreach($file in @($setup,$zip,$sum,$build,$recovery,$frozen)) {
+            if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw ('Required verified QA file absent: '+$file) }
+            if (((Get-Item -LiteralPath $file).Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { throw ('Linked QA file forbidden: '+$file) }
+          }
+          $setupInfo=Get-Item -LiteralPath $setup
+          $zipInfo=Get-Item -LiteralPath $zip
+          if ($setupInfo.Length -ne 364230023 -or $zipInfo.Length -ne 539877533) { throw 'Unexpected QA package size' }
+          foreach($pair in @(@($setup,$env:AIO_EXPECTED_SETUP_SHA),@($zip,$env:AIO_EXPECTED_ZIP_SHA))) {
+            $actual=(Get-FileHash -LiteralPath $pair[0] -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($actual -cne $pair[1]) { throw ('QA file hash differs: '+[IO.Path]::GetFileName($pair[0])) }
+            Write-Host ('VERIFIED_QA_SHA256='+$actual+'  '+[IO.Path]::GetFileName($pair[0]))
+          }
+          $sumText=Get-Content -LiteralPath $sum -Raw -Encoding ascii
+          if (-not $sumText.Contains($env:AIO_EXPECTED_SETUP_SHA+'  '+[IO.Path]::GetFileName($setup)) -or -not $sumText.Contains($env:AIO_EXPECTED_ZIP_SHA+'  '+[IO.Path]::GetFileName($zip))) { throw 'SHA256SUMS original record mismatch' }
+          $buildText=Get-Content -LiteralPath $build -Raw -Encoding utf8
+          $recoveryText=Get-Content -LiteralPath $recovery -Raw -Encoding utf8
+          if (-not $buildText.Contains('SOURCE='+$env:AIO_PRODUCT_SOURCE_SHA) -or
+              -not $buildText.Contains('TREE='+$env:AIO_PRODUCT_TREE_SHA) -or
+              -not $buildText.Contains('INSTALLED=NO;RELEASED=NO') -or
+              -not $recoveryText.Contains('QA_FROZEN_RECOVERY=PASS') -or
+              -not $recoveryText.Contains('SOURCE='+$env:AIO_PRODUCT_SOURCE_SHA) -or
+              -not $recoveryText.Contains('FILE_SHA256_READBACK=PASS') -or
+              -not $recoveryText.Contains('INSTALL=NOT_RUN;FULLTEST=NOT_RUN;RELEASE=NOT_RUN')) { throw 'Accepted QA evidence or provenance invalid' }
+          $ev=Get-Content -LiteralPath $frozen -Raw -Encoding utf8 | ConvertFrom-Json
+          if ($ev.status -cne 'PASS' -or $ev.frozenVerified -ne $true -or $ev.fixturesUnchanged -ne $true -or
+              $ev.assets.status -cne 'PASS' -or $ev.operations.'png-preview'.png.width -ne 2400 -or
+              $ev.operations.'png-preview'.png.height -ne 1200 -or $ev.operations.'png-preview'.png.colourType -ne 6) {
+            throw 'Frozen QA acceptance evidence is missing or not PASS'
+          }
+          Write-Host 'QA_PREPARED_INSTALLER=VERIFIED;QA_ONLY=TRUE;NO_INSTALL=TRUE'
+      - name: Upload only the verified QA installer and its checksum evidence
+        id: upload
+        if: steps.verify.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: AIO-QA-20261028-Windows-Installer
+          path: |
+            D:\AIO-Lab\AIO-QA-Dist\qa-head-20261028-frozen-accepted-40746579695-1\AIO-Guard-QA-20261028-win-x64.exe
+            D:\AIO-Lab\AIO-QA-Dist\qa-head-20261028-frozen-accepted-40746579695-1\SHA256SUMS.txt
+            D:\AIO-Lab\AIO-QA-Dist\qa-head-20261028-frozen-accepted-40746579695-1\BUILD-STATUS.txt
+            D:\AIO-Lab\AIO-QA-Dist\qa-head-20261028-frozen-accepted-40746579695-1\QA-RECOVERY-STATUS.txt
+            D:\AIO-Lab\AIO-QA-Dist\qa-head-20261028-frozen-accepted-40746579695-1\FROZEN-ACCEPTANCE.json
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+          overwrite: false
+      - name: Confirm uploaded artifact without claiming installed product acceptance
+        if: always()
+        run: |
+          Write-Host ('QA_INSTALLER_UPLOAD='+ '${{ steps.upload.outcome }}')
+          Write-Host ('QA_DOWNLOAD_URL='+ '${{ steps.upload.outputs.artifact-url }}')
+          Write-Host 'ORIGINAL_PRODUCT_SOURCE=d57e4cf75cc0f46f0bfbfa1da01a23d22018c3dc'
+          Write-Host 'USER_INSTALLED=NOT_RUN;FULLTEST=NOT_RUN;RELEASE=NOT_RUN;MAIN=UNCHANGED'
+          if ('${{ steps.verify.outcome }}' -ne 'success' -or '${{ steps.upload.outcome }}' -ne 'success') { throw 'Verified QA installer not delivered' }
