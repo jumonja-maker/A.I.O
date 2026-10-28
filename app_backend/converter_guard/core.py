@@ -156,8 +156,14 @@ class _Artifact:
     readback_verified: bool = False
     source_sheet: dict | None = None
 
+    @property
+    def companion(self):
+        # Generated whole-workbook manifest is a necessary sidecar, not a
+        # fifth converted spreadsheet. It must still be durably saved.
+        return self.name == 'AIO-sheets.json' and self.source_sheet is None and self.format in ('csv','tab','tsv')
+
     def metadata(self):
-        return {'fileId': self.file_id, 'format': self.format, 'name': self.name,
+        return {'supportingFile': self.companion, 'fileId': self.file_id, 'format': self.format, 'name': self.name,
                 'archiveName': self.archive_name, 'size': self.size, 'saved': self.saved,
                 'sha256': self.sha256, 'readbackVerified':self.readback_verified,
                 'sourceSheet':copy.deepcopy(self.source_sheet),
@@ -772,6 +778,8 @@ class ConverterGuard:
                               'outputs': len(j.artifacts), 'bytes': sum(a.size for a in j.artifacts),
                               'state': j.state, 'running': j.running, 'saveInProgress': j.saving,
                               'unsavedOutputs': sum(not a.saved for a in j.artifacts),
+                              'unsavedCompanionFiles': sum(not a.saved and a.companion for a in j.artifacts),
+                              'unsavedDocuments': sum(not a.saved and not a.companion for a in j.artifacts),
                               'unsavedBytes': sum(a.size for a in j.artifacts if not a.saved),
                               'recoveryDurable': bool(j.store and not j.recovery_error),
                               'retainSources': j.retain_sources,
@@ -2207,6 +2215,8 @@ class ConverterGuard:
                     'incompleteRecovery': bool(job.recovery_error),
                     'jobRunning': job.running,
                     'remainingOutputs': sum(not a.saved for a in job.artifacts),
+                    'remainingCompanionFiles': sum(not a.saved and a.companion for a in job.artifacts),
+                    'remainingDocuments': sum(not a.saved and not a.companion for a in job.artifacts),
                     'outputs': len(copies)}
 
     def save_folder(self, ticket, destination, *, cancel=None, on_progress=lambda current, total: None,
@@ -2474,6 +2484,8 @@ class ConverterGuard:
         snapshot = {'schemaVersion': 3, 'jobId': job.id, 'revision': job.revision,
                 'state': job.state, 'finished': finished,
                 'diagnosticBytes':job.diagnostic_bytes,
+                'unsavedCompanionFiles':sum(not a.saved and a.companion for a in job.artifacts),
+                'unsavedDocuments':sum(not a.saved and not a.companion for a in job.artifacts),
                 'currentTask': current, 'pauseRequested': job.paused,
                 'fileTimeoutSeconds': job.file_timeout, 'officeStarts': job.office_starts,
                 'recovered': job.recovered, 'salvaged': job.salvage, 'recoveryError': job.recovery_error,
@@ -2992,5 +3004,7 @@ class ConverterGuard:
                     'retainedJobs': sum(bool(j.artifacts) for j in jobs),
                     'unsavedJobs': sum(any(not a.saved for a in j.artifacts) for j in jobs),
                     'unsavedOutputs': sum(not a.saved for j in jobs for a in j.artifacts),
+                'unsavedCompanionFiles': sum(not a.saved and a.companion for j in jobs for a in j.artifacts),
+                'unsavedDocuments': sum(not a.saved and not a.companion for j in jobs for a in j.artifacts),
                     'unsavedBytes': sum(a.size for j in jobs for a in j.artifacts if not a.saved),
                     'recoveryWriteFailures': sum(bool(j.recovery_error) for j in jobs)}
