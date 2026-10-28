@@ -64,7 +64,7 @@ jobs:
           path: aio-blackbox-contracts-${{ github.run_id }}-${{ github.run_attempt }}
           persist-credentials: false
           clean: true
-      - name: Select existing offline Python 3.11
+      - name: Select existing offline compatible Python
         working-directory: aio-blackbox-contracts-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           set -euo pipefail
@@ -73,13 +73,19 @@ jobs:
           echo "AIO_TESTED_SOURCE_SHA=$source_sha"
           python_bin=''
           for candidate in /home/aio-runner/AIO-Lab/AIO-QA-Env/bin/python /home/aio-runner/AIO-QA-Env/bin/python /home/aio-runner/AIO-Lab/venv/bin/python /usr/bin/python3; do
-            if test -x "$candidate" && "$candidate" -c 'import sys; assert sys.version_info[:2] == (3,11)' >/dev/null 2>&1; then
+            if test -x "$candidate" && "$candidate" -c 'import sys; assert (3,10) <= sys.version_info[:2] < (3,14)' >/dev/null 2>&1; then
               python_bin="$candidate"
               break
             fi
           done
-          test -n "$python_bin" || { echo 'Approved preinstalled offline Python 3.11 unavailable; no network install'; exit 1; }
+          test -n "$python_bin" || { echo 'Existing compatible Python 3.10-3.13 unavailable; no network install'; exit 1; }
           printf 'AIO_QA_PYTHON=%s\n' "$python_bin" >> "$GITHUB_ENV"
+      - name: Materialize reviewed SHA-verified offline test dependencies
+        working-directory: aio-blackbox-contracts-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          bundle="$RUNNER_TEMP/aio-blackbox-deps-${{ github.run_id }}-${{ github.run_attempt }}"
+          "$AIO_QA_PYTHON" tools/qa/guard_v17_test_dependencies.py --output "$bundle" --github-env
       - name: Compile diagnostic source and integrations
         working-directory: aio-blackbox-contracts-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
