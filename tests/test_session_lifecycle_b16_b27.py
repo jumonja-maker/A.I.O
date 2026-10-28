@@ -35,6 +35,32 @@ class SessionLifecycleContracts(unittest.TestCase):
         guard.close_conversion(job)
         with self.assertRaises(GuardError):guard.status(job)
         self.assertTrue((self.root/saved['name']).is_dir())
+    def test_close_warns_for_active_or_unfinished_zero_output_session(self):
+        guard=ConverterGuard(adapter=FakeAdapter(),recovery_parent=self.root/'owned-zero')
+        self.guards.append(guard)
+        job=guard.create([{'id':'f','name':'pending.docx','size':4}],['pdf'],retain_sources=True)['jobId']
+        self.assertEqual(guard.status(job)['state'],'uploading')
+        result=guard.close_conversion(job)
+        self.assertTrue(result['confirmationRequired'])
+        self.assertEqual(result['unsavedOutputs'],0)
+        self.assertTrue(result['activeConversion'])
+        self.assertEqual(guard.status(job)['state'],'uploading')
+        self.assertTrue(guard.close_conversion(job,discard=True)['closed'])
+
+    def test_close_warns_if_recovery_incomplete_even_after_all_known_outputs_saved(self):
+        guard,job,state=self.ready()
+        saved=guard.save_folder(state['result']['ticket'],self.root)
+        self.assertTrue(saved['savedAll'])
+        with guard._lock:
+            guard._jobs[job].recovery_error='RECOVERY_LEDGER_INCOMPLETE'
+        result=guard.close_conversion(job)
+        self.assertTrue(result['confirmationRequired'])
+        self.assertEqual(result['unsavedOutputs'],0)
+        self.assertTrue(result['recoveryWarning'])
+        self.assertEqual(guard.status(job)['recoveryError'],'RECOVERY_LEDGER_INCOMPLETE')
+        self.assertTrue(guard.close_conversion(job,discard=True)['closed'])
+        self.assertTrue((self.root/saved['name']).exists())
+
     def test_close_without_confirmation_is_a_read_only_decision(self):
         guard,job,state=self.ready();root=guard._jobs[job].root
         def inventory():
