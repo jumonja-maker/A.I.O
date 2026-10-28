@@ -1,0 +1,197 @@
+name: 00AIO frozen QA recovery (existing NIKITA build, no rebuild)
+
+# One-shot owner-approved verification of a specific prior QA build.
+# An absent/changed package fails closed; never rebuild or bypass Guard gates.
+on:
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aio-frozen-qa-recovery-40738324244
+  cancel-in-progress: false
+
+env:
+  AIO_BUILD_PRODUCT_SHA: d57e4cf75cc0f46f0bfbfa1da01a23d22018c3dc
+  AIO_BUILD_PRODUCT_TREE: bc48522b79c5365d3fc2f6f65effec43f824d3b0
+  AIO_SETUP_SHA256: d7690fdbaee12ab554abb9704d9242df14a537c12027eaf4d3845128bbccdb98
+  AIO_PORTABLE_SHA256: 07937b67ce13b8b1540b8e7871635d88c04df26e5d8736bf59963f98249710dd
+  PYTHONDONTWRITEBYTECODE: '1'
+  PYTHONUTF8: '1'
+  PYTHONIOENCODING: utf-8
+  PIP_NO_INDEX: '1'
+  PIP_NO_INPUT: '1'
+  QT_QPA_PLATFORM: offscreen
+  QT_OPENGL: software
+  QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --disable-gpu-compositing
+  AIO_BLACKBOX_EVENTS: ''
+
+jobs:
+  frozen-qa:
+    if: >-
+      github.repository == 'jumonja-maker/A.I.O' &&
+      github.actor == 'jumonja-maker' &&
+      github.event.action == 'labeled' &&
+      github.event.label.name == 'aio-frozen-recovery-approved-once' &&
+      github.event.pull_request.number == 81 &&
+      github.event.pull_request.user.login == 'jumonja-maker' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'fix/frozen-png-preview-contract-qa-20261028' &&
+      github.event.pull_request.base.ref == 'fix/guard-v182-matrix-progress-cancel-20261025'
+    runs-on: [self-hosted, Windows, X64, local-d-manual]
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - name: Verify restricted unprivileged NIKITA and separate QA storage
+        run: |
+          $ErrorActionPreference='Stop'
+          if ($env:RUNNER_NAME -cne 'NIKITA' -or $env:RUNNER_OS -cne 'Windows' -or $env:USERNAME -ine 'aio-runner') { throw 'Unexpected or privileged runner identity' }
+          $principal=New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+          if ($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Elevated recovery not permitted' }
+          foreach($key in @('GITHUB_WORKSPACE','RUNNER_TEMP','TEMP','TMP')) {
+            $dir=[Environment]::GetEnvironmentVariable($key)
+            if ([string]::IsNullOrWhiteSpace($dir) -or -not [IO.Path]::GetFullPath($dir).StartsWith('D:\',[StringComparison]::OrdinalIgnoreCase)) { throw ('Workspace must remain on D: '+$key) }
+          }
+          if ((Get-PSDrive -Name D -PSProvider FileSystem).Free -lt 3GB) { throw 'Not enough D: disk space for independent QA archive' }
+          $checkout=Join-Path $env:GITHUB_WORKSPACE 'aio-frozen-recovery-source-${{ github.run_id }}-${{ github.run_attempt }}'
+          if (Test-Path -LiteralPath $checkout) { throw 'Recovery checkout already exists' }
+          $dest=Join-Path 'D:\AIO-Lab\AIO-QA-Dist' ('qa-head-20261028-frozen-accepted-${{ github.run_id }}-${{ github.run_attempt }}')
+          if (Test-Path -LiteralPath $dest) { throw 'Recovery destination already exists' }
+      - name: Checkout tested QA-only harness without credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        env:
+          GIT_CONFIG_COUNT: '1'
+          GIT_CONFIG_KEY_0: core.autocrlf
+          GIT_CONFIG_VALUE_0: 'false'
+        with:
+          repository: jumonja-maker/A.I.O
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: aio-frozen-recovery-source-${{ github.run_id }}-${{ github.run_attempt }}
+          persist-credentials: false
+          clean: true
+      - name: Run independent PNG acceptance budget regressions
+        working-directory: aio-frozen-recovery-source-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $python='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\Scripts\python.exe'
+          $marker='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\.00aio-test-only-venv.txt'
+          if (-not (Test-Path -LiteralPath $python -PathType Leaf) -or -not (Test-Path -LiteralPath $marker -PathType Leaf) -or (Get-Content -LiteralPath $marker -Raw).Trim() -cne '00AIO NIKITA ISOLATED DOCX PDF QA PY311 QT6103') { throw 'Approved offline Python unavailable' }
+          & $python -m unittest discover -s tests -p 'test_frozen_preview_budget_contract.py' -v
+          if ($LASTEXITCODE -ne 0) { throw 'Standalone frozen preview budget regressions failed' }
+          Write-Host 'QA_PNG_BUDGET_TESTS=PASS'
+          'AIO_RECOVERY_PYTHON='+$python | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host 'QA_TESTED_HARNESS_HEAD=${{ github.event.pull_request.head.sha }}'
+      - name: Verify immutable original build identity and exact setup ZIP SHA256
+        run: |
+          $ErrorActionPreference='Stop'
+          $source=Join-Path $env:GITHUB_WORKSPACE 'aio-guard-v1821-build-source-40738324244-1'
+          $exe=Join-Path $source 'dist\A.I.O\A.I.O.exe'
+          $packageRoot=Join-Path $source 'build\installer'
+          $setup=Join-Path $packageRoot 'AIO-Guard-QA-20261028-win-x64.exe'
+          $zip=Join-Path $packageRoot 'AIO-Guard-QA-20261028-PORTABLE.zip'
+          $status=Join-Path $packageRoot 'BUILD-STATUS.txt'
+          $sums=Join-Path $packageRoot 'SHA256SUMS.txt'
+          foreach($dir in @($source,(Join-Path $source 'dist'),(Join-Path $source 'dist\A.I.O'),$packageRoot)) {
+            if (-not (Test-Path -LiteralPath $dir -PathType Container)) { throw ('Original immutable QA build missing; need fresh build: '+$dir) }
+            if (((Get-Item -LiteralPath $dir).Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { throw 'Untrusted linked build folder' }
+          }
+          foreach($file in @($exe,$setup,$zip,$status,$sums)) {
+            if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw ('Original QA file missing: '+$file) }
+            if (((Get-Item -LiteralPath $file).Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { throw ('Untrusted linked QA file: '+$file) }
+          }
+          $buildStatus=Get-Content -LiteralPath $status -Raw -Encoding utf8
+          if (-not $buildStatus.Contains('SOURCE='+$env:AIO_BUILD_PRODUCT_SHA) -or -not $buildStatus.Contains('TREE='+$env:AIO_BUILD_PRODUCT_TREE) -or -not $buildStatus.Contains('INSTALLED=NO') -or -not $buildStatus.Contains('FULLTEST_510=NOT_RUN')) { throw 'Original build stamp or QA scope changed' }
+          $recorded=Get-Content -LiteralPath $sums -Raw -Encoding ascii
+          foreach($pair in @(@($setup,$env:AIO_SETUP_SHA256),@($zip,$env:AIO_PORTABLE_SHA256))) {
+            $file=$pair[0]; $expected=$pair[1]
+            if (-not $recorded.Contains($expected+'  '+[IO.Path]::GetFileName($file))) { throw 'SHA256SUMS provenance mismatch' }
+            $actual=(Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($actual -cne $expected) { throw ('Original QA artifact differs from successful Inno/ZIP packaging: '+$file) }
+            Write-Host ('ORIGINAL_QA_SHA256='+$actual+'  '+[IO.Path]::GetFileName($file))
+          }
+          $check=@'
+          import hashlib,sys,zipfile
+          from pathlib import Path
+          archive=Path(sys.argv[1]);executable=Path(sys.argv[2])
+          with executable.open('rb') as f: executable_hash=hashlib.file_digest(f,'sha256').hexdigest()
+          with zipfile.ZipFile(archive) as z:
+              matches=[n for n in z.namelist() if n.replace('\\','/').endswith('/A.I.O.exe') or n=='A.I.O.exe']
+              assert len(matches)==1, ('Unexpected EXE members in archive',matches)
+              source_hash=hashlib.sha256()
+              with z.open(matches[0]) as stream:
+                  while chunk:=stream.read(1024*1024):source_hash.update(chunk)
+              assert source_hash.hexdigest()==executable_hash,'Frozen EXE differs from archive'
+              assert z.testzip() is None,'Portable ZIP CRC mismatch'
+          print('QA_FROZEN_EXE_ZIP_MATCH=PASS;EXE_SHA256='+executable_hash,flush=True)
+          '@
+          & 'D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\Scripts\python.exe' -c $check $zip $exe
+          if ($LASTEXITCODE -ne 0) { throw 'EXE/ZIP provenance or CRC check failed' }
+          'AIO_RECOVERY_EXE='+$exe | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          'AIO_RECOVERY_PACKAGE_ROOT='+$packageRoot | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Real frozen EXE acceptance with corrected independently bounded PNG contract
+        id: frozen
+        working-directory: aio-frozen-recovery-source-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $out=Join-Path $env:RUNNER_TEMP ('aio-frozen-recovery-evidence-${{ github.run_id }}-${{ github.run_attempt }}')
+          & $env:AIO_RECOVERY_PYTHON tools/qa/guard_v19_frozen_acceptance.py --executable $env:AIO_RECOVERY_EXE --output $out --seconds 120
+          if ($LASTEXITCODE -ne 0) { throw ('Existing frozen EXE acceptance failed; evidence retained at '+$out) }
+          $evidence=Join-Path $out 'evidence.json'
+          if (-not (Test-Path -LiteralPath $evidence -PathType Leaf)) { throw 'Frozen worker evidence absent' }
+          $data=Get-Content -LiteralPath $evidence -Raw -Encoding utf8 | ConvertFrom-Json
+          $preview=$data.operations.'png-preview'
+          if ($data.status -cne 'PASS' -or $data.frozenVerified -ne $true -or $data.fixturesUnchanged -ne $true -or
+              $data.assets.status -cne 'PASS' -or $preview.metadata.kind -cne 'image' -or
+              $preview.png.width -ne 2400 -or $preview.png.height -ne 1200 -or $preview.png.colourType -ne 6) {
+            throw 'Evidence does not prove complete full-resolution frozen QA acceptance'
+          }
+          Write-Host 'FROZEN_REAL_EXE=PASS;FULL_RESOLUTION_PNG=2400x1200;ALPHA=RGBA;ORIGINALS_UNCHANGED=true'
+          'AIO_RECOVERY_EVIDENCE='+$evidence | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Readback and preserve only newly accepted QA build in a new private D directory
+        id: archive
+        if: steps.frozen.outcome == 'success'
+        run: |
+          $ErrorActionPreference='Stop'
+          $target=Join-Path 'D:\AIO-Lab\AIO-QA-Dist' ('qa-head-20261028-frozen-accepted-${{ github.run_id }}-${{ github.run_attempt }}')
+          if (Test-Path -LiteralPath $target) { throw 'Cannot overwrite any previous QA archive' }
+          $parent=Split-Path -Parent $target
+          if (-not (Test-Path -LiteralPath $parent -PathType Container) -or
+              ((Get-Item -LiteralPath $parent).Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { throw 'Untrusted QA distribution parent' }
+          if ((Get-PSDrive -Name D -PSProvider FileSystem).Free -lt 2GB) { throw 'Insufficient space for safe verified archive' }
+          New-Item -ItemType Directory -Path $target -ErrorAction Stop | Out-Null
+          $names=@('AIO-Guard-QA-20261028-win-x64.exe','AIO-Guard-QA-20261028-PORTABLE.zip','SHA256SUMS.txt','BUILD-STATUS.txt')
+          foreach($name in $names) {
+            $src=Join-Path $env:AIO_RECOVERY_PACKAGE_ROOT $name
+            $dst=Join-Path $target $name
+            $expected=(Get-FileHash -LiteralPath $src -Algorithm SHA256).Hash.ToLowerInvariant()
+            Copy-Item -LiteralPath $src -Destination $dst -ErrorAction Stop
+            $actual=(Get-FileHash -LiteralPath $dst -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($actual -cne $expected) { throw ('Independent saved-byte readback failed: '+$name) }
+            Write-Host ('QA_ARCHIVE='+$name+';SHA256='+$actual)
+          }
+          $evidenceDest=Join-Path $target 'FROZEN-ACCEPTANCE.json'
+          Copy-Item -LiteralPath $env:AIO_RECOVERY_EVIDENCE -Destination $evidenceDest -ErrorAction Stop
+          if ((Get-FileHash -LiteralPath $evidenceDest -Algorithm SHA256).Hash -cne (Get-FileHash -LiteralPath $env:AIO_RECOVERY_EVIDENCE -Algorithm SHA256).Hash) { throw 'Diagnostic QA evidence readback failed' }
+          @(
+            'QA_FROZEN_RECOVERY=PASS',
+            'ORIGINAL_BUILD_RUN=40738324244',
+            'SOURCE='+$env:AIO_BUILD_PRODUCT_SHA,
+            'TREE='+$env:AIO_BUILD_PRODUCT_TREE,
+            'CORRECTED_TEST_HEAD=${{ github.event.pull_request.head.sha }}',
+            'PNG_FULL_RESOLUTION=2400x1200',
+            'ZIP_EXE_SHA256_MATCH=PASS',
+            'FILE_SHA256_READBACK=PASS',
+            'INSTALL=NOT_RUN;FULLTEST=NOT_RUN;RELEASE=NOT_RUN;MAIN=UNCHANGED'
+          ) | Set-Content -LiteralPath (Join-Path $target 'QA-RECOVERY-STATUS.txt') -Encoding utf8
+          Write-Host ('QA_ACCEPTED_DISTRIBUTION='+$target)
+      - name: Report separate original packaging and recovered frozen acceptance
+        if: always()
+        run: |
+          Write-Host 'ORIGINAL_GITHUB_BUILD=FAIL_RETAINED;PRODUCT_SOURCE_SHA='+$env:AIO_BUILD_PRODUCT_SHA
+          Write-Host 'FROZEN_ACCEPTANCE=${{ steps.frozen.outcome }};DURABLE_NEW_ARCHIVE=${{ steps.archive.outcome }}'
+          Write-Host 'HOSTED_MINUTES=UNUSED;INSTALLED=NO;RELEASE=NO;MAIN=UNCHANGED'
+          if ('${{ steps.frozen.outcome }}' -ne 'success' -or '${{ steps.archive.outcome }}' -ne 'success') { throw 'Frozen QA recovery did not complete, do not claim deliverable' }
