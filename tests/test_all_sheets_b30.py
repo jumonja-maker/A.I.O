@@ -92,7 +92,7 @@ class AllSheetsContracts(unittest.TestCase):
                 entries.append(sheet_file_evidence(p,i,name,{'status':'checked_subset'}))
             manifest=write_sheet_manifest(root,entries);paths.append(manifest)
             self.assertEqual(read_sheet_manifest(paths)['sheetCount'],4)
-        self.assertEqual(SHEET_MANIFEST,'AIO-sheets.json')
+            self.assertEqual(SHEET_MANIFEST,'AIO-sheets.json')
             with self.assertRaises(GuardError):read_sheet_manifest(paths[:-2]+[manifest])
             paths[0].write_text('1\n')
             with self.assertRaises(GuardError):read_sheet_manifest(paths)
