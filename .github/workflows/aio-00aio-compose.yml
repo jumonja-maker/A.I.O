@@ -1,0 +1,51 @@
+name: 00AIO compose test-only integration
+on:
+  pull_request:
+    types: [synchronize, reopened]
+permissions:
+  contents: write
+concurrency:
+  group: aio-00aio-compose
+  cancel-in-progress: false
+jobs:
+  compose:
+    if: >-
+      github.repository == 'jumonja-maker/A.I.O' &&
+      github.actor == 'jumonja-maker' &&
+      github.event.pull_request.number == 76 &&
+      github.event.pull_request.user.login == 'jumonja-maker' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'test/75-to-74-owned-processes-20261028' &&
+      github.event.pull_request.base.ref == 'test/remaining-bag-integration-20261028'
+    runs-on: [self-hosted, Windows, X64, local-d-manual]
+    timeout-minutes: 10
+    steps:
+      - name: Verify owner runner and unique checkout
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          if ($env:RUNNER_NAME -cne 'NIKITA' -or $env:USERNAME -ine 'aio-runner') { throw 'Unexpected runner' }
+          $p=New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+          if ($p.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Elevated runner not allowed' }
+          if (Test-Path -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'c-${{ github.run_id }}-${{ github.run_attempt }}')) { throw 'Existing checkout refused' }
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: c-${{ github.run_id }}-${{ github.run_attempt }}
+          persist-credentials: false
+      - name: Compose fixed Git trees and keep both merge parents
+        shell: powershell
+        working-directory: c-${{ github.run_id }}-${{ github.run_attempt }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AIO_COMPOSE_HEAD: ${{ github.event.pull_request.head.sha }}
+          PYTHONUTF8: '1'
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          $ErrorActionPreference='Stop'
+          $python='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\Scripts\python.exe'
+          $marker='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\.00aio-test-only-venv.txt'
+          if (-not (Test-Path -LiteralPath $marker) -or (Get-Content -LiteralPath $marker -Raw).Trim() -cne '00AIO NIKITA ISOLATED DOCX PDF QA PY311 QT6103') { throw 'Approved Python absent' }
+          & $python tools/qa/_compose_owned_process_integration.py
+          if ($LASTEXITCODE -ne 0) { throw 'Composition aborted; no unreviewed conflict resolution' }
+          Write-Host 'TEST_BRANCH_ONLY;QA_MAIN_UNCHANGED;NO_TEST_NO_BUILD_NO_INSTALL'
