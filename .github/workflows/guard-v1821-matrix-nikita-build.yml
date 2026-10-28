@@ -256,9 +256,21 @@ jobs:
           Write-Host 'PORTABLE_ZIP_CRC=PASS'
           Write-Host 'NO_INSTALL_NO_RELEASE'
 
+      - name: Exercise actual packaged EXE comparison workers and embedded assets
+        id: frozen_qa
+        if: steps.package.outcome == 'success'
+        working-directory: aio-guard-v1821-build-source-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $exe=Join-Path (Get-Location).Path 'dist\A.I.O\A.I.O.exe'
+          $evidence=Join-Path $env:RUNNER_TEMP ('aio-qahead-frozen-${{ github.run_id }}-${{ github.run_attempt }}')
+          & $env:AIO_QA_PYTHON tools/qa/guard_v19_frozen_acceptance.py --executable $exe --output $evidence --seconds 120
+          if ($LASTEXITCODE -ne 0) { throw ('FROZEN_EXE_QA_FAIL;EVIDENCE='+$evidence) }
+          Write-Host ('FROZEN_EXE_QA=PASS;EVIDENCE='+$evidence)
+
       - name: Preserve versioned setup and portable ZIP on NIKITA
         id: persist
-        if: steps.package.outcome == 'success'
+        if: steps.frozen_qa.outcome == 'success'
         working-directory: aio-guard-v1821-build-source-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           $ErrorActionPreference='Stop'
@@ -300,9 +312,10 @@ jobs:
           Write-Host 'OFFLINE_DEPS=${{ steps.offline_deps.outcome }}'
           Write-Host 'WINDOWS_SOURCE=${{ steps.source_qa.outcome }}'
           Write-Host 'NATIVE_STRESS3=${{ steps.native_qa.outcome }}'
+          Write-Host 'FROZEN_EXE_QA=${{ steps.frozen_qa.outcome }}'
           Write-Host 'PACKAGE=${{ steps.package.outcome }}'
           Write-Host 'PERSIST=${{ steps.persist.outcome }}'
           Write-Host 'INSTALL=NOT_RUN;FULLTEST_510=NOT_RUN;MAIN=UNCHANGED'
-          if ('${{ steps.source_qa.outcome }}' -ne 'success' -or '${{ steps.native_qa.outcome }}' -ne 'success' -or '${{ steps.package.outcome }}' -ne 'success' -or '${{ steps.persist.outcome }}' -ne 'success') {
+          if ('${{ steps.source_qa.outcome }}' -ne 'success' -or '${{ steps.native_qa.outcome }}' -ne 'success' -or '${{ steps.package.outcome }}' -ne 'success' -or '${{ steps.frozen_qa.outcome }}' -ne 'success' -or '${{ steps.persist.outcome }}' -ne 'success') {
             throw 'Windows QA EXE/Setup/package or durable archive failed'
           }
