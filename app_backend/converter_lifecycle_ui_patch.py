@@ -25,7 +25,7 @@ def apply_lifecycle_ui(raw):
     once("      saveBtn.hidden=!(currentResult && status==='ready');saveBtn.disabled=!(currentResult && status==='ready' && typeof adapter.saveResult==='function');\n      saveBtn.textContent = 'Сохранить результат';",
          "      root.querySelector('[data-cv-result-actions]').hidden=!(currentResult||aioFailedBatchReport?.jobId||status==='processing');\n"
          "      root.querySelector('[data-cv-close-result]').disabled=saving||lifecycleBusy;\n"
-         "      root.querySelector('[data-cv-clear-inputs]').disabled=!files.length||saving||lifecycleBusy;\n"
+         "      root.querySelector('[data-cv-clear-inputs]').disabled=!files.length||saving||lifecycleBusy||status==='processing'||status==='checking';\n"
          "      saveBtn.hidden=false;saveBtn.disabled=saving||lifecycleBusy||!currentResult||!['ready','saved'].includes(status);\n"
          "      saveBtn.textContent='Сохранить результаты';")
     once("if(result?.saved===true){status='saved';statusMessage='';renderSummary();}",
