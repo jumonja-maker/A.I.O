@@ -7,6 +7,7 @@ import sys
 import tempfile
 import threading
 import time
+from contextlib import nullcontext
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock,patch
@@ -67,6 +68,7 @@ class WindowsDrainContracts(unittest.TestCase):
         tree.job_drain_verified=False;calls=[]
         tree._kernel=SimpleNamespace(TerminateJobObject=lambda *_:calls.append('terminate') or 1,
                                      CloseHandle=lambda *_:calls.append('close') or 1)
+        tree._owned_process_fence=lambda:nullcontext(lambda _:None)
         def count():
             result=next(active);calls.append(result)
             if isinstance(result,Exception):raise result
@@ -84,6 +86,21 @@ class WindowsDrainContracts(unittest.TestCase):
         tree,calls=self.tree(iter([OSError('query unavailable')]))
         with self.assertRaisesRegex(OSError,'query unavailable'):tree.close()
         self.assertEqual(calls[-1],'close');self.assertFalse(tree.job_drain_verified);self.assertIsNone(tree._job)
+
+    def test_zero_accounting_does_not_bypass_unsignaled_process_handle(self):
+        tree,calls=self.tree(iter([0]))
+        wait=Mock(side_effect=TimeoutError('owned handle still alive'))
+        tree._owned_process_fence=lambda:nullcontext(wait)
+        with self.assertRaisesRegex(TimeoutError,'owned handle still alive'):tree.close()
+        wait.assert_called_once();self.assertFalse(tree.job_drain_verified)
+        self.assertEqual(calls,['terminate',0,'close'])
+
+    def test_process_handles_are_waited_after_accounting_reaches_zero(self):
+        tree,calls=self.tree(iter([2,0]))
+        tree._owned_process_fence=lambda:nullcontext(lambda _:calls.append('handles-signaled'))
+        with patch('app_backend.native_process.time.sleep'):tree.close()
+        self.assertEqual(calls,['terminate',2,0,'handles-signaled','close'])
+        self.assertTrue(tree.job_drain_verified)
 
 
 @unittest.skipUnless(sys.platform=='win32','Real Windows Job Object control')

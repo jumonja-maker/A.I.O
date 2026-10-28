@@ -46,9 +46,6 @@ class ProcessTree:
         except BaseException:
             try:
                 if self.process is not None:
-                    # A failed assignment/resume leaves a suspended launcher,
-                    # not an executing tree. Terminate it even if outside our
-                    # job, then close the job and reap any owned descendants.
                     try:
                         self.process.kill()
                     except ProcessLookupError:
@@ -64,26 +61,20 @@ class ProcessTree:
     def _make_windows_job(self):
         import ctypes
         from ctypes import wintypes as w
-
         class IO_COUNTERS(ctypes.Structure):
             _fields_ = [(name, ctypes.c_ulonglong) for name in (
                 'ReadOperationCount', 'WriteOperationCount', 'OtherOperationCount',
                 'ReadTransferCount', 'WriteTransferCount', 'OtherTransferCount')]
-
         class BASIC(ctypes.Structure):
             _fields_ = [('PerProcessUserTimeLimit', ctypes.c_longlong),
                 ('PerJobUserTimeLimit', ctypes.c_longlong), ('LimitFlags', w.DWORD),
-                ('MinimumWorkingSetSize', ctypes.c_size_t),
-                ('MaximumWorkingSetSize', ctypes.c_size_t),
+                ('MinimumWorkingSetSize', ctypes.c_size_t), ('MaximumWorkingSetSize', ctypes.c_size_t),
                 ('ActiveProcessLimit', w.DWORD), ('Affinity', ctypes.c_size_t),
                 ('PriorityClass', w.DWORD), ('SchedulingClass', w.DWORD)]
-
         class EXTENDED(ctypes.Structure):
             _fields_ = [('BasicLimitInformation', BASIC), ('IoInfo', IO_COUNTERS),
                 ('ProcessMemoryLimit', ctypes.c_size_t), ('JobMemoryLimit', ctypes.c_size_t),
-                ('PeakProcessMemoryUsed', ctypes.c_size_t),
-                ('PeakJobMemoryUsed', ctypes.c_size_t)]
-
+                ('PeakProcessMemoryUsed', ctypes.c_size_t), ('PeakJobMemoryUsed', ctypes.c_size_t)]
         k = ctypes.WinDLL('kernel32', use_last_error=True)
         k.CreateJobObjectW.argtypes = [ctypes.c_void_p, w.LPCWSTR]
         k.CreateJobObjectW.restype = w.HANDLE
@@ -101,9 +92,9 @@ class ProcessTree:
         if not handle:
             raise ctypes.WinError(ctypes.get_last_error())
         info = EXTENDED()
-        info.BasicLimitInformation.LimitFlags = 0x2000  # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+        info.BasicLimitInformation.LimitFlags = 0x2000
         if self.memory_limit_bytes is not None:
-            info.BasicLimitInformation.LimitFlags |= 0x100  # JOB_OBJECT_LIMIT_PROCESS_MEMORY
+            info.BasicLimitInformation.LimitFlags |= 0x100
             info.ProcessMemoryLimit = self.memory_limit_bytes
         if not k.SetInformationJobObject(handle, 9, ctypes.byref(info), ctypes.sizeof(info)):
             error = ctypes.get_last_error()
@@ -122,16 +113,24 @@ class ProcessTree:
             raise ctypes.WinError(ctypes.get_last_error())
         return int(info.ActiveProcesses)
 
+    def _owned_process_fence(self):
+        from .windows_job_drain import owned_process_fence
+        return owned_process_fence(self._job)
+
     def _drain_windows_job(self):
         import ctypes
-        if not self._kernel.TerminateJobObject(self._job, 1):
-            raise ctypes.WinError(ctypes.get_last_error())
-        until = time.monotonic() + 3
-        while self._windows_job_active():
-            if time.monotonic() >= until:
-                raise TimeoutError('Owned native job did not drain')
-            time.sleep(.01)
-        self.job_drain_verified = True
+        # ActiveProcesses can reach zero before process handles signal. Keep
+        # exact owned members alive as handle identities across termination.
+        with self._owned_process_fence() as wait_for_exit:
+            if not self._kernel.TerminateJobObject(self._job, 1):
+                raise ctypes.WinError(ctypes.get_last_error())
+            until = time.monotonic() + 3
+            while self._windows_job_active():
+                if time.monotonic() >= until:
+                    raise TimeoutError('Owned native job did not drain')
+                time.sleep(.01)
+            wait_for_exit(until)
+            self.job_drain_verified = True
 
     def close(self):
         if self._closed:
@@ -150,7 +149,6 @@ class ProcessTree:
                 self._reap_parent(p)
             return
         elif p is not None and os.name != 'nt':
-            # Also reap surviving children when a POSIX launcher exited first.
             try:
                 os.killpg(p.pid, signal.SIGTERM)
             except ProcessLookupError:
