@@ -83,8 +83,13 @@ def read_outcomes(path, expected_ids):
     return {row['taskId']: row['outcome'] for row in rows}
 
 
-def png_info(path):
-    """Check complete PNG chunks/CRC/deflate, independently of host Qt imports."""
+def png_info(path, *, max_width=1400, max_height=1800, max_pixels=1400 * 1800):
+    """Verify PNG bytes under an explicit source-format preview budget.
+
+    QtPdf uses a 1400x1800 page canvas, whereas image_preview keeps up to
+    12 million pixels/8192 per axis without needless resampling. The previous
+    hard-coded PDF bound also rejected valid full-size image previews.
+    """
     blob = path.read_bytes()
     require(blob.startswith(b'\x89PNG\r\n\x1a\n'), 'Preview does not contain PNG signature')
     offset, compressed, dimensions, ended = 8, bytearray(), None, False
@@ -99,8 +104,9 @@ def png_info(path):
             require(length == 13, 'PNG IHDR length is invalid')
             width, height, bits, colour, compression, filtering, interlace = struct.unpack('!IIBBBBB', data)
             dimensions = {'width': width, 'height': height, 'bits': bits, 'colourType': colour}
-            require(0 < width <= 1400 and 0 < height <= 1800,
-                    'Preview exceeds the production image bounds')
+            require(0 < width <= max_width and 0 < height <= max_height
+                    and width * height <= max_pixels,
+                    'Preview exceeds the selected production image budget')
             require(compression == filtering == interlace == 0, 'Unexpected preview PNG encoding')
         elif name == b'IDAT':
             compressed.extend(data)
@@ -261,11 +267,19 @@ def main(argv=None):
 
         work = invoke('png-preview', {'mode': 'image_preview', 'source': str(image)}, 'preview.json')
         metadata = json.loads((work / 'preview.json').read_text(encoding='utf-8'))
-        preview = png_info(work / 'preview.png')
+        preview = png_info(work / 'preview.png',
+                           max_width=8192, max_height=8192, max_pixels=12_000_000)
         evidence['operations']['png-preview'].update(metadata=metadata, png=preview)
-        require(metadata.get('kind') == 'image' and (preview['width'], preview['height']) == (1400, 700)
+        # Original fixture is 2400x1200 RGBA. It is already inside the real
+        # production 12 MP / 8192 budget, so downscaling it is data loss.
+        require(metadata.get('kind') == 'image' and metadata.get('pages') == 1
+                and metadata.get('page') == 0
+                and (metadata.get('width'), metadata.get('height')) == (2400, 1200)
+                and (metadata.get('renderedWidth'), metadata.get('renderedHeight')) ==
+                    (preview['width'], preview['height'])
+                and (preview['width'], preview['height']) == (2400, 1200)
                 and preview['colourType'] == 6,
-                'Frozen image preview did not produce the bounded scaled PNG')
+                'Frozen image preview lost original resolution, alpha, or metadata')
         evidence['fixturesUnchanged'] = all(Path(path).is_file() and digest(path) == value for path, value in originals.items())
         require(evidence['fixturesUnchanged'], 'A worker modified an original fixture or retained result')
         evidence.update(status='PASS', frozenVerified=not args.source_worker)
