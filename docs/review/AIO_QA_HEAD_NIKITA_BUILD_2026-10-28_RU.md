@@ -27,3 +27,23 @@
 Успешная упаковка и frozen worker acceptance **не доказывают** проверку установленного приложения с реальным пользователем, полноту GUI-сценариев и сохранение всех исходных документов. Windows EXE не устанавливается, не публикуется, не мержится в main, не проводит FULLTEST 680 и не объявляется готовым к выпуску.
 
 Изменения этого PR: только поддержка одноразовой QA-сборки на NIKITA и этот отчёт. До появления реального run выводы о сборке считаются `NOT_RUN`.
+
+## Разбор первого Windows build run 40731289219 (FAIL)
+
+Источник: [GitHub NIKITA #40731289219](https://github.com/jumonja-maker/A.I.O/actions/runs/40731289219), workflow HEAD `8d9fdeaaa6cfd495bb4799337499801db11dc6c7`, source SHA зафиксирован прежний `d57e4cf...`.
+
+- Полный Windows source/Qt/DOM прогон завершился `PASS: 1207 tests / 10 platform-not-applicable / 0 FAIL/ERROR`.
+- Все восемь предыдущих native stress3 этапов получили PASS: `native-profile`, `all-sheets`, `dif-regression`, `text-id-regression`, `dbf-jpeg`, `tiff`, `html`, `session`.
+- Точный останов: `viewer-100: child failed, see retained evidence`, затем `NATIVE_STRESS3=failure`. Логи QtWebEngine содержат `Context lost during MakeCurrent`, `SharedImageStub: context already lost`, сбои D3D/Skia.
+- Сторожевой тест не выключен. Установщик и ZIP законно `SKIPPED`, отчёты не переименованы в PASS.
+- Корневая причина по имеющимся логам не доказана на 100% (внутренний файл `viewer-100/evidence.json` не опубликован); **наблюдаемая средовая регрессия**: в исходном успешном [NIKITA #40716613385](https://github.com/jumonja-maker/A.I.O/actions/runs/40716613385) `QTWEBENGINE_CHROMIUM_FLAGS=--disable-gpu --disable-gpu-compositing` был установлен глобально, а в первом новом запуске он был только внутри этапа `source_qa`, но отсутствовал у native stress3 viewer children.
+
+### Точечный workflow hotfix
+
+- Для всех шагов и потомков процесса, включая viewer-100/150, глобально заданы `QT_OPENGL=software`, `QTWEBENGINE_CHROMIUM_FLAGS=--disable-gpu --disable-gpu-compositing`, `AIO_QT_SAVE_QA=1`. Это относится исключительно к CI, не к продуктовой настройке.
+- Перед полным Windows source/native stress3 добавлена самостоятельная **реальная** `guard_before_after_b19_b25_acceptance.py` с native Qt mouse/keyboard, 4K screenshot, точными пикселями, двумя темами, fullscreen, APNG и обязательными пятью проверками + двумя изображениями. Никакой fake PASS/skip.
+- На неуспехе ранний этап печатает только ограниченную текстовую причину из `evidence.json` и отклоняет сборку, без передачи скриншотов/файлов пользователя.
+- Исходный Native stress3 viewer-100 и viewer-150 остаётся обязательным, затем frozen EXE QA, инсталлятор и SHA256 readback.
+- Не отключать тест и не обходить safety gates ради готового EXE.
+
+После фикса допускается только новый отдельный запуск на NIKITA; результат пока **NOT_RUN**. Первый failed run остаётся в истории.
