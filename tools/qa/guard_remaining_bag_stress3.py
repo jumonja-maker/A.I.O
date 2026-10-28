@@ -64,16 +64,34 @@ def validate_stage(name,data,expected):
 
 
 def decision_records(name,data,expected,evidence_sha):
-    """Index every accepted child decision, preserving its exact JSON location."""
+    """Bind actual production decision where a child recorded it explicitly.
+
+    A fixture's PASS assertion is valuable but is NOT a captured Guard
+    ready/error decision. Never generate actualDecision from expectedDecision.
+    """
     validate_stage(name,data,expected)
     records=[]
     for category in expected:
-        decision='error' if category=='negative' else 'unavailable' if category=='excluded' else 'PASS' if category=='checks' else 'ready'
+        expectation=('error' if category=='negative' else
+                     'unavailable' if category=='excluded' else
+                     'PASS' if category=='checks' else 'ready')
         for index,row in enumerate(data[category]):
             check=row.get('check',{});independent=row.get('independent',{})
+            actual=None;basis='not_recorded'
+            for key in ('conversionStatus','actualDecision'):
+                if row.get(key) in ('ready','error','unavailable','not_checked','cancelled'):
+                    actual=row[key];basis=key;break
+            if actual is None and category=='negative' and row.get('status')=='SAFE_REJECTION' and row.get('code'):
+                actual='error';basis='explicit_error_code'
+            if actual is None and category=='excluded' and row.get('status')=='SAFE_UNAVAILABLE' and row.get('reason'):
+                actual='unavailable';basis='explicit_unavailable_reason'
+            if actual is None and category=='checks':
+                actual=row['status'];basis='child_assertion_only'
             records.append({'stage':name,'category':category,'index':index,
-                'expectedDecision':decision,'actualDecision':decision,'verdict':row['status'],
-                'reason':'fixed '+category+' control; required child invariants passed',
+                'expectedDecision':expectation,'actualDecision':actual or 'not_recorded',
+                'actualEvidenceField':basis,'childVerdict':row['status'],
+                'verdict':row['status'],
+                'reason':'required child invariants passed; actual decision captured only when explicitly available',
                 'scope':'lifecycle_or_viewer_invariants' if category=='checks' else 'native_conversion_decision',
                 'source':row.get('source',row.get('name','')),'target':row.get('target',''),
                 'sourceSha256':row.get('sourceSha256') or row.get('originalSha256') or check.get('sourceSHA256') or independent.get('originalSha256',''),
@@ -82,9 +100,8 @@ def decision_records(name,data,expected,evidence_sha):
                 'evidencePointer':'/'+category+'/'+str(index)})
     return records
 
-
 def write_decisions_csv(path,records):
-    fields=('stage','category','index','expectedDecision','actualDecision','verdict','reason','scope',
+    fields=('stage','category','index','expectedDecision','actualDecision','actualEvidenceField','childVerdict','verdict','reason','scope',
             'source','target','sourceSha256','outputSha256','evidenceFile','evidenceSha256','evidencePointer')
     with path.open('w',encoding='utf-8-sig',newline='') as stream:
         writer=csv.DictWriter(stream,fieldnames=fields,extrasaction='ignore')
@@ -325,8 +342,22 @@ def main():
             report['stages'].append(outcome)
             report['corpus'].append({'stage':name,'generator':script,'generatorSha256':digest(path),
                 'expectedDecisions':expected,'files':referenced_sources(folder,data)})
-        report.update(status='PASS',falseRejections=0,silentSuccesses=0,expectedUnavailable=30,
-                      countingScope='only fixed controls in expected-decisions.json; not historical corpus rates')
+        # Observed false-decision metrics require actual raw decisions.
+        # A successful child invariant is not a raw Guard READY verdict.
+        declared=[row for row in report['decisionIndex'] if row['expectedDecision'] in ('ready','error','unavailable')]
+        known=[row for row in declared if row['actualDecision']!='not_recorded']
+        missing=len(declared)-len(known)
+        false_rejections=sum(row['expectedDecision']=='ready' and row['actualDecision'] in ('error','unavailable')
+                             for row in known)
+        silent_successes=sum(row['expectedDecision'] in ('error','unavailable') and row['actualDecision']=='ready'
+                             for row in known)
+        report.update(status='PASS',
+                      falseRejections=(false_rejections if not missing else None),
+                      silentSuccesses=(silent_successes if not missing else None),
+                      observedFalseRejections=false_rejections,observedSilentSuccesses=silent_successes,
+                      observedRawDecisions=len(known),unobservedRawDecisions=missing,
+                      expectedUnavailable=30,
+                      countingScope='actual Guard decisions where explicitly recorded; the rest are independent child invariant gates, not raw rate estimates')
     except Exception as error:report.update(status='FAIL',reason=str(error));raise
     finally:
         write_decisions_csv(args.output/'pair-decisions.csv',report['decisionIndex'])
