@@ -2860,8 +2860,15 @@ class ConverterGuard:
             if job.saving or job.diagnostic_building:
                 raise GuardError('SAVE_BUSY','Дождитесь завершения сохранения.',status=409)
             unsaved=sum(not artifact.saved for artifact in job.artifacts)
-            if unsaved and not discard:
-                return {'jobId':job.id,'closed':False,'confirmationRequired':True,'unsavedOutputs':unsaved}
+            active=bool(job.running or job.state not in TERMINAL)
+            recovery_warning=bool(job.recovery_error)
+            # A zero-output running queue still has valuable unfinished work.
+            # An incomplete recovery ledger may have unindexed files, even
+            # when every currently indexed artifact was saved.
+            if (unsaved or active or recovery_warning) and not discard:
+                return {'jobId':job.id,'closed':False,'confirmationRequired':True,
+                        'unsavedOutputs':unsaved,'activeConversion':active,
+                        'recoveryWarning':recovery_warning}
             # Commit ownership/cancellation atomically with the save check.
             # Slow worker interruption and filesystem cleanup run after unlock.
             job.bundle_cancel.set();job.save_cancel.set();job.released=True
