@@ -558,12 +558,16 @@
       if (!wasActive && result.progressRunId) progress?.finishSave({runId:result.progressRunId,saved});
     }
   }
-  function confirmCloseConversion() {
+  function confirmCloseConversion(outcome={}) {
     return new Promise(resolve=>{
       const modal=document.createElement('dialog');modal.className='aio-conversion-close-dialog';
       modal.setAttribute('aria-label','Закрыть конвертацию?');
       const question=document.createElement('p');
-      question.textContent='Закрыть конвертацию? Несохранённые результаты будут удалены из временного хранилища.';
+      question.textContent=outcome.recoveryWarning
+        ? 'Журнал восстановления неполон. Закрытие удалит служебную копию с возможными неопознанными результатами. Продолжить?'
+        : outcome.activeConversion
+        ? 'Конвертация ещё выполняется. Закрытие остановит её и удалит несохранённые временные результаты. Продолжить?'
+        : 'Закрыть конвертацию? Несохранённые результаты будут удалены из временного хранилища.';
       const yes=document.createElement('button'),no=document.createElement('button');
       yes.type=no.type='button';yes.textContent='Да';no.textContent='Нет';
       yes.dataset.closeYes='';no.dataset.closeNo='';
@@ -582,7 +586,7 @@
       if(savingJobs.has(jobId))throw errorOf('Дождитесь завершения сохранения.','SAVE_BUSY');
       let outcome=await api('/close',{jobId});
       if(outcome.confirmationRequired){
-        if(!await confirmCloseConversion())return {closed:false,cancelled:true};
+        if(!await confirmCloseConversion(outcome))return {closed:false,cancelled:true};
         outcome=await api('/close',{jobId,discard:true});
       }
       if(!outcome.closed)return outcome;
@@ -600,8 +604,15 @@
   }
   async function clearInputList() {
     const op=active;
+    // Trash clears an idle source list. It must never act as an undisclosed
+    // Cancel button during native preflight, conversion or save.
+    if(preparing || (op && !op.snapshot?.finished))
+      throw errorOf('Проверка или конвертация ещё выполняется. Сначала завершите её либо явно нажмите «Отменить».','INPUT_CLEAR_BUSY');
+    if(op?.jobId && op.snapshot?.finished) {
+      // A completed operation may retain outputs: never release those.
+    }
     await cancelInspection();
-    if(op?.jobId){
+    if(op?.jobId && !op.snapshot?.finished){
       await cancel();
       const deadline=Date.now()+30000;
       while(true){
