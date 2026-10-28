@@ -61,7 +61,14 @@ jobs:
           $python='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\Scripts\python.exe'
           $marker='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\.00aio-test-only-venv.txt'
           if (-not (Test-Path -LiteralPath $python) -or -not (Test-Path -LiteralPath $marker) -or (Get-Content -LiteralPath $marker -Raw).Trim() -cne '00AIO NIKITA ISOLATED DOCX PDF QA PY311 QT6103') { throw 'Approved environment missing' }
-          & $python -c 'from pathlib import Path;from tools.qa._finish_work_gates import tree_hash; actual=tree_hash(Path.cwd()).hex();print(actual);assert actual=="871661295d5546baefba5593560b5e5ff97d7b34"'
+          $check=@'
+          from pathlib import Path
+          from tools.qa._finish_work_gates import tree_hash
+          actual=tree_hash(Path.cwd()).hex()
+          print(actual)
+          assert actual=='871661295d5546baefba5593560b5e5ff97d7b34'
+          '@
+          & $python -c $check
           if ($LASTEXITCODE -ne 0) { throw 'Source tree mismatch' }
           foreach($dpi in @('1','1.5')) {
             $env:QT_SCALE_FACTOR=$dpi
