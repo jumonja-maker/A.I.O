@@ -1,0 +1,17 @@
+{
+  "testedSHA": "3738f17f93f1e2ae5f841b1f020a225e28480e24",
+  "testedTree": "109c01c841e62ed005c89f375c3d34c9ccf2b555",
+  "run": 40554506993,
+  "status": "FAIL",
+  "evidence": {
+    "status": "FAIL",
+    "scope": "generated native HTML controls, not historical FULLTEST",
+    "negative": [],
+    "orp": {
+      "status": "not_tested",
+      "reason": "no_positive_Base_ReportDefinition_fixture"
+    },
+    "reason": "('graphics', 1, {'state': 'detected', 'basis': 'native_preflight_uno_document', 'modelLoaded': True, 'nativeTextDocument': False, 'nativeImportMs': 46, 'documentServices': ['com.sun.star.presentation.PresentationDocument'], 'typeName': None, 'filterName': 'OpenDocument Presentation Flat XML', 'selectedImportFilter': 'OpenDocument Presentation Flat XML', 'selectedImportOptions': None, 'sourceContract': {'state': 'recognized', 'contentClass': 'flat_odf', 'mimetype': 'application/vnd.oasis.opendocument.presentation', 'expectedServices': ['com.sun.star.presentation.PresentationDocument'], 'bodyObserved': True}, 'csvImportSampleOnly': False, 'csvInspection': None, 'drawPages': None, 'difNumericImport': None, 'nativeGraphicExports': [], 'htmlContentProfile': {'complete': True, 'textShapes': 1, 'graphicShapes': 1, 'pages': 1}, 'nativeExportFilters': {}, 'nativeExportInspection': {}, 'registryFingerprint': '9b38ba68fa4cbc7fb077798ac86d25d3bf7c5ef0c8f1f4395d929c535bcb7bf7', 'exported': False})",
+    "code": null
+  }
+}

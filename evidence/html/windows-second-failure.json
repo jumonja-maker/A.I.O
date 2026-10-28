@@ -1,0 +1,983 @@
+{
+  "run": 40556723012,
+  "status": "FAIL",
+  "testedSHA": "01c192e5636c24a75447191fb6d318b9a44e12fa",
+  "testedTree": "c912c25198ddff58e403606c63b35addb22bd003",
+  "evidence": {
+    "status": "FAIL",
+    "scope": "generated native HTML controls, not historical FULLTEST",
+    "positive": [
+      {
+        "status": "PASS",
+        "source": "text-1.fodp",
+        "target": "html",
+        "sourceSha256": "c8784b17477a2dac258d50fc8efa5159cde464ff324d8169e1ea50716a77f104",
+        "outputSha256": "4f3b5897803bc8e66e8cd797370f9bd5c70783e25f5a1e53ba618c00ccb418fd",
+        "profile": {
+          "complete": true,
+          "textShapes": 1,
+          "graphicShapes": 0,
+          "pages": 1
+        },
+        "checks": [
+          {
+            "check": "html_body",
+            "status": "content_present",
+            "qualityCompared": false,
+            "inspectedBytes": 4332,
+            "localResourcesChecked": true
+          },
+          {
+            "check": "presentation_html_content",
+            "qualityCompared": false,
+            "sourceTextParagraphs": 1,
+            "sourceImageOccurrences": 0,
+            "status": "checked_subset",
+            "comparedScope": "body_text_and_graphic_presence",
+            "bodyTextInspected": true,
+            "imageReferences": 0,
+            "visualLayoutCompared": false
+          }
+        ]
+      },
+      {
+        "status": "PASS",
+        "source": "text-1.fodp",
+        "target": "htm",
+        "sourceSha256": "c8784b17477a2dac258d50fc8efa5159cde464ff324d8169e1ea50716a77f104",
+        "outputSha256": "e5ec0c0b28e75147a62836fba1e7e7dd41371cff88eabf77b5a0790df5afe335",
+        "profile": {
+          "complete": true,
+          "textShapes": 1,
+          "graphicShapes": 0,
+          "pages": 1
+        },
+        "checks": [
+          {
+            "check": "html_body",
+            "status": "content_present",
+            "qualityCompared": false,
+            "inspectedBytes": 458,
+            "localResourcesChecked": true
+          },
+          {
+            "check": "presentation_html_content",
+            "qualityCompared": false,
+            "sourceTextParagraphs": 1,
+            "sourceImageOccurrences": 0,
+            "status": "checked_subset",
+            "comparedScope": "body_text_and_graphic_presence",
+            "bodyTextInspected": true,
+            "imageReferences": 0,
+            "visualLayoutCompared": false
+          }
+        ]
+      },
+      {
+        "status": "PASS",
+        "source": "draw-1.fodg",
+        "target": "html",
+        "sourceSha256": "baca758df8213142f0cd33d11959a11caf5a425ac86b558e2d1d2300483c711f",
+        "outputSha256": "781c09a265196686eb67d5203fcb152c6ef182c32a718dafb2e28151e420031e",
+        "profile": {
+          "complete": true,
+          "textShapes": 1,
+          "graphicShapes": 0,
+          "pages": 1
+        },
+        "checks": [
+          {
+            "check": "html_body",
+            "status": "content_present",
+            "qualityCompared": false,
+            "inspectedBytes": 2600,
+            "localResourcesChecked": true
+          }
+        ]
+      },
+      {
+        "status": "PASS",
+        "source": "draw-1.fodg",
+        "target": "htm",
+        "sourceSha256": "baca758df8213142f0cd33d11959a11caf5a425ac86b558e2d1d2300483c711f",
+        "outputSha256": "781c09a265196686eb67d5203fcb152c6ef182c32a718dafb2e28151e420031e",
+        "profile": {
+          "complete": true,
+          "textShapes": 1,
+          "graphicShapes": 0,
+          "pages": 1
+        },
+        "checks": [
+          {
+            "check": "html_body",
+            "status": "content_present",
+            "qualityCompared": false,
+            "inspectedBytes": 2600,
+            "localResourcesChecked": true
+          }
+        ]
+      },
+      {
+        "status": "PASS",
+        "source": "text-2.fodp",
+        "target": "html",
+        "sourceSha256": "e07eaa4781c6ed2d3a1a0c39537eb93c5ffec00ab56da98e5cf66cf3a4ed148e",
+        "outputSha256": "53a0d1e457a1b1b337bc46b414166fb9c04db680d00e63b171d41036b7c03ffe",
+        "profile": {
+          "complete": true,
+          "textShapes": 2,
+          "graphicShapes": 0,
+          "pages": 2
+        },
+        "checks": [
+          {
+            "check": "html_body",
+            "status": "content_present",
+            "qualityCompared": false,
+            "inspectedBytes": 4830,
+            "localResourcesChecked": true
+          },
+          {
+            "check": "presentation_html_content",
+            "qualityCompared": false,
+            "sourceTextParagraphs": 2,
+            "sourceImageOccurrences": 0,
+            "status": "checked_subset",
+            "comparedScope": "body_text_and_graphic_presence",
+            "bodyTextInspected": true,
+            "imageReferences": 0,
+            "visualLayoutCompared": false
+          }
+        ]
+      },
+      {
+        "status": "PASS",
+        "source": "text-2.fodp",
+        "target": "htm",
+        "sourceSha256": "e07eaa4781c6ed2d3a1a0c39537eb93c5ffec00ab56da98e5cf66cf3a4ed148e",
+        "outputSha256": "84a2b3f391cd4543bbbe2ed44bf2f277bedf12651047224d56c2186d9fcb804b",
+        "profile": {
+          "complete": true,
+          "textShapes": 2,
+          "graphicShapes": 0,
+          "pages": 2
+        },
+        "checks": [
+          {
+            "check": "html_body",
+            "status": "content_present",
+            "qualityCompared": false,
+            "inspectedBytes": 533,
+            "localResourcesChecked": true
+          },
+          {
+            "check": "presentation_html_content",
+            "qualityCompared": false,
+            "sourceTextParagraphs": 2,
+            "sourceImageOccurrences": 0,
+            "status": "checked_subset",
+            "comparedScope": "body_text_and_graphic_presence",
+            "bodyTextInspected": true,
+            "imageReferences": 0,
+            "visualLayoutCompared": false
+          }
+        ]
+      },
+      {
+        "status": "PASS",
+        "source": "text-3.fodp",
+        "target": "html",
+        "sourceSha256": "161c9f5dc5ab89194957999f126c6fc6c06296c1e983e4ea8d8568cb9e8bd8b2",
+        "outputSha256": "62352bcd9f849c6b8ed714a5c13e63ef1751f0482845ba97b294295a9b1316c5",
+        "profile": {
+          "complete": true,
+          "textShapes": 3,
+          "graphicShapes": 0,
+          "pages": 3
+        },
+        "checks": [
+          {
+            "check": "html_body",
+            "status": "content_present",
+            "qualityCompared": false,
+            "inspectedBytes": 5328,
+            "localResourcesChecked": true
+          },
+          {
+            "check": "presentation_html_content",
+            "qualityCompared": false,
+            "sourceTextParagraphs": 3,
+            "sourceImageOccurrences": 0,
+            "status": "checked_subset",
+            "comparedScope": "body_text_and_graphic_presence",
+            "bodyTextInspected": true,
+            "imageReferences": 0,
+            "visualLayoutCompared": false
+          }
+        ]
+      },
+      {
+        "status": "PASS",
+        "source": "text-3.fodp",
+        "target": "htm",
+        "sourceSha256": "161c9f5dc5ab89194957999f126c6fc6c06296c1e983e4ea8d8568cb9e8bd8b2",
+        "outputSha256": "819abadd9135e953541f92e824725cf04406a223aef75c015de8c4def6540335",
+        "profile": {
+          "complete": true,
+          "textShapes": 3,
+          "graphicShapes": 0,
+          "pages": 3
+        },
+        "checks": [
+          {
+            "check": "html_body",
+            "status": "content_present",
+            "qualityCompared": false,
+            "inspectedBytes": 608,
+            "localResourcesChecked": true
+          },
+          {
+            "check": "presentation_html_content",
+            "qualityCompared": false,
+            "sourceTextParagraphs": 3,
+            "sourceImageOccurrences": 0,
+            "status": "checked_subset",
+            "comparedScope": "body_text_and_graphic_presence",
+            "bodyTextInspected": true,
+            "imageReferences": 0,
+            "visualLayoutCompared": false
+          }
+        ]
+      },
+      {
+        "status": "PASS",
+        "source": "text-4.fodp",
+        "target": "html",
+        "sourceSha256": "e1d405f58e30c5ee6a27f545dd9e5369b47d4bfaf6a45ccd6ef112ff149a7b6a",
+        "outputSha256": "5372a8cd6314610ee4dbbe1c1d7c5dbbff21755020810335515f4d01a07bd79a",
+        "profile": {
+          "complete": true,
+          "textShapes": 4,
+          "graphicShapes": 0,
+          "pages": 4
+        },
+        "checks": [
+          {
+            "check": "html_body",
+            "status": "content_present",
+            "qualityCompared": false,
+            "inspectedBytes": 5826,
+            "localResourcesChecked": true
+          },
+          {
+            "check": "presentation_html_content",
+            "qualityCompared": false,
+            "sourceTextParagraphs": 4,
+            "sourceImageOccurrences": 0,
+            "status": "checked_subset",
+            "comparedScope": "body_text_and_graphic_presence",
+            "bodyTextInspected": true,
+            "imageReferences": 0,
+            "visualLayoutCompared": false
+          }
+        ]
+      },
+      {
+        "status": "PASS",
+        "source": "text-4.fodp",
+        "target": "htm",
+        "sourceSha256": "e1d405f58e30c5ee6a27f545dd9e5369b47d4bfaf6a45ccd6ef112ff149a7b6a",
+        "outputSha256": "c45203058b2a3bf6fe6dcd3fcc7c16167a49584a040e60560e5d53270e35793b",
+        "profile": {
+          "complete": true,
+          "textShapes": 4,
+          "graphicShapes": 0,
+          "pages": 4
+        },
+        "checks": [
+          {
+            "check": "html_body",
+            "status": "content_present",
+            "qualityCompared": false,
+            "inspectedBytes": 683,
+            "localResourcesChecked": true
+          },
+          {
+            "check": "presentation_html_content",
+            "qualityCompared": false,
+            "sourceTextParagraphs": 4,
+            "sourceImageOccurrences": 0,
+            "status": "checked_subset",
+            "comparedScope": "body_text_and_graphic_presence",
+            "bodyTextInspected": true,
+            "imageReferences": 0,
+            "visualLayoutCompared": false
+          }
+        ]
+      },
+      {
+        "status": "PASS",
+        "source": "text-5.fodp",
+        "target": "html",
+        "sourceSha256": "d445f2fafe59191c0f1653f5639bdf79400f80c0d81211996edcff1ae2bee6ba",
+        "outputSha256": "ff5f25ceaa5dd4fa5488bfca8ceeab3069b0543767ec46fbcaadb0faae835260",
+        "profile": {
+          "complete": true,
+          "textShapes": 5,
+          "graphicShapes": 0,
+          "pages": 5
+        },
+        "checks": [
+          {
+            "check": "html_body",
+            "status": "content_present",
+            "qualityCompared": false,
+            "inspectedBytes": 6324,
+            "localResourcesChecked": true
+          },
+          {
+            "check": "presentation_html_content",
+            "qualityCompared": false,
+            "sourceTextParagraphs": 5,
+            "sourceImageOccurrences": 0,
+            "status": "checked_subset",
+            "comparedScope": "body_text_and_graphic_presence",
+            "bodyTextInspected": true,
+            "imageReferences": 0,
+            "visualLayoutCompared": false
+          }
+        ]
+      },
+      {
+        "status": "PASS",
+        "source": "text-5.fodp",
+        "target": "htm",
+        "sourceSha256": "d445f2fafe59191c0f1653f5639bdf79400f80c0d81211996edcff1ae2bee6ba",
+        "outputSha256": "e05abadc405d9c1cc82911c70eb086802aba8ee4ac9145d7249f09360af53a42",
+        "profile": {
+          "complete": true,
+          "textShapes": 5,
+          "graphicShapes": 0,
+          "pages": 5
+        },
+        "checks": [
+          {
+            "check": "html_body",
+            "status": "content_present",
+            "qualityCompared": false,
+            "inspectedBytes": 758,
+            "localResourcesChecked": true
+          },
+          {
+            "check": "presentation_html_content",
+            "qualityCompared": false,
+            "sourceTextParagraphs": 5,
+            "sourceImageOccurrences": 0,
+            "status": "checked_subset",
+            "comparedScope": "body_text_and_graphic_presence",
+            "bodyTextInspected": true,
+            "imageReferences": 0,
+            "visualLayoutCompared": false
+          }
+        ]
+      },
+      {
+        "status": "PASS",
+        "source": "text-6.fodp",
+        "target": "html",
+        "sourceSha256": "a363f8dd7eeeb773c48dbf953a84995f3c80b55e4b3e30c991c778877e6f324f",
+        "outputSha256": "aa03bdc111ecfa38806e17fb0a888a78ee1e718ff8f384fb82caedeb985e6f0e",
+        "profile": {
+          "complete": true,
+          "textShapes": 6,
+          "graphicShapes": 0,
+          "pages": 6
+        },
+        "checks": [
+          {
+            "check": "html_body",
+            "status": "content_present",
+            "qualityCompared": false,
+            "inspectedBytes": 6822,
+            "localResourcesChecked": true
+          },
+          {
+            "check": "presentation_html_content",
+            "qualityCompared": false,
+            "sourceTextParagraphs": 6,
+            "sourceImageOccurrences": 0,
+            "status": "checked_subset",
+            "comparedScope": "body_text_and_graphic_presence",
+            "bodyTextInspected": true,
+            "imageReferences": 0,
+            "visualLayoutCompared": false
+          }
+        ]
+      },
+      {
+        "status": "PASS",
+        "source": "text-6.fodp",
+        "target": "htm",
+        "sourceSha256": "a363f8dd7eeeb773c48dbf953a84995f3c80b55e4b3e30c991c778877e6f324f",
+        "outputSha256": "bbbff6cd63d86973894cb0eedf061022c5c29d7dacdd0987e534b705655ff814",
+        "profile": {
+          "complete": true,
+          "textShapes": 6,
+          "graphicShapes": 0,
+          "pages": 6
+        },
+        "checks": [
+          {
+            "check": "html_body",
+            "status": "content_present",
+            "qualityCompared": false,
+            "inspectedBytes": 833,
+            "localResourcesChecked": true
+          },
+          {
+            "check": "presentation_html_content",
+            "qualityCompared": false,
+            "sourceTextParagraphs": 6,
+            "sourceImageOccurrences": 0,
+            "status": "checked_subset",
+            "comparedScope": "body_text_and_graphic_presence",
+            "bodyTextInspected": true,
+            "imageReferences": 0,
+            "visualLayoutCompared": false
+          }
+        ]
+      },
+      {
+        "status": "PASS",
+        "source": "text-7.fodp",
+        "target": "html",
+        "sourceSha256": "b0f38dfe0eef736e1464f093bc8adaeb648653e0b523940a4a34dcdb287150ad",
+        "outputSha256": "1f4960c17cf757f84becc2551278fb4fefcb61c29cb8564032d827a4fbce449f",
+        "profile": {
+          "complete": true,
+          "textShapes": 7,
+          "graphicShapes": 0,
+          "pages": 7
+        },
+        "checks": [
+          {
+            "check": "html_body",
+            "status": "content_present",
+            "qualityCompared": false,
+            "inspectedBytes": 7320,
+            "localResourcesChecked": true
+          },
+          {
+            "check": "presentation_html_content",
+            "qualityCompared": false,
+            "sourceTextParagraphs": 7,
+            "sourceImageOccurrences": 0,
+            "status": "checked_subset",
+            "comparedScope": "body_text_and_graphic_presence",
+            "bodyTextInspected": true,
+            "imageReferences": 0,
+            "visualLayoutCompared": false
+          }
+        ]
+      },
+      {
+        "status": "PASS",
+        "source": "text-7.fodp",
+        "target": "htm",
+        "sourceSha256": "b0f38dfe0eef736e1464f093bc8adaeb648653e0b523940a4a34dcdb287150ad",
+        "outputSha256": "ebeb73412f9eced11dde8c05ccce9e459b1d0d779576fe0c2158230efde6cc0d",
+        "profile": {
+          "complete": true,
+          "textShapes": 7,
+          "graphicShapes": 0,
+          "pages": 7
+        },
+        "checks": [
+          {
+            "check": "html_body",
+            "status": "content_present",
+            "qualityCompared": false,
+            "inspectedBytes": 908,
+            "localResourcesChecked": true
+          },
+          {
+            "check": "presentation_html_content",
+            "qualityCompared": false,
+            "sourceTextParagraphs": 7,
+            "sourceImageOccurrences": 0,
+            "status": "checked_subset",
+            "comparedScope": "body_text_and_graphic_presence",
+            "bodyTextInspected": true,
+            "imageReferences": 0,
+            "visualLayoutCompared": false
+          }
+        ]
+      },
+      {
+        "status": "PASS",
+        "source": "text-8.fodp",
+        "target": "html",
+        "sourceSha256": "574e1e903ec0b5baf513adc77dbd6c4437627fee20fe40b93217ad2530d14eda",
+        "outputSha256": "a6610790788cbbe52ee77bc271d41fe005edba01f66e4d080ad7c96978d351d7",
+        "profile": {
+          "complete": true,
+          "textShapes": 8,
+          "graphicShapes": 0,
+          "pages": 8
+        },
+        "checks": [
+          {
+            "check": "html_body",
+            "status": "content_present",
+            "qualityCompared": false,
+            "inspectedBytes": 7818,
+            "localResourcesChecked": true
+          },
+          {
+            "check": "presentation_html_content",
+            "qualityCompared": false,
+            "sourceTextParagraphs": 8,
+            "sourceImageOccurrences": 0,
+            "status": "checked_subset",
+            "comparedScope": "body_text_and_graphic_presence",
+            "bodyTextInspected": true,
+            "imageReferences": 0,
+            "visualLayoutCompared": false
+          }
+        ]
+      },
+      {
+        "status": "PASS",
+        "source": "text-8.fodp",
+        "target": "htm",
+        "sourceSha256": "574e1e903ec0b5baf513adc77dbd6c4437627fee20fe40b93217ad2530d14eda",
+        "outputSha256": "ad34dcff72d2d05ee5a55bb3bc3ac5037a8cbbd21bf935b020d263e482d22196",
+        "profile": {
+          "complete": true,
+          "textShapes": 8,
+          "graphicShapes": 0,
+          "pages": 8
+        },
+        "checks": [
+          {
+            "check": "html_body",
+            "status": "content_present",
+            "qualityCompared": false,
+            "inspectedBytes": 983,
+            "localResourcesChecked": true
+          },
+          {
+            "check": "presentation_html_content",
+            "qualityCompared": false,
+            "sourceTextParagraphs": 8,
+            "sourceImageOccurrences": 0,
+            "status": "checked_subset",
+            "comparedScope": "body_text_and_graphic_presence",
+            "bodyTextInspected": true,
+            "imageReferences": 0,
+            "visualLayoutCompared": false
+          }
+        ]
+      }
+    ],
+    "excluded": [
+      {
+        "status": "SAFE_UNAVAILABLE",
+        "source": "graphics-1.fodp",
+        "target": "html",
+        "reason": "NATIVE_PRESENTATION_HTML_GRAPHICS_UNSUPPORTED",
+        "sourceSha256": "a3dab00b50af90c4a0fdb7583df37ce057984a8bc9cc9f83019f4dcbc8727db4",
+        "profile": {
+          "complete": true,
+          "textShapes": 1,
+          "graphicShapes": 1,
+          "pages": 1
+        }
+      },
+      {
+        "status": "SAFE_UNAVAILABLE",
+        "source": "graphics-1.fodp",
+        "target": "htm",
+        "reason": "NATIVE_PRESENTATION_HTML_GRAPHICS_UNSUPPORTED",
+        "sourceSha256": "a3dab00b50af90c4a0fdb7583df37ce057984a8bc9cc9f83019f4dcbc8727db4",
+        "profile": {
+          "complete": true,
+          "textShapes": 1,
+          "graphicShapes": 1,
+          "pages": 1
+        }
+      },
+      {
+        "status": "SAFE_UNAVAILABLE",
+        "source": "graphics-2.fodp",
+        "target": "html",
+        "reason": "NATIVE_PRESENTATION_HTML_GRAPHICS_UNSUPPORTED",
+        "sourceSha256": "098b23a4c8aee6a79dc3bd3ea98d3f4807330293b36164f9675494daa973f07b",
+        "profile": {
+          "complete": true,
+          "textShapes": 2,
+          "graphicShapes": 2,
+          "pages": 2
+        }
+      },
+      {
+        "status": "SAFE_UNAVAILABLE",
+        "source": "graphics-2.fodp",
+        "target": "htm",
+        "reason": "NATIVE_PRESENTATION_HTML_GRAPHICS_UNSUPPORTED",
+        "sourceSha256": "098b23a4c8aee6a79dc3bd3ea98d3f4807330293b36164f9675494daa973f07b",
+        "profile": {
+          "complete": true,
+          "textShapes": 2,
+          "graphicShapes": 2,
+          "pages": 2
+        }
+      },
+      {
+        "status": "SAFE_UNAVAILABLE",
+        "source": "draw-2.fodg",
+        "target": "html",
+        "reason": "NATIVE_DRAW_HTML_CONTENT_UNSUPPORTED",
+        "sourceSha256": "532e6aad9bd29b53e855da5b562ba340951635bd63ceaefd32dce46d14894fd9",
+        "profile": {
+          "complete": true,
+          "textShapes": 2,
+          "graphicShapes": 0,
+          "pages": 2
+        }
+      },
+      {
+        "status": "SAFE_UNAVAILABLE",
+        "source": "draw-2.fodg",
+        "target": "htm",
+        "reason": "NATIVE_DRAW_HTML_CONTENT_UNSUPPORTED",
+        "sourceSha256": "532e6aad9bd29b53e855da5b562ba340951635bd63ceaefd32dce46d14894fd9",
+        "profile": {
+          "complete": true,
+          "textShapes": 2,
+          "graphicShapes": 0,
+          "pages": 2
+        }
+      },
+      {
+        "status": "SAFE_UNAVAILABLE",
+        "source": "graphics-3.fodp",
+        "target": "html",
+        "reason": "NATIVE_PRESENTATION_HTML_GRAPHICS_UNSUPPORTED",
+        "sourceSha256": "5cb6692b11f586ce5e944efb1f975baa939734da73acca40b3a5cb89f057d3c6",
+        "profile": {
+          "complete": true,
+          "textShapes": 3,
+          "graphicShapes": 3,
+          "pages": 3
+        }
+      },
+      {
+        "status": "SAFE_UNAVAILABLE",
+        "source": "graphics-3.fodp",
+        "target": "htm",
+        "reason": "NATIVE_PRESENTATION_HTML_GRAPHICS_UNSUPPORTED",
+        "sourceSha256": "5cb6692b11f586ce5e944efb1f975baa939734da73acca40b3a5cb89f057d3c6",
+        "profile": {
+          "complete": true,
+          "textShapes": 3,
+          "graphicShapes": 3,
+          "pages": 3
+        }
+      },
+      {
+        "status": "SAFE_UNAVAILABLE",
+        "source": "draw-3.fodg",
+        "target": "html",
+        "reason": "NATIVE_DRAW_HTML_CONTENT_UNSUPPORTED",
+        "sourceSha256": "6f5dd87600e2aa477fe8fb8c7ed89c8dbaf3043da39a622185b39b04543f2e74",
+        "profile": {
+          "complete": true,
+          "textShapes": 3,
+          "graphicShapes": 0,
+          "pages": 3
+        }
+      },
+      {
+        "status": "SAFE_UNAVAILABLE",
+        "source": "draw-3.fodg",
+        "target": "htm",
+        "reason": "NATIVE_DRAW_HTML_CONTENT_UNSUPPORTED",
+        "sourceSha256": "6f5dd87600e2aa477fe8fb8c7ed89c8dbaf3043da39a622185b39b04543f2e74",
+        "profile": {
+          "complete": true,
+          "textShapes": 3,
+          "graphicShapes": 0,
+          "pages": 3
+        }
+      },
+      {
+        "status": "SAFE_UNAVAILABLE",
+        "source": "graphics-4.fodp",
+        "target": "html",
+        "reason": "NATIVE_PRESENTATION_HTML_GRAPHICS_UNSUPPORTED",
+        "sourceSha256": "f7bcad22ec173113f41fcd17620473311607b75d84b29c82902cc5b45ea7cd77",
+        "profile": {
+          "complete": true,
+          "textShapes": 4,
+          "graphicShapes": 4,
+          "pages": 4
+        }
+      },
+      {
+        "status": "SAFE_UNAVAILABLE",
+        "source": "graphics-4.fodp",
+        "target": "htm",
+        "reason": "NATIVE_PRESENTATION_HTML_GRAPHICS_UNSUPPORTED",
+        "sourceSha256": "f7bcad22ec173113f41fcd17620473311607b75d84b29c82902cc5b45ea7cd77",
+        "profile": {
+          "complete": true,
+          "textShapes": 4,
+          "graphicShapes": 4,
+          "pages": 4
+        }
+      },
+      {
+        "status": "SAFE_UNAVAILABLE",
+        "source": "draw-4.fodg",
+        "target": "html",
+        "reason": "NATIVE_DRAW_HTML_CONTENT_UNSUPPORTED",
+        "sourceSha256": "fdbe056a193fc94d6d9c9a7d354803747a77960a36f853dd38da90c615ab5da1",
+        "profile": {
+          "complete": true,
+          "textShapes": 4,
+          "graphicShapes": 0,
+          "pages": 4
+        }
+      },
+      {
+        "status": "SAFE_UNAVAILABLE",
+        "source": "draw-4.fodg",
+        "target": "htm",
+        "reason": "NATIVE_DRAW_HTML_CONTENT_UNSUPPORTED",
+        "sourceSha256": "fdbe056a193fc94d6d9c9a7d354803747a77960a36f853dd38da90c615ab5da1",
+        "profile": {
+          "complete": true,
+          "textShapes": 4,
+          "graphicShapes": 0,
+          "pages": 4
+        }
+      },
+      {
+        "status": "SAFE_UNAVAILABLE",
+        "source": "graphics-5.fodp",
+        "target": "html",
+        "reason": "NATIVE_PRESENTATION_HTML_GRAPHICS_UNSUPPORTED",
+        "sourceSha256": "7e3f765cab50854a547db57bbdbb8e18098dd4499ae5e1570dd9ef7a570b969a",
+        "profile": {
+          "complete": true,
+          "textShapes": 5,
+          "graphicShapes": 5,
+          "pages": 5
+        }
+      },
+      {
+        "status": "SAFE_UNAVAILABLE",
+        "source": "graphics-5.fodp",
+        "target": "htm",
+        "reason": "NATIVE_PRESENTATION_HTML_GRAPHICS_UNSUPPORTED",
+        "sourceSha256": "7e3f765cab50854a547db57bbdbb8e18098dd4499ae5e1570dd9ef7a570b969a",
+        "profile": {
+          "complete": true,
+          "textShapes": 5,
+          "graphicShapes": 5,
+          "pages": 5
+        }
+      },
+      {
+        "status": "SAFE_UNAVAILABLE",
+        "source": "draw-5.fodg",
+        "target": "html",
+        "reason": "NATIVE_DRAW_HTML_CONTENT_UNSUPPORTED",
+        "sourceSha256": "ec052aa8ac551eafae746b81ba1c25f0e35d72c9c7c1882599affa026354c63a",
+        "profile": {
+          "complete": true,
+          "textShapes": 5,
+          "graphicShapes": 0,
+          "pages": 5
+        }
+      },
+      {
+        "status": "SAFE_UNAVAILABLE",
+        "source": "draw-5.fodg",
+        "target": "htm",
+        "reason": "NATIVE_DRAW_HTML_CONTENT_UNSUPPORTED",
+        "sourceSha256": "ec052aa8ac551eafae746b81ba1c25f0e35d72c9c7c1882599affa026354c63a",
+        "profile": {
+          "complete": true,
+          "textShapes": 5,
+          "graphicShapes": 0,
+          "pages": 5
+        }
+      },
+      {
+        "status": "SAFE_UNAVAILABLE",
+        "source": "graphics-6.fodp",
+        "target": "html",
+        "reason": "NATIVE_PRESENTATION_HTML_GRAPHICS_UNSUPPORTED",
+        "sourceSha256": "c4049edf097291b48abb14bedda721614ef8c4d9915a58e6a56c98dcc297eed3",
+        "profile": {
+          "complete": true,
+          "textShapes": 6,
+          "graphicShapes": 6,
+          "pages": 6
+        }
+      },
+      {
+        "status": "SAFE_UNAVAILABLE",
+        "source": "graphics-6.fodp",
+        "target": "htm",
+        "reason": "NATIVE_PRESENTATION_HTML_GRAPHICS_UNSUPPORTED",
+        "sourceSha256": "c4049edf097291b48abb14bedda721614ef8c4d9915a58e6a56c98dcc297eed3",
+        "profile": {
+          "complete": true,
+          "textShapes": 6,
+          "graphicShapes": 6,
+          "pages": 6
+        }
+      },
+      {
+        "status": "SAFE_UNAVAILABLE",
+        "source": "draw-6.fodg",
+        "target": "html",
+        "reason": "NATIVE_DRAW_HTML_CONTENT_UNSUPPORTED",
+        "sourceSha256": "8433b1cbd250e9c58bffca8eb45e77633b0c264d9c96b276be4e90afdc42a7ed",
+        "profile": {
+          "complete": true,
+          "textShapes": 6,
+          "graphicShapes": 0,
+          "pages": 6
+        }
+      },
+      {
+        "status": "SAFE_UNAVAILABLE",
+        "source": "draw-6.fodg",
+        "target": "htm",
+        "reason": "NATIVE_DRAW_HTML_CONTENT_UNSUPPORTED",
+        "sourceSha256": "8433b1cbd250e9c58bffca8eb45e77633b0c264d9c96b276be4e90afdc42a7ed",
+        "profile": {
+          "complete": true,
+          "textShapes": 6,
+          "graphicShapes": 0,
+          "pages": 6
+        }
+      },
+      {
+        "status": "SAFE_UNAVAILABLE",
+        "source": "graphics-7.fodp",
+        "target": "html",
+        "reason": "NATIVE_PRESENTATION_HTML_GRAPHICS_UNSUPPORTED",
+        "sourceSha256": "87f1291a10e0b41b799f5ed4e2880582d6a3ba1b51c79f4798ceef56824cf807",
+        "profile": {
+          "complete": true,
+          "textShapes": 7,
+          "graphicShapes": 7,
+          "pages": 7
+        }
+      },
+      {
+        "status": "SAFE_UNAVAILABLE",
+        "source": "graphics-7.fodp",
+        "target": "htm",
+        "reason": "NATIVE_PRESENTATION_HTML_GRAPHICS_UNSUPPORTED",
+        "sourceSha256": "87f1291a10e0b41b799f5ed4e2880582d6a3ba1b51c79f4798ceef56824cf807",
+        "profile": {
+          "complete": true,
+          "textShapes": 7,
+          "graphicShapes": 7,
+          "pages": 7
+        }
+      },
+      {
+        "status": "SAFE_UNAVAILABLE",
+        "source": "draw-7.fodg",
+        "target": "html",
+        "reason": "NATIVE_DRAW_HTML_CONTENT_UNSUPPORTED",
+        "sourceSha256": "4734ee6d847823c183073a72a8182f6ea50aa9e0d00b70ef535825eccc5bce0a",
+        "profile": {
+          "complete": true,
+          "textShapes": 7,
+          "graphicShapes": 0,
+          "pages": 7
+        }
+      },
+      {
+        "status": "SAFE_UNAVAILABLE",
+        "source": "draw-7.fodg",
+        "target": "htm",
+        "reason": "NATIVE_DRAW_HTML_CONTENT_UNSUPPORTED",
+        "sourceSha256": "4734ee6d847823c183073a72a8182f6ea50aa9e0d00b70ef535825eccc5bce0a",
+        "profile": {
+          "complete": true,
+          "textShapes": 7,
+          "graphicShapes": 0,
+          "pages": 7
+        }
+      },
+      {
+        "status": "SAFE_UNAVAILABLE",
+        "source": "graphics-8.fodp",
+        "target": "html",
+        "reason": "NATIVE_PRESENTATION_HTML_GRAPHICS_UNSUPPORTED",
+        "sourceSha256": "99a733696e6e033eb92b8767e9459100d9b7e4ab8b210e1df1bb1d7cba3d7740",
+        "profile": {
+          "complete": true,
+          "textShapes": 8,
+          "graphicShapes": 8,
+          "pages": 8
+        }
+      },
+      {
+        "status": "SAFE_UNAVAILABLE",
+        "source": "graphics-8.fodp",
+        "target": "htm",
+        "reason": "NATIVE_PRESENTATION_HTML_GRAPHICS_UNSUPPORTED",
+        "sourceSha256": "99a733696e6e033eb92b8767e9459100d9b7e4ab8b210e1df1bb1d7cba3d7740",
+        "profile": {
+          "complete": true,
+          "textShapes": 8,
+          "graphicShapes": 8,
+          "pages": 8
+        }
+      },
+      {
+        "status": "SAFE_UNAVAILABLE",
+        "source": "draw-8.fodg",
+        "target": "html",
+        "reason": "NATIVE_DRAW_HTML_CONTENT_UNSUPPORTED",
+        "sourceSha256": "e7d96612f54930ab78d84194c76dc6628a293e90cc842f21ca36b2fa63d06d37",
+        "profile": {
+          "complete": true,
+          "textShapes": 8,
+          "graphicShapes": 0,
+          "pages": 8
+        }
+      },
+      {
+        "status": "SAFE_UNAVAILABLE",
+        "source": "draw-8.fodg",
+        "target": "htm",
+        "reason": "NATIVE_DRAW_HTML_CONTENT_UNSUPPORTED",
+        "sourceSha256": "e7d96612f54930ab78d84194c76dc6628a293e90cc842f21ca36b2fa63d06d37",
+        "profile": {
+          "complete": true,
+          "textShapes": 8,
+          "graphicShapes": 0,
+          "pages": 8
+        }
+      }
+    ],
+    "negative": [],
+    "orp": {
+      "status": "not_tested",
+      "reason": "no_positive_Base_ReportDefinition_fixture"
+    },
+    "reason": "ENGINE_OUTPUT_CONTENT_LOSS",
+    "code": null
+  }
+}

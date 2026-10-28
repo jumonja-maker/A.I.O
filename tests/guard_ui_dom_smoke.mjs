@@ -14,6 +14,10 @@ window.requestAnimationFrame=callback=>setTimeout(callback,1);window.cancelAnima
 window.localStorage={getItem:()=>null,setItem(){}};
 window.HTMLElement.prototype.getBoundingClientRect=()=>({left:0,right:600,top:0,bottom:400,width:600,height:400});
 window.HTMLElement.prototype.focus=function(){};
+// linkedom does not implement the native HTML dialog API. The actual Qt
+// journeys use Chromium's dialog; this DOM fixture supplies only its shell.
+window.HTMLElement.prototype.showModal=function(){this.setAttribute('open','');};
+window.HTMLElement.prototype.close=function(){this.removeAttribute('open');};
 const plans=[],reports=[],preflights=[],beforeStarts=[],startStates=[];
 const apiFetch=async (url,options={})=>{
   const resolved=new URL(url,base);
@@ -71,17 +75,36 @@ await until(()=>rows().length===1&&stable(),'unknown input');
 assert.equal(target('DOCX').disabled,false,'unknown model is selectable, not just enabled in JSON');
 target('DOCX').click();
 assert.equal(run.disabled,false);
-run.click();await until(()=>!save.hidden,'unknown native conversion');
+run.click();await until(()=>!save.disabled,'unknown native conversion');
 assert.equal(reports.at(-1).succeeded,1);
 assert.equal(reports.at(-1).result.ticket,reports.at(-1).result.downloadUrl.split('ticket=')[1]);
+const resultBeforeNo=reports.at(-1).result.ticket;
+const closeResult=document.querySelector('[data-cv-close-result]');
+assert.deepEqual([...document.querySelector('[data-cv-result-actions]').children].map(b=>b.textContent),
+  ['Закрыть','Сохранить результаты','До/После']);
+closeResult.click();closeResult.click();
+await until(()=>document.querySelector('[data-close-no]'),'unsaved confirmation');
+assert.equal(document.querySelectorAll('.aio-conversion-close-dialog').length,1,'duplicate close has one decision');
+document.querySelector('[data-close-no]').click();
+await until(()=>!document.querySelector('.aio-conversion-close-dialog')&&!closeResult.disabled,'No preserves session');
+const afterNo=await (await apiFetch('/api/converter-guard/jobs?job='+reports.at(-1).jobId,
+  {headers:{'X-AIO-Token':document.body.dataset.aioToken}})).json();
+assert.equal(afterNo.result.ticket,resultBeforeNo);assert.equal(afterNo.succeeded,1);
+assert.equal(rows().length,1);assert.equal(save.disabled,false);
 let downloaded=0;
 window.AllInOneBridge.saveExcel=async result=>{
   const response=await apiFetch(result.downloadUrl);
   assert.equal(response.ok,true);assert.ok((await response.arrayBuffer()).byteLength>0);
   downloaded++;return {saved:true};
 };
-save.click();await until(()=>save.hidden&&stable(),'confirmed unknown save');
-rows()[0].querySelector('[data-op="remove"]').click();
+save.click();await until(()=>document.querySelector('[data-cv-status]').classList.contains('aio-cv__saved')&&stable(),'confirmed unknown save');
+document.querySelector('[data-cv-clear-inputs]').click();
+await until(()=>rows().length===0&&stable(),'trash clears inputs after save');
+assert.equal(document.querySelector('[data-cv-result-actions]').hidden,false,'trash preserves retained result actions');
+assert.equal(document.querySelector('[data-cv-save]').disabled,false,'saved result remains available after trash');
+document.querySelector('[data-cv-close-result]').click();await until(()=>document.querySelector('[data-cv-result-actions]').hidden,'explicit close of saved session');
+assert.equal(document.querySelector('.aio-conversion-close-dialog'),null,'verified saved close asks no question');
+if(rows().length)rows()[0].querySelector('[data-op="remove"]').click();
 await until(()=>rows().length===0&&stable(),'remove unknown');
 add([new File(['W'],'renamed.bmp'),new File(['BM'],'image.bmp'),new File(['a,b'],'table.csv')]);
 await until(()=>rows().length===3&&stable(),'three native models prepared');
@@ -94,7 +117,7 @@ assert.ok(selected.includes('dbf'));assert.ok(!selected.includes('bmp'));
 const startsBefore=plans.length;
 document.querySelector('[data-cv-select-all-formats]').click();
 assert.equal(plans.length,startsBefore,'Select All itself must not start conversion');
-run.click();await until(()=>!save.hidden,'preflight filtered three-file conversion');
+run.click();await until(()=>!save.disabled,'preflight filtered three-file conversion');
 const plan=plans.at(-1),report=reports.at(-1);
 assert.equal(plan.onlyVerified,true);
 assert.deepEqual(plan.plan,offered.files.map(file=>({fileId:file.id,formats:selected.filter(id=>
@@ -109,9 +132,10 @@ const issues=document.querySelector('.aio-cv-issues-button');issues.click();
 assert.ok(issues.textContent==='Результат');
 assert.ok(document.querySelector('.aio-cv-issues-note').textContent.includes('Готово: 8 из 8'));
 assert.ok(document.querySelector('.aio-cv-issues-note').textContent.includes('Ошибок: 0'));
-save.click();await until(()=>save.hidden&&stable(),'renamed save');
+save.click();await until(()=>document.querySelector('[data-cv-status]').classList.contains('aio-cv__saved')&&stable(),'renamed save');
 await until(()=>rows()[0].querySelector('.aio-fp-check')?.hidden,'saved check clears');
 assert.equal(downloaded,2);
+document.querySelector('[data-cv-close-result]').click();await until(()=>document.querySelector('[data-cv-result-actions]').hidden,'close second saved session');
 const checksBeforeRemoval=preflights.length;
 while(rows().length) {
   const count=rows().length;rows()[0].querySelector('[data-op="remove"]').click();
@@ -143,18 +167,23 @@ for(const label of selected) {const button=target(label.toUpperCase());if(button
 target('PDF').click();run.click();
 await until(()=>rows()[1].dataset.aioFpState==='converting','second file is really active');
 assert.equal(run.textContent,'Отменить');run.click();
-await until(()=>!save.hidden,'cancel retains the first completed output');
+await until(()=>!save.disabled,'cancel retains the first completed output');
 assert.equal(reports.at(-1).state,'cancelled');
 assert.equal(reports.at(-1).succeeded,1);assert.equal(reports.at(-1).cancelled,1);
 await until(()=>rows().every(r=>r.dataset.aioFpState),'cancelled run paint restored after UI render');
 assert.deepEqual(rows().map(r=>r.dataset.aioFpState),['ready','cancelled']);
-save.click();await until(()=>save.hidden&&stable(),'save partial cancellation');
+save.click();await until(()=>document.querySelector('[data-cv-status]').classList.contains('aio-cv__saved')&&stable(),'save partial cancellation');
 await until(()=>rows()[0].querySelector('.aio-fp-check')?.hidden,'partial cancel saved check clears');
 assert.equal(downloaded,3);
+document.querySelector('[data-cv-close-result]').click();await until(()=>document.querySelector('[data-cv-result-actions]').hidden,'close saved cancellation session');
 const status=await (await apiFetch('/api/converter-guard/status',{
   headers:{'X-AIO-Token':document.body.dataset.aioToken}})).json();
 assert.equal(status.storage.jobs,0);assert.equal(status.storage.reservedBytes,0);
+document.querySelector('[data-cv-clear-inputs]').click();
+await until(()=>rows().length===0&&stable(),'trash clears original input list');
+assert.equal(document.querySelector('[data-cv-count]').textContent,'0/0');
 console.log(JSON.stringify({status:'PASS',scope:'preserved DOM + real Guard HTTP; synthetic native/save',
   unknownSelectable:true,threeFileSelectAll:true,requestedPairs:8,nativeAttempts:8,unplannedPairs:10,errors:0,
   honestIssues:true,unknownBlockedBeforeStart:true,noAutomaticSelection:true,removalAfterSaveNoPreflight:true,savedChecksClear:true,
-  cancelledJobRetainsCompletedOutput:true,releasedSpool:true}));
+  cancelledJobRetainsCompletedOutput:true,releasedSpool:true,constantThreeActions:true,
+  duplicateCloseOneDialog:true,closeNoPreservesResult:true,savedCloseNoQuestion:true,trashClearsInputModel:true}));

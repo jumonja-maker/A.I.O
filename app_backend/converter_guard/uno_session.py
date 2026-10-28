@@ -19,8 +19,9 @@ from .errors import GuardError
 from .native_logs import NativeLogs, close_native_pipes
 from .dif_evidence import DIF_CORE_SOURCE
 from .native_profile import PrivateNativeProfile, private_profile_required
+from .sheet_outputs import SHEET_OUTPUT_SOURCE
 
-WORKER_SOURCE = DIF_CORE_SOURCE + r'''
+WORKER_SOURCE = DIF_CORE_SOURCE + SHEET_OUTPUT_SOURCE + r'''
 import json, os, sys, time, subprocess
 from pathlib import Path
 
@@ -92,7 +93,7 @@ def dbf_mixed_columns(sheet, area):
             mixed.append(column)
     return {'header': header, 'originalHeaders': list(first) if header else None, 'mixed': mixed}
 
-def export_table_sheets(model, desktop, prop, target, export_options):
+def export_table_sheets(model, desktop, prop, target, export_options, *, csv_format=None, raw_values=False):
     """One native legacy file per sheet, without approving a lossy dialog.
 
     DIF's native exporter always starts at sheet zero; it warns and drops all
@@ -103,6 +104,21 @@ def export_table_sheets(model, desktop, prop, target, export_options):
     """
     sheets = model.getSheets()
     count = sheets.getCount()
+    if count < 1:
+        raise SheetOutputMismatch('native_sheet_count_missing')
+    entries = []
+    if csv_format:
+        # Every private model has one sheet. Never let LO build paths from
+        # source sheet names, including the optional all-sheets retry recipe.
+        changed = []
+        for option in export_options:
+            if option.Name == 'FilterOptions':
+                tokens = option.Value.split(',')
+                if len(tokens) > 11:
+                    tokens[11] = '0'
+                option = prop('FilterOptions', ','.join(tokens))
+            changed.append(option)
+        export_options = changed
     is_dbf = any(p.Name == 'FilterName' and p.Value == 'dBase' for p in export_options)
     profiles = []
     for index in range(count):
@@ -111,7 +127,7 @@ def export_table_sheets(model, desktop, prop, target, export_options):
         cursor.gotoEndOfUsedArea(False)
         area = cursor.getRangeAddress()
         profiles.append((area, dbf_mixed_columns(sheet, area) if is_dbf else {'mixed': []}))
-    if count <= 1 and not profiles[0][1]['mixed']:
+    if not csv_format and count <= 1 and not profiles[0][1]['mixed']:
         model.storeToURL(target.as_uri(), tuple(export_options))
         return [target]
     outputs = []
@@ -141,6 +157,8 @@ def export_table_sheets(model, desktop, prop, target, export_options):
             area, profile = profiles[index]
             path = target if index == 0 else target.with_name(
                 target.stem + '__sheet_%03d' % (index + 1) + target.suffix)
+            if csv_format:
+                path = target.with_name(sheet_output_name(target.stem, index, csv_format))
             mapping = None
             if profile['mixed']:
                 mapping = path.with_name(path.name + '.aio-columns.jsonl').open('x', encoding='utf-8')
@@ -196,6 +214,20 @@ def export_table_sheets(model, desktop, prop, target, export_options):
                 mapping.close()
                 mapping = None
             temporary.storeToURL(path.as_uri(), tuple(export_options))
+            if csv_format:
+                cache = {}
+                def expected(row, column):
+                    if not raw_values:
+                        return source_sheet.getCellByPosition(column, row).getString()
+                    if cache.get('row') != row:
+                        cache['values'] = source_sheet.getCellRangeByPosition(
+                            0, row, area.EndColumn, row).getDataArray()[0]
+                        cache['row'] = row
+                    value = cache['values'][column]
+                    return value if value is not None else source_sheet.getCellByPosition(column, row).getString()
+                check = verify_csv_sheet(path, csv_format, area.EndRow + 1,
+                    area.EndColumn + 1, expected, raw_values=raw_values)
+                entries.append(sheet_file_evidence(path, index, source_sheet.getName(), check))
             outputs.append(path)
         finally:
             if 'mapping' in locals() and mapping is not None:
@@ -204,7 +236,39 @@ def export_table_sheets(model, desktop, prop, target, export_options):
                 temporary.close(True)
             else:
                 temporary.dispose()
+    if csv_format:
+        outputs.append(write_sheet_manifest(target.parent, entries))
     return outputs
+
+
+def inspect_html_content_profile(model):
+    """Inspect shapes only: never export during native preflight."""
+    profile = {'complete': False, 'textShapes': 0, 'graphicShapes': 0, 'pages': 0}
+    try:
+        pages = model.getDrawPages()
+        profile['pages'] = pages.getCount()
+        if not 1 <= profile['pages'] <= 256:
+            return profile
+        pending = [pages.getByIndex(i) for i in range(profile['pages'])]
+        visited = 0
+        while pending:
+            group = pending.pop()
+            for index in range(group.getCount()):
+                visited += 1
+                if visited > 10000:
+                    return profile
+                shape = group.getByIndex(index)
+                kind = shape.getShapeType()
+                if kind == 'com.sun.star.drawing.GroupShape':
+                    pending.append(shape)
+                elif kind.rsplit('.', 1)[-1] in ('TextShape', 'TitleTextShape', 'OutlinerShape'):
+                    profile['textShapes'] += 1
+                else:
+                    profile['graphicShapes'] += 1
+        profile['complete'] = True
+    except Exception:
+        pass
+    return profile
 
 
 def export_draw_svm(model, remote, prop, target):
@@ -389,6 +453,9 @@ def main(boot_name):
                         result['nativeExportFilters'] = text_exports
                     if text_document:
                         result['nativeExportInspection'] = {'txt': text_export_reason}
+                    if set(services).intersection(('com.sun.star.presentation.PresentationDocument',
+                                                   'com.sun.star.drawing.DrawingDocument')):
+                        result['htmlContentProfile'] = inspect_html_content_profile(model)
                     if 'com.sun.star.drawing.DrawingDocument' in services:
                         try:
                             result['drawPages'] = model.getDrawPages().getCount()
@@ -434,9 +501,11 @@ def main(boot_name):
                         if (req.get('graphicExport') == 'svm' and req['format'] == 'svm'
                                 and 'com.sun.star.drawing.DrawingDocument' in services):
                             exported_paths = export_draw_svm(model, remote, prop, target)
-                        elif (req['exportFilter'] in ('DIF', 'dBase')
+                        elif (req['exportFilter'] in ('DIF', 'dBase', 'Text - txt - csv (StarCalc)')
                                 and 'com.sun.star.sheet.SpreadsheetDocument' in services):
-                            exported_paths = export_table_sheets(model, desktop, prop, target, export_options)
+                            exported_paths = export_table_sheets(model, desktop, prop, target, export_options,
+                                csv_format=req['format'] if req['format'] in ('csv','tab','tsv') else None,
+                                raw_values=req.get('automaticRecipe') == 'csv_preserve_values')
                         else:
                             model.storeToURL(target.as_uri(), tuple(export_options))
                             if req.get('automaticRecipe') == 'csv_preserve_values':
@@ -463,6 +532,7 @@ def main(boot_name):
         except Exception as error:
             result = {'id':request_id,'ok':False,'code':('DIF_NUMERIC_IMPORT_MISMATCH'
                       if isinstance(error, DifNumericMismatch) else
+                      'ENGINE_OUTPUT_CONTENT_LOSS' if isinstance(error, SheetOutputMismatch) else
                       'PREFLIGHT_INTERACTION_REQUIRED'
                       if handler is not None and handler.blocked else
                       'SOURCE_IMPORT_FAILED' if stage == 'import' else
@@ -594,8 +664,6 @@ class UnoSession:
             self.workspace.mkdir(parents=True,exist_ok=True)
             if private_profile_required():
                 self._profile_owner = PrivateNativeProfile()
-                # The profile factory historically receives a new path.
-                # Keep that contract inside our exclusively owned short root.
                 self.profile = self._profile_owner.path / 'p'
             else:
                 self.profile = self.workspace / secrets.token_hex(8)

@@ -106,6 +106,8 @@ def main():
             server.guard.upload(pdf_id,'pdf',io.BytesIO(pdf),len(pdf));server.guard.start(pdf_id,archive_mode='on_demand');wait_finished(server.guard,pdf_id)
             window.resize(1280,800);javascript('window.AIOGuardComparison.open('+json.dumps(pdf_id)+');true')
             until(lambda:javascript("document.querySelector('[data-c-progress]')?.textContent.includes('Анализ завершён')"))
+            javascript("document.querySelector('[data-c-filter-choice=all]')?.click();true")
+            until(lambda:javascript("!!document.querySelector('.aio-compare-row button[data-task]')"))
             javascript("document.querySelector('.aio-compare-row button[data-task]')?.dispatchEvent(new MouseEvent('dblclick',{bubbles:true}));true")
             until(lambda:javascript("!!document.querySelector('[data-c-preview] img')?.naturalWidth"))
             end=time.monotonic()+2

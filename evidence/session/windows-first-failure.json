@@ -1,0 +1,25 @@
+{
+  "testedSHA": "dad3e6b3bffe707a689c5356d549425e37374ccf",
+  "testedTree": "5914fb7c9f84feb69050edeb632314f6c800bb91",
+  "run": 40552719084,
+  "status": "FAIL",
+  "evidence": {
+    "status": "FAIL",
+    "scope": "actual native LO queue/save/recovery/cancel; not FULLTEST or installed EXE",
+    "checks": [
+      {
+        "status": "PASS",
+        "name": "native-save-recovery-analysis-close",
+        "nativeResults": 2,
+        "partialSaveRestored": true,
+        "optionalDiagnosticDidNotChangeUnsaved": true,
+        "originalSha256": "c9ea85a7ddc2e38feba704f969bc341f6d9821d684dca097af1bb27c81f2063f",
+        "savedFirstSha256": "5e8f2d1b4a56771344e9411d62d848ec534f9dba3808e6da9cad69d4e9972a0a",
+        "diagnosticSha256": "aa00c31cff6b50c8f2e7e6ab68bd9c8de0d729ce08bc7975448d1171092ae508"
+      }
+    ],
+    "code": "CONVERSION_PLAN",
+    "reason": "Выберите подготовленные исходники.",
+    "error": "GuardError"
+  }
+}

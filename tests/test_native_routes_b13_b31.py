@@ -1,0 +1,137 @@
+from pathlib import Path
+import struct
+import tempfile
+import threading
+from types import SimpleNamespace
+import unittest
+from unittest.mock import patch
+
+from app_backend.converter_guard.legacy_import import legacy_import_hint, validate_options,validate_legacy_dbf_source
+from app_backend.converter_guard.errors import GuardError
+from app_backend.converter_guard.export_recipe import native_export_recipe
+from app_backend.converter_guard.routes import Registry
+from app_backend.libreoffice_engine import validated_outputs, LibreOfficeError
+from test_converter_guard_v04 import component, node, C, W
+
+
+def cp1251_dbf(level=1, *, driver=0xC9, utf8=False):
+    count=level+2;header=bytearray(129);header[0]=3;header[1:4]=bytes((126,10,27))
+    struct.pack_into('<IHH',header,4,count,129,80);header[29]=driver
+    for i,(name,kind,width,decimals) in enumerate((('ID','C',3,0),('TEXT','C',64,0),('AMOUNT','N',12,2))):
+        at=32+i*32;header[at:at+len(name)]=name.encode();header[at+11]=ord(kind)
+        header[at+16]=width;header[at+17]=decimals
+    header[128]=13
+    records=[]
+    for index in range(1,count+1):
+        text=f'Строка {index} уровень {level}'.encode('utf-8' if utf8 else 'cp1251')
+        records.append(b' '+f'{index:03d}'.encode()+text.ljust(64)+f'{index*1.25:12.2f}'.encode())
+    return bytes(header)+b''.join(records)+b'\x1a'
+
+
+def large_cp1251_dbf():
+    small=cp1251_dbf();header=bytearray(small[:129]);count=16384
+    struct.pack_into('<I',header,4,count)
+    last=b' '+b'999'+'Последняя строка'.encode('cp1251').ljust(64)+f'{9999.5:12.2f}'.encode()
+    return bytes(header)+small[129:209]*(count-1)+last+b'\x1a'
+
+
+class NativeRouteContracts(unittest.TestCase):
+    def test_jpeg_alias_binds_codec_and_accepts_a_reader_that_clears_format_after_read(self):
+        from app_backend.converter_guard.jpeg_alias import verify_native_jpeg_alias
+        codecs=[]
+        class Reader:
+            def __init__(self, path): pass
+            def setFormat(self, value): codecs.append(value)
+            def size(self): return SimpleNamespace(width=lambda:2, height=lambda:3)
+            def read(self): return SimpleNamespace(isNull=lambda:False, width=lambda:2, height=lambda:3)
+            def format(self): return b''
+        with tempfile.TemporaryDirectory() as tmp:
+            p=Path(tmp)/'result.jfif';p.write_bytes(b'\xff\xd8\xff'+b'native-test-boundary')
+            with patch('app_backend.converter_guard.qt_media._qt', return_value=(None,)*5+(Reader,)), \
+                 patch('app_backend.converter_guard.qt_media._bounds'):
+                result=verify_native_jpeg_alias([p], 'jfif', cancel=threading.Event())
+        self.assertEqual(codecs,[b'jpeg'])
+        self.assertEqual(result['status'],'checked_subset')
+        self.assertFalse(result['qualityCompared'])
+
+    def test_c9_hint_requires_content_layout_and_declared_cyrillic(self):
+        native=SimpleNamespace(filters={'dBase':(C,{'dbf'},{'IMPORT'})})
+        with tempfile.TemporaryDirectory() as tmp:
+            p=Path(tmp)/'renamed.bin'
+            for level in range(1,9):
+                original=cp1251_dbf(level);p.write_bytes(original)
+                self.assertEqual(legacy_import_hint(p,native),
+                    {'filter':'dBase','options':'34','basis':'content_confirmed_legacy'})
+                self.assertEqual(p.read_bytes(),original)
+                validate_legacy_dbf_source(p,native)
+            for damaged in (cp1251_dbf(driver=0),cp1251_dbf(utf8=True),cp1251_dbf()[:-25]):
+                p.write_bytes(damaged);self.assertIsNone(legacy_import_hint(p,native))
+            for at in (8,10,48):
+                damaged=bytearray(cp1251_dbf());damaged[at]=0
+                p.write_bytes(damaged);self.assertIsNone(legacy_import_hint(p,native))
+            self.assertTrue(validate_options('dBase','34',native))
+            self.assertFalse(validate_options('dBase','1251',native))
+            self.assertFalse(validate_options('dBase','34,unsafe',native))
+
+    def test_ambiguous_or_broken_dbf_is_rejected_before_native_guessing(self):
+        native=SimpleNamespace(filters={'dBase':(C,{'dbf'},{'IMPORT'})})
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'renamed.unlisted'
+            damaged=bytearray(cp1251_dbf());damaged[8]=0
+            for data,code in ((cp1251_dbf(driver=0),'DBF_ENCODING_NOT_CONFIRMED'),
+                    (cp1251_dbf(utf8=True),'DBF_ENCODING_AMBIGUOUS'),
+                    (cp1251_dbf()[:-25],'DBF_SOURCE_TRUNCATED'),(damaged,'DBF_SOURCE_LAYOUT_INVALID')):
+                path.write_bytes(data)
+                with self.assertRaises(GuardError) as error:validate_legacy_dbf_source(path,native)
+                self.assertEqual(error.exception.code,code)
+                self.assertEqual(path.read_bytes(),data)
+
+    def test_large_valid_dbf_has_no_size_veto_and_tail_or_cancel_cannot_pass(self):
+        native=SimpleNamespace(filters={'dBase':(C,{'dbf'},{'IMPORT'})})
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'large.bin';data=large_cp1251_dbf();self.assertGreater(len(data),1024*1024)
+            path.write_bytes(data);validate_legacy_dbf_source(path,native)
+            self.assertEqual(legacy_import_hint(path,native)['options'],'34')
+            damaged=bytearray(data);damaged[129+16383*80]=0 # deletion marker of last record
+            path.write_bytes(damaged)
+            with self.assertRaises(GuardError) as error:validate_legacy_dbf_source(path,native)
+            self.assertEqual(error.exception.code,'DBF_SOURCE_LAYOUT_INVALID')
+            path.write_bytes(data)
+            class CancelDuringScan:
+                checks=0
+                def is_set(self):
+                    self.checks+=1
+                    return self.checks>200
+            with self.assertRaises(GuardError) as error:
+                validate_legacy_dbf_source(path,native,cancel=CancelDuringScan())
+            self.assertEqual(error.exception.code,'CANCELLED');self.assertEqual(path.read_bytes(),data)
+
+    def test_writer_web_alias_uses_installed_writer_jpeg_only_with_interface_proof(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);exe=root/'soffice';exe.touch();reg=root/'registry.xcd'
+            web='com.sun.star.text.WebDocument'
+            types=node('jpeg',Extensions='jpg jpeg jfif jif jpe')+node('html',Extensions='html htm')
+            filters=(node('writer_jpg_Export',Type='jpeg',DocumentService=W,Flags='EXPORT')+
+                node('writer_web_jpg_Export',Type='jpeg',DocumentService=web,Flags='EXPORT')+
+                node('HTML',Type='html',DocumentService=web,Flags='IMPORT EXPORT'))
+            reg.write_text('<oor:data xmlns:oor="http://openoffice.org/2001/registry">'+
+                component('Types','Types',types)+component('Filter','Filters',filters)+'</oor:data>')
+            native=Registry(((str(reg),0,reg.stat().st_size),),exe)
+            proof={'state':'detected','basis':'native_preflight_uno_document','modelLoaded':True,
+                   'registryFingerprint':native.fingerprint,'documentServices':[web],'nativeTextDocument':True}
+            for target in ('jpg','jpeg','jfif','jif','jpe'):
+                self.assertEqual(native_export_recipe(native,target,proof).filter_name,'writer_jpg_Export')
+            proof['nativeTextDocument']=False
+            self.assertEqual(native_export_recipe(native,'jfif',proof).filter_name,'writer_web_jpg_Export')
+
+    def test_alias_never_accepts_an_html_shell_or_wrong_magic(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);source=root/'input.html';source.write_text('<p>source</p>')
+            output=root/'output';output.mkdir()
+            for target in ('jfif','jif','jpe'):
+                p=output/('result.'+target);p.write_bytes(b'<html>not JPEG</html>')
+                with self.assertRaises(LibreOfficeError):validated_outputs(source,target,output)
+                p.unlink()
+
+
+if __name__=='__main__':unittest.main()

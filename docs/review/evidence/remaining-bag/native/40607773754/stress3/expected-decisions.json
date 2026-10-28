@@ -1,0 +1,108 @@
+{
+  "schema": 1,
+  "scope": "remaining_bag_targeted_stress3_not_FULLTEST",
+  "releaseBuild": false,
+  "historicalInputs": "not_available",
+  "stages": [
+    {
+      "name": "dif-regression",
+      "script": "guard_b28_dif_native_acceptance.py",
+      "expected": {
+        "cases": 48
+      }
+    },
+    {
+      "name": "text-id-regression",
+      "script": "guard_b29_csv_native_acceptance.py",
+      "expected": {
+        "cases": 108
+      }
+    },
+    {
+      "name": "all-sheets",
+      "script": "guard_b30_native_acceptance.py",
+      "expected": {
+        "cases": 9
+      }
+    },
+    {
+      "name": "dbf-jpeg",
+      "script": "guard_native_routes_b13_b31.py",
+      "expected": {
+        "dbf": 8,
+        "largeDbf": 1,
+        "jpeg": 120,
+        "negative": 6
+      }
+    },
+    {
+      "name": "tiff",
+      "script": "guard_b32_tiff_native_acceptance.py",
+      "expected": {
+        "cases": 24,
+        "negative": 6
+      }
+    },
+    {
+      "name": "html",
+      "script": "guard_b33_html_native_acceptance.py",
+      "expected": {
+        "positive": 18,
+        "excluded": 30,
+        "negative": 3
+      }
+    },
+    {
+      "name": "session",
+      "script": "guard_session_native_acceptance.py",
+      "expected": {
+        "checks": 3
+      }
+    },
+    {
+      "name": "viewer-100",
+      "script": "guard_before_after_b19_b25_acceptance.py",
+      "expected": {
+        "checks": 5
+      }
+    },
+    {
+      "name": "viewer-150",
+      "script": "guard_before_after_b19_b25_acceptance.py",
+      "expected": {
+        "checks": 5
+      }
+    }
+  ],
+  "parserAndIdentityControls": {
+    "truncated-zip": "not_checked",
+    "truncated-xml": "not_checked",
+    "dtd-entity": "not_checked",
+    "missing-html-resource": "not_checked",
+    "dynamic-hidden-html": "not_checked",
+    "text-mismatch": "uncertain",
+    "empty-result": "confirmed_loss",
+    "conflicting-mime": "invalid",
+    "renamed-writer": "recognized",
+    "inspection-budget": "not_checked",
+    "changed-source-preview": "unavailable",
+    "changed-result-preview": "unavailable"
+  },
+  "coverageExceptions": [
+    {
+      "area": "Base ORP",
+      "status": "not_tested",
+      "reason": "no genuine Base ReportDefinition fixture"
+    },
+    {
+      "area": "installed EXE/manual user acceptance",
+      "status": "not_tested",
+      "reason": "no build or FULLTEST authorization"
+    },
+    {
+      "area": "macro-bearing positives and original 680 corpus",
+      "status": "not_tested",
+      "reason": "fixtures not supplied"
+    }
+  ]
+}

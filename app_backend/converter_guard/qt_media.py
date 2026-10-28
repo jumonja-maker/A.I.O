@@ -289,6 +289,12 @@ def _frames(source, scratch, info, cancel):
     expected = max(info['frames'], info['pages'])
     for index in range(expected):
         _cancel(cancel)
+        if info.get('format') == 'tiff':
+            # Qt's TIFF plugin advances its internal IFD while read() returns
+            # the current page. A subsequent absolute jump can then fail even
+            # though that IFD is valid. Start from the file header for each
+            # validated page index; keep streaming animations on their reader.
+            reader = QImageReader(str(source))
         # TIFF thumbnails occupy native IFD indexes but are not document pages.
         native_index = info.get('pageImageIndexes', range(expected))[index]
         if native_index and not reader.supportsAnimation() and not reader.jumpToImage(native_index):

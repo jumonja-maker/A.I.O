@@ -160,10 +160,10 @@ class SaveQueueTests(unittest.TestCase):
         store = self.guard._jobs[identity].store
         entered, resume, observed = threading.Event(), threading.Event(), threading.Event()
         original = store.saved
-        def blocked(artifacts):
+        def blocked(artifacts, **kwargs):
             entered.set()
             resume.wait(3)
-            original(artifacts)
+            original(artifacts, **kwargs)
         errors = []
         def acknowledge():
             try:

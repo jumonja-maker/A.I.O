@@ -1,0 +1,1008 @@
+{
+  "status": "PENDING_INTEGRATED_STRESS3",
+  "qaHead": "e80cdb84b90f2737b492185a3eb22586570c9f8c",
+  "mainHead": "2bab2d0c31fe84a0d07404a33219dd5bdad834b7",
+  "prs": [
+    {
+      "pr": 67,
+      "url": "https://github.com/jumonja-maker/A.I.O/pull/67",
+      "title": "B30/B34: все листы CSV/TAB/TSV и раздельные доказательства сохранения/качества",
+      "draft": true,
+      "base": {
+        "ref": "fix/guard-v182-matrix-progress-cancel-20261025",
+        "sha": "e80cdb84b90f2737b492185a3eb22586570c9f8c"
+      },
+      "head": {
+        "ref": "fix/b30-b34-all-sheets-evidence-20261027",
+        "sha": "952f686a18d0cfe3d4a8916224ec1bb03e5f6c74"
+      },
+      "files": [
+        {
+          "path": "app_backend/converter_guard/adapter.py",
+          "status": "modified",
+          "sha": "584aec001993e14ccd853bc97e550650f8589c4a",
+          "additions": 76,
+          "deletions": 3
+        },
+        {
+          "path": "app_backend/converter_guard/core.py",
+          "status": "modified",
+          "sha": "e4a28472f4833a4e8249ee3c284d558cd47c9a15",
+          "additions": 42,
+          "deletions": 13
+        },
+        {
+          "path": "app_backend/converter_guard/evidence_status.py",
+          "status": "added",
+          "sha": "44473f00e647fd81af00ac6cc83cdddb61908e92",
+          "additions": 36,
+          "deletions": 0
+        },
+        {
+          "path": "app_backend/converter_guard/export_recipe.py",
+          "status": "modified",
+          "sha": "97a0ef38eec97a826a110f6536af44899c97d4d9",
+          "additions": 5,
+          "deletions": 0
+        },
+        {
+          "path": "app_backend/converter_guard/legacy_sheets.py",
+          "status": "modified",
+          "sha": "34f609da1f34e46ce3f698b7b334a917df1d33db",
+          "additions": 4,
+          "deletions": 2
+        },
+        {
+          "path": "app_backend/converter_guard/result_store.py",
+          "status": "modified",
+          "sha": "211d720d835595ec613d3ee04433a948e57865b4",
+          "additions": 9,
+          "deletions": 3
+        },
+        {
+          "path": "app_backend/converter_guard/sheet_outputs.py",
+          "status": "added",
+          "sha": "6298f2f7404a59abed2c99eb40c872d620e495a0",
+          "additions": 240,
+          "deletions": 0
+        },
+        {
+          "path": "app_backend/converter_guard/uno_session.py",
+          "status": "modified",
+          "sha": "0374fffb4fd3bf14f2ee07c98a0d45328586a739",
+          "additions": 42,
+          "deletions": 5
+        },
+        {
+          "path": "docs/review/AIO_B30_B34_2026-10-27_RU.md",
+          "status": "added",
+          "sha": "574d9f415eb91e76c52b5f7ab256c7267cac36db",
+          "additions": 49,
+          "deletions": 0
+        },
+        {
+          "path": "docs/review/evidence/b30/windows-first-failure.json",
+          "status": "added",
+          "sha": "1e10c86ea53ba8ac96047de4c81b8c83670368cd",
+          "additions": 1,
+          "deletions": 0
+        },
+        {
+          "path": "evidence/b30/windows-accepted.json",
+          "status": "added",
+          "sha": "c0603fae5373efa90bb8ec8081d4774276384c31",
+          "additions": 10795,
+          "deletions": 0
+        },
+        {
+          "path": "evidence/b30/windows-second-failure.json",
+          "status": "added",
+          "sha": "af0e12e5340d8b19f50f9ffaee1c13655a446aa1",
+          "additions": 10809,
+          "deletions": 0
+        },
+        {
+          "path": "src/converter-bridge.js",
+          "status": "modified",
+          "sha": "626ddb4cf8e2927ff9f655b6255e23ec657fb7d3",
+          "additions": 10,
+          "deletions": 1
+        },
+        {
+          "path": "tests/test_all_sheets_b30.py",
+          "status": "added",
+          "sha": "add7be508cb30998190cebc25097e92780a03fdb",
+          "additions": 133,
+          "deletions": 0
+        },
+        {
+          "path": "tests/test_guard_export_recipes_v10.py",
+          "status": "modified",
+          "sha": "ce6f857dcb266820f2177bb162e314963742a44e",
+          "additions": 22,
+          "deletions": 8
+        },
+        {
+          "path": "tests/test_guard_quality_reliability_v13.py",
+          "status": "modified",
+          "sha": "061b449652285787288516d984982a5e49990c92",
+          "additions": 2,
+          "deletions": 1
+        },
+        {
+          "path": "tests/test_guard_save_queue_v09.py",
+          "status": "modified",
+          "sha": "49741e098745de78a45f8562e1ccd9db284df30b",
+          "additions": 2,
+          "deletions": 2
+        },
+        {
+          "path": "tools/qa/guard_b30_native_acceptance.py",
+          "status": "added",
+          "sha": "25a3197a815116cf00a75632aa80f6acfbb78bd0",
+          "additions": 140,
+          "deletions": 0
+        }
+      ],
+      "stage": "A",
+      "acceptance": "PASS",
+      "testedSourceSHA": "78e2c68f12d6297efa92d2c0f46f948ffb6466bb",
+      "testedSourceTree": "9f71526cb76934e927081287d838066aef634b2d",
+      "fileInventoryStatus": "checkpoint; refresh final D/E after integrated acceptance"
+    },
+    {
+      "pr": 68,
+      "url": "https://github.com/jumonja-maker/A.I.O/pull/68",
+      "title": "B13/B31: подтверждённый CP1251 DBF и нативные JPEG-алиасы Writer/Web",
+      "draft": true,
+      "base": {
+        "ref": "fix/guard-v182-matrix-progress-cancel-20261025",
+        "sha": "e80cdb84b90f2737b492185a3eb22586570c9f8c"
+      },
+      "head": {
+        "ref": "fix/b13-b31-native-20261027",
+        "sha": "9e14df21f450dd9d73916c96d5bf1b226d801ba3"
+      },
+      "files": [
+        {
+          "path": "app_backend/converter_guard/adapter.py",
+          "status": "modified",
+          "sha": "74e4ed935ad905b859be3a817878845ed9dd6e3a",
+          "additions": 10,
+          "deletions": 4
+        },
+        {
+          "path": "app_backend/converter_guard/export_recipe.py",
+          "status": "modified",
+          "sha": "1810733d4c291b2b92d0ccfe3a43b4d37337f1b6",
+          "additions": 2,
+          "deletions": 2
+        },
+        {
+          "path": "app_backend/converter_guard/jpeg_alias.py",
+          "status": "added",
+          "sha": "d880b0728a6e0e7ad55f146580b5d8890b6cd7d9",
+          "additions": 36,
+          "deletions": 0
+        },
+        {
+          "path": "app_backend/converter_guard/legacy_import.py",
+          "status": "modified",
+          "sha": "76cac17579e5429b5fb34b918bfa06822fc288f0",
+          "additions": 118,
+          "deletions": 12
+        },
+        {
+          "path": "app_backend/libreoffice_engine.py",
+          "status": "modified",
+          "sha": "c7d58676ffe8dbb721ee6127ffc6c6f6d25cecdb",
+          "additions": 4,
+          "deletions": 1
+        },
+        {
+          "path": "docs/review/AIO_B13_B31_NATIVE_2026-10-27_RU.md",
+          "status": "added",
+          "sha": "834ff9074e17a2d50b2f2c6723545a168e6bb49e",
+          "additions": 27,
+          "deletions": 0
+        },
+        {
+          "path": "evidence/b13-b31/windows-accepted-40580027077.json",
+          "status": "added",
+          "sha": "6c8415ce156ab386679ab00f915f380d9e7c8b7f",
+          "additions": 12377,
+          "deletions": 0
+        },
+        {
+          "path": "evidence/b13-b31/windows-accepted.json",
+          "status": "added",
+          "sha": "3cd4470efae2e55fb69f9eae766f96e2fbca8fbf",
+          "additions": 12336,
+          "deletions": 0
+        },
+        {
+          "path": "evidence/b13-b31/windows-first-failure.json",
+          "status": "added",
+          "sha": "6bafa3b2f565d77f1250fe30e70114d45676a0a1",
+          "additions": 717,
+          "deletions": 0
+        },
+        {
+          "path": "evidence/b13-b31/windows-orchestration-40579405506-failure.json",
+          "status": "added",
+          "sha": "14583ed0a46c99e48128e42dd5762da3e70cffa7",
+          "additions": 10,
+          "deletions": 0
+        },
+        {
+          "path": "evidence/b13-b31/windows-positive-matrix-pass.json",
+          "status": "added",
+          "sha": "010eb73fc1251613414dd3ac26f0e6c3724ba525",
+          "additions": 12283,
+          "deletions": 0
+        },
+        {
+          "path": "evidence/b13-b31/windows-regression-40563063940-failure.json",
+          "status": "added",
+          "sha": "8aa2403c7be027c9a758da292d6c6708c9b53bbd",
+          "additions": 587,
+          "deletions": 0
+        },
+        {
+          "path": "evidence/b13-b31/windows-regression-40573845377-failure.json",
+          "status": "added",
+          "sha": "170c9632f34f37dad33db6ba0887c3afde19d5ac",
+          "additions": 12353,
+          "deletions": 0
+        },
+        {
+          "path": "evidence/b13-b31/windows-regression-40577978995-failure.json",
+          "status": "added",
+          "sha": "a5b67b6f5d5e39a1c099d5229beee8d5ed808b9a",
+          "additions": 9,
+          "deletions": 0
+        },
+        {
+          "path": "evidence/b13-b31/windows-source-40580027077.json",
+          "status": "added",
+          "sha": "dd92dadee371e27c4844f8eaef6f711a546e663e",
+          "additions": 94,
+          "deletions": 0
+        },
+        {
+          "path": "tests/test_guard_fulltest_v15.py",
+          "status": "modified",
+          "sha": "670e90ca1f7c6f58445cd84848ce77a273f498de",
+          "additions": 4,
+          "deletions": 0
+        },
+        {
+          "path": "tests/test_native_routes_b13_b31.py",
+          "status": "added",
+          "sha": "b44de51569e3f181e286bdcc5a62b1c481047f0d",
+          "additions": 137,
+          "deletions": 0
+        },
+        {
+          "path": "tools/qa/guard_native_routes_b13_b31.py",
+          "status": "added",
+          "sha": "40369d447e234076bf065395e3d2536d7e391f07",
+          "additions": 204,
+          "deletions": 0
+        }
+      ],
+      "stage": "B",
+      "acceptance": "PASS",
+      "testedSourceSHA": "601a73056017b55096159f236aae48ba05b21577",
+      "testedSourceTree": "51cfa0ea0ac5673ddbee0dab25696e5b54253614",
+      "fileInventoryStatus": "checkpoint; refresh final D/E after integrated acceptance"
+    },
+    {
+      "pr": 69,
+      "url": "https://github.com/jumonja-maker/A.I.O/pull/69",
+      "title": "Guard: безопасное закрытие сессии и диагностика выбранного выхода (B16–B27)",
+      "draft": true,
+      "base": {
+        "ref": "fix/guard-v182-matrix-progress-cancel-20261025",
+        "sha": "e80cdb84b90f2737b492185a3eb22586570c9f8c"
+      },
+      "head": {
+        "ref": "fix/b16-b27-session-diagnostics-20261027",
+        "sha": "4e2542afa0d0fd7211018bc63986419749acce0c"
+      },
+      "files": [
+        {
+          "path": "app_backend/converter_assets.py",
+          "status": "modified",
+          "sha": "edad48e81c6509a56adb4cf88fe4bb0a4170a644",
+          "additions": 2,
+          "deletions": 0
+        },
+        {
+          "path": "app_backend/converter_guard/core.py",
+          "status": "modified",
+          "sha": "d6fd65ea70b0216f37705455f9636ed4c6fe26f3",
+          "additions": 31,
+          "deletions": 4
+        },
+        {
+          "path": "app_backend/converter_guard/diagnostic_export.py",
+          "status": "added",
+          "sha": "ef07952e4a8199e6b3d5a0ff5bfea60f75fb8364",
+          "additions": 95,
+          "deletions": 0
+        },
+        {
+          "path": "app_backend/converter_guard/http_api.py",
+          "status": "modified",
+          "sha": "abeb90dd9af7714b14e71235f5b9ffc8ec3ae8c0",
+          "additions": 10,
+          "deletions": 0
+        },
+        {
+          "path": "app_backend/converter_lifecycle_ui_patch.py",
+          "status": "added",
+          "sha": "8bfebcc0f6c587f57d001b57c543944be8bbbbfa",
+          "additions": 75,
+          "deletions": 0
+        },
+        {
+          "path": "docs/review/AIO_SESSION_B16_B27_2026-10-27_RU.md",
+          "status": "added",
+          "sha": "73f5e3695f7f6a65cd5002b9f76bac6c5d08534c",
+          "additions": 28,
+          "deletions": 0
+        },
+        {
+          "path": "evidence/session/windows-accepted.json",
+          "status": "added",
+          "sha": "56d3ee97e47b64e684e2ac9e8fc82a9d74449cb6",
+          "additions": 4778,
+          "deletions": 0
+        },
+        {
+          "path": "evidence/session/windows-first-failure.json",
+          "status": "added",
+          "sha": "8415c669a4894beac7bc2c25750c66c779f31c44",
+          "additions": 25,
+          "deletions": 0
+        },
+        {
+          "path": "evidence/session/windows-regression-40563154760-failure.json",
+          "status": "added",
+          "sha": "a4c7c7d2a880b35526619e30b938f51d99e02aac",
+          "additions": 4417,
+          "deletions": 0
+        },
+        {
+          "path": "evidence/session/windows-regression-40566745254-failure.json",
+          "status": "added",
+          "sha": "9c5a374ae5b4a49764593cd03cbe694baefd56eb",
+          "additions": 4786,
+          "deletions": 0
+        },
+        {
+          "path": "evidence/session/windows-second-failure.json",
+          "status": "added",
+          "sha": "a51b5d79161b761563c08d6bbbfc7e5a108e71be",
+          "additions": 25,
+          "deletions": 0
+        },
+        {
+          "path": "evidence/session/windows-third-failure.json",
+          "status": "added",
+          "sha": "8510f5fed4f0be2122eae542ad02daaafc47c1fd",
+          "additions": 1136,
+          "deletions": 0
+        },
+        {
+          "path": "src/converter-bridge.js",
+          "status": "modified",
+          "sha": "3cf3c25127770d519f54ff9de808e9091062ad44",
+          "additions": 76,
+          "deletions": 4
+        },
+        {
+          "path": "src/guard-comparison.css",
+          "status": "modified",
+          "sha": "76ef34394455ebc7fc4403635f97a6084462c049",
+          "additions": 11,
+          "deletions": 0
+        },
+        {
+          "path": "src/guard-comparison.js",
+          "status": "modified",
+          "sha": "9c96c9cdb8cbb1a4b04e81b1d1d1c6cc45a7ff3b",
+          "additions": 13,
+          "deletions": 8
+        },
+        {
+          "path": "src/guard-queue.js",
+          "status": "modified",
+          "sha": "5595ae22994fe2f302819eff860a325ca0e0246e",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "tests/guard_bridge_contracts.mjs",
+          "status": "modified",
+          "sha": "a706497b1e8859eedac2285ec0c31ae6f76e1fbb",
+          "additions": 9,
+          "deletions": 2
+        },
+        {
+          "path": "tests/guard_comparison_v19.mjs",
+          "status": "modified",
+          "sha": "10b57bab5d5397d4fcd8c6a4d8219e4cc8d5dcc8",
+          "additions": 7,
+          "deletions": 5
+        },
+        {
+          "path": "tests/guard_comparison_v21.mjs",
+          "status": "modified",
+          "sha": "da78306d5fadfae9c991cc87fbcd73db7bb06077",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "tests/guard_save_queue_v09.mjs",
+          "status": "modified",
+          "sha": "d5a4797722f7f89c5ed6d4e2720a018967cd81ab",
+          "additions": 13,
+          "deletions": 0
+        },
+        {
+          "path": "tests/guard_ui_dom_smoke.mjs",
+          "status": "modified",
+          "sha": "26da84d3b8960caca7240ddaed153a20168ccd14",
+          "additions": 37,
+          "deletions": 8
+        },
+        {
+          "path": "tests/native_ui_dom_smoke.mjs",
+          "status": "modified",
+          "sha": "71639682e16d376eddf686277ccb96bcb211dd0a",
+          "additions": 7,
+          "deletions": 6
+        },
+        {
+          "path": "tests/test_session_lifecycle_b16_b27.py",
+          "status": "added",
+          "sha": "685043f69a20c6b95c79041021da6fdf9ec9ebb0",
+          "additions": 117,
+          "deletions": 0
+        },
+        {
+          "path": "tools/qa/guard_session_native_acceptance.py",
+          "status": "added",
+          "sha": "7bdcfab15348b95ad95faec725a39e64eeb45345",
+          "additions": 186,
+          "deletions": 0
+        },
+        {
+          "path": "tools/qa/guard_v19_journeys_acceptance.py",
+          "status": "modified",
+          "sha": "3aa85fccdb5c1b10fc095fc180deacc9f2e4b609",
+          "additions": 8,
+          "deletions": 1
+        }
+      ],
+      "stage": "C",
+      "acceptance": "PASS",
+      "testedSourceSHA": "6b29e4340485378e1186e885cf1875f5adac55ea",
+      "testedSourceTree": "16c6b8ff1ed39e549ad28f577416e85746f9a151",
+      "fileInventoryStatus": "checkpoint; refresh final D/E after integrated acceptance"
+    },
+    {
+      "pr": 70,
+      "url": "https://github.com/jumonja-maker/A.I.O/pull/70",
+      "title": "Guard B32: все страницы TIFF через независимые Qt readers",
+      "draft": true,
+      "base": {
+        "ref": "fix/guard-v182-matrix-progress-cancel-20261025",
+        "sha": "e80cdb84b90f2737b492185a3eb22586570c9f8c"
+      },
+      "head": {
+        "ref": "fix/b32-tiff-page-readers-20261027",
+        "sha": "34c9efad10dbcef7eb7f71d34fc8480c7a72963b"
+      },
+      "files": [
+        {
+          "path": "app_backend/converter_guard/qt_media.py",
+          "status": "modified",
+          "sha": "caa954653045b10b1427b81dc461002b4bcfbe8e",
+          "additions": 6,
+          "deletions": 0
+        },
+        {
+          "path": "docs/review/AIO_B32_TIFF_2026-10-27_RU.md",
+          "status": "added",
+          "sha": "2eee41f8051362c22c4327087be00128bd01d365",
+          "additions": 15,
+          "deletions": 0
+        },
+        {
+          "path": "evidence/tiff/windows-accepted.json",
+          "status": "added",
+          "sha": "636aa5f48ce4ffbce1ad25668c7103d527fa93bd",
+          "additions": 7776,
+          "deletions": 0
+        },
+        {
+          "path": "evidence/tiff/windows-first-failure.json",
+          "status": "added",
+          "sha": "3906038055017ed7206a439e6210d6f9417b6d8a",
+          "additions": 235,
+          "deletions": 0
+        },
+        {
+          "path": "tests/test_tiff_reader_b32.py",
+          "status": "added",
+          "sha": "a40bb2128e6517b0aefbd1c6370356536b1c4e24",
+          "additions": 45,
+          "deletions": 0
+        },
+        {
+          "path": "tools/qa/guard_b32_tiff_native_acceptance.py",
+          "status": "added",
+          "sha": "e00f07e700c7cbe305ab19c55ecb02dceb875376",
+          "additions": 114,
+          "deletions": 0
+        }
+      ],
+      "stage": "T",
+      "acceptance": "PASS",
+      "testedSourceSHA": "2e3e245091ab1aee2780f8036d8ff7d890f78074",
+      "testedSourceTree": "9e63f707be6785af31da3b8dd8a594448f6f8cce",
+      "fileInventoryStatus": "checkpoint; refresh final D/E after integrated acceptance"
+    },
+    {
+      "pr": 71,
+      "url": "https://github.com/jumonja-maker/A.I.O/pull/71",
+      "title": "Guard B33/B14: проверенная текстовая структура HTML и явные ограничения Base ORP",
+      "draft": true,
+      "base": {
+        "ref": "fix/guard-v182-matrix-progress-cancel-20261025",
+        "sha": "e80cdb84b90f2737b492185a3eb22586570c9f8c"
+      },
+      "head": {
+        "ref": "fix/b14-b33-native-html-scope-20261027",
+        "sha": "c5b757bac264dd78855f8279a9dc074be7f3e3fc"
+      },
+      "files": [
+        {
+          "path": "app_backend/converter_guard/adapter.py",
+          "status": "modified",
+          "sha": "139f3b4dfecf4e28325c7e5660c399aab1cc9b40",
+          "additions": 9,
+          "deletions": 0
+        },
+        {
+          "path": "app_backend/converter_guard/routes.py",
+          "status": "modified",
+          "sha": "2c5a33631ff99854c28905b8062a540614721421",
+          "additions": 38,
+          "deletions": 2
+        },
+        {
+          "path": "app_backend/converter_guard/uno_session.py",
+          "status": "modified",
+          "sha": "2698a39325446cd86c1e0c1560478cbb16f412f7",
+          "additions": 33,
+          "deletions": 0
+        },
+        {
+          "path": "docs/review/AIO_B14_B33_HTML_2026-10-27_RU.md",
+          "status": "added",
+          "sha": "8a7946e3f59973f1df4cf17898eaa856efbcfda4",
+          "additions": 17,
+          "deletions": 0
+        },
+        {
+          "path": "evidence/html/windows-accepted.json",
+          "status": "added",
+          "sha": "68c2568c5a4149003a55859706485492d91ef9f6",
+          "additions": 10505,
+          "deletions": 0
+        },
+        {
+          "path": "evidence/html/windows-first-failure.json",
+          "status": "added",
+          "sha": "2ab6ec3cb03225136188aae6e428f0179f1695b2",
+          "additions": 17,
+          "deletions": 0
+        },
+        {
+          "path": "evidence/html/windows-regression-40560379097-failure.json",
+          "status": "added",
+          "sha": "389706ed1fae58f30da7ba95421efd935d303fbe",
+          "additions": 10551,
+          "deletions": 0
+        },
+        {
+          "path": "evidence/html/windows-second-failure.json",
+          "status": "added",
+          "sha": "e2d911dfec7ce15e1517d6737357abe364f521dc",
+          "additions": 983,
+          "deletions": 0
+        },
+        {
+          "path": "tests/test_csv_text_ids_b29.py",
+          "status": "modified",
+          "sha": "69889d96990961dbe7ab2e7d31c2eb4c22d30c30",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "tests/test_dif_table_contract_v23.py",
+          "status": "modified",
+          "sha": "ad0b38429f54ec8fd49c540f643872ba201abd9d",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "tests/test_guard_adapter_v17.py",
+          "status": "modified",
+          "sha": "cc82d2d43ee009d943ff75813dd95eb88341014a",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "tests/test_guard_dif_v20.py",
+          "status": "modified",
+          "sha": "71665ac4a95bd801198112516a84dbf37f9d8a05",
+          "additions": 1,
+          "deletions": 1
+        },
+        {
+          "path": "tests/test_guard_native_audit_v18.py",
+          "status": "modified",
+          "sha": "7b2361b385e8923e5637fe6b3a0a5475b40aa964",
+          "additions": 2,
+          "deletions": 2
+        },
+        {
+          "path": "tests/test_guard_quality_reliability_v13.py",
+          "status": "modified",
+          "sha": "8dedc7400213d742fd6729736a8568700a935785",
+          "additions": 6,
+          "deletions": 7
+        },
+        {
+          "path": "tests/test_html_routes_b33.py",
+          "status": "added",
+          "sha": "34837bfcc8c4325cc5b4949d96096534b7b73851",
+          "additions": 58,
+          "deletions": 0
+        },
+        {
+          "path": "tools/qa/guard_b33_html_native_acceptance.py",
+          "status": "added",
+          "sha": "13637b6aa876458511f19a2a121db3cad813cabe",
+          "additions": 91,
+          "deletions": 0
+        }
+      ],
+      "stage": "H",
+      "acceptance": "PASS",
+      "testedSourceSHA": "b129d2cc22d0826cf2ba3d866ddc330020a2a126",
+      "testedSourceTree": "5bd3d5f3ac9564bf47e70d9145d6071696cb443a",
+      "fileInventoryStatus": "checkpoint; refresh final D/E after integrated acceptance"
+    },
+    {
+      "pr": 72,
+      "url": "https://github.com/jumonja-maker/A.I.O/pull/72",
+      "title": "Guard B19–B25: две панели До/После, масштаб и проверяемые различия",
+      "draft": true,
+      "base": {
+        "ref": "fix/b16-b27-session-diagnostics-20261027",
+        "sha": "4e2542afa0d0fd7211018bc63986419749acce0c"
+      },
+      "head": {
+        "ref": "fix/b19-b25-before-after-viewer-20261027",
+        "sha": "e1bf8bbdd450d71823ec13ed97dfa65d1d9b8658"
+      },
+      "files": [
+        {
+          "path": ".github/workflows/aio-remaining-bag-nikita-qa.yml",
+          "status": "added",
+          "sha": "0a229fbd8df87afb102605641b81d41c9a4ccd1e",
+          "additions": 254,
+          "deletions": 0
+        },
+        {
+          "path": "app_backend/converter_guard/comparison_analysis.py",
+          "status": "modified",
+          "sha": "2f6f31df539012cb951a0fd02813f581bce2dcee",
+          "additions": 29,
+          "deletions": 5
+        },
+        {
+          "path": "app_backend/converter_guard/comparison_html.py",
+          "status": "added",
+          "sha": "88d5461b7300eecb3126d5796cc06036da371d3f",
+          "additions": 92,
+          "deletions": 0
+        },
+        {
+          "path": "app_backend/converter_guard/comparison_service.py",
+          "status": "modified",
+          "sha": "0b9a674b34227485e38e39d5894fee539e1b3580",
+          "additions": 19,
+          "deletions": 7
+        },
+        {
+          "path": "app_backend/converter_guard/comparison_sheet_manifest.py",
+          "status": "added",
+          "sha": "bf4d187313268310b2b4791bb3c54984b74734dd",
+          "additions": 43,
+          "deletions": 0
+        },
+        {
+          "path": "app_backend/converter_guard/comparison_worker.py",
+          "status": "modified",
+          "sha": "f414af1d1564d36885287de679f0f08995a47603",
+          "additions": 48,
+          "deletions": 18
+        },
+        {
+          "path": "app_backend/converter_guard/http_api.py",
+          "status": "modified",
+          "sha": "517a7131048cc13ea765a606cdcb11f87ed5c17a",
+          "additions": 4,
+          "deletions": 0
+        },
+        {
+          "path": "app_backend/desktop.py",
+          "status": "modified",
+          "sha": "fc5d9e391457896cf785de25f4b10b04a0e08026",
+          "additions": 22,
+          "deletions": 1
+        },
+        {
+          "path": "docs/review/AIO_BEFORE_AFTER_B19_B25_2026-10-27_RU.md",
+          "status": "added",
+          "sha": "595a3ad4e9752ddd06a5f79b4f4bd7872430c689",
+          "additions": 15,
+          "deletions": 0
+        },
+        {
+          "path": "evidence/before-after/qt-40571815044/dark.png",
+          "status": "added",
+          "sha": "d68a66693a5ca0d5468091f58559007fde1e4f35",
+          "additions": 0,
+          "deletions": 0
+        },
+        {
+          "path": "evidence/before-after/qt-40571815044/light.png",
+          "status": "added",
+          "sha": "27c5eda29b2ebc6cf29be69d6c7e783d46d17c17",
+          "additions": 0,
+          "deletions": 0
+        },
+        {
+          "path": "evidence/before-after/windows-compositor-40605322789-failure.json",
+          "status": "added",
+          "sha": "db75ee4d7a2406c5eb2397c5245a9599eb094e64",
+          "additions": 127,
+          "deletions": 0
+        },
+        {
+          "path": "evidence/before-after/windows-mouse-failure.json",
+          "status": "added",
+          "sha": "f5cd5b07213bde6a4e03744909b811015ffa9c5b",
+          "additions": 89,
+          "deletions": 0
+        },
+        {
+          "path": "evidence/before-after/windows-regression-40567222471-failure.json",
+          "status": "added",
+          "sha": "cd544bd1a731d7174988f6af8428d3e4719bd99a",
+          "additions": 95,
+          "deletions": 0
+        },
+        {
+          "path": "evidence/before-after/windows-regression-40571815044-failure.json",
+          "status": "added",
+          "sha": "28491114dd39289e81e45baaa1b3a232df7b7156",
+          "additions": 159,
+          "deletions": 0
+        },
+        {
+          "path": "evidence/before-after/windows-regression-40575752570-failure.json",
+          "status": "added",
+          "sha": "4f9adc9f87b711aca729ad9e3832cd86b5274b32",
+          "additions": 426,
+          "deletions": 0
+        },
+        {
+          "path": "evidence/before-after/windows-regression-40579811557-failure.json",
+          "status": "added",
+          "sha": "229f8575242ffabc28286a77c9af1eae5a528c14",
+          "additions": 4414,
+          "deletions": 0
+        },
+        {
+          "path": "evidence/before-after/windows-regression-40581401851-failure.json",
+          "status": "added",
+          "sha": "d8392174e9f423574e7038b7590995a2880d5ad0",
+          "additions": 1193,
+          "deletions": 0
+        },
+        {
+          "path": "evidence/before-after/windows-source-40605053344.json",
+          "status": "added",
+          "sha": "236295fd75c1e6e80b24bb30256c24df611829b7",
+          "additions": 112,
+          "deletions": 0
+        },
+        {
+          "path": "index.html",
+          "status": "modified",
+          "sha": "304c8ed1ce812153fa8d3b4b38c606a54263f1fe",
+          "additions": 1,
+          "deletions": 0
+        },
+        {
+          "path": "src/guard-comparison-viewer.js",
+          "status": "added",
+          "sha": "239b75b548a0a06abedeef5ac9774fc35a4a3fa5",
+          "additions": 155,
+          "deletions": 0
+        },
+        {
+          "path": "src/guard-comparison.css",
+          "status": "modified",
+          "sha": "3d896cce9cb53809d23777ab0b5c60ad7a10f0ed",
+          "additions": 21,
+          "deletions": 0
+        },
+        {
+          "path": "src/guard-comparison.js",
+          "status": "modified",
+          "sha": "fd6c216dc591b80160a9ce3d95274735bf41dc74",
+          "additions": 46,
+          "deletions": 14
+        },
+        {
+          "path": "tests/guard_comparison_v19.mjs",
+          "status": "modified",
+          "sha": "53f6d4d67643efff5c138a238d7310e9d730581b",
+          "additions": 6,
+          "deletions": 1
+        },
+        {
+          "path": "tests/guard_comparison_v21.mjs",
+          "status": "modified",
+          "sha": "6b69e8ab029a0551ea1a9fa18a59651ced164239",
+          "additions": 11,
+          "deletions": 0
+        },
+        {
+          "path": "tests/guard_comparison_viewer_b19.mjs",
+          "status": "added",
+          "sha": "4abc85b5bb6ebafa362df671eed2bba12c2171a6",
+          "additions": 59,
+          "deletions": 0
+        },
+        {
+          "path": "tests/test_comparison_failed_filter_b20.py",
+          "status": "added",
+          "sha": "8984d8cd90f78111a46c2eee173dc84b6b194a70",
+          "additions": 38,
+          "deletions": 0
+        },
+        {
+          "path": "tests/test_comparison_fullscreen_b19.py",
+          "status": "added",
+          "sha": "ae7effc288083d7c3163966e5d5e2dcfdf595b36",
+          "additions": 31,
+          "deletions": 0
+        },
+        {
+          "path": "tests/test_comparison_html_b22.py",
+          "status": "added",
+          "sha": "79c8e2ffa0557c6b8683a7d008854be3dbf26142",
+          "additions": 49,
+          "deletions": 0
+        },
+        {
+          "path": "tests/test_comparison_lifecycle_v21.py",
+          "status": "modified",
+          "sha": "a582c98de5f45a1cec38651c65e740b194c3e070",
+          "additions": 5,
+          "deletions": 3
+        },
+        {
+          "path": "tests/test_comparison_pdf_preview_v19.py",
+          "status": "modified",
+          "sha": "00ea9434ba9dcac09b38ba5cf44435fbbf1837eb",
+          "additions": 26,
+          "deletions": 3
+        },
+        {
+          "path": "tests/test_comparison_sheet_manifest_b22.py",
+          "status": "added",
+          "sha": "79aa664bbfd186590eaf75c0b7c91c360a2fa81d",
+          "additions": 37,
+          "deletions": 0
+        },
+        {
+          "path": "tests/test_comparison_viewer_b19.py",
+          "status": "added",
+          "sha": "26a88c1943b08ab618d99ebd47b522f4a1677714",
+          "additions": 13,
+          "deletions": 0
+        },
+        {
+          "path": "tools/qa/guard_before_after_b19_b25_acceptance.py",
+          "status": "added",
+          "sha": "62ecf0518fcf31089f3c463941fe566e53a84840",
+          "additions": 208,
+          "deletions": 0
+        },
+        {
+          "path": "tools/qa/guard_v19_journeys_acceptance.py",
+          "status": "modified",
+          "sha": "c1b7becccd0d3e31a8e3b1621420b4ad938e4f7f",
+          "additions": 6,
+          "deletions": 0
+        },
+        {
+          "path": "tools/qa/guard_v19_visual_acceptance.py",
+          "status": "modified",
+          "sha": "0a342c214ef81a09cd36549fbf44088f1f76e1e2",
+          "additions": 2,
+          "deletions": 0
+        }
+      ],
+      "stage": "D",
+      "acceptance": "PASS",
+      "testedSourceSHA": "56991581b23da0695981d7106c734d7954af016f",
+      "testedSourceTree": "5b8545dd4044f5178343a08d94fed7352712f4c4",
+      "fileInventoryStatus": "checkpoint; refresh final D/E after integrated acceptance"
+    },
+    {
+      "pr": 73,
+      "url": "https://github.com/jumonja-maker/A.I.O/pull/73",
+      "title": "Guard B10/B15: отдельный целевой stress3, native positives и ожидаемые решения",
+      "draft": true,
+      "base": {
+        "ref": "fix/guard-v182-matrix-progress-cancel-20261025",
+        "sha": "e80cdb84b90f2737b492185a3eb22586570c9f8c"
+      },
+      "head": {
+        "ref": "test/remaining-bag-stress3-20261027",
+        "sha": "d6ed1c3b6217d1a931fbcaf92fb2bd00e9e515ee"
+      },
+      "files": [
+        {
+          "path": "docs/review/AIO_B10_B15_STRESS3_2026-10-27_RU.md",
+          "status": "added",
+          "sha": "57857a9b28e4893109c5cad5ffac910f3b9792fc",
+          "additions": 15,
+          "deletions": 0
+        },
+        {
+          "path": "tests/test_remaining_bag_stress3.py",
+          "status": "added",
+          "sha": "54b965134167c2cecbe8ecd09de2ac3989347ca0",
+          "additions": 66,
+          "deletions": 0
+        },
+        {
+          "path": "tools/qa/guard_remaining_bag_stress3.py",
+          "status": "added",
+          "sha": "65e897b4efbac154c43d31d58a73ca3827210966",
+          "additions": 339,
+          "deletions": 0
+        }
+      ],
+      "stage": "E",
+      "acceptance": "PENDING",
+      "testedSourceSHA": "d6ed1c3b6217d1a931fbcaf92fb2bd00e9e515ee",
+      "testedSourceTree": "cbd7f838c7b79f52298ed7aa006f7066e3ff4717",
+      "fileInventoryStatus": "checkpoint; refresh final D/E after integrated acceptance"
+    }
+  ]
+}

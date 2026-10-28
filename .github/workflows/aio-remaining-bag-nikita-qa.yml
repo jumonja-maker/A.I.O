@@ -1,0 +1,216 @@
+name: AIO remaining bag native profile startup diagnosis
+
+# This one-shot workflow is separate from existing application/build workflows.
+# Owner authorized isolated Runner QA; only the fixed source below runs.
+# No upload-artifact, hosted runner, package install, installer or release.
+# Uses only existing tools and isolated source/evidence directories.
+on:
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aio-remaining-bag-profile-diagnostic-selfhosted-qa
+  cancel-in-progress: false
+
+env:
+  AIO_QA_SOURCE_SHA: 6b61cb1413e753e687d1ff61749e1164069a3c1c
+  AIO_QA_TREE_SHA: a9717652ec545c3a2b3f47c58f9b3b3aef8abf41
+  PYTHONDONTWRITEBYTECODE: '1'
+  PYTHONUTF8: '1'
+  PYTHONIOENCODING: utf-8
+  PIP_NO_INDEX: '1'
+  PIP_NO_INPUT: '1'
+  PIP_DISABLE_PIP_VERSION_CHECK: '1'
+  AIO_BLACKBOX_EVENTS: ''
+  QT_QPA_PLATFORM: offscreen
+  OMP_NUM_THREADS: '2'
+  OPENBLAS_NUM_THREADS: '2'
+
+jobs:
+  windows-qa:
+    if: >-
+      github.repository == 'jumonja-maker/A.I.O' &&
+      github.actor == 'jumonja-maker' &&
+      github.event.action == 'labeled' &&
+      github.event.label.name == 'aio-remaining-bag-profile-diagnostic-selfhosted-qa' &&
+      github.event.pull_request.number == 74 &&
+      github.event.pull_request.user.login == 'jumonja-maker' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'test/remaining-bag-integration-20261028' &&
+      github.event.pull_request.base.ref == 'fix/guard-v182-matrix-progress-cancel-20261025'
+    runs-on: [self-hosted, Windows, X64, local-d-manual]
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - name: Verify restricted NIKITA host before checkout
+        run: |
+          $ErrorActionPreference='Stop'
+          if ($env:RUNNER_NAME -cne 'NIKITA' -or $env:RUNNER_OS -cne 'Windows' -or $env:USERNAME -ine 'aio-runner') { throw 'Untrusted runner identity' }
+          $principal=New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+          if ($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Elevated QA is forbidden' }
+          foreach($key in @('GITHUB_WORKSPACE','RUNNER_TEMP','TEMP','TMP')) {
+            $path=[Environment]::GetEnvironmentVariable($key)
+            if ([string]::IsNullOrWhiteSpace($path) -or -not [IO.Path]::GetFullPath($path).StartsWith('D:\',[StringComparison]::OrdinalIgnoreCase)) { throw ($key+' must remain on D:') }
+          }
+          if ((Get-PSDrive -Name D -PSProvider FileSystem).Free -lt 30GB -or (Get-PSDrive -Name C -PSProvider FileSystem).Free -lt 10GB) { throw 'Required C/D free space unavailable' }
+          foreach($name in @('aio-stress3-source-${{ github.run_id }}-${{ github.run_attempt }}','aio-stress3-evidence-${{ github.run_id }}-${{ github.run_attempt }}')) {
+            if (Test-Path -LiteralPath (Join-Path $env:GITHUB_WORKSPACE $name)) { throw 'Run destination already exists' }
+          }
+      - name: Checkout immutable reviewed source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        env:
+          GIT_CONFIG_COUNT: '1'
+          GIT_CONFIG_KEY_0: core.autocrlf
+          GIT_CONFIG_VALUE_0: 'false'
+        with:
+          repository: jumonja-maker/A.I.O
+          ref: 6b61cb1413e753e687d1ff61749e1164069a3c1c
+          path: aio-stress3-source-${{ github.run_id }}-${{ github.run_attempt }}
+          persist-credentials: false
+          clean: true
+      - name: Verify Git tree and select existing offline tools
+        working-directory: aio-stress3-source-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $python='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\Scripts\python.exe'
+          $marker='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\.00aio-test-only-venv.txt'
+          if (-not (Test-Path -LiteralPath $python -PathType Leaf) -or -not (Test-Path -LiteralPath $marker -PathType Leaf) -or (Get-Content -LiteralPath $marker -Raw).Trim() -cne '00AIO NIKITA ISOLATED DOCX PDF QA PY311 QT6103') { throw 'Trusted QA Python environment unavailable' }
+          $verify=@'
+          import hashlib, os
+          from pathlib import Path
+          def tree(folder):
+              entries=[]
+              for child in folder.iterdir():
+                  if child.name=='.git':continue
+                  key=child.name.encode('utf-8')
+                  if child.is_symlink():raise ValueError('Unexpected symlink')
+                  if child.is_dir():mode,oid,sort=b'40000',tree(child),key+b'/'
+                  elif child.is_file():
+                      data=child.read_bytes();mode=b'100644';sort=key
+                      oid=hashlib.sha1(b'blob '+str(len(data)).encode()+b'\0'+data).digest()
+                  else:raise ValueError('Unexpected file type')
+                  entries.append((sort,mode+b' '+key+b'\0'+oid))
+              raw=b''.join(row for _,row in sorted(entries,key=lambda item:item[0]))
+              return hashlib.sha1(b'tree '+str(len(raw)).encode()+b'\0'+raw).digest()
+          actual=tree(Path.cwd()).hex()
+          print('AIO_VERIFIED_TREE='+actual)
+          if actual!=os.environ['AIO_QA_TREE_SHA']:raise SystemExit('SOURCE_TREE_MISMATCH')
+          '@
+          & $python -c $verify
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned source verification failed' }
+          'AIO_QA_PYTHON='+$python | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          $runnerRoot=Split-Path -Parent (Split-Path -Parent $env:RUNNER_TEMP)
+          $node=Get-Command node -ErrorAction SilentlyContinue
+          if ($node) {$node=$node.Source} else {
+            $node=@(@((Join-Path $runnerRoot 'externals\node24\bin\node.exe'),(Join-Path $runnerRoot 'externals\node20\bin\node.exe'),'D:\AIO-Lab\nodejs\node.exe') | Where-Object {Test-Path -LiteralPath $_ -PathType Leaf} | Select-Object -First 1)
+            if ($node.Count -ne 1) { throw 'Existing offline Node unavailable' };$node=$node[0]
+          }
+          [IO.Path]::GetDirectoryName($node) | Out-File $env:GITHUB_PATH -Encoding utf8 -Append
+          $links=@((Join-Path $env:GITHUB_WORKSPACE 'node_modules\linkedom\esm\index.js'),'D:\AIO-Lab\node_modules\linkedom\esm\index.js','D:\AIO-Lab\AIO-QA-Env\node_modules\linkedom\esm\index.js')
+          $link=@($links | Where-Object {Test-Path -LiteralPath $_ -PathType Leaf} | Select-Object -First 1)
+          if ($link.Count -eq 1) {'AIO_DOM_MODULE='+$link[0] | Out-File $env:GITHUB_ENV -Encoding utf8 -Append}
+          $engine=$null
+          foreach($base in @('D:\LBR\LibreOffice','D:\LBR','D:\AIO-Lab\LibreOffice','C:\Program Files\LibreOffice')) {
+            foreach($leaf in @('program\soffice.com','program\soffice.exe')) {
+              $candidate=Join-Path $base $leaf
+              if ((Test-Path -LiteralPath $candidate -PathType Leaf) -and (Test-Path -LiteralPath (Join-Path $base 'program\soffice.bin') -PathType Leaf) -and (Test-Path -LiteralPath (Join-Path $base 'share') -PathType Container)) {$engine=$candidate;break}
+            }
+            if ($engine) {break}
+          }
+          if (-not $engine) {throw 'Existing complete native LibreOffice unavailable'}
+          'AIO_QA_ENGINE='+$engine | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Prepare verified offline test-only dependencies
+        id: dependencies
+        working-directory: aio-stress3-source-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $target=Join-Path $env:RUNNER_TEMP 'aio-stress3-deps-${{ github.run_id }}-${{ github.run_attempt }}-windows'
+          & $env:AIO_QA_PYTHON tools/qa/guard_v17_test_dependencies.py --output $target --github-env
+          if ($LASTEXITCODE -ne 0) {throw 'Offline test dependency preparation failed'}
+      - name: Diagnose native profile startup using the exact failed workbook
+        working-directory: aio-stress3-source-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:AIO_PROBE_OUTPUT=Join-Path $env:GITHUB_WORKSPACE 'aio-stress3-evidence-${{ github.run_id }}-${{ github.run_attempt }}/profile-diagnostic'
+          $probe=@'
+          # A/B native profile-path diagnosis against unchanged pinned product bytes.
+          import hashlib,json,os,secrets,sys,tempfile,threading
+          from pathlib import Path
+
+          ROOT=Path.cwd();sys.path[:0]=[str(ROOT),str(ROOT/'tests'),str(ROOT/'tools/qa')]
+          from app_backend.converter_guard import LibreOfficeAdapter
+
+          out=Path(os.environ['AIO_PROBE_OUTPUT']);out.mkdir(parents=True,exist_ok=False)
+          old=Path(os.environ['GITHUB_WORKSPACE'])/'aio-stress3-evidence-40607773754-1'/'stress3'/'all-sheets'
+          source=old/'book-4.xlsx';before=hashlib.sha256(source.read_bytes()).hexdigest()
+          roots=sorted((old/'owned-jobs').glob('aio-guard-*'))
+          owned_source=None
+          for root in roots:
+              for candidate in root.rglob('*.xlsx'):
+                  if candidate.is_file() and not candidate.is_symlink() and hashlib.sha256(candidate.read_bytes()).hexdigest()==before:
+                      owned_source=candidate;break
+              if owned_source:break
+          native_source=owned_source or source
+          target_length=max([len(str(r/'export-office')) for r in roots] or [170])
+          report={'schema':1,'status':'RUNNING','scope':'native A/B diagnosis only; not fixed-product acceptance',
+                  'sourceSHA':os.environ['AIO_QA_SOURCE_SHA'],'sourceTree':os.environ['AIO_QA_TREE_SHA'],
+                  'originalCorpusSHA256':before,'sourcePath':str(native_source),'ownedSourceFound':bool(owned_source),
+                  'failedQueueWorkspaceLength':target_length,'cases':[]}
+          try:
+              for label,short in [('normal',False),('shortp',True)]:
+                  folder=out/label;folder.mkdir();work=folder/('w'*max(1,target_length-len(str(folder))-1))
+                  adapter=LibreOfficeAdapter(Path(os.environ['AIO_QA_ENGINE']));profiles=[]
+                  with tempfile.TemporaryDirectory(prefix='aio-pf-',dir=os.environ['RUNNER_TEMP']) as temporary:
+                      with adapter.batch(work) as office:
+                          original=office.prepare_profile
+                          def prepare(path):
+                              if short:office.profile=Path(temporary)/secrets.token_hex(8);path=office.profile
+                              profiles.append({'path':str(path),'length':len(str(path))});original(path)
+                          office.prepare_profile=prepare
+                          proof=adapter.preflight(native_source,folder/'inspect',cancel=threading.Event(),timeout=65)
+                          process=office.tree.process if office.tree else None
+                      report['cases'].append({'name':label,'shortPrivateProfile':short,'workspaceLength':len(str(work)),
+                          'profiles':profiles,'proof':proof,'workerExited':process is None or process.poll() is not None})
+                  assert hashlib.sha256(native_source.read_bytes()).hexdigest()==before
+              normal,short=report['cases']
+              report['profilePathHypothesisConfirmed']=normal['proof'].get('state')!='detected' and short['proof'].get('state')=='detected'
+              report['status']='DIAGNOSIS_COMPLETE'
+          finally:
+              (out/'evidence.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
+              print('PROFILE_PATH_DIAGNOSIS='+json.dumps(report,ensure_ascii=True),flush=True)
+          '@
+          & $env:AIO_QA_PYTHON -c $probe
+          if ($LASTEXITCODE -ne 0) {throw 'Native profile diagnosis failed'}
+      - name: Record exact version and sealed evidence also on failure
+        if: always()
+        working-directory: aio-stress3-source-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Continue'
+          Write-Output ('AIO_TESTED_SHA='+$env:AIO_QA_SOURCE_SHA)
+          Write-Output ('AIO_TESTED_TREE='+$env:AIO_QA_TREE_SHA)
+          $evidence=Join-Path $env:GITHUB_WORKSPACE 'aio-stress3-evidence-${{ github.run_id }}-${{ github.run_attempt }}'
+          $env:AIO_CAPTURE_ROOT=$evidence
+          $capture=@'
+          import base64,hashlib,json,os,zlib
+          from pathlib import Path
+          root=Path(os.environ['AIO_CAPTURE_ROOT']);files=[]
+          names={'evidence.json','windows-unit.json','corpus-manifest.json','expected-decisions.json','pair-decisions.csv','manifest.json'}
+          for path in sorted(root.rglob('*')):
+              if path.name not in names or not path.is_file():continue
+              if path.is_symlink() or not path.resolve().is_relative_to(root.resolve()):raise ValueError('Unexpected evidence path')
+              raw=path.read_bytes()
+              if len(raw)>16*1024*1024:raise ValueError('Evidence file exceeds capture budget')
+              files.append({'path':path.relative_to(root).as_posix(),'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest(),'contentBase64':base64.b64encode(raw).decode()})
+          if not files:raise ValueError('No evidence was produced')
+          payload=json.dumps({'schema':1,'sourceSHA':os.environ['AIO_QA_SOURCE_SHA'],'sourceTree':os.environ['AIO_QA_TREE_SHA'],'files':files},ensure_ascii=False,separators=(',',':')).encode('utf-8')
+          packed=zlib.compress(payload,9);encoded=base64.b64encode(packed).decode()
+          print('AIO_EVIDENCE_BUNDLE='+json.dumps({'files':len(files),'payloadSha256':hashlib.sha256(payload).hexdigest(),'payloadBytes':len(payload),'packedBytes':len(packed),'chunks':(len(encoded)+31999)//32000}))
+          for index,offset in enumerate(range(0,len(encoded),32000)):print('AIO_EVIDENCE_CHUNK='+str(index)+':'+encoded[offset:offset+32000])
+          '@
+          & $env:AIO_QA_PYTHON -c $capture
+          if ($LASTEXITCODE -ne 0) {throw 'Exact evidence capture failed'}
