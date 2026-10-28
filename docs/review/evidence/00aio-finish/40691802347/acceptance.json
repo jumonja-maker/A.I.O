@@ -1,0 +1,25 @@
+{
+  "source": "a0667ec4c6995e3ea5e034859b160b686cae22b5",
+  "tree": "2bcd08fce2bbf47432f7a4b60cbb99df3037b846",
+  "branch": "fix/native-profile-owned-job-drain-20261028",
+  "runId": 40691802347,
+  "scope": "profile",
+  "status": "FAIL",
+  "stages": [
+    {
+      "name": "startup-original",
+      "exitCode": 0,
+      "seconds": 0.953
+    },
+    {
+      "name": "startup-suspended",
+      "exitCode": 1,
+      "seconds": 0.64
+    }
+  ],
+  "fulltest": "NOT_RUN",
+  "build": "NOT_RUN",
+  "mainChanged": false,
+  "error": "RuntimeError",
+  "reason": "startup-suspended failed; original assertions retained"
+}
