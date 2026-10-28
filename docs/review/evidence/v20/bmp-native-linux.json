@@ -1,0 +1,45 @@
+{
+  "source": "01_LEVEL_1.pptx",
+  "nativeFilter": "impress_bmp_Export",
+  "actualBytes": 2764854,
+  "declaredBefore": 3686454,
+  "declaredAfter": 2764854,
+  "unchangedExceptBfSize": true,
+  "beforeQtDimensions": [
+    1280,
+    720
+  ],
+  "afterQtDimensions": [
+    1280,
+    720
+  ],
+  "pixelsHashBefore": "258451d4a8e4f0a55f926bebfd695bcba19d41139f92076597f1ab1ed3ce5cbf",
+  "pixelsHashAfter": "258451d4a8e4f0a55f926bebfd695bcba19d41139f92076597f1ab1ed3ce5cbf",
+  "checks": [
+    {
+      "check": "native_bmp_header_size",
+      "status": "repaired_header",
+      "qualityCompared": false,
+      "file": "01_LEVEL_1.bmp",
+      "declaredSizeBefore": 3686454,
+      "actualSize": 2764854,
+      "headerField": "bfSize",
+      "headerBytesTouched": 4,
+      "pixelBytesChanged": 0,
+      "sourceOutputSha256": "2e2c28ed2d5250aaf060cd5be746c9422cad1c376932bc8600bd8b8a1dd2c30a",
+      "width": 1280,
+      "height": 720,
+      "bitDepth": 24
+    }
+  ],
+  "strictAfter": {
+    "format": "bmp",
+    "width": 1280,
+    "height": 720,
+    "frames": 1,
+    "pages": 1,
+    "alpha": false,
+    "durationsMs": [],
+    "orientation": 1
+  }
+}

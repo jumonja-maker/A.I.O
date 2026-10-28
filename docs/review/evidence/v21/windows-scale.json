@@ -1,0 +1,130 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "files": 1000,
+  "scope": "real Guard retention, isolated comparison, disk report, preview, reopen and discard; controlled CSV converter",
+  "nativeLibreOfficeBenchmark": false,
+  "guiBenchmark": false,
+  "host": {
+    "system": "Windows",
+    "python": "3.11.9"
+  },
+  "memoryScope": "sampled own Python process RSS/handles; tracemalloc only three reopen/preview cycles; not whole-app soak or child peak RSS",
+  "phasesSeconds": {
+    "createUpload": 0.828,
+    "controlledConversion": 15.359,
+    "isolatedAnalysis": 296.719,
+    "reopenPreview": 17.641,
+    "discardClose": 0.579
+  },
+  "samples": {
+    "before": {
+      "threads": 1,
+      "handles": 179,
+      "rssBytes": 29794304,
+      "peakRssBytes": 35401728
+    },
+    "converted": {
+      "threads": 2,
+      "handles": 1190,
+      "rssBytes": 39514112,
+      "peakRssBytes": 39514112
+    },
+    "runningPeak": {
+      "threads": 3,
+      "handles": 1206,
+      "rssBytes": 51412992,
+      "peakRssBytes": 51412992
+    },
+    "beforeDiscard": {
+      "threads": 2,
+      "handles": 1206,
+      "rssBytes": 54743040,
+      "peakRssBytes": 60391424
+    },
+    "afterClose": {
+      "threads": 1,
+      "handles": 1203,
+      "rssBytes": 53886976,
+      "peakRssBytes": 60391424
+    }
+  },
+  "limits": {
+    "deadlineSeconds": 900.0
+  },
+  "conversion": {
+    "state": "ready",
+    "succeeded": 1000,
+    "failed": 0
+  },
+  "analysis": {
+    "state": "completed",
+    "processed": 1000,
+    "summary": {
+      "confirmed_loss": 100,
+      "format_limitation": 0,
+      "uncertain": 0,
+      "not_checked": 0,
+      "checked": 900
+    },
+    "expected": {
+      "checked": 900,
+      "confirmed_loss": 100,
+      "format_limitation": 0,
+      "uncertain": 0,
+      "not_checked": 0
+    }
+  },
+  "pagination": {
+    "uniqueTasks": 1000,
+    "pageLimit": 100,
+    "pages": 10,
+    "perTaskTruthVerified": true,
+    "filteredCountsVerified": true
+  },
+  "reopen": {
+    "cycles": 3,
+    "previewWorkers": 6,
+    "analysisRerun": false,
+    "allocationSamples": [
+      {
+        "cycle": 1,
+        "currentTracedBytes": 237939,
+        "peakTracedBytes": 5648286
+      },
+      {
+        "cycle": 2,
+        "currentTracedBytes": 241421,
+        "peakTracedBytes": 5651752
+      },
+      {
+        "cycle": 3,
+        "currentTracedBytes": 340838,
+        "peakTracedBytes": 5751201
+      }
+    ]
+  },
+  "immutability": {
+    "filesRehashed": 2000,
+    "allUnchanged": true
+  },
+  "cleanup": {
+    "jobs": 0,
+    "tickets": 0,
+    "reservedBytes": 0,
+    "ioLeases": 0,
+    "sessionIndexes": 0,
+    "ownedDirectoryRemoved": true,
+    "ownerLockClosed": true,
+    "ownedExecutorThreadsAlive": 0
+  },
+  "workers": {
+    "started": 1006,
+    "closed": 1006,
+    "active": 0,
+    "peakActive": 1,
+    "liveAfterClose": 0,
+    "jobHandleAfterClose": 0
+  },
+  "elapsedSeconds": 333.141
+}

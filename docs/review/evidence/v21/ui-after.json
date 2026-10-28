@@ -1,0 +1,46 @@
+{
+  "status": "PASS",
+  "scope": "production comparison UI with real DOM and reordered HTTP completions",
+  "cases": [
+    {
+      "name": "obsolete_refresh_error",
+      "status": "PASS"
+    },
+    {
+      "name": "obsolete_detail_error",
+      "status": "PASS"
+    },
+    {
+      "name": "retry_completion_different_job",
+      "status": "PASS"
+    },
+    {
+      "name": "restart_completion_different_job",
+      "status": "PASS"
+    },
+    {
+      "name": "detail_pair_binding",
+      "status": "PASS"
+    },
+    {
+      "name": "obsolete_busy_preview",
+      "status": "PASS"
+    },
+    {
+      "name": "preview_analysis_binding",
+      "status": "PASS"
+    },
+    {
+      "name": "bound_preview_token_preserved",
+      "status": "PASS"
+    },
+    {
+      "name": "unavailable_bundle_scope",
+      "status": "PASS"
+    },
+    {
+      "name": "preview_pair_binding",
+      "status": "PASS"
+    }
+  ]
+}

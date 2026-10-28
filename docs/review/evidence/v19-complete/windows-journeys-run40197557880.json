@@ -1,0 +1,1069 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "platform": "win32",
+  "sourceSha": "16bc5db0a6f271dcb618ef883fb708f964e351dd",
+  "scope": "actual QtWebEngine + production bridge/native folder save + real isolated comparison workers; native conversion fixture controlled",
+  "picker": "new synthetic QA folder supplied; all file copies and independent readback are production code",
+  "fullFormatMatrix": "NOT_RUN",
+  "packagedEXE": "NOT_RUN",
+  "manualVisibleGuiAcceptance": "NOT_RUN",
+  "journeys": [
+    {
+      "name": "recovered_report_and_second_output",
+      "status": "PASS",
+      "sameAnalysisId": true,
+      "nativeExportsOnReopen": 0,
+      "secondSheetVisible": true
+    },
+    {
+      "name": "corrupt_report_requires_explicit_restart",
+      "status": "PASS",
+      "restartOffered": true,
+      "automaticRestart": false,
+      "newAnalysisId": true,
+      "originalAndConvertedBytesUnchanged": true,
+      "nativeExports": 0
+    },
+    {
+      "name": "native_dialog_close_reopen_preserves_new_session",
+      "status": "PASS",
+      "cycles": 5,
+      "lateNativeCloseEventsObserved": 5,
+      "newJobReportVisible": true,
+      "newAnalysisCancelledByOldClose": false
+    },
+    {
+      "name": "close_comparison_then_save_during_real_analysis",
+      "status": "PASS",
+      "cycle": 1,
+      "processedBeforeClose": 1,
+      "total": 24,
+      "liveWorkerObserved": true,
+      "releasedAllLeases": true,
+      "privateJobRemoved": true,
+      "qtTimerTicks": 42,
+      "savedByteHashesMatch": true,
+      "nativeExportsDuringAnalysis": 0,
+      "releasedJobView": {
+        "open": true,
+        "feedback": "Пакет освобождён или удалён. Сравнение больше недоступно.",
+        "retryDisabled": true,
+        "resumeDisabled": true,
+        "restartDisabled": true
+      }
+    },
+    {
+      "name": "close_comparison_then_discard_during_real_analysis",
+      "status": "PASS",
+      "cycle": 1,
+      "processedBeforeClose": 1,
+      "total": 24,
+      "liveWorkerObserved": true,
+      "releasedAllLeases": true,
+      "privateJobRemoved": true,
+      "qtTimerTicks": 31,
+      "savedByteHashesMatch": false,
+      "nativeExportsDuringAnalysis": 0,
+      "releasedJobView": {
+        "open": true,
+        "feedback": "Пакет освобождён или удалён. Сравнение больше недоступно.",
+        "retryDisabled": true,
+        "resumeDisabled": true,
+        "restartDisabled": true
+      }
+    },
+    {
+      "name": "close_comparison_then_discard_during_real_analysis",
+      "status": "PASS",
+      "cycle": 2,
+      "processedBeforeClose": 1,
+      "total": 24,
+      "liveWorkerObserved": true,
+      "releasedAllLeases": true,
+      "privateJobRemoved": true,
+      "qtTimerTicks": 30,
+      "savedByteHashesMatch": false,
+      "nativeExportsDuringAnalysis": 0,
+      "releasedJobView": {
+        "open": true,
+        "feedback": "Пакет освобождён или удалён. Сравнение больше недоступно.",
+        "retryDisabled": true,
+        "resumeDisabled": true,
+        "restartDisabled": true
+      }
+    },
+    {
+      "name": "close_comparison_then_discard_during_real_analysis",
+      "status": "PASS",
+      "cycle": 3,
+      "processedBeforeClose": 1,
+      "total": 24,
+      "liveWorkerObserved": true,
+      "releasedAllLeases": true,
+      "privateJobRemoved": true,
+      "qtTimerTicks": 27,
+      "savedByteHashesMatch": false,
+      "nativeExportsDuringAnalysis": 0,
+      "releasedJobView": {
+        "open": true,
+        "feedback": "Пакет освобождён или удалён. Сравнение больше недоступно.",
+        "retryDisabled": true,
+        "resumeDisabled": true,
+        "restartDisabled": true
+      }
+    },
+    {
+      "name": "close_comparison_then_discard_during_real_analysis",
+      "status": "PASS",
+      "cycle": 4,
+      "processedBeforeClose": 1,
+      "total": 24,
+      "liveWorkerObserved": true,
+      "releasedAllLeases": true,
+      "privateJobRemoved": true,
+      "qtTimerTicks": 28,
+      "savedByteHashesMatch": false,
+      "nativeExportsDuringAnalysis": 0,
+      "releasedJobView": {
+        "open": true,
+        "feedback": "Пакет освобождён или удалён. Сравнение больше недоступно.",
+        "retryDisabled": true,
+        "resumeDisabled": true,
+        "restartDisabled": true
+      }
+    },
+    {
+      "name": "close_comparison_then_discard_during_real_analysis",
+      "status": "PASS",
+      "cycle": 5,
+      "processedBeforeClose": 1,
+      "total": 24,
+      "liveWorkerObserved": true,
+      "releasedAllLeases": true,
+      "privateJobRemoved": true,
+      "qtTimerTicks": 30,
+      "savedByteHashesMatch": false,
+      "nativeExportsDuringAnalysis": 0,
+      "releasedJobView": {
+        "open": true,
+        "feedback": "Пакет освобождён или удалён. Сравнение больше недоступно.",
+        "retryDisabled": true,
+        "resumeDisabled": true,
+        "restartDisabled": true
+      }
+    }
+  ],
+  "snapshots": [
+    "recovered-second-output.png",
+    "corrupt-report-explicit-restart.png",
+    "closed-analysis-save.png",
+    "closed-analysis-discard-1.png",
+    "closed-analysis-discard-2.png",
+    "closed-analysis-discard-3.png",
+    "closed-analysis-discard-4.png",
+    "closed-analysis-discard-5.png"
+  ],
+  "lifecycle": [
+    {
+      "event": "close-event",
+      "open": true,
+      "progress": "Загружаем анализ…"
+    },
+    {
+      "event": "close-call",
+      "open": true
+    },
+    {
+      "event": "close-event",
+      "open": false,
+      "progress": "Анализ завершён · 4 из 4"
+    },
+    {
+      "event": "open-call",
+      "job": "ba31729984ef469378d0f8d7d4ceb250",
+      "open": false
+    },
+    {
+      "event": "close-call",
+      "open": true
+    },
+    {
+      "event": "open-call",
+      "job": "df527ae497f1a251dc6cb45f3e7aea48",
+      "open": false
+    },
+    {
+      "event": "close-event",
+      "open": true,
+      "progress": "Проверяем результаты · 0 из 4"
+    },
+    {
+      "event": "close-call",
+      "open": true
+    },
+    {
+      "event": "close-event",
+      "open": false,
+      "progress": "Анализ завершён · 4 из 4"
+    },
+    {
+      "event": "open-call",
+      "job": "ba31729984ef469378d0f8d7d4ceb250",
+      "open": false
+    },
+    {
+      "event": "close-call",
+      "open": true
+    },
+    {
+      "event": "open-call",
+      "job": "66098b2753eea9de82756274c244fa2d",
+      "open": false
+    },
+    {
+      "event": "close-event",
+      "open": true,
+      "progress": "Проверяем результаты · 0 из 4"
+    },
+    {
+      "event": "close-call",
+      "open": true
+    },
+    {
+      "event": "close-event",
+      "open": false,
+      "progress": "Анализ завершён · 4 из 4"
+    },
+    {
+      "event": "open-call",
+      "job": "9d1b1675e0f148189180920b6deaf346",
+      "open": false
+    },
+    {
+      "event": "close-call",
+      "open": true
+    },
+    {
+      "event": "close-event",
+      "open": false,
+      "progress": "Проверяем результаты · 0 из 24"
+    },
+    {
+      "event": "open-call",
+      "job": "9d1b1675e0f148189180920b6deaf346",
+      "open": false
+    },
+    {
+      "event": "close-call",
+      "open": true
+    },
+    {
+      "event": "open-call",
+      "job": "e45b246cecf9e7c908c8868800a39552",
+      "open": false
+    },
+    {
+      "event": "close-event",
+      "open": true,
+      "progress": "Загружаем анализ…"
+    },
+    {
+      "event": "close-call",
+      "open": true
+    },
+    {
+      "event": "close-event",
+      "open": false,
+      "progress": "Проверяем результаты · 0 из 24"
+    },
+    {
+      "event": "open-call",
+      "job": "e45b246cecf9e7c908c8868800a39552",
+      "open": false
+    },
+    {
+      "event": "close-call",
+      "open": true
+    },
+    {
+      "event": "open-call",
+      "job": "08e8b38282dfb93aff6cecce5eb414be",
+      "open": false
+    },
+    {
+      "event": "close-event",
+      "open": true,
+      "progress": "Загружаем анализ…"
+    },
+    {
+      "event": "close-call",
+      "open": true
+    },
+    {
+      "event": "open-call",
+      "job": "08e8b38282dfb93aff6cecce5eb414be",
+      "open": false
+    },
+    {
+      "event": "close-event",
+      "open": true,
+      "progress": "Пакет недоступен"
+    },
+    {
+      "event": "close-call",
+      "open": true
+    },
+    {
+      "event": "open-call",
+      "job": "b48d6360ee33048c05ff783294854efa",
+      "open": false
+    },
+    {
+      "event": "close-event",
+      "open": true,
+      "progress": "Загружаем анализ…"
+    },
+    {
+      "event": "close-call",
+      "open": true
+    },
+    {
+      "event": "close-event",
+      "open": false,
+      "progress": "Проверяем результаты · 0 из 24"
+    },
+    {
+      "event": "open-call",
+      "job": "b48d6360ee33048c05ff783294854efa",
+      "open": false
+    },
+    {
+      "event": "close-call",
+      "open": true
+    },
+    {
+      "event": "open-call",
+      "job": "6f2f0b3ef592e258b389c93e5ea23a1b",
+      "open": false
+    },
+    {
+      "event": "close-event",
+      "open": true,
+      "progress": "Загружаем анализ…"
+    },
+    {
+      "event": "close-call",
+      "open": true
+    },
+    {
+      "event": "open-call",
+      "job": "6f2f0b3ef592e258b389c93e5ea23a1b",
+      "open": false
+    },
+    {
+      "event": "close-event",
+      "open": true,
+      "progress": "Пакет недоступен"
+    },
+    {
+      "event": "close-call",
+      "open": true
+    },
+    {
+      "event": "open-call",
+      "job": "84dd8a9f342777fdb22b37fb059d7019",
+      "open": false
+    },
+    {
+      "event": "close-event",
+      "open": true,
+      "progress": "Загружаем анализ…"
+    },
+    {
+      "event": "close-call",
+      "open": true
+    },
+    {
+      "event": "open-call",
+      "job": "84dd8a9f342777fdb22b37fb059d7019",
+      "open": false
+    },
+    {
+      "event": "close-event",
+      "open": true,
+      "progress": "Пакет недоступен"
+    },
+    {
+      "event": "close-call",
+      "open": true
+    }
+  ],
+  "apiEvents": [
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare",
+      "status": 200,
+      "code": null,
+      "jobId": "ba31729984ef469378d0f8d7d4ceb250",
+      "state": "completed",
+      "processed": 1,
+      "at": 24285.578
+    },
+    {
+      "phase": "request",
+      "path": "/api/converter-guard/compare/start",
+      "at": 24285.671
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare/start",
+      "status": 202,
+      "code": null,
+      "jobId": "0d465efe44c2f88c2b015d392d9675be",
+      "state": "queued",
+      "processed": 0,
+      "at": 24285.718
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare",
+      "status": 200,
+      "code": null,
+      "jobId": "0d465efe44c2f88c2b015d392d9675be",
+      "state": "running",
+      "processed": 0,
+      "at": 24285.734
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare",
+      "status": 200,
+      "code": null,
+      "jobId": "0d465efe44c2f88c2b015d392d9675be",
+      "state": "running",
+      "processed": 3,
+      "at": 24286.781
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare",
+      "status": 200,
+      "code": null,
+      "jobId": "0d465efe44c2f88c2b015d392d9675be",
+      "state": "completed",
+      "processed": 4,
+      "at": 24287.828
+    },
+    {
+      "phase": "request",
+      "path": "/api/converter-guard/compare/start",
+      "at": 24287.953
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare/start",
+      "status": 202,
+      "code": null,
+      "jobId": "ba31729984ef469378d0f8d7d4ceb250",
+      "state": "completed",
+      "processed": 1,
+      "at": 24287.968
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare",
+      "status": 200,
+      "code": null,
+      "jobId": "ba31729984ef469378d0f8d7d4ceb250",
+      "state": "completed",
+      "processed": 1,
+      "at": 24288
+    },
+    {
+      "phase": "request",
+      "path": "/api/converter-guard/compare/start",
+      "at": 24288.093
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare/start",
+      "status": 202,
+      "code": null,
+      "jobId": "eff977aab64b681cb17075000184c4b4",
+      "state": "queued",
+      "processed": 0,
+      "at": 24288.14
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare",
+      "status": 200,
+      "code": null,
+      "jobId": "eff977aab64b681cb17075000184c4b4",
+      "state": "running",
+      "processed": 0,
+      "at": 24288.171
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare",
+      "status": 200,
+      "code": null,
+      "jobId": "eff977aab64b681cb17075000184c4b4",
+      "state": "running",
+      "processed": 3,
+      "at": 24289.203
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare",
+      "status": 200,
+      "code": null,
+      "jobId": "eff977aab64b681cb17075000184c4b4",
+      "state": "completed",
+      "processed": 4,
+      "at": 24290.25
+    },
+    {
+      "phase": "request",
+      "path": "/api/converter-guard/compare/start",
+      "at": 24290.39
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare/start",
+      "status": 202,
+      "code": null,
+      "jobId": "ba31729984ef469378d0f8d7d4ceb250",
+      "state": "completed",
+      "processed": 1,
+      "at": 24290.39
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare",
+      "status": 200,
+      "code": null,
+      "jobId": "ba31729984ef469378d0f8d7d4ceb250",
+      "state": "completed",
+      "processed": 1,
+      "at": 24290.406
+    },
+    {
+      "phase": "request",
+      "path": "/api/converter-guard/compare/start",
+      "at": 24290.5
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare/start",
+      "status": 202,
+      "code": null,
+      "jobId": "67c37eb2f7abc31f15e4c1661caeac53",
+      "state": "queued",
+      "processed": 0,
+      "at": 24290.546
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare",
+      "status": 200,
+      "code": null,
+      "jobId": "67c37eb2f7abc31f15e4c1661caeac53",
+      "state": "running",
+      "processed": 0,
+      "at": 24290.562
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare",
+      "status": 200,
+      "code": null,
+      "jobId": "67c37eb2f7abc31f15e4c1661caeac53",
+      "state": "running",
+      "processed": 3,
+      "at": 24291.625
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare",
+      "status": 200,
+      "code": null,
+      "jobId": "67c37eb2f7abc31f15e4c1661caeac53",
+      "state": "completed",
+      "processed": 4,
+      "at": 24292.671
+    },
+    {
+      "phase": "request",
+      "path": "/api/converter-guard/compare/start",
+      "at": 24292.796
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare/start",
+      "status": 202,
+      "code": null,
+      "jobId": "ba31729984ef469378d0f8d7d4ceb250",
+      "state": "completed",
+      "processed": 1,
+      "at": 24292.796
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare",
+      "status": 200,
+      "code": null,
+      "jobId": "ba31729984ef469378d0f8d7d4ceb250",
+      "state": "completed",
+      "processed": 1,
+      "at": 24292.828
+    },
+    {
+      "phase": "request",
+      "path": "/api/converter-guard/compare/start",
+      "at": 24292.921
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare/start",
+      "status": 202,
+      "code": null,
+      "jobId": "df527ae497f1a251dc6cb45f3e7aea48",
+      "state": "queued",
+      "processed": 0,
+      "at": 24292.984
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare",
+      "status": 200,
+      "code": null,
+      "jobId": "df527ae497f1a251dc6cb45f3e7aea48",
+      "state": "running",
+      "processed": 0,
+      "at": 24293
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare",
+      "status": 200,
+      "code": null,
+      "jobId": "df527ae497f1a251dc6cb45f3e7aea48",
+      "state": "running",
+      "processed": 3,
+      "at": 24294.046
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare",
+      "status": 200,
+      "code": null,
+      "jobId": "df527ae497f1a251dc6cb45f3e7aea48",
+      "state": "completed",
+      "processed": 4,
+      "at": 24295.093
+    },
+    {
+      "phase": "request",
+      "path": "/api/converter-guard/compare/start",
+      "at": 24295.218
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare/start",
+      "status": 202,
+      "code": null,
+      "jobId": "ba31729984ef469378d0f8d7d4ceb250",
+      "state": "completed",
+      "processed": 1,
+      "at": 24295.234
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare",
+      "status": 200,
+      "code": null,
+      "jobId": "ba31729984ef469378d0f8d7d4ceb250",
+      "state": "completed",
+      "processed": 1,
+      "at": 24295.265
+    },
+    {
+      "phase": "request",
+      "path": "/api/converter-guard/compare/start",
+      "at": 24295.343
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare/start",
+      "status": 202,
+      "code": null,
+      "jobId": "66098b2753eea9de82756274c244fa2d",
+      "state": "queued",
+      "processed": 0,
+      "at": 24295.421
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare",
+      "status": 200,
+      "code": null,
+      "jobId": "66098b2753eea9de82756274c244fa2d",
+      "state": "running",
+      "processed": 0,
+      "at": 24295.453
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare",
+      "status": 200,
+      "code": null,
+      "jobId": "66098b2753eea9de82756274c244fa2d",
+      "state": "running",
+      "processed": 2,
+      "at": 24296.484
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare",
+      "status": 200,
+      "code": null,
+      "jobId": "66098b2753eea9de82756274c244fa2d",
+      "state": "completed",
+      "processed": 4,
+      "at": 24297.546
+    },
+    {
+      "phase": "request",
+      "path": "/api/converter-guard/compare/start",
+      "at": 24297.781
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare/start",
+      "status": 202,
+      "code": null,
+      "jobId": "9d1b1675e0f148189180920b6deaf346",
+      "state": "queued",
+      "processed": 0,
+      "at": 24297.89
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare",
+      "status": 200,
+      "code": null,
+      "jobId": "9d1b1675e0f148189180920b6deaf346",
+      "state": "running",
+      "processed": 0,
+      "at": 24297.937
+    },
+    {
+      "phase": "request",
+      "path": "/api/converter-guard/release",
+      "at": 24298.578
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/release",
+      "status": 200,
+      "code": null,
+      "jobId": null,
+      "state": null,
+      "processed": null,
+      "at": 24298.578
+    },
+    {
+      "phase": "request",
+      "path": "/api/converter-guard/compare/start",
+      "at": 24298.718
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare/start",
+      "status": 404,
+      "code": "JOB_NOT_FOUND",
+      "jobId": null,
+      "state": null,
+      "processed": null,
+      "at": 24298.718
+    },
+    {
+      "phase": "request",
+      "path": "/api/converter-guard/compare/start",
+      "at": 24299.312
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare/start",
+      "status": 202,
+      "code": null,
+      "jobId": "e45b246cecf9e7c908c8868800a39552",
+      "state": "queued",
+      "processed": 0,
+      "at": 24299.421
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare",
+      "status": 200,
+      "code": null,
+      "jobId": "e45b246cecf9e7c908c8868800a39552",
+      "state": "running",
+      "processed": 0,
+      "at": 24299.468
+    },
+    {
+      "phase": "request",
+      "path": "/api/converter-guard/release",
+      "at": 24299.906
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/release",
+      "status": 200,
+      "code": null,
+      "jobId": null,
+      "state": null,
+      "processed": null,
+      "at": 24299.906
+    },
+    {
+      "phase": "request",
+      "path": "/api/converter-guard/compare/start",
+      "at": 24299.984
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare/start",
+      "status": 404,
+      "code": "JOB_NOT_FOUND",
+      "jobId": null,
+      "state": null,
+      "processed": null,
+      "at": 24299.984
+    },
+    {
+      "phase": "request",
+      "path": "/api/converter-guard/compare/start",
+      "at": 24300.64
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare/start",
+      "status": 202,
+      "code": null,
+      "jobId": "08e8b38282dfb93aff6cecce5eb414be",
+      "state": "queued",
+      "processed": 0,
+      "at": 24300.734
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare",
+      "status": 200,
+      "code": null,
+      "jobId": "08e8b38282dfb93aff6cecce5eb414be",
+      "state": "running",
+      "processed": 0,
+      "at": 24300.781
+    },
+    {
+      "phase": "request",
+      "path": "/api/converter-guard/release",
+      "at": 24301.312
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/release",
+      "status": 200,
+      "code": null,
+      "jobId": null,
+      "state": null,
+      "processed": null,
+      "at": 24301.312
+    },
+    {
+      "phase": "request",
+      "path": "/api/converter-guard/compare/start",
+      "at": 24301.406
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare/start",
+      "status": 404,
+      "code": "JOB_NOT_FOUND",
+      "jobId": null,
+      "state": null,
+      "processed": null,
+      "at": 24301.406
+    },
+    {
+      "phase": "request",
+      "path": "/api/converter-guard/compare/start",
+      "at": 24302.125
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare/start",
+      "status": 202,
+      "code": null,
+      "jobId": "b48d6360ee33048c05ff783294854efa",
+      "state": "queued",
+      "processed": 0,
+      "at": 24302.218
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare",
+      "status": 200,
+      "code": null,
+      "jobId": "b48d6360ee33048c05ff783294854efa",
+      "state": "running",
+      "processed": 0,
+      "at": 24302.265
+    },
+    {
+      "phase": "request",
+      "path": "/api/converter-guard/release",
+      "at": 24302.734
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/release",
+      "status": 200,
+      "code": null,
+      "jobId": null,
+      "state": null,
+      "processed": null,
+      "at": 24302.734
+    },
+    {
+      "phase": "request",
+      "path": "/api/converter-guard/compare/start",
+      "at": 24302.812
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare/start",
+      "status": 404,
+      "code": "JOB_NOT_FOUND",
+      "jobId": null,
+      "state": null,
+      "processed": null,
+      "at": 24302.812
+    },
+    {
+      "phase": "request",
+      "path": "/api/converter-guard/compare/start",
+      "at": 24303.468
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare/start",
+      "status": 202,
+      "code": null,
+      "jobId": "6f2f0b3ef592e258b389c93e5ea23a1b",
+      "state": "queued",
+      "processed": 0,
+      "at": 24303.562
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare",
+      "status": 200,
+      "code": null,
+      "jobId": "6f2f0b3ef592e258b389c93e5ea23a1b",
+      "state": "running",
+      "processed": 0,
+      "at": 24303.625
+    },
+    {
+      "phase": "request",
+      "path": "/api/converter-guard/release",
+      "at": 24304
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/release",
+      "status": 200,
+      "code": null,
+      "jobId": null,
+      "state": null,
+      "processed": null,
+      "at": 24304
+    },
+    {
+      "phase": "request",
+      "path": "/api/converter-guard/compare/start",
+      "at": 24304.062
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare/start",
+      "status": 404,
+      "code": "JOB_NOT_FOUND",
+      "jobId": null,
+      "state": null,
+      "processed": null,
+      "at": 24304.062
+    },
+    {
+      "phase": "request",
+      "path": "/api/converter-guard/compare/start",
+      "at": 24304.656
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare/start",
+      "status": 202,
+      "code": null,
+      "jobId": "84dd8a9f342777fdb22b37fb059d7019",
+      "state": "queued",
+      "processed": 0,
+      "at": 24304.734
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare",
+      "status": 200,
+      "code": null,
+      "jobId": "84dd8a9f342777fdb22b37fb059d7019",
+      "state": "running",
+      "processed": 0,
+      "at": 24304.796
+    },
+    {
+      "phase": "request",
+      "path": "/api/converter-guard/release",
+      "at": 24305.234
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/release",
+      "status": 200,
+      "code": null,
+      "jobId": null,
+      "state": null,
+      "processed": null,
+      "at": 24305.234
+    },
+    {
+      "phase": "request",
+      "path": "/api/converter-guard/compare/start",
+      "at": 24305.312
+    },
+    {
+      "phase": "response",
+      "path": "/api/converter-guard/compare/start",
+      "status": 404,
+      "code": "JOB_NOT_FOUND",
+      "jobId": null,
+      "state": null,
+      "processed": null,
+      "at": 24305.312
+    }
+  ]
+}

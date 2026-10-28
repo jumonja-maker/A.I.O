@@ -16,15 +16,56 @@ import time
 
 from ..native_process import ProcessTree
 from .errors import GuardError
-from .native_logs import NativeLogs
+from .native_logs import NativeLogs, close_native_pipes
+from .dif_evidence import DIF_CORE_SOURCE
+from .native_profile import PrivateNativeProfile, private_profile_required
+from .sheet_outputs import SHEET_OUTPUT_SOURCE
 
-WORKER_SOURCE = r'''
+WORKER_SOURCE = DIF_CORE_SOURCE + SHEET_OUTPUT_SOURCE + r'''
 import json, os, sys, time, subprocess
 from pathlib import Path
 
 PREFIX = 'AIO_GUARD_RPC '
 def send(value):
     print(PREFIX + json.dumps(value, ensure_ascii=True), flush=True)
+
+def automatic_export_properties(req, prop, uno_runtime):
+    """A finite trusted recipe, not a bridge for arbitrary UNO properties."""
+    recipe = req.get('automaticRecipe')
+    data = req.get('exportFilterData')
+    if recipe is None:
+        if data is not None:
+            raise RuntimeError('AUTOMATIC_FILTER_DATA_WITHOUT_RECIPE')
+        return []
+    if recipe == 'pdf_preserve_images':
+        expected = {'UseLosslessCompression': True, 'ReduceImageResolution': False}
+        if (req.get('format') != 'pdf' or
+                not req.get('exportFilter', '').endswith('_pdf_Export') or
+                not isinstance(data, dict) or data != expected or
+                any(type(value) is not bool for value in data.values())):
+            raise RuntimeError('AUTOMATIC_FILTER_DATA_INVALID')
+        # PropertyValue.Value itself is an Any. PyUNO otherwise infers the
+        # nested Python tuple as []any, while PDFFilter extracts only
+        # []com.sun.star.beans.PropertyValue and silently uses defaults when
+        # extraction fails. Preserve the inner UNO sequence type explicitly.
+        data = uno_runtime.Any('[]com.sun.star.beans.PropertyValue',
+                               tuple(prop(name, value) for name, value in expected.items()))
+        return [prop('FilterData', data)]
+    if recipe == 'csv_preserve_values':
+        separator = '44' if req.get('format') == 'csv' else '9'
+        expected = separator + ',34,76,1,,0,false,true,false,false,false,-1,false,true'
+        if (req.get('format') not in ('csv', 'tsv', 'tab') or
+                req.get('exportFilter') != 'Text - txt - csv (StarCalc)' or
+                req.get('exportOptions') != expected or data is not None):
+            raise RuntimeError('AUTOMATIC_FILTER_DATA_INVALID')
+        return []
+    raise RuntimeError('AUTOMATIC_RECIPE_UNAVAILABLE')
+
+def automatic_csv_outputs(req, model):
+    paths = sorted(Path(req['output']).glob('*.' + req['format']))
+    if not paths or len(paths) != model.getSheets().getCount():
+        raise RuntimeError('AUTOMATIC_CSV_SHEETS_MISSING')
+    return paths
 
 def dbf_mixed_columns(sheet, area):
     """Find columns native dBase's first-record type inference would truncate."""
@@ -52,7 +93,7 @@ def dbf_mixed_columns(sheet, area):
             mixed.append(column)
     return {'header': header, 'originalHeaders': list(first) if header else None, 'mixed': mixed}
 
-def export_table_sheets(model, desktop, prop, target, export_options):
+def export_table_sheets(model, desktop, prop, target, export_options, *, csv_format=None, raw_values=False):
     """One native legacy file per sheet, without approving a lossy dialog.
 
     DIF's native exporter always starts at sheet zero; it warns and drops all
@@ -63,6 +104,21 @@ def export_table_sheets(model, desktop, prop, target, export_options):
     """
     sheets = model.getSheets()
     count = sheets.getCount()
+    if count < 1:
+        raise SheetOutputMismatch('native_sheet_count_missing')
+    entries = []
+    if csv_format:
+        # Every private model has one sheet. Never let LO build paths from
+        # source sheet names, including the optional all-sheets retry recipe.
+        changed = []
+        for option in export_options:
+            if option.Name == 'FilterOptions':
+                tokens = option.Value.split(',')
+                if len(tokens) > 11:
+                    tokens[11] = '0'
+                option = prop('FilterOptions', ','.join(tokens))
+            changed.append(option)
+        export_options = changed
     is_dbf = any(p.Name == 'FilterName' and p.Value == 'dBase' for p in export_options)
     profiles = []
     for index in range(count):
@@ -71,7 +127,7 @@ def export_table_sheets(model, desktop, prop, target, export_options):
         cursor.gotoEndOfUsedArea(False)
         area = cursor.getRangeAddress()
         profiles.append((area, dbf_mixed_columns(sheet, area) if is_dbf else {'mixed': []}))
-    if count <= 1 and not profiles[0][1]['mixed']:
+    if not csv_format and count <= 1 and not profiles[0][1]['mixed']:
         model.storeToURL(target.as_uri(), tuple(export_options))
         return [target]
     outputs = []
@@ -101,6 +157,8 @@ def export_table_sheets(model, desktop, prop, target, export_options):
             area, profile = profiles[index]
             path = target if index == 0 else target.with_name(
                 target.stem + '__sheet_%03d' % (index + 1) + target.suffix)
+            if csv_format:
+                path = target.with_name(sheet_output_name(target.stem, index, csv_format))
             mapping = None
             if profile['mixed']:
                 mapping = path.with_name(path.name + '.aio-columns.jsonl').open('x', encoding='utf-8')
@@ -156,6 +214,20 @@ def export_table_sheets(model, desktop, prop, target, export_options):
                 mapping.close()
                 mapping = None
             temporary.storeToURL(path.as_uri(), tuple(export_options))
+            if csv_format:
+                cache = {}
+                def expected(row, column):
+                    if not raw_values:
+                        return source_sheet.getCellByPosition(column, row).getString()
+                    if cache.get('row') != row:
+                        cache['values'] = source_sheet.getCellRangeByPosition(
+                            0, row, area.EndColumn, row).getDataArray()[0]
+                        cache['row'] = row
+                    value = cache['values'][column]
+                    return value if value is not None else source_sheet.getCellByPosition(column, row).getString()
+                check = verify_csv_sheet(path, csv_format, area.EndRow + 1,
+                    area.EndColumn + 1, expected, raw_values=raw_values)
+                entries.append(sheet_file_evidence(path, index, source_sheet.getName(), check))
             outputs.append(path)
         finally:
             if 'mapping' in locals() and mapping is not None:
@@ -164,7 +236,39 @@ def export_table_sheets(model, desktop, prop, target, export_options):
                 temporary.close(True)
             else:
                 temporary.dispose()
+    if csv_format:
+        outputs.append(write_sheet_manifest(target.parent, entries))
     return outputs
+
+
+def inspect_html_content_profile(model):
+    """Inspect shapes only: never export during native preflight."""
+    profile = {'complete': False, 'textShapes': 0, 'graphicShapes': 0, 'pages': 0}
+    try:
+        pages = model.getDrawPages()
+        profile['pages'] = pages.getCount()
+        if not 1 <= profile['pages'] <= 256:
+            return profile
+        pending = [pages.getByIndex(i) for i in range(profile['pages'])]
+        visited = 0
+        while pending:
+            group = pending.pop()
+            for index in range(group.getCount()):
+                visited += 1
+                if visited > 10000:
+                    return profile
+                shape = group.getByIndex(index)
+                kind = shape.getShapeType()
+                if kind == 'com.sun.star.drawing.GroupShape':
+                    pending.append(shape)
+                elif kind.rsplit('.', 1)[-1] in ('TextShape', 'TitleTextShape', 'OutlinerShape'):
+                    profile['textShapes'] += 1
+                else:
+                    profile['graphicShapes'] += 1
+        profile['complete'] = True
+    except Exception:
+        pass
+    return profile
 
 
 def export_draw_svm(model, remote, prop, target):
@@ -293,6 +397,7 @@ def main(boot_name):
     for raw in sys.stdin:
         req = json.loads(raw)
         model, result, stage = None, None, 'import'
+        dif_import_check = None
         operation_tick = time.monotonic()
         import_tick = export_tick = export_handler = handler = None
         timings = {'source':'uno_document'}
@@ -316,7 +421,10 @@ def main(boot_name):
                     options.append(prop('FilterOptions', req['importOptions']))
             model = desktop.loadComponentFromURL(source.as_uri(), '_blank', 0, tuple(options))
             timings['importMs'] = round((time.monotonic()-import_tick)*1000)
-            if model is None:
+            # A native importer may return a partial model after an aborted
+            # interaction. Model existence alone does not prove that import
+            # completed; never admit routes or export that partial model.
+            if model is None or handler.blocked:
                 result = {'id':request_id,'ok':False,'code':'PREFLIGHT_INTERACTION_REQUIRED'
                           if handler.blocked else 'SOURCE_IMPORT_FAILED','stage':'import'}
             else:
@@ -324,6 +432,10 @@ def main(boot_name):
                 arguments = {p.Name:p.Value for p in model.getArgs()
                              if p.Name in ('FilterName', 'TypeName')}
                 actual_filter = arguments.get('FilterName')
+                # Verify the actual imported doubles before ANY export filter
+                # can turn a locale-induced #ERR string into a false success.
+                dif_import_check = (check_dif_import_model(source, model)
+                                    if actual_filter == 'DIF' else None)
                 if req.get('expectedSourceServices') and not set(services).intersection(req['expectedSourceServices']):
                     result = {'id':request_id,'ok':False,'code':'SOURCE_MODEL_MISMATCH','stage':'import'}
                 elif req['operation'] == 'inspect':
@@ -341,6 +453,9 @@ def main(boot_name):
                         result['nativeExportFilters'] = text_exports
                     if text_document:
                         result['nativeExportInspection'] = {'txt': text_export_reason}
+                    if set(services).intersection(('com.sun.star.presentation.PresentationDocument',
+                                                   'com.sun.star.drawing.DrawingDocument')):
+                        result['htmlContentProfile'] = inspect_html_content_profile(model)
                     if 'com.sun.star.drawing.DrawingDocument' in services:
                         try:
                             result['drawPages'] = model.getDrawPages().getCount()
@@ -370,6 +485,7 @@ def main(boot_name):
                                       prop('Silent', True), prop('InteractionHandler', export_handler)]
                     if req.get('exportOptions') is not None:
                         export_options.append(prop('FilterOptions', req['exportOptions']))
+                    export_options.extend(automatic_export_properties(req, prop, uno))
                     export_tick = time.monotonic()
                     exported_paths = [target]
                     try:
@@ -385,31 +501,47 @@ def main(boot_name):
                         if (req.get('graphicExport') == 'svm' and req['format'] == 'svm'
                                 and 'com.sun.star.drawing.DrawingDocument' in services):
                             exported_paths = export_draw_svm(model, remote, prop, target)
-                        elif (req['exportFilter'] in ('DIF', 'dBase')
+                        elif (req['exportFilter'] in ('DIF', 'dBase', 'Text - txt - csv (StarCalc)')
                                 and 'com.sun.star.sheet.SpreadsheetDocument' in services):
-                            exported_paths = export_table_sheets(model, desktop, prop, target, export_options)
+                            exported_paths = export_table_sheets(model, desktop, prop, target, export_options,
+                                csv_format=req['format'] if req['format'] in ('csv','tab','tsv') else None,
+                                raw_values=req.get('automaticRecipe') == 'csv_preserve_values')
                         else:
                             model.storeToURL(target.as_uri(), tuple(export_options))
+                            if req.get('automaticRecipe') == 'csv_preserve_values':
+                                # ExportAllSheets (-1) produces native
+                                # basename-SheetName.csv files rather than
+                                # the requested single primary filename.
+                                exported_paths = automatic_csv_outputs(req, model)
                     finally:
                         timings['exportMs'] = round((time.monotonic()-export_tick)*1000)
                     present = all(p.is_file() and not p.is_symlink() and p.stat().st_size > 0
                                   for p in exported_paths)
                     # Result paths stay on disk. Thousands of HTML sidecars
                     # must not overflow the small control-message channel.
-                    result = {'id':request_id,'ok':present and not export_handler.blocked,
-                              'primary':target.name,'stage':'export',
-                              'code':('EXPORT_INTERACTION_REQUIRED' if export_handler.blocked else
+                    result = {'id':request_id,'ok':present and not export_handler.blocked and not handler.blocked,
+                              'primary':(target.name if target.is_file() else
+                                         exported_paths[0].name if exported_paths else target.name),'stage':'export',
+                              # Some importers resolve objects lazily during
+                              # storeToURL and invoke the original load handler.
+                              'code':('PREFLIGHT_INTERACTION_REQUIRED' if handler.blocked else
+                                      'EXPORT_INTERACTION_REQUIRED' if export_handler.blocked else
                                       'ENGINE_OUTPUT_MISSING' if not present else None)}
                     if req['exportFilter'] == 'dBase' and list(Path(req['output']).glob('*.aio-columns.jsonl')):
                         result['warnings'] = ['NATIVE_DBF_MIXED_COLUMN_TEXT']
         except Exception as error:
-            result = {'id':request_id,'ok':False,'code':('PREFLIGHT_INTERACTION_REQUIRED'
-                      if stage == 'import' and handler is not None and handler.blocked else
+            result = {'id':request_id,'ok':False,'code':('DIF_NUMERIC_IMPORT_MISMATCH'
+                      if isinstance(error, DifNumericMismatch) else
+                      'ENGINE_OUTPUT_CONTENT_LOSS' if isinstance(error, SheetOutputMismatch) else
+                      'PREFLIGHT_INTERACTION_REQUIRED'
+                      if handler is not None and handler.blocked else
                       'SOURCE_IMPORT_FAILED' if stage == 'import' else
                       'EXPORT_INTERACTION_REQUIRED' if export_handler is not None and export_handler.blocked
                       else 'ENGINE_FAILED'),
                       'stage':stage,'diagnostic':str(error)[-4096:]}
         finally:
+            if result is not None and dif_import_check is not None:
+                result['difNumericImport'] = dif_import_check
             interaction = export_handler if export_handler is not None and export_handler.blocked else handler
             if result is not None and interaction is not None and interaction.blocked:
                 result['interaction'] = {'requestType': interaction.request_type,
@@ -453,6 +585,7 @@ class UnoSession:
         self.completed = self.starts = 0
         self.responses = queue.Queue(maxsize=8)
         self.profile = self.pipe = None
+        self._profile_owner = None
         self.disabled = False
         self.import_timeout, self.close_timeout = 60, 15
 
@@ -527,36 +660,47 @@ class UnoSession:
             self.recycle()
         if self.tree:
             return
-        self.workspace.mkdir(parents=True,exist_ok=True)
-        self.profile = self.workspace / secrets.token_hex(8)
-        self.prepare_profile(self.profile)
-        self.pipe = 'aio_guard_' + secrets.token_hex(16)
-        worker, boot = self.workspace/'worker.py', self.workspace/'boot.json'
-        worker.write_text(WORKER_SOURCE,encoding='utf-8')
-        start = self.workspace/'start.token';start.unlink(missing_ok=True)
-        boot.write_text(json.dumps({'program':str(self.executable.parent),'executable':str(self.executable),
-                                   'profile':str(self.profile.resolve()),
-                                   'pipe':self.pipe,'start':str(start)}),encoding='utf-8')
-        environment = dict(os.environ)
-        environment.pop('PYTHONHOME',None);environment.pop('PYTHONPATH',None)
-        environment['PYTHONNOUSERSITE']='1'
-        self.responses = queue.Queue(maxsize=8)
-        self.tree = ProcessTree([str(self.executable.parent/'python.exe'),str(worker),str(boot)],
-            cwd=self.workspace,env=environment,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-        self.logs = NativeLogs(self.tree.process,capture_stdout=False)
-        self.reader = threading.Thread(target=self._read,args=(self.tree.process.stdout,self.responses),daemon=True,name='aio-uno-response')
-        self.reader.start()
-        start.write_text('ready',encoding='ascii')
-        self.starts += 1
         try:
-            response = self._receive('ready',cancel,timeout)
-        except GuardError as error:
-            if error.code in ('CANCELLED','ENGINE_TIMEOUT'):
-                raise
-            raise GuardError('UNO_SESSION_UNAVAILABLE','Не удалось запустить нативный UNO.',stage='launch') from error
-        if not response.get('ok'):
-            raise GuardError('UNO_SESSION_UNAVAILABLE','Нативный UNO недоступен.',stage='launch')
-        self.completed = 0
+            self.workspace.mkdir(parents=True,exist_ok=True)
+            if private_profile_required():
+                self._profile_owner = PrivateNativeProfile()
+                self.profile = self._profile_owner.path / 'p'
+            else:
+                self.profile = self.workspace / secrets.token_hex(8)
+            self.prepare_profile(self.profile)
+            self.pipe = 'aio_guard_' + secrets.token_hex(16)
+            worker, boot = self.workspace/'worker.py', self.workspace/'boot.json'
+            worker.write_text(WORKER_SOURCE,encoding='utf-8')
+            start = self.workspace/'start.token';start.unlink(missing_ok=True)
+            boot.write_text(json.dumps({'program':str(self.executable.parent),'executable':str(self.executable),
+                                       'profile':str(self.profile.resolve()),
+                                       'pipe':self.pipe,'start':str(start)}),encoding='utf-8')
+            environment = dict(os.environ)
+            environment.pop('PYTHONHOME',None);environment.pop('PYTHONPATH',None)
+            environment['PYTHONNOUSERSITE']='1'
+            self.responses = queue.Queue(maxsize=8)
+            self.tree = ProcessTree([str(self.executable.parent/'python.exe'),str(worker),str(boot)],
+                cwd=self.workspace,env=environment,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+            self.logs = NativeLogs(self.tree.process,capture_stdout=False)
+            self.reader = threading.Thread(target=self._read,args=(self.tree.process.stdout,self.responses),daemon=True,name='aio-uno-response')
+            self.reader.start()
+            start.write_text('ready',encoding='ascii')
+            self.starts += 1
+            try:
+                response = self._receive('ready',cancel,timeout)
+            except GuardError as error:
+                if error.code in ('CANCELLED','ENGINE_TIMEOUT'):
+                    raise
+                raise GuardError('UNO_SESSION_UNAVAILABLE','Не удалось запустить нативный UNO.',stage='launch') from error
+            if not response.get('ok'):
+                raise GuardError('UNO_SESSION_UNAVAILABLE','Нативный UNO недоступен.',stage='launch')
+            self.completed = 0
+        except BaseException:
+            try:
+                self.recycle()
+            except Exception:
+                pass  # Preserve the original startup failure; cleanup was attempted.
+            raise
 
     def request(self, value, *, cancel, timeout, on_stage=lambda stage:None):
         try:
@@ -582,12 +726,15 @@ class UnoSession:
 
     def recycle(self):
         tree, reader, logs, profile = self.tree, self.reader, self.logs, self.profile
+        owner, self._profile_owner = self._profile_owner, None
         self.tree = self.reader = self.logs = self.profile = self.pipe = None
+        stopped = False
         try:
             # Terminate the owned process before flushing/closing its stdin.
             # BrokenPipeError previously skipped every remaining cleanup step.
             if tree:
                 tree.close()
+            stopped = True
         finally:
             try:
                 if tree and tree.process.stdin:
@@ -597,12 +744,16 @@ class UnoSession:
                         pass
             finally:
                 try:
-                    if reader:
+                    if reader and getattr(reader, 'ident', True) is not None:
                         reader.join(timeout=1)
                     if logs:
                         logs.finish()
                 finally:
-                    if profile:
+                    if stopped and tree:
+                        close_native_pipes(getattr(tree, 'process', None))
+                    if owner and stopped:
+                        owner.cleanup()
+                    elif profile and owner is None:
                         shutil.rmtree(profile,ignore_errors=True)
 
     def __enter__(self):return self
@@ -611,4 +762,3 @@ class UnoSession:
             self.recycle()
         finally:
             shutil.rmtree(self.workspace,ignore_errors=True)
-

@@ -1,0 +1,30 @@
+{
+  "status": "PASS",
+  "scope": "2 synthetic native XLSX value/route controls",
+  "cases": [
+    {
+      "case": "strict",
+      "status": "PASS",
+      "mode": "native_cli",
+      "verifiedCells": 4,
+      "inspectionComplete": false,
+      "qualityComplete": false,
+      "sourceSHA256": "3697532ff9aa21dafe4fc700246319e9ef1d83baef959aeaaf2b68fdb28f30e0",
+      "resultSHA256": "7cbf29d34c281603e1d0e42572fc046721bdb9742943954c3522924b1e7eb848",
+      "sourceUnchanged": true,
+      "elapsedMs": 10884
+    },
+    {
+      "case": "stale_dimension",
+      "status": "PASS",
+      "mode": "native_cli",
+      "verifiedCells": 4,
+      "inspectionComplete": true,
+      "qualityComplete": true,
+      "sourceSHA256": "5b4d85bfed868c16ab4282fc94f70bbe21796e3edb5d7aac636022323b933ee1",
+      "resultSHA256": "a83d38010980a074a6fe91a47224376a974c923d35a76a023cb492fb58ab2bac",
+      "sourceUnchanged": true,
+      "elapsedMs": 10963
+    }
+  ]
+}

@@ -1,0 +1,223 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "scope": "actual local loopback + source retention + isolated analysis + LibreOffice CSV automatic retry",
+  "fullFormatMatrix": "NOT_RUN",
+  "windowsGUI": "NOT_RUN",
+  "sourceSha256": "4a177209228e138f98e20b8f512c4bf962142dbc5c6d074514a0622c33a7508f",
+  "initialExportControl": {
+    "SaveAsShown": true,
+    "scope": "deliberately degraded first LO export; not a claim of a current default defect"
+  },
+  "preflight": {
+    "files": [
+      {
+        "fileId": "source",
+        "state": "detected"
+      }
+    ]
+  },
+  "firstCsv": "code,amount,note\n00123,1.23,Привет\n",
+  "firstAnalysis": {
+    "jobId": "2a6a879500e03d3415e24a6df29fc672",
+    "analysisId": "c700144804da56c6b92c1a6cefef4088",
+    "state": "completed",
+    "processed": 1,
+    "total": 1,
+    "summary": {
+      "confirmed_loss": 1,
+      "format_limitation": 0,
+      "uncertain": 0,
+      "not_checked": 0,
+      "checked": 0
+    },
+    "error": null,
+    "offset": 0,
+    "limit": 50,
+    "items": [
+      {
+        "taskId": "2a6a879500e03d3415e24a6df29fc672:0",
+        "fileId": "source",
+        "name": "precision.xlsx",
+        "format": "csv",
+        "sourceAvailable": true,
+        "schemaVersion": 1,
+        "status": "confirmed_loss",
+        "qualityCompared": false,
+        "scope": "verified_properties_only",
+        "findings": [
+          {
+            "code": "FORMAT_STYLES_LIMITATION",
+            "category": "format_limitation",
+            "feature": "styles",
+            "message": "Текстовый формат не сохраняет оформление документа.",
+            "certainty": "format_contract"
+          },
+          {
+            "code": "CELL_VALUES_CHANGED",
+            "category": "confirmed_loss",
+            "feature": "cell_values",
+            "message": "Исходные значения отсутствуют в проверенной таблице результата.",
+            "certainty": "confirmed_subset",
+            "before": 1,
+            "after": null,
+            "locations": [
+              {
+                "row": 2,
+                "column": 2,
+                "before": "1.23456789012345",
+                "after": "1.23"
+              }
+            ],
+            "totalAffected": 1
+          }
+        ],
+        "checkedFeatures": [],
+        "unknown": [
+          "colour_accuracy",
+          "fonts",
+          "formula_evaluation",
+          "semantic_meaning",
+          "visual_layout"
+        ],
+        "recipeCandidates": [
+          "csv_preserve_values"
+        ],
+        "before": {
+          "kind": "ooxml",
+          "documentClass": "spreadsheet",
+          "complete": true,
+          "counts": {
+            "sheets": 1,
+            "cells": 6,
+            "formulas": 0,
+            "images": 0,
+            "characters": 0
+          },
+          "textDigest": null
+        },
+        "after": {
+          "kind": "csv",
+          "documentClass": "spreadsheet",
+          "complete": true,
+          "counts": {
+            "sheets": 1,
+            "rows": 2,
+            "columns": 3,
+            "characters": 35
+          },
+          "textDigest": "b414e9d6b5c165be9a6b7b53da54147cef0901e1a16c3c70ca3f39fa45114460"
+        }
+      }
+    ],
+    "totalFiltered": 1,
+    "retry": null
+  },
+  "retryVerification": {
+    "assessment": "checked_subset_improved",
+    "scope": "checked_subset",
+    "beforeConfirmed": 1,
+    "afterConfirmed": 0,
+    "note": "Полная визуальная идентичность не проверяется. Первый вариант сохранён."
+  },
+  "candidateRows": [
+    [
+      "code",
+      "amount",
+      "note"
+    ],
+    [
+      "00123",
+      "1.23456789012345",
+      "Привет"
+    ]
+  ],
+  "candidateSha256": "9828b1be7cce37374ef1a704bc64366a34a3ee4c408111ac6f83d567556c4ca8",
+  "childAnalysis": {
+    "jobId": "42b480346400629e504f35bd08f74ba0",
+    "analysisId": "05de60e82eddbf2d4ba6af9362e70500",
+    "state": "completed",
+    "processed": 1,
+    "total": 1,
+    "summary": {
+      "confirmed_loss": 0,
+      "format_limitation": 1,
+      "uncertain": 0,
+      "not_checked": 0,
+      "checked": 0
+    },
+    "error": null,
+    "offset": 0,
+    "limit": 50,
+    "items": [
+      {
+        "taskId": "42b480346400629e504f35bd08f74ba0:0",
+        "fileId": "source",
+        "name": "precision.xlsx",
+        "format": "csv",
+        "sourceAvailable": true,
+        "schemaVersion": 1,
+        "status": "format_limitation",
+        "qualityCompared": true,
+        "scope": "verified_properties_only",
+        "findings": [
+          {
+            "code": "FORMAT_STYLES_LIMITATION",
+            "category": "format_limitation",
+            "feature": "styles",
+            "message": "Текстовый формат не сохраняет оформление документа.",
+            "certainty": "format_contract"
+          }
+        ],
+        "checkedFeatures": [
+          "cell_values_single_grid"
+        ],
+        "unknown": [
+          "colour_accuracy",
+          "fonts",
+          "formula_evaluation",
+          "semantic_meaning",
+          "visual_layout"
+        ],
+        "recipeCandidates": [],
+        "before": {
+          "kind": "ooxml",
+          "documentClass": "spreadsheet",
+          "complete": true,
+          "counts": {
+            "sheets": 1,
+            "cells": 6,
+            "formulas": 0,
+            "images": 0,
+            "characters": 0
+          },
+          "textDigest": null
+        },
+        "after": {
+          "kind": "csv",
+          "documentClass": "spreadsheet",
+          "complete": true,
+          "counts": {
+            "sheets": 1,
+            "rows": 2,
+            "columns": 3,
+            "characters": 47
+          },
+          "textDigest": "4d55311d760f729eacccdf5f665692d163581c044896e5f6f99963be72f5a148"
+        }
+      }
+    ],
+    "totalFiltered": 1,
+    "retry": null
+  },
+  "firstResultsUnchanged": true,
+  "sourceUnchanged": true,
+  "selectedPairs": 1,
+  "automaticParameters": {
+    "encoding": "UTF-8",
+    "SaveAsShown": false,
+    "ExportFormulas": false,
+    "ExportAllSheets": true,
+    "IncludeBOM": true
+  }
+}

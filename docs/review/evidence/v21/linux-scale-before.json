@@ -1,0 +1,130 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "files": 1000,
+  "scope": "real Guard retention, isolated comparison, disk report, preview, reopen and discard; controlled CSV converter",
+  "nativeLibreOfficeBenchmark": false,
+  "guiBenchmark": false,
+  "host": {
+    "system": "Linux",
+    "python": "3.12.14"
+  },
+  "memoryScope": "sampled own Python process RSS/handles; tracemalloc only three reopen/preview cycles; not whole-app soak or child peak RSS",
+  "phasesSeconds": {
+    "createUpload": 0.313,
+    "controlledConversion": 1.166,
+    "isolatedAnalysis": 95.03,
+    "reopenPreview": 10.609,
+    "discardClose": 0.073
+  },
+  "samples": {
+    "before": {
+      "threads": 1,
+      "peakRssBytes": 19103744,
+      "rssBytes": 19103744,
+      "fileDescriptors": 4
+    },
+    "converted": {
+      "threads": 2,
+      "peakRssBytes": 28184576,
+      "rssBytes": 28184576,
+      "fileDescriptors": 5
+    },
+    "runningPeak": {
+      "threads": 3,
+      "peakRssBytes": 34873344,
+      "rssBytes": 34746368,
+      "fileDescriptors": 6
+    },
+    "beforeDiscard": {
+      "threads": 2,
+      "peakRssBytes": 40886272,
+      "rssBytes": 40886272,
+      "fileDescriptors": 5
+    },
+    "afterClose": {
+      "threads": 1,
+      "peakRssBytes": 40882176,
+      "rssBytes": 40882176,
+      "fileDescriptors": 4
+    }
+  },
+  "limits": {
+    "deadlineSeconds": 300.0
+  },
+  "conversion": {
+    "state": "ready",
+    "succeeded": 1000,
+    "failed": 0
+  },
+  "analysis": {
+    "state": "completed",
+    "processed": 1000,
+    "summary": {
+      "confirmed_loss": 100,
+      "format_limitation": 0,
+      "uncertain": 0,
+      "not_checked": 0,
+      "checked": 900
+    },
+    "expected": {
+      "checked": 900,
+      "confirmed_loss": 100,
+      "format_limitation": 0,
+      "uncertain": 0,
+      "not_checked": 0
+    }
+  },
+  "pagination": {
+    "uniqueTasks": 1000,
+    "pageLimit": 100,
+    "pages": 10,
+    "perTaskTruthVerified": true,
+    "filteredCountsVerified": true
+  },
+  "reopen": {
+    "cycles": 3,
+    "previewWorkers": 6,
+    "analysisRerun": false,
+    "allocationSamples": [
+      {
+        "cycle": 1,
+        "currentTracedBytes": 210292,
+        "peakTracedBytes": 3192785
+      },
+      {
+        "cycle": 2,
+        "currentTracedBytes": 310176,
+        "peakTracedBytes": 3196885
+      },
+      {
+        "cycle": 3,
+        "currentTracedBytes": 311310,
+        "peakTracedBytes": 3293915
+      }
+    ]
+  },
+  "immutability": {
+    "filesRehashed": 2000,
+    "allUnchanged": true
+  },
+  "cleanup": {
+    "jobs": 0,
+    "tickets": 0,
+    "reservedBytes": 0,
+    "ioLeases": 0,
+    "sessionIndexes": 0,
+    "ownedDirectoryRemoved": true,
+    "ownerLockClosed": true,
+    "ownedExecutorThreadsAlive": 0
+  },
+  "workers": {
+    "started": 1006,
+    "closed": 1006,
+    "active": 0,
+    "peakActive": 1,
+    "liveAfterClose": 0,
+    "jobHandleAfterClose": 0
+  },
+  "elapsedSeconds": 107.555
+}

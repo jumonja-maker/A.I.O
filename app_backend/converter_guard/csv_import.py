@@ -11,6 +11,8 @@ import csv
 import io
 from pathlib import Path
 
+from .csv_id_contract import text_columns_in_sample
+
 
 CALC = 'com.sun.star.sheet.SpreadsheetDocument'
 DELIMITERS = (',', ';', '\t', '|')
@@ -80,10 +82,28 @@ def csv_import_hint(source: Path, native):
     # Native Calc CSV import syntax: separator code, text delimiter code,
     # UTF-8 charset 76, and first data row 1. Never depend on UI dialogs.
     separator = ord(choices[0])
-    # Preserve the established importer hint contract. Adapter/preflight
-    # independently exposes csvImportSampleOnly to users without changing
-    # what gets passed into native LibreOffice filters.
-    return {'filter': selected, 'options': f'{separator},34,76,1'}
+    # Only a confirmed Calc Text importer supports documented per-column
+    # text types. Never force a whole sheet to text: money/dates need their
+    # normal native parsing. The bounded preview is an import hint, not a
+    # claim that every row was inspected; final output has an independent
+    # source-ID contract.
+    columns = ''
+    if selected == 'Text - txt - csv (StarCalc)':
+        try:
+            reader = csv.reader(io.StringIO(text, newline=''),
+                                delimiter=choices[0], quotechar='"', strict=True)
+            sample_rows = []
+            for record in reader:
+                if record:
+                    sample_rows.append(record)
+                if len(sample_rows) >= 256:
+                    break
+            if sample_rows:
+                columns = text_columns_in_sample(sample_rows, len(sample_rows[0]))
+        except (csv.Error, ValueError):
+            pass
+    options = f'{separator},34,76,1' + (',' + columns if columns else '')
+    return {'filter': selected, 'options': options}
 
 
 def inspect_csv_stream(source, *, delimiter=None, cancel=None, seconds=5, max_bytes=64*1024*1024,

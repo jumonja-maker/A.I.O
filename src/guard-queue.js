@@ -2,7 +2,17 @@
 (() => {
   'use strict';
   let root=null, bar=null, stateButton=null, state=null, jobs=[], warnings=[], storage=null, page=0, refreshPending=false, clock=null;
-  let preview=null, previewId=null, previewRequest=0;
+  let preview=null, previewId=null, previewRequest=0, previewController=null;
+  let refreshRevision=0, refreshAgain=false;
+  let renderedRecoveryWarnings=null;
+  function dropRows(id){
+    if(id&&rowCache?.jobId!==id)return;
+    rowCache=paintedRows=null;
+    bar?.querySelector('.aio-guard-list')?.replaceChildren();
+  }
+  function cancelPreview(){
+    previewRequest++;previewController?.abort();previewController=null;preview=previewId=null;
+  }
   // Only the visible page owns DOM nodes. Keep one bounded view per file;
   // unchanged polls and the elapsed-time clock must never rebuild the queue.
   let rowCache=null, paintedRows=null;
@@ -10,6 +20,36 @@
   let actionFeedback=null,feedbackRevision=null;
   const labels={queued:'В очереди',converting:'Конвертируется',ready:'Готово',saved:'Сохранено',
     error:'Ошибка',cancelled:'Отменено',skipped:'Исключено Guard'};
+  const recoveryReasons={
+    RECOVERY_UNFINISHED_PREPARATION:'Осталась незавершённая подготовка. Готовые результаты не подтверждены.',
+    RECOVERY_MANIFEST_MISSING:'Не найдено описание задания job.json.',
+    RECOVERY_LEDGER_INCOMPLETE:'Журнал результатов неполон. Полный состав результатов не подтверждён.',
+    RECOVERY_METADATA_INVALID:'Служебные сведения задания не удалось прочитать или проверить.',
+    RECOVERY_OUTPUT_MISSING:'Ожидаемый выходной файл отсутствует или изменён.',
+    RECOVERY_UNTRACKED_OUTPUTS:'Найдены файлы без подтверждённой записи в журнале.',
+    RECOVERY_RETIREMENT_INVALID:'Маркер удаления не прошёл проверку. Каталог не удалён.',
+    RECOVERY_CLEANUP_RETRY:'Не завершилась очистка ранее удалённого задания.',
+    RECOVERY_SALVAGED_UNVERIFIED:'Найдены файлы, но полнота и связь с исходниками не подтверждены.',
+    RECOVERY_WRITE_FAILED:'Запись служебного журнала не завершилась.'
+  };
+  function renderRecoveryWarnings(){
+    const box=bar?.querySelector('[data-g-recovery]');
+    if(!box||renderedRecoveryWarnings===warnings)return;
+    renderedRecoveryWarnings=warnings;box.hidden=!warnings.length;
+    const list=box.querySelector('[data-g-recovery-list]');list.replaceChildren();
+    box.querySelector('summary').textContent='Подробности восстановления: '+warnings.length;
+    for(const warning of warnings.slice(0,40)){
+      const row=document.createElement('p');row.setAttribute('data-g-recovery-entry','');
+      const code=typeof warning?.code==='string'?warning.code.slice(0,96):'RECOVERY_UNKNOWN';
+      const folder=typeof warning?.folder==='string'?warning.folder.slice(0,160):'Задание не определено';
+      const integrity=typeof warning?.integrity==='string'?' · '+warning.integrity.slice(0,64):'';
+      row.textContent=folder+' · '+code+integrity+' — '+
+        (recoveryReasons[code]||'Причина требует проверки. Сохраните технический отчёт.');
+      list.append(row);
+    }
+    if(warnings.length>40){const note=document.createElement('p');
+      note.textContent='Ещё предупреждений: '+(warnings.length-40)+'. Полный список — в техническом отчёте.';list.append(note);}
+  }
   const api=()=>window.AllInOneBridge?.converter;
   const text=(selector,value)=>{const n=bar?.querySelector(selector);if(n&&n.textContent!==String(value))n.textContent=String(value);};
   function attachTopButton() {
@@ -36,16 +76,17 @@
   }
   function mount() {
     const next=document.querySelector('.aio-cv');
-    if(!next){stateButton?.remove();stateButton=null;root=bar=null;rowCache=paintedRows=null;if(clock){clearInterval(clock);clock=null;}return;}
+    if(!next){cancelPreview();dropRows();stateButton?.remove();stateButton=null;root=bar=null;if(clock){clearInterval(clock);clock=null;}return;}
     if(next===root&&bar?.isConnected){attachTopButton();return;}
-    stateButton?.remove();stateButton=null;
-    root=next;rowCache=paintedRows=null;
+    cancelPreview();dropRows();stateButton?.remove();stateButton=null;
+    root=next;rowCache=paintedRows=null;renderedRecoveryWarnings=null;
     const footer=root.querySelector('.aio-cv__footer');if(!footer)return;
     bar=document.createElement('div');bar.className='aio-guard-queue';bar.hidden=true;
     bar.innerHTML='<div class="aio-guard-current"><span data-g-current></span><button type="button" data-g-pause>Пауза</button><button type="button" data-g-skip>Пропустить файл</button></div>'+
       '<dialog class="aio-guard-popup" aria-label="Состояние очереди Guard">'+
       '<div class="aio-guard-dialog-head"><strong>Состояние</strong><button type="button" data-g-close aria-label="Закрыть состояние">×</button></div>'+
       '<div data-g-counts></div><div class="aio-guard-warning" data-g-warning></div>'+
+      '<details data-g-recovery hidden><summary>Подробности восстановления</summary><div data-g-recovery-list style="max-height:12rem;overflow:auto;overflow-wrap:anywhere"></div></details>'+
       '<div class="aio-guard-tools"><input type="search" placeholder="Имя файла или формат" aria-label="Поиск в очереди"><select aria-label="Состояние задач"><option value="all">Все задачи</option><option value="error">Ошибки</option><option value="pending">Ожидают</option><option value="ready">Готовые</option></select></div>'+
       '<div data-g-storage></div><label class="aio-guard-quality"><input type="checkbox" data-g-quality> Проверить структуру результатов <small>Дольше; без проверки внешнего вида</small></label>'+
       '<div class="aio-guard-quality" data-g-verify>Сохранённые файлы проверяются автоматически <small>Сверяем байты с результатом AIO после записи на диск</small></div>'+
@@ -53,7 +94,7 @@
       '<div class="aio-guard-list" role="list" aria-label="Задачи конвертации"></div>'+
       '<div class="aio-guard-pages"><button type="button" data-g-prev>Назад</button><span data-g-page></span><button type="button" data-g-next>Далее</button></div>'+
       '<div class="aio-guard-save"><select data-g-jobs aria-label="Несохранённое задание"></select><button type="button" data-g-zip>Сохранить ZIP</button><button type="button" data-g-folder>Сохранить в папку</button></div>'+
-      '<div class="aio-guard-save"><button type="button" data-g-retry>Повторить ошибки</button><button type="button" data-g-long>Повторить с большим временем</button><button type="button" data-g-check>Повторить проверку дольше</button><button type="button" data-g-report>Технический отчёт</button><button type="button" data-g-discard>Удалить результаты</button></div>'+
+      '<div class="aio-guard-save"><button type="button" data-g-retry>Повторить ошибки</button><button type="button" data-g-long>Повторить с большим временем</button><button type="button" data-g-check>Повторить проверку дольше</button><button type="button" data-g-compare>Анализ до/после</button><button type="button" data-g-report>Технический отчёт</button><button type="button" data-g-discard>Удалить результаты</button></div>'+
       '</dialog>';
     footer.append(bar);attachTopButton();
     bar.querySelector('[data-g-folder]').hidden=!window.AllInOneNativeShell;
@@ -68,7 +109,8 @@
           'Команда принята. Обновляем состояние…';
         feedbackRevision=state?.revision;
         text('[data-g-warning]',result?.saved?'Сохранено файлов: '+(result.outputs??'')+
-          (result.savedAll?'':' · остальные результаты остаются в AIO.'):'Запрос принят.');
+          (result.savedAll?'':(result.remainingCompanionFiles&&!result.remainingDocuments
+            ?' · остался несохранённый служебный манифест листов.':' · остальные результаты остаются в AIO.')):'Запрос принят.');
         renderCurrent();
         await refresh();
       }catch(error){
@@ -83,6 +125,11 @@
     const selected=()=>bar.querySelector('[data-g-jobs]').value;
     action('[data-g-zip]',()=>api().saveRetained(selected(),'zip'));
     action('[data-g-folder]',()=>api().saveRetained(selected(),'folder'));
+    action('[data-g-compare]',async()=>{
+      const id=selected();if(!id||!window.AIOGuardComparison)throw Error('Выберите доступный пакет для анализа.');
+      const dialog=bar.querySelector('.aio-guard-popup');if(dialog.open)dialog.close();
+      await window.AIOGuardComparison.open(id,{opener:stateButton});
+    });
     action('[data-g-discard]',async()=>{
       if(window.confirm('Удалить несохранённые результаты этого задания?'))await api().discardRetained(selected());
     });
@@ -143,6 +190,9 @@
       dialog.close();
     });
     dialog.addEventListener('close',()=>{
+      // Native close is queued: an older close must not clear a reopened view.
+      if(dialog.open)return;
+      dropRows();
       stateButton?.setAttribute('aria-expanded','false');
       if(stateButton?.isConnected)stateButton.focus({preventScroll:true});
     });
@@ -150,9 +200,13 @@
     render();refresh();
   }
   async function refresh() {
-    if(refreshPending||!api()?.recoverable)return;
-    refreshPending=true;
-    try{const found=await api().recoverable();jobs=found.jobs||[];warnings=found.warnings||[];storage=found.storage||null;render();}catch(_){}finally{refreshPending=false;}
+    if(!api()?.recoverable)return;
+    if(refreshPending){refreshAgain=true;return;}
+    refreshPending=true;const revision=refreshRevision;
+    try{const found=await api().recoverable();
+      if(revision!==refreshRevision)return;
+      jobs=found.jobs||[];warnings=found.warnings||[];storage=found.storage||null;render();
+    }catch(_){}finally{refreshPending=false;if(refreshAgain){refreshAgain=false;refresh();}}
   }
   function render() {
     if(!bar)return;
@@ -160,14 +214,21 @@
     if(stateButton){
       stateButton.disabled=bar.hidden;
       const checking=state?.state==='checking';
-      const done=state?.preflightCompleted??0, total=state?.preflightTotal??0;
-      const label=checking?'Проверка '+done+' / '+total:'Состояние';
+      const routing=checking&&state?.preflightPhase==='routes';
+      const stopping=checking&&state?.cancellationRequested===true;
+      const done=routing?(state?.preflightMatrixCompleted??0):(state?.preflightCompleted??0);
+      const total=routing?(state?.preflightMatrixTotal??0):(state?.preflightTotal??0);
+      const label=stopping?'Отменяем…':checking?
+        (routing?'Направления ':'Проверка ')+done+' / '+total:'Состояние';
       if(stateButton.textContent!==label)stateButton.textContent=label;
       stateButton.classList.toggle('aio-guard-checking',checking);
       stateButton.title=checking
-        ?'Предварительная проверка: '+done+' из '+total+'. Нажмите для подробностей и пропуска файла.'
+        ?stopping?'Отмена запрошена. Ожидаем остановки текущего вычисления.'
+        :routing?'Расчёт доступных направлений: '+done+' / '+total+'. Отмена доступна в панели конвертера.'
+        :'Предварительная проверка: '+done+' из '+total+'. Нажмите для подробностей и пропуска файла.'
         :'Открыть состояние очереди Guard';
     }
+    text('[data-g-warning]',actionFeedback&&state?.revision===feedbackRevision?actionFeedback:'');
     if(bar.hidden&&bar.querySelector('.aio-guard-popup').open)bar.querySelector('.aio-guard-popup').close();
     const htmlSources=api()?.getHtmlSources?.()||[],htmlSelect=bar.querySelector('[data-g-html-source]');
     bar.querySelector('[data-g-resources]').hidden=!htmlSources.length;
@@ -185,9 +246,11 @@
     text('[data-g-storage]',storage?'Слоты Guard: '+storage.jobs+' / '+storage.maxJobs+
       ' · несохранено: '+storage.unsavedOutputs+' файлов · '+Math.ceil(storage.unsavedBytes/1048576)+' МБ':'');
     bar.querySelector('[data-g-quality]').disabled=!!state&&!state.finished&&!state.preparation;
-    renderCurrent();
+    renderCurrent();renderRecoveryWarnings();
     text('[data-g-counts]',state?.state==='uploading'?'Подготовлено исходников: '+state.uploadedFiles+' / '+state.inputFiles:
-      state?.state==='checking'?'Проверено исходников: '+state.preflightCompleted+' / '+state.preflightTotal:
+      state?.state==='checking'?(state.cancellationRequested?'Отменяем проверку… · ':
+        state.preflightPhase==='routes'?'Направления: '+(state.preflightMatrixCompleted??0)+' / '+(state.preflightMatrixTotal??0)+' · ':'')+
+        'Исходников: '+state.preflightCompleted+' / '+state.preflightTotal:
       state?'Обработано '+state.completed+' / '+state.total+' · успешно '+state.succeeded+
       ' · ошибок '+state.failed+' · отменено '+state.cancelled+' · исключено при выполнении '+state.filtered:'Результаты предыдущего запуска');
     text('[data-g-pause]',state?.pauseRequested?'Продолжить':'Пауза');
@@ -206,6 +269,9 @@
     bar.querySelector('[data-g-folder]').disabled=!chosen||chosen.saveInProgress;
     bar.querySelector('[data-g-zip]').disabled=!chosen||chosen.running||chosen.saveInProgress;
     bar.querySelector('[data-g-zip]').title=chosen?.running?'ZIP доступен после завершения очереди. Сейчас можно сохранить готовые файлы в папку.':'';
+    const compare=bar.querySelector('[data-g-compare]');
+    compare.disabled=!chosen||chosen.running;
+    compare.title=chosen?.comparisonAvailable===false?'Служебные исходники недоступны. Анализ покажет ограничения; результат можно просмотреть.':'';
     bar.querySelector('[data-g-discard]').disabled=!chosen||chosen.running||chosen.saveInProgress;
     bar.querySelector('[data-g-discard]').title=chosen?.running?'Сначала завершите или отмените очередь. Готовые результаты сейчас можно сохранить.':'';
     for(const key of ['retry','long'])bar.querySelector('[data-g-'+key+']').disabled=!state?.finished||!state.failed||!api()?.canRetry();
@@ -217,7 +283,7 @@
     if(state?.files?.some(f=>f.nativeRoute?.csvImportSampleOnly))
       text('[data-g-warning]','CSV: настройки импорта определены по образцу. Полная сверка ячеек и локали не выполнялась.');
     if(storage?.pendingRecoveryFolders)text('[data-g-warning]','Ещё папок для восстановления: '+storage.pendingRecoveryFolders+'. Сохраните или удалите завершённые пакеты, чтобы освободить слоты.');
-    if(warnings.length)text('[data-g-warning]','Не удалось прочитать журнал '+warnings.length+' заданий. Файлы не удалены. Сохраните технический отчёт для восстановления.');
+    if(warnings.length)text('[data-g-warning]','Проблемы восстановления: '+warnings.length+' предупреждений. Причины перечислены ниже; это не подтверждение повреждения документов.');
     if(jobs.some(j=>j.salvaged))text('[data-g-warning]','Найдены файлы без надёжного журнала. Их можно сохранить; полнота и связь с исходниками не подтверждены. Оригинальная служебная папка останется до явного удаления.');
     if(state?.files?.some(f=>f.nativeRoute?.csvInspection?.raggedRows))
       text('[data-g-warning]','В CSV найдены строки с разным числом столбцов. Проверьте разделитель и результат; конвертация не запрещена.');
@@ -236,7 +302,11 @@
     const elapsed=active?.startedMs?Math.max(0,Math.floor((Date.now()-active.startedMs)/1000)):0;
     const checking=state?.state==='checking';
     const count=checking?' · проверено '+(state.preflightCompleted??0)+' / '+(state.preflightTotal??0):'';
-    text('[data-g-current]',state?.statusReadError?'Связь со статусом прервана · повторяем запрос':active?
+    text('[data-g-current]',state?.statusReadError?'Связь со статусом прервана · повторяем запрос':
+      checking&&state.cancellationRequested?'Останавливаем проверку. Исходники остаются сохранными…':
+      checking&&state.preflightPhase==='routes'?
+        'Файлы проверены · формируем направления '+(state.preflightMatrixCompleted??0)+' / '+(state.preflightMatrixTotal??0):
+      active?
       active.name+(active.stage==='preflight'?' · проверка исходника'+count:
       active.stage==='upload'?' · подготовка исходника':' → '+active.format.toUpperCase())+
       ' · '+elapsed+' с'+(active.stage==='preflight'&&elapsed>=30?
@@ -244,21 +314,24 @@
       state?.state==='checking'?'Проверено '+(state.preflightCompleted??0)+' / '+(state.preflightTotal??0)+
         ' · подготовка направлений…':
       state?.state==='paused'?'Очередь на паузе':state?.state==='prepared'?'Исходники проверены. Выберите форматы.':state&&!state.finished?'Подготовка результатов…':
-      jobs.length?'Есть несохранённые результаты: '+jobs.length:warnings.length?'Есть результаты с повреждённым журналом':'Обработка завершена');
+      jobs.some(job=>job.unsavedOutputs>0)?'Есть несохранённые результаты: '+jobs.reduce((sum,job)=>sum+(job.unsavedOutputs||0),0):warnings.length?'Проблемы восстановления предыдущих заданий: '+warnings.length:'Обработка завершена');
   }
   async function loadPreview(){
     if(!bar)return;
-    const id=bar.querySelector('[data-g-jobs]').value,request=++previewRequest;
-    previewId=id;preview=null;
-    if(!id||id===state?.jobId){renderRows();return;}
+    const id=bar.querySelector('[data-g-jobs]').value;
+    cancelPreview();const request=previewRequest;previewId=id;
+    const Controller=window.AbortController||(typeof AbortController==='function'?AbortController:null);
+    const controller=Controller?new Controller():null;previewController=controller;
+    if(!id||id===state?.jobId){previewController=null;renderRows();return;}
     try{
       const response=await fetch('/api/converter-guard/jobs?job='+encodeURIComponent(id),
-        {headers:{'X-AIO-Token':document.body.dataset.aioToken},cache:'no-store'});
+        {headers:{'X-AIO-Token':document.body.dataset.aioToken},cache:'no-store',signal:controller?.signal});
       if(!response.ok)throw Error('Не удалось загрузить выбранный пакет.');
       const loaded=await response.json();
-      if(request!==previewRequest||bar.querySelector('[data-g-jobs]').value!==id)return;
+      if(request!==previewRequest||!bar||bar.querySelector('[data-g-jobs]').value!==id)return;
       preview=loaded;
-    }catch(error){if(request===previewRequest)text('[data-g-warning]',error.message);}
+    }catch(error){if(request===previewRequest&&error.name!=='AbortError')text('[data-g-warning]',error.message);}
+    finally{if(request===previewRequest)previewController=null;}
     if(request===previewRequest)renderRows();
   }
   function renderRows() {
@@ -319,7 +392,9 @@
     bar.querySelector('[data-g-prev]').disabled=page===0;bar.querySelector('[data-g-next]').disabled=page>=pages-1;
   }
   window.addEventListener('aio-guard-state',event=>{
-    state=event.detail;mount();render();
+    const previousId=state?.jobId;state=event.detail;
+    if(!state&&previousId)dropRows(previousId);
+    mount();render();
     const job=jobs.find(j=>j.jobId===state?.jobId);
     // Discover completed outputs even when the popup was opened before the
     // first export finished. No extra refresh for unchanged status polls.
@@ -327,12 +402,12 @@
         job.outputs!==state.partialResult.outputsCount || job.saveInProgress!==state.saveInProgress))refresh();
   });
   window.addEventListener('aio-guard-save-confirmed',event=>{
-    const id=event.detail?.jobId;
+    const id=event.detail?.jobId;if(!id)return;
     const released=event.detail?.released!==false&&event.detail?.savedAll!==false;
     if(released){
-      if(id===rowCache?.jobId)rowCache=paintedRows=null;
+      refreshRevision++;dropRows(id);
       if(id===state?.jobId)state=null;
-      if(id===previewId){preview=null;previewId=null;}
+      if(id===previewId)cancelPreview();
       jobs=jobs.filter(j=>j.jobId!==id);
     }else if(id===previewId){
       // A partial save changes ready/saved states without changing output
@@ -343,7 +418,21 @@
     if(bar)bar.querySelector('[data-g-jobs]').dataset.signature='';
     refresh();render();
   });
+  window.addEventListener('aio-guard-job-released',event=>{
+    const id=event.detail?.jobId;if(!id)return;
+    refreshRevision++;dropRows(id);
+    if(id===state?.jobId)state=null;
+    if(id===previewId)cancelPreview();
+    jobs=jobs.filter(job=>job.jobId!==id);
+    if(bar)bar.querySelector('[data-g-jobs]').dataset.signature='';
+    refresh();render();
+  });
   window.addEventListener('focus',refresh);
-  new MutationObserver(mount).observe(document.body,{subtree:true,childList:true});mount();
+  const observer=new MutationObserver(mount);
+  observer.observe(document.body,{subtree:true,childList:true});mount();
+  window.addEventListener('pagehide',()=>{
+    refreshRevision++;refreshAgain=false;cancelPreview();dropRows();state=null;jobs=[];warnings=[];storage=null;renderedRecoveryWarnings=null;
+    if(clock){clearInterval(clock);clock=null;}observer.disconnect();
+  });
 })();
 

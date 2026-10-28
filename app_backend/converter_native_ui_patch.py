@@ -119,7 +119,15 @@ def apply_native_ui(raw: bytes) -> bytes:
          "alive=false;inspectionToken++;if(adapter.dispose)adapter.dispose();else adapter.resetProgress?.();closePopover();")
     once('    async function runConversion() {',
          "    async function runConversion() {\n"
-         "      if(status==='checking'&&adapter.cancelInspection){await adapter.cancelInspection();return;}\n"
+         "      if(status==='checking'&&adapter.cancelInspection){\n"
+         "        statusMessage='Отменяем проверку направлений…';renderSummary();\n"
+         "        runBtn.hidden=false;runBtn.disabled=true;runBtn.textContent='Отменяем проверку…';\n"
+         "        try{await adapter.cancelInspection();}catch(error){\n"
+         "          statusMessage=error?.userMessage||'Не удалось отправить отмену. Повторите действие.';\n"
+         "          renderSummary();runBtn.disabled=false;\n"
+         "        }\n"
+         "        return;\n"
+         "      }\n"
          "      if(status==='error'&&!analysis&&files.length){await inspect();return;}")
     once("      if(status==='processing' && typeof adapter.cancel==='function'){runBtn.hidden=false;runBtn.disabled=false;runBtn.textContent='Отменить';}",
          "      if(status==='processing' && typeof adapter.cancel==='function'){runBtn.hidden=false;runBtn.disabled=false;runBtn.textContent='Отменить';}\n"

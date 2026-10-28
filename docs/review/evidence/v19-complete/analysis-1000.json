@@ -1,0 +1,19 @@
+{
+  "status": "PASS",
+  "scope": "actual comparison workers + SQLite paging; tiny text files; native conversion fixture controlled",
+  "files": 1000,
+  "seconds": 88.9671182359998,
+  "allReportsReachable": true,
+  "releasedAnalysisLease": true,
+  "summary": {
+    "confirmed_loss": 0,
+    "format_limitation": 0,
+    "uncertain": 0,
+    "not_checked": 0,
+    "checked": 1000
+  },
+  "parentMaxRssKiB": 36972,
+  "maxSingleChildRssKiB": 36972,
+  "rssScope": "Linux high-water values; not aggregate RSS or long-term leak proof",
+  "real1000OfficeDocuments": "NOT_RUN"
+}

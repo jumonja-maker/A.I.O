@@ -1,0 +1,34 @@
+{
+  "sourceWorkflowSha": "fd8b1cd6a72dfb6da6860372aecde3bccae20598",
+  "note": "These hosted jobs have no executed step list; logs unavailable. Failure cause could not be obtained through the available annotation endpoint. They are not counted as passed or code-test failures. Equivalent source tests ran locally and on NIKITA.",
+  "runs": [
+    {
+      "runId": 40308050902,
+      "jobs": [
+        {
+          "id": 121521977417,
+          "name": "source-contracts",
+          "status": "completed",
+          "conclusion": "failure",
+          "run_id": 40308050902,
+          "logs_url": null,
+          "steps": null
+        }
+      ]
+    },
+    {
+      "runId": 40308051060,
+      "jobs": [
+        {
+          "id": 121521978096,
+          "name": "telemetry-contract",
+          "status": "completed",
+          "conclusion": "failure",
+          "run_id": 40308051060,
+          "logs_url": null,
+          "steps": null
+        }
+      ]
+    }
+  ]
+}

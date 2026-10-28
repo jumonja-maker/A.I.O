@@ -1,0 +1,528 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "scope": "actual local loopback + source retention + isolated analysis + LibreOffice CSV automatic retry",
+  "fullFormatMatrix": "NOT_RUN",
+  "windowsGUI": "NOT_RUN",
+  "sourceSha256": "b4ee7f8d3913722c85c0c6fd6c35b5aa92dce281ddde58fd53d9c92f90da57db",
+  "initialExportControl": {
+    "SaveAsShown": true,
+    "sourceNumberFormat": "[$-409]0.00",
+    "numericLocale": "en-US",
+    "scope": "deliberately degraded first LO export of a locale-pinned synthetic cell; not a claim of a current default or localized CSV comparison defect"
+  },
+  "preflight": {
+    "files": [
+      {
+        "fileId": "source",
+        "state": "detected"
+      }
+    ]
+  },
+  "firstExecution": {
+    "state": "ready",
+    "succeeded": 1,
+    "failed": 0,
+    "files": [
+      {
+        "fileId": "source",
+        "name": "precision.xlsx",
+        "state": "ready",
+        "cancellationRequested": false,
+        "nativeRoute": {
+          "state": "detected",
+          "basis": "native_preflight_uno_document",
+          "modelLoaded": true,
+          "nativeTextDocument": false,
+          "nativeImportMs": 63,
+          "documentServices": [
+            "com.sun.star.sheet.SpreadsheetDocument"
+          ],
+          "typeName": null,
+          "filterName": "Calc MS Excel 2007 XML",
+          "selectedImportFilter": "Calc MS Excel 2007 XML",
+          "selectedImportOptions": null,
+          "sourceContract": {
+            "state": "recognized",
+            "contentClass": "ooxml_package",
+            "mainContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+            "expectedServices": [
+              "com.sun.star.sheet.SpreadsheetDocument"
+            ]
+          },
+          "csvImportSampleOnly": false,
+          "csvInspection": null,
+          "drawPages": null,
+          "nativeGraphicExports": [],
+          "nativeExportFilters": {},
+          "nativeExportInspection": {},
+          "registryFingerprint": "9b38ba68fa4cbc7fb077798ac86d25d3bf7c5ef0c8f1f4395d929c535bcb7bf7",
+          "exported": false
+        },
+        "targets": [
+          {
+            "taskId": "1bdb4860a27c67abdbf50f65a57ede62:0",
+            "format": "csv",
+            "state": "ready",
+            "code": null,
+            "error": null,
+            "stage": "result",
+            "libreOfficeStarted": true,
+            "executionMode": "native_uno",
+            "executionReason": "native_session",
+            "resultChecks": [],
+            "automaticRecipe": null,
+            "automaticParameters": null,
+            "nativeTimings": {
+              "source": "uno_document",
+              "exportMs": 19,
+              "workerStartupMs": 4188,
+              "adapterMs": 4266,
+              "operationMs": 87,
+              "closeMs": 5,
+              "importMs": 61
+            },
+            "exportFilter": "Text - txt - csv (StarCalc)",
+            "warnings": [],
+            "quality": null,
+            "startedMs": 1792928804753,
+            "finishedMs": 1792928809035,
+            "route": null,
+            "percent": 100,
+            "outputs": [
+              {
+                "fileId": "source",
+                "format": "csv",
+                "name": "precision.csv",
+                "archiveName": "0001-csv/precision.csv",
+                "size": 46,
+                "saved": false,
+                "sha256": "48ce95b14d41515abbc06f5d6136760d15ad358f05ba8c5f2b195705b66243fb",
+                "ticket": "6-UPk0ovrVGv3stOLr6BC47asTrd1ovjUd6onCLpQOU",
+                "mime": "application/vnd.ms-excel",
+                "downloadUrl": "/api/converter-guard/result?ticket=6-UPk0ovrVGv3stOLr6BC47asTrd1ovjUd6onCLpQOU"
+              }
+            ]
+          }
+        ],
+        "warnings": []
+      }
+    ]
+  },
+  "firstCsv": "code,amount,note\n00123,1.23,Привет\n",
+  "firstAnalysis": {
+    "jobId": "1bdb4860a27c67abdbf50f65a57ede62",
+    "analysisId": "ec3aef62ecb1790ddad6e85819b3258a",
+    "state": "completed",
+    "processed": 1,
+    "total": 1,
+    "summary": {
+      "confirmed_loss": 1,
+      "format_limitation": 0,
+      "uncertain": 0,
+      "not_checked": 0,
+      "checked": 0
+    },
+    "error": null,
+    "offset": 0,
+    "limit": 50,
+    "items": [
+      {
+        "taskId": "1bdb4860a27c67abdbf50f65a57ede62:0",
+        "fileId": "source",
+        "name": "precision.xlsx",
+        "format": "csv",
+        "sourceAvailable": true,
+        "schemaVersion": 1,
+        "status": "confirmed_loss",
+        "qualityCompared": false,
+        "scope": "verified_properties_only",
+        "findings": [
+          {
+            "code": "FORMAT_STYLES_LIMITATION",
+            "category": "format_limitation",
+            "feature": "styles",
+            "message": "Текстовый формат не сохраняет оформление документа.",
+            "certainty": "format_contract"
+          },
+          {
+            "code": "CELL_VALUES_CHANGED",
+            "category": "confirmed_loss",
+            "feature": "cell_values",
+            "message": "Исходные значения отсутствуют в проверенной таблице результата.",
+            "certainty": "confirmed_subset",
+            "before": 1,
+            "after": null,
+            "locations": [
+              {
+                "row": 2,
+                "column": 2,
+                "before": "1.23456789012345",
+                "after": "1.23"
+              }
+            ],
+            "totalAffected": 1
+          }
+        ],
+        "checkedFeatures": [],
+        "unknown": [
+          "colour_accuracy",
+          "fonts",
+          "formula_evaluation",
+          "semantic_meaning",
+          "visual_layout"
+        ],
+        "recipeCandidates": [
+          "csv_preserve_values"
+        ],
+        "before": {
+          "kind": "ooxml",
+          "documentClass": "spreadsheet",
+          "complete": true,
+          "counts": {
+            "sheets": 1,
+            "cells": 6,
+            "formulas": 0,
+            "images": 0,
+            "characters": 0
+          },
+          "textDigest": null
+        },
+        "after": {
+          "kind": "csv",
+          "documentClass": "spreadsheet",
+          "complete": true,
+          "counts": {
+            "sheets": 1,
+            "rows": 2,
+            "columns": 3,
+            "characters": 37
+          },
+          "textDigest": "b414e9d6b5c165be9a6b7b53da54147cef0901e1a16c3c70ca3f39fa45114460"
+        }
+      }
+    ],
+    "totalFiltered": 1,
+    "retry": null
+  },
+  "retry": {
+    "state": "completed",
+    "jobId": "3581fc81bd7d54087b6c4860eefdd747",
+    "jobIds": [
+      "3581fc81bd7d54087b6c4860eefdd747"
+    ],
+    "error": null,
+    "completed": 1,
+    "total": 1,
+    "verification": {
+      "assessment": "checked_subset_improved",
+      "scope": "checked_subset",
+      "beforeConfirmed": 1,
+      "afterConfirmed": 0,
+      "note": "Полная визуальная идентичность не проверяется. Первый вариант сохранён."
+    }
+  },
+  "retryVerification": {
+    "assessment": "checked_subset_improved",
+    "scope": "checked_subset",
+    "beforeConfirmed": 1,
+    "afterConfirmed": 0,
+    "note": "Полная визуальная идентичность не проверяется. Первый вариант сохранён."
+  },
+  "childExecution": {
+    "schemaVersion": 3,
+    "jobId": "3581fc81bd7d54087b6c4860eefdd747",
+    "revision": 20,
+    "state": "ready",
+    "finished": true,
+    "diagnosticBytes": 0,
+    "currentTask": null,
+    "pauseRequested": false,
+    "fileTimeoutSeconds": 1800,
+    "officeStarts": 1,
+    "recovered": false,
+    "salvaged": false,
+    "recoveryError": null,
+    "recoveryDurable": true,
+    "resultAvailability": "ready_retained",
+    "qualityCheckRequested": false,
+    "qualityCompared": false,
+    "retainSources": true,
+    "comparisonAvailable": true,
+    "comparisonParentJobId": "1bdb4860a27c67abdbf50f65a57ede62",
+    "comparisonRecipe": "csv_preserve_values",
+    "timings": {
+      "journalMs": 0,
+      "preflight_startedMs": 0,
+      "preflight_doneMs": 5188,
+      "planMs": 47,
+      "job_queuedMs": 5235,
+      "job_startedMs": 5250,
+      "engine_startedMs": 9406,
+      "packaging_startedMs": 9531,
+      "job_finishedMs": 9531
+    },
+    "files": [
+      {
+        "fileId": "source",
+        "name": "precision.xlsx",
+        "state": "ready",
+        "cancellationRequested": false,
+        "nativeRoute": {
+          "state": "detected",
+          "basis": "native_preflight_uno_document",
+          "modelLoaded": true,
+          "nativeTextDocument": false,
+          "nativeImportMs": 63,
+          "documentServices": [
+            "com.sun.star.sheet.SpreadsheetDocument"
+          ],
+          "typeName": null,
+          "filterName": "Calc MS Excel 2007 XML",
+          "selectedImportFilter": "Calc MS Excel 2007 XML",
+          "selectedImportOptions": null,
+          "sourceContract": {
+            "state": "recognized",
+            "contentClass": "ooxml_package",
+            "mainContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+            "expectedServices": [
+              "com.sun.star.sheet.SpreadsheetDocument"
+            ]
+          },
+          "csvImportSampleOnly": false,
+          "csvInspection": null,
+          "drawPages": null,
+          "nativeGraphicExports": [],
+          "nativeExportFilters": {},
+          "nativeExportInspection": {},
+          "registryFingerprint": "9b38ba68fa4cbc7fb077798ac86d25d3bf7c5ef0c8f1f4395d929c535bcb7bf7",
+          "exported": false
+        },
+        "targets": [
+          {
+            "taskId": "3581fc81bd7d54087b6c4860eefdd747:0",
+            "format": "csv",
+            "state": "ready",
+            "code": null,
+            "error": null,
+            "stage": "result",
+            "libreOfficeStarted": true,
+            "executionMode": "native_uno",
+            "executionReason": "native_session",
+            "resultChecks": [],
+            "automaticRecipe": "csv_preserve_values",
+            "automaticParameters": {
+              "encoding": "UTF-8",
+              "SaveAsShown": false,
+              "ExportFormulas": false,
+              "ExportAllSheets": true,
+              "IncludeBOM": true
+            },
+            "nativeTimings": {
+              "source": "uno_document",
+              "exportMs": 9,
+              "workerStartupMs": 4093,
+              "adapterMs": 4187,
+              "operationMs": 77,
+              "closeMs": 4,
+              "importMs": 61
+            },
+            "exportFilter": "Text - txt - csv (StarCalc)",
+            "warnings": [
+              {
+                "code": "AUTOMATIC_RETRY_MAY_NOT_IMPROVE",
+                "message": "Применён проверенный набор параметров экспорта. Он не гарантирует улучшение; результат повторно проверяется, предыдущая версия остаётся в AIO."
+              },
+              {
+                "code": "AUTOMATIC_CSV_RAW_VALUES",
+                "message": "CSV повторно экспортирован в UTF-8 с исходной числовой точностью и отдельным файлом для каждого листа. Отображение дат, валют и округлённых чисел может измениться. Формулы представлены вычисленными значениями; оформление CSV не поддерживает."
+              }
+            ],
+            "quality": null,
+            "startedMs": 1792928815237,
+            "finishedMs": 1792928819436,
+            "route": null,
+            "percent": 100,
+            "outputs": [
+              {
+                "fileId": "source",
+                "format": "csv",
+                "name": "precision-Precision.csv",
+                "archiveName": "0001-csv/precision-Precision.csv",
+                "size": 58,
+                "saved": false,
+                "sha256": "2db54a51e1d2eb38c030ef8db9eeafe0d9fef96f5ce8253dc8dcbefd6dbebc03",
+                "ticket": "WjCojPs04QrS7pz4jb4TShwFikn39aYbVLCEKBLa0ig",
+                "mime": "application/vnd.ms-excel",
+                "downloadUrl": "/api/converter-guard/result?ticket=WjCojPs04QrS7pz4jb4TShwFikn39aYbVLCEKBLa0ig"
+              }
+            ]
+          }
+        ],
+        "warnings": []
+      }
+    ],
+    "total": 1,
+    "completed": 1,
+    "attempted": 1,
+    "succeeded": 1,
+    "failed": 0,
+    "cancelled": 0,
+    "filtered": 0,
+    "pending": 0,
+    "preflightChecks": 0,
+    "preflightTotal": 1,
+    "preflightTimeoutSeconds": 120,
+    "preflightCompleted": 0,
+    "preparation": false,
+    "preflightUndetermined": 0,
+    "percent": 100.0,
+    "result": {
+      "fileId": "source",
+      "format": "csv",
+      "name": "precision-Precision.csv",
+      "archiveName": "0001-csv/precision-Precision.csv",
+      "size": 58,
+      "saved": false,
+      "sha256": "2db54a51e1d2eb38c030ef8db9eeafe0d9fef96f5ce8253dc8dcbefd6dbebc03",
+      "ticket": "WjCojPs04QrS7pz4jb4TShwFikn39aYbVLCEKBLa0ig",
+      "mime": "application/vnd.ms-excel",
+      "downloadUrl": "/api/converter-guard/result?ticket=WjCojPs04QrS7pz4jb4TShwFikn39aYbVLCEKBLa0ig",
+      "jobId": "3581fc81bd7d54087b6c4860eefdd747",
+      "outputs": [
+        {
+          "fileId": "source",
+          "format": "csv",
+          "name": "precision-Precision.csv",
+          "archiveName": "0001-csv/precision-Precision.csv",
+          "size": 58,
+          "saved": false,
+          "sha256": "2db54a51e1d2eb38c030ef8db9eeafe0d9fef96f5ce8253dc8dcbefd6dbebc03",
+          "ticket": "WjCojPs04QrS7pz4jb4TShwFikn39aYbVLCEKBLa0ig",
+          "mime": "application/vnd.ms-excel",
+          "downloadUrl": "/api/converter-guard/result?ticket=WjCojPs04QrS7pz4jb4TShwFikn39aYbVLCEKBLa0ig"
+        }
+      ]
+    },
+    "trace": null,
+    "archiveMode": "on_demand",
+    "bundleDeferred": false,
+    "packagingError": null,
+    "saveInProgress": false,
+    "partialResult": {
+      "fileId": "source",
+      "format": "csv",
+      "name": "precision-Precision.csv",
+      "archiveName": "0001-csv/precision-Precision.csv",
+      "size": 58,
+      "saved": false,
+      "sha256": "2db54a51e1d2eb38c030ef8db9eeafe0d9fef96f5ce8253dc8dcbefd6dbebc03",
+      "ticket": "WjCojPs04QrS7pz4jb4TShwFikn39aYbVLCEKBLa0ig",
+      "mime": "application/vnd.ms-excel",
+      "downloadUrl": "/api/converter-guard/result?ticket=WjCojPs04QrS7pz4jb4TShwFikn39aYbVLCEKBLa0ig",
+      "jobId": "3581fc81bd7d54087b6c4860eefdd747",
+      "outputsCount": 1,
+      "folderOnly": true
+    }
+  },
+  "candidateRows": [
+    [
+      "code",
+      "amount",
+      "note"
+    ],
+    [
+      "00123",
+      "1.23456789012345",
+      "Привет"
+    ]
+  ],
+  "candidateSha256": "2db54a51e1d2eb38c030ef8db9eeafe0d9fef96f5ce8253dc8dcbefd6dbebc03",
+  "childAnalysis": {
+    "jobId": "3581fc81bd7d54087b6c4860eefdd747",
+    "analysisId": "3adc5cdca50eb4712f3e054f147f761f",
+    "state": "completed",
+    "processed": 1,
+    "total": 1,
+    "summary": {
+      "confirmed_loss": 0,
+      "format_limitation": 1,
+      "uncertain": 0,
+      "not_checked": 0,
+      "checked": 0
+    },
+    "error": null,
+    "offset": 0,
+    "limit": 50,
+    "items": [
+      {
+        "taskId": "3581fc81bd7d54087b6c4860eefdd747:0",
+        "fileId": "source",
+        "name": "precision.xlsx",
+        "format": "csv",
+        "sourceAvailable": true,
+        "schemaVersion": 1,
+        "status": "format_limitation",
+        "qualityCompared": true,
+        "scope": "verified_properties_only",
+        "findings": [
+          {
+            "code": "FORMAT_STYLES_LIMITATION",
+            "category": "format_limitation",
+            "feature": "styles",
+            "message": "Текстовый формат не сохраняет оформление документа.",
+            "certainty": "format_contract"
+          }
+        ],
+        "checkedFeatures": [
+          "cell_values_single_grid"
+        ],
+        "unknown": [
+          "colour_accuracy",
+          "fonts",
+          "formula_evaluation",
+          "semantic_meaning",
+          "visual_layout"
+        ],
+        "recipeCandidates": [],
+        "before": {
+          "kind": "ooxml",
+          "documentClass": "spreadsheet",
+          "complete": true,
+          "counts": {
+            "sheets": 1,
+            "cells": 6,
+            "formulas": 0,
+            "images": 0,
+            "characters": 0
+          },
+          "textDigest": null
+        },
+        "after": {
+          "kind": "csv",
+          "documentClass": "spreadsheet",
+          "complete": true,
+          "counts": {
+            "sheets": 1,
+            "rows": 2,
+            "columns": 3,
+            "characters": 49
+          },
+          "textDigest": "4d55311d760f729eacccdf5f665692d163581c044896e5f6f99963be72f5a148"
+        }
+      }
+    ],
+    "totalFiltered": 1,
+    "retry": null
+  },
+  "firstResultsUnchanged": true,
+  "sourceUnchanged": true,
+  "selectedPairs": 1,
+  "automaticParameters": {
+    "encoding": "UTF-8",
+    "SaveAsShown": false,
+    "ExportFormulas": false,
+    "ExportAllSheets": true,
+    "IncludeBOM": true
+  }
+}

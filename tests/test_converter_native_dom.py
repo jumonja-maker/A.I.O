@@ -1,4 +1,5 @@
 """Opt-in DOM/HTTP acceptance using an existing linkedom installation."""
+from contextlib import nullcontext
 import os
 from pathlib import Path
 import shutil
@@ -17,6 +18,18 @@ class GuardDOMAdapter(LibreOfficeAdapter):
     def __init__(self, executable, native):
         super().__init__(executable)
         self.native = native
+        # This adapter owns a frozen synthetic installation. Resolve it once:
+        # production capabilities evaluates thousands of model/target pairs,
+        # which must not repeatedly discover the fixture's Windows filesystem.
+        self.fixture_registry = registry(self.executable)
+
+    def _registry(self):
+        return self.fixture_registry
+
+    def batch(self, workspace, **kwargs):
+        # Import/export are the controlled boundary in this test; do not create
+        # an OfficeSession simply because the runner has LibreOffice installed.
+        return nullcontext()
 
     def preflight(self, source, workspace, *, cancel, timeout):
         head=source.read_bytes()[:8]
@@ -25,10 +38,10 @@ class GuardDOMAdapter(LibreOfficeAdapter):
         service = D if head.startswith(b'BM') else C if head.startswith(b'a,b') else W
         return {'state':'detected','basis':'native_preflight_document_kind',
                 'documentServices':[service],
-                'registryFingerprint':registry(self.executable).fingerprint,'exported':False}
+                'registryFingerprint':self._registry().fingerprint,'exported':False}
 
     def convert(self, source, target, workspace, *, on_document_service=None, **kwargs):
-        native = registry(self.executable)
+        native = self._registry()
         head = source.read_bytes()[:8]
         service = D if head.startswith(b'BM') else C if head.startswith(b'a,b') else W
         try:
@@ -76,6 +89,27 @@ class NativeUIDOMAcceptance(cases.NativeTransportHTTPTests):
             text=True, timeout=40)
         self.assertEqual(result.returncode, 0, result.stdout + '\n' + result.stderr)
         self.assertFalse(self.server.guard.storage_stats()['jobs'])
+        print(result.stdout.strip())
+
+    def test_510_source_cancel_during_route_matrix_http_dom(self):
+        # Full preserved Designer + authenticated HTTP. Slow only the
+        # synthetic registry decision after 510 fake native import proofs
+        # so the user-facing blue cancel button can be clicked at 510/510.
+        import time
+        adapter = self.server.guard.adapter
+        original = adapter._bound_route_decider
+        def delayed(native):
+            selected = original(native)
+            def check(target, proof):
+                time.sleep(.001)
+                return selected(target, proof)
+            return check
+        adapter._bound_route_decider = delayed
+        result = subprocess.run(
+            ['node', str(Path(__file__).with_name('guard_matrix_cancel_ui_v182.mjs'))],
+            env=dict(os.environ, AIO_TEST_SERVER=self.base),
+            capture_output=True, text=True, timeout=80)
+        self.assertEqual(result.returncode, 0, result.stdout + '\n' + result.stderr)
         print(result.stdout.strip())
 
 

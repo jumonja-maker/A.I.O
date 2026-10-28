@@ -11,6 +11,7 @@ from app_backend.converter_guard.routes import Registry
 from test_converter_guard_v04 import component, node, C, W
 
 CSV = 'Text - txt - csv (StarCalc)'
+FLAT = 'OpenDocument Spreadsheet Flat XML'
 
 
 class ExportRecipesQA(unittest.TestCase):
@@ -20,8 +21,8 @@ class ExportRecipesQA(unittest.TestCase):
         self.exe = self.root / 'soffice'
         self.exe.touch()
         path = self.root / 'registry.xcd'
-        types = node('text', Extensions='csv tsv tab txt') + node('pdf', Extensions='pdf')
-        filters = (node(CSV, Type='text', DocumentService=C, Flags='IMPORT EXPORT') +
+        types = node('text', Extensions='csv tsv tab txt') + node('pdf', Extensions='pdf') + node('flat', Extensions='fods')
+        filters = (node(FLAT, Type='flat', DocumentService=C, Flags='IMPORT EXPORT') + node(CSV, Type='text', DocumentService=C, Flags='IMPORT EXPORT') +
                    node('Text', Type='text', DocumentService=W, Flags='IMPORT EXPORT') +
                    node('calc_pdf_Export', Type='pdf', DocumentService=C, Flags='EXPORT') +
                    node('writer_pdf_Export', Type='pdf', DocumentService=W, Flags='EXPORT'))
@@ -46,17 +47,27 @@ class ExportRecipesQA(unittest.TestCase):
     def cli(self, target, proof=None):
         self.sequence += 1
         self.adapter.prepare_source(self.proof if proof is None else proof)
-        with patch('app_backend.converter_guard.adapter.convert_path', return_value=[]) as convert:
+        def native_output(source, fmt, work, **kwargs):
+            # B30 adds native FODS staging before the same dialect boundary.
+            # The fixture models that stage; it is not a native acceptance.
+            from test_guard_legacy_sheets_v17 import native_flat, sheet
+            output = Path(work) / 'output'
+            output.mkdir(parents=True, exist_ok=True)
+            p = output / (Path(source).stem + '.' + fmt)
+            p.write_bytes(native_flat(sheet('Data', '42.5')) if fmt == 'fods' else b'42.5\n')
+            return [p] if fmt in ('fods', 'csv', 'tsv', 'tab') else []
+        with patch('app_backend.converter_guard.adapter.convert_path', side_effect=native_output) as convert:
             self.adapter.convert(self.source, target, self.root / f'cli-{self.sequence}',
                                  cancel=threading.Event(), timeout=None, on_started=lambda: None)
-        return convert.call_args.kwargs
+        return {**convert.call_args.kwargs,
+                'source_import_filter':convert.call_args_list[0].kwargs['import_filter']}
 
     def test_csv_tsv_tab_have_explicit_export_dialects_separate_from_import(self):
         for target, separator in (('csv', 44), ('tsv', 9), ('tab', 9)):
             with self.subTest(target=target):
                 args = self.cli(target)
                 self.assertEqual(args['convert_spec'], f'{target}:{CSV}:{separator},34,76,1,')
-                self.assertEqual(args['import_filter'], CSV + ':59,34,76,1')
+                self.assertEqual(args['source_import_filter'], CSV + ':59,34,76,1')
 
     def test_every_source_with_a_current_calc_proof_uses_the_same_recipe(self):
         # These are conditional on an existing native proof, not admission by suffix.
@@ -69,7 +80,7 @@ class ExportRecipesQA(unittest.TestCase):
     def test_writer_text_filter_does_not_inherit_calc_options(self):
         args = self.cli('tsv', {**self.proof, 'documentServices': [W]})
         self.assertEqual(args['convert_spec'], 'tsv:Text')
-        self.assertIsNone(args['import_filter'])
+        self.assertIsNone(args['source_import_filter'])
 
     def test_next_pdf_does_not_inherit_a_text_dialect(self):
         self.cli('tsv')
@@ -95,6 +106,9 @@ class ExportRecipesQA(unittest.TestCase):
                 output.write_bytes(b'%PDF-1.7\n% synthetic export test\n')
             else:
                 output.write_text('Привет\t123\n')
+                from app_backend.converter_guard.sheet_outputs import sheet_file_evidence, write_sheet_manifest
+                write_sheet_manifest(output.parent, [sheet_file_evidence(output,0,'Sheet1',
+                    {'status':'not_checked','reason':'controlled_test_exporter'})])
             return {'ok': True}
 
         office = SimpleNamespace(disabled=False, ensure_started=lambda *args: None, request=request)
@@ -119,7 +133,7 @@ class ExportRecipesQA(unittest.TestCase):
         self.assertEqual(observed['requestedImportOptions'], '59,34,76,1')
         self.assertNotIn('selectedImportFilter', observed)
         args = self.cli('tsv', observed)
-        self.assertEqual(args['import_filter'], CSV + ':59,34,76,1')
+        self.assertEqual(args['source_import_filter'], CSV + ':59,34,76,1')
         self.assertEqual(args['convert_spec'], f'tsv:{CSV}:9,34,76,1,')
 
     def test_requested_hint_cannot_replace_a_different_or_stale_native_model(self):
@@ -134,7 +148,7 @@ class ExportRecipesQA(unittest.TestCase):
                 self.assertNotIn('requestedImportFilter', observed)
                 args = self.cli('tsv', {**observed, 'requestedImportFilter': CSV,
                                         'requestedImportOptions': '59,34,76,1'})
-                self.assertIsNone(args['import_filter'])
+                self.assertIsNone(args['source_import_filter'])
 
 
 if __name__ == '__main__':

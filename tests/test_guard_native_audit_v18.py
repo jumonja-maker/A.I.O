@@ -69,7 +69,15 @@ class NativeAuditV18(unittest.TestCase):
         source = self.source()
         cache = _PreparedSourceCache(self.root / 'cache')
         first, _ = cache.prepare(source, epub=False, cancel=self.cancel)
+        previous = source.stat()
         self.source(marker='C')
+        # Same-length ZIP rewrites may share a timestamp tick on the runner's
+        # filesystem. Establish the stat-identity change this test requires;
+        # deletion and private-workspace ownership remain strict assertions.
+        changed = source.stat()
+        self.assertEqual(changed.st_size, previous.st_size)
+        os.utime(source, ns=(changed.st_atime_ns, previous.st_mtime_ns + 2_000_000_000))
+        self.assertNotEqual(source.stat().st_mtime_ns, previous.st_mtime_ns)
         second, _ = cache.prepare(source, epub=False, cancel=self.cancel)
         self.assertFalse(first.exists())
         self.assertNotEqual(first, second)
@@ -118,7 +126,7 @@ class NativeAuditV18(unittest.TestCase):
             # The Windows preflight uses the installed UNO python.exe instead
             # of the Linux LOK kind-based worker; emulate that exact response.
             (self.root / 'python.exe').touch()
-        native = SimpleNamespace(valid=True, fingerprint='registry',
+        native = SimpleNamespace(html_route_reason=lambda *_:None, valid=True, fingerprint='registry',
             filters={}, import_services={WRITER}, imports={'odt': {WRITER}})
         adapter = LibreOfficeAdapter(executable)
         inspections = []
@@ -211,7 +219,7 @@ class NativeAuditV18(unittest.TestCase):
         original = {path: path.read_bytes() for path in sources}
         executable = self.root / 'soffice'; executable.touch()
         adapter = LibreOfficeAdapter(executable)
-        native = SimpleNamespace(valid=True)
+        native = SimpleNamespace(valid=True,html_route_reason=lambda *_:None)
         native_calls = []
         def convert(source, target, workspace, **kwargs):
             native_calls.append((source, target))

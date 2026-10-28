@@ -39,7 +39,8 @@ def validated_outputs(source: Path, target: str, output: Path, diagnostic: str =
     results = sorted(p for p in output.rglob('*') if p.is_file() and not p.is_symlink())
     aliases = {'jpeg': {'jpg', 'jpeg'}, 'jpg': {'jpg', 'jpeg'},
                'tif': {'tif', 'tiff'}, 'tiff': {'tif', 'tiff'},
-               'htm': {'htm', 'html'}, 'html': {'htm', 'html'}}
+               'htm': {'htm', 'html'}, 'html': {'htm', 'html'},
+               **{alias:{alias,'jpg','jpeg'} for alias in ('jfif','jif','jpe')}}
     extensions = aliases.get(target, {target})
     primaries = [p for p in results if p.parent == output and
                  p.suffix.lower().lstrip('.') in extensions]
@@ -70,6 +71,8 @@ def validated_outputs(source: Path, target: str, output: Path, diagnostic: str =
         'odg': (b'PK\x03\x04',), 'odc': (b'PK\x03\x04',),
         'epub': (b'PK\x03\x04',)
     }
+    if target in ('jfif','jif','jpe'):
+        signatures[target] = signatures['jpeg']
     if target in signatures and not magic.startswith(signatures[target]):
         raise LibreOfficeError('Структура основного результата не соответствует формату.',
                                'ENGINE_OUTPUT_INVALID', diagnostic=diagnostic)

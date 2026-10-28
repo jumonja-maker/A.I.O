@@ -1,0 +1,69 @@
+{
+  "status": "PASS",
+  "scope": "real QtWebEngine local UI and HTTP/isolated analysis; native output fixture controlled",
+  "windowsGUI": "NOT_RUN",
+  "scenes": [
+    {
+      "name": "dark",
+      "geometry": {
+        "width": 1280,
+        "height": 800,
+        "dialog": {
+          "x": 100,
+          "y": 30,
+          "width": 1080,
+          "height": 740
+        },
+        "rows": 2,
+        "red": 1,
+        "yellow": 1,
+        "preview": "Название,Значение\nТовар,0\n"
+      },
+      "screenshot": "dark.png"
+    },
+    {
+      "name": "light",
+      "geometry": {
+        "width": 1280,
+        "height": 800,
+        "dialog": {
+          "x": 100,
+          "y": 30,
+          "width": 1080,
+          "height": 740
+        },
+        "rows": 2,
+        "red": 1,
+        "yellow": 1,
+        "preview": "Название,Значение\nТовар,0\n"
+      },
+      "screenshot": "light.png"
+    },
+    {
+      "name": "narrow",
+      "geometry": {
+        "width": 900,
+        "height": 650,
+        "dialog": {
+          "x": 16,
+          "y": 16,
+          "width": 868,
+          "height": 618
+        },
+        "rows": 2,
+        "red": 1,
+        "yellow": 1,
+        "preview": "Название,Значение\nТовар,0\n"
+      },
+      "screenshot": "narrow.png"
+    },
+    {
+      "name": "pdf",
+      "metadata": {
+        "naturalWidth": 1400,
+        "iframes": 0
+      },
+      "screenshot": "pdf.png"
+    }
+  ]
+}

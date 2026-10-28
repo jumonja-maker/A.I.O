@@ -1,0 +1,261 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "platform": "linux",
+  "scope": "actual installed LO: one synthetic RGB image and two CSV sheets",
+  "fullFormatMatrix": "NOT_RUN",
+  "windowsGUI": "NOT_RUN",
+  "arbitraryLocalizedCSV": "NOT_PROVED",
+  "executions": {
+    "ordinary-before": {
+      "mode": "native_cli",
+      "export": {
+        "filter": "calc_pdf_Export",
+        "warnings": [],
+        "executionReason": "no_native_session"
+      },
+      "timings": {
+        "source": "cli_process",
+        "adapterMs": 11356,
+        "processMs": 11355,
+        "launchMs": 0
+      },
+      "files": [
+        {
+          "name": "Пример книги с рисунком.pdf",
+          "sha256": "77b7a33a1405e17d4f33e907de5350b5742e60286594ba8de14692a43823f720"
+        }
+      ]
+    },
+    "pdf-retry": {
+      "mode": "native_cli",
+      "export": {
+        "filter": "calc_pdf_Export",
+        "warnings": [
+          "AUTOMATIC_RETRY_MAY_NOT_IMPROVE"
+        ],
+        "automaticRecipe": "pdf_preserve_images",
+        "automaticParameters": {
+          "UseLosslessCompression": true,
+          "ReduceImageResolution": false
+        },
+        "executionReason": "no_native_session"
+      },
+      "timings": {
+        "source": "cli_process",
+        "adapterMs": 9788,
+        "processMs": 9787,
+        "launchMs": 0
+      },
+      "files": [
+        {
+          "name": "Пример книги с рисунком.pdf",
+          "sha256": "7edc51b3d1aef9d08b02ed2b84b8338927e85b5ec58adf93c631df08c8e517ee"
+        }
+      ]
+    },
+    "ordinary-after": {
+      "mode": "native_cli",
+      "export": {
+        "filter": "calc_pdf_Export",
+        "warnings": [],
+        "executionReason": "no_native_session"
+      },
+      "timings": {
+        "source": "cli_process",
+        "adapterMs": 10229,
+        "processMs": 10227,
+        "launchMs": 0
+      },
+      "files": [
+        {
+          "name": "Пример книги с рисунком.pdf",
+          "sha256": "00e7747149299f6d66d8c79ee47bab97d82be5dad08347d4fd7e4ff1b91dbde3"
+        }
+      ]
+    },
+    "csv-retry": {
+      "mode": "native_cli",
+      "export": {
+        "filter": "Text - txt - csv (StarCalc)",
+        "warnings": [
+          "AUTOMATIC_RETRY_MAY_NOT_IMPROVE",
+          "AUTOMATIC_CSV_RAW_VALUES"
+        ],
+        "automaticRecipe": "csv_preserve_values",
+        "automaticParameters": {
+          "encoding": "UTF-8",
+          "SaveAsShown": false,
+          "ExportFormulas": false,
+          "ExportAllSheets": true,
+          "IncludeBOM": true
+        },
+        "executionReason": "no_native_session"
+      },
+      "timings": {
+        "source": "cli_process",
+        "adapterMs": 9925,
+        "processMs": 9923,
+        "launchMs": 0
+      },
+      "files": [
+        {
+          "name": "Пример книги с рисунком-Precision.csv",
+          "sha256": "9828b1be7cce37374ef1a704bc64366a34a3ee4c408111ac6f83d567556c4ca8"
+        },
+        {
+          "name": "Пример книги с рисунком-Second.csv",
+          "sha256": "b94e48e7366b6309c7b9cddac4c4d9253c6353eb982ce666440e7618269f9ec1"
+        }
+      ]
+    }
+  },
+  "source": {
+    "name": "Пример книги с рисунком.xlsx",
+    "sha256": "73a02fb754979f1f608a0c4fa4437c1b5079eac7f82dc71a374578d4f356a8df",
+    "imageWidth": 1024,
+    "imageHeight": 512,
+    "imageDisplayPixels": [
+      192,
+      96
+    ],
+    "rgbSha256": "84282e4934a3d26f25a8cefa367a5fb1eb5cd1e218b24453f18520a547cc6c60",
+    "sheets": [
+      "Precision",
+      "Second"
+    ],
+    "numericControlLocale": "en-US",
+    "numberFormat": "[$-409]0.00"
+  },
+  "requiredProductionMode": "native_cli",
+  "proof": {
+    "state": "detected",
+    "documentServices": [
+      "com.sun.star.sheet.SpreadsheetDocument"
+    ],
+    "basis": "native_preflight_document_kind",
+    "nativeKind": 1,
+    "drawPages": null,
+    "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+    "exported": false,
+    "sourceContract": {
+      "state": "recognized",
+      "contentClass": "ooxml_package",
+      "mainContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+      "expectedServices": [
+        "com.sun.star.sheet.SpreadsheetDocument"
+      ]
+    }
+  },
+  "ordinaryPDFSpecBefore": "pdf:calc_pdf_Export",
+  "ordinaryImagesBefore": [
+    {
+      "name": "/Im22",
+      "width": 600,
+      "height": 300,
+      "colourSpace": "/DeviceRGB",
+      "bitsPerComponent": 8,
+      "filters": [
+        "/DCTDecode"
+      ],
+      "decodedBytes": 116481,
+      "decodedRGB": false,
+      "decodedRGBSha256": null
+    }
+  ],
+  "candidateImages": [
+    {
+      "name": "/Im4",
+      "width": 1024,
+      "height": 512,
+      "colourSpace": "/DeviceRGB",
+      "bitsPerComponent": 8,
+      "filters": [
+        "/FlateDecode"
+      ],
+      "decodedBytes": 1572864,
+      "decodedRGB": true,
+      "decodedRGBSha256": "84282e4934a3d26f25a8cefa367a5fb1eb5cd1e218b24453f18520a547cc6c60"
+    }
+  ],
+  "ordinaryImagesAfter": [
+    {
+      "name": "/Im22",
+      "width": 600,
+      "height": 300,
+      "colourSpace": "/DeviceRGB",
+      "bitsPerComponent": 8,
+      "filters": [
+        "/DCTDecode"
+      ],
+      "decodedBytes": 116481,
+      "decodedRGB": false,
+      "decodedRGBSha256": null
+    }
+  ],
+  "ordinaryPDFSpecAfter": "pdf:calc_pdf_Export",
+  "lossyControl": {
+    "mode": "native_cli",
+    "filter": "calc_pdf_Export",
+    "explicitControlParameters": {
+      "UseLosslessCompression": {
+        "type": "boolean",
+        "value": false
+      },
+      "ReduceImageResolution": {
+        "type": "boolean",
+        "value": true
+      },
+      "MaxImageResolution": {
+        "type": "long",
+        "value": 75
+      },
+      "Quality": {
+        "type": "long",
+        "value": 35
+      }
+    },
+    "images": [
+      {
+        "name": "/Im4",
+        "width": 150,
+        "height": 75,
+        "colourSpace": "/DeviceRGB",
+        "bitsPerComponent": 8,
+        "filters": [
+          "/DCTDecode"
+        ],
+        "decodedBytes": 983,
+        "decodedRGB": false,
+        "decodedRGBSha256": null
+      }
+    ]
+  },
+  "csvSheets": {
+    "Пример книги с рисунком-Precision.csv": [
+      [
+        "code",
+        "amount",
+        "note"
+      ],
+      [
+        "00123",
+        "1.23456789012345",
+        "Привет"
+      ]
+    ],
+    "Пример книги с рисунком-Second.csv": [
+      [
+        "OTHER_SHEET",
+        "code"
+      ],
+      [
+        "Сохранён второй лист",
+        "00500"
+      ]
+    ]
+  },
+  "sourceUnchanged": true,
+  "firstPDFUnchanged": true,
+  "elapsedSeconds": 52.87
+}

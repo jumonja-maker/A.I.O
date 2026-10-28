@@ -145,7 +145,11 @@ class BugBag(unittest.TestCase):
         header = bytearray(65);header[0]=3
         struct.pack_into('<IHH',header,4,1,65,2);header[32:34]=b'ID';header[64]=13
         p.write_bytes(header+b' A')
+        self.assertIsNone(legacy_import_hint(p,native),'a descriptor without type/width is not a proven DBF')
+        header[32+11]=ord('C');header[32+16]=1
+        p.write_bytes(header+b' A')
         self.assertEqual(legacy_import_hint(p,native)['filter'],'dBase')
+        self.assertEqual(legacy_import_hint(p,native)['options'],'76','ASCII remains encoding-independent')
         p.write_bytes(header+b' \xff');self.assertIsNone(legacy_import_hint(p,native))
 
     def test_html_resources_nested_css_and_private_source_ownership(self):

@@ -1,0 +1,135 @@
+test_failed_excel_progress_after_rows_cleans_output_writer (test_boundaries_v21.ExcelFailureCleanup.test_failed_excel_progress_after_rows_cleans_output_writer) ... FAIL
+test_failed_excel_progress_before_rows_cleans_header_writer (test_boundaries_v21.ExcelFailureCleanup.test_failed_excel_progress_before_rows_cleans_header_writer) ... FAIL
+test_failed_excel_save_removes_private_streaming_xml (test_boundaries_v21.ExcelFailureCleanup.test_failed_excel_save_removes_private_streaming_xml) ... Exception ignored in: <generator object WorksheetWriter.get_stream at 0x7ffab301d990>
+Traceback (most recent call last):
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/openpyxl/worksheet/_writer.py", line 289, in get_stream
+    with xf.element("worksheet", xmlns=SHEET_MAIN_NS):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "src/lxml/serializer.pxi", line 1808, in lxml.etree._FileWriterElement.__exit__
+  File "src/lxml/serializer.pxi", line 1537, in lxml.etree._IncrementalFileWriter._write_end_element
+lxml.etree.LxmlSyntaxError: inconsistent exit action in context manager
+Exception ignored in: <generator object WriteOnlyWorksheet._write_rows at 0x7ffab301fd30>
+Traceback (most recent call last):
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/openpyxl/worksheet/_write_only.py", line 66, in _write_rows
+    with xf.element("sheetData"):
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "src/lxml/serializer.pxi", line 1808, in lxml.etree._FileWriterElement.__exit__
+  File "src/lxml/serializer.pxi", line 1535, in lxml.etree._IncrementalFileWriter._write_end_element
+lxml.etree.LxmlSyntaxError: not in an element
+FAIL
+test_successful_excel_merge_remains_independent_and_preserves_values (test_boundaries_v21.ExcelFailureCleanup.test_successful_excel_merge_remains_independent_and_preserves_values) ... Exception ignored in: <generator object WorksheetWriter.get_stream at 0x7ffab301e980>
+Traceback (most recent call last):
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/openpyxl/worksheet/_writer.py", line 289, in get_stream
+    with xf.element("worksheet", xmlns=SHEET_MAIN_NS):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "src/lxml/serializer.pxi", line 1808, in lxml.etree._FileWriterElement.__exit__
+  File "src/lxml/serializer.pxi", line 1537, in lxml.etree._IncrementalFileWriter._write_end_element
+lxml.etree.LxmlSyntaxError: inconsistent exit action in context manager
+Exception ignored in: <generator object WriteOnlyWorksheet._write_rows at 0x7ffab301f2e0>
+Traceback (most recent call last):
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/openpyxl/worksheet/_write_only.py", line 66, in _write_rows
+    with xf.element("sheetData"):
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "src/lxml/serializer.pxi", line 1808, in lxml.etree._FileWriterElement.__exit__
+  File "src/lxml/serializer.pxi", line 1535, in lxml.etree._IncrementalFileWriter._write_end_element
+lxml.etree.LxmlSyntaxError: not in an element
+ok
+test_continuous_upload_can_exceed_idle_window_without_total_timeout (test_boundaries_v21.GuardBoundaryLifecycle.test_continuous_upload_can_exceed_idle_window_without_total_timeout) ... ok
+test_preview_analysis_token_reaches_service_and_rejects_ambiguous_tokens (test_boundaries_v21.GuardBoundaryLifecycle.test_preview_analysis_token_reaches_service_and_rejects_ambiguous_tokens) ... FAIL
+test_shutdown_closes_http_admission_and_socket_before_comparison_wait (test_boundaries_v21.GuardBoundaryLifecycle.test_shutdown_closes_http_admission_and_socket_before_comparison_wait) ... FAIL
+test_stalled_html_resource_expires_and_releases_its_ownership (test_boundaries_v21.GuardBoundaryLifecycle.test_stalled_html_resource_expires_and_releases_its_ownership) ... ERROR
+test_stalled_input_expires_idle_without_holding_slot_and_can_retry (test_boundaries_v21.GuardBoundaryLifecycle.test_stalled_input_expires_idle_without_holding_slot_and_can_retry) ... ERROR
+
+======================================================================
+ERROR: test_stalled_html_resource_expires_and_releases_its_ownership (test_boundaries_v21.GuardBoundaryLifecycle.test_stalled_html_resource_expires_and_releases_its_ownership)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/test_boundaries_v21.py", line 97, in test_stalled_html_resource_expires_and_releases_its_ownership
+    response = client.getresponse()
+               ^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/http/client.py", line 1478, in getresponse
+    response.begin()
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/http/client.py", line 343, in begin
+    version, status, reason = self._read_status()
+                              ^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/http/client.py", line 304, in _read_status
+    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/socket.py", line 720, in readinto
+    return self._sock.recv_into(b)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+TimeoutError: timed out
+
+======================================================================
+ERROR: test_stalled_input_expires_idle_without_holding_slot_and_can_retry (test_boundaries_v21.GuardBoundaryLifecycle.test_stalled_input_expires_idle_without_holding_slot_and_can_retry)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/test_boundaries_v21.py", line 62, in test_stalled_input_expires_idle_without_holding_slot_and_can_retry
+    response = client.getresponse()
+               ^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/http/client.py", line 1478, in getresponse
+    response.begin()
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/http/client.py", line 343, in begin
+    version, status, reason = self._read_status()
+                              ^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/http/client.py", line 304, in _read_status
+    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/socket.py", line 720, in readinto
+    return self._sock.recv_into(b)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+TimeoutError: timed out
+
+======================================================================
+FAIL: test_failed_excel_progress_after_rows_cleans_output_writer (test_boundaries_v21.ExcelFailureCleanup.test_failed_excel_progress_after_rows_cleans_output_writer)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/test_boundaries_v21.py", line 207, in test_failed_excel_progress_after_rows_cleans_output_writer
+    self.assert_no_staged_xml()
+  File "/workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/test_boundaries_v21.py", line 188, in assert_no_staged_xml
+    self.assertEqual(set(ALL_TEMP_FILES)-self.initial,set())
+AssertionError: Items in the first set but not the second:
+'/tmp/openpyxl.wsro_j68'
+
+======================================================================
+FAIL: test_failed_excel_progress_before_rows_cleans_header_writer (test_boundaries_v21.ExcelFailureCleanup.test_failed_excel_progress_before_rows_cleans_header_writer)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/test_boundaries_v21.py", line 200, in test_failed_excel_progress_before_rows_cleans_header_writer
+    self.assert_no_staged_xml()
+  File "/workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/test_boundaries_v21.py", line 188, in assert_no_staged_xml
+    self.assertEqual(set(ALL_TEMP_FILES)-self.initial,set())
+AssertionError: Items in the first set but not the second:
+'/tmp/openpyxl.zc93l5si'
+
+======================================================================
+FAIL: test_failed_excel_save_removes_private_streaming_xml (test_boundaries_v21.ExcelFailureCleanup.test_failed_excel_save_removes_private_streaming_xml)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/test_boundaries_v21.py", line 193, in test_failed_excel_save_removes_private_streaming_xml
+    self.assert_no_staged_xml()
+  File "/workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/test_boundaries_v21.py", line 188, in assert_no_staged_xml
+    self.assertEqual(set(ALL_TEMP_FILES)-self.initial,set())
+AssertionError: Items in the first set but not the second:
+'/tmp/openpyxl.moenr6ao'
+
+======================================================================
+FAIL: test_preview_analysis_token_reaches_service_and_rejects_ambiguous_tokens (test_boundaries_v21.GuardBoundaryLifecycle.test_preview_analysis_token_reaches_service_and_rejects_ambiguous_tokens)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/test_boundaries_v21.py", line 155, in test_preview_analysis_token_reaches_service_and_rejects_ambiguous_tokens
+    self.assertEqual(captured[-1].get('expected_analysis_id'),token)
+AssertionError: None != 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+
+======================================================================
+FAIL: test_shutdown_closes_http_admission_and_socket_before_comparison_wait (test_boundaries_v21.GuardBoundaryLifecycle.test_shutdown_closes_http_admission_and_socket_before_comparison_wait)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/c58945ad251a/aio-deep-audit-v21-20261026/tests/test_boundaries_v21.py", line 128, in test_shutdown_closes_http_admission_and_socket_before_comparison_wait
+    self.assertTrue(self.server.api._closed)
+AssertionError: False is not true
+
+----------------------------------------------------------------------
+Ran 9 tests in 1.688s
+
+FAILED (failures=5, errors=2)

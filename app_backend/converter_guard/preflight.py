@@ -39,6 +39,9 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
     if _source_inspection is None:
         contract = inspect_source_contract(source, cancel=cancel)
         source_hint = source_import_hint(contract, native)
+        if contract.get('nativeImportRequired') and source_hint is None:
+            return {'state': 'undetermined', 'code': 'SOURCE_NATIVE_IMPORT_FILTER_REQUIRED',
+                    'sourceContract': contract, 'exported': False}
         hint = source_hint or csv_import_hint(source, native) or legacy_import_hint(source, native)
     else:
         # The adapter already inspected these exact source bytes in this call.
@@ -46,6 +49,9 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
         # below still establishes compatibility independently.
         contract, hint = _source_inspection
         source_hint = source_import_hint(contract, native)
+    if contract.get('nativeImportRequired') and source_hint is None:
+        return {'state': 'undetermined', 'code': 'SOURCE_NATIVE_IMPORT_FILTER_REQUIRED',
+                'sourceContract': contract, 'exported': False}
     if contract.get('state') == 'invalid':
         return {'state': 'undetermined', 'code': contract['code'], 'sourceContract': contract, 'exported': False}
     if not native.valid:

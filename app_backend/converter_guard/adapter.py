@@ -11,12 +11,13 @@ import time
 from ..libreoffice_catalog import catalog
 from ..libreoffice_engine import LibreOfficeError, convert_path, engine_binary, validated_outputs
 from .errors import GuardError
+from .writer_text_tail import TEXT_FILTERS, prepare_writer_text_source
 from .routes import registry
 from .csv_import import csv_import_hint, inspect_csv_stream
-from .export_recipe import native_export_recipe
+from .export_recipe import native_export_recipe, automatic_recipe, validate_retry_recipe
 from .native_observation import NativeObservation
 from .native_metrics import clean_timings
-from .legacy_import import legacy_import_hint, validate_options
+from .legacy_import import legacy_import_hint, validate_options, validate_legacy_dbf_source
 from .postconditions import SourceEvidence, check_native_output
 from .source_contract import inspect_source_contract, source_import_hint, source_model_matches
 
@@ -77,21 +78,24 @@ class _PreparedSourceCache:
             except OSError:
                 pass
 
-    def prepare(self, source, *, epub, cancel):
+    def prepare(self, source, *, epub, cancel, native_dif=None):
         from .odf_table_import import prepare_odf_table_source
         source = Path(source)
         if cancel.is_set():
             raise GuardError('CANCELLED', 'Подготовка исходника отменена.', stage='import')
         identity = _source_identity(source)
+        preparation_key = ('native_dif', native_dif[0]) if native_dif is not None else epub
         if identity is not None and self.entry is not None:
             old_identity, old_epub, prepared, prepared_identity, summary = self.entry
-            if (identity == old_identity and epub == old_epub and
+            if (identity == old_identity and preparation_key == old_epub and
                     _source_identity(prepared) == prepared_identity):
                 return prepared, copy.deepcopy(summary)
         self._clear()
         self.current = self.workspace / secrets.token_hex(12)
         try:
-            if epub:
+            if native_dif is not None:
+                prepared, summary = native_dif[1](source, self.current, cancel=cancel)
+            elif epub:
                 from .epub_import import prepare_epub
                 staged = prepare_epub(source, self.current, cancel=cancel)
                 prepared, summary = staged.source, staged.summary
@@ -102,16 +106,30 @@ class _PreparedSourceCache:
                     'Исходник изменился во время подготовки. Повторите проверку файла.', stage='import')
             prepared_identity = _source_identity(prepared)
             if identity is not None and prepared_identity is not None:
-                self.entry = (identity, epub, prepared, prepared_identity, copy.deepcopy(summary))
+                self.entry = (identity, preparation_key, prepared, prepared_identity, copy.deepcopy(summary))
             return prepared, summary
         except BaseException:
             self._clear()
             raise
 
 
-def prepare_profile(profile):
+def prepare_profile(profile, *, numeric_locale=None):
     # Macro prevention is independent from document import/export selection.
     # Do not use DisableActiveContent: it hid native formula objects in QA.
+    if numeric_locale not in (None, 'en-US'):
+        raise ValueError('unsupported_private_numeric_locale')
+    # Installed Setup/L10N schema distinguishes Office UI language (ooLocale)
+    # from the numeric/system locale (ooSetupSystemLocale). DIF numeric V
+    # records use a dot, but its importer calls the model number formatter.
+    # Pin only our isolated DIF process; never edit the user's office profile.
+    numeric_settings = (
+        '<item oor:path="/org.openoffice.Setup/L10N">'
+        '<prop oor:name="ooLocale" oor:op="fuse"><value>en-US</value></prop>'
+        '<prop oor:name="ooSetupSystemLocale" oor:op="fuse"><value>en-US</value></prop>'
+        '</item>'
+        '<item oor:path="/org.openoffice.Office.Linguistic/General">'
+        '<prop oor:name="DefaultLocale" oor:op="fuse"><value>en-US</value></prop>'
+        '</item>\n' if numeric_locale == 'en-US' else '')
     user = profile / 'user'
     user.mkdir(parents=True)
     (user / 'registrymodifications.xcu').write_text(
@@ -121,7 +139,7 @@ def prepare_profile(profile):
         '<prop oor:name="DisableMacrosExecution" oor:op="fuse"><value>true</value></prop>'
         '<prop oor:name="BlockUntrustedReferrerLinks" oor:op="fuse"><value>true</value></prop>'
         '<prop oor:name="MacroSecurityLevel" oor:op="fuse"><value>3</value></prop>'
-        '</item></oor:items>\n', encoding='utf-8')
+        '</item>' + numeric_settings + '</oor:items>\n', encoding='utf-8')
 
 
 class _RunControl:
@@ -214,6 +232,7 @@ class LibreOfficeAdapter:
                            getattr(self._local,'import_options',None))
         previous_preparation = getattr(self._local, 'source_preparation', None)
         previous_evidence = getattr(self._local, 'source_evidence', None)
+        previous_recipe = getattr(self._local, 'retry_recipe', None)
         factory = (UnoSession if os.name == 'nt' and os.environ.get('AIO_GUARD_NATIVE_SESSION','1') != '0'
                    and (self.executable.parent/'python.exe').is_file()
                    else OfficeSession)
@@ -223,6 +242,7 @@ class LibreOfficeAdapter:
             self._local.batch = (registry(self.executable), office)
             self._local.source_preparation = _PreparedSourceCache(Path(workspace) / 'source-preparation')
             self._local.source_evidence = None
+            self._local.retry_recipe = None
             try:
                 yield office
             finally:
@@ -230,6 +250,37 @@ class LibreOfficeAdapter:
                 self._local.proof, self._local.import_filter, self._local.import_options = previous_source
                 self._local.source_preparation = previous_preparation
                 self._local.source_evidence = previous_evidence
+                self._local.retry_recipe = previous_recipe
+
+    @staticmethod
+    def _configure_dif_numeric_profile(office, numeric_locale):
+        """Switch only our owned UNO process, with at most one live profile.
+
+        Global/default office settings are untouched. A transition back to
+        an ordinary source restores the original private-profile factory and
+        starts a clean process, so DIF's numeric locale cannot leak to CSV or
+        another tool/source. External adapter/session implementations retain
+        their own profile contracts.
+        """
+        from .uno_session import UnoSession
+        if not isinstance(office, UnoSession):
+            return
+        current = getattr(office, '_aio_dif_numeric_locale', None)
+        if current == numeric_locale:
+            return
+        if numeric_locale not in (None, 'en-US'):
+            raise ValueError('unsupported_private_numeric_locale')
+        baseline = getattr(office, '_aio_default_prepare_profile', office.prepare_profile)
+        # Destroy this session's owned process before changing its factory.
+        # There is never a second concurrent locale-specific office instance.
+        office.recycle()
+        office._aio_default_prepare_profile = baseline
+        if numeric_locale is None:
+            office.prepare_profile = baseline
+        else:
+            from functools import partial
+            office.prepare_profile = partial(prepare_profile, numeric_locale=numeric_locale)
+        office._aio_dif_numeric_locale = numeric_locale
 
     def _registry(self):
         batch = getattr(self._local, 'batch', None)
@@ -238,6 +289,9 @@ class LibreOfficeAdapter:
     @staticmethod
     def _route_with_registry(native, target, proof):
         """Decide from one immutable installed-registry snapshot, no file I/O."""
+        from .media_fidelity import media_route_reason
+        if media_route_reason(target, proof):
+            return 'unavailable'
         if (proof and proof.get('state') == 'detected'
                 and proof.get('registryFingerprint') == native.fingerprint
                 and isinstance(proof.get('mediaProfile'), dict)
@@ -268,6 +322,27 @@ class LibreOfficeAdapter:
     def export_info(self):
         return getattr(self._local, 'export_info', {})
 
+    def prepare_retry_recipe(self, recipe_id):
+        """The queue selects a finite recipe before EACH task, including None.
+
+        Target/model eligibility is rechecked immediately before native export.
+        No untrusted dictionary of LibreOffice properties enters the adapter.
+        """
+        if recipe_id is not None:
+            # Validate the identifier without inventing a target or route.
+            from .export_recipe import automatic_recipe_catalogue
+            if (not isinstance(recipe_id, str) or
+                    recipe_id not in {row['id'] for row in automatic_recipe_catalogue()}):
+                raise GuardError('AUTOMATIC_RECIPE_UNAVAILABLE',
+                                 'Неизвестная автонастройка LibreOffice.', stage='plan')
+        self._local.retry_recipe = recipe_id
+
+    def validate_retry_recipe(self, recipe_id, target, proof):
+        """Check parent-task eligibility before allocating a retry job."""
+        metadata = validate_retry_recipe(recipe_id, target)
+        recipe = automatic_recipe(recipe_id, target, self._registry(), proof)
+        return {**metadata, 'filter': recipe.filter_name}
+
     def prepare_source(self, proof):
         self._local.proof = proof
         name = (proof or {}).get('selectedImportFilter')
@@ -297,10 +372,23 @@ class LibreOfficeAdapter:
     def available(self):
         return bool(self.executable and self.executable.is_file())
 
-    def capabilities(self, files, *, proofs=None):
+    def capabilities(self, files, *, proofs=None, cancel=None, on_progress=None):
+        """Build verified routes from one native snapshot; permit cancellation.
+
+        The 510 x 85 matrix is metadata-only. Check the owned cancellation
+        lease while walking it; a finished import count is not a commit of
+        the preflight result. Optional progress reports only format counts.
+        """
+        def check_cancel():
+            if cancel is not None and cancel.is_set():
+                raise GuardError('CANCELLED', 'Проверка направлений отменена.',
+                                 stage='preflight')
+
+        check_cancel()
         available = self.available
         native = self._registry()
         decision = self._bound_route_decider(native)
+        check_cancel()
         formats = []
         entries = list(catalog(self.executable))
         known = {row[0] for row in entries}
@@ -315,20 +403,33 @@ class LibreOfficeAdapter:
                             ext.upper() + ' — сохранение кадров Qt',
                             {'apng': 'image/apng', 'tif': 'image/tiff', 'txt': 'text/plain',
                              'tiff': 'image/tiff'}.get(ext, 'image/' + ext), True))
-        for ext, category, description, mime, registered in entries:
+        total_formats = len(entries)
+        if on_progress is not None:
+            on_progress(0, total_formats)
+        for format_index, (ext, category, description, mime, registered) in enumerate(entries):
+            check_cancel()
             if ext == 'xml':
                 description = 'XML — нативное представление документа'
-            states = {f['id']: (native.hint(f['name'], ext) if proofs is None else
-                               decision(ext, proofs.get(f['id']))) for f in files}
-            compatible = [i for i, state in states.items() if state == 'registered']
-            unknown = [i for i, state in states.items() if state == 'undetermined']
+            states = {}
+            for file_index, source in enumerate(files):
+                if file_index % 32 == 0:
+                    check_cancel()
+                identity = source['id']
+                states[identity] = (native.hint(source['name'], ext) if proofs is None
+                                    else decision(ext, proofs.get(identity)))
+            compatible = [identity for identity, state in states.items() if state == 'registered']
+            unknown = [identity for identity, state in states.items() if state == 'undetermined']
             # A large corpus may contain 510 files and dozens of formats.
             # Don't evaluate the same reason (and its native service lookups)
             # twice per file/format just to decide whether to include it.
             reasons = {}
             if proofs is not None:
-                for file in files:
-                    reason = native.route_reason(ext, proofs.get(file['id']))
+                for file_index, file in enumerate(files):
+                    if file_index % 32 == 0:
+                        check_cancel()
+                    from .media_fidelity import media_route_reason
+                    reason = (media_route_reason(ext, proofs.get(file['id'])) or
+                              native.route_reason(ext, proofs.get(file['id'])))
                     if reason:
                         reasons[file['id']] = reason
             formats.append({'id': ext, 'label': ext.upper(), 'category': category,
@@ -347,6 +448,9 @@ class LibreOfficeAdapter:
                     'webp': 'Графический экспорт документа может менять размер полотна и формат представления.',
                     'pdf': 'PDF предназначен для просмотра: структура и редактируемость исходника могут измениться.',
                     'epub': 'EPUB без нативного импортёра открывается через HTML в порядке OPF spine. При смене формата вёрстка книги может измениться; активные, зашифрованные и фиксированные макеты требуют отдельной поддержки.',
+                    'orp': 'ORP — только определение отчёта LibreOffice Base ReportDefinition. Обычные документы Writer/Calc/Impress не являются отчётами Base. Положительный Base-контроль пока не проверен.',
+                    'html': 'HTML-экспорт Impress поддерживается для проверенной текстовой структуры. Графические объекты этим фильтром не сохраняются; используйте PDF. HTML-фильтр Draw не подтверждён; доступность XHTML проверяется отдельно.',
+                    'htm': 'HTM-экспорт Impress поддерживается для проверенной текстовой структуры. Графические объекты этим фильтром не сохраняются; используйте PDF. HTML-фильтр Draw не подтверждён; доступность XHTML проверяется отдельно.',
                     'xml': 'Для Writer/Calc/Impress/Draw используется установленный штатный фильтр Flat OpenDocument XML. Это не Excel/Word 2003 XML; точный фильтр указан в отчёте.'
                 }).get(ext, 'Проверка Guard подтверждает маршрут, но не гарантирует отсутствие смысловых или визуальных потерь.')}],
                 'unavailableReasons': reasons,
@@ -364,6 +468,9 @@ class LibreOfficeAdapter:
                 'compatibility': 'native_registry_hint' if proofs is None else 'native_preflight',
                 'reasonCode': ('NATIVE_ROUTE_UNAVAILABLE' if files and not compatible and not unknown
                                else 'NATIVE_ROUTE_UNDETERMINED' if unknown else 'NATIVE_ROUTE_REGISTERED')})
+            if on_progress is not None:
+                on_progress(format_index + 1, total_formats)
+        check_cancel()
         return {'files': [{**item, 'compatibility': 'native_decision',
                            **({'preflight': proofs.get(item['id'])} if proofs is not None else {})}
                           for item in files],
@@ -397,6 +504,7 @@ class LibreOfficeAdapter:
         if not self.available:
             return {'state': 'undetermined', 'code': 'ENGINE_NOT_FOUND'}
         control = _RunControl(cancel, workspace, timeout, None)
+        validate_legacy_dbf_source(source,self._registry(),cancel=control)
         try:
             media = media_preflight(source, cancel=control)
         except GuardError as error:
@@ -444,7 +552,10 @@ class LibreOfficeAdapter:
             return {**result, 'sourceContract': {**contract, 'expectedServices': [WRITER, WEB]},
                     'sourcePreparation': prepared.summary, 'exported': False}
         source_hint = source_import_hint(contract, native)
-        hint = source_hint or csv_import_hint(source, native) or legacy_import_hint(source, native)
+        if contract.get('nativeImportRequired') and source_hint is None:
+            return {'state': 'undetermined', 'code': 'SOURCE_NATIVE_IMPORT_FILTER_REQUIRED',
+                    'sourceContract': contract, 'exported': False}
+        hint = source_hint or csv_import_hint(source, native) or legacy_import_hint(source, native, cancel=cancel)
         # One streaming scan, only for a content-confirmed text hint. Large or
         # ambiguous inputs retain an explicit incomplete status, never a veto.
         csv_profile = (inspect_csv_stream(source, delimiter=chr(int(hint['options'].split(',')[0])),
@@ -453,6 +564,8 @@ class LibreOfficeAdapter:
                        and hint.get('basis') != 'content_confirmed_legacy' else None)
         if office and hasattr(office, 'request') and not office.disabled:
             native = self._registry()
+            self._configure_dif_numeric_profile(office,
+                'en-US' if hint and hint.get('filter') == 'DIF' else None)
             try:
                 result = office.request({'operation':'inspect','source':str(source.resolve()),
                     'services':sorted(native.import_services),
@@ -473,6 +586,9 @@ class LibreOfficeAdapter:
                                  services != ['com.sun.star.sheet.SpreadsheetDocument']):
                         return {'state':'undetermined','code':'PREFLIGHT_IMPORT_FILTER_MISMATCH'}
                     return {'state':'detected','basis':'native_preflight_uno_document','modelLoaded':True,
+                        **({'nativeImportLocale': 'en-US',
+                            'warnings': ['DIF_PRIVATE_NUMERIC_LOCALE_EN_US']}
+                           if getattr(office, '_aio_dif_numeric_locale', None) == 'en-US' else {}),
                         'nativeTextDocument': result.get('nativeTextDocument') is True,
                         'nativeImportMs': (result.get('timings') or {}).get('importMs'),
                         'documentServices':services,'typeName':result.get('typeName'),'filterName':selected,
@@ -482,7 +598,9 @@ class LibreOfficeAdapter:
                         'csvImportSampleOnly': bool(csv_profile and not csv_profile.get('complete')),
                         'csvInspection': csv_profile,
                         'drawPages':result.get('drawPages'),
+                        'difNumericImport':result.get('difNumericImport'),
                         'nativeGraphicExports': result.get('nativeGraphicExports', []),
+                        'htmlContentProfile': result.get('htmlContentProfile'),
                         'nativeExportFilters': result.get('nativeExportFilters', {}),
                         'nativeExportInspection': result.get('nativeExportInspection', {}),
                         'registryFingerprint':native.fingerprint,'exported':False}
@@ -519,6 +637,25 @@ class LibreOfficeAdapter:
                     and proof.get('basis') == 'native_preflight_document_kind'
                     and proof.get('registryFingerprint') == native.fingerprint):
                 proof = {**proof, 'requestedImportFilter': source_hint['filter']}
+            if (hint and hint.get('filter') == 'DIF'
+                    and proof.get('state') == 'detected'):
+                # LOK proves the document kind but cannot expose typed cell
+                # data. A small native Calc evidence snapshot verifies the
+                # source numbers before any CLI-only routes are offered.
+                try:
+                    _, dif_summary = self._prepare_dif_snapshot(source,
+                        workspace / 'dif-numeric-import-evidence', cancel=cancel,
+                        import_hint=hint)
+                    proof = {**proof, 'difNumericImport': dif_summary['numericCheck'],
+                             'warnings': list(dif_summary.get('warnings', ()))}
+                except GuardError as error:
+                    if error.code == 'CANCELLED':
+                        raise
+                    return {'state': 'undetermined', 'code':
+                        'DIF_NUMERIC_IMPORT_MISMATCH' if error.code == 'ENGINE_OUTPUT_CONTENT_LOSS'
+                        else error.code, 'diagnosticStage': 'native_numeric_import',
+                        'sourceContract': contract, 'exported': False,
+                        'requestedExportStarted': False}
             if office and proof.get('code') in ('PREFLIGHT_TIMEOUT', 'PREFLIGHT_API_UNAVAILABLE',
                                                 'PREFLIGHT_UNO_API_UNAVAILABLE'):
                 office.recycle()
@@ -561,10 +698,37 @@ class LibreOfficeAdapter:
         from .odf_table_import import prepare_odf_table_source
         from .qt_media import convert_media_frames, convert_document_pages
         proof = getattr(self._local, 'proof', None) or {}
+        retry_recipe = getattr(self._local, 'retry_recipe', None)
+        html_reason = self._registry().html_route_reason(target, proof)
+        if html_reason:
+            raise GuardError(html_reason,
+                'Штатный HTML-фильтр не подтверждает сохранение графики этого документа. Используйте PDF либо отдельно проверенный XHTML.',
+                stage='plan')
+        if retry_recipe is not None:
+            validate_retry_recipe(retry_recipe, target)
+            # A Qt/identity route cannot truthfully apply LibreOffice export
+            # settings. Confirm the actual native recipe before doing work.
+            automatic_recipe(retry_recipe, target, self._registry(), proof)
         paths = None
         identity_control = (cancel if timeout is None and output_limit is None else
                             _RunControl(cancel, workspace, timeout, output_limit))
-        if proof.get('state') == 'detected' and self.route_decision(target, proof) == 'registered':
+        validate_legacy_dbf_source(source,self._registry(),cancel=identity_control)
+        if target in ('csv','tab','tsv') and on_document_service is not None:
+            # Legacy/unprepared queues have no model proof. A first-sheet
+            # observation export cannot establish whole-workbook completeness.
+            # Use the existing native preflight once before choosing the route.
+            inspected = self.preflight(source, workspace / 'csv-source-preflight',
+                cancel=identity_control, timeout=timeout or 120)
+            if inspected.get('state') != 'detected':
+                raise GuardError('PREFLIGHT_ROUTE_UNDETERMINED',
+                    'Не удалось подтвердить модель и состав книги перед CSV-экспортом.', stage='preflight')
+            self.prepare_source(inspected)
+            proof = inspected
+            on_document_service(inspected)
+            on_document_service = None
+
+        if (retry_recipe is None and proof.get('state') == 'detected'
+                and self.route_decision(target, proof) == 'registered'):
             paths = copy_media_identity(source, workspace / 'output', target, cancel=identity_control)
             identity = 'media_identity' if paths else None
             if paths is None:
@@ -594,10 +758,30 @@ class LibreOfficeAdapter:
             native_source = source
             preparation = None
             source_preparation = getattr(self._local, 'source_preparation', None)
+            batch = getattr(self._local, 'batch', None)
+            live_uno = bool(batch and hasattr(batch[1], 'request') and not batch[1].disabled)
+            from .dif_evidence import is_dif_source
+            dif_preparation = None
+            if not live_uno and is_dif_source(source):
+                native = self._registry()
+                selected_import = getattr(self._local, 'import_filter', None)
+                # TABLE is only an inexpensive content probe. The actual
+                # native import proof, or a confirmed legacy hint for a
+                # direct adapter call without proof, owns DIF admission.
+                direct_hint = (legacy_import_hint(source, native, cancel=identity_control)
+                               if not proof and selected_import is None else None)
+                if (selected_import == 'DIF' or
+                        direct_hint is not None and direct_hint.get('filter') == 'DIF'):
+                    dif_key = (native.fingerprint, selected_import,
+                               getattr(self._local, 'import_options', None))
+                    dif_preparation = (dif_key, self._prepare_dif_snapshot)
             epub = proof.get('sourcePreparation', {}).get('kind') == 'epub_spine_html'
             if source_preparation is not None:
                 native_source, preparation = source_preparation.prepare(
-                    source, epub=epub, cancel=identity_control)
+                    source, epub=epub, cancel=identity_control, native_dif=dif_preparation)
+            elif dif_preparation is not None:
+                native_source, preparation = self._prepare_dif_snapshot(
+                    source, workspace / 'dif-native-snapshot', cancel=identity_control)
             elif epub:
                 from .epub_import import prepare_epub
                 prepared = prepare_epub(source, workspace / 'epub-package', cancel=identity_control)
@@ -610,26 +794,49 @@ class LibreOfficeAdapter:
                          max(.001, identity_control.deadline - time.monotonic()))
             batch = getattr(self._local, 'batch', None)
             live_uno = (batch and hasattr(batch[1], 'request') and not batch[1].disabled)
-            if (target in ('dbf', 'dif') and not live_uno and
-                    proof.get('documentServices') == ['com.sun.star.sheet.SpreadsheetDocument']):
-                paths = self._convert_legacy_sheets(native_source, target, workspace,
-                    control=identity_control, on_started=on_started, on_stage=on_stage)
-            else:
-                paths = self._convert_native(native_source, plain or target, workspace,
-                    cancel=identity_control, timeout=remaining,
-                    on_started=on_started, output_limit=output_limit,
-                    on_document_service=on_document_service, on_stage=on_stage)
+            previous_import = (getattr(self._local, 'import_filter', None),
+                               getattr(self._local, 'import_options', None))
+            if preparation and preparation.get('kind') == 'native_dif_numeric_snapshot':
+                self._local.import_filter = 'OpenDocument Spreadsheet Flat XML'
+                self._local.import_options = None
+            try:
+                if (target in ('dbf', 'dif') and not live_uno and
+                        proof.get('documentServices') == ['com.sun.star.sheet.SpreadsheetDocument']):
+                    paths = self._convert_legacy_sheets(native_source, target, workspace,
+                        control=identity_control, on_started=on_started, on_stage=on_stage)
+                else:
+                    paths = self._convert_native(native_source, plain or target, workspace,
+                        cancel=identity_control, timeout=remaining,
+                        on_started=on_started, output_limit=output_limit,
+                        on_document_service=on_document_service, on_stage=on_stage)
+            finally:
+                self._local.import_filter, self._local.import_options = previous_import
             if plain:
                 paths, metafile_check = wrap_native_metafiles(paths, target, cancel=identity_control)
                 self._local.export_info['executionReason'] = 'native_plain_metafile_gzip'
                 self._local.export_info['resultChecks'] = [metafile_check]
             if preparation:
                 self._local.export_info['sourcePreparation'] = preparation
+                if preparation.get('kind') == 'native_dif_numeric_snapshot':
+                    self._local.export_info['resultChecks'] = list(
+                        self._local.export_info.get('resultChecks', [])) + [preparation['numericCheck']]
                 self._local.export_info['warnings'] = tuple(dict.fromkeys(
                     (*self._local.export_info.get('warnings', ()),
                      *preparation.get('warnings', ()),
                      *(['ODF_IMPLICIT_COLUMNS_EXPLICIT'] if preparation.get('state') == 'prepared'
                        and preparation.get('kind') == 'odf_explicit_table_columns' else []))))
+        if target in ('jfif','jif','jpe') and self.execution_mode() in ('native_uno','native_cli'):
+            from .jpeg_alias import verify_native_jpeg_alias
+            alias_check = verify_native_jpeg_alias(paths, target, cancel=identity_control)
+            self._local.export_info['resultChecks'] = list(self._local.export_info.get('resultChecks', ())) + [alias_check]
+        if target == 'bmp' and self.execution_mode() in ('native_uno', 'native_cli'):
+            from .native_media_repair import repair_native_bmp_size
+            repairs = repair_native_bmp_size(paths, cancel=identity_control)
+            if repairs:
+                self._local.export_info['resultChecks'] = list(
+                    self._local.export_info.get('resultChecks', [])) + repairs
+                self._local.export_info['warnings'] = tuple(dict.fromkeys(
+                    (*self._local.export_info.get('warnings', ()), 'NATIVE_BMP_HEADER_CORRECTED')))
         source_evidence = None
         if getattr(self._local, 'batch', None) is not None:
             source_evidence = getattr(self._local, 'source_evidence', None)
@@ -650,7 +857,110 @@ class LibreOfficeAdapter:
                     if code not in warnings:
                         warnings.append(code)
             self._local.export_info['warnings'] = tuple(warnings)
+        # Mandatory DIF cell contract, independent from optional quality
+        # comparison. It checks the original against the final native result.
+        from .dif_table_contract import check_dif_table
+        table_check = check_dif_table(paths, target, source, cancel=identity_control)
+        if table_check:
+            self._local.export_info['resultChecks'] = list(
+                self._local.export_info.get('resultChecks', ())) + [table_check]
+            if table_check.get('status') == 'not_checked':
+                self._local.export_info['warnings'] = tuple(dict.fromkeys((
+                    *self._local.export_info.get('warnings', ()), 'DIF_TABLE_CONTENT_NOT_CHECKED')))
+        # B29: a real Calc Text CSV/TAB/TSV source may carry identifiers
+        # such as "001". Independently compare original text AND Excel cell
+        # type on supported targets; numeric cell formatted as 000 is not
+        # a preserved textual identifier. Does not need optional quality QA.
+        from .csv_id_contract import check_csv_text_ids
+        text_ids = check_csv_text_ids(
+            paths, target, source,
+            import_filter=getattr(self._local, 'import_filter', None),
+            import_options=getattr(self._local, 'import_options', None),
+            cancel=identity_control)
+        if text_ids:
+            self._local.export_info['resultChecks'] = list(
+                self._local.export_info.get('resultChecks', ())) + [text_ids]
+            if text_ids.get('status') == 'not_checked':
+                self._local.export_info['warnings'] = tuple(dict.fromkeys((
+                    *self._local.export_info.get('warnings', ()),
+                    'CSV_TEXT_IDS_NOT_CHECKED')))
+        from .sheet_outputs import read_sheet_manifest
+        sheets = read_sheet_manifest(paths, cancel=identity_control) if target in ('csv','tab','tsv') else None
+        if (target in ('csv','tab','tsv') and self._local.export_info.get('filter') == 'Text - txt - csv (StarCalc)'
+                and sheets is None):
+            raise GuardError('ENGINE_OUTPUT_VALIDATION_INCOMPLETE',
+                'Не подтверждена выгрузка всех листов книги.', stage='result', diagnostic='sheet_manifest_missing')
+        if sheets:
+            self._local.export_info['sheetOutputs'] = sheets['sheets']
+            unknown = sorted({e['contentCheck'].get('reason', 'sheet_values_not_checked')
+                for e in sheets['sheets'] if e['contentCheck'].get('status') == 'not_checked'})
+            self._local.export_info['resultChecks'] = list(self._local.export_info.get('resultChecks', ())) + [{
+                'check':'native_calc_all_sheets', 'status':'checked_subset',
+                'sheetCount':sheets['sheetCount'], 'manifest':'AIO-sheets.json',
+                'checkedFeatures':['sheet_count','sheet_output_mapping','output_sha256'] +
+                    ([] if unknown else ['native_sheet_values']),
+                'unknownReasons':unknown, 'qualityCompared':False}]
+            self._local.export_info['warnings'] = tuple(dict.fromkeys((
+                *self._local.export_info.get('warnings', ()), 'NATIVE_CSV_ALL_SHEETS',
+                *(['NATIVE_OUTPUT_NOT_CHECKED'] if unknown else []))))
         return paths
+
+    def _prepare_dif_snapshot(self, source, workspace, *, cancel, import_hint=None):
+        """One verified native Calc snapshot protects every CLI DIF target.
+
+        A DIF importer may create #ERR strings for decimal values in some
+        locales. Never export that damaged model into an opaque target. Use
+        the same native import recipe to produce one typed FODS snapshot and
+        verify every ordinary numeric V-record before reusing its bytes.
+        """
+        from .dif_evidence import check_dif_output
+        native = self._registry()
+        flat = 'OpenDocument Spreadsheet Flat XML'
+        item = native.filters.get(flat)
+        if not item or item[0] != 'com.sun.star.sheet.SpreadsheetDocument' or not {'IMPORT', 'EXPORT'} <= item[2]:
+            raise GuardError('DIF_NUMERIC_VALIDATION_UNAVAILABLE',
+                'В LibreOffice нет нативного снимка Calc для проверки чисел DIF.', stage='import')
+        name = (import_hint or {}).get('filter', getattr(self._local, 'import_filter', None))
+        options = (import_hint or {}).get('options', getattr(self._local, 'import_options', None))
+        if name != 'DIF':
+            hint = legacy_import_hint(source, native, cancel=cancel)
+            if not hint or hint['filter'] != 'DIF':
+                raise GuardError('DIF_NATIVE_IMPORT_UNVERIFIED',
+                    'Не подтверждены параметры нативного импорта DIF.', stage='import')
+            name, options = hint['filter'], hint['options']
+        if options is not None and not validate_options(name, options, native):
+            raise GuardError('DIF_NATIVE_IMPORT_UNVERIFIED',
+                'Не подтверждены параметры нативного импорта DIF.', stage='import')
+        if cancel.is_set():
+            raise GuardError('CANCELLED', 'Проверка чисел DIF отменена.', stage='import')
+        workspace = Path(workspace)
+        try:
+            prepare_profile(workspace / 'profile', numeric_locale='en-US')
+            paths = convert_path(source, 'fods', workspace, executable=self.executable,
+                cancel=cancel, on_started=lambda: None,
+                convert_spec='fods:' + flat,
+                import_filter=name + (':' + options if options else ''))
+        except LibreOfficeError as error:
+            raise GuardError(error.code, str(error), stage='import', diagnostic=error.diagnostic) from error
+        try:
+            check = check_dif_output(paths, 'fods', source, cancel=cancel)
+        except GuardError as error:
+            if error.code == 'ENGINE_OUTPUT_CONTENT_LOSS':
+                raise GuardError('DIF_NUMERIC_IMPORT_MISMATCH',
+                    'Нативный импорт DIF изменил числовые данные. Экспорт этого исходника остановлен.',
+                    stage='import', diagnostic=error.diagnostic) from error
+            raise
+        if check is None or check.get('status') not in ('checked_subset', 'not_checked'):
+            raise GuardError('DIF_NUMERIC_VALIDATION_UNAVAILABLE',
+                'Не удалось проверить числовые данные DIF перед конвертацией.', stage='import')
+        prepared = next(path for path in paths if Path(path).suffix.lower() == '.fods')
+        return prepared, {'state': 'prepared', 'kind': 'native_dif_numeric_snapshot',
+            'basis': ('native_calc_snapshot_numeric_coordinates' if check.get('status') == 'checked_subset'
+                      else 'native_calc_snapshot_numeric_scope_unchecked'), 'numericCheck': check,
+            'nativeImportLocale': 'en-US',
+            'warnings': ('DIF_PRIVATE_NUMERIC_LOCALE_EN_US',) + (
+                ('NATIVE_DIF_NUMERIC_IMPORT_VERIFIED',) if check.get('status') == 'checked_subset'
+                else ('DIF_NUMERIC_CONTENT_NOT_CHECKED',))}
 
     def _convert_legacy_sheets(self, source, target, workspace, *, control,
                                on_started, on_stage):
@@ -676,7 +986,12 @@ class LibreOfficeAdapter:
             if self._local.metrics:
                 metrics.append(dict(self._local.metrics))
             return outputs
-        initial = export(source, 'fods', workspace / 'legacy-native-snapshot')
+        retry_recipe = getattr(self._local, 'retry_recipe', None)
+        self._local.retry_recipe = None
+        try:
+            initial = export(source, 'fods', workspace / 'legacy-native-snapshot')
+        finally:
+            self._local.retry_recipe = retry_recipe
         fods = next((p for p in initial if p.suffix.lower() == '.fods'), None)
         if fods is None:
             raise GuardError('ENGINE_OUTPUT_MISSING', 'Не создан полный снимок листов Calc.', stage='result')
@@ -687,18 +1002,40 @@ class LibreOfficeAdapter:
                  getattr(self._local, 'import_options', None))
         output = workspace / 'output'
         output.mkdir(parents=True, exist_ok=False)
-        paths = []
+        paths, sheet_entries = [], []
+        is_csv = target in ('csv', 'tab', 'tsv')
+        previous_csv = getattr(self._local, 'csv_sheet_snapshot', False)
         try:
+            self._local.csv_sheet_snapshot = is_csv
             self._local.import_filter, self._local.import_options = flat, None
             for index, snapshot in enumerate(snapshots):
                 for result in export(snapshot, target, workspace / ('legacy-export-%04d' % index)):
                     control.is_set()
                     destination = output / result.name
+                    if is_csv:
+                        from .sheet_outputs import sheet_output_name, verify_fods_csv, sheet_file_evidence
+                        if result.suffix.lower() != '.' + target:
+                            raise GuardError('ENGINE_OUTPUT_CONTENT_LOSS', 'Неожиданный файл в выгрузке листа.', stage='result')
+                        destination = output / sheet_output_name(source.stem, index, target)
                     if destination.exists():
                         raise GuardError('ENGINE_OUTPUT_COLLISION', 'Совпали имена результатов листов.', stage='result')
                     result.replace(destination)
                     paths.append(destination)
+                    if is_csv:
+                        from .sheet_outputs import SheetOutputMismatch
+                        try:
+                            content_check = verify_fods_csv(snapshot, destination, target,
+                                raw_values=retry_recipe == 'csv_preserve_values', cancel=control)
+                            sheet_entries.append(sheet_file_evidence(destination, index,
+                                check['sheetNames'][index], content_check, cancel=control))
+                        except SheetOutputMismatch as error:
+                            raise GuardError('ENGINE_OUTPUT_CONTENT_LOSS',
+                                'CSV не сохранил проверенные значения листа.', stage='result', diagnostic=str(error)) from error
+            if is_csv:
+                from .sheet_outputs import write_sheet_manifest
+                paths.append(write_sheet_manifest(output, sheet_entries))
         finally:
+            self._local.csv_sheet_snapshot = previous_csv
             self._local.import_filter, self._local.import_options = saved
         self._local.execution_mode = 'native_cli'
         self._local.metrics = {'source': 'cli_process',
@@ -707,7 +1044,8 @@ class LibreOfficeAdapter:
         self._local.export_info = {'filter': native.export_filter(target,
             ['com.sun.star.sheet.SpreadsheetDocument']),
             'executionReason': 'native_cli_all_calc_sheets',
-            'warnings': ('NATIVE_TABLE_FORMAT_LIMITS',), 'resultChecks': [check]}
+            'warnings': ('NATIVE_CSV_ALL_SHEETS',) if is_csv else ('NATIVE_TABLE_FORMAT_LIMITS',),
+            'resultChecks': [check]}
         control.check_now()
         return paths
 
@@ -782,12 +1120,30 @@ class LibreOfficeAdapter:
             timeout = min(timeout, chart_budget) if timeout is not None else chart_budget
         control = (cancel if timeout is None and output_limit is None else
                    _RunControl(cancel, workspace, timeout, output_limit))
+        preparation_scope = ExitStack()
         try:
             native = self._registry()
-            recipe = native_export_recipe(native, target, getattr(self._local, 'proof', None))
+            retry_recipe = getattr(self._local, 'retry_recipe', None)
+            recipe = (automatic_recipe(retry_recipe, target, native,
+                                       getattr(self._local, 'proof', None)) if retry_recipe else
+                      native_export_recipe(native, target, getattr(self._local, 'proof', None)))
             if recipe:
                 self._local.export_info = {'filter': recipe.filter_name, 'warnings': recipe.warnings}
+                if retry_recipe:
+                    self._local.export_info.update(automaticRecipe=retry_recipe,
+                        automaticParameters=validate_retry_recipe(retry_recipe, target)['parameters'])
             export_args = {'convert_spec': recipe.cli_spec(target)} if recipe else {}
+            # Keep the original native importer/exporter and original bytes.
+            # Only a confirmed Writer plain-text recipe gets a disposable
+            # terminal paragraph; PDF/Office/Calc routes are untouched.
+            if recipe and recipe.filter_name in TEXT_FILTERS:
+                source, text_preparation = preparation_scope.enter_context(
+                    prepare_writer_text_source(source, workspace / 'writer-text-input', cancel=control))
+                if text_preparation:
+                    self._local.export_info['sourcePreparation'] = text_preparation
+                    self._local.export_info['warnings'] = tuple(dict.fromkeys(
+                        (*self._local.export_info.get('warnings', ()),
+                         *text_preparation['warnings'])))
             # The first requested native export identifies the actual model.
             # Filename hints never veto a file, including renamed/unlisted ones.
             batch = getattr(self._local, 'batch', None)
@@ -807,6 +1163,12 @@ class LibreOfficeAdapter:
                     request_sent = response_received = False
                     try:
                         startup_tick = time.monotonic()
+                        self._configure_dif_numeric_profile(office,
+                            'en-US' if getattr(self._local, 'import_filter', None) == 'DIF' else None)
+                        if getattr(office, '_aio_dif_numeric_locale', None) == 'en-US':
+                            self._local.export_info['nativeImportLocale'] = 'en-US'
+                            self._local.export_info['warnings'] = tuple(
+                                self._local.export_info.get('warnings', ())) + ('DIF_PRIVATE_NUMERIC_LOCALE_EN_US',)
                         office.ensure_started(control,min(45,timeout) if timeout is not None else 45)
                         startup_ms = round((time.monotonic()-startup_tick)*1000)
                         self._local.execution_mode = 'native_uno'
@@ -817,6 +1179,8 @@ class LibreOfficeAdapter:
                             'format':target,'output':str(output.resolve()),'exportFilter':filter_name,
                             'graphicExport': 'svm' if filter_name == 'svm_Export' else None,
                             'exportOptions':recipe.filter_options,
+                            'automaticRecipe': retry_recipe,
+                            'exportFilterData': dict(recipe.filter_data) if recipe.filter_data else None,
                             'requiredDrawPages':recipe.required_draw_pages,
                             'importFilter':getattr(self._local,'import_filter',None),
                             'expectedImportFilter':getattr(self._local,'import_filter',None),
@@ -832,6 +1196,12 @@ class LibreOfficeAdapter:
                         if 'NATIVE_DBF_MIXED_COLUMN_TEXT' in result.get('warnings', ()):
                             self._local.export_info['warnings'] = tuple(
                                 self._local.export_info.get('warnings', ())) + ('NATIVE_DBF_MIXED_COLUMN_TEXT',)
+                        if result.get('difNumericImport') is not None:
+                            dif_check = result['difNumericImport']
+                            self._local.export_info['resultChecks'] = [dif_check]
+                            if dif_check.get('status') == 'not_checked':
+                                self._local.export_info['warnings'] = tuple(
+                                    self._local.export_info.get('warnings', ())) + ('DIF_NUMERIC_CONTENT_NOT_CHECKED',)
                         if result.get('nativeCloseInterrupted'):
                             self._local.export_info['warnings'] = tuple(
                                 self._local.export_info.get('warnings', ())) + ('NATIVE_CLOSE_INTERRUPTED',)
@@ -864,6 +1234,9 @@ class LibreOfficeAdapter:
                                        if code == 'PREFLIGHT_INTERACTION_REQUIRED' else
                                        'LibreOffice не смог '+('открыть исходник.'
                                        if result.get('stage')=='import' else 'создать выбранный результат.'))
+                            if code == 'DIF_NUMERIC_IMPORT_MISMATCH':
+                                message = ('При импорте DIF LibreOffice изменил числа или их типы. '
+                                           'Экспорт этого исходника остановлен; исходный файл сохранён.')
                             raise GuardError(code, message,
                                 stage=result.get('stage','engine'),diagnostic=diagnostic)
                         try:
@@ -881,10 +1254,42 @@ class LibreOfficeAdapter:
                             raise
                         office.disabled = True
                         output.rmdir()  # No requested export ran; original CLI remains available.
+            if (recipe and recipe.filter_name == 'Text - txt - csv (StarCalc)'
+                    and target in ('csv', 'tab', 'tsv')
+                    and not getattr(self._local, 'csv_sheet_snapshot', False)):
+                return self._convert_legacy_sheets(source, target, workspace,
+                    control=control, on_started=on_started, on_stage=on_stage)
+            if (recipe and target in ('csv', 'tab', 'tsv')
+                    and getattr(self._local, 'csv_sheet_snapshot', False)
+                    and recipe.filter_options):
+                tokens = recipe.filter_options.split(',')
+                if len(tokens) > 11:
+                    tokens[11] = '0'
+                export_args['convert_spec'] = target + ':' + recipe.filter_name + ':' + ','.join(tokens)
             prepare_profile(workspace / 'profile')
             self._local.execution_mode = 'native_cli'
             filtered = getattr(self._local, 'import_filter', None)
             filter_opts = getattr(self._local, 'import_options', None)
+            # A live UNO session does not imply this export uses UNO: ambiguous
+            # export recipes and launch-only fallback arrive here too. Protect
+            # the ACTUAL CLI boundary, not just the earlier session predicate.
+            from .dif_evidence import is_dif_source
+            if filtered == 'DIF' and is_dif_source(source):
+                from .dif_table_contract import check_dif_table
+                original_dif = source
+                source, summary = self._prepare_dif_snapshot(
+                    original_dif, workspace / 'dif-cli-input', cancel=control)
+                table_check = check_dif_table([source], 'fods', original_dif, cancel=control)
+                self._local.export_info['sourcePreparation'] = {**summary, 'tableCheck': table_check}
+                self._local.export_info['resultChecks'] = list(
+                    self._local.export_info.get('resultChecks', ())) + [summary['numericCheck']] + (
+                        [table_check] if table_check else [])
+                warnings = tuple(self._local.export_info.get('warnings', ())) + tuple(summary.get('warnings', ()))
+                if table_check and table_check.get('status') == 'not_checked':
+                    warnings += ('DIF_TABLE_CONTENT_NOT_CHECKED',)
+                self._local.export_info['warnings'] = tuple(dict.fromkeys(warnings))
+                self._local.export_info['difCliSnapshot'] = True
+                filtered, filter_opts = 'OpenDocument Spreadsheet Flat XML', None
             if filtered and filter_opts:
                 filtered = filtered + ':' + filter_opts
             if on_document_service is None or not native.valid:
@@ -919,9 +1324,9 @@ class LibreOfficeAdapter:
             raise GuardError('STORAGE_ERROR', 'Ошибка временного хранилища Guard.',
                              stage='storage', status=507) from error
         finally:
+            preparation_scope.close()
             if self._local.metrics is not None:
                 self._local.metrics['adapterMs'] = round((time.monotonic()-adapter_tick)*1000)
 
     def _capture_metrics(self, value):
         self._local.metrics = clean_timings(value)
-
