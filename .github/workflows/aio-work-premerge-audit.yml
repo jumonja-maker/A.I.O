@@ -1,0 +1,115 @@
+name: 00AIO WORK premerge prevention pinned NIKITA
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths: ['app_backend/**', 'src/**', 'tests/**', 'tools/qa/**', '.github/workflows/aio-work-premerge-audit.yml']
+permissions:
+  contents: read
+concurrency:
+  group: aio-work-premerge-78
+  cancel-in-progress: false
+env:
+  PYTHONDONTWRITEBYTECODE: '1'
+  PYTHONUTF8: '1'
+  PYTHONIOENCODING: utf-8
+  PIP_NO_INDEX: '1'
+  PIP_NO_INPUT: '1'
+  QT_QPA_PLATFORM: offscreen
+  QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --disable-gpu-compositing
+  AIO_BLACKBOX_EVENTS: ''
+  AIO_LO_QA_MUST_HAVE_ENGINE: '1'
+  AIO_QT_SAVE_QA: '1'
+jobs:
+  pinned-windows:
+    if: >-
+      github.repository == 'jumonja-maker/A.I.O' &&
+      github.actor == 'jumonja-maker' &&
+      github.event.pull_request.number == 78 &&
+      github.event.pull_request.head.ref == 'fix/guard-work-premerge-a01-a09-20261028' &&
+      github.event.pull_request.base.ref == 'fix/guard-v182-matrix-progress-cancel-20261025'
+    runs-on: [self-hosted, Windows, X64, local-d-manual]
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - name: Trusted unprivileged NIKITA and fresh D drive paths
+        run: |
+          $ErrorActionPreference='Stop'
+          if ($env:RUNNER_NAME -cne 'NIKITA' -or $env:RUNNER_OS -cne 'Windows' -or $env:USERNAME -ine 'aio-runner') { throw 'Untrusted runner' }
+          $p=New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+          if ($p.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Elevated run refused' }
+          foreach($key in @('GITHUB_WORKSPACE','RUNNER_TEMP','TEMP','TMP')) {
+            $v=[Environment]::GetEnvironmentVariable($key)
+            if ([string]::IsNullOrWhiteSpace($v) -or -not [IO.Path]::GetFullPath($v).StartsWith('D:\',[StringComparison]::OrdinalIgnoreCase)) { throw 'Unsafe path' }
+          }
+          if ((Get-PSDrive D -PSProvider FileSystem).Free -lt 20GB) { throw 'Insufficient disk; no cleanup' }
+          $folder=Join-Path $env:GITHUB_WORKSPACE 'prem-${{ github.run_id }}-${{ github.run_attempt }}'
+          $out=Join-Path $env:RUNNER_TEMP 'prem-${{ github.run_id }}-${{ github.run_attempt }}'
+          if ((Test-Path $folder) -or (Test-Path $out)) { throw 'Existing work directory' }
+          'AIO_PREMERGE_OUT='+$out | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Checkout exact PR SHA without credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        env:
+          GIT_CONFIG_COUNT: '1'
+          GIT_CONFIG_KEY_0: core.autocrlf
+          GIT_CONFIG_VALUE_0: 'false'
+        with:
+          repository: jumonja-maker/A.I.O
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: prem-${{ github.run_id }}-${{ github.run_attempt }}
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Verify offline tools and native LibreOffice
+        working-directory: prem-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $python='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\Scripts\python.exe'
+          $marker='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\.00aio-test-only-venv.txt'
+          if (-not (Test-Path $python) -or -not (Test-Path $marker) -or (Get-Content $marker -Raw).Trim() -cne '00AIO NIKITA ISOLATED DOCX PDF QA PY311 QT6103') { throw 'Approved QA Python missing' }
+          if (-not (Test-Path 'D:\LBR\program\soffice.com') -or -not (Test-Path 'D:\LBR\program\soffice.bin') -or -not (Test-Path 'D:\LBR\share')) { throw 'Native LibreOffice missing' }
+          'AIO_QA_PYTHON='+$python | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          'AIO_LIBREOFFICE=D:\LBR\program\soffice.com' | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          'AIO_BUILD_REVISION=${{ github.event.pull_request.head.sha }}' | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          $node=Get-Command node -ErrorAction SilentlyContinue
+          if ($node) { $node=$node.Source } else {
+            $runnerRoot=Split-Path -Parent (Split-Path -Parent $env:RUNNER_TEMP)
+            $candidates=@((Join-Path $runnerRoot 'externals\node24\bin\node.exe'),(Join-Path $runnerRoot 'externals\node20\bin\node.exe'),'D:\AIO-Lab\nodejs\node.exe')
+            $found=@($candidates | Where-Object { Test-Path $_ } | Select-Object -First 1)
+            if ($found.Count -ne 1) { throw 'Node unavailable' }; $node=$found[0]
+          }
+          [IO.Path]::GetDirectoryName($node) | Out-File $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Approved offline test dependencies
+        working-directory: prem-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $deps=Join-Path $env:RUNNER_TEMP 'prem-deps-${{ github.run_id }}-${{ github.run_attempt }}'
+          if (Test-Path $deps) { throw 'Existing dependencies' }
+          & $env:AIO_QA_PYTHON tools/qa/guard_v17_test_dependencies.py --output $deps --github-env
+          if ($LASTEXITCODE -ne 0) { throw 'Offline dependencies failed' }
+      - name: Preventative checks and complete Windows source Qt DOM suite
+        working-directory: prem-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          New-Item -ItemType Directory -Path $env:AIO_PREMERGE_OUT -ErrorAction Stop | Out-Null
+          foreach($name in @('test_session_lifecycle_b16_b27.py','test_all_sheets_b30.py','test_comparison_failed_filter_b20.py','test_remaining_bag_stress3.py')) {
+            & $env:AIO_QA_PYTHON -m unittest discover -s tests -p $name -v
+            if ($LASTEXITCODE -ne 0) { throw ('Preventive test FAIL: '+$name) }
+          }
+          & node tests/guard_comparison_viewer_b19.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Mixed-size fit fail' }
+          & $env:AIO_QA_PYTHON tools/qa/guard_v17_selfhosted_acceptance.py --unit-report (Join-Path $env:AIO_PREMERGE_OUT 'windows-unit.json')
+          if ($LASTEXITCODE -ne 0) { throw 'Full Windows source tests failed' }
+      - name: Full native targeted 434-decision stress3 with explicit raw-decision coverage
+        working-directory: prem-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $folder=Join-Path $env:AIO_PREMERGE_OUT 'stress3'
+          & $env:AIO_QA_PYTHON tools/qa/guard_remaining_bag_stress3.py --output $folder --executable $env:AIO_LIBREOFFICE
+          if ($LASTEXITCODE -ne 0) { throw 'Targeted native stress3 failed' }
+          $e=Get-Content (Join-Path $folder 'evidence.json') -Raw -Encoding utf8 | ConvertFrom-Json
+          $u=Get-Content (Join-Path $env:AIO_PREMERGE_OUT 'windows-unit.json') -Raw -Encoding utf8 | ConvertFrom-Json
+          if ($e.status -cne 'PASS' -or @($e.decisionIndex).Count -ne 434 -or $u.status -cne 'PASS' -or $u.failed -or $u.errors) { throw 'Broken acceptance summary' }
+          if ($e.unobservedRawDecisions -le 0 -or $null -ne $e.falseRejections -or $null -ne $e.silentSuccesses) { throw 'A04 fabricated complete production decisions' }
+          Write-Host ('PREMERGE_PASS=434;RAW_OBSERVED='+$e.observedRawDecisions+';RAW_UNOBSERVED='+$e.unobservedRawDecisions+';SOURCE=${{ github.event.pull_request.head.sha }}')
+          Write-Host 'NO_BUILD_NO_INSTALL_NO_RELEASE_NO_MAIN_OR_QA_WRITE'
