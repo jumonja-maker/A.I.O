@@ -1,11 +1,11 @@
 """Own only the process tree started by this adapter, never a user's open office.
 
-POSIX uses a new session. Windows uses a kill-on-close Job Object; if attaching
-the job fails, conversion fails explicitly instead of using taskkill /IM.
-The optional Windows process-memory limit is for disposable analysis/viewer
-workers. Ordinary native conversion callers retain their unrestricted default.
-POSIX workers install their own resource limit after exec; never preexec_fn in
-the multithreaded application process.
+POSIX uses a new session. Windows creates the launcher suspended, assigns it to
+an owned kill-on-close Job Object, and only then resumes its primary thread.
+A Python venv launcher or frozen bootstrap cannot spawn an uncontained child
+before assignment. Failure is explicit, never a global taskkill /IM fallback.
+The optional process-memory limit applies only to disposable analysis/viewer
+workers; ordinary native conversion retains its unrestricted default.
 """
 from __future__ import annotations
 
@@ -36,17 +36,19 @@ class ProcessTree:
                 stdout=subprocess.DEVNULL if stdout is None else stdout,
                 stderr=subprocess.DEVNULL if stderr is None else stderr, shell=False, env=env,
                 start_new_session=os.name != 'nt',
-                creationflags=(subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0))
-            if self._job and not self._kernel.AssignProcessToJobObject(
-                    self._job, int(self.process._handle)):
-                raise OSError('Cannot contain LibreOffice process')
+                creationflags=((subprocess.CREATE_NO_WINDOW | 0x00000004) if os.name == 'nt' else 0))
+            if self._job:
+                if not self._kernel.AssignProcessToJobObject(self._job, int(self.process._handle)):
+                    raise OSError('Cannot contain LibreOffice process')
+                from .windows_suspended_start import resume_owned_primary
+                resume_owned_primary(self.process, self._job)
             on_started()
         except BaseException:
             try:
                 if self.process is not None:
-                    # A launcher may exit between a failing startup callback /
-                    # containment check and kill(). Reap it when possible, but
-                    # still close the owned group/job if that race occurs.
+                    # A failed assignment/resume leaves a suspended launcher,
+                    # not an executing tree. Terminate it even if outside our
+                    # job, then close the job and reap any owned descendants.
                     try:
                         self.process.kill()
                     except ProcessLookupError:
@@ -91,9 +93,9 @@ class ProcessTree:
         k.AssignProcessToJobObject.restype = w.BOOL
         k.CloseHandle.argtypes = [w.HANDLE]
         k.CloseHandle.restype = w.BOOL
-        k.TerminateJobObject.argtypes = [w.HANDLE,w.UINT]
+        k.TerminateJobObject.argtypes = [w.HANDLE, w.UINT]
         k.TerminateJobObject.restype = w.BOOL
-        k.QueryInformationJobObject.argtypes = [w.HANDLE,ctypes.c_int,ctypes.c_void_p,w.DWORD,ctypes.c_void_p]
+        k.QueryInformationJobObject.argtypes = [w.HANDLE, ctypes.c_int, ctypes.c_void_p, w.DWORD, ctypes.c_void_p]
         k.QueryInformationJobObject.restype = w.BOOL
         handle = k.CreateJobObjectW(None, None)
         if not handle:
@@ -112,24 +114,24 @@ class ProcessTree:
     def _windows_job_active(self):
         import ctypes
         class Accounting(ctypes.Structure):
-            _fields_=[(name,ctypes.c_longlong) for name in (
-                'TotalUserTime','TotalKernelTime','ThisPeriodTotalUserTime','ThisPeriodTotalKernelTime')]+[
-                (name,ctypes.c_uint32) for name in ('TotalPageFaultCount','TotalProcesses','ActiveProcesses','TotalTerminatedProcesses')]
-        info=Accounting()
-        if not self._kernel.QueryInformationJobObject(self._job,1,ctypes.byref(info),ctypes.sizeof(info),None):
+            _fields_ = [(name, ctypes.c_longlong) for name in (
+                'TotalUserTime', 'TotalKernelTime', 'ThisPeriodTotalUserTime', 'ThisPeriodTotalKernelTime')] + [
+                (name, ctypes.c_uint32) for name in ('TotalPageFaultCount', 'TotalProcesses', 'ActiveProcesses', 'TotalTerminatedProcesses')]
+        info = Accounting()
+        if not self._kernel.QueryInformationJobObject(self._job, 1, ctypes.byref(info), ctypes.sizeof(info), None):
             raise ctypes.WinError(ctypes.get_last_error())
         return int(info.ActiveProcesses)
 
     def _drain_windows_job(self):
         import ctypes
-        if not self._kernel.TerminateJobObject(self._job,1):
+        if not self._kernel.TerminateJobObject(self._job, 1):
             raise ctypes.WinError(ctypes.get_last_error())
-        until=time.monotonic()+3
+        until = time.monotonic() + 3
         while self._windows_job_active():
-            if time.monotonic()>=until:
+            if time.monotonic() >= until:
                 raise TimeoutError('Owned native job did not drain')
             time.sleep(.01)
-        self.job_drain_verified=True
+        self.job_drain_verified = True
 
     def close(self):
         if self._closed:
@@ -137,10 +139,9 @@ class ProcessTree:
         self._closed = True
         p = self.process
         if self._job:
-            handle=self._job
+            handle = self._job
             try:
                 try:
-                    # Parent exit alone does not establish descendant exit.
                     self._drain_windows_job()
                 finally:
                     self._kernel.CloseHandle(handle)
@@ -148,8 +149,8 @@ class ProcessTree:
             finally:
                 self._reap_parent(p)
             return
-        elif p is not None:
-            # Also reap surviving children when a launcher exited before them.
+        elif p is not None and os.name != 'nt':
+            # Also reap surviving children when a POSIX launcher exited first.
             try:
                 os.killpg(p.pid, signal.SIGTERM)
             except ProcessLookupError:
