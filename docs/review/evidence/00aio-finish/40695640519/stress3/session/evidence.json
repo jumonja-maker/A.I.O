@@ -1,0 +1,37 @@
+{
+  "status": "PASS",
+  "scope": "actual native LO queue/save/recovery/cancel; not FULLTEST or installed EXE",
+  "checks": [
+    {
+      "status": "PASS",
+      "name": "native-save-recovery-analysis-close",
+      "nativeResults": 2,
+      "partialSaveRestored": true,
+      "optionalDiagnosticDidNotChangeUnsaved": true,
+      "originalSha256": "fddead00b7a479711c516e3c9afc5c6f05ce264848addea82508ef86a8cc30da",
+      "savedFirstSha256": "544e8424eaee5102e3af8f9994d34a3bcdb7d7a755bff7c5de016af94b06c1b0",
+      "diagnosticSha256": "c58aa86986d60ab39ab724cae93361ab42839a1a786cf2e2a5dc452385d21b9a"
+    },
+    {
+      "name": "actual-native-close-cancellation",
+      "status": "PASS",
+      "phase": "import",
+      "workerPid": 26304,
+      "workerExited": true,
+      "originalSha256": "f29a7f8139ce8062b2179ad8856349b15ee85477c689f20364d4082cf9462ea4",
+      "nativeOwnershipRootLength": 56,
+      "descendantPidInventory": "not_independently_enumerated"
+    },
+    {
+      "name": "actual-native-cli-close-cancellation",
+      "status": "PASS",
+      "phase": "engine_process_running",
+      "ownedProcessPids": [
+        11768
+      ],
+      "ownedProcessesExited": true,
+      "originalSha256": "f29a7f8139ce8062b2179ad8856349b15ee85477c689f20364d4082cf9462ea4",
+      "importExportPhase": "native_CLI_does_not_expose_individual_phases"
+    }
+  ]
+}

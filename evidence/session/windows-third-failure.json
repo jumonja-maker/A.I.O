@@ -1,0 +1,1136 @@
+{
+  "run": 40560284700,
+  "status": "FAIL",
+  "testedSHA": "a7be3d9329301e6c8ecd108e09e884a1b3d5af23",
+  "testedTree": "4734efeb58be0094c613ed1f7e57282a9da4c2cb",
+  "evidence": {
+    "status": "FAIL",
+    "scope": "actual native LO queue/save/recovery/cancel; not FULLTEST or installed EXE",
+    "checks": [
+      {
+        "status": "PASS",
+        "name": "native-save-recovery-analysis-close",
+        "nativeResults": 2,
+        "partialSaveRestored": true,
+        "optionalDiagnosticDidNotChangeUnsaved": true,
+        "originalSha256": "37efc53f76537c8adaa0ee1f4e30633588ec5f29b90a8c3d2240d40fc4a3500e",
+        "savedFirstSha256": "010f474488b055228e5776cf519a24f1fa381ba2534270b81389d9c357a894d9",
+        "diagnosticSha256": "3d127a1abea485bdc1e51fbac7a1f1e46b307bbfa42c8f4fad19b01dcb75196f"
+      }
+    ],
+    "cancelFailure": {
+      "schemaVersion": 3,
+      "total": 1,
+      "completed": 1,
+      "attempted": 1,
+      "succeeded": 1,
+      "failed": 0,
+      "cancelled": 0,
+      "filtered": 0,
+      "pending": 0,
+      "preflightChecks": 1,
+      "buildIdentity": {
+        "scope": "report_runtime",
+        "sourceRevision": "a7be3d9329301e6c8ecd108e09e884a1b3d5af23",
+        "basis": "configured"
+      },
+      "nativeRegistryFingerprints": [
+        "9b38ba68fa4cbc7fb077798ac86d25d3bf7c5ef0c8f1f4395d929c535bcb7bf7"
+      ],
+      "inputsUploaded": 1,
+      "inputsPlanned": 1,
+      "inputsWithoutTasks": [],
+      "recoveryError": null,
+      "files": [
+        {
+          "fileId": "cancel",
+          "name": "cancel-native.docx",
+          "sourceSha256": "fc830dada840b551ea803cb74fb4dc547caf8191e1e50983d7816dadd57c5c30",
+          "nativeRoute": {
+            "state": "detected",
+            "basis": "native_preflight_uno_document",
+            "modelLoaded": true,
+            "nativeTextDocument": true,
+            "documentServices": [
+              "com.sun.star.text.TextDocument"
+            ],
+            "typeName": null,
+            "filterName": "MS Word 2007 XML",
+            "selectedImportFilter": "MS Word 2007 XML",
+            "selectedImportOptions": null,
+            "sourceContract": {
+              "state": "recognized",
+              "contentClass": "ooxml_package",
+              "mainContentType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml",
+              "contentTypeBasis": "override",
+              "expectedServices": [
+                "com.sun.star.text.TextDocument"
+              ]
+            },
+            "drawPages": null,
+            "registryFingerprint": "9b38ba68fa4cbc7fb077798ac86d25d3bf7c5ef0c8f1f4395d929c535bcb7bf7",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": [
+            {
+              "taskId": "4328afa33573d7ea2987894810715662:0",
+              "format": "pdf",
+              "state": "ready",
+              "code": null,
+              "error": null,
+              "stage": "result",
+              "diagnostic": "",
+              "executionMode": "native_cli",
+              "executionReason": "native_session",
+              "resultChecks": [],
+              "automaticRecipe": null,
+              "automaticParameters": null,
+              "durationMs": 45797,
+              "nativeTimings": {
+                "source": "cli_process",
+                "adapterMs": 45797,
+                "launchMs": 16,
+                "processMs": 5547
+              },
+              "exportFilter": "writer_pdf_Export",
+              "warnings": [],
+              "quality": null,
+              "outputs": [
+                {
+                  "path": "0001-pdf/cancel-native.pdf",
+                  "size": 373798,
+                  "sha256": "4feb5752af2c3ce0cbe6e8ffc3e50050b701cd5470f04df6c6f94fa4b2cf8add"
+                }
+              ],
+              "route": null,
+              "libreOfficeStarted": true
+            }
+          ]
+        }
+      ],
+      "timings": {
+        "journalMs": 16,
+        "preflight_startedMs": 16,
+        "preflight_doneMs": 46735,
+        "planMs": 46,
+        "job_queuedMs": 46781,
+        "job_startedMs": 46781,
+        "engine_startedMs": 87094,
+        "packaging_startedMs": 92641,
+        "job_finishedMs": 92641
+      },
+      "qualityCheckRequested": false,
+      "qualityCompared": false,
+      "retainSources": true,
+      "comparisonParentJobId": null,
+      "comparisonRecipe": null,
+      "comparisonParentTasks": [],
+      "jobId": "4328afa33573d7ea2987894810715662",
+      "state": "ready",
+      "officeStarts": 1,
+      "trace": {
+        "events": [
+          {
+            "sequence": 1,
+            "elapsedMs": 0,
+            "stage": "job_created",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 2,
+            "elapsedMs": 16,
+            "stage": "input_stored",
+            "fileId": "cancel",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 3,
+            "elapsedMs": 16,
+            "stage": "preflight_started",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 4,
+            "elapsedMs": 47,
+            "stage": "preflight_file_started",
+            "fileId": "cancel",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 5,
+            "elapsedMs": 46516,
+            "stage": "cleanup_deferred",
+            "fileId": null,
+            "format": null,
+            "code": "WORK_CLEANUP_RETRY",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 6,
+            "elapsedMs": 46516,
+            "stage": "preflight_finished",
+            "fileId": "cancel",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 7,
+            "elapsedMs": 46516,
+            "stage": "preflight_matrix_started",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 8,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 9,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 10,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 11,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 12,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 13,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 14,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 15,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 16,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 17,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 18,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 19,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 20,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 21,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 22,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 23,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 24,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 25,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 26,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 27,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 28,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 29,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 30,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 31,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 32,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 33,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 34,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 35,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 36,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 37,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 38,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 39,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 40,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 41,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 42,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 43,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 44,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 45,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 46,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 47,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 48,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 49,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 50,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 51,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 52,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 53,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 54,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 55,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 56,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 57,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 58,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 59,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 60,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 61,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 62,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 63,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 64,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 65,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 66,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 67,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 68,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 69,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 70,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 71,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 72,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 73,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 74,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 75,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 76,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 77,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 78,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 79,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 80,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 81,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 82,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 83,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 84,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 85,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 86,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 87,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 88,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 89,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 90,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 91,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 92,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 93,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 94,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 95,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 96,
+            "elapsedMs": 46735,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 97,
+            "elapsedMs": 46735,
+            "stage": "preflight_done",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 98,
+            "elapsedMs": 46781,
+            "stage": "job_queued",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 99,
+            "elapsedMs": 46781,
+            "stage": "job_started",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 100,
+            "elapsedMs": 46828,
+            "stage": "route_selected",
+            "fileId": "cancel",
+            "format": "pdf",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 101,
+            "elapsedMs": 87094,
+            "stage": "engine_started",
+            "fileId": "cancel",
+            "format": "pdf",
+            "code": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 102,
+            "elapsedMs": 92625,
+            "stage": "result_retaining",
+            "fileId": "cancel",
+            "format": "pdf",
+            "code": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 103,
+            "elapsedMs": 92625,
+            "stage": "result_ready",
+            "fileId": "cancel",
+            "format": "pdf",
+            "code": null,
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 104,
+            "elapsedMs": 92625,
+            "stage": "task_finished",
+            "fileId": "cancel",
+            "format": "pdf",
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 105,
+            "elapsedMs": 92641,
+            "stage": "input_finished",
+            "fileId": "cancel",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 106,
+            "elapsedMs": 92641,
+            "stage": "packaging_started",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 107,
+            "elapsedMs": 92641,
+            "stage": "results_available",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 108,
+            "elapsedMs": 92641,
+            "stage": "job_finished",
+            "fileId": null,
+            "format": null,
+            "code": "ready",
+            "libreOfficeStarted": true
+          },
+          {
+            "sequence": 109,
+            "elapsedMs": 92641,
+            "stage": "worker_finished",
+            "fileId": null,
+            "format": null,
+            "code": "ready",
+            "libreOfficeStarted": false
+          }
+        ],
+        "droppedEvents": 0
+      },
+      "fileTimeoutSeconds": 120
+    },
+    "officeStates": [
+      {
+        "type": "UnoSession",
+        "starts": 1,
+        "disabled": true
+      },
+      {
+        "type": "UnoSession",
+        "starts": 1,
+        "disabled": true
+      }
+    ],
+    "code": null,
+    "reason": "native cancellation opportunity not observed",
+    "error": "AssertionError"
+  }
+}

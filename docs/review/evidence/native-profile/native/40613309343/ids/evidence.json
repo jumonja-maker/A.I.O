@@ -1,0 +1,3257 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "scope": "B29 exact-source native routes, not FULLTEST",
+  "sourceBytesUnchanged": true,
+  "cases": [
+    {
+      "extension": "csv",
+      "level": 1,
+      "target": "xlsx",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 16,
+        "sourceColumns": 6,
+        "candidateIds": 15,
+        "idsCompared": 15,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 15,
+        "type": "string",
+        "nonIdCellParity": 80,
+        "originalSha256": "93626c4c28eb5a2338ac85c4cc1fe3f45877212ffee402c998516a4f270c242d",
+        "outputSha256": "947333881c6018df8b7d26bc0992835d3be1f7f664f61e6d5a5abe563728f6b7"
+      },
+      "elapsedMs": 125
+    },
+    {
+      "extension": "csv",
+      "level": 1,
+      "target": "xlsm",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 16,
+        "sourceColumns": 6,
+        "candidateIds": 15,
+        "idsCompared": 15,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 15,
+        "type": "string",
+        "nonIdCellParity": 80,
+        "originalSha256": "93626c4c28eb5a2338ac85c4cc1fe3f45877212ffee402c998516a4f270c242d",
+        "outputSha256": "a442d4452d023bf87aa37d74e22f56818f204f36a684d29cc6b114848ca425f8"
+      },
+      "elapsedMs": 3984
+    },
+    {
+      "extension": "csv",
+      "level": 1,
+      "target": "xltx",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 16,
+        "sourceColumns": 6,
+        "candidateIds": 15,
+        "idsCompared": 15,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 15,
+        "type": "string",
+        "nonIdCellParity": 80,
+        "originalSha256": "93626c4c28eb5a2338ac85c4cc1fe3f45877212ffee402c998516a4f270c242d",
+        "outputSha256": "33f72aa867e2e8e106aa90b7f22c7c75773d2e1b08934fda760eb58a12386dd3"
+      },
+      "elapsedMs": 3969
+    },
+    {
+      "extension": "csv",
+      "level": 1,
+      "target": "xltm",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 16,
+        "sourceColumns": 6,
+        "candidateIds": 15,
+        "idsCompared": 15,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 15,
+        "type": "string",
+        "nonIdCellParity": 80,
+        "originalSha256": "93626c4c28eb5a2338ac85c4cc1fe3f45877212ffee402c998516a4f270c242d",
+        "outputSha256": "71a912ebddda2fa0dfda1010d3f0185095c6c127994022006638c2e4f4384f4d"
+      },
+      "elapsedMs": 78
+    },
+    {
+      "extension": "csv",
+      "level": 2,
+      "target": "xlsx",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 25,
+        "sourceColumns": 6,
+        "candidateIds": 24,
+        "idsCompared": 24,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 24,
+        "type": "string",
+        "nonIdCellParity": 125,
+        "originalSha256": "11960149dfb4f9e4200547fb13f8a7b724192a2793b9cbbdf9dc3f03556cfc0a",
+        "outputSha256": "6ae405ed8134855f66b4bb5fee73532b4283ee2e176defa7551e24a4b2e12726"
+      },
+      "elapsedMs": 78
+    },
+    {
+      "extension": "csv",
+      "level": 2,
+      "target": "xlsm",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 25,
+        "sourceColumns": 6,
+        "candidateIds": 24,
+        "idsCompared": 24,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 24,
+        "type": "string",
+        "nonIdCellParity": 125,
+        "originalSha256": "11960149dfb4f9e4200547fb13f8a7b724192a2793b9cbbdf9dc3f03556cfc0a",
+        "outputSha256": "ce8cca82aeeea28397a2b29fccc00564ed3d5861533fe3864d96fb13f0eb85d3"
+      },
+      "elapsedMs": 4094
+    },
+    {
+      "extension": "csv",
+      "level": 2,
+      "target": "xltx",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 25,
+        "sourceColumns": 6,
+        "candidateIds": 24,
+        "idsCompared": 24,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 24,
+        "type": "string",
+        "nonIdCellParity": 125,
+        "originalSha256": "11960149dfb4f9e4200547fb13f8a7b724192a2793b9cbbdf9dc3f03556cfc0a",
+        "outputSha256": "7c1a1a03e49d67ea37dd598753c67d425b8264f7f290d0e6e75a2e00863a2d07"
+      },
+      "elapsedMs": 4281
+    },
+    {
+      "extension": "csv",
+      "level": 2,
+      "target": "xltm",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 25,
+        "sourceColumns": 6,
+        "candidateIds": 24,
+        "idsCompared": 24,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 24,
+        "type": "string",
+        "nonIdCellParity": 125,
+        "originalSha256": "11960149dfb4f9e4200547fb13f8a7b724192a2793b9cbbdf9dc3f03556cfc0a",
+        "outputSha256": "541013d2df27ffe0944fcec7dd4124e9c2c884649edc6ec21545784f4118ce54"
+      },
+      "elapsedMs": 94
+    },
+    {
+      "extension": "csv",
+      "level": 3,
+      "target": "xlsx",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 34,
+        "sourceColumns": 6,
+        "candidateIds": 33,
+        "idsCompared": 33,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 33,
+        "type": "string",
+        "nonIdCellParity": 170,
+        "originalSha256": "b5be76ac749c60c8f059e9e31a49ccfd1430ff51e30b3fa5495d00e8a808e3f4",
+        "outputSha256": "2b4dafeb359d96e462e17845314445ea8830b9fa2637a956441d1202150781d6"
+      },
+      "elapsedMs": 78
+    },
+    {
+      "extension": "csv",
+      "level": 3,
+      "target": "xlsm",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 34,
+        "sourceColumns": 6,
+        "candidateIds": 33,
+        "idsCompared": 33,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 33,
+        "type": "string",
+        "nonIdCellParity": 170,
+        "originalSha256": "b5be76ac749c60c8f059e9e31a49ccfd1430ff51e30b3fa5495d00e8a808e3f4",
+        "outputSha256": "9fb28313a8388b5b649cc2d92dd54cf9bb843900debe31b9cf99dbcb0d68b076"
+      },
+      "elapsedMs": 4016
+    },
+    {
+      "extension": "csv",
+      "level": 3,
+      "target": "xltx",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 34,
+        "sourceColumns": 6,
+        "candidateIds": 33,
+        "idsCompared": 33,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 33,
+        "type": "string",
+        "nonIdCellParity": 170,
+        "originalSha256": "b5be76ac749c60c8f059e9e31a49ccfd1430ff51e30b3fa5495d00e8a808e3f4",
+        "outputSha256": "7a0725d619e6b4948c6fa1d199a050cd578bd0ca568f0c9f1d53b81f2e0642db"
+      },
+      "elapsedMs": 3890
+    },
+    {
+      "extension": "csv",
+      "level": 3,
+      "target": "xltm",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 34,
+        "sourceColumns": 6,
+        "candidateIds": 33,
+        "idsCompared": 33,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 33,
+        "type": "string",
+        "nonIdCellParity": 170,
+        "originalSha256": "b5be76ac749c60c8f059e9e31a49ccfd1430ff51e30b3fa5495d00e8a808e3f4",
+        "outputSha256": "d6629042f58ff29c78d499cbc868be4f531f513986076a31b09a5ba4e33263d4"
+      },
+      "elapsedMs": 78
+    },
+    {
+      "extension": "csv",
+      "level": 4,
+      "target": "xlsx",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 43,
+        "sourceColumns": 6,
+        "candidateIds": 42,
+        "idsCompared": 42,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 42,
+        "type": "string",
+        "nonIdCellParity": 215,
+        "originalSha256": "c1ef8506518e6efe91f673341159e3c2406ec773888fe79bd650e5b15c558f8a",
+        "outputSha256": "b0d63aeebcbcf545ce38a97318ddaa596fc519147105c4abe69b82cc43b81943"
+      },
+      "elapsedMs": 79
+    },
+    {
+      "extension": "csv",
+      "level": 4,
+      "target": "xlsm",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 43,
+        "sourceColumns": 6,
+        "candidateIds": 42,
+        "idsCompared": 42,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 42,
+        "type": "string",
+        "nonIdCellParity": 215,
+        "originalSha256": "c1ef8506518e6efe91f673341159e3c2406ec773888fe79bd650e5b15c558f8a",
+        "outputSha256": "970a7d939cda5d8d1c3e82540a7c89b45a91e39e6d7b8221291d7949cef85282"
+      },
+      "elapsedMs": 4000
+    },
+    {
+      "extension": "csv",
+      "level": 4,
+      "target": "xltx",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 43,
+        "sourceColumns": 6,
+        "candidateIds": 42,
+        "idsCompared": 42,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 42,
+        "type": "string",
+        "nonIdCellParity": 215,
+        "originalSha256": "c1ef8506518e6efe91f673341159e3c2406ec773888fe79bd650e5b15c558f8a",
+        "outputSha256": "950e979dbb56ab5cda8fb58710afac9dd16c9bbfb2650e0497be33336fb74905"
+      },
+      "elapsedMs": 4453
+    },
+    {
+      "extension": "csv",
+      "level": 4,
+      "target": "xltm",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 43,
+        "sourceColumns": 6,
+        "candidateIds": 42,
+        "idsCompared": 42,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 42,
+        "type": "string",
+        "nonIdCellParity": 215,
+        "originalSha256": "c1ef8506518e6efe91f673341159e3c2406ec773888fe79bd650e5b15c558f8a",
+        "outputSha256": "a89ae8097209473b61f45115376333c3e9b63a621628165f306ef26738074693"
+      },
+      "elapsedMs": 156
+    },
+    {
+      "extension": "csv",
+      "level": 5,
+      "target": "xlsx",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 52,
+        "sourceColumns": 6,
+        "candidateIds": 51,
+        "idsCompared": 51,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 51,
+        "type": "string",
+        "nonIdCellParity": 260,
+        "originalSha256": "4f1c683c39e797db80383f0225f7520b36db71d3fa78b5de899617da22d7dab9",
+        "outputSha256": "a6cbfdd2e3183e88500c7adbd4b9b4c3e48fb7af6cc3208aa3037de707eaa917"
+      },
+      "elapsedMs": 109
+    },
+    {
+      "extension": "csv",
+      "level": 5,
+      "target": "xlsm",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 52,
+        "sourceColumns": 6,
+        "candidateIds": 51,
+        "idsCompared": 51,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 51,
+        "type": "string",
+        "nonIdCellParity": 260,
+        "originalSha256": "4f1c683c39e797db80383f0225f7520b36db71d3fa78b5de899617da22d7dab9",
+        "outputSha256": "53bc193f058bbbca51b0538c70e009530bd945e91096e3a3c2ddd8b44ca51e8c"
+      },
+      "elapsedMs": 4469
+    },
+    {
+      "extension": "csv",
+      "level": 5,
+      "target": "xltx",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 52,
+        "sourceColumns": 6,
+        "candidateIds": 51,
+        "idsCompared": 51,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 51,
+        "type": "string",
+        "nonIdCellParity": 260,
+        "originalSha256": "4f1c683c39e797db80383f0225f7520b36db71d3fa78b5de899617da22d7dab9",
+        "outputSha256": "2aa48c07b200a151c69cecdf9d53ff007dfc49f12c4e1963f6d8a93ebb17961d"
+      },
+      "elapsedMs": 4703
+    },
+    {
+      "extension": "csv",
+      "level": 5,
+      "target": "xltm",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 52,
+        "sourceColumns": 6,
+        "candidateIds": 51,
+        "idsCompared": 51,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 51,
+        "type": "string",
+        "nonIdCellParity": 260,
+        "originalSha256": "4f1c683c39e797db80383f0225f7520b36db71d3fa78b5de899617da22d7dab9",
+        "outputSha256": "fe2f1ff0bcfa8fc3e59cc04db746d81a7003d2e199d64caa9786257473ede8c0"
+      },
+      "elapsedMs": 109
+    },
+    {
+      "extension": "csv",
+      "level": 6,
+      "target": "xlsx",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 61,
+        "sourceColumns": 6,
+        "candidateIds": 60,
+        "idsCompared": 60,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 60,
+        "type": "string",
+        "nonIdCellParity": 305,
+        "originalSha256": "f56f87db7021a50967573495cdeab5c83b50321d5fc7d169b8fbdb5334392b32",
+        "outputSha256": "bd38e8dee97d1a9695f00f15c87286a214cb28e82758303ed44b36ad7d51e01d"
+      },
+      "elapsedMs": 94
+    },
+    {
+      "extension": "csv",
+      "level": 6,
+      "target": "xlsm",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 61,
+        "sourceColumns": 6,
+        "candidateIds": 60,
+        "idsCompared": 60,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 60,
+        "type": "string",
+        "nonIdCellParity": 305,
+        "originalSha256": "f56f87db7021a50967573495cdeab5c83b50321d5fc7d169b8fbdb5334392b32",
+        "outputSha256": "78cb1376a5c0d73ada31e4d5fe4003fc775c71d22a2c79fbe2b16c7372d6e38b"
+      },
+      "elapsedMs": 4406
+    },
+    {
+      "extension": "csv",
+      "level": 6,
+      "target": "xltx",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 61,
+        "sourceColumns": 6,
+        "candidateIds": 60,
+        "idsCompared": 60,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 60,
+        "type": "string",
+        "nonIdCellParity": 305,
+        "originalSha256": "f56f87db7021a50967573495cdeab5c83b50321d5fc7d169b8fbdb5334392b32",
+        "outputSha256": "7915cdfbe6c848e1b8fdaee70d55d9613f26f5fdaa86b6f402f0150db37c71cc"
+      },
+      "elapsedMs": 4563
+    },
+    {
+      "extension": "csv",
+      "level": 6,
+      "target": "xltm",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 61,
+        "sourceColumns": 6,
+        "candidateIds": 60,
+        "idsCompared": 60,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 60,
+        "type": "string",
+        "nonIdCellParity": 305,
+        "originalSha256": "f56f87db7021a50967573495cdeab5c83b50321d5fc7d169b8fbdb5334392b32",
+        "outputSha256": "7f2dcc78dcf240a3319c65baa4a9645d27ea13b5019e187b05cb003c1f1e2ba3"
+      },
+      "elapsedMs": 94
+    },
+    {
+      "extension": "csv",
+      "level": 7,
+      "target": "xlsx",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 70,
+        "sourceColumns": 6,
+        "candidateIds": 69,
+        "idsCompared": 69,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 69,
+        "type": "string",
+        "nonIdCellParity": 350,
+        "originalSha256": "14571c45e511ce7071e724b052c1809439ee29ecdda7768e9bf37f2800c5b8f9",
+        "outputSha256": "cc961be31605df6f1ff12754ff352ea444e6ae3f11b30a1cffaf7d5c90d4f092"
+      },
+      "elapsedMs": 109
+    },
+    {
+      "extension": "csv",
+      "level": 7,
+      "target": "xlsm",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 70,
+        "sourceColumns": 6,
+        "candidateIds": 69,
+        "idsCompared": 69,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 69,
+        "type": "string",
+        "nonIdCellParity": 350,
+        "originalSha256": "14571c45e511ce7071e724b052c1809439ee29ecdda7768e9bf37f2800c5b8f9",
+        "outputSha256": "6adcbae51458cb988f0419703cb1c93fb64139729f709ef46561928f14c36a38"
+      },
+      "elapsedMs": 4532
+    },
+    {
+      "extension": "csv",
+      "level": 7,
+      "target": "xltx",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 70,
+        "sourceColumns": 6,
+        "candidateIds": 69,
+        "idsCompared": 69,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 69,
+        "type": "string",
+        "nonIdCellParity": 350,
+        "originalSha256": "14571c45e511ce7071e724b052c1809439ee29ecdda7768e9bf37f2800c5b8f9",
+        "outputSha256": "53b648590c3520a42d69f4f74356f7fc011fdf40a3bd2eee464c0336c3234ef3"
+      },
+      "elapsedMs": 4375
+    },
+    {
+      "extension": "csv",
+      "level": 7,
+      "target": "xltm",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 70,
+        "sourceColumns": 6,
+        "candidateIds": 69,
+        "idsCompared": 69,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 69,
+        "type": "string",
+        "nonIdCellParity": 350,
+        "originalSha256": "14571c45e511ce7071e724b052c1809439ee29ecdda7768e9bf37f2800c5b8f9",
+        "outputSha256": "910f35295076fbdb2d758f9029487a10096103bea0a8694fa13881f51c9bda06"
+      },
+      "elapsedMs": 109
+    },
+    {
+      "extension": "csv",
+      "level": 8,
+      "target": "xlsx",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 79,
+        "sourceColumns": 6,
+        "candidateIds": 78,
+        "idsCompared": 78,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 78,
+        "type": "string",
+        "nonIdCellParity": 395,
+        "originalSha256": "9e4e9a6333fa48c4ca5ef036cb70eefc7e7d8d64d6c0e1ab0f6d2f8510515bdc",
+        "outputSha256": "afd97b61bc2956f62e36dbe4b2f781d28d6dcce42a9a0064f2c4de01be067b41"
+      },
+      "elapsedMs": 94
+    },
+    {
+      "extension": "csv",
+      "level": 8,
+      "target": "xlsm",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 79,
+        "sourceColumns": 6,
+        "candidateIds": 78,
+        "idsCompared": 78,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 78,
+        "type": "string",
+        "nonIdCellParity": 395,
+        "originalSha256": "9e4e9a6333fa48c4ca5ef036cb70eefc7e7d8d64d6c0e1ab0f6d2f8510515bdc",
+        "outputSha256": "37d3b30b8fd338cc4c538085367f52ba629b730884fbbc9de4ba97d9de509075"
+      },
+      "elapsedMs": 3984
+    },
+    {
+      "extension": "csv",
+      "level": 8,
+      "target": "xltx",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 79,
+        "sourceColumns": 6,
+        "candidateIds": 78,
+        "idsCompared": 78,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 78,
+        "type": "string",
+        "nonIdCellParity": 395,
+        "originalSha256": "9e4e9a6333fa48c4ca5ef036cb70eefc7e7d8d64d6c0e1ab0f6d2f8510515bdc",
+        "outputSha256": "ae726fa128f6ac7429a2ecb6dd38c502ccd47bfcf1dcd1fda6f2e6c3913f2e36"
+      },
+      "elapsedMs": 3954
+    },
+    {
+      "extension": "csv",
+      "level": 8,
+      "target": "xltm",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 79,
+        "sourceColumns": 6,
+        "candidateIds": 78,
+        "idsCompared": 78,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 78,
+        "type": "string",
+        "nonIdCellParity": 395,
+        "originalSha256": "9e4e9a6333fa48c4ca5ef036cb70eefc7e7d8d64d6c0e1ab0f6d2f8510515bdc",
+        "outputSha256": "c7504015eea02f210a6f9e0ba12763bd0a174d8f24bb47997c4aca85076aea6d"
+      },
+      "elapsedMs": 93
+    },
+    {
+      "extension": "tab",
+      "level": 1,
+      "target": "xlsx",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 16,
+        "sourceColumns": 6,
+        "candidateIds": 15,
+        "idsCompared": 15,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 15,
+        "type": "string",
+        "nonIdCellParity": 80,
+        "originalSha256": "1811335c19e2de6a60c03427a1507466e3bd98e2f174a144a4267e70e197b354",
+        "outputSha256": "defaebcb0be2a11cd3eab6304e7feef082eb5436716bd3ff49f2d4f2daa9524e"
+      },
+      "elapsedMs": 78
+    },
+    {
+      "extension": "tab",
+      "level": 1,
+      "target": "xlsm",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 16,
+        "sourceColumns": 6,
+        "candidateIds": 15,
+        "idsCompared": 15,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 15,
+        "type": "string",
+        "nonIdCellParity": 80,
+        "originalSha256": "1811335c19e2de6a60c03427a1507466e3bd98e2f174a144a4267e70e197b354",
+        "outputSha256": "6bd3a4885ac17989e5605cc6f620d7fa305e1c08a8eddef15bf61e294132d29f"
+      },
+      "elapsedMs": 3938
+    },
+    {
+      "extension": "tab",
+      "level": 1,
+      "target": "xltx",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 16,
+        "sourceColumns": 6,
+        "candidateIds": 15,
+        "idsCompared": 15,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 15,
+        "type": "string",
+        "nonIdCellParity": 80,
+        "originalSha256": "1811335c19e2de6a60c03427a1507466e3bd98e2f174a144a4267e70e197b354",
+        "outputSha256": "60821dca3fd0e9dbe72a70c7404766376224096e634c5c1b9c0675817e32f49f"
+      },
+      "elapsedMs": 3984
+    },
+    {
+      "extension": "tab",
+      "level": 1,
+      "target": "xltm",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 16,
+        "sourceColumns": 6,
+        "candidateIds": 15,
+        "idsCompared": 15,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 15,
+        "type": "string",
+        "nonIdCellParity": 80,
+        "originalSha256": "1811335c19e2de6a60c03427a1507466e3bd98e2f174a144a4267e70e197b354",
+        "outputSha256": "9725ea52135d499c5af1520fbccda6ccda688b0ae1b977a4931221d30860dd8e"
+      },
+      "elapsedMs": 94
+    },
+    {
+      "extension": "tab",
+      "level": 2,
+      "target": "xlsx",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 25,
+        "sourceColumns": 6,
+        "candidateIds": 24,
+        "idsCompared": 24,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 24,
+        "type": "string",
+        "nonIdCellParity": 125,
+        "originalSha256": "cd055a37beecf9cc7280cc48a62a9341fe54e069eb97eb74d7d2cc4fc057f727",
+        "outputSha256": "0c10d6644c6c7e96134ef98cd7c8528c944affdcd53ff8123ec9082f3386aad1"
+      },
+      "elapsedMs": 78
+    },
+    {
+      "extension": "tab",
+      "level": 2,
+      "target": "xlsm",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 25,
+        "sourceColumns": 6,
+        "candidateIds": 24,
+        "idsCompared": 24,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 24,
+        "type": "string",
+        "nonIdCellParity": 125,
+        "originalSha256": "cd055a37beecf9cc7280cc48a62a9341fe54e069eb97eb74d7d2cc4fc057f727",
+        "outputSha256": "e2f156a20a605f86ea1607ca52c71df3c3b1e6371c92b40fc95a4c909dec6550"
+      },
+      "elapsedMs": 4953
+    },
+    {
+      "extension": "tab",
+      "level": 2,
+      "target": "xltx",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 25,
+        "sourceColumns": 6,
+        "candidateIds": 24,
+        "idsCompared": 24,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 24,
+        "type": "string",
+        "nonIdCellParity": 125,
+        "originalSha256": "cd055a37beecf9cc7280cc48a62a9341fe54e069eb97eb74d7d2cc4fc057f727",
+        "outputSha256": "f690489af3c8de36c135a7707c2db3639535ab6c56f2e05775bf07e39a349aa2"
+      },
+      "elapsedMs": 4016
+    },
+    {
+      "extension": "tab",
+      "level": 2,
+      "target": "xltm",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 25,
+        "sourceColumns": 6,
+        "candidateIds": 24,
+        "idsCompared": 24,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 24,
+        "type": "string",
+        "nonIdCellParity": 125,
+        "originalSha256": "cd055a37beecf9cc7280cc48a62a9341fe54e069eb97eb74d7d2cc4fc057f727",
+        "outputSha256": "89af4cf141d7279d2f1e38f8d6e5762b6cc9c8847c53fa8e238acd27b440ce6a"
+      },
+      "elapsedMs": 78
+    },
+    {
+      "extension": "tab",
+      "level": 3,
+      "target": "xlsx",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 34,
+        "sourceColumns": 6,
+        "candidateIds": 33,
+        "idsCompared": 33,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 33,
+        "type": "string",
+        "nonIdCellParity": 170,
+        "originalSha256": "4a97d348c658685294a5168abb3841d0e0ccd0534952f9a3ec66376bef8c7708",
+        "outputSha256": "925a159e1ffae944247ede50e86808fe5fa49b63174a348359d7f65702f7d720"
+      },
+      "elapsedMs": 125
+    },
+    {
+      "extension": "tab",
+      "level": 3,
+      "target": "xlsm",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 34,
+        "sourceColumns": 6,
+        "candidateIds": 33,
+        "idsCompared": 33,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 33,
+        "type": "string",
+        "nonIdCellParity": 170,
+        "originalSha256": "4a97d348c658685294a5168abb3841d0e0ccd0534952f9a3ec66376bef8c7708",
+        "outputSha256": "0bf7e41db23d31a99338e92f2fd5c6475c2c322358c3dffddb20049782db25df"
+      },
+      "elapsedMs": 4000
+    },
+    {
+      "extension": "tab",
+      "level": 3,
+      "target": "xltx",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 34,
+        "sourceColumns": 6,
+        "candidateIds": 33,
+        "idsCompared": 33,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 33,
+        "type": "string",
+        "nonIdCellParity": 170,
+        "originalSha256": "4a97d348c658685294a5168abb3841d0e0ccd0534952f9a3ec66376bef8c7708",
+        "outputSha256": "5230a24622d5ccbab792d09c3b9ba49a05657d7f938e9d6ed9b39dae0399fd57"
+      },
+      "elapsedMs": 4093
+    },
+    {
+      "extension": "tab",
+      "level": 3,
+      "target": "xltm",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 34,
+        "sourceColumns": 6,
+        "candidateIds": 33,
+        "idsCompared": 33,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 33,
+        "type": "string",
+        "nonIdCellParity": 170,
+        "originalSha256": "4a97d348c658685294a5168abb3841d0e0ccd0534952f9a3ec66376bef8c7708",
+        "outputSha256": "ecb5859d2dc92a20f5f6ff98fa64d8f5f8f5d41244f1b3ad2cc9ff612a89b7e7"
+      },
+      "elapsedMs": 78
+    },
+    {
+      "extension": "tab",
+      "level": 4,
+      "target": "xlsx",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 43,
+        "sourceColumns": 6,
+        "candidateIds": 42,
+        "idsCompared": 42,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 42,
+        "type": "string",
+        "nonIdCellParity": 215,
+        "originalSha256": "904caa9ed92196579b07fc782fc5da3258cd96f8ee55be002b855729d9bee3b6",
+        "outputSha256": "dba0308348168399a0e99a74d7de8e8e96dbf551ff61b9b8a3dada762522392a"
+      },
+      "elapsedMs": 78
+    },
+    {
+      "extension": "tab",
+      "level": 4,
+      "target": "xlsm",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 43,
+        "sourceColumns": 6,
+        "candidateIds": 42,
+        "idsCompared": 42,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 42,
+        "type": "string",
+        "nonIdCellParity": 215,
+        "originalSha256": "904caa9ed92196579b07fc782fc5da3258cd96f8ee55be002b855729d9bee3b6",
+        "outputSha256": "57a2b825bcdd2f9b594fa7fb2e22c7fd080e0a196501efd9c8f3faccf9063615"
+      },
+      "elapsedMs": 3984
+    },
+    {
+      "extension": "tab",
+      "level": 4,
+      "target": "xltx",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 43,
+        "sourceColumns": 6,
+        "candidateIds": 42,
+        "idsCompared": 42,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 42,
+        "type": "string",
+        "nonIdCellParity": 215,
+        "originalSha256": "904caa9ed92196579b07fc782fc5da3258cd96f8ee55be002b855729d9bee3b6",
+        "outputSha256": "1fd18bf3414555b3451af6ba4f36a3aaa4d45f7da1f8b5448a83ae438ddf109f"
+      },
+      "elapsedMs": 3953
+    },
+    {
+      "extension": "tab",
+      "level": 4,
+      "target": "xltm",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 43,
+        "sourceColumns": 6,
+        "candidateIds": 42,
+        "idsCompared": 42,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 42,
+        "type": "string",
+        "nonIdCellParity": 215,
+        "originalSha256": "904caa9ed92196579b07fc782fc5da3258cd96f8ee55be002b855729d9bee3b6",
+        "outputSha256": "87588e5e3ddef70a9bfe3de2aadf9790ed63dbabac5379a718cfc2d485b0d6a5"
+      },
+      "elapsedMs": 79
+    },
+    {
+      "extension": "tab",
+      "level": 5,
+      "target": "xlsx",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 52,
+        "sourceColumns": 6,
+        "candidateIds": 51,
+        "idsCompared": 51,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 51,
+        "type": "string",
+        "nonIdCellParity": 260,
+        "originalSha256": "d453ff9dba24132a64677f5c7c8394a1fe4bdc5017306c78e1c922b420a8d8a4",
+        "outputSha256": "e9134b689f084426696687413b365f663518543285616d910e1669dc6fec3577"
+      },
+      "elapsedMs": 78
+    },
+    {
+      "extension": "tab",
+      "level": 5,
+      "target": "xlsm",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 52,
+        "sourceColumns": 6,
+        "candidateIds": 51,
+        "idsCompared": 51,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 51,
+        "type": "string",
+        "nonIdCellParity": 260,
+        "originalSha256": "d453ff9dba24132a64677f5c7c8394a1fe4bdc5017306c78e1c922b420a8d8a4",
+        "outputSha256": "7d39934c72d54db09245fea086778fb41f7b9f0046b59eef30aafd81bc897633"
+      },
+      "elapsedMs": 3937
+    },
+    {
+      "extension": "tab",
+      "level": 5,
+      "target": "xltx",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 52,
+        "sourceColumns": 6,
+        "candidateIds": 51,
+        "idsCompared": 51,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 51,
+        "type": "string",
+        "nonIdCellParity": 260,
+        "originalSha256": "d453ff9dba24132a64677f5c7c8394a1fe4bdc5017306c78e1c922b420a8d8a4",
+        "outputSha256": "90e2995cb10fb77abc4dfd96fb420342f0ce77fc10e23e15dd28d9b82b9376b8"
+      },
+      "elapsedMs": 4172
+    },
+    {
+      "extension": "tab",
+      "level": 5,
+      "target": "xltm",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 52,
+        "sourceColumns": 6,
+        "candidateIds": 51,
+        "idsCompared": 51,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 51,
+        "type": "string",
+        "nonIdCellParity": 260,
+        "originalSha256": "d453ff9dba24132a64677f5c7c8394a1fe4bdc5017306c78e1c922b420a8d8a4",
+        "outputSha256": "8deaa1e8fcaf627a57c4efb31270e340e632cba6792f28ffabe10aa0d867c75a"
+      },
+      "elapsedMs": 172
+    },
+    {
+      "extension": "tab",
+      "level": 6,
+      "target": "xlsx",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 61,
+        "sourceColumns": 6,
+        "candidateIds": 60,
+        "idsCompared": 60,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 60,
+        "type": "string",
+        "nonIdCellParity": 305,
+        "originalSha256": "0e12b56930483ae8525453beac9388736cafbdc6fa7b65b02899a3e7a4f0be4b",
+        "outputSha256": "af6278353bd0e36f524989228659e3dfc7062637aade95b3bd2ddcda2e7904a6"
+      },
+      "elapsedMs": 94
+    },
+    {
+      "extension": "tab",
+      "level": 6,
+      "target": "xlsm",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 61,
+        "sourceColumns": 6,
+        "candidateIds": 60,
+        "idsCompared": 60,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 60,
+        "type": "string",
+        "nonIdCellParity": 305,
+        "originalSha256": "0e12b56930483ae8525453beac9388736cafbdc6fa7b65b02899a3e7a4f0be4b",
+        "outputSha256": "c6b234bfe16aed466bb10fbe21a095c9e5c8bfd779dda86c8845039d6844f9e7"
+      },
+      "elapsedMs": 5265
+    },
+    {
+      "extension": "tab",
+      "level": 6,
+      "target": "xltx",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 61,
+        "sourceColumns": 6,
+        "candidateIds": 60,
+        "idsCompared": 60,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 60,
+        "type": "string",
+        "nonIdCellParity": 305,
+        "originalSha256": "0e12b56930483ae8525453beac9388736cafbdc6fa7b65b02899a3e7a4f0be4b",
+        "outputSha256": "a302dde973598e73f9bfc071e0f060b7c3a8c17642e23a9f6f1a320e530dbbfb"
+      },
+      "elapsedMs": 4500
+    },
+    {
+      "extension": "tab",
+      "level": 6,
+      "target": "xltm",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 61,
+        "sourceColumns": 6,
+        "candidateIds": 60,
+        "idsCompared": 60,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 60,
+        "type": "string",
+        "nonIdCellParity": 305,
+        "originalSha256": "0e12b56930483ae8525453beac9388736cafbdc6fa7b65b02899a3e7a4f0be4b",
+        "outputSha256": "815fd78723130ce41d819614f0697d7ad93d22a898915ea013ab52406ca0dc41"
+      },
+      "elapsedMs": 94
+    },
+    {
+      "extension": "tab",
+      "level": 7,
+      "target": "xlsx",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 70,
+        "sourceColumns": 6,
+        "candidateIds": 69,
+        "idsCompared": 69,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 69,
+        "type": "string",
+        "nonIdCellParity": 350,
+        "originalSha256": "8e31e77deaef3286c2251445a60bb11c222b0087400c65bcd1bd1edaf11ecdd7",
+        "outputSha256": "c08b812abdf2a36fb387ba7c5c06824d0c91e88a98927e19ab6d3bd824271c4b"
+      },
+      "elapsedMs": 94
+    },
+    {
+      "extension": "tab",
+      "level": 7,
+      "target": "xlsm",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 70,
+        "sourceColumns": 6,
+        "candidateIds": 69,
+        "idsCompared": 69,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 69,
+        "type": "string",
+        "nonIdCellParity": 350,
+        "originalSha256": "8e31e77deaef3286c2251445a60bb11c222b0087400c65bcd1bd1edaf11ecdd7",
+        "outputSha256": "17b0007b57a5ebb9cf5d9d7351f03a6eda29d251ecc7c7117864905b617bd77d"
+      },
+      "elapsedMs": 3953
+    },
+    {
+      "extension": "tab",
+      "level": 7,
+      "target": "xltx",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 70,
+        "sourceColumns": 6,
+        "candidateIds": 69,
+        "idsCompared": 69,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 69,
+        "type": "string",
+        "nonIdCellParity": 350,
+        "originalSha256": "8e31e77deaef3286c2251445a60bb11c222b0087400c65bcd1bd1edaf11ecdd7",
+        "outputSha256": "31a7b80e7a223bceb5701f117cbada0c363ff71fcd252e195c0f3df8f63b6291"
+      },
+      "elapsedMs": 3484
+    },
+    {
+      "extension": "tab",
+      "level": 7,
+      "target": "xltm",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 70,
+        "sourceColumns": 6,
+        "candidateIds": 69,
+        "idsCompared": 69,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 69,
+        "type": "string",
+        "nonIdCellParity": 350,
+        "originalSha256": "8e31e77deaef3286c2251445a60bb11c222b0087400c65bcd1bd1edaf11ecdd7",
+        "outputSha256": "2add6dcdb7479b3b5e0e7f02e968144c2595bc1a15d4f984f245cac21e046718"
+      },
+      "elapsedMs": 110
+    },
+    {
+      "extension": "tab",
+      "level": 8,
+      "target": "xlsx",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 79,
+        "sourceColumns": 6,
+        "candidateIds": 78,
+        "idsCompared": 78,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 78,
+        "type": "string",
+        "nonIdCellParity": 395,
+        "originalSha256": "07b3c8e84bf76bde29b34666ea1be0cc397ebe3ae2907a1f89d29e3451ac4b63",
+        "outputSha256": "3b8b6af4b790d8d80c6758b297e1904856badb0c03da56583abc9e6851526ce5"
+      },
+      "elapsedMs": 78
+    },
+    {
+      "extension": "tab",
+      "level": 8,
+      "target": "xlsm",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 79,
+        "sourceColumns": 6,
+        "candidateIds": 78,
+        "idsCompared": 78,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 78,
+        "type": "string",
+        "nonIdCellParity": 395,
+        "originalSha256": "07b3c8e84bf76bde29b34666ea1be0cc397ebe3ae2907a1f89d29e3451ac4b63",
+        "outputSha256": "777889926bcf945f7c0b75562d69b27cfa25727cb77e30e034d5e6c3854ae6a0"
+      },
+      "elapsedMs": 3563
+    },
+    {
+      "extension": "tab",
+      "level": 8,
+      "target": "xltx",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 79,
+        "sourceColumns": 6,
+        "candidateIds": 78,
+        "idsCompared": 78,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 78,
+        "type": "string",
+        "nonIdCellParity": 395,
+        "originalSha256": "07b3c8e84bf76bde29b34666ea1be0cc397ebe3ae2907a1f89d29e3451ac4b63",
+        "outputSha256": "1205a0e398ed1eb31e88c09b2f99aa5ab4adf9ef3b31055e6d3eff2cf237249c"
+      },
+      "elapsedMs": 3890
+    },
+    {
+      "extension": "tab",
+      "level": 8,
+      "target": "xltm",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 79,
+        "sourceColumns": 6,
+        "candidateIds": 78,
+        "idsCompared": 78,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 78,
+        "type": "string",
+        "nonIdCellParity": 395,
+        "originalSha256": "07b3c8e84bf76bde29b34666ea1be0cc397ebe3ae2907a1f89d29e3451ac4b63",
+        "outputSha256": "b7be86e9607bad434ebc2ed505c1a7da2459fa7349778bc848a563720822b26f"
+      },
+      "elapsedMs": 110
+    },
+    {
+      "extension": "tsv",
+      "level": 1,
+      "target": "xlsx",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 16,
+        "sourceColumns": 6,
+        "candidateIds": 15,
+        "idsCompared": 15,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 15,
+        "type": "string",
+        "nonIdCellParity": 80,
+        "originalSha256": "1811335c19e2de6a60c03427a1507466e3bd98e2f174a144a4267e70e197b354",
+        "outputSha256": "f4b4c640c9d3522e9ec8a7118abf4cb543e99b8874db437fa0ef27d991bf98f7"
+      },
+      "elapsedMs": 78
+    },
+    {
+      "extension": "tsv",
+      "level": 1,
+      "target": "xlsm",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 16,
+        "sourceColumns": 6,
+        "candidateIds": 15,
+        "idsCompared": 15,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 15,
+        "type": "string",
+        "nonIdCellParity": 80,
+        "originalSha256": "1811335c19e2de6a60c03427a1507466e3bd98e2f174a144a4267e70e197b354",
+        "outputSha256": "88d2e9e95806f32cff30ab4272b3540292d2c75b1992b68b600e99b5ba384b29"
+      },
+      "elapsedMs": 4188
+    },
+    {
+      "extension": "tsv",
+      "level": 1,
+      "target": "xltx",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 16,
+        "sourceColumns": 6,
+        "candidateIds": 15,
+        "idsCompared": 15,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 15,
+        "type": "string",
+        "nonIdCellParity": 80,
+        "originalSha256": "1811335c19e2de6a60c03427a1507466e3bd98e2f174a144a4267e70e197b354",
+        "outputSha256": "f4fe890e8c86e73b4ee60c83cc0490951f1527b6f90ce0dc7b34c40ddc2a3846"
+      },
+      "elapsedMs": 4203
+    },
+    {
+      "extension": "tsv",
+      "level": 1,
+      "target": "xltm",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 16,
+        "sourceColumns": 6,
+        "candidateIds": 15,
+        "idsCompared": 15,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 15,
+        "type": "string",
+        "nonIdCellParity": 80,
+        "originalSha256": "1811335c19e2de6a60c03427a1507466e3bd98e2f174a144a4267e70e197b354",
+        "outputSha256": "34865bbaed0ba7665bf4aaf562c58425a199b8135deba498087853be1edd8b16"
+      },
+      "elapsedMs": 93
+    },
+    {
+      "extension": "tsv",
+      "level": 2,
+      "target": "xlsx",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 25,
+        "sourceColumns": 6,
+        "candidateIds": 24,
+        "idsCompared": 24,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 24,
+        "type": "string",
+        "nonIdCellParity": 125,
+        "originalSha256": "cd055a37beecf9cc7280cc48a62a9341fe54e069eb97eb74d7d2cc4fc057f727",
+        "outputSha256": "5caa6bd9b563c740214f364e8809366424ffdcbe77724790b9a63ed3082371b9"
+      },
+      "elapsedMs": 78
+    },
+    {
+      "extension": "tsv",
+      "level": 2,
+      "target": "xlsm",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 25,
+        "sourceColumns": 6,
+        "candidateIds": 24,
+        "idsCompared": 24,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 24,
+        "type": "string",
+        "nonIdCellParity": 125,
+        "originalSha256": "cd055a37beecf9cc7280cc48a62a9341fe54e069eb97eb74d7d2cc4fc057f727",
+        "outputSha256": "124628aa9b2fb5b33843aeec6c4f9fe5026d5195d67e98e8b520d911aa61bd0d"
+      },
+      "elapsedMs": 4563
+    },
+    {
+      "extension": "tsv",
+      "level": 2,
+      "target": "xltx",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 25,
+        "sourceColumns": 6,
+        "candidateIds": 24,
+        "idsCompared": 24,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 24,
+        "type": "string",
+        "nonIdCellParity": 125,
+        "originalSha256": "cd055a37beecf9cc7280cc48a62a9341fe54e069eb97eb74d7d2cc4fc057f727",
+        "outputSha256": "c65ad414f2e8c8e6b3f62d9cba67aef2007a940bd745dd7d51dd0bc4766fb77a"
+      },
+      "elapsedMs": 4140
+    },
+    {
+      "extension": "tsv",
+      "level": 2,
+      "target": "xltm",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 25,
+        "sourceColumns": 6,
+        "candidateIds": 24,
+        "idsCompared": 24,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 24,
+        "type": "string",
+        "nonIdCellParity": 125,
+        "originalSha256": "cd055a37beecf9cc7280cc48a62a9341fe54e069eb97eb74d7d2cc4fc057f727",
+        "outputSha256": "dac92c026d77cab29825335c5326d95135415d10eb77b52414c194561cf0604e"
+      },
+      "elapsedMs": 94
+    },
+    {
+      "extension": "tsv",
+      "level": 3,
+      "target": "xlsx",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 34,
+        "sourceColumns": 6,
+        "candidateIds": 33,
+        "idsCompared": 33,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 33,
+        "type": "string",
+        "nonIdCellParity": 170,
+        "originalSha256": "4a97d348c658685294a5168abb3841d0e0ccd0534952f9a3ec66376bef8c7708",
+        "outputSha256": "78f57f75423a46f107a0e9486e2766e6f89335a9a067d0a507ca31958feaf742"
+      },
+      "elapsedMs": 78
+    },
+    {
+      "extension": "tsv",
+      "level": 3,
+      "target": "xlsm",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 34,
+        "sourceColumns": 6,
+        "candidateIds": 33,
+        "idsCompared": 33,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 33,
+        "type": "string",
+        "nonIdCellParity": 170,
+        "originalSha256": "4a97d348c658685294a5168abb3841d0e0ccd0534952f9a3ec66376bef8c7708",
+        "outputSha256": "177e449b166cb01a13c2d860feb0187dfa67a54e5e2feeafe3d8b09fb2303fb3"
+      },
+      "elapsedMs": 3766
+    },
+    {
+      "extension": "tsv",
+      "level": 3,
+      "target": "xltx",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 34,
+        "sourceColumns": 6,
+        "candidateIds": 33,
+        "idsCompared": 33,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 33,
+        "type": "string",
+        "nonIdCellParity": 170,
+        "originalSha256": "4a97d348c658685294a5168abb3841d0e0ccd0534952f9a3ec66376bef8c7708",
+        "outputSha256": "a6c27d5aea9b1dcfea62bd783f1d3e689508b0b1851002ec5b9b313c2ebab405"
+      },
+      "elapsedMs": 3593
+    },
+    {
+      "extension": "tsv",
+      "level": 3,
+      "target": "xltm",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 34,
+        "sourceColumns": 6,
+        "candidateIds": 33,
+        "idsCompared": 33,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 33,
+        "type": "string",
+        "nonIdCellParity": 170,
+        "originalSha256": "4a97d348c658685294a5168abb3841d0e0ccd0534952f9a3ec66376bef8c7708",
+        "outputSha256": "a1c172222b131ef77a28239b345d7753ddb29b7f026b09a1e534ab64e46e1757"
+      },
+      "elapsedMs": 79
+    },
+    {
+      "extension": "tsv",
+      "level": 4,
+      "target": "xlsx",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 43,
+        "sourceColumns": 6,
+        "candidateIds": 42,
+        "idsCompared": 42,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 42,
+        "type": "string",
+        "nonIdCellParity": 215,
+        "originalSha256": "904caa9ed92196579b07fc782fc5da3258cd96f8ee55be002b855729d9bee3b6",
+        "outputSha256": "fd1d5c03257ba343381d8ea8e682fb9485317819c424bbc5dc6f260ea08523c4"
+      },
+      "elapsedMs": 78
+    },
+    {
+      "extension": "tsv",
+      "level": 4,
+      "target": "xlsm",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 43,
+        "sourceColumns": 6,
+        "candidateIds": 42,
+        "idsCompared": 42,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 42,
+        "type": "string",
+        "nonIdCellParity": 215,
+        "originalSha256": "904caa9ed92196579b07fc782fc5da3258cd96f8ee55be002b855729d9bee3b6",
+        "outputSha256": "e194d73455081f9cce43b797cd4eab8b67a8cd4233ef6e5cd5c1c4b48c11f90a"
+      },
+      "elapsedMs": 3782
+    },
+    {
+      "extension": "tsv",
+      "level": 4,
+      "target": "xltx",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 43,
+        "sourceColumns": 6,
+        "candidateIds": 42,
+        "idsCompared": 42,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 42,
+        "type": "string",
+        "nonIdCellParity": 215,
+        "originalSha256": "904caa9ed92196579b07fc782fc5da3258cd96f8ee55be002b855729d9bee3b6",
+        "outputSha256": "e3ca63fd78aedb1a57e0696c5025652f23f4372513e08ad179c4958ca282ec6b"
+      },
+      "elapsedMs": 3578
+    },
+    {
+      "extension": "tsv",
+      "level": 4,
+      "target": "xltm",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 43,
+        "sourceColumns": 6,
+        "candidateIds": 42,
+        "idsCompared": 42,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 42,
+        "type": "string",
+        "nonIdCellParity": 215,
+        "originalSha256": "904caa9ed92196579b07fc782fc5da3258cd96f8ee55be002b855729d9bee3b6",
+        "outputSha256": "4e796d7cd37b532eab6a5be4d5dbf9845bd2f4f31f93253cfae5b4b218333ce9"
+      },
+      "elapsedMs": 78
+    },
+    {
+      "extension": "tsv",
+      "level": 5,
+      "target": "xlsx",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 52,
+        "sourceColumns": 6,
+        "candidateIds": 51,
+        "idsCompared": 51,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 51,
+        "type": "string",
+        "nonIdCellParity": 260,
+        "originalSha256": "d453ff9dba24132a64677f5c7c8394a1fe4bdc5017306c78e1c922b420a8d8a4",
+        "outputSha256": "07bf4117afdf5c5b05ea0a8d69d7b20f24ed13b8be50aa760a61a31bf8ed502a"
+      },
+      "elapsedMs": 93
+    },
+    {
+      "extension": "tsv",
+      "level": 5,
+      "target": "xlsm",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 52,
+        "sourceColumns": 6,
+        "candidateIds": 51,
+        "idsCompared": 51,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 51,
+        "type": "string",
+        "nonIdCellParity": 260,
+        "originalSha256": "d453ff9dba24132a64677f5c7c8394a1fe4bdc5017306c78e1c922b420a8d8a4",
+        "outputSha256": "a28aea7ce0063137f541a23b50b34246527ff4543583b7f54d79cbdec303f5ba"
+      },
+      "elapsedMs": 3547
+    },
+    {
+      "extension": "tsv",
+      "level": 5,
+      "target": "xltx",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 52,
+        "sourceColumns": 6,
+        "candidateIds": 51,
+        "idsCompared": 51,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 51,
+        "type": "string",
+        "nonIdCellParity": 260,
+        "originalSha256": "d453ff9dba24132a64677f5c7c8394a1fe4bdc5017306c78e1c922b420a8d8a4",
+        "outputSha256": "19187118e1a65a6089c4f26245d527f35fc7da05eb5d67ef0c8f212937ba2a0a"
+      },
+      "elapsedMs": 3766
+    },
+    {
+      "extension": "tsv",
+      "level": 5,
+      "target": "xltm",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 52,
+        "sourceColumns": 6,
+        "candidateIds": 51,
+        "idsCompared": 51,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 51,
+        "type": "string",
+        "nonIdCellParity": 260,
+        "originalSha256": "d453ff9dba24132a64677f5c7c8394a1fe4bdc5017306c78e1c922b420a8d8a4",
+        "outputSha256": "eeb950c3ccfc32e825f6ac4a4872fb3127e5d7d23fdf89e2edc206c4a32de0f6"
+      },
+      "elapsedMs": 78
+    },
+    {
+      "extension": "tsv",
+      "level": 6,
+      "target": "xlsx",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 61,
+        "sourceColumns": 6,
+        "candidateIds": 60,
+        "idsCompared": 60,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 60,
+        "type": "string",
+        "nonIdCellParity": 305,
+        "originalSha256": "0e12b56930483ae8525453beac9388736cafbdc6fa7b65b02899a3e7a4f0be4b",
+        "outputSha256": "8bb32b4f78cc0e771c6bef34c8bccdab771a8a0e78834e20737f356744c16646"
+      },
+      "elapsedMs": 78
+    },
+    {
+      "extension": "tsv",
+      "level": 6,
+      "target": "xlsm",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 61,
+        "sourceColumns": 6,
+        "candidateIds": 60,
+        "idsCompared": 60,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 60,
+        "type": "string",
+        "nonIdCellParity": 305,
+        "originalSha256": "0e12b56930483ae8525453beac9388736cafbdc6fa7b65b02899a3e7a4f0be4b",
+        "outputSha256": "c68559d2da0198d7be8fe3258684872d394ee91a8b2b4f08c4639fd024dda596"
+      },
+      "elapsedMs": 3531
+    },
+    {
+      "extension": "tsv",
+      "level": 6,
+      "target": "xltx",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 61,
+        "sourceColumns": 6,
+        "candidateIds": 60,
+        "idsCompared": 60,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 60,
+        "type": "string",
+        "nonIdCellParity": 305,
+        "originalSha256": "0e12b56930483ae8525453beac9388736cafbdc6fa7b65b02899a3e7a4f0be4b",
+        "outputSha256": "eaef40304074b9b0309f162fde8cfa917cc0e67380dcf2e471d31d0d6a147da5"
+      },
+      "elapsedMs": 3688
+    },
+    {
+      "extension": "tsv",
+      "level": 6,
+      "target": "xltm",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 61,
+        "sourceColumns": 6,
+        "candidateIds": 60,
+        "idsCompared": 60,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 60,
+        "type": "string",
+        "nonIdCellParity": 305,
+        "originalSha256": "0e12b56930483ae8525453beac9388736cafbdc6fa7b65b02899a3e7a4f0be4b",
+        "outputSha256": "b4843a94c05134450c700459335df653fd5012219ab8166c49d459c4038c3681"
+      },
+      "elapsedMs": 109
+    },
+    {
+      "extension": "tsv",
+      "level": 7,
+      "target": "xlsx",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 70,
+        "sourceColumns": 6,
+        "candidateIds": 69,
+        "idsCompared": 69,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 69,
+        "type": "string",
+        "nonIdCellParity": 350,
+        "originalSha256": "8e31e77deaef3286c2251445a60bb11c222b0087400c65bcd1bd1edaf11ecdd7",
+        "outputSha256": "bfc33ef89cea8d6b7ca13c2f86257c738af4c677f4e5d9188e221d115af412ab"
+      },
+      "elapsedMs": 109
+    },
+    {
+      "extension": "tsv",
+      "level": 7,
+      "target": "xlsm",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 70,
+        "sourceColumns": 6,
+        "candidateIds": 69,
+        "idsCompared": 69,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 69,
+        "type": "string",
+        "nonIdCellParity": 350,
+        "originalSha256": "8e31e77deaef3286c2251445a60bb11c222b0087400c65bcd1bd1edaf11ecdd7",
+        "outputSha256": "a152e6f36eae4721327517c48d8dd7a59f3f91bf219311ba2a2a3ef4e2c25ef5"
+      },
+      "elapsedMs": 3547
+    },
+    {
+      "extension": "tsv",
+      "level": 7,
+      "target": "xltx",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 70,
+        "sourceColumns": 6,
+        "candidateIds": 69,
+        "idsCompared": 69,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 69,
+        "type": "string",
+        "nonIdCellParity": 350,
+        "originalSha256": "8e31e77deaef3286c2251445a60bb11c222b0087400c65bcd1bd1edaf11ecdd7",
+        "outputSha256": "3950ad5a9127a99ee1b55eb1e3ce1464d705b3bbf1edf75f16d901fe660e4df3"
+      },
+      "elapsedMs": 3578
+    },
+    {
+      "extension": "tsv",
+      "level": 7,
+      "target": "xltm",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 70,
+        "sourceColumns": 6,
+        "candidateIds": 69,
+        "idsCompared": 69,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 69,
+        "type": "string",
+        "nonIdCellParity": 350,
+        "originalSha256": "8e31e77deaef3286c2251445a60bb11c222b0087400c65bcd1bd1edaf11ecdd7",
+        "outputSha256": "50f4c4152beaf04ca366e4c3ea51148e54227275d1076a57bfbfd63b0e8addfb"
+      },
+      "elapsedMs": 94
+    },
+    {
+      "extension": "tsv",
+      "level": 8,
+      "target": "xlsx",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 79,
+        "sourceColumns": 6,
+        "candidateIds": 78,
+        "idsCompared": 78,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 78,
+        "type": "string",
+        "nonIdCellParity": 395,
+        "originalSha256": "07b3c8e84bf76bde29b34666ea1be0cc397ebe3ae2907a1f89d29e3451ac4b63",
+        "outputSha256": "f38e3045a7fe34d21d0e5b601a9912c013378ed08ec1cd7eacb37a2622662bfd"
+      },
+      "elapsedMs": 109
+    },
+    {
+      "extension": "tsv",
+      "level": 8,
+      "target": "xlsm",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 79,
+        "sourceColumns": 6,
+        "candidateIds": 78,
+        "idsCompared": 78,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 78,
+        "type": "string",
+        "nonIdCellParity": 395,
+        "originalSha256": "07b3c8e84bf76bde29b34666ea1be0cc397ebe3ae2907a1f89d29e3451ac4b63",
+        "outputSha256": "72465151dda29b9e877e208c2b546f07616200db8b230fc78019bdb437e2563a"
+      },
+      "elapsedMs": 3562
+    },
+    {
+      "extension": "tsv",
+      "level": 8,
+      "target": "xltx",
+      "kind": "batch",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 79,
+        "sourceColumns": 6,
+        "candidateIds": 78,
+        "idsCompared": 78,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 78,
+        "type": "string",
+        "nonIdCellParity": 395,
+        "originalSha256": "07b3c8e84bf76bde29b34666ea1be0cc397ebe3ae2907a1f89d29e3451ac4b63",
+        "outputSha256": "f3752caa3547250d993d8f94eea9ca4d208cec2bdf74dc96b426ef39b9e1b996"
+      },
+      "elapsedMs": 3594
+    },
+    {
+      "extension": "tsv",
+      "level": 8,
+      "target": "xltm",
+      "kind": "batch",
+      "mode": "native_uno",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 79,
+        "sourceColumns": 6,
+        "candidateIds": 78,
+        "idsCompared": 78,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 78,
+        "type": "string",
+        "nonIdCellParity": 395,
+        "originalSha256": "07b3c8e84bf76bde29b34666ea1be0cc397ebe3ae2907a1f89d29e3451ac4b63",
+        "outputSha256": "04c396827c6f73e30e06453c387da44087cb4b11aabe40405ec893db069cca9e"
+      },
+      "elapsedMs": 110
+    },
+    {
+      "extension": "csv",
+      "level": 8,
+      "target": "xlsx",
+      "kind": "cli",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 79,
+        "sourceColumns": 6,
+        "candidateIds": 78,
+        "idsCompared": 78,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 78,
+        "type": "string",
+        "nonIdCellParity": 395,
+        "originalSha256": "9e4e9a6333fa48c4ca5ef036cb70eefc7e7d8d64d6c0e1ab0f6d2f8510515bdc",
+        "outputSha256": "8706f610717484917adbf2db9cb62da83132e6e469d7c6a353f8e1dec74dea33"
+      },
+      "elapsedMs": 3812
+    },
+    {
+      "extension": "csv",
+      "level": 8,
+      "target": "xlsm",
+      "kind": "cli",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 79,
+        "sourceColumns": 6,
+        "candidateIds": 78,
+        "idsCompared": 78,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 78,
+        "type": "string",
+        "nonIdCellParity": 395,
+        "originalSha256": "9e4e9a6333fa48c4ca5ef036cb70eefc7e7d8d64d6c0e1ab0f6d2f8510515bdc",
+        "outputSha256": "625590998dc2483f225de1e529fdfb19269741fffba7eda4be5f1568fc6bff8d"
+      },
+      "elapsedMs": 3688
+    },
+    {
+      "extension": "csv",
+      "level": 8,
+      "target": "xltx",
+      "kind": "cli",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 79,
+        "sourceColumns": 6,
+        "candidateIds": 78,
+        "idsCompared": 78,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 78,
+        "type": "string",
+        "nonIdCellParity": 395,
+        "originalSha256": "9e4e9a6333fa48c4ca5ef036cb70eefc7e7d8d64d6c0e1ab0f6d2f8510515bdc",
+        "outputSha256": "39ec21e6ccc4916aee61c53c31a8adb0ddbb1533779723ad5f6f8c2ca075abe2"
+      },
+      "elapsedMs": 3687
+    },
+    {
+      "extension": "csv",
+      "level": 8,
+      "target": "xltm",
+      "kind": "cli",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 79,
+        "sourceColumns": 6,
+        "candidateIds": 78,
+        "idsCompared": 78,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 78,
+        "type": "string",
+        "nonIdCellParity": 395,
+        "originalSha256": "9e4e9a6333fa48c4ca5ef036cb70eefc7e7d8d64d6c0e1ab0f6d2f8510515bdc",
+        "outputSha256": "209a5c15e43dfa28274e6157a82aa674c0195ab46041bfd0b77bb1116082fd7b"
+      },
+      "elapsedMs": 4328
+    },
+    {
+      "extension": "tab",
+      "level": 8,
+      "target": "xlsx",
+      "kind": "cli",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 79,
+        "sourceColumns": 6,
+        "candidateIds": 78,
+        "idsCompared": 78,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 78,
+        "type": "string",
+        "nonIdCellParity": 395,
+        "originalSha256": "07b3c8e84bf76bde29b34666ea1be0cc397ebe3ae2907a1f89d29e3451ac4b63",
+        "outputSha256": "f94c2fb757b7712a7309460ac9de473e6059b12a4e3d80be90995aa4a9d93a5d"
+      },
+      "elapsedMs": 4141
+    },
+    {
+      "extension": "tab",
+      "level": 8,
+      "target": "xlsm",
+      "kind": "cli",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 79,
+        "sourceColumns": 6,
+        "candidateIds": 78,
+        "idsCompared": 78,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 78,
+        "type": "string",
+        "nonIdCellParity": 395,
+        "originalSha256": "07b3c8e84bf76bde29b34666ea1be0cc397ebe3ae2907a1f89d29e3451ac4b63",
+        "outputSha256": "1d90abe37c15b394d42c0d3e91e9836984f4ac4bce7f2c4613642e4129bf779e"
+      },
+      "elapsedMs": 4063
+    },
+    {
+      "extension": "tab",
+      "level": 8,
+      "target": "xltx",
+      "kind": "cli",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 79,
+        "sourceColumns": 6,
+        "candidateIds": 78,
+        "idsCompared": 78,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 78,
+        "type": "string",
+        "nonIdCellParity": 395,
+        "originalSha256": "07b3c8e84bf76bde29b34666ea1be0cc397ebe3ae2907a1f89d29e3451ac4b63",
+        "outputSha256": "f76ac28f607fb3f3eede174965c49958cc8da3937c639b7d118c01788e21af36"
+      },
+      "elapsedMs": 4328
+    },
+    {
+      "extension": "tab",
+      "level": 8,
+      "target": "xltm",
+      "kind": "cli",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 79,
+        "sourceColumns": 6,
+        "candidateIds": 78,
+        "idsCompared": 78,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 78,
+        "type": "string",
+        "nonIdCellParity": 395,
+        "originalSha256": "07b3c8e84bf76bde29b34666ea1be0cc397ebe3ae2907a1f89d29e3451ac4b63",
+        "outputSha256": "2a2d9aa890bd994293f697b5276d9cc4a3bca7dd312d0b0d6f0e8ae4d7950a98"
+      },
+      "elapsedMs": 4781
+    },
+    {
+      "extension": "tsv",
+      "level": 8,
+      "target": "xlsx",
+      "kind": "cli",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 79,
+        "sourceColumns": 6,
+        "candidateIds": 78,
+        "idsCompared": 78,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 78,
+        "type": "string",
+        "nonIdCellParity": 395,
+        "originalSha256": "07b3c8e84bf76bde29b34666ea1be0cc397ebe3ae2907a1f89d29e3451ac4b63",
+        "outputSha256": "ac482f047855400068e0884b14892e2c467ae56c53793efae5812b9e124bf447"
+      },
+      "elapsedMs": 4750
+    },
+    {
+      "extension": "tsv",
+      "level": 8,
+      "target": "xlsm",
+      "kind": "cli",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 79,
+        "sourceColumns": 6,
+        "candidateIds": 78,
+        "idsCompared": 78,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 78,
+        "type": "string",
+        "nonIdCellParity": 395,
+        "originalSha256": "07b3c8e84bf76bde29b34666ea1be0cc397ebe3ae2907a1f89d29e3451ac4b63",
+        "outputSha256": "2a4909387ee9caa6e82cbdeb1be9e3fa798733fcad679515e7cdd4dbc86ec12e"
+      },
+      "elapsedMs": 3969
+    },
+    {
+      "extension": "tsv",
+      "level": 8,
+      "target": "xltx",
+      "kind": "cli",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 79,
+        "sourceColumns": 6,
+        "candidateIds": 78,
+        "idsCompared": 78,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 78,
+        "type": "string",
+        "nonIdCellParity": 395,
+        "originalSha256": "07b3c8e84bf76bde29b34666ea1be0cc397ebe3ae2907a1f89d29e3451ac4b63",
+        "outputSha256": "dece1d7ce10b3cb39f4395d970134441369701d7a0ec1ef02a236e3036648611"
+      },
+      "elapsedMs": 4156
+    },
+    {
+      "extension": "tsv",
+      "level": 8,
+      "target": "xltm",
+      "kind": "cli",
+      "mode": "native_cli",
+      "status": "PASS",
+      "check": {
+        "check": "csv_text_ids",
+        "scope": "source_leading_zero_id_cells_and_types",
+        "qualityCompared": false,
+        "fullDocumentFidelity": false,
+        "sourceRows": 79,
+        "sourceColumns": 6,
+        "candidateIds": 78,
+        "idsCompared": 78,
+        "idsChanged": 0,
+        "status": "checked_subset"
+      },
+      "independent": {
+        "ids": 78,
+        "type": "string",
+        "nonIdCellParity": 395,
+        "originalSha256": "07b3c8e84bf76bde29b34666ea1be0cc397ebe3ae2907a1f89d29e3451ac4b63",
+        "outputSha256": "b419d7dddc3d91f7104ffae7ade4fa20376369f083d163594042ee8533c5fb3d"
+      },
+      "elapsedMs": 4281
+    }
+  ],
+  "baseline": [
+    {
+      "extension": "csv",
+      "level": 1,
+      "status": "OBSERVED",
+      "oldImportOptions": "44,34,76,1",
+      "firstId": 1,
+      "firstIdType": "n",
+      "outputSha256": "99fca8020f01eb8a6523a785bed4f5be7b15788c6d255923eca275ebcb8a5359"
+    },
+    {
+      "extension": "csv",
+      "level": 2,
+      "status": "OBSERVED",
+      "oldImportOptions": "44,34,76,1",
+      "firstId": 1,
+      "firstIdType": "n",
+      "outputSha256": "1e0ac58007b10eb2db052373ef6175eda0a09d3bd6102f970e2afc59700845b9"
+    },
+    {
+      "extension": "csv",
+      "level": 3,
+      "status": "OBSERVED",
+      "oldImportOptions": "44,34,76,1",
+      "firstId": 1,
+      "firstIdType": "n",
+      "outputSha256": "a9efed81fb0804938b8328d7dfa6027448143d573dead928bd008799ada09e42"
+    },
+    {
+      "extension": "csv",
+      "level": 4,
+      "status": "OBSERVED",
+      "oldImportOptions": "44,34,76,1",
+      "firstId": 1,
+      "firstIdType": "n",
+      "outputSha256": "3d3e5a3980c814b3853106f88387be7a1db56213bbff9c5df2ef14180049cd12"
+    },
+    {
+      "extension": "csv",
+      "level": 5,
+      "status": "OBSERVED",
+      "oldImportOptions": "44,34,76,1",
+      "firstId": 1,
+      "firstIdType": "n",
+      "outputSha256": "937379327762465231e0ce13d56b4ec5111c4e2043b00f3f703df74853586fd8"
+    },
+    {
+      "extension": "csv",
+      "level": 6,
+      "status": "OBSERVED",
+      "oldImportOptions": "44,34,76,1",
+      "firstId": 1,
+      "firstIdType": "n",
+      "outputSha256": "00e2ce9a5d3c6e1f5a07bccaa5890e011ec8066882d27d76c0cfe36507117abb"
+    },
+    {
+      "extension": "csv",
+      "level": 7,
+      "status": "OBSERVED",
+      "oldImportOptions": "44,34,76,1",
+      "firstId": 1,
+      "firstIdType": "n",
+      "outputSha256": "7685362f507db1311fb19d26344148bf66bb1d787fb98c5e8f19f2eff960e3ad"
+    },
+    {
+      "extension": "csv",
+      "level": 8,
+      "status": "OBSERVED",
+      "oldImportOptions": "44,34,76,1",
+      "firstId": 1,
+      "firstIdType": "n",
+      "outputSha256": "1cde6f983884de0467b77db5fffc36cffe6fca1a47923c6fc2e5e0b29dacb655"
+    },
+    {
+      "extension": "tab",
+      "level": 1,
+      "status": "OBSERVED",
+      "oldImportOptions": "9,34,76,1",
+      "firstId": 1,
+      "firstIdType": "n",
+      "outputSha256": "36805aab8a3d5d3d24e4dd6e2eb4c17fbc5129a2915cd82ee815d555f1515c38"
+    },
+    {
+      "extension": "tab",
+      "level": 2,
+      "status": "OBSERVED",
+      "oldImportOptions": "9,34,76,1",
+      "firstId": 1,
+      "firstIdType": "n",
+      "outputSha256": "7302e25036f4420b2c593debed7e8b8db43f1f665ed528dc5b4743609ffdc842"
+    },
+    {
+      "extension": "tab",
+      "level": 3,
+      "status": "OBSERVED",
+      "oldImportOptions": "9,34,76,1",
+      "firstId": 1,
+      "firstIdType": "n",
+      "outputSha256": "7baa0cc92af0654e8306949bdceffe170d77f30e311f904da65bb9a168973973"
+    },
+    {
+      "extension": "tab",
+      "level": 4,
+      "status": "OBSERVED",
+      "oldImportOptions": "9,34,76,1",
+      "firstId": 1,
+      "firstIdType": "n",
+      "outputSha256": "7cbf929783e8771b4f076f77abd410c8c0c53ac92494389e678362723e66dc58"
+    },
+    {
+      "extension": "tab",
+      "level": 5,
+      "status": "OBSERVED",
+      "oldImportOptions": "9,34,76,1",
+      "firstId": 1,
+      "firstIdType": "n",
+      "outputSha256": "79b19fc4c8fcde06519f535a794a85bb7b09352b31227c6c6d4355c352d865b7"
+    },
+    {
+      "extension": "tab",
+      "level": 6,
+      "status": "OBSERVED",
+      "oldImportOptions": "9,34,76,1",
+      "firstId": 1,
+      "firstIdType": "n",
+      "outputSha256": "482be371830e7de526072496ff4a85cacfd3b44d3b1ac86e1c53f471ab68ae2e"
+    },
+    {
+      "extension": "tab",
+      "level": 7,
+      "status": "OBSERVED",
+      "oldImportOptions": "9,34,76,1",
+      "firstId": 1,
+      "firstIdType": "n",
+      "outputSha256": "d98893fd726280c6154a8f558cf963757799bd98cd80b3ca10e5600647abeaeb"
+    },
+    {
+      "extension": "tab",
+      "level": 8,
+      "status": "OBSERVED",
+      "oldImportOptions": "9,34,76,1",
+      "firstId": 1,
+      "firstIdType": "n",
+      "outputSha256": "52b9c8523b7b1f34a1360cca60cc36b4fe9f47aa319b400ab0144365c039a55a"
+    },
+    {
+      "extension": "tsv",
+      "level": 1,
+      "status": "OBSERVED",
+      "oldImportOptions": "9,34,76,1",
+      "firstId": 1,
+      "firstIdType": "n",
+      "outputSha256": "1ce477476d981c8fee6e5578a9026f8e6cd3c37d75dded8655fc44fc8b3d0137"
+    },
+    {
+      "extension": "tsv",
+      "level": 2,
+      "status": "OBSERVED",
+      "oldImportOptions": "9,34,76,1",
+      "firstId": 1,
+      "firstIdType": "n",
+      "outputSha256": "e09a2318a654e529cf30c69369425f96162b4198338f5d1a485b6486cfdd9fe5"
+    },
+    {
+      "extension": "tsv",
+      "level": 3,
+      "status": "OBSERVED",
+      "oldImportOptions": "9,34,76,1",
+      "firstId": 1,
+      "firstIdType": "n",
+      "outputSha256": "6abcb2bd879c15708323cf56f4a8075072d5d17c6afa558cf6f72f848e83d3ef"
+    },
+    {
+      "extension": "tsv",
+      "level": 4,
+      "status": "OBSERVED",
+      "oldImportOptions": "9,34,76,1",
+      "firstId": 1,
+      "firstIdType": "n",
+      "outputSha256": "f579ee708e6ea276a63e9f95a1dd8921c14e6968c04803d21d1e2c64c08dfa99"
+    },
+    {
+      "extension": "tsv",
+      "level": 5,
+      "status": "OBSERVED",
+      "oldImportOptions": "9,34,76,1",
+      "firstId": 1,
+      "firstIdType": "n",
+      "outputSha256": "8d1d15d758cbef4d0e6083341cd72a593deee5e0b56916c760d8ccb8a23385d4"
+    },
+    {
+      "extension": "tsv",
+      "level": 6,
+      "status": "OBSERVED",
+      "oldImportOptions": "9,34,76,1",
+      "firstId": 1,
+      "firstIdType": "n",
+      "outputSha256": "579c38ef3753a8056e43ac6f35d35bc99df68458622dc1364711e392d2e0cc34"
+    },
+    {
+      "extension": "tsv",
+      "level": 7,
+      "status": "OBSERVED",
+      "oldImportOptions": "9,34,76,1",
+      "firstId": 1,
+      "firstIdType": "n",
+      "outputSha256": "6a7e99c276306b047e3330d507a127c0bded0a44de22976f3d2d041095a3963d"
+    },
+    {
+      "extension": "tsv",
+      "level": 8,
+      "status": "OBSERVED",
+      "oldImportOptions": "9,34,76,1",
+      "firstId": 1,
+      "firstIdType": "n",
+      "outputSha256": "2ac2ca6c4726fab3d82c46db6c866db7d3ea7a5565925889ced2fb879252ff9c"
+    }
+  ],
+  "numericControl": {
+    "status": "PASS",
+    "idsAsText": 2,
+    "unaffectedNumbers": 2
+  },
+  "passed": 108,
+  "failed": 0
+}

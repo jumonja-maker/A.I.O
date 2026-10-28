@@ -295,7 +295,7 @@ class DifAdapterIntegration(unittest.TestCase):
     def _adapter(self):
         from app_backend.converter_guard.adapter import LibreOfficeAdapter
         adapter = LibreOfficeAdapter(self.root / 'soffice.exe')
-        native = SimpleNamespace(fingerprint='registry-one', filters={
+        native = SimpleNamespace(html_route_reason=lambda *_:None, fingerprint='registry-one', filters={
             'DIF': ('com.sun.star.sheet.SpreadsheetDocument', {'dif'}, {'IMPORT', 'EXPORT'}),
             'OpenDocument Spreadsheet Flat XML':
                 ('com.sun.star.sheet.SpreadsheetDocument', {'fods'}, {'IMPORT', 'EXPORT'})})

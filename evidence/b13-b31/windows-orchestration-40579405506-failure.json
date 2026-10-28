@@ -1,0 +1,10 @@
+{
+  "status": "FAIL",
+  "runId": 40579405506,
+  "jobId": 122454421956,
+  "testedSourceSHA": "601a73056017b55096159f236aae48ba05b21577",
+  "testedTreeSHA": "51cfa0ea0ac5673ddbee0dab25696e5b54253614",
+  "reason": "PowerShell native -c parsing stripped double quotes from Python dictionary; SyntaxError before functional tests",
+  "functionalTests": "NOT_RUN",
+  "correction": "Use single-quoted Python literal; successful full rerun 40580027077"
+}

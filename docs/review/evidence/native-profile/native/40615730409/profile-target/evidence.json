@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "scope": "actual native Windows sessions, not FULLTEST or installed EXE",
+  "sourceSHA": "80c1a89ab6095fd76835acc2c67be96a810c5dcc",
+  "sourceSha256": "44ebc4f330c8fa57cb8e8447b12231977b1f70d5e19381df3319c069d5bb8759",
+  "sourceSHA256": {
+    "source.xlsx": "44ebc4f330c8fa57cb8e8447b12231977b1f70d5e19381df3319c069d5bb8759",
+    "external-changing.xlsx": "8bd27f0f2fceed41b0ae2ede76b9b1644e230e57733ba11bd4d2fa5bccf5c22d"
+  },
+  "checks": [
+    {
+      "name": "deep-workspace-warm-native-roundtrip",
+      "status": "PASS",
+      "workspaceLength": 175,
+      "profileLength": 48,
+      "fallbackUsed": false,
+      "nativeImportFilter": "Calc MS Excel 2007 XML",
+      "exportFilter": "Calc MS Excel 2007 XML",
+      "executionMode": "native_uno",
+      "sheets": 4,
+      "independentlyCheckedCells": 9632,
+      "outputSha256": "a0aa3997e43f553ba5049547b3779eff71a7d5b92a81d7073ce8d1589b70efe8",
+      "qualityCompared": false,
+      "fullVisualFidelity": "not_tested"
+    },
+    {
+      "name": "all-owned-descendants-and-private-profile-released",
+      "status": "PASS",
+      "ownedPids": [
+        29124,
+        14564,
+        16380,
+        4480,
+        22936,
+        20820
+      ],
+      "independentHandleExitStates": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "jobDrainVerified": true,
+      "profileRemoved": true,
+      "ownerMarkerRemoved": true
+    },
+    {
+      "name": "concurrent-native-session-survives",
+      "status": "PASS",
+      "survivingWorkerPid": 11080,
+      "reimportFilter": "Calc MS Excel 2007 XML",
+      "otherSourceBytesUnchanged": true
+    },
+    {
+      "name": "external-source-mutation-during-native-import",
+      "status": "PASS",
+      "expectedDecision": "ready_from_uploaded_snapshot",
+      "observedNativePhase": "import",
+      "externalModifiedBy": "QA_fixture",
+      "externalShaBefore": "44ebc4f330c8fa57cb8e8447b12231977b1f70d5e19381df3319c069d5bb8759",
+      "externalShaAfter": "8bd27f0f2fceed41b0ae2ede76b9b1644e230e57733ba11bd4d2fa5bccf5c22d",
+      "ownedSnapshotSha256": "44ebc4f330c8fa57cb8e8447b12231977b1f70d5e19381df3319c069d5bb8759",
+      "savedOutputSha256": "6240577232505e6e95e77ea4cb3d735fab02593c960d20dd1851e65058f8edcc",
+      "independentReadback": true,
+      "externalAndSavedFilesRetained": true
+    }
+  ]
+}

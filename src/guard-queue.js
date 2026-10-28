@@ -313,7 +313,7 @@
       state?.state==='checking'?'Проверено '+(state.preflightCompleted??0)+' / '+(state.preflightTotal??0)+
         ' · подготовка направлений…':
       state?.state==='paused'?'Очередь на паузе':state?.state==='prepared'?'Исходники проверены. Выберите форматы.':state&&!state.finished?'Подготовка результатов…':
-      jobs.length?'Есть несохранённые результаты: '+jobs.length:warnings.length?'Проблемы восстановления предыдущих заданий: '+warnings.length:'Обработка завершена');
+      jobs.some(job=>job.unsavedOutputs>0)?'Есть несохранённые результаты: '+jobs.reduce((sum,job)=>sum+(job.unsavedOutputs||0),0):warnings.length?'Проблемы восстановления предыдущих заданий: '+warnings.length:'Обработка завершена');
   }
   async function loadPreview(){
     if(!bar)return;

@@ -1,0 +1,15 @@
+{
+  "base": "e80cdb84b90f2737b492185a3eb22586570c9f8c",
+  "left": "a176f4c859b91b12173aad8a232b77d9cfe82abd",
+  "right": "f5d82f1a8bb7e32c61166d3fb30230813dd41798",
+  "conflicts": [
+    {
+      "path": "app_backend/converter_guard/uno_session.py",
+      "base": "9a20e65b3568f9e319aa3417739aa24a62a2c8b9",
+      "left": "e27d439440b67b6fb551b2ef7b4f4b841e7594da",
+      "right": "9f9a4535fa53e893477bda1bde747761150ff06e",
+      "resolution": "retain all-sheet/HTML code; apply exclusive native profile allocation/recycle"
+    }
+  ],
+  "scope": "test branch only; acceptance required"
+}

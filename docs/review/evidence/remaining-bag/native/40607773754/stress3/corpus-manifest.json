@@ -1,0 +1,1759 @@
+{
+  "schema": 1,
+  "nativePositiveControls": [
+    {
+      "level": 1,
+      "kind": "writer",
+      "target": "docx",
+      "status": "PASS",
+      "file": "native-writer-1/output/writer-1.docx",
+      "sha256": "2bf254bd40b71dd614ed89fcd8e785f97fb2948e273f270c947713af414e39d6",
+      "bytes": 5598,
+      "packageParts": 10,
+      "sourceContract": {
+        "state": "recognized",
+        "contentClass": "ooxml_package",
+        "mainContentType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml",
+        "contentTypeBasis": "override",
+        "expectedServices": [
+          "com.sun.star.text.TextDocument"
+        ]
+      },
+      "nativeImportFilter": "MS Word 2007 XML",
+      "seedImportFilter": "OpenDocument Text Flat XML",
+      "exportFilter": "MS Word 2007 XML",
+      "executionMode": "native_uno",
+      "conversionStatus": "ready",
+      "saveStatus": "not_requested",
+      "readbackVerified": false,
+      "qualityCheckRequested": false,
+      "qualityCompared": false,
+      "checkedFeatures": [
+        "ZIP_CRC",
+        "source_declarations",
+        "native_model_reimport",
+        "native_PDF_reimport"
+      ],
+      "unknownReasons": [
+        "full_visual_fidelity_not_compared",
+        "macro_preservation_not_tested"
+      ],
+      "pdfSha256": "6eb776190773d703b1a42c54caa86266f400e92f41ac61acc058aa00d65c2202",
+      "independentNativePdfModel": [
+        "com.sun.star.drawing.DrawingDocument"
+      ],
+      "macros": "not_present_not_tested"
+    },
+    {
+      "level": 1,
+      "kind": "calc",
+      "target": "xlsx",
+      "status": "PASS",
+      "file": "native-calc-1/output/calc-1.xlsx",
+      "sha256": "a4eaa2950ad29ff87567f9fb9be4f644b7e270b5b09fb5b5c577fb76cd7e43c7",
+      "bytes": 21400,
+      "packageParts": 11,
+      "sourceContract": {
+        "state": "recognized",
+        "contentClass": "ooxml_package",
+        "mainContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+        "contentTypeBasis": "override",
+        "expectedServices": [
+          "com.sun.star.sheet.SpreadsheetDocument"
+        ]
+      },
+      "nativeImportFilter": "Calc MS Excel 2007 XML",
+      "seedImportFilter": "Calc MS Excel 2007 XML",
+      "exportFilter": "Calc MS Excel 2007 XML",
+      "executionMode": "native_uno",
+      "conversionStatus": "ready",
+      "saveStatus": "not_requested",
+      "readbackVerified": false,
+      "qualityCheckRequested": false,
+      "qualityCompared": false,
+      "checkedFeatures": [
+        "ZIP_CRC",
+        "source_declarations",
+        "native_model_reimport",
+        "native_PDF_reimport",
+        "cached_formula_values",
+        "text_ID_types"
+      ],
+      "unknownReasons": [
+        "full_visual_fidelity_not_compared",
+        "macro_preservation_not_tested"
+      ],
+      "pdfSha256": "2e6453e50b4eff6b0bd7eb1742f95e476bee9cde850496d578760d1fa21a2766",
+      "independentNativePdfModel": [
+        "com.sun.star.drawing.DrawingDocument"
+      ],
+      "macros": "not_present_not_tested"
+    },
+    {
+      "level": 1,
+      "kind": "impress",
+      "target": "pptx",
+      "status": "PASS",
+      "file": "native-impress-1/output/impress-1.pptx",
+      "sha256": "0d01420a9dc0649548bb4de1ec7257c8ba874324c962cc3a79c7c1683276b68d",
+      "bytes": 8368,
+      "packageParts": 14,
+      "sourceContract": {
+        "state": "recognized",
+        "contentClass": "ooxml_package",
+        "mainContentType": "application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml",
+        "contentTypeBasis": "override",
+        "expectedServices": [
+          "com.sun.star.presentation.PresentationDocument"
+        ]
+      },
+      "nativeImportFilter": "Impress MS PowerPoint 2007 XML",
+      "seedImportFilter": "OpenDocument Presentation Flat XML",
+      "exportFilter": "Impress MS PowerPoint 2007 XML",
+      "executionMode": "native_uno",
+      "conversionStatus": "ready",
+      "saveStatus": "not_requested",
+      "readbackVerified": false,
+      "qualityCheckRequested": false,
+      "qualityCompared": false,
+      "checkedFeatures": [
+        "ZIP_CRC",
+        "source_declarations",
+        "native_model_reimport",
+        "native_PDF_reimport"
+      ],
+      "unknownReasons": [
+        "full_visual_fidelity_not_compared",
+        "macro_preservation_not_tested"
+      ],
+      "pdfSha256": "3c36898ccd6d32a59f8aeab7585c22e20bca1de4d5a1f6508d70274ca02251a7",
+      "independentNativePdfModel": [
+        "com.sun.star.drawing.DrawingDocument"
+      ],
+      "macros": "not_present_not_tested"
+    },
+    {
+      "level": 2,
+      "kind": "writer",
+      "target": "docx",
+      "status": "PASS",
+      "file": "native-writer-2/output/writer-2.docx",
+      "sha256": "cb97b7d11d2ea6cd1557c0632f1f6575bc6b73e5da8ba584e99e897bfffc0d4b",
+      "bytes": 5698,
+      "packageParts": 10,
+      "sourceContract": {
+        "state": "recognized",
+        "contentClass": "ooxml_package",
+        "mainContentType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml",
+        "contentTypeBasis": "override",
+        "expectedServices": [
+          "com.sun.star.text.TextDocument"
+        ]
+      },
+      "nativeImportFilter": "MS Word 2007 XML",
+      "seedImportFilter": "OpenDocument Text Flat XML",
+      "exportFilter": "MS Word 2007 XML",
+      "executionMode": "native_uno",
+      "conversionStatus": "ready",
+      "saveStatus": "not_requested",
+      "readbackVerified": false,
+      "qualityCheckRequested": false,
+      "qualityCompared": false,
+      "checkedFeatures": [
+        "ZIP_CRC",
+        "source_declarations",
+        "native_model_reimport",
+        "native_PDF_reimport"
+      ],
+      "unknownReasons": [
+        "full_visual_fidelity_not_compared",
+        "macro_preservation_not_tested"
+      ],
+      "pdfSha256": "b237f4f7d0ff35e151409091bb6f43e487e2df3ce729105850ecb7699aebc585",
+      "independentNativePdfModel": [
+        "com.sun.star.drawing.DrawingDocument"
+      ],
+      "macros": "not_present_not_tested"
+    },
+    {
+      "level": 2,
+      "kind": "calc",
+      "target": "xlsx",
+      "status": "PASS",
+      "file": "native-calc-2/output/calc-2.xlsx",
+      "sha256": "88179195e2c3ebd88173b32458ca015056e8e189022ee585ea300d578e5fcf5d",
+      "bytes": 21644,
+      "packageParts": 11,
+      "sourceContract": {
+        "state": "recognized",
+        "contentClass": "ooxml_package",
+        "mainContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+        "contentTypeBasis": "override",
+        "expectedServices": [
+          "com.sun.star.sheet.SpreadsheetDocument"
+        ]
+      },
+      "nativeImportFilter": "Calc MS Excel 2007 XML",
+      "seedImportFilter": "Calc MS Excel 2007 XML",
+      "exportFilter": "Calc MS Excel 2007 XML",
+      "executionMode": "native_uno",
+      "conversionStatus": "ready",
+      "saveStatus": "not_requested",
+      "readbackVerified": false,
+      "qualityCheckRequested": false,
+      "qualityCompared": false,
+      "checkedFeatures": [
+        "ZIP_CRC",
+        "source_declarations",
+        "native_model_reimport",
+        "native_PDF_reimport",
+        "cached_formula_values",
+        "text_ID_types"
+      ],
+      "unknownReasons": [
+        "full_visual_fidelity_not_compared",
+        "macro_preservation_not_tested"
+      ],
+      "pdfSha256": "469281dcdc762c7306b2ea3d1fe4d4b8d197506e2ed87a070cf2f729a9343bc0",
+      "independentNativePdfModel": [
+        "com.sun.star.drawing.DrawingDocument"
+      ],
+      "macros": "not_present_not_tested"
+    },
+    {
+      "level": 2,
+      "kind": "impress",
+      "target": "pptx",
+      "status": "PASS",
+      "file": "native-impress-2/output/impress-2.pptx",
+      "sha256": "3e2c47355faab0a7f84ea007875b19feb4c5ef0e7beed6dfdd2f3e49fb8a947b",
+      "bytes": 10765,
+      "packageParts": 18,
+      "sourceContract": {
+        "state": "recognized",
+        "contentClass": "ooxml_package",
+        "mainContentType": "application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml",
+        "contentTypeBasis": "override",
+        "expectedServices": [
+          "com.sun.star.presentation.PresentationDocument"
+        ]
+      },
+      "nativeImportFilter": "Impress MS PowerPoint 2007 XML",
+      "seedImportFilter": "OpenDocument Presentation Flat XML",
+      "exportFilter": "Impress MS PowerPoint 2007 XML",
+      "executionMode": "native_uno",
+      "conversionStatus": "ready",
+      "saveStatus": "not_requested",
+      "readbackVerified": false,
+      "qualityCheckRequested": false,
+      "qualityCompared": false,
+      "checkedFeatures": [
+        "ZIP_CRC",
+        "source_declarations",
+        "native_model_reimport",
+        "native_PDF_reimport"
+      ],
+      "unknownReasons": [
+        "full_visual_fidelity_not_compared",
+        "macro_preservation_not_tested"
+      ],
+      "pdfSha256": "9006c10bc397c019c6b30f925b8654ef92b4b42123a8f80ffd13ecb6cc9f57d1",
+      "independentNativePdfModel": [
+        "com.sun.star.drawing.DrawingDocument"
+      ],
+      "macros": "not_present_not_tested"
+    },
+    {
+      "level": 3,
+      "kind": "writer",
+      "target": "docx",
+      "status": "PASS",
+      "file": "native-writer-3/output/writer-3.docx",
+      "sha256": "3627a5448bd1501b82b133f7609e0e7702a96d8913b69dc96d1c004e9607f85d",
+      "bytes": 5790,
+      "packageParts": 10,
+      "sourceContract": {
+        "state": "recognized",
+        "contentClass": "ooxml_package",
+        "mainContentType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml",
+        "contentTypeBasis": "override",
+        "expectedServices": [
+          "com.sun.star.text.TextDocument"
+        ]
+      },
+      "nativeImportFilter": "MS Word 2007 XML",
+      "seedImportFilter": "OpenDocument Text Flat XML",
+      "exportFilter": "MS Word 2007 XML",
+      "executionMode": "native_uno",
+      "conversionStatus": "ready",
+      "saveStatus": "not_requested",
+      "readbackVerified": false,
+      "qualityCheckRequested": false,
+      "qualityCompared": false,
+      "checkedFeatures": [
+        "ZIP_CRC",
+        "source_declarations",
+        "native_model_reimport",
+        "native_PDF_reimport"
+      ],
+      "unknownReasons": [
+        "full_visual_fidelity_not_compared",
+        "macro_preservation_not_tested"
+      ],
+      "pdfSha256": "eff46a75ea38232efad7316d2509c5ef06e9fd3aefb11838197f552d6aa0a687",
+      "independentNativePdfModel": [
+        "com.sun.star.drawing.DrawingDocument"
+      ],
+      "macros": "not_present_not_tested"
+    },
+    {
+      "level": 3,
+      "kind": "calc",
+      "target": "xlsx",
+      "status": "PASS",
+      "file": "native-calc-3/output/calc-3.xlsx",
+      "sha256": "fd6cea5bda4c46e4a4528edc9c2a6834689da0be8b1c2dcdda643fd72f34bc69",
+      "bytes": 36453,
+      "packageParts": 12,
+      "sourceContract": {
+        "state": "recognized",
+        "contentClass": "ooxml_package",
+        "mainContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+        "contentTypeBasis": "override",
+        "expectedServices": [
+          "com.sun.star.sheet.SpreadsheetDocument"
+        ]
+      },
+      "nativeImportFilter": "Calc MS Excel 2007 XML",
+      "seedImportFilter": "Calc MS Excel 2007 XML",
+      "exportFilter": "Calc MS Excel 2007 XML",
+      "executionMode": "native_uno",
+      "conversionStatus": "ready",
+      "saveStatus": "not_requested",
+      "readbackVerified": false,
+      "qualityCheckRequested": false,
+      "qualityCompared": false,
+      "checkedFeatures": [
+        "ZIP_CRC",
+        "source_declarations",
+        "native_model_reimport",
+        "native_PDF_reimport",
+        "cached_formula_values",
+        "text_ID_types"
+      ],
+      "unknownReasons": [
+        "full_visual_fidelity_not_compared",
+        "macro_preservation_not_tested"
+      ],
+      "pdfSha256": "02fb868249234f927806d8f81cfe01c08d7b65f440820e8e8419e8195991bec2",
+      "independentNativePdfModel": [
+        "com.sun.star.drawing.DrawingDocument"
+      ],
+      "macros": "not_present_not_tested"
+    },
+    {
+      "level": 3,
+      "kind": "impress",
+      "target": "pptx",
+      "status": "PASS",
+      "file": "native-impress-3/output/impress-3.pptx",
+      "sha256": "8991d61f2e58757698060d4f93d66c61b169fe76a980fc99dcd5a6a8cf55ea90",
+      "bytes": 11993,
+      "packageParts": 20,
+      "sourceContract": {
+        "state": "recognized",
+        "contentClass": "ooxml_package",
+        "mainContentType": "application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml",
+        "contentTypeBasis": "override",
+        "expectedServices": [
+          "com.sun.star.presentation.PresentationDocument"
+        ]
+      },
+      "nativeImportFilter": "Impress MS PowerPoint 2007 XML",
+      "seedImportFilter": "OpenDocument Presentation Flat XML",
+      "exportFilter": "Impress MS PowerPoint 2007 XML",
+      "executionMode": "native_uno",
+      "conversionStatus": "ready",
+      "saveStatus": "not_requested",
+      "readbackVerified": false,
+      "qualityCheckRequested": false,
+      "qualityCompared": false,
+      "checkedFeatures": [
+        "ZIP_CRC",
+        "source_declarations",
+        "native_model_reimport",
+        "native_PDF_reimport"
+      ],
+      "unknownReasons": [
+        "full_visual_fidelity_not_compared",
+        "macro_preservation_not_tested"
+      ],
+      "pdfSha256": "bd53060cdfe5572816174c159523cced11533d5e98e7978b0d5b2c9b73328f74",
+      "independentNativePdfModel": [
+        "com.sun.star.drawing.DrawingDocument"
+      ],
+      "macros": "not_present_not_tested"
+    },
+    {
+      "level": 4,
+      "kind": "writer",
+      "target": "docx",
+      "status": "PASS",
+      "file": "native-writer-4/output/writer-4.docx",
+      "sha256": "0687e13563ce8b512a8ecc14dccd33a69b4600d5fc00177041665af063c0c6b8",
+      "bytes": 5884,
+      "packageParts": 10,
+      "sourceContract": {
+        "state": "recognized",
+        "contentClass": "ooxml_package",
+        "mainContentType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml",
+        "contentTypeBasis": "override",
+        "expectedServices": [
+          "com.sun.star.text.TextDocument"
+        ]
+      },
+      "nativeImportFilter": "MS Word 2007 XML",
+      "seedImportFilter": "OpenDocument Text Flat XML",
+      "exportFilter": "MS Word 2007 XML",
+      "executionMode": "native_uno",
+      "conversionStatus": "ready",
+      "saveStatus": "not_requested",
+      "readbackVerified": false,
+      "qualityCheckRequested": false,
+      "qualityCompared": false,
+      "checkedFeatures": [
+        "ZIP_CRC",
+        "source_declarations",
+        "native_model_reimport",
+        "native_PDF_reimport"
+      ],
+      "unknownReasons": [
+        "full_visual_fidelity_not_compared",
+        "macro_preservation_not_tested"
+      ],
+      "pdfSha256": "8c10e775c78a4e3114f70db5d4c9da5bb59ff35709fedd83c76e1725dbf56c6a",
+      "independentNativePdfModel": [
+        "com.sun.star.drawing.DrawingDocument"
+      ],
+      "macros": "not_present_not_tested"
+    },
+    {
+      "level": 4,
+      "kind": "calc",
+      "target": "xlsx",
+      "status": "PASS",
+      "file": "native-calc-4/output/calc-4.xlsx",
+      "sha256": "9cb3b88148003effeab3c471ac98412224dfb01040c6ec370cc4bb887de779a7",
+      "bytes": 36895,
+      "packageParts": 12,
+      "sourceContract": {
+        "state": "recognized",
+        "contentClass": "ooxml_package",
+        "mainContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+        "contentTypeBasis": "override",
+        "expectedServices": [
+          "com.sun.star.sheet.SpreadsheetDocument"
+        ]
+      },
+      "nativeImportFilter": "Calc MS Excel 2007 XML",
+      "seedImportFilter": "Calc MS Excel 2007 XML",
+      "exportFilter": "Calc MS Excel 2007 XML",
+      "executionMode": "native_uno",
+      "conversionStatus": "ready",
+      "saveStatus": "not_requested",
+      "readbackVerified": false,
+      "qualityCheckRequested": false,
+      "qualityCompared": false,
+      "checkedFeatures": [
+        "ZIP_CRC",
+        "source_declarations",
+        "native_model_reimport",
+        "native_PDF_reimport",
+        "cached_formula_values",
+        "text_ID_types"
+      ],
+      "unknownReasons": [
+        "full_visual_fidelity_not_compared",
+        "macro_preservation_not_tested"
+      ],
+      "pdfSha256": "b37cd60fd77ca8bbf50237bfde0083a6008b3987ac81213059b6e31ca7708c8b",
+      "independentNativePdfModel": [
+        "com.sun.star.drawing.DrawingDocument"
+      ],
+      "macros": "not_present_not_tested"
+    },
+    {
+      "level": 4,
+      "kind": "impress",
+      "target": "pptx",
+      "status": "PASS",
+      "file": "native-impress-4/output/impress-4.pptx",
+      "sha256": "2c537cb0cb034e8e817ed8255de3b376a45b5aff054a614d1d5245df563e6f7e",
+      "bytes": 13224,
+      "packageParts": 22,
+      "sourceContract": {
+        "state": "recognized",
+        "contentClass": "ooxml_package",
+        "mainContentType": "application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml",
+        "contentTypeBasis": "override",
+        "expectedServices": [
+          "com.sun.star.presentation.PresentationDocument"
+        ]
+      },
+      "nativeImportFilter": "Impress MS PowerPoint 2007 XML",
+      "seedImportFilter": "OpenDocument Presentation Flat XML",
+      "exportFilter": "Impress MS PowerPoint 2007 XML",
+      "executionMode": "native_uno",
+      "conversionStatus": "ready",
+      "saveStatus": "not_requested",
+      "readbackVerified": false,
+      "qualityCheckRequested": false,
+      "qualityCompared": false,
+      "checkedFeatures": [
+        "ZIP_CRC",
+        "source_declarations",
+        "native_model_reimport",
+        "native_PDF_reimport"
+      ],
+      "unknownReasons": [
+        "full_visual_fidelity_not_compared",
+        "macro_preservation_not_tested"
+      ],
+      "pdfSha256": "889a7704c14785d3dd3366b49bf7f588c80d3aa81c82c0165832e118426d06ed",
+      "independentNativePdfModel": [
+        "com.sun.star.drawing.DrawingDocument"
+      ],
+      "macros": "not_present_not_tested"
+    },
+    {
+      "level": 5,
+      "kind": "writer",
+      "target": "docx",
+      "status": "PASS",
+      "file": "native-writer-5/output/writer-5.docx",
+      "sha256": "3259b3e678c42947578a99717f490cfeb3d25baf73b4a146be092232304d91d1",
+      "bytes": 5979,
+      "packageParts": 10,
+      "sourceContract": {
+        "state": "recognized",
+        "contentClass": "ooxml_package",
+        "mainContentType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml",
+        "contentTypeBasis": "override",
+        "expectedServices": [
+          "com.sun.star.text.TextDocument"
+        ]
+      },
+      "nativeImportFilter": "MS Word 2007 XML",
+      "seedImportFilter": "OpenDocument Text Flat XML",
+      "exportFilter": "MS Word 2007 XML",
+      "executionMode": "native_uno",
+      "conversionStatus": "ready",
+      "saveStatus": "not_requested",
+      "readbackVerified": false,
+      "qualityCheckRequested": false,
+      "qualityCompared": false,
+      "checkedFeatures": [
+        "ZIP_CRC",
+        "source_declarations",
+        "native_model_reimport",
+        "native_PDF_reimport"
+      ],
+      "unknownReasons": [
+        "full_visual_fidelity_not_compared",
+        "macro_preservation_not_tested"
+      ],
+      "pdfSha256": "2a5ce8de45007e2902f6ac5b1b6d79a463194764b042484cffd5ff929e0c0fc7",
+      "independentNativePdfModel": [
+        "com.sun.star.drawing.DrawingDocument"
+      ],
+      "macros": "not_present_not_tested"
+    },
+    {
+      "level": 5,
+      "kind": "calc",
+      "target": "xlsx",
+      "status": "PASS",
+      "file": "native-calc-5/output/calc-5.xlsx",
+      "sha256": "2d2e4949e461c2550f0b184e2a31df109aea17bd8dcc219e27dc56a49f671210",
+      "bytes": 52325,
+      "packageParts": 13,
+      "sourceContract": {
+        "state": "recognized",
+        "contentClass": "ooxml_package",
+        "mainContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+        "contentTypeBasis": "override",
+        "expectedServices": [
+          "com.sun.star.sheet.SpreadsheetDocument"
+        ]
+      },
+      "nativeImportFilter": "Calc MS Excel 2007 XML",
+      "seedImportFilter": "Calc MS Excel 2007 XML",
+      "exportFilter": "Calc MS Excel 2007 XML",
+      "executionMode": "native_uno",
+      "conversionStatus": "ready",
+      "saveStatus": "not_requested",
+      "readbackVerified": false,
+      "qualityCheckRequested": false,
+      "qualityCompared": false,
+      "checkedFeatures": [
+        "ZIP_CRC",
+        "source_declarations",
+        "native_model_reimport",
+        "native_PDF_reimport",
+        "cached_formula_values",
+        "text_ID_types"
+      ],
+      "unknownReasons": [
+        "full_visual_fidelity_not_compared",
+        "macro_preservation_not_tested"
+      ],
+      "pdfSha256": "33898b47cc266f1c2d159b7267e3b39f9e4a229f04eb4e965ba50e0a20d53a53",
+      "independentNativePdfModel": [
+        "com.sun.star.drawing.DrawingDocument"
+      ],
+      "macros": "not_present_not_tested"
+    },
+    {
+      "level": 5,
+      "kind": "impress",
+      "target": "pptx",
+      "status": "PASS",
+      "file": "native-impress-5/output/impress-5.pptx",
+      "sha256": "a6ca18b6e3ca5ab5f8a53263e81cb169fd51837b2371a657e98078d83b1e1434",
+      "bytes": 14451,
+      "packageParts": 24,
+      "sourceContract": {
+        "state": "recognized",
+        "contentClass": "ooxml_package",
+        "mainContentType": "application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml",
+        "contentTypeBasis": "override",
+        "expectedServices": [
+          "com.sun.star.presentation.PresentationDocument"
+        ]
+      },
+      "nativeImportFilter": "Impress MS PowerPoint 2007 XML",
+      "seedImportFilter": "OpenDocument Presentation Flat XML",
+      "exportFilter": "Impress MS PowerPoint 2007 XML",
+      "executionMode": "native_uno",
+      "conversionStatus": "ready",
+      "saveStatus": "not_requested",
+      "readbackVerified": false,
+      "qualityCheckRequested": false,
+      "qualityCompared": false,
+      "checkedFeatures": [
+        "ZIP_CRC",
+        "source_declarations",
+        "native_model_reimport",
+        "native_PDF_reimport"
+      ],
+      "unknownReasons": [
+        "full_visual_fidelity_not_compared",
+        "macro_preservation_not_tested"
+      ],
+      "pdfSha256": "23095d4450f4cf3c2a7cf8fcfedd158bb9d66b47f352c87f21e0ac89f6e519e6",
+      "independentNativePdfModel": [
+        "com.sun.star.drawing.DrawingDocument"
+      ],
+      "macros": "not_present_not_tested"
+    },
+    {
+      "level": 6,
+      "kind": "writer",
+      "target": "docx",
+      "status": "PASS",
+      "file": "native-writer-6/output/writer-6.docx",
+      "sha256": "4613da20dc527d48201b69227deff7babe0270ff19201316e9a40eef7ab23100",
+      "bytes": 6067,
+      "packageParts": 10,
+      "sourceContract": {
+        "state": "recognized",
+        "contentClass": "ooxml_package",
+        "mainContentType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml",
+        "contentTypeBasis": "override",
+        "expectedServices": [
+          "com.sun.star.text.TextDocument"
+        ]
+      },
+      "nativeImportFilter": "MS Word 2007 XML",
+      "seedImportFilter": "OpenDocument Text Flat XML",
+      "exportFilter": "MS Word 2007 XML",
+      "executionMode": "native_uno",
+      "conversionStatus": "ready",
+      "saveStatus": "not_requested",
+      "readbackVerified": false,
+      "qualityCheckRequested": false,
+      "qualityCompared": false,
+      "checkedFeatures": [
+        "ZIP_CRC",
+        "source_declarations",
+        "native_model_reimport",
+        "native_PDF_reimport"
+      ],
+      "unknownReasons": [
+        "full_visual_fidelity_not_compared",
+        "macro_preservation_not_tested"
+      ],
+      "pdfSha256": "83d0d006d64d5766f0d831e6182ac6f7d6b8546777ee0f68b0b0ef12ba4fd6e0",
+      "independentNativePdfModel": [
+        "com.sun.star.drawing.DrawingDocument"
+      ],
+      "macros": "not_present_not_tested"
+    },
+    {
+      "level": 6,
+      "kind": "calc",
+      "target": "xlsx",
+      "status": "PASS",
+      "file": "native-calc-6/output/calc-6.xlsx",
+      "sha256": "11bc2604122b6a93bc3baa636ba5a772945352bdb4b07f2f0d19817e103a87b3",
+      "bytes": 52976,
+      "packageParts": 13,
+      "sourceContract": {
+        "state": "recognized",
+        "contentClass": "ooxml_package",
+        "mainContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+        "contentTypeBasis": "override",
+        "expectedServices": [
+          "com.sun.star.sheet.SpreadsheetDocument"
+        ]
+      },
+      "nativeImportFilter": "Calc MS Excel 2007 XML",
+      "seedImportFilter": "Calc MS Excel 2007 XML",
+      "exportFilter": "Calc MS Excel 2007 XML",
+      "executionMode": "native_uno",
+      "conversionStatus": "ready",
+      "saveStatus": "not_requested",
+      "readbackVerified": false,
+      "qualityCheckRequested": false,
+      "qualityCompared": false,
+      "checkedFeatures": [
+        "ZIP_CRC",
+        "source_declarations",
+        "native_model_reimport",
+        "native_PDF_reimport",
+        "cached_formula_values",
+        "text_ID_types"
+      ],
+      "unknownReasons": [
+        "full_visual_fidelity_not_compared",
+        "macro_preservation_not_tested"
+      ],
+      "pdfSha256": "c5d21fd288f4d43cea7c0f0322cb148978c602f37fcea4e53c71406ef0560640",
+      "independentNativePdfModel": [
+        "com.sun.star.drawing.DrawingDocument"
+      ],
+      "macros": "not_present_not_tested"
+    },
+    {
+      "level": 6,
+      "kind": "impress",
+      "target": "pptx",
+      "status": "PASS",
+      "file": "native-impress-6/output/impress-6.pptx",
+      "sha256": "e828e3971194826b5d3ba3a22a07c498f25c13c9a50ca44db61faf62fcd81a11",
+      "bytes": 15684,
+      "packageParts": 26,
+      "sourceContract": {
+        "state": "recognized",
+        "contentClass": "ooxml_package",
+        "mainContentType": "application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml",
+        "contentTypeBasis": "override",
+        "expectedServices": [
+          "com.sun.star.presentation.PresentationDocument"
+        ]
+      },
+      "nativeImportFilter": "Impress MS PowerPoint 2007 XML",
+      "seedImportFilter": "OpenDocument Presentation Flat XML",
+      "exportFilter": "Impress MS PowerPoint 2007 XML",
+      "executionMode": "native_uno",
+      "conversionStatus": "ready",
+      "saveStatus": "not_requested",
+      "readbackVerified": false,
+      "qualityCheckRequested": false,
+      "qualityCompared": false,
+      "checkedFeatures": [
+        "ZIP_CRC",
+        "source_declarations",
+        "native_model_reimport",
+        "native_PDF_reimport"
+      ],
+      "unknownReasons": [
+        "full_visual_fidelity_not_compared",
+        "macro_preservation_not_tested"
+      ],
+      "pdfSha256": "ad9ffe6474877e57e810f974fa922a5bd30b1936d9505d33e08f00fb04d6bc2c",
+      "independentNativePdfModel": [
+        "com.sun.star.drawing.DrawingDocument"
+      ],
+      "macros": "not_present_not_tested"
+    },
+    {
+      "level": 7,
+      "kind": "writer",
+      "target": "docx",
+      "status": "PASS",
+      "file": "native-writer-7/output/writer-7.docx",
+      "sha256": "2f8706decd5398a3cedccd9522f8983e4319fade4c885c5f0a69dc3b91736656",
+      "bytes": 6163,
+      "packageParts": 10,
+      "sourceContract": {
+        "state": "recognized",
+        "contentClass": "ooxml_package",
+        "mainContentType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml",
+        "contentTypeBasis": "override",
+        "expectedServices": [
+          "com.sun.star.text.TextDocument"
+        ]
+      },
+      "nativeImportFilter": "MS Word 2007 XML",
+      "seedImportFilter": "OpenDocument Text Flat XML",
+      "exportFilter": "MS Word 2007 XML",
+      "executionMode": "native_uno",
+      "conversionStatus": "ready",
+      "saveStatus": "not_requested",
+      "readbackVerified": false,
+      "qualityCheckRequested": false,
+      "qualityCompared": false,
+      "checkedFeatures": [
+        "ZIP_CRC",
+        "source_declarations",
+        "native_model_reimport",
+        "native_PDF_reimport"
+      ],
+      "unknownReasons": [
+        "full_visual_fidelity_not_compared",
+        "macro_preservation_not_tested"
+      ],
+      "pdfSha256": "964c1654a0e3bc4bc88a2bdf966df323388804aa988952da33eab249b445179b",
+      "independentNativePdfModel": [
+        "com.sun.star.drawing.DrawingDocument"
+      ],
+      "macros": "not_present_not_tested"
+    },
+    {
+      "level": 7,
+      "kind": "calc",
+      "target": "xlsx",
+      "status": "PASS",
+      "file": "native-calc-7/output/calc-7.xlsx",
+      "sha256": "013917f359af5af3650ee3afd1a66dcd7834bf434d4f3d94d268407dcc72dff7",
+      "bytes": 69021,
+      "packageParts": 14,
+      "sourceContract": {
+        "state": "recognized",
+        "contentClass": "ooxml_package",
+        "mainContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+        "contentTypeBasis": "override",
+        "expectedServices": [
+          "com.sun.star.sheet.SpreadsheetDocument"
+        ]
+      },
+      "nativeImportFilter": "Calc MS Excel 2007 XML",
+      "seedImportFilter": "Calc MS Excel 2007 XML",
+      "exportFilter": "Calc MS Excel 2007 XML",
+      "executionMode": "native_uno",
+      "conversionStatus": "ready",
+      "saveStatus": "not_requested",
+      "readbackVerified": false,
+      "qualityCheckRequested": false,
+      "qualityCompared": false,
+      "checkedFeatures": [
+        "ZIP_CRC",
+        "source_declarations",
+        "native_model_reimport",
+        "native_PDF_reimport",
+        "cached_formula_values",
+        "text_ID_types"
+      ],
+      "unknownReasons": [
+        "full_visual_fidelity_not_compared",
+        "macro_preservation_not_tested"
+      ],
+      "pdfSha256": "5913749130a657d365623b1deeff0b33f0e0319ab6399bf760ed89c1e101be1f",
+      "independentNativePdfModel": [
+        "com.sun.star.drawing.DrawingDocument"
+      ],
+      "macros": "not_present_not_tested"
+    },
+    {
+      "level": 7,
+      "kind": "impress",
+      "target": "pptx",
+      "status": "PASS",
+      "file": "native-impress-7/output/impress-7.pptx",
+      "sha256": "242b9735a843bb4f59648b0921dfe2399044f939bf2a68ec37604788ff8c05b4",
+      "bytes": 16910,
+      "packageParts": 28,
+      "sourceContract": {
+        "state": "recognized",
+        "contentClass": "ooxml_package",
+        "mainContentType": "application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml",
+        "contentTypeBasis": "override",
+        "expectedServices": [
+          "com.sun.star.presentation.PresentationDocument"
+        ]
+      },
+      "nativeImportFilter": "Impress MS PowerPoint 2007 XML",
+      "seedImportFilter": "OpenDocument Presentation Flat XML",
+      "exportFilter": "Impress MS PowerPoint 2007 XML",
+      "executionMode": "native_uno",
+      "conversionStatus": "ready",
+      "saveStatus": "not_requested",
+      "readbackVerified": false,
+      "qualityCheckRequested": false,
+      "qualityCompared": false,
+      "checkedFeatures": [
+        "ZIP_CRC",
+        "source_declarations",
+        "native_model_reimport",
+        "native_PDF_reimport"
+      ],
+      "unknownReasons": [
+        "full_visual_fidelity_not_compared",
+        "macro_preservation_not_tested"
+      ],
+      "pdfSha256": "5f164fdf9335aacb4c84c5b61f3ac8ca0cbb9dd5531d86a62024010c121e29fa",
+      "independentNativePdfModel": [
+        "com.sun.star.drawing.DrawingDocument"
+      ],
+      "macros": "not_present_not_tested"
+    },
+    {
+      "level": 8,
+      "kind": "writer",
+      "target": "docx",
+      "status": "PASS",
+      "file": "native-writer-8/output/writer-8.docx",
+      "sha256": "bcae6efeec64367fc2a67db82793bd437380b829baaeef639bb7033123307747",
+      "bytes": 6272,
+      "packageParts": 10,
+      "sourceContract": {
+        "state": "recognized",
+        "contentClass": "ooxml_package",
+        "mainContentType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml",
+        "contentTypeBasis": "override",
+        "expectedServices": [
+          "com.sun.star.text.TextDocument"
+        ]
+      },
+      "nativeImportFilter": "MS Word 2007 XML",
+      "seedImportFilter": "OpenDocument Text Flat XML",
+      "exportFilter": "MS Word 2007 XML",
+      "executionMode": "native_uno",
+      "conversionStatus": "ready",
+      "saveStatus": "not_requested",
+      "readbackVerified": false,
+      "qualityCheckRequested": false,
+      "qualityCompared": false,
+      "checkedFeatures": [
+        "ZIP_CRC",
+        "source_declarations",
+        "native_model_reimport",
+        "native_PDF_reimport"
+      ],
+      "unknownReasons": [
+        "full_visual_fidelity_not_compared",
+        "macro_preservation_not_tested"
+      ],
+      "pdfSha256": "9f666a6299d5f1dee61a781ac1063bc3648b2384d162b99e8ea1e5a3b0d9e02c",
+      "independentNativePdfModel": [
+        "com.sun.star.drawing.DrawingDocument"
+      ],
+      "macros": "not_present_not_tested"
+    },
+    {
+      "level": 8,
+      "kind": "calc",
+      "target": "xlsx",
+      "status": "PASS",
+      "file": "native-calc-8/output/calc-8.xlsx",
+      "sha256": "2e18706858415c4138ff70211335a368bb8e3fd268ed9b92beac155ae052ee5b",
+      "bytes": 69885,
+      "packageParts": 14,
+      "sourceContract": {
+        "state": "recognized",
+        "contentClass": "ooxml_package",
+        "mainContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+        "contentTypeBasis": "override",
+        "expectedServices": [
+          "com.sun.star.sheet.SpreadsheetDocument"
+        ]
+      },
+      "nativeImportFilter": "Calc MS Excel 2007 XML",
+      "seedImportFilter": "Calc MS Excel 2007 XML",
+      "exportFilter": "Calc MS Excel 2007 XML",
+      "executionMode": "native_uno",
+      "conversionStatus": "ready",
+      "saveStatus": "not_requested",
+      "readbackVerified": false,
+      "qualityCheckRequested": false,
+      "qualityCompared": false,
+      "checkedFeatures": [
+        "ZIP_CRC",
+        "source_declarations",
+        "native_model_reimport",
+        "native_PDF_reimport",
+        "cached_formula_values",
+        "text_ID_types"
+      ],
+      "unknownReasons": [
+        "full_visual_fidelity_not_compared",
+        "macro_preservation_not_tested"
+      ],
+      "pdfSha256": "77b4b01c9633e8404b4a46121e3f921a3076c595748b9e23cd6dd4478fe14c74",
+      "independentNativePdfModel": [
+        "com.sun.star.drawing.DrawingDocument"
+      ],
+      "macros": "not_present_not_tested"
+    },
+    {
+      "level": 8,
+      "kind": "impress",
+      "target": "pptx",
+      "status": "PASS",
+      "file": "native-impress-8/output/impress-8.pptx",
+      "sha256": "51adea691feba5895a13b48167501bff7de3ff0876fc6ba9e564564a1f339bd7",
+      "bytes": 18140,
+      "packageParts": 30,
+      "sourceContract": {
+        "state": "recognized",
+        "contentClass": "ooxml_package",
+        "mainContentType": "application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml",
+        "contentTypeBasis": "override",
+        "expectedServices": [
+          "com.sun.star.presentation.PresentationDocument"
+        ]
+      },
+      "nativeImportFilter": "Impress MS PowerPoint 2007 XML",
+      "seedImportFilter": "OpenDocument Presentation Flat XML",
+      "exportFilter": "Impress MS PowerPoint 2007 XML",
+      "executionMode": "native_uno",
+      "conversionStatus": "ready",
+      "saveStatus": "not_requested",
+      "readbackVerified": false,
+      "qualityCheckRequested": false,
+      "qualityCompared": false,
+      "checkedFeatures": [
+        "ZIP_CRC",
+        "source_declarations",
+        "native_model_reimport",
+        "native_PDF_reimport"
+      ],
+      "unknownReasons": [
+        "full_visual_fidelity_not_compared",
+        "macro_preservation_not_tested"
+      ],
+      "pdfSha256": "2f3c1ce66540defba6d5c9882daca89643762cbc274510bf53b254432c2af5c3",
+      "independentNativePdfModel": [
+        "com.sun.star.drawing.DrawingDocument"
+      ],
+      "macros": "not_present_not_tested"
+    }
+  ],
+  "parserAndIdentityControls": [
+    {
+      "name": "truncated-zip",
+      "file": "broken.docx",
+      "sha256": "7be7a512a4ee374dd72515d7ea0194e028655156d29647f3ebabfbcf4a37d96f",
+      "status": "PASS",
+      "expectedDecision": "not_checked",
+      "actualDecision": "not_checked",
+      "scope": "inert_pair_analysis",
+      "evidence": {
+        "schemaVersion": 1,
+        "status": "not_checked",
+        "qualityCompared": false,
+        "scope": "verified_properties_only",
+        "findings": [
+          {
+            "code": "ANALYSIS_INCOMPLETE",
+            "category": "not_checked",
+            "message": "Часть свойств не удалось надёжно проверить.",
+            "certainty": "unknown",
+            "reason": "inspection_failed"
+          }
+        ],
+        "checkedFeatures": [],
+        "unknown": [
+          "colour_accuracy",
+          "fonts",
+          "formula_evaluation",
+          "incomplete_source_inspection",
+          "semantic_meaning",
+          "visual_layout"
+        ],
+        "recipeCandidates": [],
+        "before": {
+          "kind": "unknown",
+          "documentClass": "unknown",
+          "complete": false,
+          "counts": {},
+          "reason": "inspection_failed"
+        },
+        "after": {
+          "kind": "text",
+          "documentClass": "text",
+          "complete": true,
+          "counts": {
+            "characters": 15
+          },
+          "textDigest": "e74e7c757db01133fba44fe0795a07a74c3558128ea62ef6b845ff44bc3b3c10"
+        },
+        "outputScope": {
+          "totalFiles": 1,
+          "primaryFiles": 1,
+          "supplementalFiles": 0,
+          "inspectedPrimaryFiles": 1,
+          "inspectedSupplementalFiles": 0
+        },
+        "evaluatedFeatures": []
+      }
+    },
+    {
+      "name": "truncated-xml",
+      "file": "broken.fodt",
+      "sha256": "33f61e8affc243e513e08e45ad87ac17e969bd550c03de793eed3ac5904e97db",
+      "status": "PASS",
+      "expectedDecision": "not_checked",
+      "actualDecision": "not_checked",
+      "scope": "inert_pair_analysis",
+      "evidence": {
+        "schemaVersion": 1,
+        "status": "not_checked",
+        "qualityCompared": false,
+        "scope": "verified_properties_only",
+        "findings": [
+          {
+            "code": "ANALYSIS_INCOMPLETE",
+            "category": "not_checked",
+            "message": "Часть свойств не удалось надёжно проверить.",
+            "certainty": "unknown",
+            "reason": "inspection_failed"
+          }
+        ],
+        "checkedFeatures": [],
+        "unknown": [
+          "colour_accuracy",
+          "fonts",
+          "formula_evaluation",
+          "incomplete_source_inspection",
+          "semantic_meaning",
+          "visual_layout"
+        ],
+        "recipeCandidates": [],
+        "before": {
+          "kind": "unknown",
+          "documentClass": "unknown",
+          "complete": false,
+          "counts": {},
+          "reason": "inspection_failed"
+        },
+        "after": {
+          "kind": "text",
+          "documentClass": "text",
+          "complete": true,
+          "counts": {
+            "characters": 15
+          },
+          "textDigest": "e74e7c757db01133fba44fe0795a07a74c3558128ea62ef6b845ff44bc3b3c10"
+        },
+        "outputScope": {
+          "totalFiles": 1,
+          "primaryFiles": 1,
+          "supplementalFiles": 0,
+          "inspectedPrimaryFiles": 1,
+          "inspectedSupplementalFiles": 0
+        },
+        "evaluatedFeatures": []
+      }
+    },
+    {
+      "name": "dtd-entity",
+      "file": "entity.fodt",
+      "sha256": "58e5c45d1a8b8f06fa69941cf9e33aead470cc52727e4bbfa65e86f7878383f2",
+      "status": "PASS",
+      "expectedDecision": "not_checked",
+      "actualDecision": "not_checked",
+      "scope": "inert_pair_analysis",
+      "evidence": {
+        "schemaVersion": 1,
+        "status": "not_checked",
+        "qualityCompared": false,
+        "scope": "verified_properties_only",
+        "findings": [
+          {
+            "code": "ANALYSIS_INCOMPLETE",
+            "category": "not_checked",
+            "message": "Часть свойств не удалось надёжно проверить.",
+            "certainty": "unknown",
+            "reason": "xml_declarations_not_inspected"
+          }
+        ],
+        "checkedFeatures": [],
+        "unknown": [
+          "colour_accuracy",
+          "fonts",
+          "formula_evaluation",
+          "incomplete_source_inspection",
+          "semantic_meaning",
+          "visual_layout"
+        ],
+        "recipeCandidates": [],
+        "before": {
+          "kind": "unknown",
+          "documentClass": "unknown",
+          "complete": false,
+          "counts": {},
+          "reason": "xml_declarations_not_inspected"
+        },
+        "after": {
+          "kind": "text",
+          "documentClass": "text",
+          "complete": true,
+          "counts": {
+            "characters": 15
+          },
+          "textDigest": "e74e7c757db01133fba44fe0795a07a74c3558128ea62ef6b845ff44bc3b3c10"
+        },
+        "outputScope": {
+          "totalFiles": 1,
+          "primaryFiles": 1,
+          "supplementalFiles": 0,
+          "inspectedPrimaryFiles": 1,
+          "inspectedSupplementalFiles": 0
+        },
+        "evaluatedFeatures": []
+      }
+    },
+    {
+      "name": "missing-html-resource",
+      "file": "missing.html",
+      "sha256": "fe3c6bc70f8cb7a7cc67e2112df1cc9b144c650750e54ab1fcbc99a94c9d10c4",
+      "status": "PASS",
+      "expectedDecision": "not_checked",
+      "actualDecision": "not_checked",
+      "scope": "inert_pair_analysis",
+      "evidence": {
+        "schemaVersion": 1,
+        "status": "not_checked",
+        "qualityCompared": false,
+        "scope": "verified_properties_only",
+        "findings": [
+          {
+            "code": "ANALYSIS_INCOMPLETE",
+            "category": "not_checked",
+            "message": "Часть свойств не удалось надёжно проверить.",
+            "certainty": "unknown",
+            "reason": "inspection_failed"
+          }
+        ],
+        "checkedFeatures": [],
+        "unknown": [
+          "colour_accuracy",
+          "fonts",
+          "formula_evaluation",
+          "incomplete_source_inspection",
+          "semantic_meaning",
+          "visual_layout"
+        ],
+        "recipeCandidates": [],
+        "before": {
+          "kind": "unknown",
+          "documentClass": "unknown",
+          "complete": false,
+          "counts": {},
+          "reason": "inspection_failed"
+        },
+        "after": {
+          "kind": "text",
+          "documentClass": "text",
+          "complete": true,
+          "counts": {
+            "characters": 15
+          },
+          "textDigest": "e74e7c757db01133fba44fe0795a07a74c3558128ea62ef6b845ff44bc3b3c10"
+        },
+        "outputScope": {
+          "totalFiles": 1,
+          "primaryFiles": 1,
+          "supplementalFiles": 0,
+          "inspectedPrimaryFiles": 1,
+          "inspectedSupplementalFiles": 0
+        },
+        "evaluatedFeatures": []
+      }
+    },
+    {
+      "name": "dynamic-hidden-html",
+      "file": "dynamic.html",
+      "sha256": "c93919a2ae0f6dd2fe4f34bbbb11103e359b05619f7f90225449163b6e34de51",
+      "status": "PASS",
+      "expectedDecision": "not_checked",
+      "actualDecision": "not_checked",
+      "scope": "inert_pair_analysis",
+      "evidence": {
+        "schemaVersion": 1,
+        "status": "not_checked",
+        "qualityCompared": false,
+        "scope": "verified_properties_only",
+        "findings": [],
+        "checkedFeatures": [],
+        "unknown": [
+          "colour_accuracy",
+          "fonts",
+          "formula_evaluation",
+          "html_css_layout",
+          "html_dynamic_content",
+          "html_embedded_resource_rendering",
+          "html_hidden_content",
+          "html_text_visibility",
+          "semantic_meaning",
+          "visual_layout"
+        ],
+        "recipeCandidates": [],
+        "before": {
+          "kind": "html",
+          "documentClass": "text",
+          "complete": true,
+          "counts": {
+            "tables": 0,
+            "images": 0,
+            "characters": 11
+          },
+          "textDigest": "0556d10508509bc743c6759de2f984cfe5ccf1c44abb572189939359c50cf447",
+          "textCoverage": [
+            "html_body_markup"
+          ]
+        },
+        "after": {
+          "kind": "text",
+          "documentClass": "text",
+          "complete": true,
+          "counts": {
+            "characters": 15
+          },
+          "textDigest": "e74e7c757db01133fba44fe0795a07a74c3558128ea62ef6b845ff44bc3b3c10"
+        },
+        "outputScope": {
+          "totalFiles": 1,
+          "primaryFiles": 1,
+          "supplementalFiles": 0,
+          "inspectedPrimaryFiles": 1,
+          "inspectedSupplementalFiles": 0
+        },
+        "evaluatedFeatures": []
+      }
+    },
+    {
+      "name": "text-mismatch",
+      "file": "mismatch.txt",
+      "sha256": "bb7c83425e1be22dae6746dee1024166351c5af08353e416f939ef8e9beb4156",
+      "status": "PASS",
+      "expectedDecision": "uncertain",
+      "actualDecision": "uncertain",
+      "scope": "inert_pair_analysis",
+      "evidence": {
+        "schemaVersion": 1,
+        "status": "uncertain",
+        "qualityCompared": false,
+        "scope": "verified_properties_only",
+        "findings": [
+          {
+            "code": "TEXT_REPRESENTATION_DIFFERS",
+            "category": "uncertain",
+            "feature": "text",
+            "message": "Извлечённый текст отличается; это ещё не доказывает исчезновение текста в документе.",
+            "certainty": "requires_review"
+          }
+        ],
+        "checkedFeatures": [],
+        "unknown": [
+          "colour_accuracy",
+          "fonts",
+          "formula_evaluation",
+          "semantic_meaning",
+          "visual_layout"
+        ],
+        "recipeCandidates": [],
+        "before": {
+          "kind": "text",
+          "documentClass": "text",
+          "complete": true,
+          "counts": {
+            "characters": 15
+          },
+          "textDigest": "bb7c83425e1be22dae6746dee1024166351c5af08353e416f939ef8e9beb4156"
+        },
+        "after": {
+          "kind": "text",
+          "documentClass": "text",
+          "complete": true,
+          "counts": {
+            "characters": 15
+          },
+          "textDigest": "e74e7c757db01133fba44fe0795a07a74c3558128ea62ef6b845ff44bc3b3c10"
+        },
+        "outputScope": {
+          "totalFiles": 1,
+          "primaryFiles": 1,
+          "supplementalFiles": 0,
+          "inspectedPrimaryFiles": 1,
+          "inspectedSupplementalFiles": 0
+        },
+        "evaluatedFeatures": []
+      }
+    },
+    {
+      "name": "empty-result",
+      "file": "empty-source.txt",
+      "sha256": "e74e7c757db01133fba44fe0795a07a74c3558128ea62ef6b845ff44bc3b3c10",
+      "status": "PASS",
+      "expectedDecision": "confirmed_loss",
+      "actualDecision": "confirmed_loss",
+      "scope": "inert_pair_analysis",
+      "evidence": {
+        "schemaVersion": 1,
+        "status": "confirmed_loss",
+        "qualityCompared": true,
+        "scope": "verified_properties_only",
+        "findings": [
+          {
+            "code": "TEXT_OUTPUT_EMPTY",
+            "category": "confirmed_loss",
+            "feature": "text",
+            "message": "В исходнике извлечён текст, а текстовый результат пуст.",
+            "before": 15,
+            "after": 0,
+            "certainty": "confirmed_subset"
+          }
+        ],
+        "checkedFeatures": [],
+        "unknown": [
+          "colour_accuracy",
+          "fonts",
+          "formula_evaluation",
+          "semantic_meaning",
+          "visual_layout"
+        ],
+        "recipeCandidates": [],
+        "before": {
+          "kind": "text",
+          "documentClass": "text",
+          "complete": true,
+          "counts": {
+            "characters": 15
+          },
+          "textDigest": "e74e7c757db01133fba44fe0795a07a74c3558128ea62ef6b845ff44bc3b3c10"
+        },
+        "after": {
+          "kind": "text",
+          "documentClass": "text",
+          "complete": true,
+          "counts": {
+            "characters": 0
+          },
+          "textDigest": null
+        },
+        "outputScope": {
+          "totalFiles": 1,
+          "primaryFiles": 1,
+          "supplementalFiles": 0,
+          "inspectedPrimaryFiles": 1,
+          "inspectedSupplementalFiles": 0
+        },
+        "evaluatedFeatures": [
+          "text"
+        ]
+      }
+    },
+    {
+      "name": "conflicting-mime",
+      "file": "conflicting.fods",
+      "sha256": "85f404d3ffa47a24235f850c4595120dcac9e356deed53dd8dbb7d651a297157",
+      "status": "PASS",
+      "expectedDecision": "invalid",
+      "actualDecision": "invalid",
+      "scope": "bounded_source_declaration",
+      "evidence": {
+        "state": "invalid",
+        "code": "SOURCE_CONTAINER_INCONSISTENT",
+        "reason": "mimetype_body_mismatch",
+        "contentClass": "odf",
+        "expectedServices": []
+      }
+    },
+    {
+      "name": "renamed-writer",
+      "file": "writer-renamed.xlsx",
+      "sha256": "3e2cf8bdfa1c84426a931d140aca3b2b9086f7bfe3cca5799e2f4209855f8a51",
+      "status": "PASS",
+      "expectedDecision": "recognized",
+      "actualDecision": "recognized",
+      "scope": "bounded_source_declaration",
+      "evidence": {
+        "state": "recognized",
+        "contentClass": "flat_odf",
+        "mimetype": "application/vnd.oasis.opendocument.text",
+        "expectedServices": [
+          "com.sun.star.text.TextDocument"
+        ],
+        "bodyObserved": true
+      }
+    },
+    {
+      "name": "inspection-budget",
+      "file": "bounded.fodt",
+      "sha256": "3e2cf8bdfa1c84426a931d140aca3b2b9086f7bfe3cca5799e2f4209855f8a51",
+      "status": "PASS",
+      "expectedDecision": "not_checked",
+      "actualDecision": "not_checked",
+      "scope": "bounded_source_declaration",
+      "evidence": {
+        "state": "not_checked",
+        "reason": "source_contract_budget"
+      }
+    },
+    {
+      "name": "changed-source-preview",
+      "file": "changed-source-preview/data.txt",
+      "sha256": "8b0dae4b88ad579df597e41a18b7a66fc73b06380970346bad07afe801a99463",
+      "status": "PASS",
+      "expectedDecision": "unavailable",
+      "actualDecision": "unavailable",
+      "scope": "preview_identity_boundary",
+      "evidence": {
+        "kind": "unavailable",
+        "code": "SOURCE_CHANGED",
+        "note": "Файл изменился после конвертации. Сохранённый отчёт относится к прежним байтам; запустите анализ заново."
+      }
+    },
+    {
+      "name": "changed-result-preview",
+      "file": "changed-result-preview/data.txt",
+      "sha256": "8b0dae4b88ad579df597e41a18b7a66fc73b06380970346bad07afe801a99463",
+      "status": "PASS",
+      "expectedDecision": "unavailable",
+      "actualDecision": "unavailable",
+      "scope": "preview_identity_boundary",
+      "evidence": {
+        "kind": "unavailable",
+        "code": "RESULT_CHANGED",
+        "note": "Файл изменился после конвертации. Сохранённый отчёт относится к прежним байтам; запустите анализ заново."
+      }
+    }
+  ],
+  "stages": [
+    {
+      "stage": "dif-regression",
+      "generator": "guard_b28_dif_native_acceptance.py",
+      "generatorSha256": "a1e1a493022a88408bf66e6edccfb1610d06736e5dea50b1e426791e33c105e5",
+      "expectedDecisions": {
+        "cases": 48
+      },
+      "files": [
+        {
+          "file": "01_LEVEL_1.dif",
+          "bytes": 1886,
+          "sha256": "d8ec658761c53b44c17563fc59a1bcdbce955a4e87a0696683aa61814ec1a5e2",
+          "role": "exact_existing_regression_input"
+        },
+        {
+          "file": "02_LEVEL_2.dif",
+          "bytes": 2924,
+          "sha256": "9f819b90d1a3fbe7eb58730e25453357df8496473dc1e951238ebe7f598b5fb4",
+          "role": "exact_existing_regression_input"
+        },
+        {
+          "file": "03_LEVEL_3.dif",
+          "bytes": 3962,
+          "sha256": "7f4e78208200640f4b5d3e24fa7d62a40c8f05a95882c88f9517a5ea9ecfa485",
+          "role": "exact_existing_regression_input"
+        },
+        {
+          "file": "04_LEVEL_4.dif",
+          "bytes": 7395,
+          "sha256": "82637dabe6c8020a0852f6a9b94fbc9ff8f8e408bcc16bb0c448a11e30eb3d5b",
+          "role": "exact_existing_regression_input"
+        },
+        {
+          "file": "05_LEVEL_5.dif",
+          "bytes": 8948,
+          "sha256": "b044364f5b96ffb9952f8e288921b43a7b03e21435802536dc7b1c4779f0fe4c",
+          "role": "exact_existing_regression_input"
+        },
+        {
+          "file": "06_LEVEL_6.dif",
+          "bytes": 10501,
+          "sha256": "0c60ef69885cdd6fa6e9b7d590210fb37729b9721923bece98f60c049e1b376c",
+          "role": "exact_existing_regression_input"
+        },
+        {
+          "file": "07_LEVEL_7.dif",
+          "bytes": 12053,
+          "sha256": "ca53da2a9d37c7d91cb013b4f3e4d1f6c11d4aae79db0f2678549fba00410a61",
+          "role": "exact_existing_regression_input"
+        },
+        {
+          "file": "08_LEVEL_8.dif",
+          "bytes": 13613,
+          "sha256": "3f0076bb1aded215f4352bd7b32a60d70e358ea1a52aaab99a2c135509dced83",
+          "role": "exact_existing_regression_input"
+        }
+      ]
+    },
+    {
+      "stage": "text-id-regression",
+      "generator": "guard_b29_csv_native_acceptance.py",
+      "generatorSha256": "2e949fdc455ce3bf74439cbfc26fb502d24207284ec323114b901f81b26d06f3",
+      "expectedDecisions": {
+        "cases": 108
+      },
+      "files": [
+        {
+          "file": "csv/01_LEVEL_1.csv",
+          "bytes": 932,
+          "sha256": "93626c4c28eb5a2338ac85c4cc1fe3f45877212ffee402c998516a4f270c242d",
+          "role": "exact_existing_regression_input"
+        },
+        {
+          "file": "csv/02_LEVEL_2.csv",
+          "bytes": 1484,
+          "sha256": "11960149dfb4f9e4200547fb13f8a7b724192a2793b9cbbdf9dc3f03556cfc0a",
+          "role": "exact_existing_regression_input"
+        },
+        {
+          "file": "csv/03_LEVEL_3.csv",
+          "bytes": 2036,
+          "sha256": "b5be76ac749c60c8f059e9e31a49ccfd1430ff51e30b3fa5495d00e8a808e3f4",
+          "role": "exact_existing_regression_input"
+        },
+        {
+          "file": "csv/04_LEVEL_4.csv",
+          "bytes": 5109,
+          "sha256": "c1ef8506518e6efe91f673341159e3c2406ec773888fe79bd650e5b15c558f8a",
+          "role": "exact_existing_regression_input"
+        },
+        {
+          "file": "csv/05_LEVEL_5.csv",
+          "bytes": 6203,
+          "sha256": "4f1c683c39e797db80383f0225f7520b36db71d3fa78b5de899617da22d7dab9",
+          "role": "exact_existing_regression_input"
+        },
+        {
+          "file": "csv/06_LEVEL_6.csv",
+          "bytes": 7297,
+          "sha256": "f56f87db7021a50967573495cdeab5c83b50321d5fc7d169b8fbdb5334392b32",
+          "role": "exact_existing_regression_input"
+        },
+        {
+          "file": "csv/07_LEVEL_7.csv",
+          "bytes": 8390,
+          "sha256": "14571c45e511ce7071e724b052c1809439ee29ecdda7768e9bf37f2800c5b8f9",
+          "role": "exact_existing_regression_input"
+        },
+        {
+          "file": "csv/08_LEVEL_8.csv",
+          "bytes": 9491,
+          "sha256": "9e4e9a6333fa48c4ca5ef036cb70eefc7e7d8d64d6c0e1ab0f6d2f8510515bdc",
+          "role": "exact_existing_regression_input"
+        },
+        {
+          "file": "tab/01_LEVEL_1.tab",
+          "bytes": 932,
+          "sha256": "1811335c19e2de6a60c03427a1507466e3bd98e2f174a144a4267e70e197b354",
+          "role": "exact_existing_regression_input"
+        },
+        {
+          "file": "tab/02_LEVEL_2.tab",
+          "bytes": 1484,
+          "sha256": "cd055a37beecf9cc7280cc48a62a9341fe54e069eb97eb74d7d2cc4fc057f727",
+          "role": "exact_existing_regression_input"
+        },
+        {
+          "file": "tab/03_LEVEL_3.tab",
+          "bytes": 2036,
+          "sha256": "4a97d348c658685294a5168abb3841d0e0ccd0534952f9a3ec66376bef8c7708",
+          "role": "exact_existing_regression_input"
+        },
+        {
+          "file": "tab/04_LEVEL_4.tab",
+          "bytes": 5109,
+          "sha256": "904caa9ed92196579b07fc782fc5da3258cd96f8ee55be002b855729d9bee3b6",
+          "role": "exact_existing_regression_input"
+        },
+        {
+          "file": "tab/05_LEVEL_5.tab",
+          "bytes": 6203,
+          "sha256": "d453ff9dba24132a64677f5c7c8394a1fe4bdc5017306c78e1c922b420a8d8a4",
+          "role": "exact_existing_regression_input"
+        },
+        {
+          "file": "tab/06_LEVEL_6.tab",
+          "bytes": 7297,
+          "sha256": "0e12b56930483ae8525453beac9388736cafbdc6fa7b65b02899a3e7a4f0be4b",
+          "role": "exact_existing_regression_input"
+        },
+        {
+          "file": "tab/07_LEVEL_7.tab",
+          "bytes": 8390,
+          "sha256": "8e31e77deaef3286c2251445a60bb11c222b0087400c65bcd1bd1edaf11ecdd7",
+          "role": "exact_existing_regression_input"
+        },
+        {
+          "file": "tab/08_LEVEL_8.tab",
+          "bytes": 9491,
+          "sha256": "07b3c8e84bf76bde29b34666ea1be0cc397ebe3ae2907a1f89d29e3451ac4b63",
+          "role": "exact_existing_regression_input"
+        },
+        {
+          "file": "tsv/01_LEVEL_1.tsv",
+          "bytes": 932,
+          "sha256": "1811335c19e2de6a60c03427a1507466e3bd98e2f174a144a4267e70e197b354",
+          "role": "exact_existing_regression_input"
+        },
+        {
+          "file": "tsv/02_LEVEL_2.tsv",
+          "bytes": 1484,
+          "sha256": "cd055a37beecf9cc7280cc48a62a9341fe54e069eb97eb74d7d2cc4fc057f727",
+          "role": "exact_existing_regression_input"
+        },
+        {
+          "file": "tsv/03_LEVEL_3.tsv",
+          "bytes": 2036,
+          "sha256": "4a97d348c658685294a5168abb3841d0e0ccd0534952f9a3ec66376bef8c7708",
+          "role": "exact_existing_regression_input"
+        },
+        {
+          "file": "tsv/04_LEVEL_4.tsv",
+          "bytes": 5109,
+          "sha256": "904caa9ed92196579b07fc782fc5da3258cd96f8ee55be002b855729d9bee3b6",
+          "role": "exact_existing_regression_input"
+        },
+        {
+          "file": "tsv/05_LEVEL_5.tsv",
+          "bytes": 6203,
+          "sha256": "d453ff9dba24132a64677f5c7c8394a1fe4bdc5017306c78e1c922b420a8d8a4",
+          "role": "exact_existing_regression_input"
+        },
+        {
+          "file": "tsv/06_LEVEL_6.tsv",
+          "bytes": 7297,
+          "sha256": "0e12b56930483ae8525453beac9388736cafbdc6fa7b65b02899a3e7a4f0be4b",
+          "role": "exact_existing_regression_input"
+        },
+        {
+          "file": "tsv/07_LEVEL_7.tsv",
+          "bytes": 8390,
+          "sha256": "8e31e77deaef3286c2251445a60bb11c222b0087400c65bcd1bd1edaf11ecdd7",
+          "role": "exact_existing_regression_input"
+        },
+        {
+          "file": "tsv/08_LEVEL_8.tsv",
+          "bytes": 9491,
+          "sha256": "07b3c8e84bf76bde29b34666ea1be0cc397ebe3ae2907a1f89d29e3451ac4b63",
+          "role": "exact_existing_regression_input"
+        }
+      ]
+    }
+  ]
+}

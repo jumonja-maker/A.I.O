@@ -1,0 +1,159 @@
+{
+  "status": "FAIL",
+  "runId": 40571815044,
+  "jobId": 122427721285,
+  "testedSourceSHA": "e28a625969cc679c3d258229c12aa2410e5d3b25",
+  "testedTreeSHA": "b8b2303b4685fd7e8936f754a18a9e7076532491",
+  "evidence": [
+    {
+      "file": "D:\\actions-runner\\_work\\A.I.O\\A.I.O\\aio-before-after-evidence-40571815044-1\\before-after\\evidence.json",
+      "data": {
+        "status": "FAIL",
+        "scope": "source QtWebEngine/real preview codecs + native Writer HTML; not installed EXE or FULLTEST",
+        "scaleFactor": "1",
+        "checks": [
+          {
+            "name": "native-writer-html-analysis",
+            "status": "PASS",
+            "sourceSha256": "76a6fb3503fdda0d825fff72e689e682518ad3eda5da2e4263306b174a0bdb6a",
+            "analysis": {
+              "schemaVersion": 1,
+              "status": "checked",
+              "qualityCompared": true,
+              "scope": "verified_properties_only",
+              "findings": [],
+              "checkedFeatures": [
+                "cell_values_single_grid",
+                "normalized_text"
+              ],
+              "unknown": [
+                "colour_accuracy",
+                "comments_and_revisions",
+                "field_evaluation",
+                "fonts",
+                "formula_evaluation",
+                "hidden_text",
+                "html_css_layout",
+                "html_embedded_resource_rendering",
+                "html_text_visibility",
+                "semantic_meaning",
+                "textboxes_reading_order",
+                "visual_layout",
+                "word_table_structure"
+              ],
+              "recipeCandidates": [],
+              "before": {
+                "kind": "ooxml",
+                "documentClass": "text",
+                "complete": true,
+                "counts": {
+                  "tables": 1,
+                  "textParts": 1,
+                  "images": 0,
+                  "formulas": 0,
+                  "characters": 69
+                },
+                "textDigest": "9ac6226334ec41b81aa7b324684a7f9d998b012bfcf0fb2f3052b661973a6ba4",
+                "textCoverage": [
+                  "body"
+                ]
+              },
+              "after": {
+                "kind": "html",
+                "documentClass": "text",
+                "complete": true,
+                "counts": {
+                  "tables": 1,
+                  "images": 0,
+                  "characters": 69
+                },
+                "textDigest": "9ac6226334ec41b81aa7b324684a7f9d998b012bfcf0fb2f3052b661973a6ba4",
+                "textCoverage": [
+                  "html_body_markup"
+                ]
+              },
+              "outputScope": {
+                "totalFiles": 1,
+                "primaryFiles": 1,
+                "supplementalFiles": 0,
+                "inspectedPrimaryFiles": 1,
+                "inspectedSupplementalFiles": 0
+              },
+              "evaluatedFeatures": [
+                "cell_values_single_grid",
+                "normalized_text"
+              ]
+            }
+          },
+          {
+            "name": "qt-two-pane-4k-dark",
+            "status": "PASS",
+            "nativeMouseFilter": true,
+            "nativeKeyboardFilter": true,
+            "zooms": [
+              100,
+              200,
+              400
+            ],
+            "sourcePixels": [
+              3840,
+              2160
+            ]
+          },
+          {
+            "name": "qt-two-pane-4k-light",
+            "status": "PASS",
+            "nativeMouseFilter": true,
+            "nativeKeyboardFilter": true,
+            "zooms": [
+              100,
+              200,
+              400
+            ],
+            "sourcePixels": [
+              3840,
+              2160
+            ]
+          },
+          {
+            "name": "qt-synchronized-animation-frame-navigation",
+            "status": "PASS",
+            "frames": 3
+          }
+        ],
+        "snapshots": [
+          {
+            "name": "dark.png",
+            "sha256": "e613716fbd670621aa4c58da6c29a85eb1abc97f49903c728d7bed44febe4324",
+            "geometry": {
+              "x": 16,
+              "y": 16,
+              "width": 868,
+              "height": 618,
+              "viewportWidth": 900,
+              "viewportHeight": 650,
+              "panes": 2,
+              "dpr": 1
+            }
+          },
+          {
+            "name": "light.png",
+            "sha256": "61a3aaacee431a9d293c43fba9b418e0942c2895f3dc6b40319e19f333302a32",
+            "geometry": {
+              "x": 16,
+              "y": 16,
+              "width": 868,
+              "height": 618,
+              "viewportWidth": 900,
+              "viewportHeight": 650,
+              "panes": 2,
+              "dpr": 1
+            }
+          }
+        ],
+        "reason": "{'taskId': '62bd299277f897f426d3b310513e20e7:0', 'format': 'gif', 'state': 'error', 'code': 'MEDIA_ALPHA_LOSS', 'error': 'Р­РєСЃРїРѕСЂС‚ СѓРґР°Р»РёР» РїСЂРѕР·СЂР°С‡РЅРѕСЃС‚СЊ РІ С„РѕСЂРјР°С‚Рµ, РїРѕРґРґРµСЂР¶РёРІР°СЋС‰РµРј Р°Р»СЊС„Р°-РєР°РЅР°Р».', 'stage': 'result', 'libreOfficeStarted': True, 'executionMode': 'native_cli', 'executionReason': 'native_filter_unresolved', 'resultChecks': [], 'automaticRecipe': None, 'automaticParameters': None, 'nativeTimings': {'source': 'cli_process', 'launchMs': 16, 'processMs': 4422, 'adapterMs': 4422}, 'exportFilter': None, 'warnings': [], 'quality': None, 'startedMs': 1793131397333, 'finishedMs': 1793131401851, 'route': None, 'percent': None, 'outputs': []}",
+        "error": "AssertionError"
+      }
+    }
+  ]
+}
