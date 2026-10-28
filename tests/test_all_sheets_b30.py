@@ -29,6 +29,21 @@ class AllSheetsContracts(unittest.TestCase):
                 self.assertNotIn('/', name)
                 self.assertFalse(name.startswith('.'))
 
+    def test_long_native_snapshot_stem_is_short_and_keeps_original_untouched(self):
+        from app_backend.converter_guard.legacy_sheets import prepare_calc_sheet_snapshots
+        with tempfile.TemporaryDirectory() as tmp:
+            base=Path(tmp)
+            native=base/'small.fods'
+            native.write_bytes(native_flat(sheet('Data','42.5')))
+            before=hashlib.sha256(native.read_bytes()).hexdigest()
+            outputs,proof=prepare_calc_sheet_snapshots(
+                native,base/'snapshots',stem='Книга'*49,cancel=threading.Event())
+            self.assertEqual(len(outputs),1)
+            self.assertTrue(outputs[0].is_file())
+            self.assertTrue(outputs[0].name.startswith('aio-snapshot-'))
+            self.assertLess(len(outputs[0].name.encode('utf-16-le'))//2,255)
+            self.assertEqual(hashlib.sha256(native.read_bytes()).hexdigest(),before)
+
     def test_complete_csv_including_literal_id_multiline_and_tail(self):
         rows = [['ID','Text','Value'], ['001','Первая\nстрока','42.5'], ['002','last','-7']]
         with tempfile.TemporaryDirectory() as tmp:
@@ -62,6 +77,7 @@ class AllSheetsContracts(unittest.TestCase):
                 entries.append(sheet_file_evidence(p,i,name,{'status':'checked_subset'}))
             manifest=write_sheet_manifest(root,entries);paths.append(manifest)
             self.assertEqual(read_sheet_manifest(paths)['sheetCount'],4)
+        self.assertEqual(SHEET_MANIFEST,'AIO-sheets.json')
             with self.assertRaises(GuardError):read_sheet_manifest(paths[:-2]+[manifest])
             paths[0].write_text('1\n')
             with self.assertRaises(GuardError):read_sheet_manifest(paths)
