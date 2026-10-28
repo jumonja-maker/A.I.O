@@ -109,7 +109,8 @@
           'Команда принята. Обновляем состояние…';
         feedbackRevision=state?.revision;
         text('[data-g-warning]',result?.saved?'Сохранено файлов: '+(result.outputs??'')+
-          (result.savedAll?'':' · остальные результаты остаются в AIO.'):'Запрос принят.');
+          (result.savedAll?'':(result.remainingCompanionFiles&&!result.remainingDocuments
+            ?' · остался несохранённый служебный манифест листов.':' · остальные результаты остаются в AIO.')):'Запрос принят.');
         renderCurrent();
         await refresh();
       }catch(error){
