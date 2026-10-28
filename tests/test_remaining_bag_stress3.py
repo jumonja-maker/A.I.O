@@ -1,4 +1,5 @@
 import importlib.util
+import csv
 import hashlib
 from pathlib import Path
 import tempfile
@@ -8,6 +9,22 @@ SCRIPT=Path(__file__).resolve().parents[1]/'tools/qa/guard_remaining_bag_stress3
 spec=importlib.util.spec_from_file_location('remaining_stress3',SCRIPT);qa=importlib.util.module_from_spec(spec);spec.loader.exec_module(qa)
 
 class Stress3EvidenceContracts(unittest.TestCase):
+    def test_decision_csv_preserves_pair_identity_unknown_and_expected_refusal(self):
+        data={'status':'PASS','cases':[{'status':'PASS','source':'Лист,\n001.xlsx','target':'csv','sourceSha256':'a'*64}],
+              'negative':[{'status':'SAFE_REJECTION','source':'broken.dbf'}],
+              'excluded':[{'status':'SAFE_UNAVAILABLE','source':'graphic.odp'}]}
+        records=qa.decision_records('control',data,{'cases':1,'negative':1,'excluded':1},'b'*64)
+        self.assertEqual([r['expectedDecision'] for r in records],['ready','error','unavailable'])
+        self.assertEqual(records[0]['evidencePointer'],'/cases/0')
+        records.append(dict(stage='parser',expectedDecision='not_checked',actualDecision='not_checked'))
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'pair-decisions.csv';qa.write_decisions_csv(path,records)
+            with path.open(encoding='utf-8-sig',newline='') as stream:rows=list(csv.DictReader(stream))
+            self.assertEqual(rows[0]['source'],'Лист,\n001.xlsx')
+            self.assertEqual(rows[0]['sourceSha256'],'a'*64)
+            self.assertEqual(rows[-1]['actualDecision'],'not_checked')
+        data['negative'][0]['status']='PASS'
+        with self.assertRaises(ValueError):qa.decision_records('control',data,{'negative':1},'b'*64)
     def test_exit_success_or_missing_cases_cannot_replace_expected_verdicts(self):
         for data in ({'status':'PASS','cases':[]},{'status':'FAIL','cases':[{'status':'PASS'}]},
                      {'status':'PASS','cases':[{'status':'not_checked'}]}):

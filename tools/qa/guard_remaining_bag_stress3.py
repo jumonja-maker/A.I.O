@@ -4,6 +4,7 @@ Run only in a new directory. Child generators use synthetic controls and the
 installed native stack. This driver requires the reviewed feature PRs together.
 """
 import argparse
+import csv
 import hashlib
 import json
 import os
@@ -59,6 +60,34 @@ def validate_stage(name,data,expected):
         if any(not isinstance(row,dict) or row.get('status') not in allowed for row in rows):
             raise ValueError(name+': unexpected '+key+' verdict')
     return {'name':name,'status':'PASS','expectedCounts':expected}
+
+
+def decision_records(name,data,expected,evidence_sha):
+    """Index every accepted child decision, preserving its exact JSON location."""
+    validate_stage(name,data,expected)
+    records=[]
+    for category in expected:
+        decision='error' if category=='negative' else 'unavailable' if category=='excluded' else 'PASS' if category=='checks' else 'ready'
+        for index,row in enumerate(data[category]):
+            check=row.get('check',{});independent=row.get('independent',{})
+            records.append({'stage':name,'category':category,'index':index,
+                'expectedDecision':decision,'actualDecision':decision,'verdict':row['status'],
+                'reason':'fixed '+category+' control; required child invariants passed',
+                'scope':'lifecycle_or_viewer_invariants' if category=='checks' else 'native_conversion_decision',
+                'source':row.get('source',row.get('name','')),'target':row.get('target',''),
+                'sourceSha256':row.get('sourceSha256') or row.get('originalSha256') or check.get('sourceSHA256') or independent.get('originalSha256',''),
+                'outputSha256':row.get('outputSha256',row.get('sha256','')),
+                'evidenceFile':name+'/evidence.json','evidenceSha256':evidence_sha,
+                'evidencePointer':'/'+category+'/'+str(index)})
+    return records
+
+
+def write_decisions_csv(path,records):
+    fields=('stage','category','index','expectedDecision','actualDecision','verdict','reason','scope',
+            'source','target','sourceSha256','outputSha256','evidenceFile','evidenceSha256','evidencePointer')
+    with path.open('w',encoding='utf-8-sig',newline='') as stream:
+        writer=csv.DictWriter(stream,fieldnames=fields,extrasaction='ignore')
+        writer.writeheader();writer.writerows(records)
 
 
 def referenced_sources(folder,data):
@@ -261,12 +290,25 @@ def main():
         write(args.output/'evidence.json',{'status':'NOT_RUN','reason':'dry_run','expectedDecisions':plan});return 2
     if not args.executable or not args.executable.is_file():raise ValueError('installed executable required')
     report={'schema':1,'status':'RUNNING','scope':plan['scope'],'sourceSHA':os.environ.get('AIO_BUILD_REVISION'),
-            'stages':[],'corpus':[],'coverageExceptions':plan['coverageExceptions'],
+            'stages':[],'corpus':[],'decisionIndex':[],'coverageExceptions':plan['coverageExceptions'],
             'falseRejections':None,'silentSuccesses':None,'expectedUnavailable':None}
     try:
         report['parserAndIdentityControls']=safety_negative_corpus(args.output/'safety-controls')
+        for index,row in enumerate(report['parserAndIdentityControls']):
+            report['decisionIndex'].append(dict(row,stage='safety-controls',category='controls',index=index,
+                verdict=row['status'],source=row['file'],sourceSha256=row['sha256'],
+                reason='fixed bounded parser or preview identity control',
+                evidenceFile='safety-controls/manifest.json',evidenceSha256=digest(args.output/'safety-controls/manifest.json'),
+                evidencePointer='/controls/'+str(index)))
         positives=native_positive_corpus(args.output/'native-positives',args.executable)
         report['nativePositiveControls']=positives
+        for index,row in enumerate(positives):
+            report['decisionIndex'].append(dict(stage='native-positives',category='files',index=index,
+                expectedDecision='ready',actualDecision=row['conversionStatus'],verdict=row['status'],
+                source=row['file'],target=row['target'],sourceSha256=row['sha256'],outputSha256=row['pdfSha256'],
+                reason='native OOXML and PDF imports plus stated independent invariants',scope='native_positive_control',
+                evidenceFile='native-positives/manifest.json',evidenceSha256=digest(args.output/'native-positives/manifest.json'),
+                evidencePointer='/files/'+str(index)))
         for name,script,expected in STAGES:
             path=ROOT/'tools/qa'/script
             if not path.is_file():raise ValueError('required reviewed feature missing: '+script)
@@ -278,6 +320,7 @@ def main():
             if result.returncode or not evidence.is_file():raise ValueError(name+': child failed, see retained evidence')
             data=json.loads(evidence.read_text(encoding='utf-8'));outcome=validate_stage(name,data,expected)
             outcome.update(scriptSha256=digest(path),evidenceSha256=digest(evidence))
+            report['decisionIndex'].extend(decision_records(name,data,expected,digest(evidence)))
             report['stages'].append(outcome)
             report['corpus'].append({'stage':name,'generator':script,'generatorSha256':digest(path),
                 'expectedDecisions':expected,'files':referenced_sources(folder,data)})
@@ -285,10 +328,12 @@ def main():
                       countingScope='only fixed controls in expected-decisions.json; not historical corpus rates')
     except Exception as error:report.update(status='FAIL',reason=str(error));raise
     finally:
+        write_decisions_csv(args.output/'pair-decisions.csv',report['decisionIndex'])
+        report['decisionCsvSha256']=digest(args.output/'pair-decisions.csv')
         write(args.output/'corpus-manifest.json',{'schema':1,'nativePositiveControls':report.get('nativePositiveControls',[]),
             'parserAndIdentityControls':report.get('parserAndIdentityControls',[]),'stages':report['corpus']})
         write(args.output/'evidence.json',report)
-        print('STRESS3_SUMMARY='+json.dumps({k:v for k,v in report.items() if k not in ('corpus','nativePositiveControls')},ensure_ascii=True),flush=True)
+        print('STRESS3_SUMMARY='+json.dumps({k:v for k,v in report.items() if k not in ('corpus','nativePositiveControls','decisionIndex')},ensure_ascii=True),flush=True)
     return 0
 
 if __name__=='__main__':raise SystemExit(main())
