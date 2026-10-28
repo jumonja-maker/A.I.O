@@ -1,0 +1,74 @@
+name: 00AIO small original Qt preview acceptance
+on:
+  pull_request:
+    types: [opened, reopened]
+permissions:
+  contents: read
+concurrency:
+  group: aio-small-preview-completion
+  cancel-in-progress: false
+env:
+  PYTHONDONTWRITEBYTECODE: '1'
+  PYTHONUTF8: '1'
+  PYTHONIOENCODING: utf-8
+  AIO_BLACKBOX_EVENTS: ''
+  QT_QPA_PLATFORM: offscreen
+  QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --disable-gpu-compositing
+  PIP_NO_INDEX: '1'
+  PIP_DISABLE_PIP_VERSION_CHECK: '1'
+  AIO_LIBREOFFICE: 'D:\LBR\program\soffice.com'
+  AIO_BUILD_REVISION: 72adcc8446701eb871d62b6b866c52444a1253dc
+jobs:
+  small-native-viewer:
+    if: >-
+      github.repository == 'jumonja-maker/A.I.O' &&
+      github.actor == 'jumonja-maker' &&
+      github.event.pull_request.user.login == 'jumonja-maker' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'test/00aio-small-preview-20261028' &&
+      github.event.pull_request.base.ref == 'test/remaining-bag-integration-20261028'
+    runs-on: [self-hosted, Windows, X64, local-d-manual]
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - name: Verify restricted runner and new destination
+        run: |
+          $ErrorActionPreference='Stop'
+          if ($env:RUNNER_NAME -cne 'NIKITA' -or $env:USERNAME -ine 'aio-runner') { throw 'Unexpected runner' }
+          $p=New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+          if ($p.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Elevated run refused' }
+          if ((Get-PSDrive D -PSProvider FileSystem).Free -lt 10GB) { throw 'Low disk space; no cleanup' }
+          foreach($name in @('GITHUB_WORKSPACE','RUNNER_TEMP')) {
+            if (-not [IO.Path]::GetFullPath([Environment]::GetEnvironmentVariable($name)).StartsWith('D:\',[StringComparison]::OrdinalIgnoreCase)) { throw 'Unsafe workspace' }
+          }
+          if (Test-Path -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'small-${{ github.run_id }}-${{ github.run_attempt }}')) { throw 'Existing checkout refused' }
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        env:
+          GIT_CONFIG_COUNT: '1'
+          GIT_CONFIG_KEY_0: core.autocrlf
+          GIT_CONFIG_VALUE_0: 'false'
+        with:
+          ref: aea86344d9cab15ca2024a080c84223ab6c3d0c6
+          path: small-${{ github.run_id }}-${{ github.run_attempt }}
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Verify pinned tree and test actual 140x105 source at two DPI settings
+        working-directory: small-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $python='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\Scripts\python.exe'
+          $marker='D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\.00aio-test-only-venv.txt'
+          if (-not (Test-Path -LiteralPath $python) -or -not (Test-Path -LiteralPath $marker) -or (Get-Content -LiteralPath $marker -Raw).Trim() -cne '00AIO NIKITA ISOLATED DOCX PDF QA PY311 QT6103') { throw 'Approved environment missing' }
+          & $python -c 'from pathlib import Path;from tools.qa._finish_work_gates import tree_hash; actual=tree_hash(Path.cwd()).hex();print(actual);assert actual=="871661295d5546baefba5593560b5e5ff97d7b34"'
+          if ($LASTEXITCODE -ne 0) { throw 'Source tree mismatch' }
+          foreach($dpi in @('1','1.5')) {
+            $env:QT_SCALE_FACTOR=$dpi
+            $out=Join-Path $env:RUNNER_TEMP ('small-${{ github.run_id }}-${{ github.run_attempt }}-'+$dpi)
+            if (Test-Path -LiteralPath $out) { throw 'Existing evidence destination refused' }
+            & $python tools/qa/guard_small_preview_completion.py --output $out --executable $env:AIO_LIBREOFFICE
+            if ($LASTEXITCODE -ne 0) { throw 'Small original real Qt regression failed' }
+            Write-Host ('SMALL_VIEWER_EVIDENCE='+$out)
+          }
+          Write-Host 'PRODUCT_UNCHANGED_FROM_72adcc8;SMALL_IMAGE_QT_PASS;NO_BUILD_NO_INSTALL_NO_FULLTEST'
