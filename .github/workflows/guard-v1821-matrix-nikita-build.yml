@@ -1,4 +1,4 @@
-name: AIO Guard v18.2.1 matrix cancellation QA setup and portable
+name: AIO QA HEAD 2026-10-28 NIKITA Windows portable and setup
 
 # This one-shot workflow is separate from existing application/build workflows.
 # Root replaces both immutable pins after publishing the reviewed source commit.
@@ -10,12 +10,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: aio-guard-v1821-nikita-build-once
+  group: aio-qa-head-20261028-nikita-build-pinned
   cancel-in-progress: false
 
 env:
-  AIO_QA_SOURCE_SHA: cbe404215203400df81c5ab88695173468e5b043
-  AIO_QA_TREE_SHA: 797078b324fad2101b9d60026a6db0d613f6902b
+  AIO_QA_SOURCE_SHA: d57e4cf75cc0f46f0bfbfa1da01a23d22018c3dc
+  AIO_QA_TREE_SHA: bc48522b79c5365d3fc2f6f65effec43f824d3b0
   PYTHONDONTWRITEBYTECODE: '1'
   PYTHONUTF8: '1'
   PYTHONIOENCODING: utf-8
@@ -33,12 +33,12 @@ jobs:
       github.repository == 'jumonja-maker/A.I.O' &&
       github.actor == 'jumonja-maker' &&
       github.event.action == 'labeled' &&
-      github.event.label.name == 'aio-v1821-build-approved-once' &&
-      github.event.pull_request.number > 40 &&
+      github.event.label.name == 'aio-qahead-build-approved-once' &&
+      github.event.pull_request.number > 79 &&
       github.event.pull_request.user.login == 'jumonja-maker' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
-      github.event.pull_request.head.ref == 'fix/guard-v182-matrix-progress-cancel-20261025' &&
-      github.event.pull_request.base.ref == 'fix/guard-v182-bulk-preflight-and-dbf-20261025'
+      github.event.pull_request.head.ref == 'build/qa-head-20261028-nikita-qa-only' &&
+      github.event.pull_request.base.ref == 'fix/guard-v182-matrix-progress-cancel-20261025'
     runs-on: [self-hosted, Windows, X64, local-d-manual]
     timeout-minutes: 120
     defaults:
@@ -67,7 +67,7 @@ jobs:
           GIT_CONFIG_VALUE_0: 'false'
         with:
           repository: jumonja-maker/A.I.O
-          ref: cbe404215203400df81c5ab88695173468e5b043
+          ref: d57e4cf75cc0f46f0bfbfa1da01a23d22018c3dc
           path: aio-guard-v1821-build-source-${{ github.run_id }}-${{ github.run_attempt }}
           persist-credentials: false
           clean: true
@@ -146,6 +146,40 @@ jobs:
           'AIO_APPROVED_ISCC='+$compilers[0].FullName | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           Write-Host 'WINDOWS_QA_PACKAGER=PASS;LO_PAYLOAD=COMPLETE;NO_INSTALL=TRUE'
 
+      - name: Prepare pinned verified offline QA dependencies
+        id: offline_deps
+        working-directory: aio-guard-v1821-build-source-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $deps=Join-Path $env:RUNNER_TEMP ('aio-qahead-deps-${{ github.run_id }}-${{ github.run_attempt }}')
+          & $env:AIO_QA_PYTHON tools/qa/guard_v17_test_dependencies.py --output $deps --github-env
+          if ($LASTEXITCODE -ne 0) { throw 'Offline QA dependency verification failed; no network install permitted' }
+      - name: Full Windows source Qt and DOM regression on immutable QA snapshot
+        id: source_qa
+        working-directory: aio-guard-v1821-build-source-${{ github.run_id }}-${{ github.run_attempt }}
+        env:
+          AIO_QT_SAVE_QA: '1'
+          AIO_LO_QA_MUST_HAVE_ENGINE: '1'
+          QT_OPENGL: software
+          QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --disable-gpu-compositing
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:AIO_LIBREOFFICE=$env:AIO_QA_ENGINE
+          $unit=Join-Path $env:RUNNER_TEMP ('aio-qahead-unittest-${{ github.run_id }}-${{ github.run_attempt }}.json')
+          & $env:AIO_QA_PYTHON tools/qa/guard_v17_selfhosted_acceptance.py --unit-report $unit
+          if ($LASTEXITCODE -ne 0) { throw ('QA_SOURCE_REGRESSION_FAIL;REPORT='+$unit) }
+          Write-Host 'QA_SOURCE_REGRESSION=PASS'
+      - name: Native targeted stress3 Guard and LibreOffice acceptance
+        id: native_qa
+        working-directory: aio-guard-v1821-build-source-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $out=Join-Path $env:RUNNER_TEMP ('aio-qahead-stress3-${{ github.run_id }}-${{ github.run_attempt }}')
+          $env:AIO_BUILD_REVISION=$env:AIO_QA_SOURCE_SHA
+          & $env:AIO_QA_PYTHON tools/qa/guard_remaining_bag_stress3.py --output $out --executable $env:AIO_QA_ENGINE
+          if ($LASTEXITCODE -ne 0) { throw ('QA_NATIVE_STRESS3_FAIL;EVIDENCE='+$out) }
+          Write-Host ('QA_NATIVE_STRESS3=PASS;EVIDENCE='+$out)
+
       - name: Package portable ZIP and versioned Windows QA installer
         id: package
         working-directory: aio-guard-v1821-build-source-${{ github.run_id }}-${{ github.run_attempt }}
@@ -171,7 +205,9 @@ jobs:
           foreach ($item in @('dist\A.I.O\A.I.O.exe',
               'dist\A.I.O\_internal\libreoffice\program\soffice.exe',
               'dist\A.I.O\_internal\libreoffice\program\soffice.bin',
-              'dist\A.I.O\_internal\assets\brand\icons\aio.ico')) {
+              'dist\A.I.O\_internal\assets\brand\icons\aio.ico',
+               'dist\A.I.O\_internal\src\guard-comparison-viewer.js',
+               'dist\A.I.O\_internal\index.html')) {
             if (-not (Test-Path -LiteralPath $item -PathType Leaf)) {
               throw ('Bundle incomplete: '+$item)
             }
@@ -184,7 +220,7 @@ jobs:
           if ($pdf.Count -eq 0) { throw 'QtPdf module missing from bundled runtime' }
           Write-Host ('QA_RUNTIME_QTPDF_FILES='+$pdf.Count)
           New-Item -ItemType Directory -Force -Path 'build\installer' | Out-Null
-          $portable='build\installer\AIO-Guard-v18.2.1-QA-PORTABLE.zip'
+          $portable='build\installer\AIO-Guard-QA-20261028-PORTABLE.zip'
           Compress-Archive -LiteralPath 'dist\A.I.O' -DestinationPath $portable -CompressionLevel Optimal
           if (-not (Test-Path -LiteralPath $portable -PathType Leaf)) { throw 'Portable missing.' }
           $iss='installer\windows\AIO-Guard-QA.iss'
@@ -192,21 +228,21 @@ jobs:
           $changed=$original.Replace('#define AppVersion "0.7.0-guard-qa"',
               '#define AppVersion "0.18.2.1-guard-qa"').Replace(
               'OutputBaseFilename=AIO-Guard-QA-win-x64',
-              'OutputBaseFilename=AIO-Guard-v18.2.1-QA-win-x64')
+              'OutputBaseFilename=AIO-Guard-QA-20261028-win-x64')
           if ($changed -ceq $original) { throw 'Version metadata not updated.' }
           [IO.File]::WriteAllText((Join-Path (Get-Location).Path $iss),
               $changed,[Text.UTF8Encoding]::new($true))
           & $env:AIO_APPROVED_ISCC $iss
           if ($LASTEXITCODE -ne 0) { throw 'INNO_QA_FAILED' }
-          $setup='build\installer\AIO-Guard-v18.2.1-QA-win-x64.exe'
+          $setup='build\installer\AIO-Guard-QA-20261028-win-x64.exe'
           if (-not (Test-Path -LiteralPath $setup -PathType Leaf)) { throw 'Installer missing.' }
           @($setup,$portable) | ForEach-Object {
             (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash.ToLowerInvariant()+
               '  '+[IO.Path]::GetFileName($_)
           } | Set-Content -LiteralPath 'build\installer\SHA256SUMS.txt' -Encoding ascii
-          @('SOURCE=cbe404215203400df81c5ab88695173468e5b043','TREE=797078b324fad2101b9d60026a6db0d613f6902b','GUARD=V18.2.1-MATRIX-PR56',
+          @('SOURCE=d57e4cf75cc0f46f0bfbfa1da01a23d22018c3dc','TREE=bc48522b79c5365d3fc2f6f65effec43f824d3b0','GUARD=QA-HEAD-20261028',
             'BLACKBOX=TELEMETRY-V0.1-PR15','LIBREOFFICE=BUNDLED',
-            'NATIVE_WINDOWS_QA=V182_MATRIX_510_FIXTURE_PASS_FULLTEST_PENDING','FULLTEST_510=NOT_RUN','VISIBLE_GUI=NOT_RUN','INSTALLED=NO;RELEASED=NO;MAIN=UNCHANGED') |
+            'NATIVE_WINDOWS_QA=STRESS3_PASS_BEFORE_PACKAGING','FULLTEST_510=NOT_RUN','VISIBLE_GUI=NOT_RUN','INSTALLED=NO;RELEASED=NO;MAIN=UNCHANGED') |
               Set-Content -LiteralPath 'build\installer\BUILD-STATUS.txt' -Encoding utf8
           Get-Content -LiteralPath 'build\installer\SHA256SUMS.txt' |
               ForEach-Object { Write-Host ('QA_SHA256='+$_) }
@@ -227,13 +263,14 @@ jobs:
         run: |
           $ErrorActionPreference='Stop'
           $source=Join-Path (Get-Location).Path 'build\installer'
-          $destination=Join-Path 'D:\AIO-Lab\AIO-QA-Dist' ('guard-v18.2.1-20261025-'+$env:GITHUB_RUN_ID)
+          $destination=Join-Path 'D:\AIO-Lab\AIO-QA-Dist' ('qa-head-20261028-'+$env:GITHUB_RUN_ID)
           if (-not (Test-Path -LiteralPath $source -PathType Container)) { throw 'QA package missing' }
           if ((Get-PSDrive -Name D -PSProvider FileSystem).Free -lt 2GB) { throw 'Not enough D: space for independent QA archive' }
-          New-Item -ItemType Directory -Path $destination -Force | Out-Null
+          if (Test-Path -LiteralPath $destination) { throw 'Refusing to overwrite existing QA distribution directory' }
+          New-Item -ItemType Directory -Path $destination -ErrorAction Stop | Out-Null
           $dir=Get-Item -LiteralPath $destination
           if (($dir.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { throw 'Untrusted archive directory' }
-          foreach($name in @('AIO-Guard-v18.2.1-QA-win-x64.exe','AIO-Guard-v18.2.1-QA-PORTABLE.zip','SHA256SUMS.txt','BUILD-STATUS.txt')) {
+          foreach($name in @('AIO-Guard-QA-20261028-win-x64.exe','AIO-Guard-QA-20261028-PORTABLE.zip','SHA256SUMS.txt','BUILD-STATUS.txt')) {
             $old=Join-Path $source $name
             $new=Join-Path $destination $name
             if (-not (Test-Path -LiteralPath $old -PathType Leaf)) { throw ('QA distribution missing '+$name) }
@@ -258,11 +295,14 @@ jobs:
         if: always()
         run: |
           Write-Host ('PINNED_SOURCE='+$env:AIO_QA_SOURCE_SHA)
-          Write-Host 'NATIVE_QA=V182_MATRIX_510_FIXTURE_PASS_FULLTEST_PENDING'
+          Write-Host 'NATIVE_QA=STRESS3_PASS_BEFORE_PACKAGING'
           Write-Host 'PACKAGER_DEPS=${{ steps.packaging_deps.outcome }}'
+          Write-Host 'OFFLINE_DEPS=${{ steps.offline_deps.outcome }}'
+          Write-Host 'WINDOWS_SOURCE=${{ steps.source_qa.outcome }}'
+          Write-Host 'NATIVE_STRESS3=${{ steps.native_qa.outcome }}'
           Write-Host 'PACKAGE=${{ steps.package.outcome }}'
           Write-Host 'PERSIST=${{ steps.persist.outcome }}'
           Write-Host 'INSTALL=NOT_RUN;FULLTEST_510=NOT_RUN;MAIN=UNCHANGED'
-          if ('${{ steps.package.outcome }}' -ne 'success' -or '${{ steps.persist.outcome }}' -ne 'success') {
+          if ('${{ steps.source_qa.outcome }}' -ne 'success' -or '${{ steps.native_qa.outcome }}' -ne 'success' -or '${{ steps.package.outcome }}' -ne 'success' -or '${{ steps.persist.outcome }}' -ne 'success') {
             throw 'Windows QA EXE/Setup/package or durable archive failed'
           }
