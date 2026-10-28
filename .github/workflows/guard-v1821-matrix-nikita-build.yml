@@ -24,6 +24,11 @@ env:
   PIP_DISABLE_PIP_VERSION_CHECK: '1'
   AIO_BLACKBOX_EVENTS: ''
   QT_QPA_PLATFORM: offscreen
+  # Match the known-good 40716613385: deterministic software compositing
+  # for ALL Qt/WebEngine tests (including stress3 child processes), not only source_qa.
+  QT_OPENGL: software
+  QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --disable-gpu-compositing
+  AIO_QT_SAVE_QA: '1'
   OMP_NUM_THREADS: '2'
   OPENBLAS_NUM_THREADS: '2'
 
@@ -154,6 +159,32 @@ jobs:
           $deps=Join-Path $env:RUNNER_TEMP ('aio-qahead-deps-${{ github.run_id }}-${{ github.run_attempt }}')
           & $env:AIO_QA_PYTHON tools/qa/guard_v17_test_dependencies.py --output $deps --github-env
           if ($LASTEXITCODE -ne 0) { throw 'Offline QA dependency verification failed; no network install permitted' }
+      - name: Preflight actual QtWebEngine viewer-100 with pixel assertions
+        id: viewer_preflight
+        working-directory: aio-guard-v1821-build-source-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $out=Join-Path $env:RUNNER_TEMP ('aio-qahead-viewer-first-${{ github.run_id }}-${{ github.run_attempt }}')
+          Write-Host ('QA_VIEWER_PREFLIGHT_SOURCE='+$env:AIO_QA_SOURCE_SHA)
+          Write-Host ('QA_VIEWER_RENDERING='+$env:QT_OPENGL+';CHROMIUM_FLAGS='+$env:QTWEBENGINE_CHROMIUM_FLAGS)
+          & $env:AIO_QA_PYTHON tools/qa/guard_before_after_b19_b25_acceptance.py --output $out --executable $env:AIO_QA_ENGINE
+          if ($LASTEXITCODE -ne 0) {
+            $evidence=Join-Path $out 'evidence.json'
+            if (Test-Path -LiteralPath $evidence -PathType Leaf) {
+              try {
+                $details=Get-Content -LiteralPath $evidence -Raw -Encoding utf8 | ConvertFrom-Json
+                Write-Host ('QA_VIEWER_FAILURE='+(@{status=$details.status;error=$details.error;reason=$details.reason;scaleFactor=$details.scaleFactor} | ConvertTo-Json -Compress -Depth 4))
+              } catch {Write-Host 'QA_VIEWER_FAILURE_EVIDENCE_INVALID'}
+            } else {Write-Host 'QA_VIEWER_FAILURE_EVIDENCE_MISSING'}
+            throw ('QA_VIEWER_PREFLIGHT_FAIL;EVIDENCE='+$out)
+          }
+          $evidence=Join-Path $out 'evidence.json'
+          $report=Get-Content -LiteralPath $evidence -Raw -Encoding utf8 | ConvertFrom-Json
+          if ($report.status -ne 'PASS' -or @($report.checks).Count -ne 5 -or @($report.snapshots).Count -ne 2) {
+            throw 'QA_VIEWER_PREFLIGHT_INCOMPLETE'
+          }
+          Write-Host ('QA_VIEWER_PREFLIGHT=PASS;CHECKS='+@($report.checks).Count+';PAINTED_SNAPSHOTS='+@($report.snapshots).Count)
+
       - name: Full Windows source Qt and DOM regression on immutable QA snapshot
         id: source_qa
         working-directory: aio-guard-v1821-build-source-${{ github.run_id }}-${{ github.run_attempt }}
@@ -310,12 +341,13 @@ jobs:
           Write-Host 'NATIVE_QA=STRESS3_PASS_BEFORE_PACKAGING'
           Write-Host 'PACKAGER_DEPS=${{ steps.packaging_deps.outcome }}'
           Write-Host 'OFFLINE_DEPS=${{ steps.offline_deps.outcome }}'
+          Write-Host 'VIEWER_PREFLIGHT=${{ steps.viewer_preflight.outcome }}'
           Write-Host 'WINDOWS_SOURCE=${{ steps.source_qa.outcome }}'
           Write-Host 'NATIVE_STRESS3=${{ steps.native_qa.outcome }}'
           Write-Host 'FROZEN_EXE_QA=${{ steps.frozen_qa.outcome }}'
           Write-Host 'PACKAGE=${{ steps.package.outcome }}'
           Write-Host 'PERSIST=${{ steps.persist.outcome }}'
           Write-Host 'INSTALL=NOT_RUN;FULLTEST_510=NOT_RUN;MAIN=UNCHANGED'
-          if ('${{ steps.source_qa.outcome }}' -ne 'success' -or '${{ steps.native_qa.outcome }}' -ne 'success' -or '${{ steps.package.outcome }}' -ne 'success' -or '${{ steps.frozen_qa.outcome }}' -ne 'success' -or '${{ steps.persist.outcome }}' -ne 'success') {
+          if ('${{ steps.viewer_preflight.outcome }}' -ne 'success' -or '${{ steps.source_qa.outcome }}' -ne 'success' -or '${{ steps.native_qa.outcome }}' -ne 'success' -or '${{ steps.package.outcome }}' -ne 'success' -or '${{ steps.frozen_qa.outcome }}' -ne 'success' -or '${{ steps.persist.outcome }}' -ne 'success') {
             throw 'Windows QA EXE/Setup/package or durable archive failed'
           }
