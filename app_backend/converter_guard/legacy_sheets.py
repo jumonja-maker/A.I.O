@@ -7,6 +7,7 @@ formula attributes; only native LibreOffice performs the DBF/DIF conversion.
 No document-size ceiling or whole-document XML tree is needed.
 """
 from pathlib import Path
+import hashlib
 import os
 import shutil
 from xml.parsers import expat
@@ -237,6 +238,12 @@ def prepare_calc_sheet_snapshots(native_fods, output, *, stem=None, cancel):
     stem = native_fods.stem if stem is None else stem
     if not isinstance(stem, str) or not stem or Path(stem).name != stem or stem in ('.', '..'):
         _invalid('snapshot_filename')
+    # A valid 255-character source filename can exceed Windows component
+    # length when "__sheet_NNN.fods" is appended. The temporary snapshot
+    # stem is not user-facing: shorten it deterministically without moving
+    # or renaming the source or changing its recorded sheet provenance.
+    if len((stem + '__sheet_999.fods').encode('utf-16-le')) // 2 > 200:
+        stem = 'aio-snapshot-' + hashlib.sha256(stem.encode('utf-8')).hexdigest()[:20]
     output.mkdir(parents=True, exist_ok=False)
     paths = []
     try:
