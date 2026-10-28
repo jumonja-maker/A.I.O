@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "captureMethod": "Summary of actual SMALL_VIEWER_RESULT JSON records in GitHub job stdout; not a byte-for-byte copy of runner files",
+  "runId": 40701628448,
+  "jobId": 122862702362,
+  "testedSource": "c572c3069385e49afe488e5787f3f732a47a021a",
+  "testedTree": "e4b5f844ac72215dead77e791d5757414c4ee7bd",
+  "unchangedProductSource": "72adcc8446701eb871d62b6b866c52444a1253dc",
+  "qaScriptBlob": "34e8ddf3ef4b33fc152f931b12bc88a2f6725294",
+  "scope": "Real source Windows QtWebEngine offscreen, no GPU, not installed EXE",
+  "sourcePixels": [140,105],
+  "sourceSHA256": "757066b09a2fdb88f1156f8ef8ffeeb2bbf6a2937000c01bef5f94c1a9557ec6",
+  "sourceUnchanged": true,
+  "trustedRowInput": [
+    {"type":"mousedown","detail":1,"trusted":true},
+    {"type":"mouseup","detail":1,"trusted":true},
+    {"type":"click","detail":1,"trusted":true},
+    {"type":"mousedown","detail":2,"trusted":true},
+    {"type":"mouseup","detail":2,"trusted":true},
+    {"type":"click","detail":2,"trusted":true},
+    {"type":"dblclick","detail":2,"trusted":true}
+  ],
+  "dpiResults": [
+    {"scaleFactor":"1","status":"PASS","themes":["dark","light"],"bothPanelFitSize":[303,227.25],"zoomWidths":[140,280,560],"naturalSize":[140,105],"uncroppedBounds":true,"bothPanelCornerAndCentrePixels":[[230,30,40],[25,180,60],[30,70,230],[230,30,40],[25,180,60],[30,70,230]]},
+    {"scaleFactor":"1.5","status":"PASS","themes":["dark","light"],"bothPanelFitSize":[311,233.25],"zoomWidths":[140,280,560],"naturalSize":[140,105],"uncroppedBounds":true,"bothPanelCornerAndCentrePixels":[[230,30,40],[25,180,60],[30,70,230],[230,30,40],[25,180,60],[30,70,230]]}
+  ],
+  "historicalFulltest": "NOT_RUN",
+  "installedExe": "NOT_TESTED",
+  "productChangedBySupplement": false
+}
