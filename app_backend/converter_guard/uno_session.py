@@ -594,7 +594,9 @@ class UnoSession:
             self.workspace.mkdir(parents=True,exist_ok=True)
             if private_profile_required():
                 self._profile_owner = PrivateNativeProfile()
-                self.profile = self._profile_owner.path
+                # The profile factory historically receives a new path.
+                # Keep that contract inside our exclusively owned short root.
+                self.profile = self._profile_owner.path / 'p'
             else:
                 self.profile = self.workspace / secrets.token_hex(8)
             self.prepare_profile(self.profile)

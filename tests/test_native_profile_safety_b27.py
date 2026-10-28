@@ -17,6 +17,18 @@ from app_backend.native_process import ProcessTree
 
 
 class PrivateProfileContracts(unittest.TestCase):
+    def test_private_profile_factory_receives_a_new_path_and_failure_reaps_owner(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            work=Path(tmp)/'work';seen=[]
+            def prepare(path):
+                self.assertFalse(path.exists());seen.append(path);path.mkdir(parents=True)
+            office=UnoSession('/unused/soffice.exe',work,prepare)
+            with patch('app_backend.converter_guard.uno_session.private_profile_required',return_value=True), \
+                    patch('app_backend.converter_guard.uno_session.ProcessTree',side_effect=RuntimeError('controlled startup stop')):
+                with self.assertRaisesRegex(RuntimeError,'controlled startup stop'):office.ensure_started(threading.Event())
+            self.assertEqual(len(seen),1);self.assertFalse(seen[0].is_relative_to(work))
+            self.assertFalse(seen[0].parent.exists());self.assertFalse(seen[0].parent.with_name(seen[0].parent.name+'.owner').exists())
+
     def test_cleanup_removes_only_exclusively_created_profile(self):
         with tempfile.TemporaryDirectory() as tmp:
             parent=Path(tmp);source=parent/'original.docx';source.write_bytes(b'original 001')
