@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "status": "FAIL",
+  "runId": 40607773754,
+  "jobId": 122551460036,
+  "testedSourceSHA": "6b61cb1413e753e687d1ff61749e1164069a3c1c",
+  "testedSourceTree": "a9717652ec545c3a2b3f47c58f9b3b3aef8abf41",
+  "passedDIF": 48,
+  "passedTextID": 108,
+  "passedNativeOOXMLControls": 24,
+  "passedParserControls": 12,
+  "completedAllSheetConversions": 9,
+  "failedScenario": "real queue partial save and recovery; native preflight did not confirm workbook model",
+  "code": "PREFLIGHT_ROUTE_UNDETERMINED",
+  "falseRejections": null,
+  "silentSuccesses": null,
+  "remainingStages": "not_run",
+  "cause": "not_yet_confirmed; native profile path A/B diagnosis required"
+}

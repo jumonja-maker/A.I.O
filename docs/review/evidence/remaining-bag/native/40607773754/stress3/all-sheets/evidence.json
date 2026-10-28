@@ -1,0 +1,1039 @@
+{
+  "schema": 1,
+  "status": "FAIL",
+  "scope": "B30/B34 synthetic 4-sheet 2400-formula and 1-sheet corpus; not historical FULLTEST",
+  "cases": [
+    {
+      "count": 4,
+      "target": "csv",
+      "mode": "native_uno",
+      "status": "PASS",
+      "outputs": [
+        {
+          "file": "book-4__sheet_0001.csv",
+          "sourceSheetIndex": 0,
+          "sourceSheetName": "Первый",
+          "rows": 301,
+          "columns": 8,
+          "sha256": "600f84171b167c32cdf8e2acf16aa195f6f80b1089ef5247bc41a2e634782ed4",
+          "checkedCells": 2408
+        },
+        {
+          "file": "book-4__sheet_0002.csv",
+          "sourceSheetIndex": 1,
+          "sourceSheetName": "CON",
+          "rows": 301,
+          "columns": 8,
+          "sha256": "6bc03c4a29e2abf4e2f536e974e0729128c9a605e2a12dc8bf308a8b939411fb",
+          "checkedCells": 2408
+        },
+        {
+          "file": "book-4__sheet_0003.csv",
+          "sourceSheetIndex": 2,
+          "sourceSheetName": "con.other",
+          "rows": 301,
+          "columns": 8,
+          "sha256": "9405bf8c95db94bda7b244e3be6b034eec397c89f423db115d7813be47b2fbcf",
+          "checkedCells": 2408
+        },
+        {
+          "file": "book-4__sheet_0004.csv",
+          "sourceSheetIndex": 3,
+          "sourceSheetName": "Последний",
+          "rows": 301,
+          "columns": 8,
+          "sha256": "f8ee845d1eb202ab876e8fe05b1355e56783026de8561bdc22106be5de4ce60b",
+          "checkedCells": 2408
+        }
+      ],
+      "nativeImportFilter": "Calc MS Excel 2007 XML",
+      "export": {
+        "filter": "Text - txt - csv (StarCalc)",
+        "warnings": [
+          "NATIVE_CSV_ALL_SHEETS"
+        ],
+        "executionReason": "native_session",
+        "sheetOutputs": [
+          {
+            "sourceSheetIndex": 0,
+            "sourceSheetName": "Первый",
+            "file": "book-4__sheet_0001.csv",
+            "size": 15221,
+            "sha256": "600f84171b167c32cdf8e2acf16aa195f6f80b1089ef5247bc41a2e634782ed4",
+            "contentCheck": {
+              "status": "checked_subset",
+              "checkedCells": 2408,
+              "csvRows": 301,
+              "csvColumns": 8,
+              "checkedFeatures": [
+                "native_sheet_display_values"
+              ]
+            }
+          },
+          {
+            "sourceSheetIndex": 1,
+            "sourceSheetName": "CON",
+            "file": "book-4__sheet_0002.csv",
+            "size": 16335,
+            "sha256": "6bc03c4a29e2abf4e2f536e974e0729128c9a605e2a12dc8bf308a8b939411fb",
+            "contentCheck": {
+              "status": "checked_subset",
+              "checkedCells": 2408,
+              "csvRows": 301,
+              "csvColumns": 8,
+              "checkedFeatures": [
+                "native_sheet_display_values"
+              ]
+            }
+          },
+          {
+            "sourceSheetIndex": 2,
+            "sourceSheetName": "con.other",
+            "file": "book-4__sheet_0003.csv",
+            "size": 16335,
+            "sha256": "9405bf8c95db94bda7b244e3be6b034eec397c89f423db115d7813be47b2fbcf",
+            "contentCheck": {
+              "status": "checked_subset",
+              "checkedCells": 2408,
+              "csvRows": 301,
+              "csvColumns": 8,
+              "checkedFeatures": [
+                "native_sheet_display_values"
+              ]
+            }
+          },
+          {
+            "sourceSheetIndex": 3,
+            "sourceSheetName": "Последний",
+            "file": "book-4__sheet_0004.csv",
+            "size": 16335,
+            "sha256": "f8ee845d1eb202ab876e8fe05b1355e56783026de8561bdc22106be5de4ce60b",
+            "contentCheck": {
+              "status": "checked_subset",
+              "checkedCells": 2408,
+              "csvRows": 301,
+              "csvColumns": 8,
+              "checkedFeatures": [
+                "native_sheet_display_values"
+              ]
+            }
+          }
+        ],
+        "resultChecks": [
+          {
+            "check": "native_calc_all_sheets",
+            "status": "checked_subset",
+            "sheetCount": 4,
+            "manifest": "AIO-sheets.json",
+            "checkedFeatures": [
+              "sheet_count",
+              "sheet_output_mapping",
+              "output_sha256",
+              "native_sheet_values"
+            ],
+            "unknownReasons": [],
+            "qualityCompared": false
+          }
+        ]
+      }
+    },
+    {
+      "count": 4,
+      "target": "tab",
+      "mode": "native_uno",
+      "status": "PASS",
+      "outputs": [
+        {
+          "file": "book-4__sheet_0001.tab",
+          "sourceSheetIndex": 0,
+          "sourceSheetName": "Первый",
+          "rows": 301,
+          "columns": 8,
+          "sha256": "a0afe8bb3d9de312a9bbc13dba24d5fce36246cbcce3a3ffdc051898e5f727fb",
+          "checkedCells": 2408
+        },
+        {
+          "file": "book-4__sheet_0002.tab",
+          "sourceSheetIndex": 1,
+          "sourceSheetName": "CON",
+          "rows": 301,
+          "columns": 8,
+          "sha256": "d7dc9729db7fd4a962ecd7649af1fca4ccf2e17b0a3621cfb9263f613aff229c",
+          "checkedCells": 2408
+        },
+        {
+          "file": "book-4__sheet_0003.tab",
+          "sourceSheetIndex": 2,
+          "sourceSheetName": "con.other",
+          "rows": 301,
+          "columns": 8,
+          "sha256": "187c8d68cec5c631111c7fdbaca69080ce0797c0a0acb94dfe415da569ee3642",
+          "checkedCells": 2408
+        },
+        {
+          "file": "book-4__sheet_0004.tab",
+          "sourceSheetIndex": 3,
+          "sourceSheetName": "Последний",
+          "rows": 301,
+          "columns": 8,
+          "sha256": "6c25c0e022b5dfc9fc756b9370577a0a71e69cedaa2ffd18ecb8c8ab49a08d61",
+          "checkedCells": 2408
+        }
+      ],
+      "nativeImportFilter": "Calc MS Excel 2007 XML",
+      "export": {
+        "filter": "Text - txt - csv (StarCalc)",
+        "warnings": [
+          "NATIVE_CSV_ALL_SHEETS"
+        ],
+        "executionReason": "native_session",
+        "sheetOutputs": [
+          {
+            "sourceSheetIndex": 0,
+            "sourceSheetName": "Первый",
+            "file": "book-4__sheet_0001.tab",
+            "size": 15221,
+            "sha256": "a0afe8bb3d9de312a9bbc13dba24d5fce36246cbcce3a3ffdc051898e5f727fb",
+            "contentCheck": {
+              "status": "checked_subset",
+              "checkedCells": 2408,
+              "csvRows": 301,
+              "csvColumns": 8,
+              "checkedFeatures": [
+                "native_sheet_display_values"
+              ]
+            }
+          },
+          {
+            "sourceSheetIndex": 1,
+            "sourceSheetName": "CON",
+            "file": "book-4__sheet_0002.tab",
+            "size": 16335,
+            "sha256": "d7dc9729db7fd4a962ecd7649af1fca4ccf2e17b0a3621cfb9263f613aff229c",
+            "contentCheck": {
+              "status": "checked_subset",
+              "checkedCells": 2408,
+              "csvRows": 301,
+              "csvColumns": 8,
+              "checkedFeatures": [
+                "native_sheet_display_values"
+              ]
+            }
+          },
+          {
+            "sourceSheetIndex": 2,
+            "sourceSheetName": "con.other",
+            "file": "book-4__sheet_0003.tab",
+            "size": 16335,
+            "sha256": "187c8d68cec5c631111c7fdbaca69080ce0797c0a0acb94dfe415da569ee3642",
+            "contentCheck": {
+              "status": "checked_subset",
+              "checkedCells": 2408,
+              "csvRows": 301,
+              "csvColumns": 8,
+              "checkedFeatures": [
+                "native_sheet_display_values"
+              ]
+            }
+          },
+          {
+            "sourceSheetIndex": 3,
+            "sourceSheetName": "Последний",
+            "file": "book-4__sheet_0004.tab",
+            "size": 16335,
+            "sha256": "6c25c0e022b5dfc9fc756b9370577a0a71e69cedaa2ffd18ecb8c8ab49a08d61",
+            "contentCheck": {
+              "status": "checked_subset",
+              "checkedCells": 2408,
+              "csvRows": 301,
+              "csvColumns": 8,
+              "checkedFeatures": [
+                "native_sheet_display_values"
+              ]
+            }
+          }
+        ],
+        "resultChecks": [
+          {
+            "check": "native_calc_all_sheets",
+            "status": "checked_subset",
+            "sheetCount": 4,
+            "manifest": "AIO-sheets.json",
+            "checkedFeatures": [
+              "sheet_count",
+              "sheet_output_mapping",
+              "output_sha256",
+              "native_sheet_values"
+            ],
+            "unknownReasons": [],
+            "qualityCompared": false
+          }
+        ]
+      }
+    },
+    {
+      "count": 4,
+      "target": "tsv",
+      "mode": "native_uno",
+      "status": "PASS",
+      "outputs": [
+        {
+          "file": "book-4__sheet_0001.tsv",
+          "sourceSheetIndex": 0,
+          "sourceSheetName": "Первый",
+          "rows": 301,
+          "columns": 8,
+          "sha256": "a0afe8bb3d9de312a9bbc13dba24d5fce36246cbcce3a3ffdc051898e5f727fb",
+          "checkedCells": 2408
+        },
+        {
+          "file": "book-4__sheet_0002.tsv",
+          "sourceSheetIndex": 1,
+          "sourceSheetName": "CON",
+          "rows": 301,
+          "columns": 8,
+          "sha256": "d7dc9729db7fd4a962ecd7649af1fca4ccf2e17b0a3621cfb9263f613aff229c",
+          "checkedCells": 2408
+        },
+        {
+          "file": "book-4__sheet_0003.tsv",
+          "sourceSheetIndex": 2,
+          "sourceSheetName": "con.other",
+          "rows": 301,
+          "columns": 8,
+          "sha256": "187c8d68cec5c631111c7fdbaca69080ce0797c0a0acb94dfe415da569ee3642",
+          "checkedCells": 2408
+        },
+        {
+          "file": "book-4__sheet_0004.tsv",
+          "sourceSheetIndex": 3,
+          "sourceSheetName": "Последний",
+          "rows": 301,
+          "columns": 8,
+          "sha256": "6c25c0e022b5dfc9fc756b9370577a0a71e69cedaa2ffd18ecb8c8ab49a08d61",
+          "checkedCells": 2408
+        }
+      ],
+      "nativeImportFilter": "Calc MS Excel 2007 XML",
+      "export": {
+        "filter": "Text - txt - csv (StarCalc)",
+        "warnings": [
+          "NATIVE_CSV_ALL_SHEETS"
+        ],
+        "executionReason": "native_session",
+        "sheetOutputs": [
+          {
+            "sourceSheetIndex": 0,
+            "sourceSheetName": "Первый",
+            "file": "book-4__sheet_0001.tsv",
+            "size": 15221,
+            "sha256": "a0afe8bb3d9de312a9bbc13dba24d5fce36246cbcce3a3ffdc051898e5f727fb",
+            "contentCheck": {
+              "status": "checked_subset",
+              "checkedCells": 2408,
+              "csvRows": 301,
+              "csvColumns": 8,
+              "checkedFeatures": [
+                "native_sheet_display_values"
+              ]
+            }
+          },
+          {
+            "sourceSheetIndex": 1,
+            "sourceSheetName": "CON",
+            "file": "book-4__sheet_0002.tsv",
+            "size": 16335,
+            "sha256": "d7dc9729db7fd4a962ecd7649af1fca4ccf2e17b0a3621cfb9263f613aff229c",
+            "contentCheck": {
+              "status": "checked_subset",
+              "checkedCells": 2408,
+              "csvRows": 301,
+              "csvColumns": 8,
+              "checkedFeatures": [
+                "native_sheet_display_values"
+              ]
+            }
+          },
+          {
+            "sourceSheetIndex": 2,
+            "sourceSheetName": "con.other",
+            "file": "book-4__sheet_0003.tsv",
+            "size": 16335,
+            "sha256": "187c8d68cec5c631111c7fdbaca69080ce0797c0a0acb94dfe415da569ee3642",
+            "contentCheck": {
+              "status": "checked_subset",
+              "checkedCells": 2408,
+              "csvRows": 301,
+              "csvColumns": 8,
+              "checkedFeatures": [
+                "native_sheet_display_values"
+              ]
+            }
+          },
+          {
+            "sourceSheetIndex": 3,
+            "sourceSheetName": "Последний",
+            "file": "book-4__sheet_0004.tsv",
+            "size": 16335,
+            "sha256": "6c25c0e022b5dfc9fc756b9370577a0a71e69cedaa2ffd18ecb8c8ab49a08d61",
+            "contentCheck": {
+              "status": "checked_subset",
+              "checkedCells": 2408,
+              "csvRows": 301,
+              "csvColumns": 8,
+              "checkedFeatures": [
+                "native_sheet_display_values"
+              ]
+            }
+          }
+        ],
+        "resultChecks": [
+          {
+            "check": "native_calc_all_sheets",
+            "status": "checked_subset",
+            "sheetCount": 4,
+            "manifest": "AIO-sheets.json",
+            "checkedFeatures": [
+              "sheet_count",
+              "sheet_output_mapping",
+              "output_sha256",
+              "native_sheet_values"
+            ],
+            "unknownReasons": [],
+            "qualityCompared": false
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "target": "csv",
+      "mode": "native_uno",
+      "status": "PASS",
+      "outputs": [
+        {
+          "file": "book-1__sheet_0001.csv",
+          "sourceSheetIndex": 0,
+          "sourceSheetName": "Первый",
+          "rows": 301,
+          "columns": 8,
+          "sha256": "600f84171b167c32cdf8e2acf16aa195f6f80b1089ef5247bc41a2e634782ed4",
+          "checkedCells": 2408
+        }
+      ],
+      "nativeImportFilter": "Calc MS Excel 2007 XML",
+      "export": {
+        "filter": "Text - txt - csv (StarCalc)",
+        "warnings": [
+          "NATIVE_CSV_ALL_SHEETS"
+        ],
+        "executionReason": "native_session",
+        "sheetOutputs": [
+          {
+            "sourceSheetIndex": 0,
+            "sourceSheetName": "Первый",
+            "file": "book-1__sheet_0001.csv",
+            "size": 15221,
+            "sha256": "600f84171b167c32cdf8e2acf16aa195f6f80b1089ef5247bc41a2e634782ed4",
+            "contentCheck": {
+              "status": "checked_subset",
+              "checkedCells": 2408,
+              "csvRows": 301,
+              "csvColumns": 8,
+              "checkedFeatures": [
+                "native_sheet_display_values"
+              ]
+            }
+          }
+        ],
+        "resultChecks": [
+          {
+            "check": "native_calc_all_sheets",
+            "status": "checked_subset",
+            "sheetCount": 1,
+            "manifest": "AIO-sheets.json",
+            "checkedFeatures": [
+              "sheet_count",
+              "sheet_output_mapping",
+              "output_sha256",
+              "native_sheet_values"
+            ],
+            "unknownReasons": [],
+            "qualityCompared": false
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "target": "tab",
+      "mode": "native_uno",
+      "status": "PASS",
+      "outputs": [
+        {
+          "file": "book-1__sheet_0001.tab",
+          "sourceSheetIndex": 0,
+          "sourceSheetName": "Первый",
+          "rows": 301,
+          "columns": 8,
+          "sha256": "a0afe8bb3d9de312a9bbc13dba24d5fce36246cbcce3a3ffdc051898e5f727fb",
+          "checkedCells": 2408
+        }
+      ],
+      "nativeImportFilter": "Calc MS Excel 2007 XML",
+      "export": {
+        "filter": "Text - txt - csv (StarCalc)",
+        "warnings": [
+          "NATIVE_CSV_ALL_SHEETS"
+        ],
+        "executionReason": "native_session",
+        "sheetOutputs": [
+          {
+            "sourceSheetIndex": 0,
+            "sourceSheetName": "Первый",
+            "file": "book-1__sheet_0001.tab",
+            "size": 15221,
+            "sha256": "a0afe8bb3d9de312a9bbc13dba24d5fce36246cbcce3a3ffdc051898e5f727fb",
+            "contentCheck": {
+              "status": "checked_subset",
+              "checkedCells": 2408,
+              "csvRows": 301,
+              "csvColumns": 8,
+              "checkedFeatures": [
+                "native_sheet_display_values"
+              ]
+            }
+          }
+        ],
+        "resultChecks": [
+          {
+            "check": "native_calc_all_sheets",
+            "status": "checked_subset",
+            "sheetCount": 1,
+            "manifest": "AIO-sheets.json",
+            "checkedFeatures": [
+              "sheet_count",
+              "sheet_output_mapping",
+              "output_sha256",
+              "native_sheet_values"
+            ],
+            "unknownReasons": [],
+            "qualityCompared": false
+          }
+        ]
+      }
+    },
+    {
+      "count": 1,
+      "target": "tsv",
+      "mode": "native_uno",
+      "status": "PASS",
+      "outputs": [
+        {
+          "file": "book-1__sheet_0001.tsv",
+          "sourceSheetIndex": 0,
+          "sourceSheetName": "Первый",
+          "rows": 301,
+          "columns": 8,
+          "sha256": "a0afe8bb3d9de312a9bbc13dba24d5fce36246cbcce3a3ffdc051898e5f727fb",
+          "checkedCells": 2408
+        }
+      ],
+      "nativeImportFilter": "Calc MS Excel 2007 XML",
+      "export": {
+        "filter": "Text - txt - csv (StarCalc)",
+        "warnings": [
+          "NATIVE_CSV_ALL_SHEETS"
+        ],
+        "executionReason": "native_session",
+        "sheetOutputs": [
+          {
+            "sourceSheetIndex": 0,
+            "sourceSheetName": "Первый",
+            "file": "book-1__sheet_0001.tsv",
+            "size": 15221,
+            "sha256": "a0afe8bb3d9de312a9bbc13dba24d5fce36246cbcce3a3ffdc051898e5f727fb",
+            "contentCheck": {
+              "status": "checked_subset",
+              "checkedCells": 2408,
+              "csvRows": 301,
+              "csvColumns": 8,
+              "checkedFeatures": [
+                "native_sheet_display_values"
+              ]
+            }
+          }
+        ],
+        "resultChecks": [
+          {
+            "check": "native_calc_all_sheets",
+            "status": "checked_subset",
+            "sheetCount": 1,
+            "manifest": "AIO-sheets.json",
+            "checkedFeatures": [
+              "sheet_count",
+              "sheet_output_mapping",
+              "output_sha256",
+              "native_sheet_values"
+            ],
+            "unknownReasons": [],
+            "qualityCompared": false
+          }
+        ]
+      }
+    },
+    {
+      "count": 4,
+      "target": "csv",
+      "mode": "native_cli",
+      "status": "PASS",
+      "outputs": [
+        {
+          "file": "book-4__sheet_0001.csv",
+          "sourceSheetIndex": 0,
+          "sourceSheetName": "Первый",
+          "rows": 301,
+          "columns": 8,
+          "sha256": "600f84171b167c32cdf8e2acf16aa195f6f80b1089ef5247bc41a2e634782ed4",
+          "checkedCells": 2408
+        },
+        {
+          "file": "book-4__sheet_0002.csv",
+          "sourceSheetIndex": 1,
+          "sourceSheetName": "CON",
+          "rows": 301,
+          "columns": 8,
+          "sha256": "6bc03c4a29e2abf4e2f536e974e0729128c9a605e2a12dc8bf308a8b939411fb",
+          "checkedCells": 2408
+        },
+        {
+          "file": "book-4__sheet_0003.csv",
+          "sourceSheetIndex": 2,
+          "sourceSheetName": "con.other",
+          "rows": 301,
+          "columns": 8,
+          "sha256": "9405bf8c95db94bda7b244e3be6b034eec397c89f423db115d7813be47b2fbcf",
+          "checkedCells": 2408
+        },
+        {
+          "file": "book-4__sheet_0004.csv",
+          "sourceSheetIndex": 3,
+          "sourceSheetName": "Последний",
+          "rows": 301,
+          "columns": 8,
+          "sha256": "f8ee845d1eb202ab876e8fe05b1355e56783026de8561bdc22106be5de4ce60b",
+          "checkedCells": 2408
+        }
+      ],
+      "nativeImportFilter": "Calc MS Excel 2007 XML",
+      "export": {
+        "filter": "Text - txt - csv (StarCalc)",
+        "executionReason": "native_cli_all_calc_sheets",
+        "warnings": [
+          "NATIVE_CSV_ALL_SHEETS"
+        ],
+        "resultChecks": [
+          {
+            "check": "native_calc_all_sheets",
+            "status": "snapshot_prepared",
+            "sheetCount": 4,
+            "sheetNames": [
+              "Первый",
+              "CON",
+              "con.other",
+              "Последний"
+            ],
+            "cachedFormulaCells": 2400,
+            "valuesOnly": true,
+            "qualityCompared": false
+          },
+          {
+            "check": "native_calc_all_sheets",
+            "status": "checked_subset",
+            "sheetCount": 4,
+            "manifest": "AIO-sheets.json",
+            "checkedFeatures": [
+              "sheet_count",
+              "sheet_output_mapping",
+              "output_sha256",
+              "native_sheet_values"
+            ],
+            "unknownReasons": [],
+            "qualityCompared": false
+          }
+        ],
+        "sheetOutputs": [
+          {
+            "sourceSheetIndex": 0,
+            "sourceSheetName": "Первый",
+            "file": "book-4__sheet_0001.csv",
+            "size": 15221,
+            "sha256": "600f84171b167c32cdf8e2acf16aa195f6f80b1089ef5247bc41a2e634782ed4",
+            "contentCheck": {
+              "status": "checked_subset",
+              "checkedCells": 2408,
+              "csvRows": 301,
+              "csvColumns": 8,
+              "checkedFeatures": [
+                "native_sheet_display_values"
+              ]
+            }
+          },
+          {
+            "sourceSheetIndex": 1,
+            "sourceSheetName": "CON",
+            "file": "book-4__sheet_0002.csv",
+            "size": 16335,
+            "sha256": "6bc03c4a29e2abf4e2f536e974e0729128c9a605e2a12dc8bf308a8b939411fb",
+            "contentCheck": {
+              "status": "checked_subset",
+              "checkedCells": 2408,
+              "csvRows": 301,
+              "csvColumns": 8,
+              "checkedFeatures": [
+                "native_sheet_display_values"
+              ]
+            }
+          },
+          {
+            "sourceSheetIndex": 2,
+            "sourceSheetName": "con.other",
+            "file": "book-4__sheet_0003.csv",
+            "size": 16335,
+            "sha256": "9405bf8c95db94bda7b244e3be6b034eec397c89f423db115d7813be47b2fbcf",
+            "contentCheck": {
+              "status": "checked_subset",
+              "checkedCells": 2408,
+              "csvRows": 301,
+              "csvColumns": 8,
+              "checkedFeatures": [
+                "native_sheet_display_values"
+              ]
+            }
+          },
+          {
+            "sourceSheetIndex": 3,
+            "sourceSheetName": "Последний",
+            "file": "book-4__sheet_0004.csv",
+            "size": 16335,
+            "sha256": "f8ee845d1eb202ab876e8fe05b1355e56783026de8561bdc22106be5de4ce60b",
+            "contentCheck": {
+              "status": "checked_subset",
+              "checkedCells": 2408,
+              "csvRows": 301,
+              "csvColumns": 8,
+              "checkedFeatures": [
+                "native_sheet_display_values"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "count": 4,
+      "target": "tab",
+      "mode": "native_cli",
+      "status": "PASS",
+      "outputs": [
+        {
+          "file": "book-4__sheet_0001.tab",
+          "sourceSheetIndex": 0,
+          "sourceSheetName": "Первый",
+          "rows": 301,
+          "columns": 8,
+          "sha256": "a0afe8bb3d9de312a9bbc13dba24d5fce36246cbcce3a3ffdc051898e5f727fb",
+          "checkedCells": 2408
+        },
+        {
+          "file": "book-4__sheet_0002.tab",
+          "sourceSheetIndex": 1,
+          "sourceSheetName": "CON",
+          "rows": 301,
+          "columns": 8,
+          "sha256": "d7dc9729db7fd4a962ecd7649af1fca4ccf2e17b0a3621cfb9263f613aff229c",
+          "checkedCells": 2408
+        },
+        {
+          "file": "book-4__sheet_0003.tab",
+          "sourceSheetIndex": 2,
+          "sourceSheetName": "con.other",
+          "rows": 301,
+          "columns": 8,
+          "sha256": "187c8d68cec5c631111c7fdbaca69080ce0797c0a0acb94dfe415da569ee3642",
+          "checkedCells": 2408
+        },
+        {
+          "file": "book-4__sheet_0004.tab",
+          "sourceSheetIndex": 3,
+          "sourceSheetName": "Последний",
+          "rows": 301,
+          "columns": 8,
+          "sha256": "6c25c0e022b5dfc9fc756b9370577a0a71e69cedaa2ffd18ecb8c8ab49a08d61",
+          "checkedCells": 2408
+        }
+      ],
+      "nativeImportFilter": "Calc MS Excel 2007 XML",
+      "export": {
+        "filter": "Text - txt - csv (StarCalc)",
+        "executionReason": "native_cli_all_calc_sheets",
+        "warnings": [
+          "NATIVE_CSV_ALL_SHEETS"
+        ],
+        "resultChecks": [
+          {
+            "check": "native_calc_all_sheets",
+            "status": "snapshot_prepared",
+            "sheetCount": 4,
+            "sheetNames": [
+              "Первый",
+              "CON",
+              "con.other",
+              "Последний"
+            ],
+            "cachedFormulaCells": 2400,
+            "valuesOnly": true,
+            "qualityCompared": false
+          },
+          {
+            "check": "native_calc_all_sheets",
+            "status": "checked_subset",
+            "sheetCount": 4,
+            "manifest": "AIO-sheets.json",
+            "checkedFeatures": [
+              "sheet_count",
+              "sheet_output_mapping",
+              "output_sha256",
+              "native_sheet_values"
+            ],
+            "unknownReasons": [],
+            "qualityCompared": false
+          }
+        ],
+        "sheetOutputs": [
+          {
+            "sourceSheetIndex": 0,
+            "sourceSheetName": "Первый",
+            "file": "book-4__sheet_0001.tab",
+            "size": 15221,
+            "sha256": "a0afe8bb3d9de312a9bbc13dba24d5fce36246cbcce3a3ffdc051898e5f727fb",
+            "contentCheck": {
+              "status": "checked_subset",
+              "checkedCells": 2408,
+              "csvRows": 301,
+              "csvColumns": 8,
+              "checkedFeatures": [
+                "native_sheet_display_values"
+              ]
+            }
+          },
+          {
+            "sourceSheetIndex": 1,
+            "sourceSheetName": "CON",
+            "file": "book-4__sheet_0002.tab",
+            "size": 16335,
+            "sha256": "d7dc9729db7fd4a962ecd7649af1fca4ccf2e17b0a3621cfb9263f613aff229c",
+            "contentCheck": {
+              "status": "checked_subset",
+              "checkedCells": 2408,
+              "csvRows": 301,
+              "csvColumns": 8,
+              "checkedFeatures": [
+                "native_sheet_display_values"
+              ]
+            }
+          },
+          {
+            "sourceSheetIndex": 2,
+            "sourceSheetName": "con.other",
+            "file": "book-4__sheet_0003.tab",
+            "size": 16335,
+            "sha256": "187c8d68cec5c631111c7fdbaca69080ce0797c0a0acb94dfe415da569ee3642",
+            "contentCheck": {
+              "status": "checked_subset",
+              "checkedCells": 2408,
+              "csvRows": 301,
+              "csvColumns": 8,
+              "checkedFeatures": [
+                "native_sheet_display_values"
+              ]
+            }
+          },
+          {
+            "sourceSheetIndex": 3,
+            "sourceSheetName": "Последний",
+            "file": "book-4__sheet_0004.tab",
+            "size": 16335,
+            "sha256": "6c25c0e022b5dfc9fc756b9370577a0a71e69cedaa2ffd18ecb8c8ab49a08d61",
+            "contentCheck": {
+              "status": "checked_subset",
+              "checkedCells": 2408,
+              "csvRows": 301,
+              "csvColumns": 8,
+              "checkedFeatures": [
+                "native_sheet_display_values"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "count": 4,
+      "target": "tsv",
+      "mode": "native_cli",
+      "status": "PASS",
+      "outputs": [
+        {
+          "file": "book-4__sheet_0001.tsv",
+          "sourceSheetIndex": 0,
+          "sourceSheetName": "Первый",
+          "rows": 301,
+          "columns": 8,
+          "sha256": "a0afe8bb3d9de312a9bbc13dba24d5fce36246cbcce3a3ffdc051898e5f727fb",
+          "checkedCells": 2408
+        },
+        {
+          "file": "book-4__sheet_0002.tsv",
+          "sourceSheetIndex": 1,
+          "sourceSheetName": "CON",
+          "rows": 301,
+          "columns": 8,
+          "sha256": "d7dc9729db7fd4a962ecd7649af1fca4ccf2e17b0a3621cfb9263f613aff229c",
+          "checkedCells": 2408
+        },
+        {
+          "file": "book-4__sheet_0003.tsv",
+          "sourceSheetIndex": 2,
+          "sourceSheetName": "con.other",
+          "rows": 301,
+          "columns": 8,
+          "sha256": "187c8d68cec5c631111c7fdbaca69080ce0797c0a0acb94dfe415da569ee3642",
+          "checkedCells": 2408
+        },
+        {
+          "file": "book-4__sheet_0004.tsv",
+          "sourceSheetIndex": 3,
+          "sourceSheetName": "Последний",
+          "rows": 301,
+          "columns": 8,
+          "sha256": "6c25c0e022b5dfc9fc756b9370577a0a71e69cedaa2ffd18ecb8c8ab49a08d61",
+          "checkedCells": 2408
+        }
+      ],
+      "nativeImportFilter": "Calc MS Excel 2007 XML",
+      "export": {
+        "filter": "Text - txt - csv (StarCalc)",
+        "executionReason": "native_cli_all_calc_sheets",
+        "warnings": [
+          "NATIVE_CSV_ALL_SHEETS"
+        ],
+        "resultChecks": [
+          {
+            "check": "native_calc_all_sheets",
+            "status": "snapshot_prepared",
+            "sheetCount": 4,
+            "sheetNames": [
+              "Первый",
+              "CON",
+              "con.other",
+              "Последний"
+            ],
+            "cachedFormulaCells": 2400,
+            "valuesOnly": true,
+            "qualityCompared": false
+          },
+          {
+            "check": "native_calc_all_sheets",
+            "status": "checked_subset",
+            "sheetCount": 4,
+            "manifest": "AIO-sheets.json",
+            "checkedFeatures": [
+              "sheet_count",
+              "sheet_output_mapping",
+              "output_sha256",
+              "native_sheet_values"
+            ],
+            "unknownReasons": [],
+            "qualityCompared": false
+          }
+        ],
+        "sheetOutputs": [
+          {
+            "sourceSheetIndex": 0,
+            "sourceSheetName": "Первый",
+            "file": "book-4__sheet_0001.tsv",
+            "size": 15221,
+            "sha256": "a0afe8bb3d9de312a9bbc13dba24d5fce36246cbcce3a3ffdc051898e5f727fb",
+            "contentCheck": {
+              "status": "checked_subset",
+              "checkedCells": 2408,
+              "csvRows": 301,
+              "csvColumns": 8,
+              "checkedFeatures": [
+                "native_sheet_display_values"
+              ]
+            }
+          },
+          {
+            "sourceSheetIndex": 1,
+            "sourceSheetName": "CON",
+            "file": "book-4__sheet_0002.tsv",
+            "size": 16335,
+            "sha256": "d7dc9729db7fd4a962ecd7649af1fca4ccf2e17b0a3621cfb9263f613aff229c",
+            "contentCheck": {
+              "status": "checked_subset",
+              "checkedCells": 2408,
+              "csvRows": 301,
+              "csvColumns": 8,
+              "checkedFeatures": [
+                "native_sheet_display_values"
+              ]
+            }
+          },
+          {
+            "sourceSheetIndex": 2,
+            "sourceSheetName": "con.other",
+            "file": "book-4__sheet_0003.tsv",
+            "size": 16335,
+            "sha256": "187c8d68cec5c631111c7fdbaca69080ce0797c0a0acb94dfe415da569ee3642",
+            "contentCheck": {
+              "status": "checked_subset",
+              "checkedCells": 2408,
+              "csvRows": 301,
+              "csvColumns": 8,
+              "checkedFeatures": [
+                "native_sheet_display_values"
+              ]
+            }
+          },
+          {
+            "sourceSheetIndex": 3,
+            "sourceSheetName": "Последний",
+            "file": "book-4__sheet_0004.tsv",
+            "size": 16335,
+            "sha256": "6c25c0e022b5dfc9fc756b9370577a0a71e69cedaa2ffd18ecb8c8ab49a08d61",
+            "contentCheck": {
+              "status": "checked_subset",
+              "checkedCells": 2408,
+              "csvRows": 301,
+              "csvColumns": 8,
+              "checkedFeatures": [
+                "native_sheet_display_values"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "sourceSHA256": {
+    "4": "ea7b6ee2235b576b40121d5499e99e0205d5c775f616b1d5350ff4396eb4f110",
+    "1": "2ea95b505b32efd578c4e237ca1e073c530e7ebb3b488300472a3064341edc0a"
+  },
+  "saveRecovery": null,
+  "error": "AssertionError",
+  "code": null,
+  "diagnostic": null,
+  "reason": "{'schemaVersion': 3, 'total': 1, 'completed': 1, 'attempted': 0, 'succeeded': 0, 'failed': 1, 'cancelled': 0, 'filtered': 0, 'pending': 0, 'preflightChecks': 0, 'buildIdentity': {'scope': 'report_runtime', 'sourceRevision': '6b61cb1413e753e687d1ff61749e1164069a3c1c', 'basis': 'configured'}, 'nativeRegistryFingerprints': [], 'inputsUploaded': 1, 'inputsPlanned': 1, 'inputsWithoutTasks': [], 'recoveryError': None, 'files': [{'fileId': 'book', 'name': 'book-4.xlsx', 'sourceSha256': 'ea7b6ee2235b576b40121d5499e99e0205d5c775f616b1d5350ff4396eb4f110', 'nativeRoute': None, 'warnings': [], 'targets': [{'taskId': 'b2ce4a714081e9326deb99946bd84345:0', 'format': 'csv', 'state': 'error', 'code': 'PREFLIGHT_ROUTE_UNDETERMINED', 'error': 'Не удалось подтвердить модель и состав книги перед CSV-экспортом.', 'stage': 'preflight', 'conversionStatus': 'error', 'saveStatus': 'not_applicable', 'readbackVerified': False, 'qualityCheckRequested': False, 'qualityCompared': False, 'checkedFeatures': [], 'unknownReasons': ['quality_comparison_not_requested'], 'formatLimitations': ['formulas_as_values', 'styles_and_charts_not_represented', 'one_table_per_file'], 'confirmedLoss': False, 'diagnostic': '', 'executionMode': None, 'executionReason': None, 'resultChecks': [], 'automaticRecipe': None, 'automaticParameters': None, 'durationMs': 44344, 'nativeTimings': None, 'exportFilter': None, 'warnings': [], 'quality': None, 'outputs': [], 'route': None, 'libreOfficeStarted': False}]}], 'timings': {'journalMs': 15, 'planMs': 62, 'job_queuedMs': 62, 'job_startedMs': 62, 'packaging_startedMs': 44484, 'job_finishedMs': 44484}, 'qualityCheckRequested': False, 'qualityCompared': False, 'retainSources': True, 'comparisonParentJobId': None, 'comparisonRecipe': None, 'comparisonParentTasks': [], 'jobId': 'b2ce4a714081e9326deb99946bd84345', 'state': 'failed', 'officeStarts': 1, 'trace': {'events': [{'sequence': 1, 'elapsedMs': 0, 'stage': 'job_created', 'fileId': None, 'format': None, 'code': None, 'libreOfficeStarted': False}, {'sequence': 2, 'elapsedMs': 0, 'stage': 'input_stored', 'fileId': 'book', 'format': None, 'code': None, 'libreOfficeStarted': False}, {'sequence': 3, 'elapsedMs': 62, 'stage': 'job_queued', 'fileId': None, 'format': None, 'code': None, 'libreOfficeStarted': False}, {'sequence': 4, 'elapsedMs': 62, 'stage': 'job_started', 'fileId': None, 'format': None, 'code': None, 'libreOfficeStarted': False}, {'sequence': 5, 'elapsedMs': 125, 'stage': 'route_selected', 'fileId': 'book', 'format': 'csv', 'code': None, 'libreOfficeStarted': False}, {'sequence': 6, 'elapsedMs': 44469, 'stage': 'preflight', 'fileId': 'book', 'format': 'csv', 'code': 'PREFLIGHT_ROUTE_UNDETERMINED', 'libreOfficeStarted': False}, {'sequence': 7, 'elapsedMs': 44484, 'stage': 'task_finished', 'fileId': 'book', 'format': 'csv', 'code': 'PREFLIGHT_ROUTE_UNDETERMINED', 'libreOfficeStarted': False}, {'sequence': 8, 'elapsedMs': 44484, 'stage': 'input_finished', 'fileId': 'book', 'format': None, 'code': None, 'libreOfficeStarted': False}, {'sequence': 9, 'elapsedMs': 44484, 'stage': 'packaging_started', 'fileId': None, 'format': None, 'code': None, 'libreOfficeStarted': False}, {'sequence': 10, 'elapsedMs': 44484, 'stage': 'job_finished', 'fileId': None, 'format': None, 'code': 'failed', 'libreOfficeStarted': False}, {'sequence': 11, 'elapsedMs': 44484, 'stage': 'worker_finished', 'fileId': None, 'format': None, 'code': 'failed', 'libreOfficeStarted': False}], 'droppedEvents': 0}, 'fileTimeoutSeconds': 180}"
+}

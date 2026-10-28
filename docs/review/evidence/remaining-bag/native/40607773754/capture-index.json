@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "status": "EXACT_BYTES_RESTORED_NOT_ACCEPTANCE",
+  "sourceSHA": "6b61cb1413e753e687d1ff61749e1164069a3c1c",
+  "sourceTree": "a9717652ec545c3a2b3f47c58f9b3b3aef8abf41",
+  "runId": 40607773754,
+  "jobId": 122551460036,
+  "bundle": {
+    "files": 9,
+    "payloadSha256": "d87a45c595ca0985cef5498e6f377b87b9175db078ffd8df12c8cfd975229eb9",
+    "payloadBytes": 775951,
+    "packedBytes": 99787,
+    "chunks": 5
+  },
+  "files": [
+    {
+      "path": "stress3/all-sheets/evidence.json",
+      "bytes": 37359,
+      "sha256": "1887f9e3466b9b6f4eaa7e3ad618b4be88eee1ad83aa0f0e97b7966291895852",
+      "gitBlob": "b4c6a9ead821ab96340ee3caddbc9b21e9ff35d7"
+    },
+    {
+      "path": "stress3/corpus-manifest.json",
+      "bytes": 61482,
+      "sha256": "32ff4fe8a18b425c52646b3db592b3d368ff55482dd76d75a51524bb2989c110",
+      "gitBlob": "4f3c5efb15143e01c0c0f897935d96167ad420cf"
+    },
+    {
+      "path": "stress3/dif-regression/evidence.json",
+      "bytes": 50855,
+      "sha256": "abf9b29c8a6637344b3d6ebd472264870c7e3abb95f7d5c537e68e5ad77b8fea",
+      "gitBlob": "050b37e755d509a0ab8e4ff38dbcbb4ddb42dcd4"
+    },
+    {
+      "path": "stress3/evidence.json",
+      "bytes": 210823,
+      "sha256": "2178230096a9bc09f03a0e32d3115d73dc4e2c5c3888ac037a2f0b6f0c54b59e",
+      "gitBlob": "a1e300dca98d5744a46db57fa2a1b28246b33597"
+    },
+    {
+      "path": "stress3/expected-decisions.json",
+      "bytes": 2646,
+      "sha256": "0973bd58e61d46e0ec6cb1a0c2e921f25b873391105133f8879d6c2de033f293",
+      "gitBlob": "473e7164ac87feae57c9107978c2e563635a516c"
+    },
+    {
+      "path": "stress3/native-positives/manifest.json",
+      "bytes": 37583,
+      "sha256": "7b1018b2b24f8f8506e52323ab6910084bc8d562e1491fdbfc1edb3b47a2c489",
+      "gitBlob": "dbdd0454b770246c5cec8879f4837e27ce64f2f3"
+    },
+    {
+      "path": "stress3/pair-decisions.csv",
+      "bytes": 64367,
+      "sha256": "5ebdefbaa73cb736d92f0e7e4fbdfe3b41a6cd74d645d3c9d55fef368a355ac3",
+      "gitBlob": "6332d0d63ea40e89af8f2e932e039331ec82a470"
+    },
+    {
+      "path": "stress3/safety-controls/manifest.json",
+      "bytes": 15978,
+      "sha256": "86159bc590d40979564214a9237d7f14bdccf75f1522fa1413786351d386b902",
+      "gitBlob": "4bfcebad41c16f5889af6aa958435fccb5cb7c3d"
+    },
+    {
+      "path": "stress3/text-id-regression/evidence.json",
+      "bytes": 99732,
+      "sha256": "8b78dfac9334c5642b2f6120214fc60344653764c416274c7114e197b66a8b92",
+      "gitBlob": "a024a4e4192d569742c130ad8774df021c7aa415"
+    }
+  ]
+}
