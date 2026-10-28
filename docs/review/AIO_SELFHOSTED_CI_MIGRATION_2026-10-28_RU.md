@@ -17,7 +17,7 @@
 
 Оба запуска получили `failure` до появления runner/тестовых шагов; каждый job был зарегистрирован и закрыт примерно за две секунды. Такой результат совместим с отсутствием доступных GitHub-hosted минут, но точная причина не доказана: job logs недоступны (BlobNotFound), сообщения биллинга не получены.
 
-[Windows NIKITA run 40716613385](https://github.com/jumonja-maker/A.I.O/actions/runs/40716613385) действительно прошёл на self-hosted runner `NIKITA` с метками `self-hosted, Windows, X64, local-d-manual`. В существующих QA workflows также описан Linux runner `AIO-UBUNTU` с метками `self-hosted, Linux, X64, aio-vm-isolated`. Его текущий online/offline-статус через доступный API не подтвердился.
+[Windows NIKITA run 40716613385](https://github.com/jumonja-maker/A.I.O/actions/runs/40716613385) действительно прошёл на self-hosted runner `NIKITA` с метками `self-hosted, Windows, X64, local-d-manual`. В существующих QA workflows также описан Linux runner `AIO-UBUNTU` с метками `self-hosted, Linux, X64, aio-vm-isolated`. Историческая действительность Linux runner подтверждена: [run 40197557880](https://github.com/jumonja-maker/A.I.O/actions/runs/40197557880) от 25.10.2026 имел SUCCESS в `linux-qa` на реальном `AIO-UBUNTU` с теми же четырьмя метками, а также SUCCESS Windows NIKITA. Его **текущий** online/offline-статус через доступный API не подтвердился.
 
 ## Исправления
 
