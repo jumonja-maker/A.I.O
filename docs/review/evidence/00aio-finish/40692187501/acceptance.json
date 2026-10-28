@@ -1,0 +1,20 @@
+{
+  "source": "6a2806babcf5d9f6cee34da088fb6cf35f587576",
+  "tree": "beabebd034dcc1cd0b21ee6f3911b15908b6a17d",
+  "branch": "fix/native-profile-owned-job-drain-20261028",
+  "runId": 40692187501,
+  "scope": "profile",
+  "status": "FAIL",
+  "stages": [
+    {
+      "name": "startup-original",
+      "exitCode": 1,
+      "seconds": 1.265
+    }
+  ],
+  "fulltest": "NOT_RUN",
+  "build": "NOT_RUN",
+  "mainChanged": false,
+  "error": "RuntimeError",
+  "reason": "startup-original failed; original assertions retained"
+}

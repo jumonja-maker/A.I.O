@@ -1,0 +1,286 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "platform": "win32",
+  "scope": "actual installed LO: one synthetic RGB image and two CSV sheets",
+  "fullFormatMatrix": "NOT_RUN",
+  "windowsGUI": "NOT_RUN",
+  "arbitraryLocalizedCSV": "NOT_PROVED",
+  "executions": {
+    "ordinary-before": {
+      "mode": "native_uno",
+      "export": {
+        "filter": "calc_pdf_Export",
+        "warnings": [],
+        "executionReason": "native_session"
+      },
+      "timings": {
+        "source": "uno_document",
+        "closeMs": 7,
+        "operationMs": 514,
+        "workerStartupMs": 0,
+        "adapterMs": 515,
+        "importMs": 59,
+        "exportMs": 445
+      },
+      "files": [
+        {
+          "name": "Пример книги с рисунком.pdf",
+          "sha256": "eb7f50b42dbd3f8c188d8a91556a288e5d76061157083b6c3987eaae7116d0f4"
+        }
+      ]
+    },
+    "pdf-retry": {
+      "mode": "native_uno",
+      "export": {
+        "filter": "calc_pdf_Export",
+        "warnings": [
+          "AUTOMATIC_RETRY_MAY_NOT_IMPROVE"
+        ],
+        "automaticRecipe": "pdf_preserve_images",
+        "automaticParameters": {
+          "UseLosslessCompression": true,
+          "ReduceImageResolution": false
+        },
+        "executionReason": "native_session"
+      },
+      "timings": {
+        "source": "uno_document",
+        "closeMs": 10,
+        "operationMs": 496,
+        "workerStartupMs": 0,
+        "adapterMs": 500,
+        "importMs": 54,
+        "exportMs": 429
+      },
+      "files": [
+        {
+          "name": "Пример книги с рисунком.pdf",
+          "sha256": "f6385981a0aaf18d613d772931e12e87d096409abedf42a92405d6e02e2a2e55"
+        }
+      ]
+    },
+    "ordinary-after": {
+      "mode": "native_uno",
+      "export": {
+        "filter": "calc_pdf_Export",
+        "warnings": [],
+        "executionReason": "native_session"
+      },
+      "timings": {
+        "source": "uno_document",
+        "closeMs": 13,
+        "operationMs": 526,
+        "workerStartupMs": 0,
+        "adapterMs": 531,
+        "importMs": 58,
+        "exportMs": 451
+      },
+      "files": [
+        {
+          "name": "Пример книги с рисунком.pdf",
+          "sha256": "d44a3650e889150c25f512fca75433398fb35a6305c0cf938fb07cfbdce12604"
+        }
+      ]
+    },
+    "csv-retry": {
+      "mode": "native_uno",
+      "export": {
+        "filter": "Text - txt - csv (StarCalc)",
+        "warnings": [
+          "AUTOMATIC_RETRY_MAY_NOT_IMPROVE",
+          "AUTOMATIC_CSV_RAW_VALUES"
+        ],
+        "automaticRecipe": "csv_preserve_values",
+        "automaticParameters": {
+          "encoding": "UTF-8",
+          "SaveAsShown": false,
+          "ExportFormulas": false,
+          "ExportAllSheets": true,
+          "IncludeBOM": true
+        },
+        "executionReason": "native_session"
+      },
+      "timings": {
+        "source": "uno_document",
+        "closeMs": 5,
+        "operationMs": 85,
+        "workerStartupMs": 0,
+        "adapterMs": 94,
+        "importMs": 60,
+        "exportMs": 16
+      },
+      "files": [
+        {
+          "name": "Пример книги с рисунком-Precision.csv",
+          "sha256": "2db54a51e1d2eb38c030ef8db9eeafe0d9fef96f5ce8253dc8dcbefd6dbebc03"
+        },
+        {
+          "name": "Пример книги с рисунком-Second.csv",
+          "sha256": "030fb2a643911ef11ae40e320c719721f73d4a738f611d17a0a07675bac3762c"
+        }
+      ]
+    }
+  },
+  "source": {
+    "name": "Пример книги с рисунком.xlsx",
+    "sha256": "4d30bbf4ede2dfadc07325797a071a354984923ca4a5fa36dcf5cbb7b8f9596c",
+    "imageWidth": 1024,
+    "imageHeight": 512,
+    "imageDisplayPixels": [
+      192,
+      96
+    ],
+    "rgbSha256": "84282e4934a3d26f25a8cefa367a5fb1eb5cd1e218b24453f18520a547cc6c60",
+    "sheets": [
+      "Precision",
+      "Second"
+    ],
+    "numericControlLocale": "en-US",
+    "numberFormat": "[$-409]0.00"
+  },
+  "requiredProductionMode": "native_uno",
+  "proof": {
+    "state": "detected",
+    "basis": "native_preflight_uno_document",
+    "modelLoaded": true,
+    "nativeTextDocument": false,
+    "nativeImportMs": 95,
+    "documentServices": [
+      "com.sun.star.sheet.SpreadsheetDocument"
+    ],
+    "typeName": null,
+    "filterName": "Calc MS Excel 2007 XML",
+    "selectedImportFilter": "Calc MS Excel 2007 XML",
+    "selectedImportOptions": null,
+    "sourceContract": {
+      "state": "recognized",
+      "contentClass": "ooxml_package",
+      "mainContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+      "contentTypeBasis": "override",
+      "expectedServices": [
+        "com.sun.star.sheet.SpreadsheetDocument"
+      ]
+    },
+    "csvImportSampleOnly": false,
+    "csvInspection": null,
+    "drawPages": null,
+    "difNumericImport": null,
+    "nativeGraphicExports": [],
+    "nativeExportFilters": {},
+    "nativeExportInspection": {},
+    "registryFingerprint": "9b38ba68fa4cbc7fb077798ac86d25d3bf7c5ef0c8f1f4395d929c535bcb7bf7",
+    "exported": false
+  },
+  "ordinaryPDFSpecBefore": "pdf:calc_pdf_Export",
+  "ordinaryImagesBefore": [
+    {
+      "name": "/Im22",
+      "width": 600,
+      "height": 300,
+      "colourSpace": "/DeviceRGB",
+      "bitsPerComponent": 8,
+      "filters": [
+        "/DCTDecode"
+      ],
+      "decodedBytes": 128699,
+      "decodedRGB": false,
+      "decodedRGBSha256": null
+    }
+  ],
+  "candidateImages": [
+    {
+      "name": "/Im4",
+      "width": 1024,
+      "height": 512,
+      "colourSpace": "/DeviceRGB",
+      "bitsPerComponent": 8,
+      "filters": [
+        "/FlateDecode"
+      ],
+      "decodedBytes": 1572864,
+      "decodedRGB": true,
+      "decodedRGBSha256": "84282e4934a3d26f25a8cefa367a5fb1eb5cd1e218b24453f18520a547cc6c60"
+    }
+  ],
+  "ordinaryImagesAfter": [
+    {
+      "name": "/Im22",
+      "width": 600,
+      "height": 300,
+      "colourSpace": "/DeviceRGB",
+      "bitsPerComponent": 8,
+      "filters": [
+        "/DCTDecode"
+      ],
+      "decodedBytes": 128699,
+      "decodedRGB": false,
+      "decodedRGBSha256": null
+    }
+  ],
+  "ordinaryPDFSpecAfter": "pdf:calc_pdf_Export",
+  "lossyControl": {
+    "mode": "native_cli",
+    "filter": "calc_pdf_Export",
+    "explicitControlParameters": {
+      "UseLosslessCompression": {
+        "type": "boolean",
+        "value": false
+      },
+      "ReduceImageResolution": {
+        "type": "boolean",
+        "value": true
+      },
+      "MaxImageResolution": {
+        "type": "long",
+        "value": 75
+      },
+      "Quality": {
+        "type": "long",
+        "value": 35
+      }
+    },
+    "images": [
+      {
+        "name": "/Im4",
+        "width": 150,
+        "height": 75,
+        "colourSpace": "/DeviceRGB",
+        "bitsPerComponent": 8,
+        "filters": [
+          "/DCTDecode"
+        ],
+        "decodedBytes": 968,
+        "decodedRGB": false,
+        "decodedRGBSha256": null
+      }
+    ]
+  },
+  "csvSheets": {
+    "Пример книги с рисунком-Precision.csv": [
+      [
+        "code",
+        "amount",
+        "note"
+      ],
+      [
+        "00123",
+        "1.23456789012345",
+        "Привет"
+      ]
+    ],
+    "Пример книги с рисунком-Second.csv": [
+      [
+        "OTHER_SHEET",
+        "code"
+      ],
+      [
+        "Сохранён второй лист",
+        "00500"
+      ]
+    ]
+  },
+  "sourceUnchanged": true,
+  "firstPDFUnchanged": true,
+  "elapsedSeconds": 12.656
+}
