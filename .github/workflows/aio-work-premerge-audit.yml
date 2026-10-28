@@ -87,11 +87,18 @@ jobs:
           if (Test-Path $deps) { throw 'Existing dependencies' }
           & $env:AIO_QA_PYTHON tools/qa/guard_v17_test_dependencies.py --output $deps --github-env
           if ($LASTEXITCODE -ne 0) { throw 'Offline dependencies failed' }
-      - name: Preventative checks and complete Windows source Qt DOM suite
+      - name: Prove actual QtWebEngine viewer startup before native stress3
         working-directory: prem-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           $ErrorActionPreference='Stop'
           New-Item -ItemType Directory -Path $env:AIO_PREMERGE_OUT -ErrorAction Stop | Out-Null
+          $out=Join-Path $env:AIO_PREMERGE_OUT 'viewer-startup'
+          & $env:AIO_QA_PYTHON tools/qa/guard_before_after_b19_b25_acceptance.py --output $out --executable $env:AIO_LIBREOFFICE
+          if ($LASTEXITCODE -ne 0) { throw 'Real Qt page failed to load its comparison viewer before stress3' }
+      - name: Preventative checks and complete Windows source Qt DOM suite
+        working-directory: prem-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          $ErrorActionPreference='Stop'
           foreach($name in @('test_session_lifecycle_b16_b27.py','test_all_sheets_b30.py','test_comparison_failed_filter_b20.py','test_remaining_bag_stress3.py')) {
             & $env:AIO_QA_PYTHON -m unittest discover -s tests -p $name -v
             if ($LASTEXITCODE -ne 0) { throw ('Preventive test FAIL: '+$name) }

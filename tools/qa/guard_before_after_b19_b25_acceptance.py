@@ -76,7 +76,16 @@ def main():
                 app.processEvents()
                 if check():return
                 time.sleep(.02)
-            raise TimeoutError('Qt before/after condition did not become true: '+str(js("document.querySelector('[data-c-feedback]')?.textContent")))
+            debug=js("""JSON.stringify({
+              readyState:document.readyState,
+              url:location.pathname,
+              comparison:typeof window.AIOGuardComparison,
+              viewer:typeof window.AIOComparisonViewer,
+              scripts:[...document.scripts].map(s=>new URL(s.src).pathname).filter(Boolean),
+              feedback:document.querySelector('[data-c-feedback]')?.textContent||'',
+              title:document.title
+            })""")
+            raise TimeoutError('Qt before/after condition did not become true: '+str(debug))
         def click(selector):
             # Native mouse interaction, including the replacement for Qt's
             # unreliable select popup in a modal WebEngine dialog.
