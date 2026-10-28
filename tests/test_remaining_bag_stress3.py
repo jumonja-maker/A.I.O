@@ -16,6 +16,10 @@ class Stress3EvidenceContracts(unittest.TestCase):
         records=qa.decision_records('control',data,{'cases':1,'negative':1,'excluded':1},'b'*64)
         self.assertEqual([r['expectedDecision'] for r in records],['ready','error','unavailable'])
         self.assertEqual(records[0]['evidencePointer'],'/cases/0')
+        self.assertEqual(records[0]['expectedDecision'],'ready')
+        self.assertEqual(records[0]['actualDecision'],'not_recorded')
+        self.assertEqual(records[0]['childVerdict'],'PASS')
+        self.assertEqual(records[0]['actualEvidenceField'],'not_recorded')
         records.append(dict(stage='parser',expectedDecision='not_checked',actualDecision='not_checked'))
         with tempfile.TemporaryDirectory() as tmp:
             path=Path(tmp)/'pair-decisions.csv';qa.write_decisions_csv(path,records)
@@ -23,6 +27,7 @@ class Stress3EvidenceContracts(unittest.TestCase):
             self.assertEqual(rows[0]['source'],'Лист,\n001.xlsx')
             self.assertEqual(rows[0]['sourceSha256'],'a'*64)
             self.assertEqual(rows[-1]['actualDecision'],'not_checked')
+            self.assertEqual(rows[0]['actualDecision'],'not_recorded')
         data['negative'][0]['status']='PASS'
         with self.assertRaises(ValueError):qa.decision_records('control',data,{'negative':1},'b'*64)
     def test_exit_success_or_missing_cases_cannot_replace_expected_verdicts(self):
