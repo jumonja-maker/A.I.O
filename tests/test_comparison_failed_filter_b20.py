@@ -29,6 +29,9 @@ class FailedConversionFilter(unittest.TestCase):
         self.assertEqual((row['format'],row['conversionState'],row['status']),('pdf','error','not_checked'))
         self.assertEqual(row['findings'][0]['code'],'RESULT_NOT_CREATED')
         self.assertEqual(self.json_request('compare?job='+job+'&filter=checked')['totalFiltered'],1)
+        problems=self.json_request('compare?job='+job+'&filter=problems')
+        self.assertEqual(problems['totalFiltered'],1)
+        self.assertEqual(problems['items'][0]['conversionState'],'error')
         # Existing stored payloads have no conversionState field; recovery
         # derives the new additive field without a destructive DB migration.
         self.server.api.comparison.close();self.server.api.comparison=ComparisonService(self.guard)
