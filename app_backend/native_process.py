@@ -13,6 +13,7 @@ import os
 import signal
 import subprocess
 import sys
+import time
 
 
 class ProcessTree:
@@ -27,6 +28,7 @@ class ProcessTree:
         self._job = None
         self._kernel = None
         self._closed = False
+        self.job_drain_verified = False
         if os.name == 'nt':
             self._make_windows_job()
         try:
@@ -89,6 +91,10 @@ class ProcessTree:
         k.AssignProcessToJobObject.restype = w.BOOL
         k.CloseHandle.argtypes = [w.HANDLE]
         k.CloseHandle.restype = w.BOOL
+        k.TerminateJobObject.argtypes = [w.HANDLE,w.UINT]
+        k.TerminateJobObject.restype = w.BOOL
+        k.QueryInformationJobObject.argtypes = [w.HANDLE,ctypes.c_int,ctypes.c_void_p,w.DWORD,ctypes.c_void_p]
+        k.QueryInformationJobObject.restype = w.BOOL
         handle = k.CreateJobObjectW(None, None)
         if not handle:
             raise ctypes.WinError(ctypes.get_last_error())
@@ -103,14 +109,45 @@ class ProcessTree:
             raise ctypes.WinError(error)
         self._job, self._kernel = handle, k
 
+    def _windows_job_active(self):
+        import ctypes
+        class Accounting(ctypes.Structure):
+            _fields_=[(name,ctypes.c_longlong) for name in (
+                'TotalUserTime','TotalKernelTime','ThisPeriodTotalUserTime','ThisPeriodTotalKernelTime')]+[
+                (name,ctypes.c_uint32) for name in ('TotalPageFaultCount','TotalProcesses','ActiveProcesses','TotalTerminatedProcesses')]
+        info=Accounting()
+        if not self._kernel.QueryInformationJobObject(self._job,1,ctypes.byref(info),ctypes.sizeof(info),None):
+            raise ctypes.WinError(ctypes.get_last_error())
+        return int(info.ActiveProcesses)
+
+    def _drain_windows_job(self):
+        import ctypes
+        if not self._kernel.TerminateJobObject(self._job,1):
+            raise ctypes.WinError(ctypes.get_last_error())
+        until=time.monotonic()+3
+        while self._windows_job_active():
+            if time.monotonic()>=until:
+                raise TimeoutError('Owned native job did not drain')
+            time.sleep(.01)
+        self.job_drain_verified=True
+
     def close(self):
         if self._closed:
             return
         self._closed = True
         p = self.process
         if self._job:
-            self._kernel.CloseHandle(self._job)
-            self._job = None
+            handle=self._job
+            try:
+                try:
+                    # Parent exit alone does not establish descendant exit.
+                    self._drain_windows_job()
+                finally:
+                    self._kernel.CloseHandle(handle)
+                    self._job = None
+            finally:
+                self._reap_parent(p)
+            return
         elif p is not None:
             # Also reap surviving children when a launcher exited before them.
             try:
@@ -126,6 +163,10 @@ class ProcessTree:
                 os.killpg(p.pid, signal.SIGKILL)
             except ProcessLookupError:
                 pass
+        self._reap_parent(p)
+
+    @staticmethod
+    def _reap_parent(p):
         if p is not None and p.poll() is None:
             try:
                 p.wait(timeout=3)

@@ -1,0 +1,106 @@
+{
+  "schema": 1,
+  "status": "FAIL",
+  "runId": 40610648806,
+  "jobId": 122561077618,
+  "testedProductSourceSHA": "6b61cb1413e753e687d1ff61749e1164069a3c1c",
+  "testedProductTree": "a9717652ec545c3a2b3f47c58f9b3b3aef8abf41",
+  "workflowHeadSHA": "d284be3baaa5454bc0f00607239e10f682ce40b2",
+  "scope": "diagnostic experiment only, not fixed-product acceptance",
+  "failure": "Private profile cleanup failed with WinError 32 on user/extensions/bundled/extensions.pmap after controller worker exit",
+  "data": {
+    "schema": 1,
+    "status": "RUNNING",
+    "scope": "native A/B diagnosis only; not fixed-product acceptance",
+    "sourceSHA": "6b61cb1413e753e687d1ff61749e1164069a3c1c",
+    "sourceTree": "a9717652ec545c3a2b3f47c58f9b3b3aef8abf41",
+    "originalCorpusSHA256": "ea7b6ee2235b576b40121d5499e99e0205d5c775f616b1d5350ff4396eb4f110",
+    "sourcePath": "D:\\actions-runner\\_work\\A.I.O\\A.I.O\\aio-stress3-evidence-40607773754-1\\stress3\\all-sheets\\book-4.xlsx",
+    "ownedSourceFound": false,
+    "failedQueueWorkspaceLength": 170,
+    "cases": [
+      {
+        "name": "normal",
+        "shortPrivateProfile": false,
+        "workspaceLength": 170,
+        "profiles": [
+          {
+            "path": "D:\\actions-runner\\_work\\A.I.O\\A.I.O\\aio-stress3-evidence-40610648806-1\\profile-diagnostic\\normal\\wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww\\d0cf7b9ddbecb563",
+            "length": 187
+          }
+        ],
+        "proof": {
+          "state": "detected",
+          "basis": "native_preflight_uno_document",
+          "modelLoaded": true,
+          "nativeTextDocument": false,
+          "documentServices": [
+            "com.sun.star.sheet.SpreadsheetDocument"
+          ],
+          "typeName": null,
+          "filterName": "Calc MS Excel 2007 XML",
+          "selectedImportFilter": "Calc MS Excel 2007 XML",
+          "selectedImportOptions": null,
+          "sourceContract": {
+            "state": "recognized",
+            "contentClass": "ooxml_package",
+            "mainContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+            "contentTypeBasis": "override",
+            "expectedServices": [
+              "com.sun.star.sheet.SpreadsheetDocument"
+            ]
+          },
+          "drawPages": null,
+          "registryFingerprint": "9b38ba68fa4cbc7fb077798ac86d25d3bf7c5ef0c8f1f4395d929c535bcb7bf7",
+          "exported": false
+        },
+        "workerExited": true
+      },
+      {
+        "name": "shortp",
+        "shortPrivateProfile": true,
+        "workspaceLength": 170,
+        "profiles": [
+          {
+            "path": "D:\\actions-runner\\_work\\_temp\\aio-pf-hezeisw7\\11bb143ab8871704",
+            "length": 62
+          }
+        ],
+        "proof": {
+          "state": "detected",
+          "basis": "native_preflight_uno_document",
+          "modelLoaded": true,
+          "nativeTextDocument": false,
+          "nativeImportMs": 162,
+          "documentServices": [
+            "com.sun.star.sheet.SpreadsheetDocument"
+          ],
+          "typeName": null,
+          "filterName": "Calc MS Excel 2007 XML",
+          "selectedImportFilter": "Calc MS Excel 2007 XML",
+          "selectedImportOptions": null,
+          "sourceContract": {
+            "state": "recognized",
+            "contentClass": "ooxml_package",
+            "mainContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+            "contentTypeBasis": "override",
+            "expectedServices": [
+              "com.sun.star.sheet.SpreadsheetDocument"
+            ]
+          },
+          "csvImportSampleOnly": false,
+          "csvInspection": null,
+          "drawPages": null,
+          "difNumericImport": null,
+          "nativeGraphicExports": [],
+          "htmlContentProfile": null,
+          "nativeExportFilters": {},
+          "nativeExportInspection": {},
+          "registryFingerprint": "9b38ba68fa4cbc7fb077798ac86d25d3bf7c5ef0c8f1f4395d929c535bcb7bf7",
+          "exported": false
+        },
+        "workerExited": true
+      }
+    ]
+  }
+}
