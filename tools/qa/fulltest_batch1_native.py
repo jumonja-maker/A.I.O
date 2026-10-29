@@ -31,9 +31,9 @@ def main():
     # Exact PBM/PGM/PPM samples. These must not become white A4 Draw pages.
     pnm_sources={}
     pnm_data={
-        'pbm': b'P4\\n40 20\\n'+bytes([0xAA,0x55,0xAA,0x55,0xAA]*20),
-        'pgm': b'P5\\n40 20\\n255\\n'+bytes(i % 256 for i in range(800)),
-        'ppm': b'P6\\n40 20\\n255\\n'+bytes((i*3) % 256 for i in range(2400)),
+        'pbm': b'P4\n40 20\n'+bytes([0xAA,0x55,0xAA,0x55,0xAA]*20),
+        'pgm': b'P5\n40 20\n255\n'+bytes(i % 256 for i in range(800)),
+        'ppm': b'P6\n40 20\n255\n'+bytes((i*3) % 256 for i in range(2400)),
     }
     for kind, raw in pnm_data.items():
         path=args.output/('original.'+kind);path.write_bytes(raw)

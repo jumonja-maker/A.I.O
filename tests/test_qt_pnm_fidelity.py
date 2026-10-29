@@ -10,9 +10,9 @@ class QtPortableRasterTests(unittest.TestCase):
     def test_three_opaque_pnm_formats(self):
         with TemporaryDirectory() as folder:
             data={
-                'pbm': b'P4\\n8 3\\n'+bytes((0b10101010,0b01010101,0b11110000)),
-                'pgm': b'P5\\n8 3\\n255\\n'+bytes(range(24)),
-                'ppm': b'P6\\n8 3\\n255\\n'+bytes(range(72)),
+                'pbm': b'P4\n8 3\n'+bytes((0b10101010,0b01010101,0b11110000)),
+                'pgm': b'P5\n8 3\n255\n'+bytes(range(24)),
+                'ppm': b'P6\n8 3\n255\n'+bytes(range(72)),
             }
             for kind, raw in data.items():
                 with self.subTest(kind=kind):
@@ -35,7 +35,7 @@ class QtPortableRasterTests(unittest.TestCase):
     def test_mismatched_magic_and_extension_is_not_promoted(self):
         with TemporaryDirectory() as folder:
             path=Path(folder)/'fake.pgm'
-            path.write_bytes(b'P6\\n2 2\\n255\\n'+bytes(range(12)))
+            path.write_bytes(b'P6\n2 2\n255\n'+bytes(range(12)))
             self.assertIsNone(qt_pnm_profile(path))
 
 

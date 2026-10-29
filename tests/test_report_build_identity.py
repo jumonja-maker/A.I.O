@@ -22,7 +22,7 @@ class BuildIdentityTests(unittest.TestCase):
             path=Path(folder)/'build-info'
             path.mkdir()
             sha='a'*40
-            (path/'aio-source-revision.txt').write_text(sha+'\\n',encoding='ascii')
+            (path/'aio-source-revision.txt').write_text(sha+'\n',encoding='ascii')
             with patch.dict(os.environ, {'AIO_BUILD_REVISION': ''}):
                 with patch.object(sys,'frozen',True,create=True), patch.object(sys,'_MEIPASS',folder,create=True):
                     value=report_build_identity()
