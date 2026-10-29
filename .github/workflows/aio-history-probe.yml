@@ -57,7 +57,11 @@ jobs:
           old="        with ConverterGuard(adapter=FakeAdapter()) as guard:\n            self.assertFalse(guard.history_list()['enabled'])"
           new="        guard=ConverterGuard(adapter=FakeAdapter());self.addCleanup(guard.close)\n        self.assertFalse(guard.history_list()['enabled'])"
           assert s.count(old)==1
-          p.write_text(s.replace(old,new),encoding='utf-8',newline='\n')
+          s=s.replace(old,new)
+          assert s.count('with sqlite3.connect(self.history.path) as db:')==5
+          s=s.replace('from copy import deepcopy','from contextlib import closing\nfrom copy import deepcopy')
+          s=s.replace('with sqlite3.connect(self.history.path) as db:', 'with closing(sqlite3.connect(self.history.path)) as db, db:')
+          p.write_text(s,encoding='utf-8',newline='\n')
           PY
           python tools/qa/_finalize_history_candidate.py
           python -m compileall -q app_backend tests tools/qa/_prepare_history_patch.py
