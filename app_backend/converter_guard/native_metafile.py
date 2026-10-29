@@ -50,6 +50,7 @@ def inspect_metafile(path, kind, *, cancel=None):
         initial = os.fstat(stream.fileno())
         size = initial.st_size
         header = stream.read(108)
+        contents = hashlib.sha256()
         count, position = 0, 0
         declared_count = None
         if kind == 'emf':
@@ -72,6 +73,18 @@ def inspect_metafile(path, kind, *, cancel=None):
                     _invalid('emf_record_size')
                 if count == 0 and (record_type != 1 or length != header_size):
                     _invalid('emf_first_record')
+                # The structure walk already visits each record. Hash its
+                # body here to detect same-size in-place mutations even on
+                # filesystems whose mtime has coarse resolution.
+                contents.update(record)
+                unread = length - 8
+                while unread:
+                    _cancel(cancel)
+                    part = stream.read(min(unread, 64 * 1024))
+                    if not part:
+                        _invalid('emf_record_truncated')
+                    contents.update(part)
+                    unread -= len(part)
                 count += 1
                 position += length
                 if record_type == 14:
@@ -102,6 +115,7 @@ def inspect_metafile(path, kind, *, cancel=None):
                     file_words * 2 != size - offset):
                 _invalid('wmf_size_or_header')
             position = offset + 18
+            contents.update(header[:position])
             terminal = False
             largest = 0
             while position < size:
@@ -113,6 +127,15 @@ def inspect_metafile(path, kind, *, cancel=None):
                 words, function = struct.unpack('<IH', record)
                 if words < 3 or position + words * 2 > size:
                     _invalid('wmf_record_size')
+                contents.update(record)
+                unread = words * 2 - 6
+                while unread:
+                    _cancel(cancel)
+                    part = stream.read(min(unread, 64 * 1024))
+                    if not part:
+                        _invalid('wmf_record_truncated')
+                    contents.update(part)
+                    unread -= len(part)
                 position += words * 2
                 largest = max(largest, words)
                 count += 1
@@ -128,6 +151,7 @@ def inspect_metafile(path, kind, *, cancel=None):
         if _stat_token(initial) != _stat_token(end) or _stat_token(end) != _stat_token(path.stat()):
             _invalid('source_changed')
     return {'format': kind, 'bytes': size, 'records': count,
+            'sha256': contents.hexdigest(),
             **({'declaredRecords': declared_count,
                 'nativeHeaderCountExcludesHeader': declared_count == count - 1}
                if declared_count is not None else {})}
@@ -177,7 +201,8 @@ def wrap_native_metafiles(paths, target, *, cancel=None):
                 end = os.fstat(incoming.fileno())
                 if (_stat_token(initial) != _stat_token(end) or
                         _stat_token(end) != _stat_token(source.lstat()) or
-                        original_size != facts['bytes']):
+                        original_size != facts['bytes'] or
+                        original_hash.hexdigest() != facts['sha256']):
                     _invalid('source_changed')
             expanded_hash = hashlib.sha256()
             expanded_size = 0

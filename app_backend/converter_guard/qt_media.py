@@ -71,10 +71,31 @@ def qt_pnm_profile(source, *, cancel=None):
         return None
     size = reader.size()
     _bounds(size.width(), size.height())
+    # PBM is a real 1-bit format. Treating it as 8-bit caused our mandatory
+    # media check to reject a lossless 1-bit PNG as a depth reduction.
+    bit_depth = 1
+    if kind != 'pbm':
+        # Only the bounded header is needed to distinguish 8- from 16-bit PNM.
+        # Never interpret 16-bit input as an 8-bit source.
+        with source.open('rb') as stream:
+            header = stream.read(4096)
+        values = []
+        for row in header.splitlines():
+            values.extend(row.split(b'#', 1)[0].split())
+            if len(values) >= 4:
+                break
+        try:
+            header_width, header_height, maxval = map(int, values[1:4])
+        except (ValueError, TypeError):
+            return None
+        if (len(values) < 4 or header_width != size.width()
+                or header_height != size.height() or not 1 <= maxval <= 65535):
+            return None
+        bit_depth = 16 if maxval > 255 else 8
     _cancel(cancel)
     return {'format': kind, 'width': size.width(), 'height': size.height(),
             'frames': 1, 'pages': 1, 'alpha': False, 'durationsMs': [],
-            'orientation': 1}
+            'orientation': 1, 'bitDepth': bit_depth}
 
 def media_frame_route(source, target, *, cancel=None):
     """Return a content-based route description, or None for a non-raster route."""
