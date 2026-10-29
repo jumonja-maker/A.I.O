@@ -133,15 +133,18 @@ def run(executable, output):
                 if options != separator + ',34,76,1,1/2/4/10/5/10':
                     raise AssertionError('Required numeric/Text column hints absent: ' + str(options))
                 for locale_name, locale_id in (('production_default', None), ('de-DE', '1031'), ('ru-RU', '1049')):
-                    control = dict(proven)
-                    if locale_id is not None:
-                        # Test only: keep production tokens and change import locale.
-                        # Do not change a private or personal LibreOffice profile.
-                        control['selectedImportOptions'] = options + ',' + locale_id
                     for target in ('xlsx', 'fods'):
                         counter += 1
-                        adapter.prepare_source(control)
+                        adapter.prepare_source(proven)
                         adapter.prepare_retry_recipe(None)
+                        if adapter._local.import_options != options:
+                            raise AssertionError('Validated production hints were discarded before native import')
+                        if locale_id is not None:
+                            # Test-only adversarial environment, AFTER the real
+                            # production validation above. Never broaden accepted
+                            # production options just to pass a locale control.
+                            # This changes one disposable import, not any profile.
+                            adapter._local.import_options = options + ',' + locale_id
                         tick = time.monotonic()
                         paths = adapter.convert(source, target, output / f'task-{counter}',
                             cancel=cancel, timeout=120, on_started=lambda: None)
@@ -149,6 +152,11 @@ def run(executable, output):
                         if len(primary) != 1:
                             raise AssertionError('Ambiguous native output')
                         counts = verify_cells(primary[0], target, expected)
+                        if locale_id is None and target == 'xlsx':
+                            checks = adapter.export_info().get('resultChecks', [])
+                            if not any(item.get('check') == 'csv_text_ids' and item.get('status') == 'checked_subset'
+                                       for item in checks):
+                                raise AssertionError('Mandatory production CSV ID check did not execute')
                         if digest(source) != original_sha:
                             raise AssertionError('Original corpus input changed')
                         cases.append({'source': source.name, 'sourceSha256': original_sha,
