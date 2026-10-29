@@ -156,6 +156,8 @@ class _Artifact:
     sha256: str | None = None
     readback_verified: bool = False
     source_sheet: dict | None = None
+    bundle_outputs: tuple | None = None
+    archive_verification: dict | None = None
 
     @property
     def companion(self):
@@ -170,7 +172,9 @@ class _Artifact:
                 'sourceSheet':copy.deepcopy(self.source_sheet),
                 'ticket': self.ticket,
                 'mime': mime_for(self.path.suffix.lower().lstrip('.')),
-                'downloadUrl': '/api/converter-guard/result?ticket=' + self.ticket}
+                'downloadUrl': '/api/converter-guard/result?ticket=' + self.ticket,
+                **({'archiveVerification':copy.deepcopy(self.archive_verification)}
+                   if self.archive_verification is not None else {})}
 
 
 @dataclass
@@ -2172,15 +2176,22 @@ class ConverterGuard:
                 self._record(job, 'bundle_deferred')
                 return
             job.bundle_deferred = False
-            report_value = self._report(job)
+            copies = tuple(job.artifacts)
+            archive_snapshot = {'schema': 1, 'snapshotId': secrets.token_hex(16),
+                'snapshotRevision': job.revision, 'state': 'packaged',
+                'jobStateAtStart': job.state, 'externalSave': 'not_observed',
+                'saveStateScope': 'at_archive_start_not_this_download'}
+            report_value = copy.deepcopy(self._report(job))
+            report_value['reportScope'] = 'conversion_snapshot_at_archive_start'
+            report_value['archiveSnapshot'] = archive_snapshot
         # Encoding a large report is CPU work, not a shared-state operation.
         report = json.dumps(report_value, ensure_ascii=False, indent=2).encode('utf-8')
         manifest_budget = len(json.dumps({'schema':2, 'jobId':job.id, 'outputs':[
             {'path':a.archive_name, 'size':a.size, 'sha256':'0'*64,
-             'fileId':a.file_id, 'format':a.format, 'sourceSheet':a.source_sheet} for a in job.artifacts]},
+             'fileId':a.file_id, 'format':a.format, 'sourceSheet':a.source_sheet} for a in copies]},
             ensure_ascii=False).encode('utf-8'))
         with self._lock:
-            budget = (sum(a.size + 512 + 2 * len(a.archive_name.encode('utf-8')) for a in job.artifacts)
+            budget = (sum(a.size + 512 + 2 * len(a.archive_name.encode('utf-8')) for a in copies)
                       + len(report) + manifest_budget + 4096)
             if job.bundle_cancel.is_set():
                 job.packaging_error = 'BUNDLE_CANCELLED'
@@ -2197,7 +2208,7 @@ class ConverterGuard:
         try:
             with zipfile.ZipFile(bundle, 'x', compression=zipfile.ZIP_STORED, allowZip64=True) as archive:
                 manifest = []
-                for artifact in job.artifacts:
+                for artifact in copies:
                     digest, written = hashlib.sha256(), 0
                     source_path = self._owned_artifact_path(job, artifact, stage='bundle')
                     info = zipfile.ZipInfo.from_file(source_path, arcname=artifact.archive_name)
@@ -2217,16 +2228,21 @@ class ConverterGuard:
                                      'sha256':digest.hexdigest(), 'fileId':artifact.file_id,
                                      'format':artifact.format, 'exportSha256':artifact.sha256,
                                      'copySha256':digest.hexdigest(), 'sourceSheet':copy.deepcopy(artifact.source_sheet)})
-                with archive.open('AIO-conversion-report.json', 'w', force_zip64=True) as output:
-                    output.write(report)
-                with archive.open('AIO-results-manifest.json', 'w', force_zip64=True) as output:
-                    output.write(json.dumps(
-                    {'schema':2, 'jobId':job.id, 'readbackVerified':False,
-                     'verificationScope':'hashes_during_zip', 'outputs':manifest}, ensure_ascii=False).encode('utf-8'))
-            from .save_verification import sha256_stream
-            with bundle.open('rb') as stream:
-                actual, bundle_sha256 = sha256_stream(stream, cancel=job.bundle_cancel)
+                metadata = {'AIO-conversion-report.json': report,
+                    'AIO-results-manifest.json': json.dumps(
+                        {'schema':2, 'jobId':job.id, 'readbackVerified':False,
+                         'archiveSnapshot':archive_snapshot,
+                         'verificationScope':'hashes_during_zip', 'outputs':manifest},
+                        ensure_ascii=False).encode('utf-8')}
+                for name, content in metadata.items():
+                    with archive.open(name, 'w', force_zip64=True) as output:
+                        output.write(content)
+            from .archive_verification import verify_built_archive
+            actual, bundle_sha256, archive_check = verify_built_archive(
+                bundle, manifest, metadata, archive_snapshot, cancel=job.bundle_cancel)
             with self._lock:
+                if job.bundle_cancel.is_set():
+                    raise GuardError('BUNDLE_CANCELLED', 'Упаковка отменена.', stage='bundle')
                 delta = actual - budget
                 if delta > 0:
                     self._reserve(job, delta)
@@ -2235,7 +2251,8 @@ class ConverterGuard:
                 name = ('AIO_Results_Partial.zip' if any(t.state not in SUCCESS for f in job.files for t in f.targets)
                         else 'AIO_Results.zip')
                 artifact = _Artifact(job.id, bundle, name, actual, secrets.token_urlsafe(32),
-                                     sha256=bundle_sha256)
+                                     sha256=bundle_sha256, bundle_outputs=copies,
+                                     archive_verification=archive_check)
                 job.packaging_error = None
                 job.bundle = artifact
                 self._tickets[artifact.ticket] = artifact
@@ -2959,7 +2976,18 @@ class ConverterGuard:
                 raise GuardError('RESULT_NOT_FOUND', 'Результат не относится к заданию.', status=404)
             if job.saving:
                 raise GuardError('SAVE_BUSY', 'Результаты этого задания уже сохраняются.', stage='save', status=409)
-            copies = tuple(job.artifacts) if artifact is job.bundle else (artifact,)
+            if artifact is job.bundle:
+                # Acknowledgement belongs to the immutable ZIP inventory,
+                # never to outputs that appeared after it was packaged.
+                copies = artifact.bundle_outputs
+                check = artifact.archive_verification or {}
+                if (not copies or check.get('status') != 'byte_verified' or
+                        check.get('outputsVerified') != len(copies)):
+                    raise GuardError('BUNDLE_VERIFY_FAILED',
+                        'Нет подтверждения состава архива. Результаты остаются в AIO.',
+                        stage='save')
+            else:
+                copies = (artifact,)
             job.saving = True
             job.io += 1
             self._record(job, 'save_started')
