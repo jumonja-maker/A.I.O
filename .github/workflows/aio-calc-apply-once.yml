@@ -1,0 +1,25 @@
+name: AIO one-shot Calc source preparation
+on:
+  push:
+    branches: [fix/fulltest-critical-hosted-lo-20261029]
+    paths:
+      - .github/workflows/aio-calc-apply-once.yml
+      - tools/qa/_apply_calc_pages_once.py
+permissions:
+  contents: read
+jobs:
+  prepare:
+    if: github.repository == 'jumonja-maker/A.I.O' && github.actor == 'jumonja-maker'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Prepare checked source commit without moving a branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python tools/qa/_apply_calc_pages_once.py
