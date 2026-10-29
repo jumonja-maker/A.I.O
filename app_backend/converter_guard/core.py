@@ -188,6 +188,8 @@ class _Job:
     running: bool = False
     released: bool = False
     cleaning: bool = False
+    cleanup_background: bool = False
+    cleanup_retry_at: float = 0.0
     io: int = 0
     future: object = None
     artifacts: list = field(default_factory=list)
@@ -395,6 +397,8 @@ class ConverterGuard:
         # Construction and metadata inspection start no worker. Native preflight
         # is explicit; the export executor starts its thread only at start().
         self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix='aio-guard')
+        # Lazy, separate disk cleanup: never queue deletion behind native conversion.
+        self._cleanup_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix='aio-cleanup')
         self._closed = False
         self._preflight_gate = threading.BoundedSemaphore(1)
         self._proof_cache = OrderedDict()
@@ -489,6 +493,11 @@ class ConverterGuard:
         ResultStore.reap_finished_retirements(self._recovery)
         roots = sorted(self._recovery.glob('aio-guard-*')) if roots is None else roots
         for root in roots:
+            with self._lock:
+                if any(job.root == root for job in self._jobs.values()):
+                    # A deleting job may already have closed owner.lock. It is
+                    # still ours until physical cleanup releases its quota.
+                    continue
             if len(self._jobs)>=self.limits.max_jobs:
                 self._recovery_pending.append(root)
                 continue
@@ -2227,6 +2236,7 @@ class ConverterGuard:
         """
         from .result_store import atomic_json
         from .save_verification import verify_folder
+        from .save_snapshot import snapshot_report
         if type(verify) is not bool:
             raise GuardError('SAVE_VERIFY_POLICY', 'Неверный режим проверки сохранения.', stage='save')
         # Retain the API parameter for older hosts. A legacy false value cannot
@@ -2338,7 +2348,8 @@ class ConverterGuard:
                     on_progress(number, len(copies))
                 except Exception:
                     pass  # A detached GUI observer cannot interrupt a disk save.
-            atomic_json(folder / 'AIO-conversion-report.json', report)
+            atomic_json(folder / 'AIO-conversion-report.json', snapshot_report(
+                report, manifest, save_status('verifying'), job_state_at_start=state_at_start))
             atomic_json(folder / 'AIO-results-manifest.json', {
                 'schema':2, 'jobId':job.id, 'saveId':save_id,
                 'snapshotRevision':snapshot_revision, 'jobStateAtStart':state_at_start,
@@ -2358,6 +2369,8 @@ class ConverterGuard:
             # Complete the external snapshot before acknowledging or releasing
             # any source. Every output has been independently read back from
             # its final disk path. This verifies bytes, not document fidelity.
+            atomic_json(folder / 'AIO-conversion-report.json', snapshot_report(
+                report, manifest, save_status('completed'), job_state_at_start=state_at_start))
             atomic_json(folder / 'AIO-save-status.json', save_status('completed'))
             outcome = self._acknowledge_outputs(job, copies, readback_verified=True)
             return {**outcome, 'saveId': save_id, 'snapshotComplete': True,
@@ -2376,8 +2389,10 @@ class ConverterGuard:
                         'schema':2, 'jobId':job.id, 'saveId':save_id,
                         'snapshotRevision':snapshot_revision, 'jobStateAtStart':state_at_start,
                         **verification, 'outputs':manifest})
-                    atomic_json(folder / 'AIO-save-status.json',
-                                save_status('cancelled' if code == 'SAVE_CANCELLED' else 'failed', code))
+                    failed_status = save_status('cancelled' if code == 'SAVE_CANCELLED' else 'failed', code)
+                    atomic_json(folder / 'AIO-conversion-report.json', snapshot_report(
+                        report, manifest, failed_status, job_state_at_start=state_at_start))
+                    atomic_json(folder / 'AIO-save-status.json', failed_status)
                 except OSError:
                     pass
             with self._lock:
@@ -2863,8 +2878,8 @@ class ConverterGuard:
                 self._io_drained.notify_all()
             self._cleanup(job)
 
-    def close_conversion(self, job_id, *, discard=False):
-        if type(discard) is not bool:
+    def close_conversion(self, job_id, *, discard=False, defer_cleanup=False):
+        if type(discard) is not bool or type(defer_cleanup) is not bool:
             raise GuardError('DISCARD_REQUEST','Некорректное подтверждение закрытия.')
         with self._lock:
             job=self._get(job_id)
@@ -2883,6 +2898,7 @@ class ConverterGuard:
             # Commit ownership/cancellation atomically with the save check.
             # Slow worker interruption and filesystem cleanup run after unlock.
             job.bundle_cancel.set();job.save_cancel.set();job.released=True
+            job.cleanup_background = job.cleanup_background or defer_cleanup
             callbacks=self._stop(job)
             for artifact in job.artifacts + job.diagnostic_artifacts + ([job.bundle] if job.bundle else []):
                 self._tickets.pop(artifact.ticket,None)
@@ -2891,10 +2907,12 @@ class ConverterGuard:
         self._interrupt(callbacks)
         if not job.running:self._flush_journal(job)
         self._cleanup(job)
+        with self._lock:
+            outcome['cleanupPending'] = job.id in self._jobs
         return outcome
 
-    def release(self, job_id, *, discard=False):
-        if type(discard) is not bool:
+    def release(self, job_id, *, discard=False, defer_cleanup=False):
+        if type(discard) is not bool or type(defer_cleanup) is not bool:
             raise GuardError('DISCARD_REQUEST', 'Некорректное подтверждение удаления.')
         with self._lock:
             job = self._get(job_id)
@@ -2910,6 +2928,7 @@ class ConverterGuard:
                 job.bundle_cancel.set()
                 job.save_cancel.set()
                 job.released = True
+                job.cleanup_background = job.cleanup_background or defer_cleanup
                 callbacks = self._stop(job)
                 for artifact in job.artifacts + job.diagnostic_artifacts + ([job.bundle] if job.bundle else []):
                     self._tickets.pop(artifact.ticket, None)
@@ -2918,10 +2937,15 @@ class ConverterGuard:
             self._flush_journal(job)
         if not preserve:
             self._cleanup(job)
+        with self._lock:
+            return {'jobId': job.id, 'released': not preserve, 'retained': preserve,
+                    'cleanupPending': not preserve and job.id in self._jobs}
 
     def _cleanup(self, job):
         with self._lock:
             if job.running or job.io or job.pending_journal or job.cleaning:
+                return
+            if job.cleanup_background and not self._closed and time.monotonic() < job.cleanup_retry_at:
                 return
             # Shutdown may time out while an HTTP/comparison reader still
             # holds an I/O lease. Keep both the OS ownership lock and quota
@@ -2935,6 +2959,23 @@ class ConverterGuard:
                 if not preserve:
                     job.released = True
             job.cleaning = True
+            if job.cleanup_background and not self._closed:
+                try:
+                    # Submit under the state lock so close() cannot shut this
+                    # executor down between claiming and submitting the job.
+                    self._cleanup_executor.submit(self._cleanup_owned, job, preserve)
+                except RuntimeError:
+                    self._cleanup_deferred(job)
+                return
+        self._cleanup_owned(job, preserve)
+
+    def _cleanup_deferred(self, job):
+        with self._lock:
+            job.cleaning = False
+            job.cleanup_retry_at = time.monotonic() + 2.0
+            self._record(job, 'cleanup_deferred', code='CLEANUP_RETRY')
+
+    def _cleanup_owned(self, job, preserve):
         # Potentially slow filesystem deletion never holds the global job lock.
         try:
             if job.store and not preserve:
@@ -2947,11 +2988,13 @@ class ConverterGuard:
             elif not preserve:
                 shutil.rmtree(job.root)
         except FileNotFoundError:
-            pass
-        except (OSError, ValueError):
-            with self._lock:
-                job.cleaning = False
-                self._record(job, 'cleanup_deferred', code='CLEANUP_RETRY')
+            # A disappearing CHILD is not proof that the owned tree is gone.
+            # Keep the retirement barrier, ownership and quota until retried.
+            if os.path.lexists(job.root):
+                self._cleanup_deferred(job)
+                return
+        except Exception:
+            self._cleanup_deferred(job)
             return
         with self._lock:
             for artifact in job.artifacts + job.diagnostic_artifacts + ([job.bundle] if job.bundle else []):
@@ -2988,6 +3031,7 @@ class ConverterGuard:
             # Leased jobs deliberately remain registered until their final
             # caller exits. Clearing them here would unlock a live recovery
             # tree and lose accounting after the bounded shutdown wait.
+        self._cleanup_executor.shutdown(wait=True)
 
     def storage_stats(self):
         with self._lock:
@@ -2998,6 +3042,8 @@ class ConverterGuard:
                     'pendingRecoveryFolders': len(self._recovery_pending),
                     'reclaimableSavedJobs': sum(self._saved_all(j) and not j.io for j in jobs),
                     'cleanupPending': sum(j.released for j in self._jobs.values()),
+                    'cleanupRetryJobs': sum(j.released and j.cleanup_retry_at > 0 and not j.cleaning
+                                            for j in self._jobs.values()),
                     'running': sum(j.state in {'checking', 'running', 'packaging'} for j in jobs),
                     'queued': sum(j.state == 'queued' for j in jobs),
                     'retainedJobs': sum(bool(j.artifacts) for j in jobs),
