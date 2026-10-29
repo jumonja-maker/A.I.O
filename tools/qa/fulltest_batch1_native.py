@@ -99,7 +99,16 @@ def main():
             + '<w:sectPr><w:pgSz w:w="12240" w:h="15840"/>'
             '<w:pgMar w:top="720" w:right="720" w:bottom="720" w:left="720"/>'
             '</w:sectPr></w:body></w:document>')
-    originals={str(f):digest(f) for f in (source,raster,jpeg,slides,writer,*pnm_sources.values(),*legacy_sources.values())}
+    # Multi-page PDF uses native QtPdf rendering instead of a one-page
+    # LibreOffice image export. Different page sizes make loss observable.
+    from pypdf import PdfWriter
+    pdf_doc=PdfWriter()
+    for width,height in ((72,144),(144,72),(72,72)):
+        pdf_doc.add_blank_page(width=width,height=height)
+    multipage_pdf=args.output/'three-page-original.pdf'
+    with multipage_pdf.open('wb') as stream:
+        pdf_doc.write(stream)
+    originals={str(f):digest(f) for f in (source,raster,jpeg,slides,writer,multipage_pdf,*pnm_sources.values(),*legacy_sources.values())}
     cancel=threading.Event();adapter=LibreOfficeAdapter(args.executable)
     results=[];counter=0
     def proof(path):
@@ -177,6 +186,18 @@ def main():
                 assert manifest['pageCount']==3 and len(manifest['pages'])==3
                 assert [record['page'] for record in manifest['pages']]==[1,2,3]
                 results.append({'case':'writer_three_pages_'+target,'status':'PASS','pages':3})
+            pdf_proof=proof(multipage_pdf)
+            assert pdf_proof.get('mediaProfile',{}).get('format')=='pdf',pdf_proof
+            for target in ('png','jpg'):
+                exported=convert(multipage_pdf,target,pdf_proof)
+                images=[p for p in exported if p.suffix.lower()=='.'+target]
+                assert len(images)==3,(target,images)
+                with Image.open(images[0]) as first,Image.open(images[1]) as second,Image.open(images[2]) as third:
+                    assert [v.size for v in (first,second,third)]==[(144,288),(288,144),(144,144)],target
+                listing=json.loads(next(p for p in exported if p.name=='AIO-pages.json').read_text(encoding='utf-8'))
+                assert listing['pageCount']==3 and [x['page'] for x in listing['pages']]==[1,2,3]
+                assert adapter.execution_mode()=='qt_media_frames',target
+                results.append({'case':'pdf_three_pages_'+target,'status':'PASS','pages':3})
             bk=proof(source)
             for target in ('slk','sylk'):
                 files=convert(source,target,bk);values=[f.read_bytes() for f in files if f.suffix=='.'+target]
@@ -220,7 +241,7 @@ def main():
                     assert all('AIO_SLIDE_'+str(n) in text for n in range(1,4)),text[:200]
                     results.append({'case':path.suffix+'_xhtml','status':'PASS','textRetained':True})
         for path,expected in originals.items():assert digest(path)==expected,path
-        assert len(results)==14,results
+        assert len(results)==16,results
         from fulltest_csv_native import run as run_csv_native
         csv_report=run_csv_native(args.executable,args.output/'csv-decimal-originals')
         report={'status':'PASS','scope':'synthetic native controls plus six original CSV/TAB/TSV; not complete FULLTEST 200',

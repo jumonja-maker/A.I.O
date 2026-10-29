@@ -7,6 +7,7 @@ content-confirmed Pillow decoder to avoid LibreOffice's white Draw canvas.
 Cancellation and bounded pixel allocation are checked between stages.
 """
 from fractions import Fraction
+import json
 import os
 import math
 import re
@@ -159,6 +160,8 @@ def qt_xbm_xpm_profile(source, *, cancel=None):
 _LEGACY_PIL_FORMATS = {'pcx': 'PCX', 'ras': 'SUN'}
 # Pillow RGBA plus the owned QImage copy: avoid unbounded dual pixel buffers.
 _LEGACY_PIL_PIXELS = 16 * 1024 * 1024
+# PDF always uses a page-specific Qt renderer, not a first-page LO bitmap.
+_PDF_PAGE_TARGETS = frozenset(('png', 'jpg', 'jpeg', 'jpe', 'jfif', 'jif'))
 
 
 def pillow_legacy_profile(source, *, cancel=None):
@@ -248,7 +251,14 @@ def supported_media_targets(info):
             from PySide6.QtPdf import QPdfDocument  # noqa: F401
         except ImportError:
             return ()
-        return ('tif', 'tiff')
+        output_formats = {bytes(fmt).decode('ascii').lower()
+                          for fmt in _qt()[6].supportedImageFormats()}
+        targets = {'tif', 'tiff'}
+        if 'png' in output_formats:
+            targets.add('png')
+        if 'jpeg' in output_formats or 'jpg' in output_formats:
+            targets.update(('jpg', 'jpeg', 'jpe', 'jfif', 'jif'))
+        return tuple(sorted(targets))
     formats = {bytes(value).decode('ascii') for value in QImageReader.supportedImageFormats()}
     writers = {bytes(value).decode('ascii') for value in QImageWriter.supportedImageFormats()}
     source_kind = info['format']
@@ -965,22 +975,102 @@ def _write_pdf(path, frames, cancel, info=None):
         del writer
 
 
+def _export_pdf_raster_pages(source, output_dir, target, expected_pages, cancel, on_started):
+    """Stream each PDF page at 144 dpi into its own Qt image output.
+
+    The current QtPdf renderer is reused; no second LibreOffice import, no
+    extra Guard scan, and no multi-page input is silently reduced to one PNG.
+    Outputs are private until all pages and the manifest are present.
+    """
+    from PySide6.QtCore import Qt
+    from PySide6.QtGui import QImage, QImageWriter, QPainter
+    output_dir.mkdir(parents=True, exist_ok=True)
+    normal = ALIASES.get(target, target)
+    final = output_dir / (source.stem + '.' + target)
+    outputs, mapping = [], []
+    manifest = output_dir / 'AIO-pages.json'
+    if on_started:
+        on_started()
+    frames = _pdf_frames(source, cancel)
+    try:
+        for index, frame in enumerate(frames, start=1):
+            _cancel(cancel)
+            if index > expected_pages:
+                raise GuardError('MEDIA_PAGE_LOSS',
+                                 'Qt вывел больше страниц, чем подтверждено у PDF.',
+                                 stage='result')
+            path = (final if index == 1 else final.with_name(
+                final.stem + '__page_%04d' % index + final.suffix))
+            staged = path.with_name(path.name + '.part')
+            try:
+                # JPEG cannot carry transparency. Composite on white paper
+                # rather than let the codec turn clear PDF regions black.
+                if normal == 'jpeg' and frame.hasAlphaChannel():
+                    background = QImage(frame.size(), QImage.Format.Format_RGB32)
+                    background.fill(Qt.GlobalColor.white)
+                    painter = QPainter(background)
+                    try:
+                        painter.drawImage(0, 0, frame)
+                    finally:
+                        painter.end()
+                    frame = background
+                writer = QImageWriter(str(staged), normal.encode('ascii'))
+                if not writer.write(frame):
+                    raise GuardError('MEDIA_ENCODE_FAILED',
+                                     'Qt не смог сохранить страницу PDF.',
+                                     stage='engine', diagnostic=writer.errorString())
+                actual = inspect_media(staged, cancel=cancel)
+                if (actual is None or actual['format'] != normal
+                        or (actual['width'], actual['height']) !=
+                           (frame.width(), frame.height())):
+                    raise GuardError('MEDIA_CANVAS_CHANGED',
+                                     'Файл страницы PDF не прошёл проверку геометрии.',
+                                     stage='result')
+                _cancel(cancel)
+                os.replace(staged, path)
+                outputs.append(path)
+                mapping.append({'page': index, 'file': path.name})
+            finally:
+                staged.unlink(missing_ok=True)
+        if len(outputs) != expected_pages:
+            raise GuardError('MEDIA_PAGE_LOSS',
+                             'Qt не сохранил все исходные страницы PDF.',
+                             stage='result')
+        if expected_pages > 1:
+            manifest.write_text(json.dumps({'schema': 1, 'pageCount': expected_pages,
+                                            'pages': mapping}, ensure_ascii=False),
+                                encoding='utf-8')
+            outputs.append(manifest)
+        return outputs
+    except BaseException:
+        for path in outputs:
+            path.unlink(missing_ok=True)
+        manifest.unlink(missing_ok=True)
+        raise
+    finally:
+        frames.close()
+
+
 def convert_document_pages(source, output_dir, target, *, cancel=None, on_started=None):
-    """Only PDF→TIFF rasterisation and TIFF→PDF page assembly; no PDF→PDF."""
+    """Render every PDF page, or assemble TIFF pages into PDF; never PDF→PDF."""
     source, output_dir = Path(source), Path(output_dir)
     target = target.lower()
-    if target not in ('pdf', 'tif', 'tiff'):
+    if target not in ('pdf', 'tif', 'tiff') and target not in _PDF_PAGE_TARGETS:
         return None
     proof = media_preflight(source, cancel=cancel)
     if proof is None:
         return None
     info = proof['source']
-    if not (info['format'] == 'pdf' and target in ('tif', 'tiff') or
+    if not (info['format'] == 'pdf' and (target in ('tif', 'tiff') or
+                                        target in _PDF_PAGE_TARGETS) or
             info['format'] == 'tiff' and target == 'pdf'):
         return None
     if target not in proof['targets']:
         raise GuardError('MEDIA_QT_CODEC_UNAVAILABLE',
                          'Установленный Qt не содержит декодер страниц TIFF.', stage='engine')
+    if info['format'] == 'pdf' and target in _PDF_PAGE_TARGETS:
+        return _export_pdf_raster_pages(source, output_dir, target, info['pages'],
+                                        cancel, on_started)
     output_dir.mkdir(parents=True, exist_ok=True)
     output = output_dir / (source.stem + '.' + target)
     partial = output.with_name(output.name + '.part')
