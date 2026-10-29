@@ -1,0 +1,31 @@
+name: AIO selection controls inspection
+on:
+  push:
+    branches: ['work/ui-m05-m06-20261029']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Inspect materialized production UI and relevant test drivers
+        env:
+          PYTHONUTF8: '1'
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from app_backend.converter_assets import read_designer_asset
+          source=read_designer_asset(str(Path.cwd()),'file-converter.js').decode('utf-8')
+          for start,end in (('    function selectAllAvailableFormats()', '    function renderOptions()'),('    function render() {','    async function runConversion()')):
+              a=source.index(start);b=source.index(end,a)
+              print('\nAIO_SOURCE_RANGE_BEGIN='+start+'\n'+source[a:b]+'\nAIO_SOURCE_RANGE_END')
+          for path in [*Path('tools/qa').glob('*.mjs'),*Path('tests').glob('*.mjs')]:
+              content=path.read_text(encoding='utf-8')
+              if 'select-all-formats' in content or 'scrollRetention' in content:
+                  print('AIO_SELECTION_TEST='+str(path))
+          PY
