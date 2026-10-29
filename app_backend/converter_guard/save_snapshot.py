@@ -59,6 +59,11 @@ def snapshot_report(report, manifest, status, *, job_state_at_start):
                 seen.add(path)
                 output.update(saved=True, readbackVerified=True,
                               savedInSnapshot=True, saveId=status['saveId'])
+            if outputs:
+                # Save evidence describes this verified snapshot even when
+                # conversion itself had an error or produced partial results.
+                task['saveStatus'] = 'saved'
+                task['readbackVerified'] = True
             if outputs and task.get('state') in ('ready', 'saved'):
                 task['stateAtSaveStart'] = task['state']
                 task['state'] = 'saved'

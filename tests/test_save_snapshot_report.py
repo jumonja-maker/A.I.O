@@ -100,6 +100,8 @@ class FolderSnapshotIntegration(unittest.TestCase):
         self.assertEqual(report['saveSnapshot']['state'],'completed')
         self.assertEqual(status['outputsVerified'],3) # HTML companion is included.
         self.assertEqual({t['state'] for f in report['files'] for t in f['targets']},{'saved'})
+        self.assertTrue(all(t['saveStatus']=='saved' and t['readbackVerified']
+                            for f in report['files'] for t in f['targets']))
         self.assertFalse(report['qualityCompared'])
     def test_cancelled_readback_reports_cancelled_and_retains_unsaved(self):
         job,state=self.ready()
