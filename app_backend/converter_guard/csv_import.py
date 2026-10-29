@@ -12,6 +12,7 @@ import io
 from pathlib import Path
 
 from .csv_id_contract import text_columns_in_sample
+from .csv_numeric_columns import decimal_column_hints
 
 
 CALC = 'com.sun.star.sheet.SpreadsheetDocument'
@@ -100,6 +101,9 @@ def csv_import_hint(source: Path, native):
                     break
             if sample_rows:
                 columns = text_columns_in_sample(sample_rows, len(sample_rows[0]))
+                # Reuse these same rows; no full-file scan or extra LO load.
+                # Text IDs win; only unambiguous decimal-dot columns get type 10.
+                columns = decimal_column_hints(sample_rows, len(sample_rows[0]), columns)
         except (csv.Error, ValueError):
             pass
     options = f'{separator},34,76,1' + (',' + columns if columns else '')
