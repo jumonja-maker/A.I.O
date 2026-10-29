@@ -161,9 +161,9 @@ def main():
                     assert row['sourceUnchanged'],source.name
                     cases.append(row)
                     print('VECTOR_PAGE_CASE='+json.dumps(row),flush=True)
-            # Diagnostic, not a thirteenth accepted page-export case. Retain
-            # the original failing FODP->PPTX roundtrip independently: the
-            # known upstream colour issue must not disappear with the fixture.
+            # The former OPEN regression is now mandatory, independently of
+            # the twelve direct-input page tests. Never repair/recolour its
+            # native output or accept altered markers as expected truth.
             generated=next(p for p in convert(sources[0],'pptx',pp) if p.suffix.lower()=='.pptx')
             originals[generated]=digest(generated)
             generated_proof=proof(generated)
@@ -177,14 +177,16 @@ def main():
                     observations.append({'status':'MATCH',**inspect_page(images[row['file']],i)})
                 except AssertionError as error:
                     observations.append({'status':'MISMATCH','page':i+1,'detail':str(error)})
+            assert all(v['status']=='MATCH' for v in observations), observations
             roundtrip_audit={
-                'status':'OPEN' if any(v['status']=='MISMATCH' for v in observations) else 'NOT_REPRODUCED',
+                'status':'PASS',
                 'code':'FODP_PPTX_FILL_COLOUR_ROUNDTRIP',
                 'scope':'separate FODP->PPTX creation audit; excluded from the 12 direct-input acceptances',
                 'observations':observations,'sourceSha256':originals[sources[0]],
                 'generatedPptxSha256':originals[generated],
                 'investigationRun':40933330624,
-                'resolved':False,
+                'resolved':True,
+                'resolutionScope':'synthetic_theme_free_odf_solid_rgb_only',
             }
             print('FODP_PPTX_COLOUR_AUDIT='+json.dumps(roundtrip_audit),flush=True)
         assert len(cases)==12,cases
@@ -193,7 +195,8 @@ def main():
                 'cases':cases,'sourceUnchanged':True,'separateRoundtripAudit':roundtrip_audit,
                 'elapsedSeconds':round(time.monotonic()-started,3)}
     except Exception as error:
-        result={'status':'FAIL','error':str(error),'cases':cases,'separateRoundtripAudit':roundtrip_audit}
+        result={'status':'FAIL','error':str(error),'code':getattr(error,'code',None),
+                'diagnostic':getattr(error,'diagnostic',None),'cases':cases,'separateRoundtripAudit':roundtrip_audit}
         (args.output/'evidence.json').write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf-8')
         print('FULLTEST_VECTOR_PAGES_NATIVE='+json.dumps(result),flush=True)
         raise

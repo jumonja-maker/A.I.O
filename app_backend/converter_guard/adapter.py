@@ -1227,6 +1227,10 @@ class LibreOfficeAdapter:
                         if result.get('ok') and isinstance(receipt, dict):
                             self._local.export_info['resultChecks'] = list(
                                 self._local.export_info.get('resultChecks', ())) + [receipt]
+                        colour_receipt = result.get('pptxColourPreservation')
+                        if result.get('ok') and isinstance(colour_receipt, dict):
+                            self._local.export_info['resultChecks'] = list(
+                                self._local.export_info.get('resultChecks', ())) + [colour_receipt]
                         if result.get('nativeCloseInterrupted'):
                             self._local.export_info['warnings'] = tuple(
                                 self._local.export_info.get('warnings', ())) + ('NATIVE_CLOSE_INTERRUPTED',)
