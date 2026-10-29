@@ -4,36 +4,95 @@ on:
     branches: ['work/retire-comparison-blackbox-20261030']
 permissions:
   contents: read
+env:
+  PYTHONUTF8: '1'
+  PYTHONIOENCODING: utf-8
+  PYTHONDONTWRITEBYTECODE: '1'
+  QT_QPA_PLATFORM: offscreen
+  QT_OPENGL: software
+  QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --disable-gpu-compositing
+  QTWEBENGINE_DISABLE_SANDBOX: '1'
+  AIO_QT_SAVE_QA: '1'
+  AIO_LO_QA_MUST_HAVE_ENGINE: '1'
+  GIT_CONFIG_COUNT: '1'
+  GIT_CONFIG_KEY_0: core.autocrlf
+  GIT_CONFIG_VALUE_0: 'false'
 jobs:
-  inventory:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
+  probe:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           ref: ${{ github.sha }}
+          fetch-depth: 0
           persist-credentials: false
-      - name: Dependency inventory without application execution
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.11'
+      - name: Exact-base candidate preparation
         shell: bash
         run: |
+          set -euo pipefail
+          python tools/qa/_prepare_retirement.py prepare
+          python -m compileall -q app_backend tools tests
+          node --check src/guard-queue.js
+          node --check src/converter-bridge.js
+          git diff --check
+          git diff --stat
+      - name: Test dependencies and canonical disposable paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install -r requirements.txt
+          npm install --no-save --ignore-scripts --package-lock=false linkedom@0.18.12
           python - <<'PY'
-          import ast,json,re,subprocess
-          from pathlib import Path
-          pattern=re.compile(r'comparison|blackbox|telemetry|retainSources|retain_sources|до/после|До/После',re.I)
-          paths=subprocess.check_output(['git','ls-files'],text=True).splitlines()
-          retired=('comparison','preview','blackbox')
-          for name in paths:
-              path=Path(name)
-              if path.suffix not in ('.py','.js','.mjs','.html','.spec','.yml','.json','.txt'):continue
-              if not name.startswith(('app_backend/','src/','tests/','tools/qa/','.github/','addons/')) and name not in ('launcher.py','AllInOne.spec','index.html','requirements.txt'):continue
-              text=path.read_text(encoding='utf-8-sig')
-              hits=[(i,line) for i,line in enumerate(text.splitlines(),1) if pattern.search(line)]
-              if not hits:continue
-              full=not any(token in path.name.lower() for token in retired)
-              print('DEPENDENCY_FILE='+json.dumps({'path':name,'hits':len(hits),'details':full},ensure_ascii=False))
-              if full:
-                  for i,line in hits:print('DEPENDENCY_LINE='+json.dumps({'path':name,'line':i,'text':line[:500]},ensure_ascii=False))
-          tree=ast.parse(Path('app_backend/converter_guard/core.py').read_text())
-          klass=next(n for n in tree.body if isinstance(n,ast.ClassDef) and n.name=='ConverterGuard')
-          print('GUARD_METHODS='+json.dumps([{ 'name':n.name,'start':n.lineno,'end':n.end_lineno} for n in klass.body if isinstance(n,(ast.FunctionDef,ast.AsyncFunctionDef))]))
+          import os,pathlib
+          p=pathlib.Path(os.environ['RUNNER_TEMP']).resolve()/'aio-retirement-tests';p.mkdir()
+          with open(os.environ['GITHUB_ENV'],'a',encoding='utf-8') as f:
+              for key in ('TEMP','TMP','TMPDIR'):f.write(key+'='+str(p)+'\n')
+              f.write('AIO_DOM_MODULE='+str(pathlib.Path('node_modules/linkedom/esm/index.js').resolve())+'\n')
           PY
+          echo "AIO_QA_SOURCE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+      - name: Linux native engine and Qt dependencies
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y libreoffice python3-uno libegl1 libopengl0 libxkbcommon-x11-0 libnss3 libxcb-cursor0
+          echo "AIO_LIBREOFFICE=$(command -v libreoffice)" >> "$GITHUB_ENV"
+          echo "AIO_QA_ENGINE=$(command -v libreoffice)" >> "$GITHUB_ENV"
+      - name: Pinned Windows native engine
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./tools/build/prepare-libreoffice.ps1 -Destination (Join-Path $env:RUNNER_TEMP 'aio-engine-26.8.2')
+      - name: New retirement boundary tests
+        shell: bash
+        run: python -m unittest discover -s tests -p test_module_retirement.py -v
+      - name: Complete remaining source suite without masking failures
+        shell: bash
+        run: python tools/qa/hosted_unit_tests.py --report "$RUNNER_TEMP/aio-retirement-units.json"
+      - name: Real Windows package and retained worker proof
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install 'pyinstaller>=6.10,<7'
+          python -m PyInstaller --noconfirm --clean AllInOne.spec
+          python tools/qa/runtime_frozen_acceptance.py --executable dist/A.I.O/A.I.O.exe --output "$RUNNER_TEMP/aio-retirement-frozen" --seconds 120
+      - name: Review actual shared-boundary diff
+        shell: bash
+        run: git diff -- app_backend/converter_guard/core.py app_backend/converter_guard/http_api.py app_backend/server.py app_backend/converter_transport.py launcher.py src/converter-bridge.js src/guard-queue.js AllInOne.spec
+      - name: Publish reviewed candidate blobs and unreferenced tree only
+        if: runner.os == 'Windows'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python tools/qa/_prepare_retirement.py publish
