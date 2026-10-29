@@ -173,6 +173,23 @@ class GuardAPI:
                 return self._download(handler)
             if path.startswith(PREFIX + '/compare'):
                 return self._comparison_get(handler, path)
+            if path in (PREFIX + '/history', PREFIX + '/history/report'):
+                query = parse_qs(urlsplit(handler.path).query, keep_blank_values=True)
+                if path.endswith('/report'):
+                    if set(query) != {'job'} or len(query['job']) != 1:
+                        raise GuardError('HISTORY_REQUEST', 'Неверный запрос истории.')
+                    return self._json(handler,200,self.guard.history_report(self._identity(query['job'][0])))
+                if set(query) - {'before','limit'} or any(len(v)!=1 for v in query.values()):
+                    raise GuardError('HISTORY_REQUEST', 'Неверная страница истории.')
+                def number(name, default):
+                    raw = query.get(name)
+                    if raw is None:
+                        return default
+                    if re.fullmatch(r'[0-9]{1,19}', raw[0]) is None:
+                        raise GuardError('HISTORY_REQUEST', 'Неверная страница истории.')
+                    return int(raw[0])
+                return self._json(handler,200,self.guard.history_list(
+                    before=number('before',None),limit=number('limit',25)))
             if path == PREFIX + '/status':
                 return self._json(handler,200, {'schemaVersion': 3, 'available': self.guard.adapter.available,
                     'acceptedExtensions': '', 'compatibility': 'native_decision',
@@ -254,6 +271,10 @@ class GuardAPI:
                     raise GuardError('RECOVERY_REQUEST', 'Поиск результатов не принимает параметры задания.')
                 return self._json(handler,202, self.guard.start_recovery_scan())
             identity = self._identity(body.get('jobId'))
+            if path == PREFIX + '/history/delete':
+                if set(body) != {'jobId','confirm'} or body.get('confirm') is not True:
+                    raise GuardError('HISTORY_CONFIRM', 'Подтвердите удаление только записи истории.')
+                return self._json(handler,200,self.guard.delete_history(identity))
             expected_analysis_id = None
             if path in (PREFIX + '/compare/start', PREFIX + '/compare/control') and 'analysisId' in body:
                 expected_analysis_id = body['analysisId']

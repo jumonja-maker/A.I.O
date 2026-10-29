@@ -220,6 +220,7 @@ class _Job:
     store: object = None
     recovery_error: str | None = None
     recovered: bool = False
+    history_session: str = field(default_factory=lambda: secrets.token_hex(16))
     detached: bool = False
     strict_native: bool = False
     save_cancel: threading.Event = field(default_factory=threading.Event)
@@ -390,13 +391,20 @@ from .recovery_control import RecoveryStopped, check_recovery_stop
 
 
 class ConverterGuard:
-    def __init__(self, *, adapter=None, limits=None, spool_parent=None, recovery_parent=None, telemetry=None):
+    def __init__(self, *, adapter=None, limits=None, spool_parent=None, recovery_parent=None, telemetry=None, history_parent=None):
         self.adapter = adapter if adapter is not None else LibreOfficeAdapter()
         self.telemetry = telemetry
         self.build_identity = report_build_identity()
         self.limits = limits if limits is not None else GuardLimits()
         self._recovery = None if recovery_parent is None else Path(recovery_parent).resolve()
         self._parent = self._recovery or (None if spool_parent is None else Path(spool_parent).resolve())
+        from .conversion_history import ConversionHistory
+        self._history = None if history_parent is None else ConversionHistory(history_parent)
+        self._history_write_error = None
+        if self._history is not None and self._parent is not None:
+            history_root = self._history.root.resolve()
+            if history_root.is_relative_to(self._parent) or self._parent.is_relative_to(history_root):
+                raise ValueError('History must be outside result storage')
         self._lock = threading.RLock()
         self._io_drained = threading.Condition(self._lock)
         self._jobs, self._tickets = {}, {}
@@ -421,6 +429,46 @@ class ConverterGuard:
         self._recovery_scan_state = 'idle'
         self._recovery_scan_id = 0
         self._recovery_scan_error = None
+
+    def _remember_history(self, job):
+        """Persist metadata on worker/save boundaries, outside the state lock.
+
+        No outputs or sources are opened. An unavailable history must never
+        change conversion success, save acknowledgements or result ownership.
+        """
+        if self._history is None:
+            return
+        try:
+            with self._lock:
+                if job.preparation or job.running or job.state not in TERMINAL:
+                    return
+                revision = job.revision
+                report = copy.deepcopy({**self._report(job), 'jobId':job.id,
+                    'state':job.state, 'officeStarts':job.office_starts,
+                    'packagingError':job.packaging_error})
+            self._history.record(job.id, revision, report, session=job.history_session)
+        except Exception:
+            # Sticky for this process: a later successful write does not prove
+            # that a previously missed report was recovered.
+            self._history_write_error = 'HISTORY_WRITE_FAILED'
+
+    def history_list(self, *, before=None, limit=25):
+        if self._history is None:
+            return {'schema':1, 'enabled':False, 'items':[], 'nextCursor':None}
+        return {**self._history.list(before=before, limit=limit),
+                'writeWarning':self._history_write_error}
+
+    def history_report(self, identity):
+        if self._history is None:
+            raise GuardError('HISTORY_DISABLED', 'Постоянная история недоступна.',
+                             stage='history', status=503)
+        return self._history.report(identity)
+
+    def delete_history(self, identity):
+        if self._history is None:
+            raise GuardError('HISTORY_DISABLED', 'Постоянная история недоступна.',
+                             stage='history', status=503)
+        return self._history.delete(identity)
 
     def _load_recovery(self):
         # Legacy direct lookups retain synchronous semantics. The desktop UI
@@ -484,6 +532,13 @@ class ConverterGuard:
                 self._recovery_issues.append(value)
 
     def _publish_recovered(self, job):
+        if self._history is not None:
+            try:
+                # Only explicit recovery reaches here, with ownership of the
+                # result journal. Never open SQLite under the Guard state lock.
+                self._history.adopt(job.id, job.history_session)
+            except Exception:
+                self._history_write_error = 'HISTORY_WRITE_FAILED'
         # Validation/hashing happened without holding the state lock. A new
         # conversion can consume the final slot meanwhile; recheck atomically.
         with self._lock:
@@ -2052,6 +2107,7 @@ class ConverterGuard:
                     job.cancel = combined.owned
                 job.touched = time.monotonic()
                 self._record(job, 'worker_finished', code=job.state)
+            self._remember_history(job)
             self._cleanup(job)
 
     def _wait_unpaused(self, job):
@@ -2303,6 +2359,7 @@ class ConverterGuard:
                 # Creating a ZIP does not change conversion success/failure.
                 job.state, job.running = terminal_state, False
                 self._record(job, 'job_finished')
+            self._remember_history(job)
             self._cleanup(job)
 
     @staticmethod
@@ -2516,6 +2573,9 @@ class ConverterGuard:
                     stage='save', status=507) from error
             raise
         finally:
+            # Keep the existing save I/O lease until its metadata snapshot is
+            # persisted; close() must not race this final history write.
+            self._remember_history(job)
             with self._lock:
                 job.saving = False
                 job.io -= 1
@@ -2997,6 +3057,9 @@ class ConverterGuard:
                 artifact.saved = True
                 return outcome if compact else self._snapshot(job)
         finally:
+            # Keep the existing save I/O lease until its metadata snapshot is
+            # persisted; close() must not race this final history write.
+            self._remember_history(job)
             with self._lock:
                 job.saving = False
                 job.io -= 1

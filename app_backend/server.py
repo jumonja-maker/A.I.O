@@ -103,7 +103,7 @@ class LocalServer(ThreadingHTTPServer):
                     super().server_close()
 
 
-def start_server(port: int = 0, *, guard_recovery_parent=None):
+def start_server(port: int = 0, *, guard_recovery_parent=None, guard_history_parent=None):
     token = secrets.token_urlsafe(32)
     root = asset_root().resolve()
 
@@ -451,7 +451,9 @@ def start_server(port: int = 0, *, guard_recovery_parent=None):
             raise ValueError('AIO_GUARD_REJECTED_OUTPUT_BYTES must be 0..8388608')
         server.guard = ConverterGuard(limits=GuardLimits(rejected_output_bytes=int(diagnostic_limit)), recovery_parent=(data_directory() / 'jobs'
             if guard_recovery_parent is None else guard_recovery_parent),
-            telemetry=server.telemetry)
+            telemetry=server.telemetry,
+            history_parent=(guard_history_parent if guard_history_parent is not None else
+                data_directory() / 'history' if guard_recovery_parent is None else None))
         server.guard_api = GuardAPI(server.guard,
             origin=f'http://127.0.0.1:{server.server_port}', token=token)
     except BaseException:
