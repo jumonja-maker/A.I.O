@@ -382,6 +382,9 @@ class _RetryCancellation:
         return True
 
 
+from .recovery_control import RecoveryStopped, check_recovery_stop
+
+
 class ConverterGuard:
     def __init__(self, *, adapter=None, limits=None, spool_parent=None, recovery_parent=None, telemetry=None):
         self.adapter = adapter if adapter is not None else LibreOfficeAdapter()
@@ -406,17 +409,93 @@ class ConverterGuard:
         self._recovery_pending = []
         self._recovery_loaded = not bool(self._recovery)
         self._recovery_lock = threading.Lock()
+        # Constructed lazily like the conversion executor: no thread or disk
+        # search starts until the user explicitly requests old results.
+        self._recovery_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix='aio-recovery')
+        self._recovery_stop = threading.Event()
+        self._recovery_future = None
+        self._recovery_scan_state = 'idle'
+        self._recovery_scan_id = 0
+        self._recovery_scan_error = None
 
     def _load_recovery(self):
-        # Excel/startup does no recovery scan. The first explicit recovery or
-        # retained-job lookup runs on its HTTP caller, never the Qt UI thread.
-        with self._recovery_lock:
-            if not self._recovery_loaded and not self._closed:
-                self._recover_results()
-                self._recovery_loaded = True
-            elif self._recovery_pending and not self._closed and len(self._jobs)<self.limits.max_jobs:
-                pending,self._recovery_pending=self._recovery_pending,[]
-                self._recover_results(pending)
+        # Legacy direct lookups retain synchronous semantics. The desktop UI
+        # reads snapshots and submits this operation only on explicit request.
+        try:
+            with self._recovery_lock:
+                with self._lock:
+                    if self._closed:
+                        return
+                    initial = not self._recovery_loaded
+                    pending = []
+                    if not initial and len(self._jobs) < self.limits.max_jobs:
+                        pending, self._recovery_pending = self._recovery_pending, []
+                if initial:
+                    self._recover_results()
+                    with self._lock:
+                        self._recovery_loaded = True
+                elif pending:
+                    self._recover_results(pending)
+        except RecoveryStopped as error:
+            raise GuardError('GUARD_CLOSED', 'Guard завершает работу.', status=503) from error
+        except Exception:
+            with self._lock:
+                self._recovery_loaded = False  # A later explicit retry must rescan.
+            raise
+
+    def start_recovery_scan(self):
+        with self._lock:
+            if self._closed:
+                raise GuardError('GUARD_CLOSED', 'Guard завершает работу.', status=503)
+            if self._recovery and self._recovery_scan_state != 'scanning':
+                if not self._recovery_loaded or self._recovery_pending:
+                    self._recovery_scan_state = 'scanning'
+                    self._recovery_scan_error = None
+                    self._recovery_scan_id += 1
+                    # Claim and submit under one lock: shutdown cannot overtake
+                    # admission, and repeated clicks cannot queue extra scans.
+                    try:
+                        self._recovery_future = self._recovery_executor.submit(self._run_recovery_scan)
+                    except RuntimeError as error:
+                        self._recovery_scan_state = 'failed'
+                        self._recovery_scan_error = 'RECOVERY_SCAN_FAILED'
+                        raise GuardError('RECOVERY_SCAN_FAILED', 'Не удалось начать поиск результатов.', status=503) from error
+        return self.recoverable(scan=False)
+
+    def _run_recovery_scan(self):
+        failed = False
+        try:
+            self._load_recovery()
+        except Exception:
+            failed = True  # Paths and exception text never enter the UI status.
+        finally:
+            with self._lock:
+                self._recovery_scan_state = ('closed' if self._closed else 'failed' if failed
+                    else 'waiting_for_slot' if self._recovery_pending else 'completed')
+                self._recovery_scan_error = 'RECOVERY_SCAN_FAILED' if failed and not self._closed else None
+
+    def _recovery_warning(self, value):
+        with self._lock:
+            if value not in self._recovery_issues:
+                self._recovery_issues.append(value)
+
+    def _publish_recovered(self, job):
+        # Validation/hashing happened without holding the state lock. A new
+        # conversion can consume the final slot meanwhile; recheck atomically.
+        with self._lock:
+            if self._closed or job.id in self._jobs or any(j.root == job.root for j in self._jobs.values()):
+                job.store.close()
+                return
+            if len(self._jobs) >= self.limits.max_jobs:
+                if job.root not in self._recovery_pending:
+                    self._recovery_pending.append(job.root)
+                job.store.close()
+                return
+            self._jobs[job.id] = job
+            self._reserved += job.reserved
+            for artifact in job.artifacts:
+                self._tickets[artifact.ticket] = artifact
+            self._record(job, 'recovered')
 
     def _batch(self, job, name):
         method = getattr(self.adapter, 'batch', None)
@@ -490,17 +569,21 @@ class ConverterGuard:
                 job.recovery_error = 'RECOVERY_WRITE_FAILED'
 
     def _recover_results(self, roots=None):
-        ResultStore.reap_finished_retirements(self._recovery)
+        check_recovery_stop(self._recovery_stop)
+        ResultStore.reap_finished_retirements(self._recovery, cancel=self._recovery_stop)
         roots = sorted(self._recovery.glob('aio-guard-*')) if roots is None else roots
         for root in roots:
+            check_recovery_stop(self._recovery_stop)
             with self._lock:
                 if any(job.root == root for job in self._jobs.values()):
                     # A deleting job may already have closed owner.lock. It is
                     # still ours until physical cleanup releases its quota.
                     continue
-            if len(self._jobs)>=self.limits.max_jobs:
-                self._recovery_pending.append(root)
-                continue
+            with self._lock:
+                if len(self._jobs) >= self.limits.max_jobs:
+                    if root not in self._recovery_pending:
+                        self._recovery_pending.append(root)
+                    continue
             if root.is_symlink() or not root.is_dir():
                 continue
             if path_is_link(root):
@@ -513,14 +596,14 @@ class ConverterGuard:
                     retired = store.retirement_pending()
                 except (OSError, ValueError, TypeError):
                     store.close()
-                    self._recovery_issues.append({'folder': root.name,
+                    self._recovery_warning({'folder': root.name,
                         'code': 'RECOVERY_RETIREMENT_INVALID', 'manualRecovery': True})
                     continue  # An unreadable marker never authorizes deletion.
                 if retired:
                     try:
                         store.cleanup_retired()
                     except (OSError, ValueError, TypeError):
-                        self._recovery_issues.append({'folder': root.name,
+                        self._recovery_warning({'folder': root.name,
                             'code': 'RECOVERY_CLEANUP_RETRY', 'manualRecovery': True})
                     finally:
                         store.close()
@@ -528,17 +611,18 @@ class ConverterGuard:
                 if not (root/'job.json').is_file():
                     # Crash during initial metadata write: preserve and surface
                     # the otherwise invisible directory for manual inspection.
-                    self._recovery_issues.append({'folder': root.name,
+                    self._recovery_warning({'folder': root.name,
                         'code': 'RECOVERY_MANIFEST_MISSING', 'manualRecovery': True})
                     self._salvage_orphan(root, store=store)
                     continue
-                header, records, saved, integrity = store.read()
+                header, records, saved, integrity = store.read(cancel=self._recovery_stop)
                 identity = header.get('jobId')
                 if not isinstance(identity, str) or not re.fullmatch(r'[0-9a-f]{32}', identity):
                     raise ValueError('Invalid recovery job')
                 rows = validate_files(header.get('files'), self.limits)
                 files, indices = [], set()
                 for row, original in zip(rows, header['files']):
+                    check_recovery_stop(self._recovery_stop)
                     tasks = []
                     for target in original.get('targets', []):
                         index, format_id = target['index'], target['format']
@@ -554,14 +638,14 @@ class ConverterGuard:
                     if header.get('retainSources') is True:
                         try:
                             item.source = store.input_path(original.get('sourcePath'), row['size'],
-                                                           item.content_digest)
+                                                           item.content_digest, cancel=self._recovery_stop)
                             from .html_resources import resource_manifest
                             metadata = original.get('resources', [])
                             resources = resource_manifest(metadata, item.source.name) if metadata else {}
                             for resource in metadata:
                                 name = resource['path']
                                 relative = (item.source.parent / name).relative_to(root).as_posix()
-                                store.input_path(relative, resource['size'], resource.get('digest'))
+                                store.input_path(relative, resource['size'], resource.get('digest'), cancel=self._recovery_stop)
                                 resources[name].update(ready=True, digest=resource['digest'])
                             item.resources = resources
                             item.source_released = False
@@ -587,7 +671,7 @@ class ConverterGuard:
                 job.input_accounting = header.get('inputAccounting', [])
                 if integrity != 'complete':
                     job.recovery_error = 'RECOVERY_LEDGER_INCOMPLETE'
-                    self._recovery_issues.append({'folder':root.name,
+                    self._recovery_warning({'folder':root.name,
                         'code':'RECOVERY_LEDGER_INCOMPLETE', 'integrity':integrity,
                         'jobId':identity})
                 summary=header.get('summary',{})
@@ -596,6 +680,7 @@ class ConverterGuard:
                 job.file_timeout=summary.get('fileTimeoutSeconds')
                 job.files_by_id = {item.id:item for item in files}
                 for item in files:
+                    check_recovery_stop(self._recovery_stop)
                     for task in item.targets:
                         record = records.get(task.index, {})
                         if record.get('fileId') != item.id or record.get('state') not in DONE:
@@ -628,6 +713,7 @@ class ConverterGuard:
                         if task.state not in SUCCESS:
                             continue
                         for output in record.get('outputs', []):
+                            check_recovery_stop(self._recovery_stop)
                             try:
                                 relative = output['path']
                                 if Path(relative).parts[:3] != ('work', str(task.index), 'output'):
@@ -647,7 +733,11 @@ class ConverterGuard:
                                         raise ValueError('Invalid output fingerprint')
                                     from .save_verification import sha256_stream
                                     with path.open('rb') as restored:
-                                        actual = sha256_stream(restored, cancel=threading.Event())
+                                        try:
+                                            actual = sha256_stream(restored, cancel=self._recovery_stop)
+                                        except GuardError:
+                                            check_recovery_stop(self._recovery_stop)
+                                            raise
                                     if actual != (artifact.size, artifact.sha256):
                                         raise ValueError('Recovery output fingerprint changed')
                                 task.artifacts.append(artifact)
@@ -666,7 +756,7 @@ class ConverterGuard:
                         elif task.artifacts and task.state in SUCCESS:
                             task.state = 'saved' if all(a.saved for a in task.artifacts) else 'ready'
                 if not job.artifacts:
-                    self._recovery_issues.append({'folder':root.name,
+                    self._recovery_warning({'folder':root.name,
                         'code':'RECOVERY_UNFINISHED_PREPARATION', 'jobId':identity,
                         'manualRecovery': True,
                         'bytes':sum(p.stat().st_size for p in root.rglob('*')
@@ -678,7 +768,7 @@ class ConverterGuard:
                               if p.is_file() and not p.is_symlink())
                 if untracked and not job.recovery_error:
                     job.recovery_error='RECOVERY_UNTRACKED_OUTPUTS'
-                    self._recovery_issues.append({'folder':root.name,
+                    self._recovery_warning({'folder':root.name,
                         'code':'RECOVERY_UNTRACKED_OUTPUTS', 'jobId':identity})
                 if untracked:
                     self._salvage_outputs(job, indexed)
@@ -687,19 +777,15 @@ class ConverterGuard:
                 job.packaging_error = 'RECOVERED_RESULTS'
                 job.state = 'partial'
                 job.diagnostic_bytes=sum(len(t.diagnostic.encode('utf-8')) for f in files for t in f.targets)
-                with self._lock:
-                    if self._closed or identity in self._jobs:
-                        store.close()
-                        continue
-                    self._jobs[identity] = job
-                    self._reserved += job.reserved
-                    for artifact in job.artifacts:
-                        self._tickets[artifact.ticket] = artifact
-                    self._record(job, 'recovered')
+                check_recovery_stop(self._recovery_stop)
+                self._publish_recovered(job)
+            except RecoveryStopped:
+                store.close()
+                raise  # Shutdown is not invalid metadata and never triggers salvage.
             except (OSError, ValueError, TypeError, KeyError, GuardError):
                 store.close()  # Never delete an unreadable recovery directory.
                 self._salvage_orphan(root)
-                self._recovery_issues.append({'folder':root.name,
+                self._recovery_warning({'folder':root.name,
                     'code':'RECOVERY_METADATA_INVALID', 'manualRecovery': True})
 
     def _salvage_outputs(self, job, indexed=()):
@@ -718,6 +804,7 @@ class ConverterGuard:
                 dirs[:] = sorted(d for d in dirs if not (Path(base)/d).is_symlink()
                                  and not path_is_link(Path(base)/d))
                 for name in sorted(names):
+                    check_recovery_stop(self._recovery_stop)
                     candidate = Path(base)/name
                     try:
                         if candidate.is_symlink() or candidate.stat().st_nlink != 1:
@@ -763,23 +850,29 @@ class ConverterGuard:
             job.reserved = sum(a.size for a in job.artifacts)
             job.result = {**job.artifacts[0].metadata(), 'jobId':identity}
             job.packaging_error = 'RECOVERED_RESULTS'
-            with self._lock:
-                if identity in self._jobs or self._closed:
-                    store.close()
-                    return
-                self._jobs[identity] = job
-                self._reserved += job.reserved
-                for artifact in job.artifacts:
-                    self._tickets[artifact.ticket] = artifact
-                self._record(job, 'recovered')
+            check_recovery_stop(self._recovery_stop)
+            self._publish_recovered(job)
+        except RecoveryStopped:
+            store.close()
+            raise
         except (OSError, ValueError):
             store.close()
 
-    def recoverable(self):
-        self._prune(reap_saved=True)
-        self._load_recovery()
+    def recoverable(self, *, scan=True):
+        if type(scan) is not bool:
+            raise GuardError('RECOVERY_REQUEST', 'Неверный режим получения результатов.')
+        # Lightweight GUI polls do not enumerate directories, hash documents,
+        # wait for an existing scan, or synchronously remove a large tree.
+        self._prune(reap_saved=True, defer_cleanup=not scan)
+        if scan:
+            self._load_recovery()
         with self._lock:
             return {'storage': self.storage_stats(), 'pendingRecoveryFolders':len(self._recovery_pending),
+                    'recoveryScan': {'state': self._recovery_scan_state,
+                        'available': bool(self._recovery), 'loaded': self._recovery_loaded,
+                        'requestId': self._recovery_scan_id,
+                        'pendingFolders': len(self._recovery_pending),
+                        'errorCode': self._recovery_scan_error},
                     'warnings':list(self._recovery_issues),
                     'jobs': [{'jobId': j.id, 'recovered': j.recovered,
                               'label':j.files[0].name if j.files else 'Результаты',
@@ -1027,7 +1120,7 @@ class ConverterGuard:
         job.touched = time.monotonic()
         return job
 
-    def _prune(self, *, reap_saved=False):
+    def _prune(self, *, reap_saved=False, defer_cleanup=False):
         with self._lock:
             now = time.monotonic()
             expired = [j for j in self._jobs.values() if j.released or (
@@ -1036,6 +1129,7 @@ class ConverterGuard:
                     and now - j.touched > self.limits.retention_seconds))]
             for job in expired:
                 job.released = True
+                job.cleanup_background = job.cleanup_background or defer_cleanup
                 job.cancel.set()
         for job in expired:
             self._cleanup(job)
@@ -3006,6 +3100,7 @@ class ConverterGuard:
     def close(self):
         with self._lock:
             self._closed = True
+            self._recovery_stop.set()
             callbacks = []
             for job in self._jobs.values():
                 job.bundle_cancel.set()
@@ -3015,6 +3110,7 @@ class ConverterGuard:
             self._tickets.clear()
             self._proof_cache.clear()
         self._interrupt(callbacks)
+        self._recovery_executor.shutdown(wait=True)
         self._executor.shutdown(wait=True)
         with self._lock:
             jobs = list(self._jobs.values())

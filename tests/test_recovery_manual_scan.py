@@ -27,9 +27,9 @@ class ManualRecovery(unittest.TestCase):
         self.addCleanup(guard.close)
         return guard
 
-    def old_job(self, *, retain_sources=False):
+    def old_job(self, *, retain_sources=False, formats=None):
         producer = self.make_guard()
-        identity = producer.create([{'id':'f','name':'source.docx','size':4}], ['pdf'],
+        identity = producer.create([{'id':'f','name':'source.docx','size':4}], formats or ['pdf'],
                                    retain_sources=retain_sources)['jobId']
         producer.upload(identity, 'f', io.BytesIO(b'keep'), 4)
         producer.start(identity, archive_mode='on_demand')
@@ -118,12 +118,24 @@ class ManualRecovery(unittest.TestCase):
         self.assertTrue(self.guard._jobs[identity].files[0].source.exists())
 
     def test_corrupted_output_is_not_restored_as_verified_conversion(self):
-        identity, root, path = self.old_job()
+        identity, root, path = self.old_job(formats=['pdf','odt'])
         path.write_bytes(b'evil')  # Same size, different SHA-256.
         self.guard.start_recovery_scan(); self.drain()
         recovered = self.guard._jobs[identity]
         self.assertTrue(recovered.recovery_error)
         self.assertEqual(recovered.files[0].targets[0].state, 'error')
+        self.assertTrue(all(not a.readback_verified for a in recovered.artifacts))
+        self.assertEqual(path.read_bytes(), b'evil')
+
+    def test_only_corrupted_output_is_rescued_without_original_success_claim(self):
+        identity, root, path = self.old_job()
+        path.write_bytes(b'evil')
+        self.guard.start_recovery_scan(); self.drain()
+        self.assertNotIn(identity, self.guard._jobs)
+        recovered = next(job for job in self.guard._jobs.values() if job.root == root)
+        self.assertTrue(recovered.salvage)
+        self.assertEqual(recovered.recovery_error, 'RECOVERY_SALVAGED_UNVERIFIED')
+        self.assertTrue(all(task.code == 'RECOVERED_UNVERIFIED' for item in recovered.files for task in item.targets))
         self.assertTrue(all(not a.readback_verified for a in recovered.artifacts))
         self.assertEqual(path.read_bytes(), b'evil')
 

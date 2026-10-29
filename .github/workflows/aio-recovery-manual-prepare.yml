@@ -27,53 +27,7 @@ jobs:
           python -m pip install -r requirements.txt
           npm install --no-save --ignore-scripts --package-lock=false linkedom@0.18.12
           echo "AIO_DOM_MODULE=$PWD/node_modules/linkedom/esm/index.js" >> "$GITHUB_ENV"
-      - name: Include explicit list selection and both corruption recovery cases
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          def edit(path, old, new):
-              p=Path(path);text=p.read_text(encoding='utf-8')
-              assert text.count(old)==1, (path,old)
-              p.write_text(text.replace(old,new),encoding='utf-8')
-          script='tools/qa/_apply_recovery_manual_once.py'
-          anchor="p = Path('src/guard-queue.js'); source = p.read_text(encoding='utf-8')"
-          old="bar.querySelector('[data-g-jobs]').addEventListener('change',()=>{page=0;loadPreview();});"
-          new="bar.querySelector('[data-g-jobs]').addEventListener('change',()=>{page=0;loadPreview();render();});"
-          edit(script,anchor,anchor+'\nsource = replace(source, '+repr(old)+', '+repr(new)+')')
-          test='tests/test_recovery_manual_scan.py'
-          edit(test,'def old_job(self, *, retain_sources=False):','def old_job(self, *, retain_sources=False, formats=None):')
-          edit(test,"['pdf'],\n                                   retain_sources=retain_sources)","formats or ['pdf'],\n                                   retain_sources=retain_sources)")
-          edit(test,'def test_corrupted_output_is_not_restored_as_verified_conversion(self):\n        identity, root, path = self.old_job()',
-               "def test_corrupted_output_is_not_restored_as_verified_conversion(self):\n        identity, root, path = self.old_job(formats=['pdf','odt'])")
-          anchor='    def test_current_creation_cannot_be_overwritten_or_exceed_slot_limit(self):'
-          extra='''    def test_only_corrupted_output_is_rescued_without_original_success_claim(self):
-                  identity, root, path = self.old_job()
-                  path.write_bytes(b'evil')
-                  self.guard.start_recovery_scan(); self.drain()
-                  self.assertNotIn(identity, self.guard._jobs)
-                  recovered = next(job for job in self.guard._jobs.values() if job.root == root)
-                  self.assertTrue(recovered.salvage)
-                  self.assertEqual(recovered.recovery_error, 'RECOVERY_SALVAGED_UNVERIFIED')
-                  self.assertTrue(all(task.code == 'RECOVERED_UNVERIFIED' for item in recovered.files for task in item.targets))
-                  self.assertTrue(all(not a.readback_verified for a in recovered.artifacts))
-                  self.assertEqual(path.read_bytes(), b'evil')
-          
-          '''
-          # Normalize the YAML block's Python-string indentation to class/method levels.
-          lines=extra.splitlines()
-          extra='\n'.join(line[8:] if line.startswith('                ') else line for line in lines)+'\n'
-          edit(test,anchor,extra+anchor)
-          dom='tools/qa/recovery_manual_dom.mjs'
-          old="confirm=false;click('[data-g-discard]');await settle();"
-          new="""const chosen=document.querySelector('[data-g-jobs]');
-          chosen.firstElementChild.selected=true;
-          chosen.dispatchEvent(new window.Event('change'));await settle();
-          assert.equal(chosen.value,'old');
-          assert.equal(document.querySelector('[data-g-folder]').disabled,false,'list selection enables save');
-          confirm=false;click('[data-g-discard]');await settle();"""
-          edit(dom,old,new)
-          PY
-      - name: Prepare and test source candidate without moving refs
+      - name: Reproduce late lookup and test source candidate without moving refs
         env:
           GH_TOKEN: ${{ github.token }}
-        run: python tools/qa/_apply_recovery_manual_once.py
+        run: python tools/qa/_apply_recovery_lookup_once.py
