@@ -459,14 +459,14 @@ def inspect_source_contract(source, *, cancel=None, budget=4 * 1024 * 1024):
         if budget <= 0:
             raise _Budget()
         path = Path(source)
-        from .graphic_source import tga_contract
-        graphic = tga_contract(path, cancel=cancel)
-        if graphic is not None:
-            return graphic
         with path.open('rb') as stream:
             prefix = stream.read(min(4096, budget))
             if len(prefix) == budget and budget < 4:
                 raise _Budget()
+            from .graphic_source import probe_tga_stream
+            graphic = probe_tga_stream(stream, prefix, cancel=cancel)
+            if graphic is not None:
+                return graphic
             packed = prefix.startswith(b'PK\x03\x04')
             if not packed:
                 # UTF-8/BOM, UTF-16 and XML with a long prolog are examined by

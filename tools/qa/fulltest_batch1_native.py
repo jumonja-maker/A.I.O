@@ -71,6 +71,10 @@ def main():
             for target in ('png','svg'):
                 files=convert(slides,target,sp);pages=[f for f in files if f.suffix=='.'+target]
                 assert len(pages)==3,(target,len(pages))
+                assert len({digest(page) for page in pages})==3, 'Repeated or empty page exports'
+                if target=='svg':
+                    for index,page in enumerate(pages,1):
+                        assert 'AIO_SLIDE_'+str(index) in page.read_text(encoding='utf-8'),page
                 mapping=json.loads(next(f for f in files if f.name=='AIO-pages.json').read_text())
                 assert mapping['pageCount']==3 and len(mapping['pages'])==3
                 results.append({'case':'three_pages_'+target,'status':'PASS','pages':3})

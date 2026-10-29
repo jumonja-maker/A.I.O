@@ -6,7 +6,7 @@ import tempfile
 from types import SimpleNamespace
 import unittest
 from urllib.parse import unquote, urlsplit
-from app_backend.converter_guard.graphic_source import tga_contract, tga_import_hint, DRAW
+from app_backend.converter_guard.graphic_source import tga_contract, tga_import_hint, probe_tga_stream, DRAW
 from app_backend.converter_guard.native_fidelity import NATIVE_FIDELITY_SOURCE
 
 N = {}
@@ -33,6 +33,18 @@ def tga_bytes(width=2, height=3, footer=True):
 
 
 class TgaContractTests(unittest.TestCase):
+    def test_unrelated_prefix_does_not_touch_stream(self):
+        class Untouchable:
+            def read(self, *args):raise AssertionError('extra read')
+            def seek(self, *args):raise AssertionError('extra seek')
+        for prefix in (b'<?xml version="1.0"?><office:document', b'PK\x03\x04' + b'\0'*30, b'ordinary text '*10):
+            self.assertIsNone(probe_tga_stream(Untouchable(), prefix))
+    def test_tga_probe_restores_existing_prefix_position(self):
+        import io
+        stream=io.BytesIO(tga_bytes())
+        prefix=stream.read(18)
+        self.assertEqual(probe_tga_stream(stream, prefix)['contentClass'],'tga_image')
+        self.assertEqual(stream.tell(),len(prefix))
     def inspect(self, raw, name='renamed.txt'):
         with tempfile.TemporaryDirectory() as root:
             path = Path(root) / name

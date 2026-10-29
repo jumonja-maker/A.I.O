@@ -1,7 +1,8 @@
-"""Small content declarations for binary images which LO may open as text.
+"""Cheap image declarations using the prefix already read by source_contract.
 
-No pixel scan, extension-based admission, or second office import. This probe
-only pins the expected document family; the installed importer must prove it.
+Ordinary office/text files incur no extra open, read or seek. A plausible TGA
+header alone is not admission: size/footer and the installed native model must
+also agree. No full pixel scan and no additional LibreOffice import.
 """
 from pathlib import Path
 import struct
@@ -10,29 +11,19 @@ DRAW = 'com.sun.star.drawing.DrawingDocument'
 FOOTER = b'TRUEVISION-XFILE.\x00'
 
 
-def tga_contract(source, *, cancel=None):
+def probe_tga_stream(stream, prefix, *, cancel=None):
     from .errors import GuardError
     if cancel is not None and cancel.is_set():
         raise GuardError('CANCELLED', 'Проверка изображения отменена.', stage='preflight')
-    try:
-        with Path(source).open('rb') as stream:
-            h = stream.read(18)
-            if len(h) != 18:
-                return None
-            size = stream.seek(0, 2)
-            stream.seek(max(0, size - 26))
-            footer = stream.read(26)
-    except OSError:
+    h = prefix[:18]
+    if len(h) != 18:
         return None
     ident, cmap, kind = h[:3]
+    if kind not in (1, 2, 3, 9, 10, 11) or cmap not in (0, 1):
+        return None
     first, count, cmap_depth = struct.unpack_from('<HHB', h, 3)
     width, height, depth, descriptor = struct.unpack_from('<HHBB', h, 12)
-    signature = len(footer) == 26 and footer[8:] == FOOTER
-    # TGA 1 has no magic: require a complete exact-sized uncompressed layout.
-    # TGA 2's footer permits RLE; its native decoder still validates the data.
-    if kind not in (1, 2, 3, 9, 10, 11) or cmap not in (0, 1) or not width or not height:
-        return None
-    if descriptor & 0xc0:
+    if not width or not height or descriptor & 0xc0:
         return None
     if kind in (1, 9):
         valid = cmap == 1 and count > 0 and depth in (8, 16) and cmap_depth in (15, 16, 24, 32)
@@ -42,6 +33,15 @@ def tga_contract(source, *, cancel=None):
         valid = cmap == 0 and count == 0 and depth in (8, 16)
     if not valid:
         return None
+    # Only a structurally plausible binary image reaches this seek/read.
+    # Restore the pre-read prefix position for every subsequent parser.
+    try:
+        size = stream.seek(0, 2)
+        stream.seek(max(0, size - 26))
+        footer = stream.read(26)
+    finally:
+        stream.seek(len(prefix))
+    signature = len(footer) == 26 and footer[8:] == FOOTER
     start = 18 + ident + (count * ((cmap_depth + 7) // 8) if cmap else 0)
     minimum = start + width * height * ((depth + 7) // 8)
     end = size - 26 if signature else size
@@ -60,6 +60,14 @@ def tga_contract(source, *, cancel=None):
             'expectedServices': [DRAW], 'nativeImportRequired': True,
             'width': width, 'height': height, 'bitDepth': depth,
             'basis': 'tga_header_and_footer' if signature else 'tga_exact_uncompressed_layout'}
+
+
+def tga_contract(source, *, cancel=None):
+    try:
+        with Path(source).open('rb') as stream:
+            return probe_tga_stream(stream, stream.read(4096), cancel=cancel)
+    except OSError:
+        return None
 
 
 def tga_import_hint(contract, native):

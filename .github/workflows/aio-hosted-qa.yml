@@ -29,12 +29,27 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        env:
+          GIT_CONFIG_COUNT: '1'
+          GIT_CONFIG_KEY_0: core.autocrlf
+          GIT_CONFIG_VALUE_0: 'false'
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: '3.11'
+      - name: Canonical disposable test TEMP (no 8.3 user-profile aliases)
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os,pathlib
+          temp=pathlib.Path(os.environ['RUNNER_TEMP']).resolve()/'aio-tests-temp'
+          temp.mkdir(exist_ok=False)
+          with open(os.environ['GITHUB_ENV'],'a',encoding='utf-8') as f:
+              for key in ('TEMP','TMP','TMPDIR'):
+                  f.write(key+'='+str(temp)+'\n')
+          PY
       - name: Python and DOM test dependencies (no cache or artifact storage)
         id: deps
         shell: bash
@@ -61,19 +76,20 @@ jobs:
         id: windows_engine
         shell: pwsh
         run: ./tools/build/prepare-libreoffice.ps1 -Destination (Join-Path $env:RUNNER_TEMP 'aio-engine-26.8.1')
-      - name: Complete source regression suite
-        id: units
-        shell: bash
-        run: |
-          set -euo pipefail
-          python -m compileall -q app_backend tools tests
-          python tools/qa/guard_v17_selfhosted_acceptance.py --unit-report "$RUNNER_TEMP/aio-units.json"
       - name: Native critical FULLTEST controls on pinned Windows engine
         if: ${{ !cancelled() && runner.os == 'Windows' && steps.windows_engine.outcome == 'success' && steps.deps.outcome == 'success' }}
         id: fidelity
         shell: bash
         run: python tools/qa/fulltest_batch1_native.py --executable "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-batch1-native"
-      - name: Windows EXE packaging smoke (no publication)
+      - name: Complete source regression suite
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' && (steps.windows_engine.outcome == 'success' || steps.linux_engine.outcome == 'success') }}
+        id: units
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m compileall -q app_backend tools tests
+          python tools/qa/hosted_unit_tests.py --report "$RUNNER_TEMP/aio-units.json"
+      - name: Windows EXE packaging and real frozen smoke (no publication)
         if: runner.os == 'Windows' && steps.units.outcome == 'success' && steps.fidelity.outcome == 'success'
         id: package
         shell: bash
@@ -82,13 +98,14 @@ jobs:
           python -m pip install 'pyinstaller>=6.10,<7'
           python -m PyInstaller --noconfirm --clean AllInOne.spec
           python -c "from pathlib import Path; p=Path('dist/A.I.O'); assert (p/'A.I.O.exe').is_file(); assert (p/'_internal/libreoffice/program/soffice.exe').is_file(); print('AIO_HOSTED_EXE_PACKAGE=PASS')"
+          python tools/qa/guard_v19_frozen_acceptance.py --executable dist/A.I.O/A.I.O.exe --output "$RUNNER_TEMP/aio-hosted-frozen" --seconds 120
       - name: Preserve truthful summary in job log (no upload-artifact)
         if: always()
         shell: bash
         run: |
           python - <<'PY'
           import json,os,pathlib
-          for name in ('aio-units.json','aio-batch1-native/evidence.json'):
+          for name in ('aio-units.json','aio-batch1-native/evidence.json','aio-hosted-frozen/evidence.json'):
               p=pathlib.Path(os.environ['RUNNER_TEMP'])/name
               if p.is_file():
                   data=json.loads(p.read_text(encoding='utf-8'))
