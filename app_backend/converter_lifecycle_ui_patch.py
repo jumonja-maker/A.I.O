@@ -72,4 +72,35 @@ def apply_lifecycle_ui(raw):
       if(alive&&event.detail?.jobId&&(event.detail.jobId===currentResult?.jobId||event.detail.jobId===aioFailedBatchReport?.jobId))clearCurrentConversion();
     });
     local(runBtn,'click',runConversion);local(saveBtn,'click',saveOutput);""")
+    # M05/M06: selection is a metadata edit, not a new catalogue render.
+    # Keep actual focusable buttons and their scroll owner alive.
+    once("      if(available.length===selectedFormats.size&&available.every(f=>selectedFormats.has(f.id)))return;",
+         "      const clearSelection=available.every(f=>selectedFormats.has(f.id));")
+    once("      selectedFormats.clear();available.forEach(f=>selectedFormats.add(f.id));",
+         "      selectedFormats.clear();if(!clearSelection)available.forEach(f=>selectedFormats.add(f.id));")
+    once("      selectedFormat=available[0].id;formatValues={};currentResult=null;retryResult=null;",
+         "      selectedFormat=clearSelection?null:available[0].id;formatValues={};currentResult=null;retryResult=null;")
+    once("      status='idle';statusMessage='';realProgress=null;adapter.resetProgress?.();render();",
+         "      status='idle';statusMessage='';realProgress=null;adapter.resetProgress?.();refreshFormatSelection();renderOptions();renderSummary();")
+    once("      announce('Выбрано форматов: '+available.length);",
+         "      announce(clearSelection?'Выбор форматов снят.':'Выбрано форматов: '+available.length);")
+    once('    function renderFormats() {',
+         """    function refreshFormatSelection() {
+      closePopover();
+      for(const wrapper of formatsArea.querySelectorAll('[data-format-id]')){
+        const checked=String(selectedFormats.has(wrapper.dataset.formatId));
+        wrapper.setAttribute('aria-selected',checked);
+        wrapper.querySelector('.aio-cv__format-main')?.setAttribute('aria-pressed',checked);
+      }
+    }
+    function renderFormats() {""")
+    once("wrapper.dataset.available=String(enabled);",
+         "wrapper.dataset.available=String(enabled);wrapper.dataset.formatId=fmt.id;")
+    once("formatValues={};currentResult=null;retryResult=null;status='idle';statusMessage='';renderFormats();renderOptions();renderSummary();",
+         "formatValues={};currentResult=null;retryResult=null;status='idle';statusMessage='';refreshFormatSelection();renderOptions();renderSummary();")
+    once("      selectAllFormatsBtn.setAttribute('aria-pressed',String(available.length>0&&available.every(f=>selectedFormats.has(f.id))));",
+         "      const allAvailableSelected=available.length>0&&available.every(f=>selectedFormats.has(f.id));\n"
+         "      selectAllFormatsBtn.setAttribute('aria-pressed',String(allAvailableSelected));\n"
+         "      selectAllFormatsBtn.textContent=allAvailableSelected?'Снять выбор':'Выбрать всё';\n"
+         "      selectAllFormatsBtn.title=allAvailableSelected?'Снять выбор всех форматов':'Выбрать подтверждённые форматы во всех категориях';")
     return code.encode('utf-8')
