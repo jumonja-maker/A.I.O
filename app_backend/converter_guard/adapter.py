@@ -814,7 +814,8 @@ class LibreOfficeAdapter:
             if plain:
                 paths, metafile_check = wrap_native_metafiles(paths, target, cancel=identity_control)
                 self._local.export_info['executionReason'] = 'native_plain_metafile_gzip'
-                self._local.export_info['resultChecks'] = [metafile_check]
+                self._local.export_info['resultChecks'] = list(
+                    self._local.export_info.get('resultChecks', ())) + [metafile_check]
             if preparation:
                 self._local.export_info['sourcePreparation'] = preparation
                 if preparation.get('kind') == 'native_dif_numeric_snapshot':
