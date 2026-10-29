@@ -687,13 +687,14 @@ def check_media_preservation(paths, target, source, *, cancel, source_evidence=N
     def source_profile():
         def inspect_source():
             result = inspect_media(source, cancel=cancel)
-            if result is None and source.suffix.lower() in ('.pbm', '.pgm', '.ppm'):
+            if result is None and source.suffix.lower() in ('.pbm', '.pgm', '.ppm', '.xbm', '.xpm'):
                 # Do not turn every native export into a second Guard scan.
                 # For these formats Qt has already confirmed image structure
                 # during preflight; one cheap header probe proves dimensions.
-                from .qt_media import qt_pnm_profile
+                from .qt_media import qt_pnm_profile, qt_xbm_xpm_profile
                 try:
-                    result = qt_pnm_profile(source, cancel=cancel)
+                    result = (qt_pnm_profile(source, cancel=cancel)
+                              or qt_xbm_xpm_profile(source, cancel=cancel))
                 except GuardError as error:
                     if error.code not in ('MEDIA_QT_UNAVAILABLE', 'MEDIA_CANVAS_BUDGET'):
                         raise

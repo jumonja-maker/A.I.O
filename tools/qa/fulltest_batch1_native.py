@@ -40,7 +40,22 @@ def main():
         pnm_sources[kind]=path
     slides=args.output/'slides.fodp'
     slides.write_text('''<?xml version="1.0" encoding="UTF-8"?><office:document xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" office:mimetype="application/vnd.oasis.opendocument.presentation" office:version="1.2"><office:body><office:presentation>'''+''.join('<draw:page draw:name="Slide%d"><draw:frame svg:x="1cm" svg:y="1cm" svg:width="15cm" svg:height="4cm"><draw:text-box><text:p>AIO_SLIDE_%d TEXT_00123</text:p></draw:text-box></draw:frame></draw:page>'%(i,i) for i in range(1,4))+'''</office:presentation></office:body></office:document>''',encoding='utf-8')
-    originals={str(f):digest(f) for f in (source,raster,jpeg,slides,*pnm_sources.values())}
+    legacy_sources={}
+    xbm=args.output/'01_LEVEL_1.xbm'
+    xbm.write_bytes(
+        b'#define 01_LEVEL_1_width 40\n#define 01_LEVEL_1_height 20\n'
+        +b'static char 01_LEVEL_1_bits[] = {\n'
+        +(', '.join('0xAA' if i%2==0 else '0x55' for i in range(100))).encode('ascii')
+        +b' };\n')
+    legacy_sources['xbm']=xbm
+    xpm=args.output/'01_LEVEL_1.xpm'
+    xpm.write_text(
+        '/* XPM */\nstatic char *_1_LEVEL_1[] = {\n'
+        '"40 20 2 1",\n". c #000000",\n"  c #FFFFFF",\n'
+        +',\n'.join('"' + ('. '*20 if i%2==0 else ' .' *20) + '"' for i in range(20))
+        +'\n};\n', encoding='ascii')
+    legacy_sources['xpm']=xpm
+    originals={str(f):digest(f) for f in (source,raster,jpeg,slides,*pnm_sources.values(),*legacy_sources.values())}
     cancel=threading.Event();adapter=LibreOfficeAdapter(args.executable)
     results=[];counter=0
     def proof(path):
@@ -82,6 +97,19 @@ def main():
                 assert adapter.execution_mode()=='qt_media_frames',kind
                 pnm_modes.append(kind)
             results.append({'case':'portable_raster_canvas','status':'PASS','types':pnm_modes})
+            legacy_modes=[]
+            for kind,path in legacy_sources.items():
+                pp=proof(path)
+                assert pp.get('mediaProfile',{}).get('format')==kind,pp
+                assert 'png' in pp.get('qtMediaTargets',()),pp
+                exported=convert(path,'png',pp)
+                png=next(f for f in exported if f.suffix=='.png')
+                with Image.open(path) as before,Image.open(png) as after:
+                    assert before.size == after.size == (40,20),(kind,before.size,after.size)
+                    assert before.convert('RGB').tobytes()==after.convert('RGB').tobytes(),kind
+                assert adapter.execution_mode()=='qt_media_frames',kind
+                legacy_modes.append(kind)
+            results.append({'case':'legacy_xbm_xpm_canvas','status':'PASS','types':legacy_modes})
             bk=proof(source)
             for target in ('slk','sylk'):
                 files=convert(source,target,bk);values=[f.read_bytes() for f in files if f.suffix=='.'+target]

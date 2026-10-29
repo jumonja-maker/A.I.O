@@ -8,6 +8,7 @@ encoded frame are retained; cancellation/deadlines are checked between rows.
 from fractions import Fraction
 import os
 import math
+import re
 from pathlib import Path
 import struct
 import tempfile
@@ -97,11 +98,68 @@ def qt_pnm_profile(source, *, cancel=None):
             'frames': 1, 'pages': 1, 'alpha': False, 'durationsMs': [],
             'orientation': 1, 'bitDepth': bit_depth}
 
+
+def qt_xbm_xpm_profile(source, *, cancel=None):
+    """Use the existing Qt decoder for bounded, content-confirmed X bitmaps.
+
+    Only XBM/XPM suffixes pay for the declaration check; normal documents
+    incur no extra work. No pixel decode occurs during preflight. Unknown or
+    unparseable declarations remain on the original native LibreOffice route.
+    """
+    source = Path(source)
+    kind = source.suffix.lower().lstrip('.')
+    if kind not in ('xbm', 'xpm'):
+        return None
+    _cancel(cancel)
+    with source.open('rb') as stream:
+        prefix = stream.read(65536)
+    if kind == 'xbm':
+        width = re.search(rb'(?m)^#define[ \t]+[A-Za-z0-9_]+_width[ \t]+([0-9]+)[ \t]*$', prefix)
+        height = re.search(rb'(?m)^#define[ \t]+[A-Za-z0-9_]+_height[ \t]+([0-9]+)[ \t]*$', prefix)
+        if not width or not height:
+            return None
+        declared = (int(width.group(1)), int(height.group(1)))
+        alpha, depth = False, 1
+    else:
+        if not prefix.lstrip().startswith(b'/* XPM */'):
+            return None
+        rows = re.findall(rb'"([^"\r\n]{1,2048})"', prefix)
+        if not rows:
+            return None
+        parts = rows[0].split()
+        if len(parts) != 4 or any(not part.isdigit() for part in parts):
+            return None
+        width, height, colors, cpp = (int(part) for part in parts)
+        if not 1 <= colors <= 4096 or not 1 <= cpp <= 8 or len(rows) < colors + 1:
+            return None
+        palette = rows[1:colors + 1]
+        if any(len(row) < cpp or not re.search(rb'(?i)(?:^|\s)c\s+\S+', row[cpp:])
+               for row in palette):
+            return None
+        alpha = any(re.search(rb'(?i)(?:^|\s)c\s+none(?:\s|$)', row[cpp:])
+                    for row in palette)
+        declared, depth = (width, height), 8
+    _bounds(*declared)
+    QImageReader = _qt()[5]
+    reader = QImageReader(str(source))
+    observed = bytes(reader.format()).decode('ascii', errors='ignore').lower()
+    if observed != kind or not reader.canRead():
+        return None
+    size = reader.size()
+    if (size.width(), size.height()) != declared or reader.imageCount() > 1:
+        return None
+    _cancel(cancel)
+    return {'format': kind, 'width': size.width(), 'height': size.height(),
+            'frames': 1, 'pages': 1, 'alpha': bool(alpha),
+            'durationsMs': [], 'orientation': 1, 'bitDepth': depth}
+
+
 def media_frame_route(source, target, *, cancel=None):
     """Return a content-based route description, or None for a non-raster route."""
     if target not in RASTER:
         return None
-    info = inspect_media(source, cancel=cancel) or qt_pnm_profile(source, cancel=cancel)
+    info = (inspect_media(source, cancel=cancel) or qt_pnm_profile(source, cancel=cancel)
+            or qt_xbm_xpm_profile(source, cancel=cancel))
     if info is None:
         return None
     _bounds(info['width'], info['height'])
@@ -146,7 +204,8 @@ def media_preflight(source, *, cancel=None):
     """Content summary and loaded-codec targets, without exporting/decoding."""
     source = Path(source)
     _cancel(cancel)
-    info = inspect_media(source, cancel=cancel) or qt_pnm_profile(source, cancel=cancel)
+    info = (inspect_media(source, cancel=cancel) or qt_pnm_profile(source, cancel=cancel)
+            or qt_xbm_xpm_profile(source, cancel=cancel))
     if info is None:
         with source.open('rb') as stream:
             magic = stream.read(5)
