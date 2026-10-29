@@ -258,7 +258,7 @@ class GuardAPI:
                 return self._json(handler,201, diagnostic_package(self.guard,identity,body.get('taskId'),detail,
                     output_index=body.get('outputIndex'),include_source=body.get('includeSource',False)))
             if path == PREFIX + '/close':
-                outcome=self.guard.close_conversion(identity,discard=body.get('discard',False))
+                outcome=self.guard.close_conversion(identity,discard=body.get('discard',False),defer_cleanup=True)
                 if outcome.get('closed'):self.comparison.release(identity)
                 return self._json(handler,200,outcome)
             if path == PREFIX + '/compare/retry':
@@ -292,9 +292,9 @@ class GuardAPI:
                 return self._json(handler,200, self.guard.confirm_saved(identity, body.get('ticket'),
                     compact=body.get('compact', False)))
             if path == PREFIX + '/release':
-                self.guard.release(identity, discard=body.get('discard', False))
+                outcome=self.guard.release(identity, discard=body.get('discard', False),defer_cleanup=True)
                 self.comparison.release(identity)
-                return self._json(handler,200, {'ok': True})
+                return self._json(handler,200, {'ok': True, **outcome})
             raise GuardError('API_NOT_FOUND', 'Неизвестная операция Guard.', status=404)
         except GuardError as error:
             handler.close_connection = True
