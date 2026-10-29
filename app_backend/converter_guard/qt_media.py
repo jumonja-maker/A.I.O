@@ -425,6 +425,11 @@ def _frames(source, scratch, info, cancel):
                              'Qt не смог прочитать все кадры или страницы изображения.', stage='engine',
                              diagnostic=reader.errorString())
         _bounds(image.width(), image.height())
+        if info.get('format') == 'xbm':
+            # Qt's monochrome XBM reader maps a set source bit to white;
+            # XBM specifies a set bit as black. Flip in-place once after
+            # decoding, without a second raster buffer or another file pass.
+            image.invertPixels()
         orientation = info.get('pageOrientations', [info.get('orientation', 1)] * expected)[index]
         yield _orient_image(image, orientation)
 
