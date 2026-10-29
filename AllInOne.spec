@@ -19,6 +19,13 @@ for folder in ('src', 'addons', 'assets'):
 assets.append((str(root / 'index.html'), '.'))
 engine_pin = root / 'tools' / 'build' / 'libreoffice-release.json'
 assets.append((str(engine_pin), 'build-info'))
+# Embed the exact checked-out SHA into the installed app, not merely CI logs.
+source_revision = os.environ.get('AIO_QA_SOURCE_SHA') or os.environ.get('AIO_BUILD_REVISION', '')
+if re.fullmatch(r'[0-9a-f]{40}', source_revision):
+    revision_file = root / 'build' / 'aio-source-revision.txt'
+    revision_file.parent.mkdir(parents=True, exist_ok=True)
+    revision_file.write_text(source_revision + '\\n', encoding='ascii')
+    assets.append((str(revision_file), 'build-info'))
 
 a = Analysis(
     [str(root / 'launcher.py')],

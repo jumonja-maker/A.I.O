@@ -39,11 +39,48 @@ def _bounds(width, height):
                          'Холст изображения превышает безопасный бюджет обработки Qt.', stage='engine')
 
 
+
+_PNM_MAGICS = {
+    'pbm': frozenset((b'P1', b'P4')),
+    'pgm': frozenset((b'P2', b'P5')),
+    'ppm': frozenset((b'P3', b'P6')),
+}
+
+
+def qt_pnm_profile(source, *, cancel=None):
+    """Small, content-confirmed Qt route for plain portable bitmaps.
+
+    This is only attempted for the three image suffixes and does not decode
+    the raster in preflight. Qt independently confirms format and dimensions.
+    Unknown sources continue through the existing native LibreOffice path.
+    """
+    source = Path(source)
+    kind = source.suffix.lower().lstrip('.')
+    signatures = _PNM_MAGICS.get(kind)
+    if signatures is None:
+        return None
+    _cancel(cancel)
+    with source.open('rb') as stream:
+        prefix = stream.read(3)
+    if len(prefix) < 3 or prefix[:2] not in signatures or prefix[2] not in b' \r\n\t':
+        return None
+    QImageReader = _qt()[5]
+    reader = QImageReader(str(source))
+    observed = bytes(reader.format()).decode('ascii', errors='ignore').lower()
+    if observed != kind or not reader.canRead():
+        return None
+    size = reader.size()
+    _bounds(size.width(), size.height())
+    _cancel(cancel)
+    return {'format': kind, 'width': size.width(), 'height': size.height(),
+            'frames': 1, 'pages': 1, 'alpha': False, 'durationsMs': [],
+            'orientation': 1}
+
 def media_frame_route(source, target, *, cancel=None):
     """Return a content-based route description, or None for a non-raster route."""
     if target not in RASTER:
         return None
-    info = inspect_media(source, cancel=cancel)
+    info = inspect_media(source, cancel=cancel) or qt_pnm_profile(source, cancel=cancel)
     if info is None:
         return None
     _bounds(info['width'], info['height'])
@@ -88,7 +125,7 @@ def media_preflight(source, *, cancel=None):
     """Content summary and loaded-codec targets, without exporting/decoding."""
     source = Path(source)
     _cancel(cancel)
-    info = inspect_media(source, cancel=cancel)
+    info = inspect_media(source, cancel=cancel) or qt_pnm_profile(source, cancel=cancel)
     if info is None:
         with source.open('rb') as stream:
             magic = stream.read(5)

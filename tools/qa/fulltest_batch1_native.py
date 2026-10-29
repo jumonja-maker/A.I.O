@@ -28,9 +28,19 @@ def main():
     source=args.output/'four-sheets.xlsx';book.save(source);book.close()
     raster=args.output/'original.tga';Image.new('RGB',(24,16),(12,34,56)).save(raster)
     jpeg=args.output/'original.jpg';Image.new('RGB',(24,16),(23,45,67)).save(jpeg)
+    # Exact PBM/PGM/PPM samples. These must not become white A4 Draw pages.
+    pnm_sources={}
+    pnm_data={
+        'pbm': b'P4\\n40 20\\n'+bytes([0xAA,0x55,0xAA,0x55,0xAA]*20),
+        'pgm': b'P5\\n40 20\\n255\\n'+bytes(i % 256 for i in range(800)),
+        'ppm': b'P6\\n40 20\\n255\\n'+bytes((i*3) % 256 for i in range(2400)),
+    }
+    for kind, raw in pnm_data.items():
+        path=args.output/('original.'+kind);path.write_bytes(raw)
+        pnm_sources[kind]=path
     slides=args.output/'slides.fodp'
     slides.write_text('''<?xml version="1.0" encoding="UTF-8"?><office:document xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" office:mimetype="application/vnd.oasis.opendocument.presentation" office:version="1.2"><office:body><office:presentation>'''+''.join('<draw:page draw:name="Slide%d"><draw:frame svg:x="1cm" svg:y="1cm" svg:width="15cm" svg:height="4cm"><draw:text-box><text:p>AIO_SLIDE_%d TEXT_00123</text:p></draw:text-box></draw:frame></draw:page>'%(i,i) for i in range(1,4))+'''</office:presentation></office:body></office:document>''',encoding='utf-8')
-    originals={str(f):digest(f) for f in (source,raster,jpeg,slides)}
+    originals={str(f):digest(f) for f in (source,raster,jpeg,slides,*pnm_sources.values())}
     cancel=threading.Event();adapter=LibreOfficeAdapter(args.executable)
     results=[];counter=0
     def proof(path):
@@ -57,6 +67,21 @@ def main():
                 files=convert(jpeg,target,jp);out=next(f for f in files if f.suffix=='.'+target)
                 assert digest(out)==originals[str(jpeg)],target
             results.append({'case':'JPEG_five_aliases','status':'PASS','bytePreserved':True})
+            # M26: raw pixel dimensions and values, not LibreOffice's
+            # virtual sheet/canvas. Qt is already bundled with the app.
+            pnm_modes=[]
+            for kind,path in pnm_sources.items():
+                pp=proof(path)
+                assert pp.get('mediaProfile',{}).get('format')==kind,pp
+                assert 'png' in pp.get('qtMediaTargets',()),pp
+                exported=convert(path,'png',pp)
+                png=next(f for f in exported if f.suffix=='.png')
+                with Image.open(path) as before,Image.open(png) as after:
+                    assert before.size == after.size == (40,20),(kind,before.size,after.size)
+                    assert before.convert('RGB').tobytes()==after.convert('RGB').tobytes(),kind
+                assert adapter.execution_mode()=='qt_media_frames',kind
+                pnm_modes.append(kind)
+            results.append({'case':'portable_raster_canvas','status':'PASS','types':pnm_modes})
             bk=proof(source)
             for target in ('slk','sylk'):
                 files=convert(source,target,bk);values=[f.read_bytes() for f in files if f.suffix=='.'+target]
@@ -100,7 +125,7 @@ def main():
                     assert all('AIO_SLIDE_'+str(n) in text for n in range(1,4)),text[:200]
                     results.append({'case':path.suffix+'_xhtml','status':'PASS','textRetained':True})
         for path,expected in originals.items():assert digest(path)==expected,path
-        assert len(results)==10,results
+        assert len(results)==11,results
         from fulltest_csv_native import run as run_csv_native
         csv_report=run_csv_native(args.executable,args.output/'csv-decimal-originals')
         report={'status':'PASS','scope':'synthetic native controls plus six original CSV/TAB/TSV; not complete FULLTEST 200',

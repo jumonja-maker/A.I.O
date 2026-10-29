@@ -685,9 +685,21 @@ def check_media_preservation(paths, target, source, *, cancel, source_evidence=N
         return None
     source = Path(source)
     def source_profile():
-        return (inspect_media(source, cancel=cancel) if source_evidence is None else
-                source_evidence.get('media_profile', source,
-                                    lambda: inspect_media(source, cancel=cancel)))
+        def inspect_source():
+            result = inspect_media(source, cancel=cancel)
+            if result is None and source.suffix.lower() in ('.pbm', '.pgm', '.ppm'):
+                # Do not turn every native export into a second Guard scan.
+                # For these formats Qt has already confirmed image structure
+                # during preflight; one cheap header probe proves dimensions.
+                from .qt_media import qt_pnm_profile
+                try:
+                    result = qt_pnm_profile(source, cancel=cancel)
+                except GuardError as error:
+                    if error.code not in ('MEDIA_QT_UNAVAILABLE', 'MEDIA_CANVAS_BUDGET'):
+                        raise
+            return result
+        return (inspect_source() if source_evidence is None else
+                source_evidence.get('media_profile', source, inspect_source))
     if target == 'pdf':
         before = source_profile()
         if before is None or before['format'] != 'tiff':

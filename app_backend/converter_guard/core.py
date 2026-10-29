@@ -29,6 +29,7 @@ from .policy import GuardLimits, validate_files, validate_plan
 from .result_store import ResultStore, path_is_link
 from .native_metrics import clean_timings
 from .export_recipe import warning_details, WARNING_TEXT
+from .build_info import report_build_identity
 
 CHUNK = 64 * 1024
 SUCCESS = {'ready', 'saved'}
@@ -383,9 +384,7 @@ class ConverterGuard:
     def __init__(self, *, adapter=None, limits=None, spool_parent=None, recovery_parent=None, telemetry=None):
         self.adapter = adapter if adapter is not None else LibreOfficeAdapter()
         self.telemetry = telemetry
-        declared_revision = os.environ.get('AIO_BUILD_REVISION', '')
-        self.build_identity = {'scope': 'report_runtime', 'sourceRevision': declared_revision if re.fullmatch(r'[0-9a-f]{40}', declared_revision) else None,
-                               'basis': 'configured' if re.fullmatch(r'[0-9a-f]{40}', declared_revision) else 'unknown'}
+        self.build_identity = report_build_identity()
         self.limits = limits if limits is not None else GuardLimits()
         self._recovery = None if recovery_parent is None else Path(recovery_parent).resolve()
         self._parent = self._recovery or (None if spool_parent is None else Path(spool_parent).resolve())
