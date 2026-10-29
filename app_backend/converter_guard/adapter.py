@@ -837,6 +837,22 @@ class LibreOfficeAdapter:
                     self._local.export_info.get('resultChecks', [])) + repairs
                 self._local.export_info['warnings'] = tuple(dict.fromkeys(
                     (*self._local.export_info.get('warnings', ()), 'NATIVE_BMP_HEADER_CORRECTED')))
+        # The pinned dBase exporter uses native UTF-8 FilterOptions=76, while
+        # LibreOffice can leave DBF's LDID unset. One 32-byte header read per
+        # output is enough to attach .cpg metadata; no Guard rescanning.
+        if target == 'dbf':
+            from .dbf_codepage import attach_utf8_codepages
+            codepages = attach_utf8_codepages(paths,
+                filter_name=self._local.export_info.get('filter'),
+                cancel=identity_control)
+            if codepages:
+                paths = list(paths) + codepages
+                self._local.export_info['warnings'] = tuple(dict.fromkeys((
+                    *self._local.export_info.get('warnings', ()), 'NATIVE_DBF_UTF8_CPG')))
+                self._local.export_info['resultChecks'] = list(
+                    self._local.export_info.get('resultChecks', ())) + [{
+                    'check': 'dbf_utf8_codepage', 'status': 'checked_subset',
+                    'sidecars': len(codepages), 'qualityCompared': False}]
         source_evidence = None
         if getattr(self._local, 'batch', None) is not None:
             source_evidence = getattr(self._local, 'source_evidence', None)

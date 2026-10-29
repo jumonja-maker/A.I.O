@@ -24,7 +24,7 @@ def main():
     from PIL import Image
     book=Workbook();book.remove(book.active)
     for n in range(4):
-        sheet=book.create_sheet('Sheet_'+str(n+1));sheet.append(['ID','Marker','Amount']);sheet.append(['00123','SHEET_'+str(n+1),14.5+n])
+        sheet=book.create_sheet('Sheet_'+str(n+1));sheet.append(['ID','Marker','Amount','Name']);sheet.append(['00123','SHEET_'+str(n+1),14.5+n,'Товар Б'])
     source=args.output/'four-sheets.xlsx';book.save(source);book.close()
     raster=args.output/'original.tga';Image.new('RGB',(24,16),(12,34,56)).save(raster)
     jpeg=args.output/'original.jpg';Image.new('RGB',(24,16),(23,45,67)).save(jpeg)
@@ -63,6 +63,16 @@ def main():
                 assert len(values)==4,(target,len(values))
                 assert all(sum(('SHEET_'+str(i)).encode() in v for v in values)==1 for i in range(1,5)),values
                 results.append({'case':'four_sheets_'+target,'status':'PASS','sheets':4})
+            # M25: every DBF containing Russian UTF-8 must carry a matching
+            # codepage label through the normal save/manifest output list.
+            files=convert(source,'dbf',bk)
+            dbfs=[f for f in files if f.suffix=='.dbf']
+            cpgs=[f for f in files if f.suffix=='.cpg']
+            assert len(dbfs)==4 and len(cpgs)==4,(len(dbfs),len(cpgs))
+            for dbf in dbfs:
+                assert 'Товар Б'.encode('utf-8') in dbf.read_bytes(),dbf
+                assert dbf.with_suffix('.cpg').read_text(encoding='ascii').strip()=='UTF-8',dbf
+            results.append({'case':'four_sheets_dbf_utf8_cpg','status':'PASS','sheets':4})
             files=convert(source,'xhtml',bk)
             out=next(f for f in files if f.suffix=='.xhtml')
             assert ET.parse(out).getroot().tag=='{http://www.w3.org/1999/xhtml}html'
@@ -90,7 +100,7 @@ def main():
                     assert all('AIO_SLIDE_'+str(n) in text for n in range(1,4)),text[:200]
                     results.append({'case':path.suffix+'_xhtml','status':'PASS','textRetained':True})
         for path,expected in originals.items():assert digest(path)==expected,path
-        assert len(results)==9,results
+        assert len(results)==10,results
         from fulltest_csv_native import run as run_csv_native
         csv_report=run_csv_native(args.executable,args.output/'csv-decimal-originals')
         report={'status':'PASS','scope':'synthetic native controls plus six original CSV/TAB/TSV; not complete FULLTEST 200',
