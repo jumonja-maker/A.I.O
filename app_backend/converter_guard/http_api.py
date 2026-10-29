@@ -157,6 +157,15 @@ class GuardAPI:
             self._shutdown(connection, socket.SHUT_RDWR)
         self.comparison.close()
 
+    @staticmethod
+    def _allow_recovery_lookup(handler):
+        query = parse_qs(urlsplit(handler.path).query, keep_blank_values=True)
+        if 'lookup' not in query:
+            return True  # Legacy callers can explicitly look up retained jobs.
+        if query['lookup'] != ['current']:
+            raise GuardError('RECOVERY_REQUEST', 'Неверный режим поиска задания.')
+        return False
+
     def get(self, handler, path):
         try:
             self._authorize(handler, download=path == PREFIX + '/result')
@@ -181,12 +190,17 @@ class GuardAPI:
                 delta = parse_qs(urlsplit(handler.path).query).get('delta') == ['1']
                 result_delta = parse_qs(urlsplit(handler.path).query).get('resultDelta') == ['1']
                 state = self.guard.status(identity, include_trace=trace, since_revision=since,
-                                          delta=delta, result_delta=result_delta)
+                                          delta=delta, result_delta=result_delta,
+                                          recover=self._allow_recovery_lookup(handler))
                 return self._status_reply(handler, state)
             if path == PREFIX + '/recoverable':
-                return self._json(handler,200, self.guard.recoverable())
+                query = parse_qs(urlsplit(handler.path).query, keep_blank_values=True)
+                if query and query != {'mode': ['snapshot']}:
+                    raise GuardError('RECOVERY_REQUEST', 'Неверный режим получения результатов.')
+                return self._json(handler,200, self.guard.recoverable(scan=not bool(query)))
             if path == PREFIX + '/report':
-                return self._json(handler,200, self.guard.report(self._identity(self._query(handler, 'job'))))
+                return self._json(handler,200, self.guard.report(self._identity(self._query(handler, 'job')),
+                    recover=self._allow_recovery_lookup(handler)))
             if path == PREFIX + '/retry-plan':
                 cancelled = parse_qs(urlsplit(handler.path).query).get('includeCancelled') == ['1']
                 return self._json(handler,200, self.guard.retry_plan(
@@ -235,6 +249,10 @@ class GuardAPI:
                 return self._json(handler,201, self.guard.create(
                     body.get('files'), formats, plan=body.get('plan'),
                     retain_sources=body.get('retainSources', False)))
+            if path == PREFIX + '/recovery-scan':
+                if body:
+                    raise GuardError('RECOVERY_REQUEST', 'Поиск результатов не принимает параметры задания.')
+                return self._json(handler,202, self.guard.start_recovery_scan())
             identity = self._identity(body.get('jobId'))
             expected_analysis_id = None
             if path in (PREFIX + '/compare/start', PREFIX + '/compare/control') and 'analysisId' in body:
