@@ -1,4 +1,4 @@
-"""Native AIO fidelity checks on generated controls, not the historical FULLTEST."""
+"""Native AIO fidelity controls plus original CSV samples, not the complete FULLTEST."""
 import argparse
 import hashlib
 import json
@@ -91,7 +91,10 @@ def main():
                     results.append({'case':path.suffix+'_xhtml','status':'PASS','textRetained':True})
         for path,expected in originals.items():assert digest(path)==expected,path
         assert len(results)==9,results
-        report={'status':'PASS','scope':'synthetic targeted native tests, not FULLTEST 200','cases':results,'sourceUnchanged':True}
+        from fulltest_csv_native import run as run_csv_native
+        csv_report=run_csv_native(args.executable,args.output/'csv-decimal-originals')
+        report={'status':'PASS','scope':'synthetic native controls plus six original CSV/TAB/TSV; not complete FULLTEST 200',
+                'cases':results,'sourceUnchanged':True,'csvDecimalAcceptance':csv_report}
     except Exception as error:
         report={'status':'FAIL','cases':results,'error':type(error).__name__,'reason':str(error),'code':getattr(error,'code',None),'diagnostic':getattr(error,'diagnostic',None)}
         raise
