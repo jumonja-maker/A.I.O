@@ -702,7 +702,11 @@
         throw error;
       }
     },
-    async recoverable() {return api('/recoverable',undefined,'GET');},
+    async recoverable({scan=true}={}) {
+      if(typeof scan!=='boolean')throw errorOf('Неверный режим списка результатов.','RECOVERY_REQUEST');
+      return api('/recoverable'+(scan?'':'?mode=snapshot'),undefined,'GET');
+    },
+    async scanRecovery() {return api('/recovery-scan',{});},
     async saveRetained(jobId,mode='folder') {
       let state=await api('/jobs?job='+encodeURIComponent(jobId),undefined,'GET');
       if(mode==='zip'&&!state.finished)

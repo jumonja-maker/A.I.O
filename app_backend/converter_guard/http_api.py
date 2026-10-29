@@ -184,7 +184,10 @@ class GuardAPI:
                                           delta=delta, result_delta=result_delta)
                 return self._status_reply(handler, state)
             if path == PREFIX + '/recoverable':
-                return self._json(handler,200, self.guard.recoverable())
+                query = parse_qs(urlsplit(handler.path).query, keep_blank_values=True)
+                if query and query != {'mode': ['snapshot']}:
+                    raise GuardError('RECOVERY_REQUEST', 'Неверный режим получения результатов.')
+                return self._json(handler,200, self.guard.recoverable(scan=not bool(query)))
             if path == PREFIX + '/report':
                 return self._json(handler,200, self.guard.report(self._identity(self._query(handler, 'job'))))
             if path == PREFIX + '/retry-plan':
@@ -235,6 +238,10 @@ class GuardAPI:
                 return self._json(handler,201, self.guard.create(
                     body.get('files'), formats, plan=body.get('plan'),
                     retain_sources=body.get('retainSources', False)))
+            if path == PREFIX + '/recovery-scan':
+                if body:
+                    raise GuardError('RECOVERY_REQUEST', 'Поиск результатов не принимает параметры задания.')
+                return self._json(handler,202, self.guard.start_recovery_scan())
             identity = self._identity(body.get('jobId'))
             expected_analysis_id = None
             if path in (PREFIX + '/compare/start', PREFIX + '/compare/control') and 'analysisId' in body:
