@@ -2,8 +2,9 @@
 
 Qt decodes/composes GIF/WebP and encodes lossless WebP. APNG/GIF/TIFF framing
 below keeps every decoded frame/page rather than exporting a Draw page. No new
-image library is used. At most the current canvas, disposal snapshot and one
-encoded frame are retained; cancellation/deadlines are checked between rows.
+image library is used for ordinary sources. PCX and Sun RAS use a separate,
+content-confirmed Pillow decoder to avoid LibreOffice's white Draw canvas.
+Cancellation and bounded pixel allocation are checked between stages.
 """
 from fractions import Fraction
 import os
@@ -154,12 +155,83 @@ def qt_xbm_xpm_profile(source, *, cancel=None):
             'durationsMs': [], 'orientation': 1, 'bitDepth': depth}
 
 
+
+_LEGACY_PIL_FORMATS = {'pcx': 'PCX', 'ras': 'SUN'}
+# Pillow RGBA plus the owned QImage copy: avoid unbounded dual pixel buffers.
+_LEGACY_PIL_PIXELS = 16 * 1024 * 1024
+
+
+def pillow_legacy_profile(source, *, cancel=None):
+    """Admit PCX/RAS only with a plausible binary header and Pillow metadata.
+
+    Ordinary office files and other images do not import Pillow or make any
+    additional passes. Preflight opens the header only, not the pixel raster.
+    """
+    source = Path(source)
+    kind = source.suffix.lower().lstrip('.')
+    if kind not in _LEGACY_PIL_FORMATS:
+        return None
+    _cancel(cancel)
+    with source.open('rb') as stream:
+        header = stream.read(128)
+        total = stream.seek(0, 2)
+    if kind == 'pcx':
+        if len(header) != 128 or header[0] != 10 or header[2] != 1:
+            return None
+        xmin, ymin, xmax, ymax = struct.unpack_from('<HHHH', header, 4)
+        depth, planes = header[3], header[65]
+        stride = struct.unpack_from('<H', header, 66)[0]
+        if (xmax < xmin or ymax < ymin or not stride
+                or depth not in (1, 2, 4, 8) or planes not in (1, 3, 4)
+                or total <= 128):
+            return None
+        width, height = xmax - xmin + 1, ymax - ymin + 1
+        if stride * 8 < width * depth:
+            return None
+    else:
+        if len(header) < 32 or header[:4] != b'\x59\xa6\x6a\x95':
+            return None
+        _, width, height, depth, data_length, encoding, map_type, map_length = (
+            struct.unpack_from('>8I', header))
+        if (encoding not in (0, 1, 2, 3) or depth not in (1, 4, 8, 24, 32)
+                or map_type not in (0, 1) or map_length > 1024
+                or (map_length and map_type != 1) or total <= 32 + map_length):
+            return None
+    _bounds(width, height)
+    if width * height > _LEGACY_PIL_PIXELS:
+        raise GuardError('MEDIA_CANVAS_BUDGET',
+                         'Растр PCX/RAS превышает бюджет памяти декодера.',
+                         stage='preflight')
+    try:
+        from PIL import Image
+    except ImportError as error:
+        raise GuardError('MEDIA_CODEC_UNAVAILABLE',
+                         'Графический декодер PCX/RAS недоступен.',
+                         stage='preflight') from error
+    try:
+        with Image.open(source) as image:
+            if (image.format != _LEGACY_PIL_FORMATS[kind]
+                    or image.size != (width, height)
+                    or getattr(image, 'n_frames', 1) != 1):
+                raise ValueError('legacy_image_model_mismatch')
+            alpha = 'A' in image.getbands()
+    except (OSError, ValueError, SyntaxError) as error:
+        raise GuardError('MEDIA_SOURCE_INVALID',
+                         'Изображение PCX/RAS не подтвердилось декодером.',
+                         stage='preflight') from error
+    _cancel(cancel)
+    return {'format': kind, 'width': width, 'height': height,
+            'frames': 1, 'pages': 1, 'alpha': alpha, 'durationsMs': [],
+            'orientation': 1, 'bitDepth': min(depth, 8)}
+
+
 def media_frame_route(source, target, *, cancel=None):
     """Return a content-based route description, or None for a non-raster route."""
     if target not in RASTER:
         return None
     info = (inspect_media(source, cancel=cancel) or qt_pnm_profile(source, cancel=cancel)
-            or qt_xbm_xpm_profile(source, cancel=cancel))
+            or qt_xbm_xpm_profile(source, cancel=cancel)
+            or pillow_legacy_profile(source, cancel=cancel))
     if info is None:
         return None
     _bounds(info['width'], info['height'])
@@ -186,6 +258,8 @@ def supported_media_targets(info):
         targets.add(source_kind)
         if source_kind == 'tiff': targets.add('tif')
         if info.get('animationContainer'): targets.add('apng')
+    if source_kind in _LEGACY_PIL_FORMATS:
+        formats.add(source_kind)  # Pillow provides source decode; Qt writes output.
     if source_kind not in formats:
         return tuple(sorted(targets))
     targets.update(('png', 'apng', 'gif', 'tif', 'tiff'))
@@ -205,7 +279,8 @@ def media_preflight(source, *, cancel=None):
     source = Path(source)
     _cancel(cancel)
     info = (inspect_media(source, cancel=cancel) or qt_pnm_profile(source, cancel=cancel)
-            or qt_xbm_xpm_profile(source, cancel=cancel))
+            or qt_xbm_xpm_profile(source, cancel=cancel)
+            or pillow_legacy_profile(source, cancel=cancel))
     if info is None:
         with source.open('rb') as stream:
             magic = stream.read(5)
@@ -229,8 +304,11 @@ def media_preflight(source, *, cancel=None):
             document.close()
     _bounds(info['width'], info['height'])
     targets = supported_media_targets(info)
-    decoder = 'manual_apng_qt_png' if info.get('animationContainer') else 'qt_image_reader'
-    if info['format'] != 'pdf':
+    decoder = ('pillow_legacy' if info['format'] in _LEGACY_PIL_FORMATS else
+               'manual_apng_qt_png' if info.get('animationContainer') else 'qt_image_reader')
+    if info['format'] in _LEGACY_PIL_FORMATS:
+        can_read = True
+    elif info['format'] != 'pdf':
         reader = _qt()[5](str(source))
         can_read = reader.canRead()
         if not can_read:
@@ -397,6 +475,33 @@ def _orient_image(image, orientation):
     return image.transformed(QTransform().rotate(rotation)) if rotation else image
 
 def _frames(source, scratch, info, cancel):
+    if info.get('format') in _LEGACY_PIL_FORMATS:
+        from PIL import Image
+        QImage = _qt()[4]
+        with Image.open(source) as decoded:
+            _cancel(cancel)
+            if (decoded.format != _LEGACY_PIL_FORMATS[info['format']]
+                    or decoded.size != (info['width'], info['height'])):
+                raise GuardError('MEDIA_SOURCE_CHANGED',
+                                 'PCX/RAS изменился после проверки.',
+                                 stage='engine')
+            decoded.load()
+            _cancel(cancel)
+            pixels = decoded.convert('RGBA').tobytes()
+            width, height = decoded.size
+            if len(pixels) != width * height * 4:
+                raise GuardError('MEDIA_DECODE_FAILED',
+                                 'Неполный кадр PCX/RAS.', stage='engine')
+            frame = QImage(pixels, width, height, width * 4,
+                           QImage.Format.Format_RGBA8888).copy()
+            if frame.isNull():
+                raise GuardError('MEDIA_DECODE_FAILED',
+                                 'Не удалось передать пиксели PCX/RAS в Qt.',
+                                 stage='engine')
+            del pixels
+            _cancel(cancel)
+            yield frame
+        return
     if info.get('animationContainer'):
         for image in _apng_frames(source, scratch, info, cancel):
             yield _orient_image(image, info.get('orientation', 1))
@@ -781,6 +886,10 @@ def convert_media_frames(source, output_dir, target, *, cancel=None, on_started=
                 actual = inspect_media(partial, cancel=cancel)
                 if actual is None or actual['format'] != normal:
                     raise GuardError('MEDIA_ENCODE_FAILED', 'Контейнер результата не прошёл проверку.', stage='result')
+                if (info['format'] in _LEGACY_PIL_FORMATS
+                        and (actual['width'], actual['height']) != (info['width'], info['height'])):
+                    raise GuardError('MEDIA_CANVAS_CHANGED',
+                                     'Результат PCX/RAS изменил размер исходного холста.', stage='result')
                 os.replace(partial, output)
             finally:
                 frames.close()

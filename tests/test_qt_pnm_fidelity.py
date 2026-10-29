@@ -1,9 +1,10 @@
 """M26: content-confirmed PNM routes must preserve pixels without Draw pages."""
 from pathlib import Path
 from tempfile import TemporaryDirectory
+import struct
 import unittest
 
-from app_backend.converter_guard.qt_media import qt_pnm_profile, qt_xbm_xpm_profile, media_preflight
+from app_backend.converter_guard.qt_media import qt_pnm_profile, qt_xbm_xpm_profile, pillow_legacy_profile, media_preflight
 
 
 class QtPortableRasterTests(unittest.TestCase):
@@ -72,6 +73,42 @@ class QtPortableRasterTests(unittest.TestCase):
                     source = root / ('fake.' + kind)
                     source.write_bytes(data)
                     self.assertIsNone(qt_xbm_xpm_profile(source))
+
+
+    def test_legacy_pcx_and_ras_preserve_native_image_metadata(self):
+        from PIL import Image
+        with TemporaryDirectory() as folder:
+            root = Path(folder)
+            rgb = bytes(value for y in range(3) for x in range(4)
+                        for value in (x * 40, y * 60, 35))
+            image = Image.frombytes('RGB', (4, 3), rgb)
+            pcx = root / 'test.pcx'
+            image.save(pcx, format='PCX')
+            ras = root / 'test.ras'
+            bgr = bytes(value for i in range(0, len(rgb), 3)
+                        for value in (rgb[i + 2], rgb[i + 1], rgb[i]))
+            ras.write_bytes(struct.pack('>8I', 0x59a66a95, 4, 3, 24,
+                                        len(bgr), 1, 0, 0) + bgr)
+            for kind, path in (('pcx', pcx), ('ras', ras)):
+                with self.subTest(kind=kind):
+                    metadata = pillow_legacy_profile(path)
+                    self.assertEqual(metadata['format'], kind)
+                    self.assertEqual((metadata['width'], metadata['height']), (4, 3))
+                    proof = media_preflight(path)
+                    self.assertEqual(proof['decoder'], 'pillow_legacy')
+                    self.assertIn('png', proof['targets'])
+                    with Image.open(path) as decoded:
+                        self.assertEqual(decoded.convert('RGB').tobytes(), rgb)
+
+    def test_fake_pcx_ras_are_not_admitted_from_extension(self):
+        with TemporaryDirectory() as folder:
+            root = Path(folder)
+            for name, payload in (('invalid.pcx', b'<html>not a raster</html>'),
+                                  ('invalid.ras', b'not a Sun raster')):
+                with self.subTest(name=name):
+                    path = root / name
+                    path.write_bytes(payload)
+                    self.assertIsNone(pillow_legacy_profile(path))
 
 
 if __name__=='__main__':

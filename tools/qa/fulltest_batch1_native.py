@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 import json
+import struct
 from pathlib import Path
 import sys
 import threading
@@ -58,6 +59,19 @@ def main():
         +',\n'.join('"' + ('. '*20 if i%2==0 else ' .' *20) + '"' for i in range(20))
         +'\n};\n', encoding='ascii')
     legacy_sources['xpm']=xpm
+    # Content-confirmed PCX/Sun Raster: no white Draw page or size changes.
+    rgb = bytes(value for y in range(20) for x in range(40)
+                for value in (x * 5 % 256, y * 9 % 256, 67))
+    img = Image.frombytes('RGB', (40, 20), rgb)
+    pcx = args.output/'legacy.pcx'
+    img.save(pcx, format='PCX')
+    legacy_sources['pcx'] = pcx
+    ras = args.output/'legacy.ras'
+    bgr = bytes(value for i in range(0, len(rgb), 3)
+                for value in (rgb[i+2], rgb[i+1], rgb[i]))
+    ras.write_bytes(struct.pack('>8I', 0x59a66a95, 40, 20, 24,
+                                len(bgr), 1, 0, 0) + bgr)
+    legacy_sources['ras'] = ras
     # Self-contained DOCX with three explicit page breaks; no test-only
     # Python conversion engine or additional runtime package is required.
     writer=args.output/'three-pages.docx'
@@ -151,7 +165,7 @@ def main():
                     assert before.convert('RGB').tobytes()==after.convert('RGB').tobytes(),kind
                 assert adapter.execution_mode()=='qt_media_frames',kind
                 legacy_modes.append(kind)
-            results.append({'case':'legacy_xbm_xpm_canvas','status':'PASS','types':legacy_modes})
+            results.append({'case':'legacy_pcx_ras_xbm_xpm_canvas','status':'PASS','types':legacy_modes})
             wp=proof(writer)
             assert 'com.sun.star.text.TextDocument' in wp.get('documentServices',[]),wp
             for target in ('png','jpg'):
