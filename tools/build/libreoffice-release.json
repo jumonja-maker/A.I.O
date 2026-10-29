@@ -1,11 +1,10 @@
 {
   "schema": 1,
-  "version": "26.8.1.1",
-  "release": "26.8.1",
+  "version": "26.8.2.2",
+  "release": "26.8.2",
   "channel": "stable",
   "platform": "windows-x86_64",
-  "url": "https://download.documentfoundation.org/libreoffice/stable/26.8.1/win/x86_64/LibreOffice_26.8.1_Win_x86-64.msi",
-  "sha256": "c6298b10cfa1748bcbedad94c62ce771e240e5021bfd6d7a967cd571b04b5312",
-  "verificationSource": "microsoft/winget-pkgs/manifests/t/TheDocumentFoundation/LibreOffice/26.8.1.1/TheDocumentFoundation.LibreOffice.installer.yaml",
-  "verificationSourceBlob": "7fab0752ca301762c433c28a7901be3a3bb9cdca"
+  "url": "https://download.documentfoundation.org/libreoffice/stable/26.8.2/win/x86_64/LibreOffice_26.8.2_Win_x86-64.msi",
+  "sha256": "ff4b911403b67ee9e6249f820f9782c44bb32c94fdaa45b0da53a8e419e5307a",
+  "verificationSource": "https://download.documentfoundation.org/libreoffice/stable/26.8.2/win/x86_64/LibreOffice_26.8.2_Win_x86-64.msi.sha256"
 }

@@ -1,4 +1,4 @@
-name: AIO hosted QA and Windows engine 26.8.1
+name: AIO hosted QA and Windows engine 26.8.2
 on:
   pull_request:
     branches: [fix/guard-v182-matrix-progress-cancel-20261025, main]
@@ -75,7 +75,7 @@ jobs:
         if: runner.os == 'Windows'
         id: windows_engine
         shell: pwsh
-        run: ./tools/build/prepare-libreoffice.ps1 -Destination (Join-Path $env:RUNNER_TEMP 'aio-engine-26.8.1')
+        run: ./tools/build/prepare-libreoffice.ps1 -Destination (Join-Path $env:RUNNER_TEMP 'aio-engine-26.8.2')
       - name: Native critical FULLTEST controls on pinned Windows engine
         if: ${{ !cancelled() && runner.os == 'Windows' && steps.windows_engine.outcome == 'success' && steps.deps.outcome == 'success' }}
         id: fidelity
