@@ -1,13 +1,13 @@
-name: AIO isolated PPTX colour investigation
+name: AIO isolated PPTX colour preparation
 on:
   push:
     branches: [work/pptx-colour-probe-20261029]
 permissions:
-  contents: read
+  contents: write
 jobs:
   probe:
     runs-on: windows-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
     env:
       PYTHONUTF8: '1'
       PYTHONDONTWRITEBYTECODE: '1'
@@ -18,6 +18,10 @@ jobs:
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
+        env:
+          GIT_CONFIG_COUNT: '1'
+          GIT_CONFIG_KEY_0: core.autocrlf
+          GIT_CONFIG_VALUE_0: 'false'
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: '3.11'
@@ -26,5 +30,24 @@ jobs:
       - name: Verified Windows engine
         shell: pwsh
         run: ./tools/build/prepare-libreoffice.ps1 -Destination (Join-Path $env:RUNNER_TEMP 'aio-colour-engine')
-      - name: Inspect RGB and theme state without changing product code
-        run: python tools/qa/_colour_probe.py
+      - name: Apply exact-base product edits in disposable checkout
+        run: python tools/qa/_prepare_colour_patch.py
+      - name: New unit controls and worker syntax
+        shell: bash
+        run: |
+          python -m compileall -q app_backend tools tests
+          python -m unittest discover -s tests -p test_pptx_colour_preservation.py -v
+          python -c "from app_backend.converter_guard.uno_session import WORKER_SOURCE; compile(WORKER_SOURCE,'native-worker','exec')"
+      - name: Existing page acceptance and strict former colour regression
+        shell: bash
+        run: python tools/qa/fulltest_vector_pages_native.py --executable "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-colour-pages"
+      - name: Native RGB groups ODP and genuine theme controls
+        shell: bash
+        run: python tools/qa/fulltest_pptx_colours_native.py --executable "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-colour-cases"
+      - name: Show actual product diff
+        shell: bash
+        run: git diff -- app_backend/converter_guard/uno_session.py app_backend/converter_guard/adapter.py tools/qa/fulltest_vector_pages_native.py .github/workflows/aio-hosted-qa.yml
+      - name: Publish tested unreferenced git objects only
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python tools/qa/_publish_colour_blobs.py
