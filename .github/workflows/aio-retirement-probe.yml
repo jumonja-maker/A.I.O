@@ -4,7 +4,7 @@ on:
     branches: ['work/retire-comparison-blackbox-20261030']
 concurrency:
   group: aio-isolated-retirement
-  cancel-in-progress: true
+  cancel-in-progress: false
 permissions:
   contents: read
 env:
@@ -50,13 +50,27 @@ jobs:
           s=p.read_text(encoding='utf-8')
           old="    assert text.count(before)==count,(name,before[:80],text.count(before))"
           assert s.count(old)==1
-          # The existing transfer-admission barrier already matches the exact
-          # replacement; preserve it, do not duplicate or weaken it.
           s=s.replace(old,"    if text.count(before)==0 and text.count(after)==count:return\n"+old)
+          old="p.open('a',encoding='utf-8')"
+          assert s.count(old)==1
+          s=s.replace(old,"p.open('a',encoding='utf-8',newline='\\n')")
           p.write_text(s,encoding='utf-8',newline='\n')
           PY
           python tools/qa/_finalize_retirement.py
           rm tools/qa/_finalize_retirement.py
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('README.md');s=p.read_text(encoding='utf-8')
+          old='> **Отдельный патч v19 — «до/после»:** добровольный анализ результатов,'
+          assert s.count(old)==1
+          new=('> **QA M16/M17, 30.10.2026:** «До/После» и BlackBox исключены из рабочего приложения.\n'
+               '> Guard, технические отчёты, постоянная история и защита несохранённых результатов сохранены.\n'
+               '> Код и тесты удалённых модулей: ветка `archive/beforeafter-blackbox-20261030`,\n'
+               '> точный снимок `ad3492dd701082cf1d961a68d0d99de6a08457dd`. Это не изменение MAIN и не релиз.\n'
+               '> [Область изменения и ограничения приёмки](docs/review/AIO_MODULE_RETIREMENT_M16_M17_2026-10-30_RU.md).\n\n'
+               '> **Архивный патч v19 — «до/после» (не входит в текущую QA-сборку):** добровольный анализ результатов,')
+          p.write_text(s.replace(old,new),encoding='utf-8',newline='\n')
+          PY
           python -m compileall -q app_backend tools tests
           node --check src/guard-queue.js
           node --check src/converter-bridge.js
