@@ -1,7 +1,6 @@
 """Disposable preparation: exact-base edits, never shipped in product."""
 import hashlib
 from pathlib import Path
-import sys
 ROOT=Path(__file__).resolve().parents[2]
 
 def modify(name,sha,pairs):
@@ -30,8 +29,8 @@ modify('tools/qa/fulltest_vector_pages_native.py','211323785e7412a34b87c4eb91570
 ("            roundtrip_audit={", "            assert all(v['status']=='MATCH' for v in observations), observations\n            roundtrip_audit={"),
 ("'status':'OPEN' if any(v['status']=='MISMATCH' for v in observations) else 'NOT_REPRODUCED'", "'status':'PASS'"),
 ("                'resolved':False,", "                'resolved':True,\n                'resolutionScope':'synthetic_theme_free_odf_solid_rgb_only',"),
+("result={'status':'FAIL','error':str(error),'cases':cases,'separateRoundtripAudit':roundtrip_audit}", "result={'status':'FAIL','error':str(error),'code':getattr(error,'code',None),\n                'diagnostic':getattr(error,'diagnostic',None),'cases':cases,'separateRoundtripAudit':roundtrip_audit}"),
 ])
-# Full CI runs both old and new native matrices; no artifact storage.
 path=ROOT/'.github/workflows/aio-hosted-qa.yml'
 s=path.read_text(encoding='utf-8')
 old='run: python tools/qa/fulltest_vector_pages_native.py --executable "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-vector-pages-native"'
@@ -39,4 +38,11 @@ assert s.count(old)==1,(str(path),'native step anchor')
 s=s.replace(old,'run: |\n          python tools/qa/fulltest_vector_pages_native.py --executable "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-vector-pages-native"\n          python tools/qa/fulltest_pptx_colours_native.py --executable "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-pptx-colours-native"')
 s=s.replace("'aio-vector-pages-native/evidence.json','aio-hosted-frozen/evidence.json'", "'aio-vector-pages-native/evidence.json','aio-pptx-colours-native/evidence.json','aio-hosted-frozen/evidence.json'")
 path.write_text(s,encoding='utf-8',newline='\n')
-print('PREPARED_COLOUR_PRODUCT_FILES=4')
+modify('app_backend/converter_guard/native_pptx_colours.py','61797fd08bc4a3abff549b08c1442b5b1a31da69',[
+("                shape.setPropertyValue('FillComplexColor', None)", "                # Attribute assignment uses the UNO property's interface type.\n                # setPropertyValue(..., None) sends a void Any and can silently\n                # leave XComplexColor unchanged in PyUNO.\n                shape.FillComplexColor = None"),
+])
+modify('tests/test_pptx_colour_preservation.py','cb28539ed7502d8ce9c3f3a4320ed6329fdedc4b',[
+("    def supportsService(self,name): return False\n", "    @property\n    def FillComplexColor(self): return self.values['FillComplexColor']\n    @FillComplexColor.setter\n    def FillComplexColor(self,value): Shape.setPropertyValue(self,'FillComplexColor',value)\n    def supportsService(self,name): return False\n"),
+("    def test_groups_and_master_shapes_processed(self):", "    def test_interface_null_uses_typed_property_assignment_not_void_any(self):\n        class VoidAnyShape(Shape):\n            def setPropertyValue(self,name,value):\n                if name=='FillComplexColor' and value is None:\n                    return  # actual PyUNO void Any does not clear the interface\n                return super().setPropertyValue(name,value)\n        shape=VoidAnyShape();model=Model(shape)\n        result=self.run_case(model)\n        self.assertEqual(result['normalizedFills'],1)\n        self.assertEqual(shape.values,shape.original)\n    def test_groups_and_master_shapes_processed(self):"),
+])
+print('PREPARED_COLOUR_PRODUCT_FILES=6')

@@ -6,7 +6,8 @@ import os
 from pathlib import Path
 import urllib.request
 ROOT=Path(__file__).resolve().parents[2]
-paths=['app_backend/converter_guard/uno_session.py','app_backend/converter_guard/adapter.py',
+paths=['app_backend/converter_guard/native_pptx_colours.py','tests/test_pptx_colour_preservation.py',
+       'app_backend/converter_guard/uno_session.py','app_backend/converter_guard/adapter.py',
        'tools/qa/fulltest_vector_pages_native.py','.github/workflows/aio-hosted-qa.yml']
 for name in paths:
     data=(ROOT/name).read_bytes()
