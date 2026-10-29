@@ -15,8 +15,9 @@ import time
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-TOKENS = ['AIO_VECTOR_PAGE_%02d_ONLY' % n for n in (1, 2, 3)]
-COLOURS = ['#ff0000', '#0000ff', '#00aa00']
+from tools.qa.vector_page_fixture import TOKENS, COLOURS as RGB_COLOURS, write_pptx_fixture
+
+COLOURS = ['#'+colour for colour in RGB_COLOURS]
 
 
 def fixture(kind):
@@ -93,6 +94,7 @@ def main():
     cancel=threading.Event()
     adapter=LibreOfficeAdapter(args.executable)
     cases=[]
+    roundtrip_audit=None
     originals={}
     started=time.monotonic()
     counter=0
@@ -117,13 +119,18 @@ def main():
             originals[source]=digest(source)
         with adapter.batch(args.output/'office'):
             pp=proof(sources[0])
-            # Import the same known content through both legacy and OOXML
-            # presentation readers. Originals from the user's corpus are not
-            # substituted or claimed tested by these generated controls.
-            for kind in ('ppt','pptx'):
-                generated=next(p for p in convert(sources[0],kind,pp) if p.suffix.lower()=='.'+kind)
-                sources.append(generated)
-                originals[generated]=digest(generated)
+            # The legacy fixture is generated through the real adapter.
+            generated=next(p for p in convert(sources[0],'ppt',pp) if p.suffix.lower()=='.ppt')
+            sources.append(generated)
+            originals[generated]=digest(generated)
+            # Independent OOXML input: native FODP->PPTX creation was found to
+            # replace distinct RGB fills with one theme colour on Windows.
+            # Never repair that export or accept its altered colours as truth.
+            # The separate roundtrip audit below keeps that issue observable.
+            independent=args.output/'independent-three-pages.pptx'
+            write_pptx_fixture(independent)
+            sources.append(independent)
+            originals[independent]=digest(independent)
             for source in sources:
                 evidence=proof(source)
                 for kind in ('emf','wmf','bmp'):
@@ -154,12 +161,39 @@ def main():
                     assert row['sourceUnchanged'],source.name
                     cases.append(row)
                     print('VECTOR_PAGE_CASE='+json.dumps(row),flush=True)
+            # Diagnostic, not a thirteenth accepted page-export case. Retain
+            # the original failing FODP->PPTX roundtrip independently: the
+            # known upstream colour issue must not disappear with the fixture.
+            generated=next(p for p in convert(sources[0],'pptx',pp) if p.suffix.lower()=='.pptx')
+            originals[generated]=digest(generated)
+            generated_proof=proof(generated)
+            bmp=convert(generated,'bmp',generated_proof)
+            listing=json.loads(next(p for p in bmp if p.name=='AIO-pages.json').read_text(encoding='utf-8'))
+            assert listing['pageCount']==3 and len(listing['pages'])==3,listing
+            images={p.name:p for p in bmp if p.suffix.lower()=='.bmp'}
+            observations=[]
+            for i,row in enumerate(listing['pages']):
+                try:
+                    observations.append({'status':'MATCH',**inspect_page(images[row['file']],i)})
+                except AssertionError as error:
+                    observations.append({'status':'MISMATCH','page':i+1,'detail':str(error)})
+            roundtrip_audit={
+                'status':'OPEN' if any(v['status']=='MISMATCH' for v in observations) else 'NOT_REPRODUCED',
+                'code':'FODP_PPTX_FILL_COLOUR_ROUNDTRIP',
+                'scope':'separate FODP->PPTX creation audit; excluded from the 12 direct-input acceptances',
+                'observations':observations,'sourceSha256':originals[sources[0]],
+                'generatedPptxSha256':originals[generated],
+                'investigationRun':40933330624,
+                'resolved':False,
+            }
+            print('FODP_PPTX_COLOUR_AUDIT='+json.dumps(roundtrip_audit),flush=True)
         assert len(cases)==12,cases
         assert all(digest(path)==sha for path,sha in originals.items()),'source changed'
         result={'status':'PASS','scope':'12 synthetic native multi-page EMF/WMF/BMP conversions; not historical FULLTEST',
-                'cases':cases,'sourceUnchanged':True,'elapsedSeconds':round(time.monotonic()-started,3)}
+                'cases':cases,'sourceUnchanged':True,'separateRoundtripAudit':roundtrip_audit,
+                'elapsedSeconds':round(time.monotonic()-started,3)}
     except Exception as error:
-        result={'status':'FAIL','error':str(error),'cases':cases}
+        result={'status':'FAIL','error':str(error),'cases':cases,'separateRoundtripAudit':roundtrip_audit}
         (args.output/'evidence.json').write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf-8')
         print('FULLTEST_VECTOR_PAGES_NATIVE='+json.dumps(result),flush=True)
         raise
