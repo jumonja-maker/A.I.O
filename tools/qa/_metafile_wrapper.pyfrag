@@ -1,0 +1,187 @@
+# Matches the native page producer's existing bounds, not a new Guard scan.
+_PAGE_MANIFEST_LIMIT = 1024 * 1024
+_METAFILE_PAGE_LIMIT = 4096
+
+
+def _unique_manifest_object(pairs):
+    value = {}
+    for key, item in pairs:
+        if key in value:
+            raise ValueError('duplicate manifest key')
+        value[key] = item
+    return value
+
+
+def _retarget_page_manifest(inputs, primaries, replacements):
+    """Bind the existing schema-1 page list to supplied outputs, never its paths."""
+    manifests = [p for p in inputs if p.name == 'AIO-pages.json']
+    if not manifests:
+        if len(primaries) > 1:
+            _invalid('page_manifest_missing')
+        return None
+    if len(manifests) != 1:
+        _invalid('page_manifest_duplicate')
+    path = manifests[0]
+    before = path.lstat()
+    if not stat.S_ISREG(before.st_mode) or before.st_size > _PAGE_MANIFEST_LIMIT:
+        _invalid('page_manifest_type_or_budget')
+    with path.open('rb') as stream:
+        if _stat_token(os.fstat(stream.fileno())) != _stat_token(before):
+            _invalid('page_manifest_changed')
+        raw = stream.read(_PAGE_MANIFEST_LIMIT + 1)
+    if len(raw) > _PAGE_MANIFEST_LIMIT or _stat_token(path.lstat()) != _stat_token(before):
+        _invalid('page_manifest_changed_or_budget')
+    try:
+        data = json.loads(raw.decode('utf-8'), object_pairs_hook=_unique_manifest_object)
+    except (ValueError, UnicodeError, RecursionError):
+        _invalid('page_manifest_json')
+    if (not isinstance(data, dict) or set(data) != {'schema', 'pageCount', 'pages'}
+            or type(data['schema']) is not int or data['schema'] != 1
+            or type(data['pageCount']) is not int or data['pageCount'] != len(primaries)
+            or not isinstance(data['pages'], list) or len(data['pages']) != len(primaries)):
+        _invalid('page_manifest_schema_or_count')
+    parent = os.path.abspath(path.parent)
+    names = {p.name: replacements[p].name for p in primaries}
+    if (len(names) != len(primaries)
+            or any(os.path.abspath(p.parent) != parent for p in primaries)):
+        _invalid('page_manifest_output_scope')
+    seen, rows = set(), []
+    for number, row in enumerate(data['pages'], 1):
+        if (not isinstance(row, dict) or set(row) != {'page', 'file'}
+                or type(row['page']) is not int or row['page'] != number
+                or not isinstance(row['file'], str) or row['file'] not in names
+                or row['file'] in seen or any(c in row['file'] for c in '/\\:')):
+            _invalid('page_manifest_mapping')
+        seen.add(row['file'])
+        rows.append({'page': number, 'file': names[row['file']]})
+    return path, before, json.dumps(
+        {'schema': 1, 'pageCount': len(rows), 'pages': rows}, ensure_ascii=False).encode('utf-8')
+
+
+def _remove_created(entries):
+    """Best-effort rollback of files exclusively created by this invocation."""
+    for path, identity in reversed(entries):
+        try:
+            current = path.lstat()
+            if stat.S_ISREG(current.st_mode) and (current.st_dev, current.st_ino) == identity:
+                path.unlink()
+        except OSError:
+            pass  # Any locked leftovers stay charged to the owning workspace.
+
+
+def wrap_native_metafiles(paths, target, *, cancel=None):
+    """Compress complete native vectors and retarget their page list together.
+
+    Files live in a private, unpublished task workspace. Keep every native
+    intermediate and the old manifest until ALL gzip readbacks pass. On an
+    earlier failure, remove only our exclusively created containers. Final
+    manifest replacement/intermediate deletion is not a filesystem transaction:
+    a cleanup error is still an error, and valid containers remain in the owned
+    workspace rather than being destroyed after their plain originals are gone.
+    """
+    plain = COMPRESSED_METAFILES.get(target)
+    if not plain:
+        raise ValueError('Unsupported compressed metafile target')
+    _cancel(cancel)
+    inputs = [Path(p) for p in paths]
+    keys = [os.path.abspath(p).casefold() for p in inputs]
+    if len(keys) != len(set(keys)):
+        _invalid('duplicate_input')
+    primaries = [p for p in inputs if p.suffix.lower() == '.' + plain]
+    if not primaries:
+        _invalid('primary_missing')
+    if len(primaries) > _METAFILE_PAGE_LIMIT:
+        _invalid('page_budget')
+    replacements = {p: p.with_suffix('.' + target) for p in primaries}
+    manifest = _retarget_page_manifest(inputs, primaries, replacements)
+    outputs = [replacements.get(p, p) for p in inputs]
+    evidence, owned, snapshots = [], [], []
+    manifest_temp = []
+    committing = False
+    try:
+        for source, output in replacements.items():
+            _cancel(cancel)
+            snapshot = source.lstat()
+            facts = inspect_metafile(source, plain, cancel=cancel)
+            if _stat_token(snapshot) != _stat_token(source.lstat()):
+                _invalid('source_changed')
+            snapshots.append((source, snapshot))
+            # Exclusive final names eliminate the old exists()+replace() race.
+            # These private bytes are not returned to Guard before readback.
+            if os.path.lexists(output.with_name(output.name + '.partial')):
+                _invalid('output_collision')
+            original_hash = hashlib.sha256()
+            original_size = 0
+            with source.open('rb') as incoming:
+                initial = os.fstat(incoming.fileno())
+                if _stat_token(initial) != _stat_token(snapshot):
+                    _invalid('source_changed')
+                try:
+                    raw = output.open('xb')
+                except FileExistsError:
+                    _invalid('output_collision')
+                with raw:
+                    created = os.fstat(raw.fileno())
+                    owned.append((output, (created.st_dev, created.st_ino)))
+                    with gzip.GzipFile(filename='', fileobj=raw, mode='wb', mtime=0) as compressed:
+                        while True:
+                            _cancel(cancel)
+                            block = incoming.read(64 * 1024)
+                            if not block:
+                                break
+                            original_hash.update(block)
+                            original_size += len(block)
+                            compressed.write(block)
+                end = os.fstat(incoming.fileno())
+                if (_stat_token(initial) != _stat_token(end)
+                        or _stat_token(end) != _stat_token(source.lstat())
+                        or original_size != facts['bytes']
+                        or original_hash.hexdigest() != facts['sha256']):
+                    _invalid('source_changed')
+            expanded_hash = hashlib.sha256()
+            expanded_size = 0
+            with gzip.open(output, 'rb') as verified:
+                while True:
+                    _cancel(cancel)
+                    block = verified.read(64 * 1024)
+                    if not block:
+                        break
+                    expanded_hash.update(block)
+                    expanded_size += len(block)
+                    if expanded_size > original_size:
+                        _invalid('gzip_readback_mismatch')
+            if expanded_size != original_size or expanded_hash.digest() != original_hash.digest():
+                _invalid('gzip_readback_mismatch')
+            evidence.append({**facts, 'file': output.name, 'sha256': original_hash.hexdigest()})
+        if manifest:
+            path, before, payload = manifest
+            fd, name = tempfile.mkstemp(prefix='.aio-pages-', suffix='.partial', dir=path.parent)
+            temporary = Path(name)
+            with os.fdopen(fd, 'wb') as stream:
+                created = os.fstat(stream.fileno())
+                manifest_temp.append((temporary, (created.st_dev, created.st_ino)))
+                stream.write(payload)
+            if temporary.read_bytes() != payload:
+                _invalid('page_manifest_readback')
+        # Cheap identity checks only; no additional native import or full scan.
+        for source, snapshot in snapshots:
+            _cancel(cancel)
+            if _stat_token(source.lstat()) != _stat_token(snapshot):
+                _invalid('source_changed')
+        if manifest:
+            if _stat_token(path.lstat()) != _stat_token(before):
+                _invalid('page_manifest_changed')
+            _cancel(cancel)
+            os.replace(temporary, path)  # Replace only the validated native sidecar.
+        committing = True
+        for source in primaries:
+            _cancel(cancel)
+            source.unlink()
+        return outputs, {'check': 'native_metafile_gzip', 'status': 'byte_preserved',
+            'plainFormat': plain, 'containerFormat': target, 'files': len(evidence),
+            'metafiles': evidence, 'qualityCompared': False,
+            **({'pageManifest': {'file': path.name, 'pageCount': len(primaries)}} if manifest else {})}
+    finally:
+        _remove_created(manifest_temp)
+        if not committing:
+            _remove_created(owned)
