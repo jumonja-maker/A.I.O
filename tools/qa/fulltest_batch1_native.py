@@ -6,6 +6,7 @@ from pathlib import Path
 import sys
 import threading
 import time
+from zipfile import ZipFile, ZIP_DEFLATED
 import xml.etree.ElementTree as ET
 
 ROOT=Path(__file__).resolve().parents[2]
@@ -57,7 +58,34 @@ def main():
         +',\n'.join('"' + ('. '*20 if i%2==0 else ' .' *20) + '"' for i in range(20))
         +'\n};\n', encoding='ascii')
     legacy_sources['xpm']=xpm
-    originals={str(f):digest(f) for f in (source,raster,jpeg,slides,*pnm_sources.values(),*legacy_sources.values())}
+    # Self-contained DOCX with three explicit page breaks; no test-only
+    # Python conversion engine or additional runtime package is required.
+    writer=args.output/'three-pages.docx'
+    paragraphs=''.join(
+        '<w:p><w:r><w:t>AIO_WRITER_PAGE_%d_ID_00%d</w:t></w:r></w:p>' % (index,index)
+        + ('<w:p><w:r><w:br w:type="page"/></w:r></w:p>' if index < 3 else '')
+        for index in range(1,4))
+    with ZipFile(writer,'w',ZIP_DEFLATED) as archive:
+        archive.writestr('[Content_Types].xml',
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+            '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+            '<Default Extension="xml" ContentType="application/xml"/>'
+            '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>'
+            '</Types>')
+        archive.writestr('_rels/.rels',
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>'
+            '</Relationships>')
+        archive.writestr('word/document.xml',
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+            '<w:body>' + paragraphs
+            + '<w:sectPr><w:pgSz w:w="12240" w:h="15840"/>'
+            '<w:pgMar w:top="720" w:right="720" w:bottom="720" w:left="720"/>'
+            '</w:sectPr></w:body></w:document>')
+    originals={str(f):digest(f) for f in (source,raster,jpeg,slides,writer,*pnm_sources.values(),*legacy_sources.values())}
     cancel=threading.Event();adapter=LibreOfficeAdapter(args.executable)
     results=[];counter=0
     def proof(path):
@@ -124,6 +152,17 @@ def main():
                 assert adapter.execution_mode()=='qt_media_frames',kind
                 legacy_modes.append(kind)
             results.append({'case':'legacy_xbm_xpm_canvas','status':'PASS','types':legacy_modes})
+            wp=proof(writer)
+            assert 'com.sun.star.text.TextDocument' in wp.get('documentServices',[]),wp
+            for target in ('png','jpg'):
+                files=convert(writer,target,wp)
+                frames=[p for p in files if p.suffix.lower()=='.'+target]
+                assert len(frames)==3,(target,len(frames))
+                assert len({digest(frame) for frame in frames})==3,(target,'identical pages')
+                manifest=json.loads(next(f for f in files if f.name=='AIO-pages.json').read_text(encoding='utf-8'))
+                assert manifest['pageCount']==3 and len(manifest['pages'])==3
+                assert [record['page'] for record in manifest['pages']]==[1,2,3]
+                results.append({'case':'writer_three_pages_'+target,'status':'PASS','pages':3})
             bk=proof(source)
             for target in ('slk','sylk'):
                 files=convert(source,target,bk);values=[f.read_bytes() for f in files if f.suffix=='.'+target]
@@ -167,7 +206,7 @@ def main():
                     assert all('AIO_SLIDE_'+str(n) in text for n in range(1,4)),text[:200]
                     results.append({'case':path.suffix+'_xhtml','status':'PASS','textRetained':True})
         for path,expected in originals.items():assert digest(path)==expected,path
-        assert len(results)==11,results
+        assert len(results)==14,results
         from fulltest_csv_native import run as run_csv_native
         csv_report=run_csv_native(args.executable,args.output/'csv-decimal-originals')
         report={'status':'PASS','scope':'synthetic native controls plus six original CSV/TAB/TSV; not complete FULLTEST 200',

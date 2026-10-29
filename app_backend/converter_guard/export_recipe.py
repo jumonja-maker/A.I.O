@@ -16,6 +16,10 @@ WRITER = 'com.sun.star.text.TextDocument'
 CALC_TEXT = 'Text - txt - csv (StarCalc)'
 TEXT_OPTIONS = {'csv': '44,34,76,1,', 'tsv': '9,34,76,1,', 'tab': '9,34,76,1,'}
 WARNING_TEXT = {
+    'NATIVE_WRITER_RASTER_PAGES': (
+        'Каждая страница Writer экспортирована отдельным изображением. '
+        'Номера и имена страниц указаны в AIO-pages.json; точность '
+        'внешнего вида и шрифтов отдельно не сравнивалась.'),
     'NATIVE_SYLK_ALL_SHEETS': ('Каждый лист сохранён отдельным SLK/SYLK. Формулы представлены вычисленными значениями; межлистовые связи этим режимом не сохраняются.'),
     'NATIVE_CSV_ALL_SHEETS': (
         'Каждый лист книги сохранён отдельным файлом CSV/TAB/TSV; индекс и имя листа '

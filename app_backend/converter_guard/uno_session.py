@@ -505,8 +505,13 @@ def main(boot_name):
                         graphic_pages = (aio_export_graphic_pages(model, remote, prop, target)
                             if set(services).intersection(('com.sun.star.drawing.DrawingDocument',
                                 'com.sun.star.presentation.PresentationDocument')) else None)
+                        writer_pages = (aio_export_writer_pages(
+                            model, prop, target, export_options, req['exportFilter'])
+                            if 'com.sun.star.text.TextDocument' in services else None)
                         if graphic_pages is not None:
                             exported_paths = graphic_pages
+                        elif writer_pages is not None:
+                            exported_paths = writer_pages
                         elif (req.get('graphicExport') == 'svm' and req['format'] == 'svm'
                                 and 'com.sun.star.drawing.DrawingDocument' in services):
                             exported_paths = export_draw_svm(model, remote, prop, target)
@@ -538,13 +543,18 @@ def main(boot_name):
                               'code':('PREFLIGHT_INTERACTION_REQUIRED' if handler.blocked else
                                       'EXPORT_INTERACTION_REQUIRED' if export_handler.blocked else
                                       'ENGINE_OUTPUT_MISSING' if not present else None)}
+                    warnings = []
+                    if writer_pages is not None:
+                        warnings.append('NATIVE_WRITER_RASTER_PAGES')
                     if req['exportFilter'] == 'dBase' and list(Path(req['output']).glob('*.aio-columns.jsonl')):
-                        result['warnings'] = ['NATIVE_DBF_MIXED_COLUMN_TEXT']
+                        warnings.append('NATIVE_DBF_MIXED_COLUMN_TEXT')
+                    if warnings:
+                        result['warnings'] = warnings
         except Exception as error:
             result = {'id':request_id,'ok':False,'code':('DIF_NUMERIC_IMPORT_MISMATCH'
                       if isinstance(error, DifNumericMismatch) else
                       'ENGINE_OUTPUT_CONTENT_LOSS' if isinstance(error, (SheetOutputMismatch, AioPresentationTextLoss)) else
-                      'ENGINE_OUTPUT_VALIDATION_INCOMPLETE' if isinstance(error, AioPresentationUnverified) else
+                      'ENGINE_OUTPUT_VALIDATION_INCOMPLETE' if isinstance(error, (AioPresentationUnverified, AioWriterPagesUnverified)) else
                       'PREFLIGHT_INTERACTION_REQUIRED'
                       if handler is not None and handler.blocked else
                       'SOURCE_IMPORT_FAILED' if stage == 'import' else

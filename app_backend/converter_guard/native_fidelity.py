@@ -17,6 +17,9 @@ class AioPresentationTextLoss(RuntimeError):
 class AioPresentationUnverified(RuntimeError):
     pass
 
+class AioWriterPagesUnverified(RuntimeError):
+    pass
+
 
 def aio_normal_text(value):
     return re.sub(r'\s+', '', unicodedata.normalize('NFC', value))
@@ -92,6 +95,56 @@ def aio_verify_presentation_xhtml(paths, expected):
         if parser.alternative:
             raise AioPresentationUnverified('alternative_graphic_representation')
         raise AioPresentationTextLoss('native_presentation_missing_paragraphs:' + str(missing))
+
+
+
+def aio_export_writer_pages(model, prop, target, export_options, filter_name):
+    """Export all Writer pages by moving the UNO view cursor in one loaded model.
+
+    The native Writer graphic exporter renders its current page, not a full
+    document. Do not re-open the source, create a PDF or request more Guard
+    passes. On an uncertain page count/cursor, fail closed rather than mark
+    a first-page-only result ready.
+    """
+    aliases = {
+        'writer_png_Export': ('.png',),
+        'writer_jpg_Export': ('.jpg', '.jpeg', '.jfif', '.jif', '.jpe'),
+        'writer_webp_Export': ('.webp',),
+    }
+    if target.suffix.lower() not in aliases.get(filter_name, ()):
+        return None
+    try:
+        controller = model.getCurrentController()
+        count = controller.PageCount
+        cursor = controller.getViewCursor()
+        initial = cursor.getPage()
+    except Exception as error:
+        raise AioWriterPagesUnverified('writer_page_cursor_unavailable') from error
+    if type(count) is not int or not 1 <= count <= 4096:
+        raise AioWriterPagesUnverified('writer_page_count_unconfirmed')
+    if count == 1:
+        return None
+    outputs, mapping = [], []
+    try:
+        for index in range(1, count + 1):
+            if not cursor.jumpToPage(index) or cursor.getPage() != index:
+                raise AioWriterPagesUnverified('writer_page_cursor_mismatch:' + str(index))
+            path = (target if index == 1 else
+                    target.with_name(target.stem + '__page_%04d' % index + target.suffix))
+            model.storeToURL(path.as_uri(), tuple(export_options))
+            if not path.is_file() or path.is_symlink() or path.stat().st_size <= 0:
+                raise AioWriterPagesUnverified('writer_page_output_missing:' + str(index))
+            outputs.append(path)
+            mapping.append({'page':index,'file':path.name})
+    finally:
+        try:
+            cursor.jumpToPage(initial)
+        except Exception:
+            pass
+    manifest = target.parent / 'AIO-pages.json'
+    manifest.write_text(json.dumps({'schema': 1, 'pageCount':count, 'pages':mapping},
+                                   ensure_ascii=False), encoding='utf-8')
+    return outputs + [manifest]
 
 
 def aio_export_graphic_pages(model, remote, prop, target):

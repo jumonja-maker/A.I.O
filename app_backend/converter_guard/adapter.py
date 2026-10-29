@@ -1209,9 +1209,12 @@ class LibreOfficeAdapter:
                             'expectedSourceServices':proof.get('sourceContract', {}).get('expectedServices', [])},
                             cancel=control,timeout=timeout,on_stage=on_stage or (lambda stage:None))
                         response_received = True
-                        if 'NATIVE_DBF_MIXED_COLUMN_TEXT' in result.get('warnings', ()):
-                            self._local.export_info['warnings'] = tuple(
-                                self._local.export_info.get('warnings', ())) + ('NATIVE_DBF_MIXED_COLUMN_TEXT',)
+                        declared = tuple(code for code in result.get('warnings', ())
+                                         if code in ('NATIVE_DBF_MIXED_COLUMN_TEXT',
+                                                     'NATIVE_WRITER_RASTER_PAGES'))
+                        if declared:
+                            self._local.export_info['warnings'] = tuple(dict.fromkeys((
+                                *self._local.export_info.get('warnings', ()), *declared)))
                         if result.get('difNumericImport') is not None:
                             dif_check = result['difNumericImport']
                             self._local.export_info['resultChecks'] = [dif_check]
