@@ -13,8 +13,10 @@ from app_backend.converter_guard import uno_session
 from tools.qa import fulltest_vector_pages_native as driver
 from PIL import Image
 original=uno_session.WORKER_SOURCE
+begin=original.index('def aio_export_graphic_pages(')
+prefix,graphic=original[:begin],original[begin:]
 marker="    outputs, mapping, owned = [], [], []\n"
-assert original.count(marker)==1
+assert marker in graphic
 capture=r'''    observed = []
     for di in range(count):
         dp = pages.getByIndex(di)
@@ -32,9 +34,9 @@ capture=r'''    observed = []
     (target.parent / '_qa-model.json').write_text(json.dumps(observed), encoding='utf-8')
 '''
 anchor="            exporter.setSourceDocument(pages.getByIndex(index))"
-assert original.count(anchor)==1
+assert graphic.count(anchor)==1
 for mode in ('baseline','fresh_exporter','controller','both'):
-    worker=original.replace(marker,capture+marker)
+    worker=prefix+graphic.replace(marker,capture+marker,1)
     steps=[]
     if mode in ('fresh_exporter','both'):
         steps.extend(["            exporter = remote.ServiceManager.createInstanceWithContext(",
