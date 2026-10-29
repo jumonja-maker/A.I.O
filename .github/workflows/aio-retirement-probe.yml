@@ -2,6 +2,9 @@ name: AIO isolated M16 M17 retirement probe
 on:
   push:
     branches: ['work/retire-comparison-blackbox-20261030']
+concurrency:
+  group: aio-isolated-retirement
+  cancel-in-progress: true
 permissions:
   contents: read
 env:
@@ -41,6 +44,19 @@ jobs:
         run: |
           set -euo pipefail
           python tools/qa/_prepare_retirement.py prepare
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('tools/qa/_finalize_retirement.py')
+          s=p.read_text(encoding='utf-8')
+          old="    assert text.count(before)==count,(name,before[:80],text.count(before))"
+          assert s.count(old)==1
+          # The existing transfer-admission barrier already matches the exact
+          # replacement; preserve it, do not duplicate or weaken it.
+          s=s.replace(old,"    if text.count(before)==0 and text.count(after)==count:return\n"+old)
+          p.write_text(s,encoding='utf-8',newline='\n')
+          PY
+          python tools/qa/_finalize_retirement.py
+          rm tools/qa/_finalize_retirement.py
           python -m compileall -q app_backend tools tests
           node --check src/guard-queue.js
           node --check src/converter-bridge.js
