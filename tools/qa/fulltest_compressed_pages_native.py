@@ -51,7 +51,7 @@ def main():
         adapter.prepare_source(evidence)
         return adapter.convert(path, target, args.output / ('task-%d-%s' % (counter, target)),
                                cancel=cancel, timeout=120, on_started=lambda: None)
-    cases, originals = [], {}
+    cases, originals, unavailable = [], {}, []
     started = time.monotonic()
     try:
         sources = []
@@ -65,11 +65,27 @@ def main():
             p = args.output / 'independent.pptx'
             write_pptx_fixture(p)
             sources.append(p)
+            p = sources[1]
+            sources.append(next(x for x in convert(p, 'odg', proof(p)) if x.suffix == '.odg'))
             originals = {p: digest(p) for p in sources}
             with patch.object(metafile_module, 'wrap_native_metafiles', side_effect=observe_plain):
                 for source in sources:
                     evidence = proof(source)
                     for target, plain in (('emz', 'emf'), ('wmz', 'wmf')):
+                        decision = adapter.route_decision(target, evidence)
+                        if source.suffix not in ('.fodg', '.odg'):
+                            # Do not force an unsupported Impress -> compressed
+                            # route just because its plain exporter exists.
+                            assert decision == 'unavailable', (source.name, target, decision, evidence)
+                            assert digest(source) == originals[source], source
+                            row = {'sourceType': source.suffix, 'target': target,
+                                   'status': 'UNAVAILABLE_NATIVE_MODEL', 'nativeAttempts': 0,
+                                   'documentServices': evidence.get('documentServices'),
+                                   'sourceUnchanged': True}
+                            unavailable.append(row)
+                            print('COMPRESSED_ROUTE_CONTROL=' + json.dumps(row), flush=True)
+                            continue
+                        assert decision == 'registered', (source.name, target, decision, evidence)
                         tick = time.monotonic()
                         paths = convert(source, target, evidence)
                         outputs = [p for p in paths if p.suffix.lower() == '.' + target]
@@ -116,15 +132,16 @@ def main():
                                'ms': round((time.monotonic() - tick) * 1000)}
                         cases.append(row)
                         print('COMPRESSED_PAGE_CASE=' + json.dumps(row), flush=True)
-        assert len(cases) == 8, cases
+        assert len(cases) == 4, cases
+        assert len(unavailable) == 6, unavailable
         assert all(digest(p) == sha for p, sha in originals.items()), 'source changed'
         result = {'status': 'REPRODUCED_DEFECT' if args.expect_broken else 'PASS',
-                  'scope': 'eight synthetic native EMZ/WMZ conversions; not historical FULLTEST or full visual QA',
-                  'cases': cases, 'sourceUnchanged': True,
+                  'scope': 'four synthetic Draw EMZ/WMZ conversions plus six unavailable Impress routes; not historical FULLTEST or full visual QA',
+                  'cases': cases, 'unavailableRoutes': unavailable, 'sourceUnchanged': True,
                   'elapsedSeconds': round(time.monotonic() - started, 3)}
     except Exception as error:
         result = {'status': 'FAIL', 'error': str(error), 'code': getattr(error, 'code', None),
-                  'diagnostic': getattr(error, 'diagnostic', None), 'cases': cases}
+                  'diagnostic': getattr(error, 'diagnostic', None), 'cases': cases, 'unavailableRoutes': unavailable}
         (args.output / 'evidence.json').write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding='utf-8')
         print('COMPRESSED_PAGES_NATIVE=' + json.dumps(result), flush=True)
         raise
