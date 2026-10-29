@@ -29,4 +29,17 @@ jobs:
       - name: Reproduce baseline, test patch, create candidate without moving refs
         env:
           GH_TOKEN: ${{ github.token }}
-        run: python tools/qa/_apply_recovery_scan_once.py
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path=Path('tools/qa/_apply_recovery_scan_once.py')
+          text=path.read_text(encoding='utf-8')
+          old="           'tests/recovery_scan_dom.mjs',"
+          assert text.count(old)==1
+          text=text.replace(old,old+"\n           'tests/guard_state_modal_v16.mjs',")
+          old="    if(recoveryScan?.state==='scanning'&&bar?.isConnected&&bar.querySelector('.aio-guard-popup')?.open)"
+          assert text.count(old)==1
+          text=text.replace(old,"    if((recoveryScan?.state==='scanning'||recoveryScan?.state==='waiting_for_slot'&&storage?.cleanupPending>0)&&bar?.isConnected&&bar.querySelector('.aio-guard-popup')?.open)")
+          path.write_text(text,encoding='utf-8')
+          PY
+          python tools/qa/_apply_recovery_scan_once.py
