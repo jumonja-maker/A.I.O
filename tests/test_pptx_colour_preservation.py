@@ -25,6 +25,10 @@ class Shape:
         self.values={'FillColor':rgb, 'FillComplexColor':Colour(theme),
                      'FillStyle':SimpleNamespace(value=style), 'FillTransparence':alpha}
         self.original=self.values.copy(); self.writes=[]; self.failure=failure
+    @property
+    def FillComplexColor(self): return self.values['FillComplexColor']
+    @FillComplexColor.setter
+    def FillComplexColor(self,value): Shape.setPropertyValue(self,'FillComplexColor',value)
     def supportsService(self,name): return False
     def getPropertySetInfo(self):
         return SimpleNamespace(hasPropertyByName=lambda name:name in self.values)
@@ -144,6 +148,16 @@ class PptxColourTests(unittest.TestCase):
         self.assertEqual(shape.values,shape.original);self.assertEqual(len(model.stores),1)
         self.assertEqual(result['normalizedFills'],1);self.assertEqual(result['status'],'checked_subset')
         self.assertFalse(result['qualityCompared']);self.assertEqual(before,self.source.read_bytes())
+    def test_interface_null_uses_typed_property_assignment_not_void_any(self):
+        class VoidAnyShape(Shape):
+            def setPropertyValue(self,name,value):
+                if name=='FillComplexColor' and value is None:
+                    return  # actual PyUNO void Any does not clear the interface
+                return super().setPropertyValue(name,value)
+        shape=VoidAnyShape();model=Model(shape)
+        result=self.run_case(model)
+        self.assertEqual(result['normalizedFills'],1)
+        self.assertEqual(shape.values,shape.original)
     def test_groups_and_master_shapes_processed(self):
         nested=Shape();master=Shape(rgb=255)
         result=self.run_case(Model(Collection(nested),master=[master]))

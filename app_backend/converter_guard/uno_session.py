@@ -21,8 +21,9 @@ from .dif_evidence import DIF_CORE_SOURCE
 from .native_profile import PrivateNativeProfile, private_profile_required
 from .sheet_outputs import SHEET_OUTPUT_SOURCE
 from .native_fidelity import NATIVE_FIDELITY_SOURCE
+from .native_pptx_colours import PPTX_COLOUR_SOURCE
 
-WORKER_SOURCE = DIF_CORE_SOURCE + SHEET_OUTPUT_SOURCE + NATIVE_FIDELITY_SOURCE + r'''
+WORKER_SOURCE = DIF_CORE_SOURCE + SHEET_OUTPUT_SOURCE + NATIVE_FIDELITY_SOURCE + PPTX_COLOUR_SOURCE + r'''
 import json, os, sys, time, subprocess
 from pathlib import Path
 
@@ -399,6 +400,7 @@ def main(boot_name):
         req = json.loads(raw)
         model, result, stage = None, None, 'import'
         dif_import_check = None
+        pptx_colour_check = None
         operation_tick = time.monotonic()
         import_tick = export_tick = export_handler = handler = None
         timings = {'source':'uno_document'}
@@ -527,7 +529,10 @@ def main(boot_name):
                                 raw_values=req.get('automaticRecipe') == 'csv_preserve_values',
                                 preservation=preservation_plan)
                         else:
-                            model.storeToURL(target.as_uri(), tuple(export_options))
+                            pptx_colour_check = aio_export_theme_free_pptx(
+                                model, source, actual_filter, target, export_options, req['exportFilter'])
+                            if pptx_colour_check is None:
+                                model.storeToURL(target.as_uri(), tuple(export_options))
                             if req.get('automaticRecipe') == 'csv_preserve_values':
                                 # ExportAllSheets (-1) produces native
                                 # basename-SheetName.csv files rather than
@@ -553,6 +558,10 @@ def main(boot_name):
                                       'EXPORT_INTERACTION_REQUIRED' if export_handler.blocked else
                                       'ENGINE_OUTPUT_MISSING' if not present else None)}
                     warnings = []
+                    if pptx_colour_check is not None:
+                        result['pptxColourPreservation'] = pptx_colour_check
+                        if pptx_colour_check.get('status') == 'not_checked':
+                            warnings.append('NATIVE_OUTPUT_NOT_CHECKED')
                     if preservation_check is not None:
                         if calc_export is not None:
                             preservation_check['notChecked'].append('hidden_or_unprinted_cells')
@@ -578,7 +587,7 @@ def main(boot_name):
             result = {'id':request_id,'ok':False,'code':('DIF_NUMERIC_IMPORT_MISMATCH'
                       if isinstance(error, DifNumericMismatch) else
                       'ENGINE_OUTPUT_CONTENT_LOSS' if isinstance(error, (SheetOutputMismatch, AioPresentationTextLoss, AioPreservationLoss)) else
-                      'ENGINE_OUTPUT_VALIDATION_INCOMPLETE' if isinstance(error, (AioPresentationUnverified, AioWriterPagesUnverified, AioPreservationIncomplete)) else
+                      'ENGINE_OUTPUT_VALIDATION_INCOMPLETE' if isinstance(error, (AioPresentationUnverified, AioWriterPagesUnverified, AioPreservationIncomplete, AioPptxColourUnverified)) else
                       'PREFLIGHT_INTERACTION_REQUIRED'
                       if handler is not None and handler.blocked else
                       'SOURCE_IMPORT_FAILED' if stage == 'import' else

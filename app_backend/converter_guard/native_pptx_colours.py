@@ -159,7 +159,10 @@ def aio_export_theme_free_pptx(model, source, import_filter, target, export_opti
         for shape, original, rgb, style, alpha in candidates:
             touched.append((shape, original, rgb, style, alpha))
             try:
-                shape.setPropertyValue('FillComplexColor', None)
+                # Attribute assignment uses the UNO property's interface type.
+                # setPropertyValue(..., None) sends a void Any and can silently
+                # leave XComplexColor unchanged in PyUNO.
+                shape.FillComplexColor = None
             except Exception as error:
                 raise AioPptxColourUnverified('native_colour_alignment_unavailable') from error
             after = shape.getPropertyValue('FillComplexColor')
