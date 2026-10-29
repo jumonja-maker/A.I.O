@@ -17,7 +17,7 @@ from tools.qa.vector_page_fixture import write_pptx_fixture
 
 def main():
     from app_backend.converter_guard import LibreOfficeAdapter
-    from app_backend.converter_guard import adapter as adapter_module
+    from app_backend.converter_guard import native_metafile as metafile_module
     from PySide6.QtGui import QGuiApplication
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--executable', type=Path, required=True)
@@ -28,7 +28,7 @@ def main():
     gui = QGuiApplication.instance() or QGuiApplication([])
     cancel = threading.Event()
     adapter = LibreOfficeAdapter(args.executable)
-    original_wrapper = adapter_module.wrap_native_metafiles
+    original_wrapper = metafile_module.wrap_native_metafiles
     original_plain = {}
     def observe_plain(paths, target, **kwargs):
         # QA records the actual native bytes before wrapping. No source/result
@@ -66,7 +66,7 @@ def main():
             write_pptx_fixture(p)
             sources.append(p)
             originals = {p: digest(p) for p in sources}
-            with patch.object(adapter_module, 'wrap_native_metafiles', side_effect=observe_plain):
+            with patch.object(metafile_module, 'wrap_native_metafiles', side_effect=observe_plain):
                 for source in sources:
                     evidence = proof(source)
                     for target, plain in (('emz', 'emf'), ('wmz', 'wmf')):
