@@ -20,7 +20,10 @@ COLOURS = ['#ff0000', '#0000ff', '#00aa00']
 
 
 def fixture(kind):
+    if kind not in ('fodp', 'fodg'):
+        raise ValueError('unsupported native page fixture')
     component = 'presentation' if kind == 'fodp' else 'drawing'
+    mimetype = 'presentation' if kind == 'fodp' else 'graphics'
     styles = ''.join(
         '<style:style style:name="Mark%d" style:family="graphic">'
         '<style:graphic-properties draw:fill="solid" draw:fill-color="%s" '
@@ -43,7 +46,7 @@ def fixture(kind):
             'xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" '
             'xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" '
             'xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" '
-            'office:mimetype="application/vnd.oasis.opendocument.'+component+'" office:version="1.2">'
+            'office:mimetype="application/vnd.oasis.opendocument.'+mimetype+'" office:version="1.2">'
             '<office:automatic-styles>'+styles+'</office:automatic-styles>'
             '<office:body><office:'+component+'>'+pages+'</office:'+component+'>'
             '</office:body></office:document>')
