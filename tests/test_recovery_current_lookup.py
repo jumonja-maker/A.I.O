@@ -1,5 +1,6 @@
 """A late GUI status/report request must never discover old jobs implicitly."""
 import io
+import json
 from pathlib import Path
 import tempfile
 from types import SimpleNamespace
@@ -19,10 +20,21 @@ class CurrentRecoveryLookup(unittest.TestCase):
         self.api=GuardAPI(self.guard,origin='http://127.0.0.1:8877',token='token')
         self.addCleanup(self.api.close)
 
-    def get(self, route):
-        handler=SimpleNamespace(path=PREFIX+route,headers={},_json=lambda code,body:(code,body))
+    def get(self, route, headers=None):
+        codes=[]
+        self.response_headers={}
+        handler=SimpleNamespace(path=PREFIX+route,headers=headers or {},wfile=io.BytesIO(),
+            send_response=codes.append,
+            send_header=lambda key,value:self.response_headers.__setitem__(key,value),
+            end_headers=lambda:None,
+            _json=lambda code,body:(code,body))
         with patch.object(self.api,'_authorize'):
-            return self.api.get(handler,PREFIX+route.split('?')[0])
+            result=self.api.get(handler,PREFIX+route.split('?')[0])
+        if result is not None:
+            return result
+        self.assertEqual(len(codes),1)
+        raw=handler.wfile.getvalue()
+        return codes[0],json.loads(raw) if raw else None
 
     def test_late_gui_get_never_triggers_full_recovery(self):
         for route in ('jobs','report'):
@@ -49,13 +61,18 @@ class CurrentRecoveryLookup(unittest.TestCase):
         self.guard.upload(identity,'f',io.BytesIO(b''),0)
         self.guard.start(identity,archive_mode='on_demand');wait_finished(self.guard,identity)
         with patch.object(self.guard,'_load_recovery') as loader:
-            self.assertEqual(self.get('/jobs?job='+identity+'&lookup=current')[0],200)
+            route='/jobs?job='+identity+'&lookup=current'
+            status,state=self.get(route)
+            self.assertEqual((status,state['jobId']),(200,identity))
+            etag=self.response_headers['ETag']
+            self.assertEqual(self.get(route,headers={'If-None-Match':etag}),(304,None))
+            self.assertEqual(self.response_headers['ETag'],etag)
             status,report=self.get('/report?job='+identity+'&lookup=current')
             self.assertEqual((status,report['jobId']),(200,identity))
             state=self.guard.status(identity,recover=False)
             self.assertTrue(self.guard.status(identity,recover=False,since_revision=state['revision'])['unchanged'])
             self.guard.release(identity,discard=True)
-            self.assertEqual(self.get('/jobs?job='+identity+'&lookup=current')[0],404)
+            self.assertEqual(self.get(route)[0],404)
             self.assertEqual(self.get('/report?job='+identity+'&lookup=current')[0],404)
             loader.assert_not_called()
 
