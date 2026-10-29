@@ -45,8 +45,10 @@ def main():
     xbm.write_bytes(
         b'#define 01_LEVEL_1_width 40\n#define 01_LEVEL_1_height 20\n'
         +b'static char 01_LEVEL_1_bits[] = {\n'
-        +(', '.join('0xAA' if i%2==0 else '0x55' for i in range(100))).encode('ascii')
-        +b' };\n')
+        +(',\n'.join(', '.join('0xAA' if j%2==0 else '0x55'
+                       for j in range(i,min(i+12,100)))
+                       for i in range(0,100,12))).encode('ascii')
+        +b'\n};\n')
     legacy_sources['xbm']=xbm
     xpm=args.output/'01_LEVEL_1.xpm'
     xpm.write_text(
@@ -93,6 +95,12 @@ def main():
                 png=next(f for f in exported if f.suffix=='.png')
                 with Image.open(path) as before,Image.open(png) as after:
                     assert before.size == after.size == (40,20),(kind,before.size,after.size)
+                    if before.convert('RGB').tobytes()!=after.convert('RGB').tobytes():
+                        print('RASTER_PIXEL_DIAGNOSTIC='+json.dumps({
+                            'kind':kind,'sourceFirst':list(before.convert('RGB').getdata())[:8],
+                            'outputFirst':list(after.convert('RGB').getdata())[:8],
+                            'sourceSize':before.size,'outputSize':after.size
+                        }),flush=True)
                     assert before.convert('RGB').tobytes()==after.convert('RGB').tobytes(),kind
                 assert adapter.execution_mode()=='qt_media_frames',kind
                 pnm_modes.append(kind)
@@ -106,6 +114,12 @@ def main():
                 png=next(f for f in exported if f.suffix=='.png')
                 with Image.open(path) as before,Image.open(png) as after:
                     assert before.size == after.size == (40,20),(kind,before.size,after.size)
+                    if before.convert('RGB').tobytes()!=after.convert('RGB').tobytes():
+                        print('RASTER_PIXEL_DIAGNOSTIC='+json.dumps({
+                            'kind':kind,'sourceFirst':list(before.convert('RGB').getdata())[:8],
+                            'outputFirst':list(after.convert('RGB').getdata())[:8],
+                            'sourceSize':before.size,'outputSize':after.size
+                        }),flush=True)
                     assert before.convert('RGB').tobytes()==after.convert('RGB').tobytes(),kind
                 assert adapter.execution_mode()=='qt_media_frames',kind
                 legacy_modes.append(kind)
