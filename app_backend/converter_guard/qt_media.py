@@ -1015,10 +1015,15 @@ def _export_pdf_raster_pages(source, output_dir, target, expected_pages, cancel,
                         painter.end()
                     frame = background
                 writer = QImageWriter(str(staged), normal.encode('ascii'))
-                if not writer.write(frame):
-                    raise GuardError('MEDIA_ENCODE_FAILED',
-                                     'Qt не смог сохранить страницу PDF.',
-                                     stage='engine', diagnostic=writer.errorString())
+                try:
+                    if not writer.write(frame):
+                        raise GuardError('MEDIA_ENCODE_FAILED',
+                                         'Qt не смог сохранить страницу PDF.',
+                                         stage='engine', diagnostic=writer.errorString())
+                finally:
+                    # QImageWriter owns its QFile until destruction. Windows
+                    # rejects both os.replace and unlink on that open handle.
+                    del writer
                 actual = inspect_media(staged, cancel=cancel)
                 if (actual is None or actual['format'] != normal
                         or (actual['width'], actual['height']) !=
