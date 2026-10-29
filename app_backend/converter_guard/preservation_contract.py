@@ -23,7 +23,7 @@ _AIO_DRAW = 'com.sun.star.drawing.DrawingDocument'
 _AIO_IMPRESS = 'com.sun.star.presentation.PresentationDocument'
 _AIO_SHEET_TARGETS = frozenset(('csv', 'tab', 'tsv', 'dbf', 'dif', 'slk', 'sylk'))
 _AIO_PAGE_TARGETS = frozenset(('png', 'jpg', 'jpeg', 'jfif', 'jif', 'jpe',
-                             'webp', 'bmp', 'gif', 'tif', 'tiff', 'svg'))
+                             'webp', 'bmp', 'gif', 'tif', 'tiff', 'svg', 'emf', 'wmf'))
 _AIO_WRITER_TARGETS = frozenset(('png', 'jpg', 'jpeg', 'jfif', 'jif', 'jpe', 'webp'))
 
 

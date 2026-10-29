@@ -168,29 +168,60 @@ def aio_export_writer_pages(model, prop, target, export_options, filter_name, pr
 
 
 def aio_export_graphic_pages(model, remote, prop, target, preservation=None):
-    """Export every Draw/Impress page via the native page-specific encoder."""
+    """Export each native Draw/Impress page without flattening vector targets.
+
+    Only an already confirmed output route reaches this executor. Capabilities
+    come from the running GraphicExportFilter, not an extension-only allowlist.
+    Reserve our own paths and roll them back together on an incomplete export.
+    """
+    target = Path(target)
+    mimes = {'.png':('image/png',), '.jpg':('image/jpeg',), '.jpeg':('image/jpeg',),
+             '.jfif':('image/jpeg',), '.jif':('image/jpeg',), '.jpe':('image/jpeg',),
+             '.bmp':('image/x-MS-bmp', 'image/bmp'), '.gif':('image/gif',),
+             '.tif':('image/tiff',), '.tiff':('image/tiff',),
+             '.webp':('image/webp',), '.svg':('image/svg+xml',),
+             '.emf':('image/x-emf',), '.wmf':('image/x-wmf',)}.get(target.suffix.lower())
+    if mimes is None:
+        return None  # Do not query a page model for an unrelated output route.
     pages = model.getDrawPages()
     count = preservation.expected if preservation is not None else pages.getCount()
-    mime = {'.png':'image/png', '.jpg':'image/jpeg', '.jpeg':'image/jpeg',
-            '.jfif':'image/jpeg', '.jif':'image/jpeg', '.jpe':'image/jpeg',
-            '.bmp':'image/bmp', '.gif':'image/gif', '.tif':'image/tiff',
-            '.tiff':'image/tiff', '.webp':'image/webp', '.svg':'image/svg+xml'}.get(target.suffix.lower())
-    if count <= 1 or mime is None:
-        return None
-    exporter = remote.ServiceManager.createInstanceWithContext('com.sun.star.drawing.GraphicExportFilter', remote)
-    if exporter is None or not exporter.supportsMimeType(mime):
+    if type(count) is not int or not 1 <= count <= 4096:
+        raise AioPreservationIncomplete('native_graphic_page_count_unconfirmed')
+    if count == 1:
+        return None  # Preserve the existing single-page native export path.
+    exporter = remote.ServiceManager.createInstanceWithContext(
+        'com.sun.star.drawing.GraphicExportFilter', remote)
+    mime = next((value for value in mimes if exporter.supportsMimeType(value)), None) if exporter is not None else None
+    if mime is None:
         raise RuntimeError('NATIVE_PAGE_ENCODER_UNAVAILABLE')
-    outputs, mapping = [], []
-    for index in range(count):
-        path = target if index == 0 else target.with_name(target.stem + '__page_%04d' % (index + 1) + target.suffix)
-        exporter.setSourceDocument(pages.getByIndex(index))
-        if not exporter.filter((prop('URL', path.as_uri()), prop('MediaType', mime))):
-            raise RuntimeError('NATIVE_PAGE_EXPORT_FAILED:' + str(index + 1))
-        if not path.is_file() or not path.stat().st_size:
-            raise RuntimeError('NATIVE_PAGE_OUTPUT_MISSING:' + str(index + 1))
-        outputs.append(path)
-        mapping.append({'page': index + 1, 'file': path.name})
+    outputs, mapping, owned = [], [], []
     manifest = target.parent / 'AIO-pages.json'
-    manifest.write_text(json.dumps({'schema': 1, 'pageCount': count, 'pages': mapping}, ensure_ascii=False), encoding='utf-8')
-    return outputs + [manifest]
+    try:
+        for index in range(count):
+            path = target if index == 0 else target.with_name(
+                target.stem + '__page_%04d' % (index + 1) + target.suffix)
+            # Never overwrite a result from an earlier call, including an
+            # existing symlink. The native encoder may replace only our file.
+            with path.open('xb'):
+                pass
+            owned.append(path)
+            exporter.setSourceDocument(pages.getByIndex(index))
+            if not exporter.filter((prop('URL', path.as_uri()), prop('MediaType', mime))):
+                raise RuntimeError('NATIVE_PAGE_EXPORT_FAILED:' + str(index + 1))
+            if path.is_symlink() or not path.is_file() or not path.stat().st_size:
+                raise RuntimeError('NATIVE_PAGE_OUTPUT_MISSING:' + str(index + 1))
+            outputs.append(path)
+            mapping.append({'page': index + 1, 'file': path.name})
+        with manifest.open('x', encoding='utf-8') as stream:
+            owned.append(manifest)
+            json.dump({'schema': 1, 'pageCount': count, 'pages': mapping},
+                      stream, ensure_ascii=False)
+        return outputs + [manifest]
+    except BaseException:
+        for path in reversed(owned):
+            try:
+                path.unlink(missing_ok=True)
+            except OSError:
+                pass  # The owning workspace retains any locked leftovers.
+        raise
 '''
