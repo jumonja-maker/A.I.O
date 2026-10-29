@@ -3,7 +3,9 @@
 The worker uses the same source string as the unit tests, without importing the
 application or extra packages into LibreOffice's embedded Python.
 """
-NATIVE_FIDELITY_SOURCE = r'''
+from .preservation_contract import PRESERVATION_POLICY_SOURCE
+
+NATIVE_FIDELITY_SOURCE = PRESERVATION_POLICY_SOURCE + r'''
 import json
 import re
 import unicodedata
@@ -19,6 +21,23 @@ class AioPresentationUnverified(RuntimeError):
 
 class AioWriterPagesUnverified(RuntimeError):
     pass
+
+
+def aio_native_preservation_plan(model, services, target):
+    """Read one count only for a contracted export from the already-open model."""
+    scope = aio_preservation_scope(services, target)
+    if scope is None:
+        return None
+    try:
+        if scope[1] == 'sheets':
+            count = model.getSheets().getCount()
+        elif scope[2] == 'loaded_writer_layout':
+            count = model.getCurrentController().PageCount
+        else:
+            count = model.getDrawPages().getCount()
+    except Exception as error:
+        raise AioPreservationIncomplete('native_unit_count_unavailable') from error
+    return aio_plan_preservation(services, target, count)
 
 
 def aio_normal_text(value):
@@ -98,7 +117,7 @@ def aio_verify_presentation_xhtml(paths, expected):
 
 
 
-def aio_export_writer_pages(model, prop, target, export_options, filter_name):
+def aio_export_writer_pages(model, prop, target, export_options, filter_name, preservation=None):
     """Export all Writer pages by moving the UNO view cursor in one loaded model.
 
     The native Writer graphic exporter renders its current page, not a full
@@ -115,7 +134,7 @@ def aio_export_writer_pages(model, prop, target, export_options, filter_name):
         return None
     try:
         controller = model.getCurrentController()
-        count = controller.PageCount
+        count = preservation.expected if preservation is not None else controller.PageCount
         cursor = controller.getViewCursor()
         initial = cursor.getPage()
     except Exception as error:
@@ -147,10 +166,10 @@ def aio_export_writer_pages(model, prop, target, export_options, filter_name):
     return outputs + [manifest]
 
 
-def aio_export_graphic_pages(model, remote, prop, target):
+def aio_export_graphic_pages(model, remote, prop, target, preservation=None):
     """Export every Draw/Impress page via the native page-specific encoder."""
     pages = model.getDrawPages()
-    count = pages.getCount()
+    count = preservation.expected if preservation is not None else pages.getCount()
     mime = {'.png':'image/png', '.jpg':'image/jpeg', '.jpeg':'image/jpeg',
             '.jfif':'image/jpeg', '.jif':'image/jpeg', '.jpe':'image/jpeg',
             '.bmp':'image/bmp', '.gif':'image/gif', '.tif':'image/tiff',

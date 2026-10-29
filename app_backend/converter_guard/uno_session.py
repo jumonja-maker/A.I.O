@@ -94,7 +94,7 @@ def dbf_mixed_columns(sheet, area):
             mixed.append(column)
     return {'header': header, 'originalHeaders': list(first) if header else None, 'mixed': mixed}
 
-def export_table_sheets(model, desktop, prop, target, export_options, *, csv_format=None, raw_values=False):
+def export_table_sheets(model, desktop, prop, target, export_options, *, csv_format=None, raw_values=False, preservation=None):
     """One native legacy file per sheet, without approving a lossy dialog.
 
     DIF's native exporter always starts at sheet zero; it warns and drops all
@@ -104,7 +104,7 @@ def export_table_sheets(model, desktop, prop, target, export_options, *, csv_for
     calculation, update-links or macro permission is enabled on the copy.
     """
     sheets = model.getSheets()
-    count = sheets.getCount()
+    count = preservation.expected if preservation is not None else sheets.getCount()
     if count < 1:
         raise SheetOutputMismatch('native_sheet_count_missing')
     entries = []
@@ -488,6 +488,7 @@ def main(boot_name):
                         export_options.append(prop('FilterOptions', req['exportOptions']))
                     export_options.extend(automatic_export_properties(req, prop, uno))
                     export_tick = time.monotonic()
+                    preservation_plan = aio_native_preservation_plan(model, services, req['format'])
                     exported_paths = [target]
                     presentation_text = (aio_presentation_text(model)
                         if req['format'] == 'xhtml' and
@@ -502,11 +503,11 @@ def main(boot_name):
                             text_exports, text_reason = inspect_native_text_export(remote, native_text, services)
                             if text_exports.get('txt') != 'Text (encoded)':
                                 raise RuntimeError('NATIVE_TEXT_EXPORT_CAPABILITY_CHANGED:' + text_reason)
-                        graphic_pages = (aio_export_graphic_pages(model, remote, prop, target)
+                        graphic_pages = (aio_export_graphic_pages(model, remote, prop, target, preservation_plan)
                             if set(services).intersection(('com.sun.star.drawing.DrawingDocument',
                                 'com.sun.star.presentation.PresentationDocument')) else None)
                         writer_pages = (aio_export_writer_pages(
-                            model, prop, target, export_options, req['exportFilter'])
+                            model, prop, target, export_options, req['exportFilter'], preservation_plan)
                             if 'com.sun.star.text.TextDocument' in services else None)
                         if graphic_pages is not None:
                             exported_paths = graphic_pages
@@ -519,7 +520,8 @@ def main(boot_name):
                                 and 'com.sun.star.sheet.SpreadsheetDocument' in services):
                             exported_paths = export_table_sheets(model, desktop, prop, target, export_options,
                                 csv_format=req['format'] if req['format'] in ('csv','tab','tsv') else None,
-                                raw_values=req.get('automaticRecipe') == 'csv_preserve_values')
+                                raw_values=req.get('automaticRecipe') == 'csv_preserve_values',
+                                preservation=preservation_plan)
                         else:
                             model.storeToURL(target.as_uri(), tuple(export_options))
                             if req.get('automaticRecipe') == 'csv_preserve_values':
@@ -533,6 +535,9 @@ def main(boot_name):
                         timings['exportMs'] = round((time.monotonic()-export_tick)*1000)
                     present = all(p.is_file() and not p.is_symlink() and p.stat().st_size > 0
                                   for p in exported_paths)
+                    preservation_check = (aio_verify_preservation(
+                        preservation_plan, [p.name for p in exported_paths])
+                        if present and not export_handler.blocked and not handler.blocked else None)
                     # Result paths stay on disk. Thousands of HTML sidecars
                     # must not overflow the small control-message channel.
                     result = {'id':request_id,'ok':present and not export_handler.blocked and not handler.blocked,
@@ -544,6 +549,17 @@ def main(boot_name):
                                       'EXPORT_INTERACTION_REQUIRED' if export_handler.blocked else
                                       'ENGINE_OUTPUT_MISSING' if not present else None)}
                     warnings = []
+                    if preservation_check is not None:
+                        result['preservationContract'] = preservation_check
+                    elif (result['ok'] and 'com.sun.star.sheet.SpreadsheetDocument' in services
+                            and req['format'] in _AIO_PAGE_TARGETS):
+                        # This block does not implement Calc print pagination.
+                        # Do not present a successful image encoder as verified coverage.
+                        result['preservationContract'] = {
+                            'check': 'native_preservation_contract', 'status': 'not_checked',
+                            'reason': 'calc_graphic_page_scope_not_implemented',
+                            'scope': 'loaded_calc_print_layout', 'qualityCompared': False}
+                        warnings.append('NATIVE_OUTPUT_NOT_CHECKED')
                     if writer_pages is not None:
                         warnings.append('NATIVE_WRITER_RASTER_PAGES')
                     if req['exportFilter'] == 'dBase' and list(Path(req['output']).glob('*.aio-columns.jsonl')):
@@ -553,8 +569,8 @@ def main(boot_name):
         except Exception as error:
             result = {'id':request_id,'ok':False,'code':('DIF_NUMERIC_IMPORT_MISMATCH'
                       if isinstance(error, DifNumericMismatch) else
-                      'ENGINE_OUTPUT_CONTENT_LOSS' if isinstance(error, (SheetOutputMismatch, AioPresentationTextLoss)) else
-                      'ENGINE_OUTPUT_VALIDATION_INCOMPLETE' if isinstance(error, (AioPresentationUnverified, AioWriterPagesUnverified)) else
+                      'ENGINE_OUTPUT_CONTENT_LOSS' if isinstance(error, (SheetOutputMismatch, AioPresentationTextLoss, AioPreservationLoss)) else
+                      'ENGINE_OUTPUT_VALIDATION_INCOMPLETE' if isinstance(error, (AioPresentationUnverified, AioWriterPagesUnverified, AioPreservationIncomplete)) else
                       'PREFLIGHT_INTERACTION_REQUIRED'
                       if handler is not None and handler.blocked else
                       'SOURCE_IMPORT_FAILED' if stage == 'import' else

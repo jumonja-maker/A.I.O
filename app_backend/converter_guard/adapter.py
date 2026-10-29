@@ -1211,7 +1211,8 @@ class LibreOfficeAdapter:
                         response_received = True
                         declared = tuple(code for code in result.get('warnings', ())
                                          if code in ('NATIVE_DBF_MIXED_COLUMN_TEXT',
-                                                     'NATIVE_WRITER_RASTER_PAGES'))
+                                                     'NATIVE_WRITER_RASTER_PAGES',
+                                                     'NATIVE_OUTPUT_NOT_CHECKED'))
                         if declared:
                             self._local.export_info['warnings'] = tuple(dict.fromkeys((
                                 *self._local.export_info.get('warnings', ()), *declared)))
@@ -1221,6 +1222,10 @@ class LibreOfficeAdapter:
                             if dif_check.get('status') == 'not_checked':
                                 self._local.export_info['warnings'] = tuple(
                                     self._local.export_info.get('warnings', ())) + ('DIF_NUMERIC_CONTENT_NOT_CHECKED',)
+                        receipt = result.get('preservationContract')
+                        if result.get('ok') and isinstance(receipt, dict):
+                            self._local.export_info['resultChecks'] = list(
+                                self._local.export_info.get('resultChecks', ())) + [receipt]
                         if result.get('nativeCloseInterrupted'):
                             self._local.export_info['warnings'] = tuple(
                                 self._local.export_info.get('warnings', ())) + ('NATIVE_CLOSE_INTERRUPTED',)
@@ -1285,6 +1290,18 @@ class LibreOfficeAdapter:
                 if len(tokens) > 11:
                     tokens[11] = '0'
                 export_args['convert_spec'] = target + ':' + recipe.filter_name + ':' + ','.join(tokens)
+            # A CLI fallback has no loaded-model receipt. Keep its existing
+            # conversion route, but never label it as a checked native contract.
+            from .preservation_contract import aio_preservation_scope
+            scope = aio_preservation_scope(proof.get('documentServices', ()), target)
+            if scope is not None:
+                self._local.export_info['resultChecks'] = list(
+                    self._local.export_info.get('resultChecks', ())) + [{
+                    'check': 'native_preservation_contract', 'status': 'not_checked',
+                    'policyId': scope[0], 'scope': scope[2],
+                    'reason': 'native_cli_has_no_model_receipt', 'qualityCompared': False}]
+                self._local.export_info['warnings'] = tuple(dict.fromkeys((
+                    *self._local.export_info.get('warnings', ()), 'NATIVE_OUTPUT_NOT_CHECKED')))
             prepare_profile(workspace / 'profile')
             self._local.execution_mode = 'native_cli'
             filtered = getattr(self._local, 'import_filter', None)

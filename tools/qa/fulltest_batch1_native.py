@@ -116,6 +116,17 @@ def main():
     originals={str(f):digest(f) for f in (source,raster,jpeg,slides,writer,multipage_pdf,*pnm_sources.values(),*legacy_sources.values())}
     cancel=threading.Event();adapter=LibreOfficeAdapter(args.executable)
     results=[];counter=0
+    contract_receipts=[]
+    def require_contract(unit, expected):
+        checks = [item for item in adapter.export_info().get('resultChecks', ())
+                  if item.get('check') == 'native_preservation_contract']
+        assert len(checks) == 1, checks
+        check = checks[0]
+        assert check['status'] == 'checked_subset' and check['unit'] == unit, check
+        assert check['expectedUnits'] == check['observedOutputs'] == expected, check
+        assert check['qualityCompared'] is False, check
+        contract_receipts.append(check)
+
     def proof(path):
         nonlocal counter
         counter+=1
@@ -184,6 +195,7 @@ def main():
             assert 'com.sun.star.text.TextDocument' in wp.get('documentServices',[]),wp
             for target in ('png','jpg'):
                 files=convert(writer,target,wp)
+                require_contract('pages', 3)
                 frames=[p for p in files if p.suffix.lower()=='.'+target]
                 assert len(frames)==3,(target,len(frames))
                 assert len({digest(frame) for frame in frames})==3,(target,'identical pages')
@@ -206,12 +218,14 @@ def main():
             bk=proof(source)
             for target in ('slk','sylk'):
                 files=convert(source,target,bk);values=[f.read_bytes() for f in files if f.suffix=='.'+target]
+                require_contract('sheets', 4)
                 assert len(values)==4,(target,len(values))
                 assert all(sum(('SHEET_'+str(i)).encode() in v for v in values)==1 for i in range(1,5)),values
                 results.append({'case':'four_sheets_'+target,'status':'PASS','sheets':4})
             # M25: every DBF containing Russian UTF-8 must carry a matching
             # codepage label through the normal save/manifest output list.
             files=convert(source,'dbf',bk)
+            require_contract('sheets', 4)
             dbfs=[f for f in files if f.suffix=='.dbf']
             cpgs=[f for f in files if f.suffix=='.cpg']
             assert len(dbfs)==4 and len(cpgs)==4,(len(dbfs),len(cpgs))
@@ -226,6 +240,7 @@ def main():
             sp=proof(slides)
             for target in ('png','svg'):
                 files=convert(slides,target,sp);pages=[f for f in files if f.suffix=='.'+target]
+                require_contract('pages', 3)
                 assert len(pages)==3,(target,len(pages))
                 assert len({digest(page) for page in pages})==3, 'Repeated or empty page exports'
                 if target=='svg':
@@ -247,10 +262,12 @@ def main():
                     results.append({'case':path.suffix+'_xhtml','status':'PASS','textRetained':True})
         for path,expected in originals.items():assert digest(path)==expected,path
         assert len(results)==16,results
+        assert len(contract_receipts)==7,contract_receipts
         from fulltest_csv_native import run as run_csv_native
         csv_report=run_csv_native(args.executable,args.output/'csv-decimal-originals')
         report={'status':'PASS','scope':'synthetic native controls plus six original CSV/TAB/TSV; not complete FULLTEST 200',
-                'cases':results,'sourceUnchanged':True,'csvDecimalAcceptance':csv_report}
+                'cases':results,'sourceUnchanged':True,'csvDecimalAcceptance':csv_report,
+                'preservationContracts':contract_receipts}
     except Exception as error:
         report={'status':'FAIL','cases':results,'error':type(error).__name__,'reason':str(error),'code':getattr(error,'code',None),'diagnostic':getattr(error,'diagnostic',None)}
         raise
