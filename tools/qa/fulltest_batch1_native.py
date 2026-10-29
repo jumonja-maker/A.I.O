@@ -22,6 +22,11 @@ def digest(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 def main():
     p=argparse.ArgumentParser();p.add_argument('--executable',type=Path,required=True);p.add_argument('--output',type=Path,required=True)
     args=p.parse_args();args.output.mkdir(parents=True,exist_ok=False)
+    # This native acceptance driver runs headless, outside the desktop app.
+    # QtPdf requires an owned QGuiApplication; production already has one.
+    # Keep it alive for every page-rendering case (CI sets offscreen platform).
+    from PySide6.QtGui import QGuiApplication
+    qa_gui_app = QGuiApplication.instance() or QGuiApplication([])
     from openpyxl import Workbook
     from PIL import Image
     book=Workbook();book.remove(book.active)
