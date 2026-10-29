@@ -641,15 +641,25 @@ def copy_media_identity(source, output_dir, target, *, cancel=None):
     source, output_dir = Path(source), Path(output_dir)
     if target not in RASTER:
         return None
-    # JPEG/BMP metadata alone does not validate all compressed image bytes.
-    # Identity is restricted to containers whose structure is fully traversed.
-    if ALIASES.get(target, target) not in ('png', 'gif', 'webp', 'tiff'):
+    canonical = ALIASES.get(target, target)
+    if canonical not in ('png', 'gif', 'webp', 'tiff', 'jpeg'):
         return None
-    info = inspect_media(source, cancel=cancel)
+    # JPEG: complete marker traversal through EOI and decode before identity.
+    info = inspect_media(source, cancel=cancel, validate_container=canonical == 'jpeg')
     if info is None or info['format'] != ALIASES.get(target, target):
         return None
     if target == 'apng' and not info.get('animationContainer'):
         return None
+    if canonical == 'jpeg':
+        from .qt_media import _qt, _bounds
+        _bounds(info['width'], info['height'])
+        reader = _qt()[5](str(source))
+        _cancel(cancel)
+        image = reader.read()
+        if image.isNull():
+            raise GuardError('MEDIA_OUTPUT_INVALID', 'JPEG не декодируется; копия не выдана как готовый результат.', stage='result')
+        _cancel(cancel)
+        del image, reader
     output_dir.mkdir(parents=True, exist_ok=True)
     output = output_dir / (source.stem + '.' + target)
     if output.resolve() == source.resolve():

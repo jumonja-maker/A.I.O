@@ -800,7 +800,7 @@ class LibreOfficeAdapter:
                 self._local.import_filter = 'OpenDocument Spreadsheet Flat XML'
                 self._local.import_options = None
             try:
-                if (target in ('dbf', 'dif') and not live_uno and
+                if (target in ('dbf', 'dif', 'slk', 'sylk') and not live_uno and
                         proof.get('documentServices') == ['com.sun.star.sheet.SpreadsheetDocument']):
                     paths = self._convert_legacy_sheets(native_source, target, workspace,
                         control=identity_control, on_started=on_started, on_stage=on_stage)

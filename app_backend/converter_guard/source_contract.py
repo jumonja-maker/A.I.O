@@ -459,6 +459,10 @@ def inspect_source_contract(source, *, cancel=None, budget=4 * 1024 * 1024):
         if budget <= 0:
             raise _Budget()
         path = Path(source)
+        from .graphic_source import tga_contract
+        graphic = tga_contract(path, cancel=cancel)
+        if graphic is not None:
+            return graphic
         with path.open('rb') as stream:
             prefix = stream.read(min(4096, budget))
             if len(prefix) == budget and budget < 4:
@@ -547,6 +551,9 @@ def source_import_hint(contract, native):
     This does not establish compatibility: the subsequently loaded model and
     its actual FilterName must still agree with this content declaration.
     """
+    if contract.get('state') == 'recognized' and contract.get('contentClass') == 'tga_image':
+        from .graphic_source import tga_import_hint
+        return tga_import_hint(contract, native)
     if contract.get('state') != 'recognized' or contract.get('contentClass') != 'flat_odf':
         return None
     services = contract.get('expectedServices')

@@ -20,8 +20,9 @@ from .native_logs import NativeLogs, close_native_pipes
 from .dif_evidence import DIF_CORE_SOURCE
 from .native_profile import PrivateNativeProfile, private_profile_required
 from .sheet_outputs import SHEET_OUTPUT_SOURCE
+from .native_fidelity import NATIVE_FIDELITY_SOURCE
 
-WORKER_SOURCE = DIF_CORE_SOURCE + SHEET_OUTPUT_SOURCE + r'''
+WORKER_SOURCE = DIF_CORE_SOURCE + SHEET_OUTPUT_SOURCE + NATIVE_FIDELITY_SOURCE + r'''
 import json, os, sys, time, subprocess
 from pathlib import Path
 
@@ -488,6 +489,9 @@ def main(boot_name):
                     export_options.extend(automatic_export_properties(req, prop, uno))
                     export_tick = time.monotonic()
                     exported_paths = [target]
+                    presentation_text = (aio_presentation_text(model)
+                        if req['format'] == 'xhtml' and
+                        'com.sun.star.presentation.PresentationDocument' in services else None)
                     try:
                         if req['format'] == 'txt' and req['exportFilter'] == 'Text (encoded)':
                             try:
@@ -498,10 +502,15 @@ def main(boot_name):
                             text_exports, text_reason = inspect_native_text_export(remote, native_text, services)
                             if text_exports.get('txt') != 'Text (encoded)':
                                 raise RuntimeError('NATIVE_TEXT_EXPORT_CAPABILITY_CHANGED:' + text_reason)
-                        if (req.get('graphicExport') == 'svm' and req['format'] == 'svm'
+                        graphic_pages = (aio_export_graphic_pages(model, remote, prop, target)
+                            if set(services).intersection(('com.sun.star.drawing.DrawingDocument',
+                                'com.sun.star.presentation.PresentationDocument')) else None)
+                        if graphic_pages is not None:
+                            exported_paths = graphic_pages
+                        elif (req.get('graphicExport') == 'svm' and req['format'] == 'svm'
                                 and 'com.sun.star.drawing.DrawingDocument' in services):
                             exported_paths = export_draw_svm(model, remote, prop, target)
-                        elif (req['exportFilter'] in ('DIF', 'dBase', 'Text - txt - csv (StarCalc)')
+                        elif (req['exportFilter'] in ('DIF', 'dBase', 'SYLK', 'Text - txt - csv (StarCalc)')
                                 and 'com.sun.star.sheet.SpreadsheetDocument' in services):
                             exported_paths = export_table_sheets(model, desktop, prop, target, export_options,
                                 csv_format=req['format'] if req['format'] in ('csv','tab','tsv') else None,
@@ -513,6 +522,8 @@ def main(boot_name):
                                 # basename-SheetName.csv files rather than
                                 # the requested single primary filename.
                                 exported_paths = automatic_csv_outputs(req, model)
+                        if presentation_text is not None:
+                            aio_verify_presentation_xhtml(exported_paths, presentation_text)
                     finally:
                         timings['exportMs'] = round((time.monotonic()-export_tick)*1000)
                     present = all(p.is_file() and not p.is_symlink() and p.stat().st_size > 0
@@ -532,7 +543,8 @@ def main(boot_name):
         except Exception as error:
             result = {'id':request_id,'ok':False,'code':('DIF_NUMERIC_IMPORT_MISMATCH'
                       if isinstance(error, DifNumericMismatch) else
-                      'ENGINE_OUTPUT_CONTENT_LOSS' if isinstance(error, SheetOutputMismatch) else
+                      'ENGINE_OUTPUT_CONTENT_LOSS' if isinstance(error, (SheetOutputMismatch, AioPresentationTextLoss)) else
+                      'ENGINE_OUTPUT_VALIDATION_INCOMPLETE' if isinstance(error, AioPresentationUnverified) else
                       'PREFLIGHT_INTERACTION_REQUIRED'
                       if handler is not None and handler.blocked else
                       'SOURCE_IMPORT_FAILED' if stage == 'import' else
