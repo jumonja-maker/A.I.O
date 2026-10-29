@@ -1,0 +1,99 @@
+"""Native AIO fidelity checks on generated controls, not the historical FULLTEST."""
+import argparse
+import hashlib
+import json
+from pathlib import Path
+import sys
+import threading
+import time
+import xml.etree.ElementTree as ET
+
+ROOT=Path(__file__).resolve().parents[2]
+sys.path.insert(0,str(ROOT))
+from app_backend.converter_guard import LibreOfficeAdapter
+from app_backend.converter_guard.errors import GuardError
+
+
+def digest(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def main():
+    p=argparse.ArgumentParser();p.add_argument('--executable',type=Path,required=True);p.add_argument('--output',type=Path,required=True)
+    args=p.parse_args();args.output.mkdir(parents=True,exist_ok=False)
+    from openpyxl import Workbook
+    from PIL import Image
+    book=Workbook();book.remove(book.active)
+    for n in range(4):
+        sheet=book.create_sheet('Sheet_'+str(n+1));sheet.append(['ID','Marker','Amount']);sheet.append(['00123','SHEET_'+str(n+1),14.5+n])
+    source=args.output/'four-sheets.xlsx';book.save(source);book.close()
+    raster=args.output/'original.tga';Image.new('RGB',(24,16),(12,34,56)).save(raster)
+    jpeg=args.output/'original.jpg';Image.new('RGB',(24,16),(23,45,67)).save(jpeg)
+    slides=args.output/'slides.fodp'
+    slides.write_text('''<?xml version="1.0" encoding="UTF-8"?><office:document xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" office:mimetype="application/vnd.oasis.opendocument.presentation" office:version="1.2"><office:body><office:presentation>'''+''.join('<draw:page draw:name="Slide%d"><draw:frame svg:x="1cm" svg:y="1cm" svg:width="15cm" svg:height="4cm"><draw:text-box><text:p>AIO_SLIDE_%d TEXT_00123</text:p></draw:text-box></draw:frame></draw:page>'%(i,i) for i in range(1,4))+'''</office:presentation></office:body></office:document>''',encoding='utf-8')
+    originals={str(f):digest(f) for f in (source,raster,jpeg,slides)}
+    cancel=threading.Event();adapter=LibreOfficeAdapter(args.executable)
+    results=[];counter=0
+    def proof(path):
+        nonlocal counter
+        counter+=1
+        value=adapter.preflight(path,args.output/('probe-%d'%counter),cancel=cancel,timeout=90)
+        assert value.get('state')=='detected',value
+        return value
+    def convert(path,target,proven):
+        nonlocal counter
+        counter+=1;adapter.prepare_source(proven)
+        start=time.monotonic()
+        files=adapter.convert(path,target,args.output/('task-%d-%s'%(counter,target)),cancel=cancel,timeout=120,on_started=lambda:None)
+        print('NATIVE_TIMING='+json.dumps({'source':path.name,'target':target,'ms':round((time.monotonic()-start)*1000),'mode':adapter.execution_mode()}),flush=True)
+        return files
+    try:
+        with adapter.batch(args.output/'office'):
+            tg=proof(raster)
+            assert 'com.sun.star.drawing.DrawingDocument' in tg.get('documentServices',[]),tg
+            assert 'com.sun.star.text.TextDocument' not in tg.get('documentServices',[]),tg
+            results.append({'case':'TGA_model','status':'PASS','filter':tg.get('selectedImportFilter')})
+            jp=proof(jpeg)
+            for target in ('jpg','jpeg','jfif','jif','jpe'):
+                files=convert(jpeg,target,jp);out=next(f for f in files if f.suffix=='.'+target)
+                assert digest(out)==originals[str(jpeg)],target
+            results.append({'case':'JPEG_five_aliases','status':'PASS','bytePreserved':True})
+            bk=proof(source)
+            for target in ('slk','sylk'):
+                files=convert(source,target,bk);values=[f.read_bytes() for f in files if f.suffix=='.'+target]
+                assert len(values)==4,(target,len(values))
+                assert all(sum(('SHEET_'+str(i)).encode() in v for v in values)==1 for i in range(1,5)),values
+                results.append({'case':'four_sheets_'+target,'status':'PASS','sheets':4})
+            files=convert(source,'xhtml',bk)
+            out=next(f for f in files if f.suffix=='.xhtml')
+            assert ET.parse(out).getroot().tag=='{http://www.w3.org/1999/xhtml}html'
+            results.append({'case':'real_xhtml','status':'PASS'})
+            sp=proof(slides)
+            for target in ('png','svg'):
+                files=convert(slides,target,sp);pages=[f for f in files if f.suffix=='.'+target]
+                assert len(pages)==3,(target,len(pages))
+                mapping=json.loads(next(f for f in files if f.name=='AIO-pages.json').read_text())
+                assert mapping['pageCount']==3 and len(mapping['pages'])==3
+                results.append({'case':'three_pages_'+target,'status':'PASS','pages':3})
+            ppt=next(f for f in convert(slides,'ppt',sp) if f.suffix=='.ppt')
+            for path,pf in ((slides,sp),(ppt,proof(ppt))):
+                try:
+                    files=convert(path,'xhtml',pf)
+                except GuardError as error:
+                    assert error.code in ('ENGINE_OUTPUT_CONTENT_LOSS','ENGINE_OUTPUT_VALIDATION_INCOMPLETE'),(error.code,error.diagnostic)
+                    results.append({'case':path.suffix+'_xhtml','status':'SAFE_REJECTION','code':error.code})
+                else:
+                    text=''.join(f.read_text(encoding='utf-8') for f in files if f.suffix=='.xhtml')
+                    assert all('AIO_SLIDE_'+str(n) in text for n in range(1,4)),text[:200]
+                    results.append({'case':path.suffix+'_xhtml','status':'PASS','textRetained':True})
+        for path,expected in originals.items():assert digest(path)==expected,path
+        assert len(results)==9,results
+        report={'status':'PASS','scope':'synthetic targeted native tests, not FULLTEST 200','cases':results,'sourceUnchanged':True}
+    except Exception as error:
+        report={'status':'FAIL','cases':results,'error':type(error).__name__,'reason':str(error),'code':getattr(error,'code',None),'diagnostic':getattr(error,'diagnostic',None)}
+        raise
+    finally:
+        (args.output/'evidence.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
+        print('FULLTEST_BATCH1_NATIVE='+json.dumps(report,ensure_ascii=True),flush=True)
+
+
+if __name__=='__main__':main()
