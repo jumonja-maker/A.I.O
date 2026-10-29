@@ -1,0 +1,39 @@
+name: AIO isolated M16 M17 retirement probe
+on:
+  push:
+    branches: ['work/retire-comparison-blackbox-20261030']
+permissions:
+  contents: read
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Dependency inventory without application execution
+        shell: bash
+        run: |
+          python - <<'PY'
+          import ast,json,re,subprocess
+          from pathlib import Path
+          pattern=re.compile(r'comparison|blackbox|telemetry|retainSources|retain_sources|до/после|До/После',re.I)
+          paths=subprocess.check_output(['git','ls-files'],text=True).splitlines()
+          retired=('comparison','preview','blackbox')
+          for name in paths:
+              path=Path(name)
+              if path.suffix not in ('.py','.js','.mjs','.html','.spec','.yml','.json','.txt'):continue
+              if not name.startswith(('app_backend/','src/','tests/','tools/qa/','.github/','addons/')) and name not in ('launcher.py','AllInOne.spec','index.html','requirements.txt'):continue
+              text=path.read_text(encoding='utf-8-sig')
+              hits=[(i,line) for i,line in enumerate(text.splitlines(),1) if pattern.search(line)]
+              if not hits:continue
+              full=not any(token in path.name.lower() for token in retired)
+              print('DEPENDENCY_FILE='+json.dumps({'path':name,'hits':len(hits),'details':full},ensure_ascii=False))
+              if full:
+                  for i,line in hits:print('DEPENDENCY_LINE='+json.dumps({'path':name,'line':i,'text':line[:500]},ensure_ascii=False))
+          tree=ast.parse(Path('app_backend/converter_guard/core.py').read_text())
+          klass=next(n for n in tree.body if isinstance(n,ast.ClassDef) and n.name=='ConverterGuard')
+          print('GUARD_METHODS='+json.dumps([{ 'name':n.name,'start':n.lineno,'end':n.end_lineno} for n in klass.body if isinstance(n,(ast.FunctionDef,ast.AsyncFunctionDef))]))
+          PY
