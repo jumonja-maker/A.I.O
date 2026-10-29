@@ -42,10 +42,12 @@ const confirmed=['odt','pdf','png'];
 if(mode==='single'){
   const pdf=button('PDF'),wrapper=pdf.parentElement;formatsArea.scrollTop=437;
   pdf.click();
-  assert.equal(button('PDF'),pdf,'FORMAT_SELECTION_RECREATED: a click must keep its focusable button');
-  assert.equal(pdf.parentElement,wrapper);assert.equal(formatsArea.scrollTop,437);
+  // Compare identity as a boolean: never recursively format a cyclic DOM/VM
+  // graph on the deliberately failing baseline.
+  assert.ok(button('PDF')===pdf,'FORMAT_SELECTION_RECREATED: a click must keep its focusable button');
+  assert.ok(pdf.parentElement===wrapper);assert.equal(formatsArea.scrollTop,437);
   assert.equal(pdf.getAttribute('aria-pressed'),'true');assert.equal(wrapper.getAttribute('aria-selected'),'true');
-  pdf.click();assert.equal(button('PDF'),pdf);assert.equal(formatsArea.scrollTop,437);
+  pdf.click();assert.ok(button('PDF')===pdf);assert.equal(formatsArea.scrollTop,437);
   assert.equal(pdf.getAttribute('aria-pressed'),'false');assert.equal(replaceCount,1);
 }else if(mode==='toggle'){
   context.selectAllAvailableFormats();assert.deepEqual(ids(),confirmed);
@@ -55,7 +57,9 @@ if(mode==='single'){
 }else if(mode==='bulk_identity'){
   const cards=[...formatsArea.children];formatsArea.scrollTop=271;
   for(let i=0;i<4;i++){
-    context.selectAllAvailableFormats();assert.deepEqual([...formatsArea.children],cards);
+    context.selectAllAvailableFormats();
+    assert.equal(formatsArea.children.length,cards.length);
+    assert.ok([...formatsArea.children].every((node,index)=>node===cards[index]),'bulk selection keeps card identity');
     assert.equal(formatsArea.scrollTop,271);
   }
   assert.equal(replaceCount,1);assert.equal(summaryCount,5);
