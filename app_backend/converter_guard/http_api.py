@@ -157,6 +157,15 @@ class GuardAPI:
             self._shutdown(connection, socket.SHUT_RDWR)
         self.comparison.close()
 
+    @staticmethod
+    def _allow_recovery_lookup(handler):
+        query = parse_qs(urlsplit(handler.path).query, keep_blank_values=True)
+        if 'lookup' not in query:
+            return True  # Legacy callers can explicitly look up retained jobs.
+        if query['lookup'] != ['current']:
+            raise GuardError('RECOVERY_REQUEST', 'Неверный режим поиска задания.')
+        return False
+
     def get(self, handler, path):
         try:
             self._authorize(handler, download=path == PREFIX + '/result')
@@ -181,7 +190,8 @@ class GuardAPI:
                 delta = parse_qs(urlsplit(handler.path).query).get('delta') == ['1']
                 result_delta = parse_qs(urlsplit(handler.path).query).get('resultDelta') == ['1']
                 state = self.guard.status(identity, include_trace=trace, since_revision=since,
-                                          delta=delta, result_delta=result_delta)
+                                          delta=delta, result_delta=result_delta,
+                                          recover=self._allow_recovery_lookup(handler))
                 return self._status_reply(handler, state)
             if path == PREFIX + '/recoverable':
                 query = parse_qs(urlsplit(handler.path).query, keep_blank_values=True)
@@ -189,7 +199,8 @@ class GuardAPI:
                     raise GuardError('RECOVERY_REQUEST', 'Неверный режим получения результатов.')
                 return self._json(handler,200, self.guard.recoverable(scan=not bool(query)))
             if path == PREFIX + '/report':
-                return self._json(handler,200, self.guard.report(self._identity(self._query(handler, 'job'))))
+                return self._json(handler,200, self.guard.report(self._identity(self._query(handler, 'job')),
+                    recover=self._allow_recovery_lookup(handler)))
             if path == PREFIX + '/retry-plan':
                 cancelled = parse_qs(urlsplit(handler.path).query).get('includeCancelled') == ['1']
                 return self._json(handler,200, self.guard.retry_plan(

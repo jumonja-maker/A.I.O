@@ -45,6 +45,10 @@
     return payload;
   }
   async function api(path, body, method = 'POST', signal) {
+    // All job IDs used by this UI came from the live API. A late response for
+    // a released ID must not start disk recovery as a side effect.
+    if(method==='GET'&&(path.startsWith('/jobs?')||path.startsWith('/report?')))
+      path+='&lookup=current';
     const response = await fetch(prefix + path, {
       method, headers: {...headers, ...(method === 'POST' ? {'Content-Type':'application/json'} : {})},
       ...(method === 'POST' ? {body: JSON.stringify(body)} : {}), cache: 'no-store', signal
@@ -52,7 +56,7 @@
     return payloadOf(response);
   }
   async function poll(operation, full = false) {
-    const response = await fetch(prefix + '/jobs?job=' + encodeURIComponent(operation.jobId) + (full ? '' : '&delta=1&resultDelta=1'), {
+    const response = await fetch(prefix + '/jobs?job=' + encodeURIComponent(operation.jobId) + '&lookup=current' + (full ? '' : '&delta=1&resultDelta=1'), {
       headers:{...headers, ...(!full && operation.etag ? {'If-None-Match':operation.etag} : {})},
       cache:'no-store'
     });

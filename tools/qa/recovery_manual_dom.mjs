@@ -25,7 +25,10 @@ const observerCallbacks=[];
 class Observer{constructor(callback){observerCallbacks.push(callback);}observe(){}disconnect(){}}
 const context={window,document,console,MutationObserver:Observer,CustomEvent:window.CustomEvent,
   AbortController,setTimeout,clearTimeout,setInterval,clearInterval,URL,
-  fetch:async()=>({ok:true,json:async()=>({jobId:'old',files:[],finished:true})})};
+  fetch:async url=>{
+    assert.equal(new URL(url,'http://127.0.0.1').searchParams.get('lookup'),'current','preview uses current lookup');
+    return {ok:true,json:async()=>({jobId:'old',files:[],finished:true})};
+  }};
 vm.runInNewContext(fs.readFileSync('src/guard-queue.js','utf8'),context);
 await settle();
 assert.equal(scans,0);

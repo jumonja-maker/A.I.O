@@ -2137,8 +2137,10 @@ class ConverterGuard:
             'comparisonRecipe':job.comparison_recipe,
             'comparisonParentTasks':list(job.comparison_parent_tasks)}
 
-    def report(self, job_id):
-        if job_id not in self._jobs:
+    def report(self, job_id, *, recover=True):
+        if type(recover) is not bool:
+            raise GuardError('RECOVERY_REQUEST', 'Неверный режим поиска задания.')
+        if recover and job_id not in self._jobs:
             self._load_recovery()
         with self._lock:
             job = self._get(job_id)
@@ -2631,14 +2633,16 @@ class ConverterGuard:
         return snapshot
 
     def status(self, job_id, *, include_trace=False, since_revision=None, delta=False,
-               result_delta=False):
-        if job_id not in self._jobs:
+               result_delta=False, recover=True):
+        if type(recover) is not bool:
+            raise GuardError('RECOVERY_REQUEST', 'Неверный режим поиска задания.')
+        if recover and job_id not in self._jobs:
             self._load_recovery()
         if since_revision is not None and (type(since_revision) is not int or since_revision < 0):
             raise GuardError('STATUS_REVISION', 'Некорректная версия состояния.')
         if type(result_delta) is not bool:
             raise GuardError('STATUS_RESULT_DELTA', 'Некорректный режим состояния результатов.')
-        self._prune()
+        self._prune(defer_cleanup=not recover)
         with self._lock:
             job = self._get(job_id)
             if not include_trace and since_revision == job.revision:

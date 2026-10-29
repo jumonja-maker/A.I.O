@@ -158,7 +158,7 @@
       {bubbles:true,detail:{timeoutSeconds:Math.max(600,(state?.preflightTimeoutSeconds||120)*2),done}}))));
     action('[data-g-report]',async()=>{
       const path=selected()||state?.jobId;
-      const response=await fetch(path?'/api/converter-guard/report?job='+encodeURIComponent(path):'/api/converter-guard/recoverable?mode=snapshot',
+      const response=await fetch(path?'/api/converter-guard/report?job='+encodeURIComponent(path)+'&lookup=current':'/api/converter-guard/recoverable?mode=snapshot',
         {headers:{'X-AIO-Token':document.body.dataset.aioToken},cache:'no-store'});
       if(!response.ok)throw Error('Отчёт недоступен.');
       const url=URL.createObjectURL(await response.blob()),anchor=document.createElement('a');
@@ -360,6 +360,7 @@
         ' · подготовка направлений…':
       state?.state==='paused'?'Очередь на паузе':state?.state==='prepared'?'Исходники проверены. Выберите форматы.':state&&!state.finished?'Подготовка результатов…':
       jobs.some(job=>!job.recovered&&job.unsavedOutputs>0)?'Есть текущие несохранённые результаты: '+jobs.filter(job=>!job.recovered).reduce((sum,job)=>sum+(job.unsavedOutputs||0),0):
+      warnings.length?'Проблемы восстановления предыдущих заданий: '+warnings.length:
       jobs.some(job=>job.recovered)?'Предыдущие результаты доступны в «Состоянии».':'Текущих несохранённых результатов нет.');
   }
   async function loadPreview(){
@@ -370,7 +371,7 @@
     const controller=Controller?new Controller():null;previewController=controller;
     if(!id||id===state?.jobId){previewController=null;renderRows();return;}
     try{
-      const response=await fetch('/api/converter-guard/jobs?job='+encodeURIComponent(id),
+      const response=await fetch('/api/converter-guard/jobs?job='+encodeURIComponent(id)+'&lookup=current',
         {headers:{'X-AIO-Token':document.body.dataset.aioToken},cache:'no-store',signal:controller?.signal});
       if(!response.ok)throw Error('Не удалось загрузить выбранный пакет.');
       const loaded=await response.json();
