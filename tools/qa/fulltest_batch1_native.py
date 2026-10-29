@@ -265,9 +265,11 @@ def main():
         assert len(contract_receipts)==7,contract_receipts
         from fulltest_csv_native import run as run_csv_native
         csv_report=run_csv_native(args.executable,args.output/'csv-decimal-originals')
+        from calc_pages_native import run as run_calc_pages
+        calc_pages_report=run_calc_pages(args.executable,args.output/'calc-print-pages')
         report={'status':'PASS','scope':'synthetic native controls plus six original CSV/TAB/TSV; not complete FULLTEST 200',
                 'cases':results,'sourceUnchanged':True,'csvDecimalAcceptance':csv_report,
-                'preservationContracts':contract_receipts}
+                'preservationContracts':contract_receipts,'calcPagesAcceptance':calc_pages_report}
     except Exception as error:
         report={'status':'FAIL','cases':results,'error':type(error).__name__,'reason':str(error),'code':getattr(error,'code',None),'diagnostic':getattr(error,'diagnostic',None)}
         raise

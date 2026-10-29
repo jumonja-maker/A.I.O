@@ -4,8 +4,9 @@ The worker uses the same source string as the unit tests, without importing the
 application or extra packages into LibreOffice's embedded Python.
 """
 from .preservation_contract import PRESERVATION_POLICY_SOURCE
+from .calc_pages import CALC_PAGES_SOURCE
 
-NATIVE_FIDELITY_SOURCE = PRESERVATION_POLICY_SOURCE + r'''
+NATIVE_FIDELITY_SOURCE = PRESERVATION_POLICY_SOURCE + CALC_PAGES_SOURCE + r'''
 import json
 import re
 import unicodedata

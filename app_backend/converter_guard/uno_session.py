@@ -503,13 +503,17 @@ def main(boot_name):
                             text_exports, text_reason = inspect_native_text_export(remote, native_text, services)
                             if text_exports.get('txt') != 'Text (encoded)':
                                 raise RuntimeError('NATIVE_TEXT_EXPORT_CAPABILITY_CHANGED:' + text_reason)
+                        calc_export = (aio_export_calc_pages(model, remote, prop, target, req['exportFilter'])
+                            if 'com.sun.star.sheet.SpreadsheetDocument' in services else None)
                         graphic_pages = (aio_export_graphic_pages(model, remote, prop, target, preservation_plan)
                             if set(services).intersection(('com.sun.star.drawing.DrawingDocument',
                                 'com.sun.star.presentation.PresentationDocument')) else None)
                         writer_pages = (aio_export_writer_pages(
                             model, prop, target, export_options, req['exportFilter'], preservation_plan)
                             if 'com.sun.star.text.TextDocument' in services else None)
-                        if graphic_pages is not None:
+                        if calc_export is not None:
+                            exported_paths, preservation_plan = calc_export
+                        elif graphic_pages is not None:
                             exported_paths = graphic_pages
                         elif writer_pages is not None:
                             exported_paths = writer_pages
@@ -550,16 +554,20 @@ def main(boot_name):
                                       'ENGINE_OUTPUT_MISSING' if not present else None)}
                     warnings = []
                     if preservation_check is not None:
+                        if calc_export is not None:
+                            preservation_check['notChecked'].append('hidden_or_unprinted_cells')
                         result['preservationContract'] = preservation_check
                     elif (result['ok'] and 'com.sun.star.sheet.SpreadsheetDocument' in services
                             and req['format'] in _AIO_PAGE_TARGETS):
-                        # This block does not implement Calc print pagination.
+                        # Other Calc graphic filters are not covered by the PNG/JPEG executor.
                         # Do not present a successful image encoder as verified coverage.
                         result['preservationContract'] = {
                             'check': 'native_preservation_contract', 'status': 'not_checked',
                             'reason': 'calc_graphic_page_scope_not_implemented',
                             'scope': 'loaded_calc_print_layout', 'qualityCompared': False}
                         warnings.append('NATIVE_OUTPUT_NOT_CHECKED')
+                    if calc_export is not None:
+                        warnings.append('NATIVE_CALC_RASTER_PAGES')
                     if writer_pages is not None:
                         warnings.append('NATIVE_WRITER_RASTER_PAGES')
                     if req['exportFilter'] == 'dBase' and list(Path(req['output']).glob('*.aio-columns.jsonl')):

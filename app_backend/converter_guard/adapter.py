@@ -1212,6 +1212,7 @@ class LibreOfficeAdapter:
                         declared = tuple(code for code in result.get('warnings', ())
                                          if code in ('NATIVE_DBF_MIXED_COLUMN_TEXT',
                                                      'NATIVE_WRITER_RASTER_PAGES',
+                                                     'NATIVE_CALC_RASTER_PAGES',
                                                      'NATIVE_OUTPUT_NOT_CHECKED'))
                         if declared:
                             self._local.export_info['warnings'] = tuple(dict.fromkeys((
@@ -1294,6 +1295,10 @@ class LibreOfficeAdapter:
             # conversion route, but never label it as a checked native contract.
             from .preservation_contract import aio_preservation_scope
             scope = aio_preservation_scope(proof.get('documentServices', ()), target)
+            if (scope is None and 'com.sun.star.sheet.SpreadsheetDocument' in
+                    proof.get('documentServices', ()) and
+                    target in ('png', 'jpg', 'jpeg', 'jfif', 'jif', 'jpe')):
+                scope = ('native_all_calc_print_pages_v1', 'pages', 'loaded_calc_print_layout')
             if scope is not None:
                 self._local.export_info['resultChecks'] = list(
                     self._local.export_info.get('resultChecks', ())) + [{
