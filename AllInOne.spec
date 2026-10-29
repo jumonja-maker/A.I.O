@@ -38,9 +38,19 @@ a = Analysis(
     runtime_hooks=[],
     excludes=['app_backend.converter_universal',
               'app_backend.converter_docx',
-              'app_backend.aio_converter_upgrade'],
+              'app_backend.aio_converter_upgrade',
+              'app_backend.blackbox_telemetry', 'app_backend.qt_observation',
+              'app_backend.converter_guard.comparison_service',
+              'app_backend.converter_guard.comparison_worker'],
     noarchive=False,
 )
+# A stale import must not silently bring a frozen feature back into EXE.
+retired_names=('app_backend.blackbox_telemetry','app_backend.qt_observation',
+               'app_backend.converter_guard.comparison_',
+               'app_backend.converter_guard.preview',
+               'app_backend.converter_guard.diagnostic_export')
+if any(any(row[0].startswith(name) for name in retired_names) for row in a.pure):
+    raise RuntimeError('Retired feature leaked into bundled Python modules')
 if sys.platform == 'win32':
     configured = os.environ.get('AIO_LIBREOFFICE_ROOT')
     if not configured:

@@ -19,7 +19,7 @@ def apply_lifecycle_ui(raw):
     once('data-cv-add>+ Добавить файлы</button></div>',
          'data-cv-add>+ Добавить файлы</button><button type="button" class="aio-cv__small-btn aio-cv__clear-inputs" data-cv-clear-inputs title="Очистить список исходников" aria-label="Очистить список исходников">🗑</button></div>')
     once('<button class="aio-cv__small-btn" type="button" data-cv-save hidden>Сохранить результат</button>',
-         '<div class="aio-cv__result-actions" data-cv-result-actions hidden><button class="aio-cv__small-btn" type="button" data-cv-close-result>Закрыть</button><button class="aio-cv__small-btn" type="button" data-cv-save>Сохранить результаты</button><button class="aio-cv__small-btn" type="button" data-cv-beforeafter>До/После</button></div>')
+         '<div class="aio-cv__result-actions" data-cv-result-actions hidden><button class="aio-cv__small-btn" type="button" data-cv-close-result>Закрыть</button><button class="aio-cv__small-btn" type="button" data-cv-save>Сохранить результаты</button></div>')
     once("root.querySelector('[data-cv-count]').textContent = `(${files.length})`;",
          "root.querySelector('[data-cv-count]').textContent = `${selectedFiles().length}/${files.length}`;")
     once("      saveBtn.hidden=!(currentResult && status==='ready');saveBtn.disabled=!(currentResult && status==='ready' && typeof adapter.saveResult==='function');\n      saveBtn.textContent = 'Сохранить результат';",

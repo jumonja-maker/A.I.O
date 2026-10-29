@@ -18,7 +18,6 @@ env:
   QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --disable-gpu-compositing
   AIO_QT_SAVE_QA: '1'
   AIO_LO_QA_MUST_HAVE_ENGINE: '1'
-  AIO_BLACKBOX_EVENTS: ''
 jobs:
   qa:
     strategy:
@@ -107,7 +106,7 @@ jobs:
           python -m PyInstaller --noconfirm --clean AllInOne.spec
           python -c "from pathlib import Path; p=Path('dist/A.I.O'); assert (p/'A.I.O.exe').is_file(); assert (p/'_internal/libreoffice/program/soffice.exe').is_file(); print('AIO_HOSTED_EXE_PACKAGE=PASS')"
           python -c "import os; from pathlib import Path; p=Path('dist/A.I.O/_internal/build-info/aio-source-revision.txt'); assert p.read_text(encoding='ascii').strip()==os.environ['AIO_QA_SOURCE_SHA']; print('AIO_BUNDLED_BUILD_REVISION=PASS')"
-          python tools/qa/guard_v19_frozen_acceptance.py --executable dist/A.I.O/A.I.O.exe --output "$RUNNER_TEMP/aio-hosted-frozen" --seconds 120
+          python tools/qa/runtime_frozen_acceptance.py --executable dist/A.I.O/A.I.O.exe --output "$RUNNER_TEMP/aio-hosted-frozen" --seconds 120
       - name: Preserve truthful summary in job log (no upload-artifact)
         if: always()
         shell: bash

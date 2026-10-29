@@ -134,7 +134,7 @@ class QueueSaveAuditV21(unittest.TestCase):
                 contender.close()
             self.assertEqual(stream.read(), b'data')
             with self.assertRaises(GuardError) as error:
-                with guard.comparison_inputs(job):
+                with guard.retained_inputs(job):
                     self.fail('A closed Guard cannot admit another lease')
             self.assertEqual(error.exception.code, 'GUARD_CLOSED')
         self.assertNotIn(job, guard._jobs)

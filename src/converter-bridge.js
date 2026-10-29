@@ -238,7 +238,7 @@
           uploads = inputs.filter(f=>previous.get(String(f.id))!==f.file);
         } catch (error) {if(error.code!=='JOB_NOT_FOUND')throw error;}
       }
-      if (!created) created = await api('/prepare', {files:metadata(inputs),retainSources:true});
+      if (!created) created = await api('/prepare', {files:metadata(inputs),retainResults:true});
       request.jobId = created.jobId;
       onCreated?.(created.jobId);
       current();
@@ -545,7 +545,7 @@
       // A partial snapshot is not a request to stop conversion. An operation
       // that was still being observed also keeps its tickets until its caller
       // has consumed the terminal state, avoiding a /jobs -> 404 save race.
-      const release = false; // Saved sessions stay available for explicit До/После and Close.
+      const release = false; // Keep the visible result session until Close, without retaining originals.
       savingJobs.delete(jobId);
       const released=release ? await releaseJob(jobId) : false;
       // Notify both the preserved main controller and the queue about this

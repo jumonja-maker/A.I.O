@@ -56,8 +56,6 @@ class GuardAPI:
         if not isinstance(token, str) or not token:
             raise ValueError('Guard API requires a session token')
         self.guard, self.origin, self.host, self.token = guard, origin, parsed.netloc, token
-        from .comparison_service import ComparisonService
-        self.comparison = ComparisonService(guard)
         self._connections = set()
         self._lock = threading.Lock()
         self._closed = False
@@ -114,11 +112,22 @@ class GuardAPI:
         try:
             # Qt/Windows uses an unbuffered SocketIO reader; read() may be short.
             raw = bytearray()
+            deadline = time.monotonic() + self.guard.limits.upload_idle_timeout
             while len(raw) < length:
+                with self._lock:
+                    if self._closed:
+                        raise GuardError('GUARD_CLOSED', 'Guard завершает работу.', status=503)
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise GuardError('REQUEST_TIMEOUT', 'Передача запроса остановилась.', status=408)
+                ready, _, _ = select.select([handler.connection], [], [], min(0.1, remaining))
+                if not ready:
+                    continue
                 block = handler.rfile.read(min(CHUNK, length - len(raw)))
                 if not block:
                     break
                 raw.extend(block)
+                deadline = time.monotonic() + self.guard.limits.upload_idle_timeout
             if len(raw) != length:
                 raise ValueError('incomplete JSON')
             body = json.loads(raw)
@@ -148,14 +157,12 @@ class GuardAPI:
             pass
 
     def close(self):
-        # Reject new work and interrupt HTTP bodies first. Comparison shutdown
-        # can wait for worker leases; it must not leave admission open meanwhile.
+        # Reject new work and interrupt in-flight HTTP bodies before shutdown.
         with self._lock:
             self._closed = True
             connections = list(self._connections)
         for connection in connections:
             self._shutdown(connection, socket.SHUT_RDWR)
-        self.comparison.close()
 
     @staticmethod
     def _allow_recovery_lookup(handler):
@@ -169,10 +176,11 @@ class GuardAPI:
     def get(self, handler, path):
         try:
             self._authorize(handler, download=path == PREFIX + '/result')
+            if path == PREFIX + '/compare' or path.startswith(PREFIX + '/compare/'):
+                handler.close_connection = True
+                raise GuardError('MODULE_RETIRED', 'Модуль «До/После» исключён из приложения.', status=410)
             if path == PREFIX + '/result':
                 return self._download(handler)
-            if path.startswith(PREFIX + '/compare'):
-                return self._comparison_get(handler, path)
             if path in (PREFIX + '/history', PREFIX + '/history/report'):
                 query = parse_qs(urlsplit(handler.path).query, keep_blank_values=True)
                 if path.endswith('/report'):
@@ -196,7 +204,7 @@ class GuardAPI:
                     'routeFiltering': 'native_registry_after_model_confirmation',
                     'preflightAvailable': True, 'selectAllPolicy': 'only_preflight_confirmed',
                     'qualityCompared': False, 'qualityInspectionAvailable': True,
-                    'qualityInspectionDefault': False,
+                    'qualityInspectionDefault': False, 'comparisonAvailable': False,
                     'limits': asdict(self.guard.limits), 'storage': self.guard.storage_stats()})
             if path == PREFIX + '/jobs':
                 trace = parse_qs(urlsplit(handler.path).query).get('trace') == ['1']
@@ -231,6 +239,9 @@ class GuardAPI:
     def post(self, handler, path):
         try:
             self._authorize(handler)
+            if path == PREFIX + '/compare' or path.startswith(PREFIX + '/compare/'):
+                handler.close_connection = True
+                raise GuardError('MODULE_RETIRED', 'Модуль «До/После» исключён из приложения.', status=410)
             handler.connection.settimeout(self.guard.limits.upload_idle_timeout)
             if path in (PREFIX + '/input', PREFIX + '/resource'):
                 length = self._length(handler)
@@ -249,11 +260,14 @@ class GuardAPI:
             # Track metadata reads too: close() must unblock a stalled JSON body.
             with self._transfer(handler):
                 body = self._body(handler)
+            if path in (PREFIX + '/prepare', PREFIX + '/jobs') and body.get('retainSources', False) is not False:
+                raise GuardError('MODULE_RETIRED', 'Хранение исходников для «До/После» отключено.', status=410)
             if path == PREFIX + '/inspect':
                 return self._json(handler,200, self.guard.capabilities(body.get('files')))
             if path == PREFIX + '/prepare':
                 return self._json(handler,201, self.guard.create(body.get('files'), prepare_only=True,
-                    retain_sources=body.get('retainSources', False)))
+                    retain_sources=body.get('retainSources', False),
+                    retain_results=body.get('retainResults', False)))
             if path == PREFIX + '/jobs':
                 if body.get('options'):
                     raise GuardError('OPTIONS_NOT_CONNECTED', 'Параметры экспорта пока не подключены.')
@@ -265,7 +279,8 @@ class GuardAPI:
                            body.get('formats', [body.get('formatId', 'pdf')]))
                 return self._json(handler,201, self.guard.create(
                     body.get('files'), formats, plan=body.get('plan'),
-                    retain_sources=body.get('retainSources', False)))
+                    retain_sources=body.get('retainSources', False),
+                    retain_results=body.get('retainResults', False)))
             if path == PREFIX + '/recovery-scan':
                 if body:
                     raise GuardError('RECOVERY_REQUEST', 'Поиск результатов не принимает параметры задания.')
@@ -275,34 +290,9 @@ class GuardAPI:
                 if set(body) != {'jobId','confirm'} or body.get('confirm') is not True:
                     raise GuardError('HISTORY_CONFIRM', 'Подтвердите удаление только записи истории.')
                 return self._json(handler,200,self.guard.delete_history(identity))
-            expected_analysis_id = None
-            if path in (PREFIX + '/compare/start', PREFIX + '/compare/control') and 'analysisId' in body:
-                expected_analysis_id = body['analysisId']
-                if (not isinstance(expected_analysis_id, str) or
-                        re.fullmatch(r'[0-9a-f]{32}', expected_analysis_id) is None):
-                    raise GuardError('COMPARISON_ID', 'Неверный идентификатор сеанса анализа.')
-            if path == PREFIX + '/compare/start':
-                restart = body.get('restart', False)
-                if type(restart) is not bool:
-                    raise GuardError('COMPARISON_RESTART', 'Некорректная команда повторного анализа.')
-                return self._json(handler,202, self.comparison.start(identity, restart=restart,
-                    expected_analysis_id=expected_analysis_id))
-            if path == PREFIX + '/compare/control':
-                return self._json(handler,200, self.comparison.control(identity, body.get('action'),
-                    expected_analysis_id=expected_analysis_id))
-            if path == PREFIX + '/compare/export-selected':
-                detail = self.comparison.detail(identity,body.get('taskId'),
-                    expected_analysis_id=body.get('analysisId'))
-                from .diagnostic_export import diagnostic_package
-                return self._json(handler,201, diagnostic_package(self.guard,identity,body.get('taskId'),detail,
-                    output_index=body.get('outputIndex'),include_source=body.get('includeSource',False)))
             if path == PREFIX + '/close':
                 outcome=self.guard.close_conversion(identity,discard=body.get('discard',False),defer_cleanup=True)
-                if outcome.get('closed'):self.comparison.release(identity)
                 return self._json(handler,200,outcome)
-            if path == PREFIX + '/compare/retry':
-                return self._json(handler,202, self.comparison.retry(identity,
-                    body.get('analysisId'), body.get('taskIds')))
             if path == PREFIX + '/resources':
                 return self._json(handler,200, self.guard.configure_resources(
                     identity, body.get('fileId'), body.get('resources')))
@@ -332,7 +322,6 @@ class GuardAPI:
                     compact=body.get('compact', False)))
             if path == PREFIX + '/release':
                 self.guard.release(identity, discard=body.get('discard', False),defer_cleanup=True)
-                self.comparison.release(identity)
                 # Preserve the legacy acknowledgement. Cleanup progress remains
                 # available through close()/storage, not this response shape.
                 return self._json(handler,200, {'ok': True})
@@ -343,90 +332,6 @@ class GuardAPI:
         except (OSError, TimeoutError):
             return self._json(handler,408, {'code': 'UPLOAD_INTERRUPTED', 'error': 'Передача была прервана.'})
 
-    def _comparison_get(self, handler, path):
-        identity = self._identity(self._query(handler, 'job'))
-        if path == PREFIX + '/compare/retry-history':
-            query = parse_qs(urlsplit(handler.path).query, keep_blank_values=True)
-            try:
-                if any(len(values) != 1 for values in query.values()):
-                    raise ValueError('duplicate history query')
-                offset = int(query.get('offset', ['0'])[0])
-                limit = int(query.get('limit', ['20'])[0])
-                if offset < 0 or not 1 <= limit <= 100:
-                    raise ValueError('history page')
-                run_id = query.get('runId', [None])[0]
-                if run_id is not None and not re.fullmatch(r'[0-9a-f]{32}', run_id):
-                    raise ValueError('history run')
-            except ValueError as error:
-                raise GuardError('COMPARISON_HISTORY', 'Неверная страница истории повторов.') from error
-            return self._json(handler, 200, self.comparison.retry_history(
-                identity, offset=offset, limit=limit, run_id=run_id))
-        if path == PREFIX + '/compare':
-            query = parse_qs(urlsplit(handler.path).query, keep_blank_values=True)
-            try:
-                if any(len(values) != 1 for values in query.values()):
-                    raise ValueError('duplicate comparison query')
-                offset, limit = int(query.get('offset', ['0'])[0]), int(query.get('limit', ['50'])[0])
-            except ValueError as error:
-                raise GuardError('COMPARISON_PAGE', 'Неверная страница анализа.') from error
-            return self._json(handler, 200, self.comparison.snapshot(identity,
-                offset=offset, limit=limit, filter=query.get('filter', ['all'])[0], q=query.get('q', [''])[0]))
-        task = self._query(handler, 'task')
-        if len(task) > 100:
-            raise GuardError('COMPARISON_TASK', 'Неверное преобразование.')
-        if path == PREFIX + '/compare/item':
-            query = parse_qs(urlsplit(handler.path).query, keep_blank_values=True)
-            expected_analysis_id = None
-            if 'analysisId' in query:
-                values = query['analysisId']
-                if len(values) != 1 or re.fullmatch(r'[0-9a-f]{32}', values[0]) is None:
-                    raise GuardError('COMPARISON_ID', 'Неверный идентификатор сеанса анализа.')
-                expected_analysis_id = values[0]
-            return self._json(handler, 200, self.comparison.detail(identity, task,
-                expected_analysis_id=expected_analysis_id))
-        if path == PREFIX + '/compare/preview':
-            query = parse_qs(urlsplit(handler.path).query, keep_blank_values=True)
-            expected_analysis_id = None
-            if 'analysisId' in query:
-                values = query['analysisId']
-                if len(values) != 1 or re.fullmatch(r'[0-9a-f]{32}', values[0]) is None:
-                    raise GuardError('COMPARISON_ID', 'Неверный идентификатор сеанса анализа.')
-                expected_analysis_id = values[0]
-            try:
-                if any(len(values) != 1 for values in query.values()):
-                    raise ValueError('duplicate preview query')
-                pages = query.get('page', ['0'])
-                if len(pages) != 1: raise ValueError('duplicate page')
-                page = int(pages[0])
-                if not 0 <= page <= 1000000: raise ValueError('page')
-                output_index = (int(query['outputIndex'][0]) if 'outputIndex' in query else None)
-                if output_index is not None and not 0 <= output_index <= 1000000:
-                    raise ValueError('output index')
-            except ValueError as error:
-                raise GuardError('COMPARISON_PAGE', 'Неверная страница предпросмотра.') from error
-            with self._transfer(handler), self.comparison.preview(identity, task,
-                    self._query(handler, 'side'), page=page, output_index=output_index,
-                    expected_analysis_id=expected_analysis_id) as value:
-                if 'json' in value:
-                    return self._json(handler, 200, value['json'])
-                handler.send_response(200)
-                handler.send_header('Content-Type', value['mime'])
-                handler.send_header('Content-Length', str(value['size']))
-                handler.send_header('Cache-Control', 'no-store')
-                handler.send_header('X-Content-Type-Options', 'nosniff')
-                handler.send_header('Content-Security-Policy', "default-src 'none'; sandbox")
-                if 'pages' in value:
-                    handler.send_header('X-AIO-Preview-Pages', str(value['pages']))
-                    handler.send_header('X-AIO-Preview-Page', str(value['page']))
-                for key, header in (('width','Width'),('height','Height'),
-                                    ('renderedWidth','Rendered-Width'),('renderedHeight','Rendered-Height')):
-                    if type(value.get(key)) is int and value[key] > 0:
-                        handler.send_header('X-AIO-Preview-'+header, str(value[key]))
-                handler.end_headers()
-                while block := value['stream'].read(CHUNK):
-                    handler.wfile.write(block)
-            return
-        raise GuardError('API_NOT_FOUND', 'Неизвестная операция сравнения.', status=404)
 
     def _download(self, handler):
         ticket = self._query(handler, 'ticket')

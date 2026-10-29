@@ -81,7 +81,7 @@ assert.equal(reports.at(-1).result.ticket,reports.at(-1).result.downloadUrl.spli
 const resultBeforeNo=reports.at(-1).result.ticket;
 const closeResult=document.querySelector('[data-cv-close-result]');
 assert.deepEqual([...document.querySelector('[data-cv-result-actions]').children].map(b=>b.textContent),
-  ['Закрыть','Сохранить результаты','До/После']);
+  ['Закрыть','Сохранить результаты']);
 closeResult.click();closeResult.click();
 await until(()=>document.querySelector('[data-close-no]'),'unsaved confirmation');
 assert.equal(document.querySelectorAll('.aio-conversion-close-dialog').length,1,'duplicate close has one decision');
@@ -203,5 +203,5 @@ assert.equal(document.querySelector('[data-cv-count]').textContent,'0/0');
 console.log(JSON.stringify({status:'PASS',scope:'preserved DOM + real Guard HTTP; synthetic native/save',
   unknownSelectable:true,threeFileSelectAll:true,requestedPairs:8,nativeAttempts:8,unplannedPairs:10,errors:0,
   honestIssues:true,unknownBlockedBeforeStart:true,noAutomaticSelection:true,removalAfterSaveNoPreflight:true,savedChecksClear:true,
-  cancelledJobRetainsCompletedOutput:true,releasedSpool:true,constantThreeActions:true,
+  cancelledJobRetainsCompletedOutput:true,releasedSpool:true,constantTwoActions:true,
   duplicateCloseOneDialog:true,closeNoPreservesResult:true,savedCloseNoQuestion:true,trashClearsInputModel:true}));
