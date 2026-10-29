@@ -292,9 +292,11 @@ class GuardAPI:
                 return self._json(handler,200, self.guard.confirm_saved(identity, body.get('ticket'),
                     compact=body.get('compact', False)))
             if path == PREFIX + '/release':
-                outcome=self.guard.release(identity, discard=body.get('discard', False),defer_cleanup=True)
+                self.guard.release(identity, discard=body.get('discard', False),defer_cleanup=True)
                 self.comparison.release(identity)
-                return self._json(handler,200, {'ok': True, **outcome})
+                # Preserve the legacy acknowledgement. Cleanup progress remains
+                # available through close()/storage, not this response shape.
+                return self._json(handler,200, {'ok': True})
             raise GuardError('API_NOT_FOUND', 'Неизвестная операция Guard.', status=404)
         except GuardError as error:
             handler.close_connection = True
