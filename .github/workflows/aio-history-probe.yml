@@ -56,6 +56,7 @@ jobs:
           assert s.count(old)==1
           p.write_text(s.replace(old,new),encoding='utf-8',newline='\n')
           PY
+          python tools/qa/_finalize_history_candidate.py
           python -m compileall -q app_backend tests tools/qa/_prepare_history_patch.py
           node --check src/conversion-history.js
           git diff --check
