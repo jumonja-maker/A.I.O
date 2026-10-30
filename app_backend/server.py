@@ -76,11 +76,11 @@ class LocalServer(ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = False
 
-    def __init__(self, address, handler):
+    def __init__(self, address, handler, *, legacy_recovery_parent=None):
         super().__init__(address, handler)
         self.merge_gate = threading.BoundedSemaphore(1)
         self.converter_gate = threading.BoundedSemaphore(1)
-        self.converter = ConverterTransport()
+        self.converter = ConverterTransport(recovery_parent=legacy_recovery_parent)
         self.guard = None
         self.guard_api = None
         self.progress = {}
@@ -99,7 +99,8 @@ class LocalServer(ThreadingHTTPServer):
                 super().server_close()
 
 
-def start_server(port: int = 0, *, guard_recovery_parent=None, guard_history_parent=None):
+def start_server(port: int = 0, *, guard_recovery_parent=None, guard_history_parent=None,
+                 legacy_recovery_parent=None):
     token = secrets.token_urlsafe(32)
     root = asset_root().resolve()
 
@@ -246,8 +247,7 @@ def start_server(port: int = 0, *, guard_recovery_parent=None, guard_history_par
                             not re.fullmatch(r'[A-Za-z0-9_-]{32,128}', tickets[0])):
                         return self._json(400, {'code': 'INVALID_TICKET', 'error': 'Некорректный адрес результата.'})
                     try:
-                        with self.server.converter.lease(tickets[0]) as result:
-                            size = result.path.stat().st_size
+                        def headers(result, size):
                             self.send_response(200)
                             self.send_header('Content-Type', result.mime)
                             self.send_header('Content-Length', str(size))
@@ -257,9 +257,7 @@ def start_server(port: int = 0, *, guard_recovery_parent=None, guard_history_par
                                 "attachment; filename=result" + result.path.suffix +
                                 "; filename*=UTF-8''" + quote(result.name))
                             self.end_headers()
-                            with result.path.open('rb') as stream:
-                                while chunk := stream.read(64 * 1024):
-                                    self.wfile.write(chunk)
+                        self.server.converter.stream_result(tickets[0], headers, self.wfile.write)
                         return
                     except LibreOfficeError as exc:
                         return self._json(404, {'code': exc.code, 'error': str(exc)})
@@ -493,7 +491,10 @@ def start_server(port: int = 0, *, guard_recovery_parent=None, guard_history_par
         def log_message(self, *_):
             pass  # Never log filenames or contents of personal spreadsheets.
 
-    server = LocalServer(('127.0.0.1', port), Handler)
+    legacy_parent = (Path(legacy_recovery_parent) if legacy_recovery_parent is not None else
+                     Path(guard_recovery_parent).parent / 'legacy-jobs' if guard_recovery_parent is not None else
+                     data_directory() / 'legacy-jobs')
+    server = LocalServer(('127.0.0.1', port), Handler, legacy_recovery_parent=legacy_parent)
     try:
         diagnostic_limit = os.environ.get('AIO_GUARD_REJECTED_OUTPUT_BYTES', '0')
         if not re.fullmatch(r'[0-9]{1,8}', diagnostic_limit):

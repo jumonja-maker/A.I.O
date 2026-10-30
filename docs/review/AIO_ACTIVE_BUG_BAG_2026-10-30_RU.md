@@ -9,6 +9,12 @@
 
 **Назначение:** общий реестр, а не утверждение готовности к выпуску. `QA-ПРОВЕРЕНО` = код и целевые проверки прошли в ветке PR; `ЧАСТИЧНО` = есть незакрытый критерий; `ОТКРЫТО` = требуется реализация; `АРХИВ` = удалённая по решению владельца функция. QA не означает наличие исправления в MAIN. Приоритеты рабочие, не заменяют независимое исследование угроз.
 
+## 00AIO — A06: durable published legacy results (новый пакет)
+
+[Подробный отчёт A06](AIO_A06_DURABLE_RESULTS_2026-10-30_RU.md). Воспроизведено удаление опубликованного несохранённого legacy result при close на базе `e29a194`. Production `/api/converter` теперь хранит отдельный durable journal с относительным путём, размером/SHA output и исходным target report; нормальное закрытие/real child crash не удаляют последнюю копию. Повреждённые/неподтверждённые данные остаются на диске без ready. Конкурирующие owner locks и durable retirement barrier не позволяют присвоить busy root или воскресить explicitly released result. При restart tickets меняются, session tokens не сохраняются. Guard PR #92 не переписан.
+
+15 новых регрессий; локально **27 legacy + 21 HTTP streaming + 11 transport audit + 9 code-audit PASS**. Дополнительно устранена воспроизведённая гонка legacy download completion / lease release без ослабления прежнего теста. Full hosted exact-SHA CI, native Windows/EXE и общий gate требуются отдельно. **A06 ЧАСТИЧНО:** byte quota, legacy UI, retry/salvage unverified outputs и установленный Windows ещё открыты. Ни MAIN, ни Release, ни G01–G05 не закрываются этим исправлением; Drive archive update пока BLOCKED.
+
 ## 00AIO — A10: wheel hashes, SBOM, SCA и Pillow 13.0.0 (PR #94)
 
 База `ba920941d085679be0105a82659a9dcb849fe0e3`, [baseline CI #41108043572 SUCCESS](https://github.com/jumonja-maker/A.I.O/actions/runs/41108043572). [Отчёт A10](AIO_A10_WHEEL_HASHES_SBOM_2026-10-30_RU.md): хеши 30 реальных wheel/profile пар, hash/binary/local-only install, контроль реально использованных pip файлов, отдельные source-bound runtime/build SBOM. Добавлена обязательная SCA объявленных Python distributions; incomplete/network error/findings не проходят. SCA на Pillow 12.3.0 дала 59 записей с дубликатами, не 59 доказанных дефектов A.I.O; официально исправленная 13.0.0 закреплена вместе с новыми wheel hashes. Кандидатный набор даёт 0 совпадений OSV; actual hosted exact-SHA проверяется заново.
