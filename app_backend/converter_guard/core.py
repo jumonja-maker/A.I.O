@@ -2046,7 +2046,7 @@ class ConverterGuard:
             job.result['jobId'] = job.id
             self._record(job, 'results_available')
             # A single successful artifact needs no duplicate archive at all.
-            if len(job.artifacts) == 1 and all(t.state in SUCCESS for f in job.files for t in f.targets):
+            if not force_archive and len(job.artifacts) == 1 and all(t.state in SUCCESS for f in job.files for t in f.targets):
                 return
             if job.archive_mode == 'on_demand' and not force_archive:
                 # Folder-save consumes the retained artifacts directly. Do not
@@ -2438,7 +2438,8 @@ class ConverterGuard:
                 if retained.archive_expected is None:
                     raise GuardError('SAVE_VERIFY_MISSING', 'Нет описания состава ZIP. Результаты остаются в AIO.', stage='save')
                 manifest, metadata, snapshot = retained.archive_expected
-                receipt.update(archiveSnapshot=copy.deepcopy(snapshot), outputsExpected=len(manifest))
+                receipt.update(archiveSnapshot=copy.deepcopy(snapshot), outputsExpected=len(manifest),
+                               outputsWritten=len(manifest), bytesWritten=retained.size)
                 atomic_json(receipt_path, receipt)
             with self.open_result(ticket) as (stream, _name, _size):
                 expected = sha256_stream(stream, cancel=cancel)

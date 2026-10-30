@@ -136,6 +136,16 @@ os._exit(23)
         self.assertTrue(path.exists())
         self.assertTrue(all(not a.saved and a.path.exists() for a in job.artifacts))
 
+    def test_explicit_zip_for_one_successful_output_is_an_archive(self):
+        guard, job = self.ready(('pdf',))
+        self.assertEqual(job.result['name'], 'source.pdf')
+        path = self.bundle(guard, job)
+        with zipfile.ZipFile(path) as archive:
+            self.assertEqual(len(archive.namelist()), 4)  # One output and three metadata.
+        receipt = guard.verify_saved_download(job.bundle.ticket, path)
+        self.assertEqual(receipt['outputsVerified'], 1)
+        self.assertTrue(guard.confirm_saved(job.id, job.bundle.ticket, compact=True)['savedAll'])
+
     def test_external_zip_readback_receipt_binds_inventory_metadata_and_operation(self):
         guard, job = self.ready(); path = self.bundle(guard, job)
         from app_backend.converter_guard.archive_verification import verify_built_archive
