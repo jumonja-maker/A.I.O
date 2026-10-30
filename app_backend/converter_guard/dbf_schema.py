@@ -5,6 +5,31 @@ from xml.etree import ElementTree as ET
 from .errors import GuardError
 
 
+def csv_cli_headers_confirmed(source, options, *, cancel=None):
+    """Gate the one-shot CSV recovery without rescanning the source table."""
+    import codecs
+    import csv
+    import io
+    try:
+        if cancel is not None and cancel.is_set():
+            raise GuardError('CANCELLED', 'Проверка заголовков DBF отменена.', stage='export')
+        tokens = options.split(',')
+        delimiter = {44: ',', 59: ';', 9: '\t', 124: '|'}[int(tokens[0])]
+        if tokens[1:4] != ['34', '76', '1']: return False
+        with open(source, 'rb') as stream:
+            prefix = stream.read(65537)
+        truncated = len(prefix) > 65536
+        text = codecs.getincrementaldecoder('utf-8-sig')('strict').decode(prefix[:65536], final=not truncated)
+        reader = csv.reader(io.StringIO(text, newline=''), delimiter=delimiter, quotechar='"', strict=True)
+        names = next(reader)
+        lines = text.splitlines(keepends=True)
+        if truncated and not lines[reader.line_num-1].endswith(('\n', '\r')): return False
+        return (bool(names) and all(re.fullmatch(r'[A-Za-z_][A-Za-z_0-9]{0,9}', name) for name in names)
+                and len({name.upper() for name in names}) == len(names))
+    except (OSError, UnicodeError, ValueError, KeyError, IndexError, csv.Error, StopIteration):
+        return False
+
+
 def validate_cli_dbf_headers(snapshot, *, trusted_schema=False, cancel=None):
     """Never let CLI fallback bypass the UNO literal-heading protection.
 

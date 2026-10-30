@@ -100,6 +100,19 @@ class LiteralDbfHeaders(unittest.TestCase):
             self.cli(['ID'], cancel=cancel)
         self.assertEqual(error.exception.code, 'CANCELLED')
 
+    def test_csv_missing_output_recovery_cannot_bypass_literal_heading_protection(self):
+        import test_guard_v182_bulk_and_dbf as fixtures
+        case = fixtures.MissingDbfRecoveryTests('test_only_one_exact_native_cli_fallback_with_nonempty_header_and_warning')
+        case.setUp()
+        self.addCleanup(case.tearDown)
+        original = b'"ID,C,8",amount\n000123,42\n'
+        case.source.write_bytes(original)
+        with self.assertRaises(GuardError) as error:
+            case.convert()
+        self.assertEqual(error.exception.code, 'ENGINE_OUTPUT_MISSING')
+        self.assertEqual(case.calls, [])
+        self.assertEqual(case.source.read_bytes(), original)
+
 
 if __name__ == '__main__':
     unittest.main()

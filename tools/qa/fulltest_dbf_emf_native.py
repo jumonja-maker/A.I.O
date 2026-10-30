@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 
-def read_dbf(path):
+def read_dbf(path, *, encoding='utf-8'):
     """Strict, small-fixture dBASE III/IV reader, including native DBT memos."""
     data = path.read_bytes()
     assert len(data) >= 33 and data[0] in (3, 0x83, 0x8b), data[:32].hex()
@@ -49,7 +49,7 @@ def read_dbf(path):
             offset += field['width']
             kind = field['type']
             if kind == 'C':
-                value = raw.rstrip(b' ').decode('utf-8', 'strict')
+                value = raw.rstrip(b' ').decode(encoding, 'strict')
             elif kind in ('N', 'F'):
                 value = str(Decimal(raw.decode('ascii').strip())) if raw.strip() else ''
             elif kind == 'D':
@@ -67,13 +67,13 @@ def read_dbf(path):
                         start = block * 512
                         end = memo.find(b'\x1a\x1a', start)
                         assert 512 <= start < end <= len(memo), (block, len(memo))
-                        value = memo[start:end].decode('utf-8', 'strict')
+                        value = memo[start:end].decode(encoding, 'strict')
                     else:
                         block_size = int.from_bytes(memo[20:22], 'big')
                         start = block * block_size
                         marker, length = struct.unpack_from('<II', memo, start)
                         assert marker == 0xffff0800 and length >= 8
-                        value = memo[start+8:start+length].decode('utf-8', 'strict')
+                        value = memo[start+8:start+length].decode(encoding, 'strict')
                 else:
                     value = ''
             else:
@@ -282,6 +282,50 @@ def main():
             assert 'NATIVE_DBF_FIELD_NAME_MAPPING' in adapter.export_info()['warnings']
             return {'nativeField': native_facts['fields'][0], 'aioField': facts['fields'][0], 'mapping': metadata}
         run('literal_only_header_origin_and_mapping', literal_only)
+        def declared_codepage():
+            from app_backend.converter_guard.dbf_codepage import attach_utf8_codepages
+            from app_backend.converter_guard.errors import GuardError
+            path = args.output/'declared-1251.dbf'
+            fields = [('ID', 'C', 8, 0), ('NAME', 'C', 40, 0), ('AMOUNT', 'N', 12, 3)]
+            header = bytearray(32)
+            header[:4] = bytes((3, 126, 10, 30))
+            struct.pack_into('<IHH', header, 4, 2, 33+32*len(fields), 61)
+            header[29] = 0xC9
+            descriptors = bytearray()
+            for name, kind, width, scale in fields:
+                descriptor = bytearray(32)
+                descriptor[:len(name)] = name.encode('ascii')
+                descriptor[11], descriptor[16], descriptor[17] = ord(kind), width, scale
+                descriptors.extend(descriptor)
+            values = [('000123', 'Семён Ёлкин', '-12.750'), ('000007', 'Алёна Фёдорова', '0.125')]
+            records = b''.join(b' ' + identifier.encode().ljust(8) + name.encode('cp1251').ljust(40) +
+                               amount.encode().rjust(12) for identifier, name, amount in values)
+            path.write_bytes(header+descriptors+b'\r'+records+b'\x1a')
+            cpg = path.with_suffix('.cpg')
+            cpg.write_bytes(b'1251\n')
+            before = path.read_bytes()
+            assert attach_utf8_codepages([path, cpg], filter_name='dBase') == []
+            physical = read_dbf(path, encoding='cp1251')
+            imported = convert_path(path, 'xlsx', args.output/'declared-readback',
+                executable=args.executable, import_filter='dBase:34')
+            book = load_workbook(next(p for p in imported if p.suffix == '.xlsx'), data_only=True)
+            rows = list(book.active.values)[1:]
+            book.close()
+            assert [r[0] for r in rows] == [r[0] for r in physical['rows']], rows
+            assert [r[1] for r in rows] == [r[1] for r in physical['rows']], rows
+            assert [Decimal(str(r[2])) for r in rows] == [Decimal(r[2]) for r in physical['rows']], rows
+            cpg.write_bytes(b'UTF-8\n')
+            try:
+                attach_utf8_codepages([path, cpg], filter_name='dBase')
+            except GuardError as error:
+                assert error.code == 'ENGINE_OUTPUT_VALIDATION_INCOMPLETE'
+            else:
+                raise AssertionError('conflicting_LDID_CPG_accepted')
+            assert path.read_bytes() == before and cpg.read_bytes() == b'UTF-8\n'
+            cpg.write_bytes(b'1251\n')
+            return {'ldid': physical['ldid'], 'legacyBytesUnchanged': True,
+                    'nativeCp1251Readback': True, 'conflictingCpgRejected': True}
+        run('declared_ldid_independent_native_readback_and_conflicting_cpg', declared_codepage)
         def vectors():
             from app_backend.converter_guard.native_metafile import repair_native_emf_counts
             source = args.output/'vectors.fodg'
@@ -327,9 +371,11 @@ def main():
         guard = ConverterGuard(adapter=LibreOfficeAdapter(args.executable), recovery_parent=args.output/'owned')
         try:
             raw = source.read_bytes()
-            job = guard.create([{'id': 'source', 'name': source.name, 'size': len(raw)}], ['dbf'])['jobId']
+            job = guard.create([{'id': 'source', 'name': source.name, 'size': len(raw)}], prepare_only=True)['jobId']
             guard.upload(job, 'source', io.BytesIO(raw), len(raw))
-            guard.start(job)
+            prepared = guard.preflight(job)
+            assert prepared['files'][0]['preflight']['state'] == 'detected', prepared
+            guard.start(job, file_ids=['source'], formats=['dbf'], only_verified=True)
             deadline = time.monotonic() + 180
             while not (state := guard.status(job))['finished']:
                 assert time.monotonic() < deadline, state

@@ -77,6 +77,28 @@ class DbFCodepageTests(unittest.TestCase):
             with self.assertRaises(GuardError):
                 attach_utf8_codepages([dbf], filter_name='dBase')
 
+    def test_unknown_or_oversized_cpg_is_not_accepted(self):
+        with TemporaryDirectory() as temp:
+            dbf = sample_dbf(Path(temp) / 'sample.dbf')
+            for label in (b'unknown-encoding\n', b'U'*129, b'\xff'):
+                cpg = dbf.with_suffix('.cpg')
+                cpg.write_bytes(label)
+                with self.subTest(label=label), self.assertRaises(GuardError):
+                    attach_utf8_codepages([dbf], filter_name='dBase')
+                self.assertEqual(cpg.read_bytes(), label)
+
+    def test_cpg_write_refusal_is_not_success(self):
+        from unittest.mock import patch
+        with TemporaryDirectory() as temp:
+            dbf = sample_dbf(Path(temp) / 'sample.dbf')
+            original = Path.open
+            def blocked(path, mode='r', *args, **kwargs):
+                if mode == 'x': raise PermissionError('controlled cpg write refusal')
+                return original(path, mode, *args, **kwargs)
+            with patch.object(Path, 'open', blocked), self.assertRaises(PermissionError):
+                attach_utf8_codepages([dbf], filter_name='dBase')
+            self.assertFalse(dbf.with_suffix('.cpg').exists())
+
     def test_invalid_dbf_is_not_declared_utf8(self):
         with TemporaryDirectory() as temp:
             dbf = sample_dbf(Path(temp) / 'sample.dbf', valid=False)

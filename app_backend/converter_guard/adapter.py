@@ -1103,6 +1103,9 @@ class LibreOfficeAdapter:
             return None
         if control.is_set():
             return None
+        from .dbf_schema import csv_cli_headers_confirmed
+        if not csv_cli_headers_confirmed(source, options, cancel=control):
+            return None  # A CLI retry cannot preserve unconfirmed literal headings.
         recovery = Path(workspace) / 'dbf-native-cli-recovery'
         import_filter = selected + ':' + options
         try:
