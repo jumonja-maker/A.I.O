@@ -1,6 +1,6 @@
 """Verify the complete QA lock graph and exact installed package versions.
 
-This is a version lock, NOT a hash-locked wheel supply-chain attestation.
+Without a verified wheel receipt this remains only a version lock.
 Windows LibreOffice's independent MSI SHA-256 is verified by prepare-libreoffice.
 """
 import argparse
@@ -99,6 +99,10 @@ def main():
     parser.add_argument('--phase', choices=('runtime', 'build'), required=True)
     parser.add_argument('--check-locks', action='store_true',
                         help='Validate lock files before pip; do not attest installed packages')
+    parser.add_argument('--wheel-receipt', type=Path,
+                        help='Recheck actual wheels, pip install report and source-bound SBOM')
+    parser.add_argument('--sca-report', type=Path,
+                        help='Require a complete source-bound Python-distribution SCA report')
     args = parser.parse_args()
     deps, hashes = profile_lock(args.phase)
     if args.check_locks:
@@ -116,6 +120,11 @@ def main():
     source = os.environ.get('AIO_QA_SOURCE_SHA', '')
     if not re.fullmatch(r'[a-f0-9]{40}', source):
         raise RuntimeError('QA manifest must be bound to a verified source revision')
+    wheel_evidence = None
+    if args.wheel_receipt:
+        sys.path.insert(0, str(ROOT))
+        from tools.build.qa_wheels import verify_receipt
+        wheel_evidence = verify_receipt(args.wheel_receipt, args.phase, source)
     pin = json.loads(PIN.read_text(encoding='utf-8'))
     payload = {
         'schema': 1, 'sourceRevision': source,
@@ -126,8 +135,22 @@ def main():
         'resolvedLockSha256': hashes,
         'libreOfficeVersion': pin['version'],
         'libreOfficeMsiSha256': pin['sha256'],
-        'wheelHashesVerified': False,
+        'wheelHashesVerified': wheel_evidence is not None,
     }
+    if wheel_evidence is not None:
+        payload.update({'wheelLockSha256': wheel_evidence['wheelLockSha256'],
+                        'wheels': wheel_evidence['wheels'],
+                        'sbomFile': Path(wheel_evidence['sbom']).name,
+                        'sbomSha256': wheel_evidence['sbomSha256'],
+                        'scaStatus': wheel_evidence['scaStatus']})
+    if args.sca_report:
+        sys.path.insert(0, str(ROOT))
+        from tools.build.qa_sca import verify_report
+        sca = verify_report(args.sca_report, args.phase, source)
+        payload.update({'scaStatus': 'pass_python_distribution_scope',
+                        'scaScope': sca['scope'],
+                        'scaReportFile': args.sca_report.name,
+                        'scaReportSha256': hashlib.sha256(args.sca_report.read_bytes()).hexdigest()})
     if args.phase == 'build':
         MANIFEST.parent.mkdir(parents=True, exist_ok=True)
         MANIFEST.write_text(json.dumps(payload, sort_keys=True, indent=2) + '\n',

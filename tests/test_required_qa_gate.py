@@ -53,10 +53,14 @@ class RequiredQaGate(unittest.TestCase):
         self.assertIn('required_qa_gate.py --matrix', workflow)
         self.assertNotIn('paths:', workflow)
         self.assertNotIn('paths-ignore:', workflow)
-        for phase, filename in (('runtime', 'requirements-qa-locked.txt'), ('build', 'requirements-qa-build-locked.txt')):
+        for phase in ('runtime', 'build'):
             check = 'verify_qa_dependency_lock.py --phase ' + phase + ' --check-locks'
-            install = 'python -m pip install -r tools/build/' + filename
+            install = 'python tools/build/qa_wheels.py --phase ' + phase
+            sca = 'python tools/build/qa_sca.py --phase ' + phase
+            attest = 'verify_qa_dependency_lock.py --phase ' + phase + ' --wheel-receipt'
             self.assertLess(workflow.index(check), workflow.index(install))
+            self.assertLess(workflow.index(install), workflow.index(sca))
+            self.assertLess(workflow.index(sca), workflow.index(attest))
         final_job = workflow.split('  required-qa:', 1)[1]
         self.assertIn('if: ${{ always() }}', final_job)
         self.assertNotIn('continue-on-error', workflow)

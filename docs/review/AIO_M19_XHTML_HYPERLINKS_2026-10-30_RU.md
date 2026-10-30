@@ -26,7 +26,7 @@
 | Весь файл bridge-тестов | 22 метода, red | 22 PASS |
 | Соседний fidelity batch1 unit suite | Без изменений | 17 PASS |
 | Полный локальный Linux source suite | Не подменяет hosted baseline | Отслеживается отдельно |
-| Windows/Linux hosted exact feature SHA + gate | Не запускался для нового пакета | Требует отдельного завершённого CI |
+| Windows/Linux hosted exact feature SHA + gate | Не запускался для нового пакета | [#41120250337 SUCCESS](https://github.com/jumonja-maker/A.I.O/actions/runs/41120250337), source `6283d0f5761fb54d365d1197783c6fe120b4a179`, Windows/Linux/native LO26.8.2.2/EXE/gate |
 | Оригинальные 01_LEVEL_1.ppt / 02_LEVEL_2.ppt | Недоступны в этой сессии | NOT_TESTED |
 
 Первый локальный запуск fulltest native через runtime wrapper остановился на TGA preflight (путь wrapper не содержит установленный registry). Повтор с прямым executable прошёл начальные raster cases и остановился на обязательной Writer model receipt: Linux CLI честно возвращает `native_cli_has_no_model_receipt`. Доступный LibreOfficeDev **26.8.0.0.alpha0**, build `2c87e51eeaa2b413ff4ae097b2705eea1995d8e5`, не закреплённый Windows 26.8.2.2. Эти **FAIL сохранены**, не ослаблены и не объявляются ошибкой нового M19-патча. Windows native-проверки нового SHA необходимы.
@@ -36,3 +36,6 @@
 M19 остаётся ЧАСТИЧНО. Патч не доказывает сохранение ссылок, уже потерянных первым экспортом LibreOffice, источник/пиксели всех изображений, порядок объектов/слайдов, оформление, анимации или полную визуальную эквивалентность. Для закрытия нужны оригинальные PPT, исходный FULLTEST и независимая проверка каждого результата. Исходные файлы не публикуются в репозиторий.
 
 MAIN/Release, пользовательский установщик и защита ветки не меняются. Google Drive не подключён: обязательное обновление архива 00AIO пока BLOCKED, не выполнено.
+
+
+Интеграция [PR #93](https://github.com/jumonja-maker/A.I.O/pull/93) только в QA: `8433b130f69c33e4eed61ce76dbe04089d509264`. Отдельный [merge CI #41122798930](https://github.com/jumonja-maker/A.I.O/actions/runs/41122798930) не подменяется feature-приёмкой. MAIN не изменён.
