@@ -130,7 +130,7 @@ def sbom(source, evidence, profile):
             'metadata': {'component': {'type': 'application', 'name': 'A.I.O',
                          'version': source, 'bom-ref': root_ref},
                          'properties': [{'name': 'aio:profile', 'value': profile},
-                                        {'name': 'aio:scope', 'value': 'Python wheel distributions only; vendored/native components not expanded; SCA not run'}]},
+                                        {'name': 'aio:scope', 'value': 'Python wheel distributions only; vendored/native components not expanded; SCA is a separate report'}]},
             'components': [{'type': 'library', 'name': item['package'], 'version': item['version'],
                             'purl': 'pkg:pypi/' + item['package'] + '@' + item['version'],
                             'bom-ref': 'pkg:pypi/' + item['package'] + '@' + item['version'],

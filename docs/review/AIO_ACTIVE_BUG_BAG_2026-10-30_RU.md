@@ -9,13 +9,23 @@
 
 **Назначение:** общий реестр, а не утверждение готовности к выпуску. `QA-ПРОВЕРЕНО` = код и целевые проверки прошли в ветке PR; `ЧАСТИЧНО` = есть незакрытый критерий; `ОТКРЫТО` = требуется реализация; `АРХИВ` = удалённая по решению владельца функция. QA не означает наличие исправления в MAIN. Приоритеты рабочие, не заменяют независимое исследование угроз.
 
-## 00AIO — A10: проверяемые wheel-байты и SBOM (отдельный пакет)
+## 00AIO — A10: wheel hashes, SBOM, SCA и Pillow 13.0.0 (PR #94)
 
-База **`ba920941d085679be0105a82659a9dcb849fe0e3`**, [точный baseline CI #41108043572 SUCCESS](https://github.com/jumonja-maker/A.I.O/actions/runs/41108043572). [Отчёт A10](AIO_A10_WHEEL_HASHES_SBOM_2026-10-30_RU.md): закреплены SHA-256 30 реально скачанных Windows/Linux wheel-файлов для 15 версионированных пакетов CPython 3.11 x86-64. Хеши независимо совпали с release metadata PyPI. Установка требует `--require-hashes`, binary-only, затем local-only install; проверяются фактически потреблённые pip файлы и SBOM. EXE требует source-bound manifest с подтверждёнными wheel hashes и включает проверенный SBOM. Старый version-only manifest остаётся `wheelHashesVerified=false` и не допускается как подтверждённая QA-сборка.
+База `ba920941d085679be0105a82659a9dcb849fe0e3`, [baseline CI #41108043572 SUCCESS](https://github.com/jumonja-maker/A.I.O/actions/runs/41108043572). [Отчёт A10](AIO_A10_WHEEL_HASHES_SBOM_2026-10-30_RU.md): хеши 30 реальных wheel/profile пар, hash/binary/local-only install, контроль реально использованных pip файлов, отдельные source-bound runtime/build SBOM. Добавлена обязательная SCA объявленных Python distributions; incomplete/network error/findings не проходят. SCA на Pillow 12.3.0 дала 59 записей с дубликатами, не 59 доказанных дефектов A.I.O; официально исправленная 13.0.0 закреплена вместе с новыми wheel hashes. Кандидатный набор даёт 0 совпадений OSV; actual hosted exact-SHA проверяется заново.
 
-**A10 ЧАСТИЧНО**: feature/merged hosted CI отслеживается отдельно; SCA/CVE, вложенные vendor/native компоненты Qt/LibreOffice, повторная битовая сборка и установленный Windows G01/G04 не подтверждены. 13 новых содержательных тестов + 11 прежних lock-контрактов PASS локально; это не hosted release acceptance. Отдельный M19 [PR #93](https://github.com/jumonja-maker/A.I.O/pull/93) на SHA `6283d0f5761fb54d365d1197783c6fe120b4a179` проверяется независимо.
+**A10 ЧАСТИЧНО**: native/vendor компоненты Qt/LibreOffice и побитовая воспроизводимость готового установщика не подтверждены. 31 целевой QA + 5 gate + 7 raster тестов PASS локально. Первый [hosted CI #41121712204](https://github.com/jumonja-maker/A.I.O/actions/runs/41121712204) сохранён как FAIL: существующий gate-тест искал прежнюю pip-команду; теперь он подтверждает прежний порядок lock-before-install и добавленные SCA/attestation. Проверки сохранности и платформенные исключения не ослаблены.
 
-Google Drive не подключён: архив 00AIO пока не обновлён, первоначальный FULLTEST 200/5723/1079 недоступен. MAIN/Release/branch protection не меняются. Счётчик мешка и G01–G05 не закрываются этим частичным пакетом.
+[M19 PR #93](https://github.com/jumonja-maker/A.I.O/pull/93) на `6283d0f5761fb54d365d1197783c6fe120b4a179` прошёл [CI #41120250337 SUCCESS](https://github.com/jumonja-maker/A.I.O/actions/runs/41120250337) и интегрирован только в QA как `8433b130f69c33e4eed61ce76dbe04089d509264`; CI этого объединённого SHA проверяется отдельно. Google Drive не подключён: архив 00AIO и исходный FULLTEST 200/5723/1079 недоступны. MAIN/Release/protection не меняются, счётчик мешка и G01–G05 не закрываются.
+
+## 00AIO — новый пакет M19: сохранение уже экспортированных ссылок
+
+База пакета: **`ba920941d085679be0105a82659a9dcb849fe0e3`**. Через GitHub API подтверждены HEAD PR #83, интеграция PR #92 и [CI #41108043572 — SUCCESS](https://github.com/jumonja-maker/A.I.O/actions/runs/41108043572): Windows, Linux и AIO QA gate. Старые записи ниже о Draft/очереди PR #92 описывают прежние этапы, не текущую интеграцию.
+
+[Новый отчёт M19](AIO_M19_XHTML_HYPERLINKS_2026-10-30_RU.md): на детерминированной модели воспроизведена потеря `<a href>` при успешном textbox recovery. Сканер сравнивал только ресурсные `<link>` и пропускал проверку ссылок на текстовых слайдах без изображений. Добавлены `<a>`/`<area>`, проверка повторений и атрибутов, отказ при неоднозначных атрибутах и обязательное сравнение во всех recovery. **M19 ЧАСТИЧНО**, feature CI [#41120250337 SUCCESS](https://github.com/jumonja-maker/A.I.O/actions/runs/41120250337) на `6283d0f5761fb54d365d1197783c6fe120b4a179` подтверждён; QA merge `8433b130f69c33e4eed61ce76dbe04089d509264` проверяется [отдельным CI #41122798930](https://github.com/jumonja-maker/A.I.O/actions/runs/41122798930). Счётчик мешка не изменён.
+
+Повторная read-only проверка A09: `/branches/main` сообщает `protected=false`, enforcement `off`, checks/contexts пусты; `/rulesets` возвращает `[]`. Прямой запрос `/branches/main/protection` вернул **403 Resource not accessible by integration**, поэтому административная конфигурация не удостоверена полностью. Настройки не менялись. MAIN SHA **`2bab2d0c31fe84a0d07404a33219dd5bdad834b7`**.
+
+Google Drive сейчас не подключён; архив 00AIO не обновлён. Корпус 200/5723/1079 не найден среди доступных исходных файлов. Никакая локальная синтетическая проверка не считается G02 или установленным Windows GUI; G01–G05 остаются открытыми.
 
 ## 00AIO — M02 / M03 / M30, отдельный Draft-патч
 

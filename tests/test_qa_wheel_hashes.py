@@ -143,7 +143,8 @@ class WheelEvidence(unittest.TestCase):
         bom = qa.sbom('a' * 40, evidence, 'fixture')
         self.assertEqual(bom, qa.sbom('a' * 40, evidence, 'fixture'))
         self.assertEqual(bom['components'][0]['hashes'][0]['content'], qa.sha256(self.wheel))
-        self.assertIn('SCA not run', str(bom['metadata']['properties']))
+        self.assertIn('vendored/native components not expanded', str(bom['metadata']['properties']))
+        self.assertIn('SCA is a separate report', str(bom['metadata']['properties']))
 
     def test_installer_uses_hashes_for_download_and_consumed_local_wheels(self):
         lock = self.root / 'lock.json'

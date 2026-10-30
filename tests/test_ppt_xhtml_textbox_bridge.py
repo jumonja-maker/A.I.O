@@ -151,10 +151,11 @@ class TextboxOnlyNativeXhtml(unittest.TestCase):
 class MixedNativeModel(NativeModel):
     """A controlled native XHTML encoder that retains embedded image data."""
     def __init__(self, target, pages, *, image_src='data:image/png;base64,QUJD',
-                 drop_image=False, change_container=False):
+                 drop_image=False, change_container=False, links=''):
         super().__init__(target, pages)
         self.image_src, self.drop_image = image_src, drop_image
         self.change_container = change_container
+        self.links = links
 
     def storeToURL(self, url, properties):
         self.store_calls += 1
@@ -169,7 +170,7 @@ class MixedNativeModel(NativeModel):
                  else '<div class="original">')
         self.target.with_name(self.target.stem + '__aio_textbox_recovery.xhtml').write_text(
             '<html><body>' + fixed + image + '</div>' +
-            ''.join(sections) + '</body></html>', encoding='utf-8')
+            ''.join(sections) + self.links + '</body></html>', encoding='utf-8')
 
 
 class MixedPptXhtmlFidelity(unittest.TestCase):
@@ -262,6 +263,63 @@ class MixedPptXhtmlFidelity(unittest.TestCase):
         model = self.model()
         self.assertIsNone(self.call(model))
         self.assertEqual(model.store_calls, 0)
+
+    def with_links(self, html):
+        self.target.write_text(self.background.replace('</body>', html + '</body>'),
+                               encoding='utf-8')
+        return self.target.read_bytes()
+
+    def test_missing_anchor_refuses_commit_and_preserves_primary(self):
+        before = self.with_links('<a href="https://example.invalid/original">AIO_TEXT</a>')
+        with self.assertRaises(WORKER['AioPresentationUnverified']):
+            self.call(self.model())
+        self.assertEqual(self.target.read_bytes(), before)
+        self.assertFalse((self.root / 'slides__aio_textbox_recovery.xhtml').exists())
+
+    def test_changed_anchor_target_or_title_refuses_commit(self):
+        for link in ('<a href="https://example.invalid/changed" title="original">AIO_TEXT</a>',
+                     '<a href="https://example.invalid/original" title="changed">AIO_TEXT</a>'):
+            with self.subTest(link=link):
+                before = self.with_links(
+                    '<a href="https://example.invalid/original" title="original">AIO_TEXT</a>')
+                with self.assertRaises(WORKER['AioPresentationUnverified']):
+                    self.call(self.model(links=link))
+                self.assertEqual(self.target.read_bytes(), before)
+
+    def test_same_anchor_with_reordered_attributes_remains_supported(self):
+        self.with_links('<a href="#slide2" title="go">AIO_TEXT</a>')
+        receipt = self.call(self.model(links='<a title="go" href="#slide2">AIO_TEXT</a>'))
+        self.assertTrue(receipt['exportedLinkTargetsCompared'])
+        self.assertEqual(receipt['exportedHyperlinkCount'], 1)
+        self.assertFalse(receipt['qualityCompared'])
+
+    def test_duplicate_anchor_loss_is_not_hidden_by_a_matching_target(self):
+        anchor = '<a href="#slide2">AIO_TEXT</a>'
+        before = self.with_links(anchor * 2)
+        with self.assertRaises(WORKER['AioPresentationUnverified']):
+            self.call(self.model(links=anchor))
+        self.assertEqual(self.target.read_bytes(), before)
+
+    def test_image_map_area_links_are_also_preserved(self):
+        before = self.with_links('<map name="m"><area href="#slide2" shape="rect" coords="0,0,10,10"/></map>')
+        with self.assertRaises(WORKER['AioPresentationUnverified']):
+            self.call(self.model())
+        self.assertEqual(self.target.read_bytes(), before)
+
+    def test_textbox_only_recovery_cannot_skip_existing_anchor_check(self):
+        before = '<html><body><a href="#slide2">AIO_TEXT</a></body></html>'
+        self.target.write_text(before, encoding='utf-8')
+        model = NativeModel(self.target, [Page([Shape(content='AIO_TEXT')])])
+        with self.assertRaises(WORKER['AioPresentationUnverified']):
+            self.call(model)
+        self.assertEqual(self.target.read_text(), before)
+
+    def test_ambiguous_duplicate_href_is_rejected_before_model_mutation(self):
+        self.with_links('<a href="#slide1" href="#slide2">AIO_TEXT</a>')
+        model = self.model()
+        self.assertIsNone(self.call(model))
+        self.assertEqual(model.store_calls, 0)
+        self.assertEqual(len(model.pages[0].shapes), 3)
 
 
 if __name__ == '__main__':

@@ -41,6 +41,12 @@ if qa_manifest.is_file():
         raise RuntimeError('Missing or changed source-bound QA SBOM')
     assets.append((str(qa_manifest), 'build-info'))
     assets.append((str(sbom_file), 'build-info'))
+    sca_file = root / 'build' / 'aio-qa-sca-build.json'
+    if (qa_info.get('scaStatus') != 'pass_python_distribution_scope' or
+            not sca_file.is_file() or
+            hashlib.sha256(sca_file.read_bytes()).hexdigest() != qa_info.get('scaReportSha256')):
+        raise RuntimeError('Missing or changed source-bound Python SCA report')
+    assets.append((str(sca_file), 'build-info'))
 elif os.environ.get('AIO_QA_REQUIRE_MANIFEST') == '1':
     # Source-contract tests execute the .spec before package preparation;
     # only the actual QA packaging stage requires the generated manifest.

@@ -101,6 +101,8 @@ def main():
                         help='Validate lock files before pip; do not attest installed packages')
     parser.add_argument('--wheel-receipt', type=Path,
                         help='Recheck actual wheels, pip install report and source-bound SBOM')
+    parser.add_argument('--sca-report', type=Path,
+                        help='Require a complete source-bound Python-distribution SCA report')
     args = parser.parse_args()
     deps, hashes = profile_lock(args.phase)
     if args.check_locks:
@@ -141,6 +143,14 @@ def main():
                         'sbomFile': Path(wheel_evidence['sbom']).name,
                         'sbomSha256': wheel_evidence['sbomSha256'],
                         'scaStatus': wheel_evidence['scaStatus']})
+    if args.sca_report:
+        sys.path.insert(0, str(ROOT))
+        from tools.build.qa_sca import verify_report
+        sca = verify_report(args.sca_report, args.phase, source)
+        payload.update({'scaStatus': 'pass_python_distribution_scope',
+                        'scaScope': sca['scope'],
+                        'scaReportFile': args.sca_report.name,
+                        'scaReportSha256': hashlib.sha256(args.sca_report.read_bytes()).hexdigest()})
     if args.phase == 'build':
         MANIFEST.parent.mkdir(parents=True, exist_ok=True)
         MANIFEST.write_text(json.dumps(payload, sort_keys=True, indent=2) + '\n',
