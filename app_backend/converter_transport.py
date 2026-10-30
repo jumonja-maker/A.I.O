@@ -14,6 +14,7 @@ from zipfile import ZipFile, ZipInfo, ZIP_STORED
 from .libreoffice_catalog import mime_for
 from .libreoffice_engine import LibreOfficeError, convert_path
 from .legacy_result_journal import LegacyWorkspace, recover_workspaces
+from .legacy_storage_budget import LegacyRunControl, measured_bytes, storage_error
 
 ARCHIVE_CHUNK = 128 * 1024
 MAX_OWNED_ROOTS = 32
@@ -55,9 +56,12 @@ class Result:
 
 
 class ConverterTransport:
-    def __init__(self, *, max_owned_roots=MAX_OWNED_ROOTS, recovery_parent=None):
+    def __init__(self, *, max_owned_roots=MAX_OWNED_ROOTS, recovery_parent=None,
+                 max_owned_bytes=None):
         if type(max_owned_roots) is not int or not 1 <= max_owned_roots <= 256:
             raise ValueError('max_owned_roots must be an integer from 1 to 256')
+        if max_owned_bytes is not None and (type(max_owned_bytes) is not int or max_owned_bytes <= 0):
+            raise ValueError('max_owned_bytes must be None or a positive integer')
         self.lock = threading.RLock()
         self.active = {}
         self.results = {}
@@ -65,6 +69,9 @@ class ConverterTransport:
         self.cleanup_pending = []
         self._pending_cleaning = set()
         self.max_owned_roots = max_owned_roots
+        self.max_owned_bytes = max_owned_bytes
+        self.used_bytes = None
+        self.storage_measurement_ok = None
         self.closed = False
         self._cleanup_timer = None
         self._cleanup_retries = 0
@@ -108,10 +115,44 @@ class ConverterTransport:
                    {id(item.temporary) for item in self.results.values()} |
                    {id(item) for item in self.cleanup_pending}) + len(self.recovery_issues)
 
-    def begin(self, identity, connection):
+    def check_storage(self, additional=0):
+        """Measure outside the transport lock; status/cancel never wait on I/O."""
+        if type(additional) is not int or additional < 0:
+            raise ValueError('additional must be a non-negative integer')
+        if self.max_owned_bytes is None:
+            return
+        with self.lock:
+            # Durable storage includes foreign-owned, incomplete and unknown
+            # children, not just byte-verified published result payloads.
+            roots = ([self.recovery_parent] if self.recovery_parent is not None else
+                     list({item.temporary.name for item in self.active.values()} |
+                          {item.temporary.name for item in self.results.values()} |
+                          {item.name for item in self.cleanup_pending}))
+        try:
+            used = measured_bytes(roots)
+        except OSError as error:
+            with self.lock:
+                self.storage_measurement_ok = False
+            raise storage_error('LEGACY_STORAGE_MEASUREMENT_FAILED') from error
+        with self.lock:
+            self.used_bytes = used
+            self.storage_measurement_ok = True
+        if used + additional > self.max_owned_bytes:
+            raise storage_error('LEGACY_STORAGE_BYTES')
+
+    def run_control(self, request):
+        return (request.cancel if self.max_owned_bytes is None else
+                LegacyRunControl(request.cancel, self.check_storage))
+
+    def begin(self, identity, connection, *, expected_upload_bytes=0):
         # Retry only already-released storage. Unsaved tickets are never
         # eligible for automatic cleanup.
         self.retry_cleanup()
+        with self.lock:
+            if not self.recovery_available:
+                raise LibreOfficeError('Хранилище прежних результатов недоступно. '
+                    'Проверьте права и диск; конвертация не начата.', 'LEGACY_STORAGE_UNAVAILABLE')
+        self.check_storage(expected_upload_bytes)
         with self.lock:
             if self.closed or identity in self.active or identity in self.results_by_request:
                 raise LibreOfficeError('Задание недоступно.', 'REQUEST_BUSY')
@@ -134,7 +175,7 @@ class ConverterTransport:
 
         Never scan the disk or return filesystem paths/full per-target reports.
         A caller selects a requestId and uses recover(); no result is selected
-        or released implicitly. This is not durable recovery across restart.
+        or released implicitly. Durable workspaces were verified at startup.
         """
         if (type(offset) is not int or offset < 0 or type(limit) is not int or
                 not 1 <= limit <= 50):
@@ -144,12 +185,14 @@ class ConverterTransport:
             items = [{'state': 'ready', 'requestId': result.request_id,
                       'name': result.name, 'mime': result.mime, 'size': result.size,
                       'formatIds': list(result.format_ids),
+                      'partial': bool((result.target_report or {}).get('failed')),
                       'recoverUrl': '/api/converter/recover?request=' + result.request_id}
                      for result in available[offset:offset + limit]]
             durable = self.recovery_parent is not None
             return {'state': 'inventory', 'scope': 'durable_published_results' if durable else 'current_process',
                     'restartRecovery': durable and self.recovery_available,
                     'storageAvailable': self.recovery_available,
+                    'storage': self.storage_stats(),
                     'recoveryWarnings': [dict(item) for item in self.recovery_issues],
                     'retention': 'until_explicit_release' if durable else 'until_release_or_process_shutdown',
                     'total': len(available), 'offset': offset, 'limit': limit,
@@ -223,6 +266,7 @@ class ConverterTransport:
 
     def execute(self, request, files, ids, formats):
         artifacts = []
+        control = self.run_control(request)
         if isinstance(request.temporary, LegacyWorkspace):
             request.temporary.preserve_outputs = True
         with self.lock:
@@ -235,6 +279,7 @@ class ConverterTransport:
                 row = request.files[i]['targets'][j]
                 row['state'] = 'running'
                 try:
+                    self.check_storage()
                     if request.cancel.is_set():
                         raise LibreOfficeError('Конвертация отменена.', 'CANCELLED')
 
@@ -244,7 +289,8 @@ class ConverterTransport:
 
                     outputs = convert_path(source['path'], target,
                         request.root / 'native' / str(i) / str(j),
-                        cancel=request.cancel, on_started=started)
+                        cancel=control, on_started=started)
+                    self.check_storage()
                     output_root = request.root / 'native' / str(i) / str(j) / 'output'
                     for path in outputs:
                         archive_path = f'{i + 1:03d}_{target}/' + path.relative_to(output_root).as_posix()
@@ -253,6 +299,22 @@ class ConverterTransport:
                     row['warnings'] = source['warnings']
                 except LibreOfficeError as exc:
                     row.update(state='error', code=exc.code, error=str(exc))
+                    if exc.code.startswith('LEGACY_STORAGE_'):
+                        # A full/unknown disk must stop scheduling new native
+                        # writers, without changing the user's cancel intent.
+                        with self.lock:
+                            for later_file in request.files:
+                                for later in later_file['targets']:
+                                    if later['state'] == 'queued':
+                                        later.update(state='error', code=exc.code, error=str(exc))
+                            request.completed = request.total - 1
+                        exc.batch_report = self.progress(request.identity)
+                        exc.batch_report['completed'] = request.total
+                        exc.batch_report['percent'] = 100
+                        exc.batch_report['succeeded'] = sum(t['state'] == 'ready'
+                            for f in exc.batch_report['files'] for t in f['targets'])
+                        exc.batch_report['failed'] = request.total - exc.batch_report['succeeded']
+                        raise
                 except OSError:
                     row.update(state='error', code='STORAGE_ERROR',
                                error='Ошибка чтения или записи файла. Проверьте свободное место и права доступа.')
@@ -273,6 +335,14 @@ class ConverterTransport:
             name, mime = path.name, mime_for(path.suffix.lower().lstrip('.'))
         else:
             path = request.root / 'Конвертированные_файлы.zip'
+            # ZIP_STORED duplicates native bytes. Check a conservative full
+            # archive before opening it; include UTF-8 names and the report.
+            if self.max_owned_bytes is not None:
+                archive_budget = 512 + len(json.dumps(report, ensure_ascii=False, indent=2).encode('utf-8'))
+                archive_budget += sum(output.stat().st_size + 256 + 2 * len(name.encode('utf-8'))
+                                      for name, output in artifacts)
+                self.check_storage(archive_budget)
+            storage_control = LegacyRunControl(threading.Event(), self.check_storage)
             with self.lock:
                 request.packaging = True
             try:
@@ -286,12 +356,14 @@ class ConverterTransport:
                                 chunk = source.read(ARCHIVE_CHUNK)
                                 if not chunk:
                                     break
+                                storage_control.is_set()
                                 target.write(chunk)
                     self._check_packaging_cancel(request)
                     if report['failed']:
                         archive.writestr('AIO-conversion-report.json',
                                          json.dumps(report, ensure_ascii=False, indent=2).encode())
                     self._check_packaging_cancel(request)
+                    self.check_storage()
             finally:
                 with self.lock:
                     request.packaging = False
@@ -303,6 +375,7 @@ class ConverterTransport:
             request_id=request.identity, size=size, target_report=report, format_ids=tuple(formats))
         if isinstance(request.temporary, LegacyWorkspace):
             request.temporary.record(result)
+        self.check_storage()
         with self.lock:
             self._check_packaging_cancel(request)
             if self.closed:
@@ -447,7 +520,12 @@ class ConverterTransport:
                     sum(result.released for result in self.results.values()),
                     'leasedResults': sum(bool(result.leases) for result in self.results.values()),
                     'ownedRoots': owned, 'maxOwnedRoots': self.max_owned_roots,
-                    'availableSlots': max(0, self.max_owned_roots - owned)}
+                    'availableSlots': max(0, self.max_owned_roots - owned),
+                    'usedBytes': self.used_bytes, 'maxOwnedBytes': self.max_owned_bytes,
+                    'storageMeasurementOk': self.storage_measurement_ok,
+                    'availableBytes': (max(0, self.max_owned_bytes - self.used_bytes)
+                        if self.max_owned_bytes is not None and self.used_bytes is not None and
+                        self.storage_measurement_ok else None)}
 
     def close(self):
         with self.lock:

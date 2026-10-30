@@ -1,6 +1,6 @@
 # A.I.O — единый активный мешок проблем и критерии приёмки
 
-Срез: **30.10.2026**. Ветвь: `fix/fulltest-critical-hosted-lo-20261029`; PR [#83](https://github.com/jumonja-maker/A.I.O/pull/83).
+Срез: **31.10.2026 (Москва)**. Ветвь: `fix/fulltest-critical-hosted-lo-20261029`; PR [#83](https://github.com/jumonja-maker/A.I.O/pull/83).
 Ранее проверенный Work-продуктовый SHA: **`514b208dba63c47eaff123f789778f571b999f5f`**; [Windows/Linux CI 41074076122 — SUCCESS](https://github.com/jumonja-maker/A.I.O/actions/runs/41074076122), 1364 теста, 8 реальных native DBF/EMF, EXE и общий gate. PR [#84](https://github.com/jumonja-maker/A.I.O/pull/84) объединён **только** с QA: merge `037bb254f3b01ae7f56b0383e694511f84124c07`, его Git-дерево **точно совпадает** с проверенным Work SHA. [CI объединённой QA-ветки 41077131356](https://github.com/jumonja-maker/A.I.O/actions/runs/41077131356) отслеживается отдельно.
 Ранее интегрированный пакет: [M25/M28/M31 — DBF и EMF/EMZ](AIO_M25_M28_M31_2026-10-30_RU.md) из Work PR #84 (7 коммитов). M25/M31 частичны: внешняя совместимость и исходный FULLTEST впереди; M28 QA-проверена на подтверждённом нативном варианте счётчика, исходные ~50 случаев остаются в G02. Предыдущий [M19 — частичное восстановление PPT→XHTML](AIO_M19_PPT_XHTML_2026-10-30_RU.md) и [A06/A09/A10](AIO_A06_A09_A10_PROGRESS_2026-10-30_RU.md) сохранены, как и все UI/Guard регрессии.
 
@@ -9,7 +9,17 @@
 
 **Назначение:** общий реестр, а не утверждение готовности к выпуску. `QA-ПРОВЕРЕНО` = код и целевые проверки прошли в ветке PR; `ЧАСТИЧНО` = есть незакрытый критерий; `ОТКРЫТО` = требуется реализация; `АРХИВ` = удалённая по решению владельца функция. QA не означает наличие исправления в MAIN. Приоритеты рабочие, не заменяют независимое исследование угроз.
 
-## 00AIO — A06: durable published legacy results (новый пакет)
+## 00AIO — A06: byte budget и пользовательский legacy список
+
+[Отчёт нового пакета](AIO_A06_BYTE_BUDGET_UI_2026-10-31_RU.md). Проверенная база QA **`e79d2c31326f36f8001dd3ff557b63822c96380c`**, [CI #41127013624 SUCCESS](https://github.com/jumonja-maker/A.I.O/actions/runs/41127013624): Windows 1462 PASS + 7 N/A, Linux 1464 PASS + 5 N/A, native LO26.8.2.2/EXE/AIO QA gate PASS. Включены M19 #93, A10 #94 и durable legacy #95. Их feature CI не подменяет подтверждённый CI объединённой версии.
+
+Production legacy имеет настраиваемую кооперативную квоту 8 GiB по логическим file bytes: upload admission до body, live native polling, ZIP duplication estimate и фактические checks. Учитывается весь parent, включая unverified/чужие busy roots, inputs/profiles/journals; неудавшаяся очистка не выдаёт свободное место. Невозможность измерения — отказ без удаления. Это не жёсткая filesystem quota: возможен рост между polls, чужая запись не блокируется. В «Состояние» добавлен явный legacy список по 20 результатов с save-copy и отдельным discard; download не означает saved, после save автоматического удаления нет. Closed/pagehide late replies игнорируются.
+
+Локально 13 новых byte-budget methods и production UI DOM case PASS; все **42 legacy**, **21 streaming**, **91 audit**, **32 queue** checks PASS. Полный промежуточный local run до UI: 1482 / 1474 PASS / 1 GUI FAIL / 7 skips (5 Windows N/A, 2 opt-in GUI INCOMPLETE), libXtst отсутствует. Hosted exact feature/merged CI проверяется отдельно, прежние тесты и N/A не ослаблены.
+
+**A06 ЧАСТИЧНО:** ручной disk retry и salvage unverified files без журнала, installed Windows и большой startup/quota scan benchmark остаются. A09/A10 и G01–G05 не закрыты; Drive archive и исходный FULLTEST недоступны, MAIN/Release/protection не менялись.
+
+## 00AIO — A06: durable published legacy results (PR #95)
 
 [Подробный отчёт A06](AIO_A06_DURABLE_RESULTS_2026-10-30_RU.md). Воспроизведено удаление опубликованного несохранённого legacy result при close на базе `e29a194`. Production `/api/converter` теперь хранит отдельный durable journal с относительным путём, размером/SHA output и исходным target report; нормальное закрытие/real child crash не удаляют последнюю копию. Повреждённые/неподтверждённые данные остаются на диске без ready. Конкурирующие owner locks и durable retirement barrier не позволяют присвоить busy root или воскресить explicitly released result. При restart tickets меняются, session tokens не сохраняются. Guard PR #92 не переписан.
 
@@ -104,16 +114,16 @@ Google Drive сейчас не подключён; архив 00AIO не обн�
 | **A03** | P2 в аудите (повышенное внимание к данным) | **QA-ПРОВЕРЕНО** | Excel явно отвергает rich text, ws.defined_names, строки/столбцы печати, особые колонтитулы и неподдерживаемые параметры; обычные числа, ведущие нули и стили не терять. Новую поддержку сложных свойств без тестов не объявлять. |
 | **A04** | P2 | **QA-ПРОВЕРЕНО по включённым границам** | Guard + legacy cancel: до загрузки, во время обработки, в ZIP и перед публикацией; опубликованный билет не отменять задним числом. Установленный GUI/дополнительные edge-сценарии — G03. |
 | **A05** | P2 | **QA-ПРОВЕРЕНО** | Прежние 15 с upload idle и 408 сохранены. Дополнительно устранена реально наблюдавшаяся Windows гонка: HTTP 200/408/400/500 публикуется только ПОСЛЕ `merge_gate.release()`, в тесте освобождение проверяется непосредственно на `_send`; следующий merge без перезапуска возможен (PR #90, CI PASS). Долгая нормальная обработка Excel не получает общий timeout. |
-| **A06** | P2 | **ЧАСТИЧНО** | В текущем процессе авторизованный /api/converter/recover без ID выдаёт ограниченный список результатов для явного выбора ID; прежний recover-by-ID сохранён. Предел 32 принадлежащих legacy-транспорту каталогов учитывает активные задания, аренды и неудавшуюся очистку; HTTP 429 до загрузки, без вытеснения несохранённого. Устранена конкурентная повторная очистка. **Остаток:** UI-подключение списка, restart/crash, байтовая квота и каталоги после аварии. Guard Recovery отдельно; G03 остаётся. |
+| **A06** | P2 | **ЧАСТИЧНО** | Durable published legacy journals после close/crash/restart (#95), 32-root ownership, кооперативная byte quota и explicit inventory/save/discard UI. Несохранённые/непроверенные bytes не вытесняются, failed cleanup остаётся учтённой. **Остаток:** disk retry/salvage unverified files без журнала, installed Windows и большой scan benchmark. Guard Recovery отдельно; G03 остаётся. |
 | **A07** | P2 | **QA-ПРОВЕРЕНО** | Windows CREATE_SUSPENDED → AssignProcessToJobObject → resume_owned_primary; тестировать отказ привязки и дочерние процессы. Не завершать глобально пользовательский LibreOffice. |
 | **A08** | P2 | **QA-ПРОВЕРЕНО** | Общий loopback Host/Origin перед HTML/token/API; чужой Host — 403 без секрета. Это не полноценная ОС-песочница LibreOffice. |
 | **A09** | P2 | **ЧАСТИЧНО (инфраструктура)** | Введены проверки обязательных стадий каждой платформы и общий AIO QA gate, прошедший ordinary PR CI; добавлен merge_group, нет фильтров путей. **Остаток:** разрешённая интеграция MAIN, канонический SHA, protection/ruleset/required checks и фактическая проверка push main/merge queue. Имя gate не делает его обязательным; настройки защиты не менялись. |
-| **A10** | P2 | **ЧАСТИЧНО** | Точные runtime/build версии и source-bound manifest сохранены. До pip проверяется весь локальный lock-граф: includes/циклы/пути/конфликтующие pins; manifest содержит resolvedLockSha256. **Остаток:** хеш-locked wheel (wheelHashesVerified=false), SBOM, независимая SCA/CVE и воспроизводимый релиз из одного SHA. Хеш lock-текста не равен хешу wheel. |
+| **A10** | P2 | **ЧАСТИЧНО** | Lock-граф, реальные hash-locked wheels, local-only consumed pip report, отдельные runtime/build SBOM и OSV Python SCA, включённые в source-bound EXE (#94). Version-only manifest по-прежнему wheelHashesVerified=false и не принимается QA .spec. **Остаток:** native/vendor/npm состав, полный CVE scope и воспроизводимый установленный релиз одного SHA. |
 
 ### Классификация аудита
 
 - **Не открывать повторно:** A01, A02 (исходная гипотеза ложного успеха), A03, A04 (проверенные границы), A05, A07, A08. Перед MAIN они остаются в G03, не создавая дублирующих дефектов.
-- **Оставшийся инженерный объём:** A06 — подключение legacy inventory к клиенту, restart/crash и дисковые границы; A09 — интеграционная ветка/защита/обязательность уже введённого gate; A10 — wheel hashes/SBOM/SCA и единый релизный профиль. Не разрабатывать заново проверенные в 46d6487 inventory, учёт владельцев, lock-граф и gate.
+- **Оставшийся инженерный объём:** A06 — disk retry/salvage unverified, installed Windows, большой storage benchmark; A09 — интеграционная ветка/защита/обязательность уже введённого gate; A10 — полный native/vendor/npm audit и единый воспроизводимый релизный профиль. Не разрабатывать заново уже проверенные inventory, ownership, durable published journal, byte budget, lock-граф, wheel/SBOM/Python SCA и gate.
 - **Не смешивать:** M19 и другие потери содержимого не исправляются сигнатурой A02; M02 Recovery не тождественен legacy A06; M30 ZIP readback не равен сохранению на внешний диск.
 
 ## Обязательные ворота приёмки до MAIN

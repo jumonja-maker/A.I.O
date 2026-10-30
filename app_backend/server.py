@@ -26,6 +26,7 @@ from .excel import merge_xlsx, MergeError, MAX_TOTAL_BYTES, MAX_FILE_BYTES
 from .libreoffice_engine import LibreOfficeError, inspect_metadata
 from .libreoffice_catalog import EXTENSION
 from .converter_transport import ConverterTransport
+from .legacy_storage_budget import DEFAULT_STORAGE_BYTES
 from .converter_upload_stream import MultipartUpload, content_length, MAX_METADATA_BYTES
 from .converter_guard import ConverterGuard, GuardLimits
 from .converter_guard.http_api import GuardAPI
@@ -77,10 +78,18 @@ class LocalServer(ThreadingHTTPServer):
     allow_reuse_address = False
 
     def __init__(self, address, handler, *, legacy_recovery_parent=None):
+        storage_bytes = os.environ.get('AIO_LEGACY_STORAGE_BYTES', str(DEFAULT_STORAGE_BYTES))
+        if not re.fullmatch(r'[0-9]{1,18}', storage_bytes) or int(storage_bytes) <= 0:
+            raise ValueError('AIO_LEGACY_STORAGE_BYTES must be a positive integer byte count')
         super().__init__(address, handler)
         self.merge_gate = threading.BoundedSemaphore(1)
         self.converter_gate = threading.BoundedSemaphore(1)
-        self.converter = ConverterTransport(recovery_parent=legacy_recovery_parent)
+        try:
+            self.converter = ConverterTransport(recovery_parent=legacy_recovery_parent,
+                                                max_owned_bytes=int(storage_bytes))
+        except BaseException:
+            super().server_close()
+            raise
         self.guard = None
         self.guard_api = None
         self.progress = {}
@@ -377,12 +386,14 @@ def start_server(port: int = 0, *, guard_recovery_parent=None, guard_history_par
                 identity = parse_qs(urlsplit(self.path).query).get('request', [secrets.token_hex(16)])[0]
                 if not JOB_PATTERN.fullmatch(identity):
                     raise LibreOfficeError('Некорректный идентификатор задания.', 'INVALID_REQUEST')
-                request = self.server.converter.begin(identity, self.connection)
+                request = self.server.converter.begin(identity, self.connection,
+                                                       expected_upload_bytes=length)
+                upload_control = self.server.converter.run_control(request)
                 files, fields = MultipartUpload(
-                    CancellableSocketUpload(self.connection, request.cancel),
+                    CancellableSocketUpload(self.connection, upload_control),
                     length,
                     self.headers.get('Content-Type', ''),
-                    request.cancel).read(request.root / 'inputs')
+                    upload_control).read(request.root / 'inputs')
                 try:
                     ids = json.loads(fields['ids'])
                     formats = json.loads(fields['formats']) if 'formats' in fields else [fields.get('format')]
@@ -405,7 +416,7 @@ def start_server(port: int = 0, *, guard_recovery_parent=None, guard_history_par
                 if acquired and request is None:
                     self.server.converter_gate.release()
                     acquired = False
-                if exc.code in ('INVALID_REQUEST', 'LEGACY_STORAGE_LIMIT', 'LEGACY_STORAGE_UNAVAILABLE', 'REQUEST_BUSY'):
+                if exc.code in ('INVALID_REQUEST', 'REQUEST_BUSY') or exc.code.startswith('LEGACY_STORAGE_'):
                     # These errors can precede body consumption. Never parse
                     # an unread upload as a subsequent keep-alive request.
                     self.close_connection = True
@@ -413,7 +424,7 @@ def start_server(port: int = 0, *, guard_recovery_parent=None, guard_history_par
                 if getattr(exc, 'batch_report', None):
                     data['batchReport'] = exc.batch_report
                 return self._json(429 if exc.code == 'LEGACY_STORAGE_LIMIT' else
-                                  507 if exc.code == 'LEGACY_STORAGE_UNAVAILABLE' else 422, data)
+                                  507 if exc.code.startswith('LEGACY_STORAGE_') else 422, data)
             except (UnicodeError, ValueError, TypeError):
                 return self._json(400, {'code': 'INVALID_REQUEST', 'error': 'Некорректный запрос конвертации.'})
             except (BrokenPipeError, ConnectionResetError):
