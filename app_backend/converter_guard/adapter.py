@@ -865,6 +865,16 @@ class LibreOfficeAdapter:
                     and len(codepages) < sum(Path(p).suffix.lower() == '.dbf' for p in paths)):
                 self._local.export_info['warnings'] = tuple(dict.fromkeys((
                     *self._local.export_info.get('warnings', ()), 'NATIVE_DBF_ENCODING_NOT_CHECKED')))
+        # M21: the native preservation receipt counts SVG files but does not
+        # bind AIO-pages.json to their actual ordered names. A wrong/stale
+        # manifest must not become a ready/savable multi-page result.
+        if target == 'svg':
+            from .svg_page_manifest import verify_svg_page_manifest
+            page_map = verify_svg_page_manifest(paths, workspace / 'output',
+                                                cancel=identity_control)
+            if page_map is not None:
+                self._local.export_info['resultChecks'] = list(
+                    self._local.export_info.get('resultChecks', ())) + [page_map]
         source_evidence = None
         if getattr(self._local, 'batch', None) is not None:
             source_evidence = getattr(self._local, 'source_evidence', None)
