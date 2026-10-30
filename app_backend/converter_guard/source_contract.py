@@ -24,6 +24,7 @@ DRAW = 'com.sun.star.drawing.DrawingDocument'
 FORMULA = 'com.sun.star.formula.FormulaProperties'
 CHART = 'com.sun.star.chart2.ChartDocument'
 BASE = 'com.sun.star.sdb.OfficeDatabaseDocument'
+REPORT = 'com.sun.star.report.ReportDefinition'
 ODF = {
     'text': ('text', WRITER), 'text-template': ('text', WRITER),
     'text-master': ('text', 'com.sun.star.text.GlobalDocument'),
@@ -202,6 +203,19 @@ def _odf_contract(mime, root, body, *, flat=False):
                     'nativeImportRequired': True,
                     'importProfile': 'flat_' + flat_alias_family + '_mimetype_alias'}
                    if flat_alias_family else {})}
+    # LibreOffice Base stores report definitions as a legacy-named MIME
+    # inside a *modern ODF* package. Historical .orp sources use the ODF
+    # office:document-content / office:report body, NOT the old StarOffice
+    # 2000 namespace. This checks the declaration only; no filename-based
+    # admission, implicit Base connection or export route is inferred.
+    if mime == 'application/vnd.sun.xml.report':
+        if tag != '{' + OFFICE + '}document-content':
+            return _invalid('base_report_root_mismatch', 'base_report_package')
+        if body != '{' + OFFICE + '}report':
+            return _invalid('base_report_body_mismatch', 'base_report_package')
+        return {'state': 'recognized', 'contentClass': 'base_report_package',
+                'mimetype': mime, 'expectedServices': [REPORT],
+                'bodyObserved': True}
     if mime.startswith('application/vnd.sun.xml.'):
         expected = LEGACY.get(mime[len('application/vnd.sun.xml.'):])
         if expected is None:
