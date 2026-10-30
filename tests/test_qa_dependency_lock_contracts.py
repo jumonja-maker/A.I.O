@@ -21,8 +21,10 @@ class LockedQaBuild(unittest.TestCase):
     def test_workflow_checks_exact_dependencies_and_covers_future_main(self):
         workflow = (ROOT / '.github/workflows/aio-hosted-qa.yml').read_text(encoding='utf-8')
         self.assertIn('push:\n    branches: [main]', workflow)
-        self.assertIn('requirements-qa-locked.txt', workflow)
-        self.assertIn('requirements-qa-build-locked.txt', workflow)
+        self.assertIn('qa_wheels.py --phase runtime', workflow)
+        self.assertIn('qa_wheels.py --phase build', workflow)
+        self.assertIn('--wheel-receipt build/aio-qa-wheels-runtime.json', workflow)
+        self.assertIn('--wheel-receipt build/aio-qa-wheels-build.json', workflow)
         self.assertIn('verify_qa_dependency_lock.py --phase build', workflow)
         self.assertIn('AIO_BUNDLED_DEPENDENCY_MANIFEST=PASS', workflow)
         self.assertNotIn('uses: actions/upload-artifact', workflow)

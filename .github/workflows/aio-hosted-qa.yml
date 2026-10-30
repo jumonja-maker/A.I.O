@@ -58,12 +58,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          echo "AIO_QA_SOURCE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
           python tools/build/verify_qa_dependency_lock.py --phase runtime --check-locks
-          python -m pip install -r tools/build/requirements-qa-locked.txt
+          AIO_QA_SOURCE_SHA=$(git rev-parse HEAD) python tools/build/qa_wheels.py --phase runtime --wheelhouse "$RUNNER_TEMP/aio-qa-wheels"
           npm install --no-save --ignore-scripts --package-lock=false linkedom@0.18.12
           python -c "import os,pathlib; p=pathlib.Path('node_modules/linkedom/esm/index.js').resolve(); assert p.is_file(); print('AIO_DOM_MODULE='+str(p))" >> "$GITHUB_ENV"
-          echo "AIO_QA_SOURCE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
-          AIO_QA_SOURCE_SHA=$(git rev-parse HEAD) python tools/build/verify_qa_dependency_lock.py --phase runtime
+          AIO_QA_SOURCE_SHA=$(git rev-parse HEAD) python tools/build/verify_qa_dependency_lock.py --phase runtime --wheel-receipt build/aio-qa-wheels-runtime.json
       - name: Linux test engine and Qt libraries
         if: runner.os == 'Linux'
         id: linux_engine
@@ -112,12 +112,13 @@ jobs:
         run: |
           set -euo pipefail
           python tools/build/verify_qa_dependency_lock.py --phase build --check-locks
-          python -m pip install -r tools/build/requirements-qa-build-locked.txt
-          python tools/build/verify_qa_dependency_lock.py --phase build
+          python tools/build/qa_wheels.py --phase build --wheelhouse "$RUNNER_TEMP/aio-qa-wheels"
+          python tools/build/verify_qa_dependency_lock.py --phase build --wheel-receipt build/aio-qa-wheels-build.json
           AIO_QA_REQUIRE_MANIFEST=1 python -m PyInstaller --noconfirm --clean AllInOne.spec
           python -c "from pathlib import Path; p=Path('dist/A.I.O'); assert (p/'A.I.O.exe').is_file(); assert (p/'_internal/libreoffice/program/soffice.exe').is_file(); print('AIO_HOSTED_EXE_PACKAGE=PASS')"
           python -c "import os; from pathlib import Path; p=Path('dist/A.I.O/_internal/build-info/aio-source-revision.txt'); assert p.read_text(encoding='ascii').strip()==os.environ['AIO_QA_SOURCE_SHA']; print('AIO_BUNDLED_BUILD_REVISION=PASS')"
           python -c "import os,json; from pathlib import Path; p=Path('dist/A.I.O/_internal/build-info/aio-qa-dependencies.json'); d=json.loads(p.read_text(encoding='utf-8')); assert d['sourceRevision']==os.environ['AIO_QA_SOURCE_SHA'] and d['phase']=='build'; print('AIO_BUNDLED_DEPENDENCY_MANIFEST=PASS')"
+          python -c "import hashlib,json; from pathlib import Path; b=Path('dist/A.I.O/_internal/build-info'); d=json.loads((b/'aio-qa-dependencies.json').read_text(encoding='utf-8')); assert d['wheelHashesVerified'] is True and hashlib.sha256((b/d['sbomFile']).read_bytes()).hexdigest()==d['sbomSha256']; print('AIO_BUNDLED_WHEEL_HASHES_AND_SBOM=PASS')"
           python tools/qa/runtime_frozen_acceptance.py --executable dist/A.I.O/A.I.O.exe --output "$RUNNER_TEMP/aio-hosted-frozen" --seconds 120
       - name: Preserve truthful summary in job log (no upload-artifact)
         if: always()
