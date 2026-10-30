@@ -452,6 +452,21 @@ def start_server(port: int = 0, *, guard_recovery_parent=None, guard_history_par
                 return self._json(400, {'error':'Неверный идентификатор задания.'})
             if not self.server.merge_gate.acquire(blocking=False):
                 return self._json(409, {'error':'Уже выполняется объединение Excel.'})
+            merge_gate_held = True
+
+            def reply_after_merge(status, *, payload=None, content_type=None):
+                # The completed merge must release the single-job gate BEFORE
+                # the client can receive an HTTP response. Otherwise a client
+                # that submits its next job immediately can see a false 409.
+                # Never release while multipart parsing or merge_xlsx runs.
+                nonlocal merge_gate_held
+                if merge_gate_held:
+                    self.server.merge_gate.release()
+                    merge_gate_held = False
+                if content_type is not None:
+                    return self._send(status, payload, content_type)
+                return self._json(status, payload)
+
             try:
                 self._progress(job, 'upload')
                 # Prevent an incomplete HTTP body from indefinitely owning
@@ -463,22 +478,23 @@ def start_server(port: int = 0, *, guard_recovery_parent=None, guard_history_par
                 except TimeoutError:
                     self.close_connection = True
                     self._progress(job, 'error')
-                    return self._json(408, {'code': 'EXCEL_UPLOAD_TIMEOUT',
+                    return reply_after_merge(408, payload={'code': 'EXCEL_UPLOAD_TIMEOUT',
                         'error': 'Загрузка Excel прервана: слишком долго не поступали данные.'})
                 finally:
                     self.connection.settimeout(old_timeout)
                 output = merge_xlsx(files, progress=lambda phase, current, total:
                                     self._progress(job, phase, current, total))
-                return self._send(200, output,
-                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+                return reply_after_merge(200, payload=output,
+                    content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
             except (MergeError, ValueError, UnicodeError) as exc:
                 self._progress(job, 'error')
-                return self._json(400, {'error':str(exc)})
+                return reply_after_merge(400, payload={'error':str(exc)})
             except Exception:
                 self._progress(job, 'error')
-                return self._json(500, {'error':'Не удалось объединить Excel-файлы.'})
+                return reply_after_merge(500, payload={'error':'Не удалось объединить Excel-файлы.'})
             finally:
-                self.server.merge_gate.release()
+                if merge_gate_held:
+                    self.server.merge_gate.release()
 
         def log_message(self, *_):
             pass  # Never log filenames or contents of personal spreadsheets.

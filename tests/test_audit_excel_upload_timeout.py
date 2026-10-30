@@ -69,6 +69,18 @@ class StalledExcelUpload(unittest.TestCase):
                     with urlopen(request, timeout=10) as reply:
                         self.assertEqual(reply.status, 200)
                         self.assertGreater(len(reply.read()), 500)
+                    # The merge gate must be released by the time a complete
+                    # response is observed, not eventually by the server thread.
+                    self.assertTrue(server.merge_gate.acquire(blocking=False))
+                    server.merge_gate.release()
+
+                    # An immediate next upload is legal after the first 200.
+                    second = Request(base+'/api/merge', data=body, headers={
+                        'X-AIO-Token': token, 'X-AIO-Job': 'd'*32,
+                        'Content-Type': 'multipart/form-data; boundary='+boundary})
+                    with urlopen(second, timeout=10) as reply:
+                        self.assertEqual(reply.status, 200)
+                        self.assertGreater(len(reply.read()), 500)
                     self.assertTrue(server.merge_gate.acquire(blocking=False))
                     server.merge_gate.release()
                 finally:
