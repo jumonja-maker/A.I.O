@@ -7,12 +7,29 @@ identify the codepage without interpreting UTF-8 bytes as Windows-1251.
 No second conversion, input scan, document model, locale change or Guard probe.
 Only the fixed DBF header is read; source and DBF bytes remain untouched.
 """
+import codecs
 from pathlib import Path
 
 from .errors import GuardError
 
 
 _DBASE_VERSIONS = frozenset((0x03, 0x04, 0x30, 0x83, 0x8b, 0xf5))
+_LDID_CODECS = {0x57: 'cp1252', 0xC9: 'cp1251'}
+
+
+def _cpg_codec(path):
+    try:
+        with path.open('rb') as stream:
+            raw = stream.read(129)
+        if len(raw) > 128:
+            raise ValueError('cpg_label_budget')
+        label = raw.decode('ascii').strip()
+        if label.isdigit():
+            label = 'utf-8' if label == '65001' else 'cp' + label
+        return codecs.lookup(label).name
+    except (OSError, UnicodeError, LookupError, ValueError) as error:
+        raise GuardError('ENGINE_OUTPUT_VALIDATION_INCOMPLETE',
+            'Кодировка DBF в существующем CPG не подтверждена.', stage='result') from error
 
 
 def attach_utf8_codepages(paths, *, filter_name, cancel=None):
@@ -39,19 +56,20 @@ def attach_utf8_codepages(paths, *, filter_name, cancel=None):
                 or int.from_bytes(head[10:12], 'little') < 1):
             raise GuardError('ENGINE_OUTPUT_VALIDATION_INCOMPLETE',
                 'Неверный заголовок DBF: кодировка не подтверждена.', stage='result')
-        if head[29] != 0:
-            continue  # Native DBF header already provides a codepage marker.
         cpg = path.with_suffix('.cpg')
         if cpg.is_symlink():
             raise GuardError('ENGINE_OUTPUT_PATH',
                 'Недопустимая ссылка на файл кодировки DBF.', stage='result')
-        if cpg.exists():
-            try:
-                label = cpg.read_text(encoding='ascii').strip()
-            except (OSError, UnicodeError) as error:
+        codec = _cpg_codec(cpg) if cpg.exists() else None
+        if head[29] != 0:
+            # Do not let an LDID bypass conflicting sidecar validation. The
+            # small confirmed legacy map is not a general encoding detector.
+            if codec is not None and codec != _LDID_CODECS.get(head[29]):
                 raise GuardError('ENGINE_OUTPUT_VALIDATION_INCOMPLETE',
-                    'Кодировка DBF в существующем CPG не подтверждена.', stage='result') from error
-            if label.upper().replace('_', '-') not in ('UTF-8', 'UTF8'):
+                    'LDID и CPG DBF противоречат друг другу или не подтверждены.', stage='result')
+            continue  # Preserve declared legacy metadata; do not claim UTF-8.
+        if codec is not None:
+            if codec != 'utf-8':
                 raise GuardError('ENGINE_OUTPUT_VALIDATION_INCOMPLETE',
                     'Существующий CPG противоречит кодировке UTF-8.', stage='result')
         else:

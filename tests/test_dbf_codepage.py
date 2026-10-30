@@ -44,6 +44,25 @@ class DbFCodepageTests(unittest.TestCase):
             self.assertEqual(attach_utf8_codepages([dbf], filter_name='dBase'), [])
             self.assertFalse(dbf.with_suffix('.cpg').exists())
 
+    def test_declared_ldid_does_not_hide_a_conflicting_utf8_cpg(self):
+        with TemporaryDirectory() as temp:
+            dbf = sample_dbf(Path(temp) / 'sample.dbf', ldid=0xC9)
+            before = dbf.read_bytes()
+            cpg = dbf.with_suffix('.cpg')
+            cpg.write_bytes(b'UTF-8\n')
+            with self.assertRaises(GuardError):
+                attach_utf8_codepages([dbf, cpg], filter_name='dBase')
+            self.assertEqual(dbf.read_bytes(), before)
+            self.assertEqual(cpg.read_bytes(), b'UTF-8\n')
+
+    def test_matching_legacy_metadata_stays_untouched(self):
+        with TemporaryDirectory() as temp:
+            dbf = sample_dbf(Path(temp) / 'sample.dbf', ldid=0xC9)
+            cpg = dbf.with_suffix('.cpg')
+            cpg.write_bytes(b'1251\n')
+            self.assertEqual(attach_utf8_codepages([dbf, cpg], filter_name='dBase'), [])
+            self.assertEqual(cpg.read_bytes(), b'1251\n')
+
     def test_existing_matching_label_is_reused(self):
         with TemporaryDirectory() as temp:
             dbf = sample_dbf(Path(temp) / 'sample.dbf')
@@ -57,6 +76,28 @@ class DbFCodepageTests(unittest.TestCase):
             dbf.with_suffix('.cpg').write_text('1251\n', encoding='ascii')
             with self.assertRaises(GuardError):
                 attach_utf8_codepages([dbf], filter_name='dBase')
+
+    def test_unknown_or_oversized_cpg_is_not_accepted(self):
+        with TemporaryDirectory() as temp:
+            dbf = sample_dbf(Path(temp) / 'sample.dbf')
+            for label in (b'unknown-encoding\n', b'U'*129, b'\xff'):
+                cpg = dbf.with_suffix('.cpg')
+                cpg.write_bytes(label)
+                with self.subTest(label=label), self.assertRaises(GuardError):
+                    attach_utf8_codepages([dbf], filter_name='dBase')
+                self.assertEqual(cpg.read_bytes(), label)
+
+    def test_cpg_write_refusal_is_not_success(self):
+        from unittest.mock import patch
+        with TemporaryDirectory() as temp:
+            dbf = sample_dbf(Path(temp) / 'sample.dbf')
+            original = Path.open
+            def blocked(path, mode='r', *args, **kwargs):
+                if mode == 'x': raise PermissionError('controlled cpg write refusal')
+                return original(path, mode, *args, **kwargs)
+            with patch.object(Path, 'open', blocked), self.assertRaises(PermissionError):
+                attach_utf8_codepages([dbf], filter_name='dBase')
+            self.assertFalse(dbf.with_suffix('.cpg').exists())
 
     def test_invalid_dbf_is_not_declared_utf8(self):
         with TemporaryDirectory() as temp:
