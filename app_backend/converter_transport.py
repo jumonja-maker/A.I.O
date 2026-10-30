@@ -15,6 +15,7 @@ from .libreoffice_catalog import mime_for
 from .libreoffice_engine import LibreOfficeError, convert_path
 
 ARCHIVE_CHUNK = 128 * 1024
+MAX_OWNED_ROOTS = 32
 
 
 @dataclass
@@ -52,15 +53,26 @@ class Result:
 
 
 class ConverterTransport:
-    def __init__(self):
+    def __init__(self, *, max_owned_roots=MAX_OWNED_ROOTS):
+        if type(max_owned_roots) is not int or not 1 <= max_owned_roots <= 256:
+            raise ValueError('max_owned_roots must be an integer from 1 to 256')
         self.lock = threading.RLock()
         self.active = {}
         self.results = {}
         self.results_by_request = {}
         self.cleanup_pending = []
+        self._pending_cleaning = set()
+        self.max_owned_roots = max_owned_roots
         self.closed = False
         self._cleanup_timer = None
         self._cleanup_retries = 0
+
+    def _owned_root_count(self):
+        # Caller holds lock. Published-but-not-finished work shares one owner;
+        # leased/released/in-flight cleanup remains counted until deletion ends.
+        return len({id(item.temporary) for item in self.active.values()} |
+                   {id(item.temporary) for item in self.results.values()} |
+                   {id(item) for item in self.cleanup_pending})
 
     def begin(self, identity, connection):
         # Retry only already-released storage. Unsaved tickets are never
@@ -69,16 +81,42 @@ class ConverterTransport:
         with self.lock:
             if self.closed or identity in self.active or identity in self.results_by_request:
                 raise LibreOfficeError('Задание недоступно.', 'REQUEST_BUSY')
+            if self._owned_root_count() >= self.max_owned_roots:
+                raise LibreOfficeError(
+                    'Достигнут предел временных заданий старого конвертера. '
+                    'Сохраните и закройте прежние результаты или повторите очистку. '
+                    'Несохранённые результаты не удалены.', 'LEGACY_STORAGE_LIMIT')
             request = Request(identity, connection, tempfile.TemporaryDirectory(prefix='aio-lo-'))
             self.active[identity] = request
             return request
 
+    def inventory(self, *, offset=0, limit=20):
+        """Bounded metadata-only discovery for an authenticated current session.
+
+        Never scan the disk or return filesystem paths/full per-target reports.
+        A caller selects a requestId and uses recover(); no result is selected
+        or released implicitly. This is not durable recovery across restart.
+        """
+        if (type(offset) is not int or offset < 0 or type(limit) is not int or
+                not 1 <= limit <= 50):
+            raise ValueError('Invalid recovery page')
+        with self.lock:
+            available = [result for result in self.results.values() if not result.released]
+            items = [{'state': 'ready', 'requestId': result.request_id,
+                      'name': result.name, 'mime': result.mime, 'size': result.size,
+                      'formatIds': list(result.format_ids),
+                      'recoverUrl': '/api/converter/recover?request=' + result.request_id}
+                     for result in available[offset:offset + limit]]
+            return {'state': 'inventory', 'scope': 'current_process',
+                    'restartRecovery': False, 'retention': 'until_release_or_process_shutdown',
+                    'total': len(available), 'offset': offset, 'limit': limit,
+                    'more': offset + len(items) < len(available), 'items': items}
 
     def recover(self, identity):
-        """Recover a previously retained ticket after a lost HTTP response.
+        """Recover a retained ticket after a lost HTTP response.
 
-        The caller must already know the 32-hex request identity and the
-        session token. Never read unrelated jobs or visit the recovery spool.
+        HTTP callers need the session token and an exact 32-hex request ID,
+        either retained by the client or selected from inventory().
         """
         with self.lock:
             ticket = self.results_by_request.get(identity)
@@ -296,25 +334,34 @@ class ConverterTransport:
         with self.lock:
             released = [ticket for ticket, value in self.results.items()
                         if value.released and not value.leases]
-            pending = tuple(self.cleanup_pending)
+            pending = [temporary for temporary in self.cleanup_pending
+                       if id(temporary) not in self._pending_cleaning]
+            self._pending_cleaning.update(id(temporary) for temporary in pending)
         for ticket in released:
             self.release(ticket)
         for temporary in pending:
             try:
                 temporary.cleanup()
             except OSError:
-                continue
-            with self.lock:
-                if temporary in self.cleanup_pending:
-                    self.cleanup_pending.remove(temporary)
+                pass
+            else:
+                with self.lock:
+                    if temporary in self.cleanup_pending:
+                        self.cleanup_pending.remove(temporary)
+            finally:
+                with self.lock:
+                    self._pending_cleaning.discard(id(temporary))
 
     def storage_stats(self):
         with self.lock:
+            owned = self._owned_root_count()
             return {'active': len(self.active), 'retainedResults':
                     sum(not result.released for result in self.results.values()),
                     'cleanupPending': len(self.cleanup_pending) +
                     sum(result.released for result in self.results.values()),
-                    'leasedResults': sum(bool(result.leases) for result in self.results.values())}
+                    'leasedResults': sum(bool(result.leases) for result in self.results.values()),
+                    'ownedRoots': owned, 'maxOwnedRoots': self.max_owned_roots,
+                    'availableSlots': max(0, self.max_owned_roots - owned)}
 
     def close(self):
         with self.lock:
@@ -331,12 +378,6 @@ class ConverterTransport:
             request.done.wait(3)
         for ticket in tickets:
             self.release(ticket)
-        with self.lock:
-            pending = list(self.cleanup_pending)
-        for temporary in pending:
-            try:
-                temporary.cleanup()
-            except OSError:
-                continue
-            with self.lock:
-                self.cleanup_pending.remove(temporary)
+        # Share cleanup claims with timer/begin retries instead of concurrently
+        # deleting the same pending directory during shutdown.
+        self.retry_cleanup()

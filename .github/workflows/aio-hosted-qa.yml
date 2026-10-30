@@ -6,6 +6,8 @@ on:
     branches: [fix/guard-v182-matrix-progress-cancel-20261025, main]
     types: [opened, synchronize, reopened]
   workflow_dispatch:
+  merge_group:
+    types: [checks_requested]
 permissions:
   contents: read
 concurrency:
@@ -56,6 +58,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          python tools/build/verify_qa_dependency_lock.py --phase runtime --check-locks
           python -m pip install -r tools/build/requirements-qa-locked.txt
           npm install --no-save --ignore-scripts --package-lock=false linkedom@0.18.12
           python -c "import os,pathlib; p=pathlib.Path('node_modules/linkedom/esm/index.js').resolve(); assert p.is_file(); print('AIO_DOM_MODULE='+str(p))" >> "$GITHUB_ENV"
@@ -105,6 +108,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          python tools/build/verify_qa_dependency_lock.py --phase build --check-locks
           python -m pip install -r tools/build/requirements-qa-build-locked.txt
           python tools/build/verify_qa_dependency_lock.py --phase build
           AIO_QA_REQUIRE_MANIFEST=1 python -m PyInstaller --noconfirm --clean AllInOne.spec
@@ -125,3 +129,27 @@ jobs:
                   print('AIO_EVIDENCE='+json.dumps({'file':name,**data},ensure_ascii=True))
           print('HISTORICAL_FULLTEST=NOT_RUN;USER_INSTALLER=NOT_BUILT;RELEASE=NOT_RUN')
           PY
+      - name: Require all platform-specific QA stages
+        if: ${{ always() }}
+        env:
+          AIO_QA_STEPS: ${{ toJSON(steps) }}
+        shell: bash
+        run: python tools/qa/required_qa_gate.py --platform "${{ runner.os }}"
+  required-qa:
+    name: AIO QA gate
+    needs: [qa]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.11'
+      - name: Require successful Windows and Linux matrix
+        env:
+          AIO_QA_MATRIX_RESULT: ${{ needs.qa.result }}
+        run: python tools/qa/required_qa_gate.py --matrix
