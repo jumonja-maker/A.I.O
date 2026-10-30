@@ -799,7 +799,8 @@ class ConverterGuard:
                                     raise ValueError('Invalid archive name')
                                 artifact = _Artifact(identity, path, path.name, output['size'],
                                     secrets.token_urlsafe(32), item.id, task.format, archive_name,
-                                    saved=relative in saved, sha256=output.get('sha256'),
+                                    saved=relative in saved and relative in header.get('readbackVerifiedPaths', []),
+                                    sha256=output.get('sha256'),
                                     readback_verified=relative in header.get('readbackVerifiedPaths', []),
                                     source_sheet=output.get('sourceSheet'))
                                 if artifact.sha256 is not None:
@@ -816,6 +817,9 @@ class ConverterGuard:
                                         raise ValueError('Recovery output fingerprint changed')
                                 task.artifacts.append(artifact)
                                 job.artifacts.append(artifact)
+                                if relative in saved and not artifact.readback_verified:
+                                    self._recovery_warning({'folder':root.name, 'jobId':identity,
+                                        'code':'RECOVERY_SAVE_UNVERIFIED'})
                             except (OSError, ValueError, KeyError, TypeError) as error:
                                 job.recovery_error = job.recovery_error or 'RECOVERY_OUTPUT_MISSING'
                                 task.state, task.code = 'error', 'RECOVERY_OUTPUT_MISSING'

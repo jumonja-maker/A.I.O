@@ -98,6 +98,17 @@ class RecoverySaveRegression(unittest.TestCase):
         self.assertTrue(job.root.exists())
         self.assertEqual(consumer.status(job.id)['succeeded'], 0)
 
+    def test_legacy_unverified_save_record_cannot_reap_the_only_result_copy(self):
+        producer, old = self.ready(('pdf',))
+        old.store.saved(old.artifacts, readback_verified=False)
+        producer.close()
+        consumer = self.guard(); found = self.scan(consumer)
+        self.assertIn('RECOVERY_SAVE_UNVERIFIED', [w['code'] for w in found['warnings']])
+        self.assertEqual(consumer.status(old.id)['files'][0]['targets'][0]['state'], 'ready')
+        for _ in range(3): consumer.recoverable(scan=False)
+        self.assertTrue(old.artifacts[0].path.exists())
+        self.assertTrue(consumer.save_folder(consumer._jobs[old.id].artifacts[0].ticket,self.root)['savedAll'])
+
     def test_abrupt_process_exit_recovers_partial_success_without_auto_scan(self):
         # os._exit bypasses close/finally: this is an actual process crash
         # simulation on each hosted OS, not a fabricated in-memory restart.
