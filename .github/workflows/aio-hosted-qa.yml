@@ -95,6 +95,7 @@ jobs:
           python tools/qa/fulltest_pptx_colours_native.py --executable "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-pptx-colours-native"
           python tools/qa/fulltest_compressed_pages_native.py --executable "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-compressed-pages-native"
           python tools/qa/fulltest_dbf_emf_native.py --executable "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-dbf-emf-native"
+          python tools/qa/m14_native_matrix.py --executable "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-m14-native"
       - name: Complete source regression suite
         if: ${{ !cancelled() && steps.deps.outcome == 'success' && (steps.windows_engine.outcome == 'success' || steps.linux_engine.outcome == 'success') }}
         id: units
@@ -123,7 +124,7 @@ jobs:
         run: |
           python - <<'PY'
           import json,os,pathlib
-          for name in ('aio-units.json','aio-batch1-native/evidence.json','aio-vector-pages-native/evidence.json','aio-pptx-colours-native/evidence.json','aio-compressed-pages-native/evidence.json','aio-dbf-emf-native/evidence.json','aio-hosted-frozen/evidence.json'):
+          for name in ('aio-units.json','aio-batch1-native/evidence.json','aio-vector-pages-native/evidence.json','aio-pptx-colours-native/evidence.json','aio-compressed-pages-native/evidence.json','aio-dbf-emf-native/evidence.json','aio-m14-native/evidence.json','aio-hosted-frozen/evidence.json'):
               p=pathlib.Path(os.environ['RUNNER_TEMP'])/name
               if p.is_file():
                   data=json.loads(p.read_text(encoding='utf-8'))
