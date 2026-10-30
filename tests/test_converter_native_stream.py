@@ -342,6 +342,37 @@ class NativeTransportHTTPTests(unittest.TestCase):
             urlopen(Request(url, headers={'X-AIO-Token': self.token}), timeout=5)
         self.assertEqual(absent.exception.code, 404)
 
+    def test_legacy_cancel_at_last_native_boundary_is_visible_and_output_saveable(self):
+        identity = 'd' * 32
+        def finish_then_cancel(source, target, workspace, *, cancel, on_started):
+            outputs = self.fake_native(source, target, workspace,
+                                       cancel=cancel, on_started=on_started)
+            self.assertTrue(self.server.converter.cancel(identity))
+            return outputs
+        with patch('app_backend.converter_transport.convert_path',
+                   side_effect=finish_then_cancel):
+            outcome = self.convert([('late.bmp', b'BM')], request=identity)
+        self.assertTrue(outcome['cancelledRequested'])
+        self.assertTrue(outcome['result']['targetReport']['cancelledRequested'])
+        self.assertEqual(outcome['result']['targetReport']['succeeded'], 1)
+        with urlopen(self.base + outcome['result']['downloadUrl']) as reply:
+            self.assertTrue(reply.read().startswith(b'%PDF'))
+        self.json('release', {'ticket': outcome['result']['ticket']})
+
+    def test_legacy_cancel_after_ticket_is_published_is_rejected(self):
+        identity = 'e' * 32
+        transport = self.server.converter
+        request = transport.begin(identity, None)
+        source = request.root / 'one.bmp'
+        source.write_bytes(b'BM')
+        outcome = transport.execute(request, [{'path': source, 'warnings': []}],
+                                    ['one'], ['pdf'])
+        self.assertFalse(outcome['cancelledRequested'])
+        self.assertFalse(transport.cancel(identity))
+        self.assertEqual(transport.recover(identity)['state'], 'ready')
+        transport.finish(request, retained=True)
+        self.json('release', {'ticket': outcome['result']['ticket']})
+
     def test_cancel_preserves_finished_outputs_and_next_request_can_run(self):
         identity = 'a' * 32
         reply, errors = [], []

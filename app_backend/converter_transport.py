@@ -25,6 +25,7 @@ class Request:
     cancel: threading.Event = field(default_factory=threading.Event)
     packaging_cancel: threading.Event = field(default_factory=threading.Event)
     packaging: bool = False
+    published: bool = False  # No cancellation accepted after ticket publication.
     done: threading.Event = field(default_factory=threading.Event)
     files: list = field(default_factory=list)
     completed: int = 0
@@ -96,13 +97,14 @@ class ConverterTransport:
     def cancel(self, identity):
         with self.lock:
             request = self.active.get(identity)
-            if request:
-                request.cancel.set()
-                if request.packaging:
-                    request.packaging_cancel.set()
-                # Polling wakes stalled uploads on cancellation without
-                # shutting down their response socket (WinError 10053).
-            return bool(request)
+            if request is None or request.published:
+                return False
+            request.cancel.set()
+            if request.packaging:
+                request.packaging_cancel.set()
+            # Polling wakes stalled uploads on cancellation without
+            # shutting down their response socket (WinError 10053).
+            return True
 
     def progress(self, identity):
         with self.lock:
@@ -211,7 +213,9 @@ class ConverterTransport:
                 request_id=request.identity, size=size, target_report=report,
                 format_ids=tuple(formats))
             self.results_by_request[request.identity] = ticket
-        return {'ok': True, 'result': {'name': name, 'mime': mime, 'size': size,
+            request.published = True
+            report['cancelledRequested'] = bool(request.cancel.is_set())
+        return {'ok': True, 'cancelledRequested': report['cancelledRequested'], 'result': {'name': name, 'mime': mime, 'size': size,
                 'ticket': ticket, 'downloadUrl': '/api/converter/result?ticket=' + ticket,
                 'targetReport': report, 'formatIds': formats},
                 'message': ('Готово преобразований: ' + str(report['succeeded']) +
