@@ -28,15 +28,17 @@ if re.fullmatch(r'[0-9a-f]{40}', source_revision):
     assets.append((str(revision_file), 'build-info'))
 # The Windows QA package must contain the exact environment used by CI.
 qa_manifest = root / 'build' / 'aio-qa-dependencies.json'
-if os.environ.get('AIO_QA_SOURCE_SHA'):
-    if not qa_manifest.is_file():
-        raise RuntimeError('Missing source-bound QA dependency manifest')
+if qa_manifest.is_file():
     qa_info = json.loads(qa_manifest.read_text(encoding='utf-8'))
     if (qa_info.get('sourceRevision') != source_revision or
             qa_info.get('phase') != 'build' or
             qa_info.get('wheelHashesVerified') is not False):
         raise RuntimeError('QA dependency manifest does not match reviewed build')
     assets.append((str(qa_manifest), 'build-info'))
+elif os.environ.get('AIO_QA_REQUIRE_MANIFEST') == '1':
+    # Source-contract tests execute the .spec before package preparation;
+    # only the actual QA packaging stage requires the generated manifest.
+    raise RuntimeError('Missing source-bound QA dependency manifest')
 
 
 a = Analysis(

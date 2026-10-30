@@ -107,7 +107,7 @@ jobs:
           set -euo pipefail
           python -m pip install -r tools/build/requirements-qa-build-locked.txt
           python tools/build/verify_qa_dependency_lock.py --phase build
-          python -m PyInstaller --noconfirm --clean AllInOne.spec
+          AIO_QA_REQUIRE_MANIFEST=1 python -m PyInstaller --noconfirm --clean AllInOne.spec
           python -c "from pathlib import Path; p=Path('dist/A.I.O'); assert (p/'A.I.O.exe').is_file(); assert (p/'_internal/libreoffice/program/soffice.exe').is_file(); print('AIO_HOSTED_EXE_PACKAGE=PASS')"
           python -c "import os; from pathlib import Path; p=Path('dist/A.I.O/_internal/build-info/aio-source-revision.txt'); assert p.read_text(encoding='ascii').strip()==os.environ['AIO_QA_SOURCE_SHA']; print('AIO_BUNDLED_BUILD_REVISION=PASS')"
           python -c "import os,json; from pathlib import Path; p=Path('dist/A.I.O/_internal/build-info/aio-qa-dependencies.json'); d=json.loads(p.read_text(encoding='utf-8')); assert d['sourceRevision']==os.environ['AIO_QA_SOURCE_SHA'] and d['phase']=='build'; print('AIO_BUNDLED_DEPENDENCY_MANIFEST=PASS')"
