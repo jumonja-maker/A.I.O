@@ -35,7 +35,7 @@ if qa_manifest.is_file():
             qa_info.get('phase') != 'build' or
             qa_info.get('wheelHashesVerified') is not True):
         raise RuntimeError('QA dependency manifest does not match reviewed build')
-    sbom_file = root / 'build' / 'aio-qa-sbom.cdx.json'
+    sbom_file = root / 'build' / 'aio-qa-sbom-build.cdx.json'
     if (not sbom_file.is_file() or
             hashlib.sha256(sbom_file.read_bytes()).hexdigest() != qa_info.get('sbomSha256')):
         raise RuntimeError('Missing or changed source-bound QA SBOM')

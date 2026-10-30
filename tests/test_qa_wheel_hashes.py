@@ -177,7 +177,11 @@ class WheelEvidence(unittest.TestCase):
             value = qa.verify_receipt(receipt, 'runtime', 'a' * 40)
             self.assertEqual(len(value['wheels']), 1)
             self.assertEqual(value['scaStatus'], 'not_run')
-        self.assertEqual(len(commands), 2)
+            with patch('sys.argv', ['wheels', '--phase', 'build', '--wheelhouse', str(self.root / 'staging')]):
+                qa.main()
+            self.assertEqual(qa.verify_receipt(receipt, 'runtime', 'a' * 40), value)
+            self.assertNotEqual(value['sbom'], str(self.root / 'build/aio-qa-sbom-build.cdx.json'))
+        self.assertEqual(len(commands), 4)
 
     def test_wrong_interpreter_refuses_before_network_or_installation(self):
         with patch('sys.argv', ['wheels', '--phase', 'runtime', '--wheelhouse', str(self.root / 'staging')]), \

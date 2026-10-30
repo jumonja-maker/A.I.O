@@ -138,7 +138,7 @@ def main():
     if wheel_evidence is not None:
         payload.update({'wheelLockSha256': wheel_evidence['wheelLockSha256'],
                         'wheels': wheel_evidence['wheels'],
-                        'sbomFile': 'aio-qa-sbom.cdx.json',
+                        'sbomFile': Path(wheel_evidence['sbom']).name,
                         'sbomSha256': wheel_evidence['sbomSha256'],
                         'scaStatus': wheel_evidence['scaStatus']})
     if args.phase == 'build':

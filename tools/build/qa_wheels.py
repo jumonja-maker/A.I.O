@@ -191,7 +191,7 @@ def main():
         raise ValueError('Wheels changed during installation')
     destination = ROOT / 'build'
     destination.mkdir(exist_ok=True)
-    bom_path = destination / 'aio-qa-sbom.cdx.json'
+    bom_path = destination / ('aio-qa-sbom-' + args.phase + '.cdx.json')
     bom_path.write_text(json.dumps(sbom(source, evidence, host_profile()), sort_keys=True, indent=2) + '\n', encoding='utf-8')
     value = {'schema': 1, 'sourceRevision': source, 'phase': args.phase,
              'profile': host_profile(), 'wheelLockSha256': sha256(WHEEL_LOCK),
