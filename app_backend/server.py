@@ -405,14 +405,15 @@ def start_server(port: int = 0, *, guard_recovery_parent=None, guard_history_par
                 if acquired and request is None:
                     self.server.converter_gate.release()
                     acquired = False
-                if exc.code in ('INVALID_REQUEST', 'LEGACY_STORAGE_LIMIT', 'REQUEST_BUSY'):
+                if exc.code in ('INVALID_REQUEST', 'LEGACY_STORAGE_LIMIT', 'LEGACY_STORAGE_UNAVAILABLE', 'REQUEST_BUSY'):
                     # These errors can precede body consumption. Never parse
                     # an unread upload as a subsequent keep-alive request.
                     self.close_connection = True
                 data = {'code': exc.code, 'error': str(exc)}
                 if getattr(exc, 'batch_report', None):
                     data['batchReport'] = exc.batch_report
-                return self._json(429 if exc.code == 'LEGACY_STORAGE_LIMIT' else 422, data)
+                return self._json(429 if exc.code == 'LEGACY_STORAGE_LIMIT' else
+                                  507 if exc.code == 'LEGACY_STORAGE_UNAVAILABLE' else 422, data)
             except (UnicodeError, ValueError, TypeError):
                 return self._json(400, {'code': 'INVALID_REQUEST', 'error': 'Некорректный запрос конвертации.'})
             except (BrokenPipeError, ConnectionResetError):

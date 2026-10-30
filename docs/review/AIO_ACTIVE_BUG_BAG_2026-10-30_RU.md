@@ -13,7 +13,7 @@
 
 [Подробный отчёт A06](AIO_A06_DURABLE_RESULTS_2026-10-30_RU.md). Воспроизведено удаление опубликованного несохранённого legacy result при close на базе `e29a194`. Production `/api/converter` теперь хранит отдельный durable journal с относительным путём, размером/SHA output и исходным target report; нормальное закрытие/real child crash не удаляют последнюю копию. Повреждённые/неподтверждённые данные остаются на диске без ready. Конкурирующие owner locks и durable retirement barrier не позволяют присвоить busy root или воскресить explicitly released result. При restart tickets меняются, session tokens не сохраняются. Guard PR #92 не переписан.
 
-15 новых регрессий; локально **27 legacy + 21 HTTP streaming + 11 transport audit + 9 code-audit PASS**. Дополнительно устранена воспроизведённая гонка legacy download completion / lease release без ослабления прежнего теста. Full hosted exact-SHA CI, native Windows/EXE и общий gate требуются отдельно. **A06 ЧАСТИЧНО:** byte quota, legacy UI, retry/salvage unverified outputs и установленный Windows ещё открыты. Ни MAIN, ни Release, ни G01–G05 не закрываются этим исправлением; Drive archive update пока BLOCKED.
+16 новых регрессий; локально **28 legacy + 21 HTTP streaming + 11 transport audit + 9 code-audit PASS**. Дополнительно устранена воспроизведённая гонка legacy download completion / lease release без ослабления прежнего теста. Full hosted exact-SHA CI, native Windows/EXE и общий gate требуются отдельно. **A06 ЧАСТИЧНО:** byte quota, legacy UI, retry/salvage unverified outputs и установленный Windows ещё открыты. Ни MAIN, ни Release, ни G01–G05 не закрываются этим исправлением; Drive archive update пока BLOCKED.
 
 ## 00AIO — A10: wheel hashes, SBOM, SCA и Pillow 13.0.0 (PR #94)
 

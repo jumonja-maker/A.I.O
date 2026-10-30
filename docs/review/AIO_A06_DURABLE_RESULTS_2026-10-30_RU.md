@@ -29,10 +29,13 @@
 
 ## Проверки
 
-**15 новых детерминированных регрессий**: normal close/restart, настоящий child `os._exit(23)` без finish/close, corrupt journal, изменённые bytes, checksummed traversal, concurrent ownership, duplicate IDs, explicit release, locked retirement, disk-full journal, partial-success ZIP, zero-byte native text, headers/final chunk ordering и реальный HTTP server restart с новым session token. Native conversion — controlled fixture; это не установленное приложение и не нативная конвертация пользовательского корпуса.
+**16 новых детерминированных регрессий**: normal close/restart, настоящий child `os._exit(23)` без finish/close, corrupt journal, изменённые bytes, checksummed traversal, concurrent ownership, duplicate IDs, explicit release, locked retirement, disk-full journal, partial-success ZIP, zero-byte native text, headers/final chunk ordering и реальный HTTP server restart с новым session token. Native conversion — controlled fixture; это не установленное приложение и не нативная конвертация пользовательского корпуса.
 
-**27 legacy tests PASS**, включая 12 прежних; **21 streaming HTTP tests PASS** (в том числе 105 MiB output без накопления файла в RAM); **11 transport audit + 9 code-audit tests PASS**. Полный source Windows/Linux/native/EXE/gate exact SHA обязателен отдельно.
+**28 legacy tests PASS**, включая 12 прежних; **21 streaming HTTP tests PASS** (в том числе 105 MiB output без накопления файла в RAM); **11 transport audit + 9 code-audit tests PASS**. Полный source Windows/Linux/native/EXE/gate exact SHA обязателен отдельно.
 
 Промежуточные неудачи не скрыты: при добавлении нового HTTP теста часть fixture-кода ошибочно оказалась в другом методе (NameError), положение исправлено. Дважды воспроизведена прежняя гонка release-after-download в неизменном строгом тесте; тест не ослаблен, введена проверяемая граница stream completion / lease release и два детерминированных теста. Отдельный bounded прогон прежнего HTTP case 10 раз был 10/10 PASS, но именно детерминированный ordering test подтверждает исправление.
 
 Локальные GUI source-прогоны ограничены отсутствием libXtst.so.6; ошибки не превращаются в skips. Hosted результаты не объявляются до завершения. Настоящий Windows installer, системный DPI, USB/network и G01–G05 этим пакетом не проверены. MAIN/Release/protection не менялись. Google Drive не подключён, архив 00AIO не обновлён.
+
+
+Дополнительный startup-negative case: недоступный legacy parent не прерывает запуск оболочки/Guard, не вызывает fallback к ephemeral storage; legacy conversion отвергается до upload с HTTP 507. При расширении fixture повторно исправлено положение restart assertions, без ослабления условий.

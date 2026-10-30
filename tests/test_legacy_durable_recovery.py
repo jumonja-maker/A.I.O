@@ -188,6 +188,16 @@ os._exit(23)
         self.assertTrue(restarted.inventory()['recoveryWarnings'])
         self.assertEqual(len(list(request.root.rglob('*.pdf'))), 1)
 
+    def test_unavailable_parent_does_not_crash_shell_or_use_ephemeral_fallback(self):
+        with patch('app_backend.converter_transport.recover_workspaces', side_effect=PermissionError('disk denied')):
+            transport = self.transport()
+        self.assertFalse(transport.inventory()['storageAvailable'])
+        self.assertFalse(transport.inventory()['restartRecovery'])
+        with self.assertRaises(LibreOfficeError) as caught:
+            transport.begin('f' * 32, None)
+        self.assertEqual(caught.exception.code, 'LEGACY_STORAGE_UNAVAILABLE')
+        self.assertFalse(transport.active)
+
     def test_partially_successful_zip_restores_its_original_error_report(self):
         first = self.transport()
         request = first.begin('d' * 32, None)

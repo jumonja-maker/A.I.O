@@ -70,8 +70,17 @@ class ConverterTransport:
         self._cleanup_retries = 0
         self.recovery_parent = Path(recovery_parent) if recovery_parent is not None else None
         self.recovery_issues = []
+        self.recovery_available = True
         if self.recovery_parent is not None:
-            recovered, self.recovery_issues = recover_workspaces(self.recovery_parent)
+            try:
+                recovered, self.recovery_issues = recover_workspaces(self.recovery_parent)
+            except OSError:
+                # Legacy storage must not prevent Guard/the shell from
+                # starting. Never fall back to disposable output storage.
+                recovered = []
+                self.recovery_available = False
+                self.recovery_issues = [{'workspaceId': 'legacy',
+                                         'code': 'LEGACY_RECOVERY_UNAVAILABLE'}]
             seen_ids = set()
             for workspace, value in recovered:
                 identity = value['requestId']
@@ -106,6 +115,9 @@ class ConverterTransport:
         with self.lock:
             if self.closed or identity in self.active or identity in self.results_by_request:
                 raise LibreOfficeError('Задание недоступно.', 'REQUEST_BUSY')
+            if not self.recovery_available:
+                raise LibreOfficeError('Хранилище прежних результатов недоступно. '
+                    'Проверьте права и диск; конвертация не начата.', 'LEGACY_STORAGE_UNAVAILABLE')
             if self._owned_root_count() >= self.max_owned_roots:
                 raise LibreOfficeError(
                     'Достигнут предел временных заданий старого конвертера. '
@@ -136,7 +148,8 @@ class ConverterTransport:
                      for result in available[offset:offset + limit]]
             durable = self.recovery_parent is not None
             return {'state': 'inventory', 'scope': 'durable_published_results' if durable else 'current_process',
-                    'restartRecovery': durable,
+                    'restartRecovery': durable and self.recovery_available,
+                    'storageAvailable': self.recovery_available,
                     'recoveryWarnings': [dict(item) for item in self.recovery_issues],
                     'retention': 'until_explicit_release' if durable else 'until_release_or_process_shutdown',
                     'total': len(available), 'offset': offset, 'limit': limit,
