@@ -206,27 +206,49 @@ def aio_export_writer_pages(model, prop, target, export_options, filter_name, pr
         raise AioWriterPagesUnverified('writer_page_count_unconfirmed')
     if count == 1:
         return None
-    outputs, mapping = [], []
+    # A partial Writer export used to leave earlier pages on disk if a later
+    # storeToURL, cursor movement or manifest write failed. Reserve the whole
+    # task-local namespace before the first export. Overwrite=False is already
+    # provided by the native session; never replace a pre-existing result.
+    planned = [target if index == 1 else
+               target.with_name(target.stem + '__page_%04d' % index + target.suffix)
+               for index in range(1, count + 1)]
+    manifest = target.parent / 'AIO-pages.json'
+    for path in (*planned, manifest):
+        if path.exists() or path.is_symlink():
+            raise FileExistsError('native_writer_page_output_exists:' + path.name)
+    outputs, mapping, owned = [], [], []
     try:
-        for index in range(1, count + 1):
+        for index, path in enumerate(planned, 1):
             if not cursor.jumpToPage(index) or cursor.getPage() != index:
                 raise AioWriterPagesUnverified('writer_page_cursor_mismatch:' + str(index))
-            path = (target if index == 1 else
-                    target.with_name(target.stem + '__page_%04d' % index + target.suffix))
+            # storeToURL can create a truncated output and then throw. Record
+            # ownership before invoking it, so failure always rolls it back.
+            owned.append(path)
             model.storeToURL(path.as_uri(), tuple(export_options))
             if not path.is_file() or path.is_symlink() or path.stat().st_size <= 0:
                 raise AioWriterPagesUnverified('writer_page_output_missing:' + str(index))
             outputs.append(path)
-            mapping.append({'page':index,'file':path.name})
+            mapping.append({'page': index, 'file': path.name})
+        with manifest.open('x', encoding='utf-8') as stream:
+            owned.append(manifest)
+            json.dump({'schema': 1, 'pageCount': count, 'pages': mapping},
+                      stream, ensure_ascii=False)
+        return outputs + [manifest]
+    except BaseException:
+        # Keep any older collision file intact. The owned output directory is
+        # private to the task; locked files remain for its workspace cleanup.
+        for path in reversed(owned):
+            try:
+                path.unlink(missing_ok=True)
+            except OSError:
+                pass
+        raise
     finally:
         try:
             cursor.jumpToPage(initial)
         except Exception:
             pass
-    manifest = target.parent / 'AIO-pages.json'
-    manifest.write_text(json.dumps({'schema': 1, 'pageCount':count, 'pages':mapping},
-                                   ensure_ascii=False), encoding='utf-8')
-    return outputs + [manifest]
 
 
 def aio_export_graphic_pages(model, remote, prop, target, preservation=None):
