@@ -122,7 +122,7 @@ def aio_verify_presentation_xhtml(paths, expected):
 
 
 class _AioXhtmlVisualScope(HTMLParser):
-    """Remember original image references and graphical container attributes.
+    """Remember original image/link references and graphical containers.
 
     Only used after native PPT -> XHTML has already demonstrably lost text.
     It cannot prove source/visual equivalence; it detects further loss caused
@@ -151,8 +151,15 @@ class _AioXhtmlVisualScope(HTMLParser):
             self.images.append(hashlib.sha256(repr(attrs).encode('utf-8')).hexdigest())
         elif tag == 'div':
             self.divs[tuple(sorted(attrs))] += 1
-        elif tag == 'link':
-            self.links.append(tuple(sorted(attrs)))
+        elif tag in ('a', 'area', 'link'):
+            # LINK describes a resource, not an HTML hyperlink. Textbox
+            # recovery must also retain A/AREA targets, multiplicity and
+            # attributes. Ambiguous duplicate attributes cannot be compared
+            # safely by sorting (browsers may use their first occurrence).
+            names = [name for name, value in attrs]
+            if len(names) != len(set(names)):
+                self.unsupported = True
+            self.links.append((tag, tuple(sorted(attrs))))
 
     def handle_startendtag(self, tag, attrs):
         self.handle_starttag(tag, attrs)
@@ -233,15 +240,15 @@ def aio_try_ppt_xhtml_textboxes(model, target, export_options, expected):
         return None
     if not boxes:
         return None
-    previous_visual = None
-    if mixed:
-        try:
-            previous_visual = aio_xhtml_visual_scope(target)
-        except (OSError, UnicodeError, ValueError, AioPresentationUnverified):
-            return None
-        if (previous_visual.unsupported
-                or len(previous_visual.images) != graphic_objects):
-            return None
+    # Even text-only slides can contain hyperlinks. Check the original
+    # export for every recovery, not just those with shapes/images.
+    try:
+        previous_visual = aio_xhtml_visual_scope(target)
+    except (OSError, UnicodeError, ValueError, AioPresentationUnverified):
+        return None
+    if (previous_visual.unsupported
+            or len(previous_visual.images) != graphic_objects):
+        return None
     replacement = target.with_name(target.stem + '__aio_textbox_recovery.xhtml')
     try:
         for page, original in boxes:
@@ -252,13 +259,12 @@ def aio_try_ppt_xhtml_textboxes(model, target, export_options, expected):
             clone.String = original.getString()
         model.storeToURL(replacement.as_uri(), tuple(export_options))
         aio_verify_presentation_xhtml([replacement], expected)
-        if previous_visual is not None:
-            current_visual = aio_xhtml_visual_scope(replacement)
-            if (current_visual.unsupported
-                    or current_visual.images != previous_visual.images
-                    or current_visual.links != previous_visual.links
-                    or previous_visual.divs - current_visual.divs):
-                raise AioPresentationUnverified('ppt_xhtml_visual_subset_changed')
+        current_visual = aio_xhtml_visual_scope(replacement)
+        if (current_visual.unsupported
+                or current_visual.images != previous_visual.images
+                or current_visual.links != previous_visual.links
+                or previous_visual.divs - current_visual.divs):
+            raise AioPresentationUnverified('ppt_xhtml_visual_subset_changed')
         os.replace(replacement, target)
         return {'check': 'native_ppt_xhtml_textbox_recovery',
                 'status': 'checked_subset', 'textPresent': True,
@@ -267,10 +273,14 @@ def aio_try_ppt_xhtml_textboxes(model, target, export_options, expected):
                 'nativeTextboxCount': len(boxes),
                 'nativeImageCount': graphic_objects,
                 'visualSubsetCompared': mixed,
+                'exportedLinkTargetsCompared': True,
+                'exportedHyperlinkCount': sum(tag in ('a', 'area')
+                                              for tag, attrs in previous_visual.links),
                 'qualityCompared': False,
                 'notChecked': ['layout_equivalence', 'master_page_graphics',
                                'animations', 'links_functionality',
-                               'all_source_graphics', 'visual_equivalence']}
+                               'all_source_graphics', 'visual_equivalence',
+                               'source_links_already_lost_by_native_export']}
     finally:
         replacement.unlink(missing_ok=True)
 
