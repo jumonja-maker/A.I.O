@@ -104,6 +104,52 @@ def main():
             + '<w:sectPr><w:pgSz w:w="12240" w:h="15840"/>'
             '<w:pgMar w:top="720" w:right="720" w:bottom="720" w:left="720"/>'
             '</w:sectPr></w:body></w:document>')
+    # M19: independent ODP has two slides, textbox text, solid rectangles
+    # and an embedded PNG. A real native ODP->old PPT step must precede
+    # the lossy native PPT->XHTML route. Never use user-original PPT bytes.
+    from io import BytesIO
+    blob=BytesIO()
+    Image.new('RGB',(32,32),(32,180,90)).save(blob,format='PNG')
+    mixed=args.output/'mixed-original.odp'
+    mixed_styles=('<office:automatic-styles><style:style style:name="Box" style:family="graphic">'
+                  '<style:graphic-properties draw:fill="solid" draw:fill-color="#FFAA33" '
+                  'draw:stroke="none"/></style:style></office:automatic-styles>')
+    mixed_pages=''.join(
+        '<draw:page draw:name="Slide%d">'
+        '<draw:frame svg:x="1cm" svg:y="1cm" svg:width="11cm" svg:height="3cm">'
+        '<draw:text-box><text:p>AIO_MIXED_PPT_PAGE_%d</text:p></draw:text-box></draw:frame>'
+        '<draw:frame svg:x="2cm" svg:y="5cm" svg:width="4cm" svg:height="4cm">'
+        '<draw:image xlink:href="Pictures/aio.png" xlink:type="simple" '
+        'xlink:show="embed" xlink:actuate="onLoad"/></draw:frame>'
+        '<draw:rect draw:style-name="Box" svg:x="7cm" svg:y="5cm" '
+        'svg:width="4cm" svg:height="4cm"/>'
+        '<draw:rect draw:style-name="Box" svg:x="7cm" svg:y="10cm" '
+        'svg:width="5cm" svg:height="2cm">'
+        '<text:p>RECTANGLE_TEXT_%d</text:p></draw:rect></draw:page>'
+        % (i,i,i) for i in range(1,3))
+    mixed_xml=('<?xml version="1.0" encoding="UTF-8"?>'
+        '<office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" '
+        'xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" '
+        'xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" '
+        'xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" '
+        'xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" '
+        'xmlns:xlink="http://www.w3.org/1999/xlink" office:version="1.2">'
+        +mixed_styles+'<office:body><office:presentation>'+mixed_pages
+        +'</office:presentation></office:body></office:document-content>')
+    with ZipFile(mixed,'w',ZIP_DEFLATED) as archive:
+        archive.writestr('mimetype','application/vnd.oasis.opendocument.presentation',
+                         compress_type=0)
+        archive.writestr('content.xml',mixed_xml)
+        archive.writestr('Pictures/aio.png',blob.getvalue())
+        archive.writestr('META-INF/manifest.xml',
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<manifest:manifest xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0" '
+            'manifest:version="1.2">'
+            '<manifest:file-entry manifest:full-path="/" '
+            'manifest:media-type="application/vnd.oasis.opendocument.presentation"/>'
+            '<manifest:file-entry manifest:full-path="content.xml" manifest:media-type="text/xml"/>'
+            '<manifest:file-entry manifest:full-path="Pictures/aio.png" manifest:media-type="image/png"/>'
+            '</manifest:manifest>')
     # Multi-page PDF uses native QtPdf rendering instead of a one-page
     # LibreOffice image export. Different page sizes make loss observable.
     from pypdf import PdfWriter
@@ -113,7 +159,7 @@ def main():
     multipage_pdf=args.output/'three-page-original.pdf'
     with multipage_pdf.open('wb') as stream:
         pdf_doc.write(stream)
-    originals={str(f):digest(f) for f in (source,raster,jpeg,slides,writer,multipage_pdf,*pnm_sources.values(),*legacy_sources.values())}
+    originals={str(f):digest(f) for f in (source,raster,jpeg,slides,mixed,writer,multipage_pdf,*pnm_sources.values(),*legacy_sources.values())}
     cancel=threading.Event();adapter=LibreOfficeAdapter(args.executable)
     results=[];counter=0
     contract_receipts=[]
@@ -275,8 +321,34 @@ def main():
                             assert 'NATIVE_OUTPUT_NOT_CHECKED' in adapter.export_info().get('warnings', ()),adapter.export_info()
                     results.append({'case':path.suffix+'_xhtml','status':'PASS','textRetained':True})
             assert digest(ppt)==ppt_sha,'Native XHTML export modified PPT source'
+            # M19 mixed: rectangles and embedded image are preserved while
+            # dropped old-PPT text is restored in a separate private native model.
+            mixed_proof=proof(mixed)
+            mixed_ppt=next(p for p in convert(mixed,'ppt',mixed_proof) if p.suffix=='.ppt')
+            mixed_ppt_sha=digest(mixed_ppt)
+            mixed_ppt_proof=proof(mixed_ppt)
+            mixed_files=convert(mixed_ppt,'xhtml',mixed_ppt_proof)
+            mixed_xhtml=next(p for p in mixed_files if p.suffix=='.xhtml')
+            structure=ET.parse(mixed_xhtml).getroot()
+            assert structure.tag=='{http://www.w3.org/1999/xhtml}html'
+            body=''.join(structure.itertext())
+            assert all('AIO_MIXED_PPT_PAGE_'+str(i) in body and
+                       'RECTANGLE_TEXT_'+str(i) in body for i in (1,2)),body[:200]
+            images=structure.findall('.//{http://www.w3.org/1999/xhtml}img')
+            assert len(images)==2,images
+            assert all((image.get('src') or '').startswith('data:image/')
+                       for image in images)
+            receipt=next((v for v in adapter.export_info().get('resultChecks', ())
+                          if v.get('check')=='native_ppt_xhtml_textbox_recovery'),None)
+            assert receipt is not None and receipt['nativeImageCount']==2,receipt
+            assert receipt['visualSubsetCompared'] is True and receipt['qualityCompared'] is False,receipt
+            assert digest(mixed_ppt)==mixed_ppt_sha,'Mixed PPT changed during export'
+            results.append({'case':'mixed_ppt_xhtml_embedded_images_and_text',
+                            'status':'PASS','slides':2,'nativeEmbeddedImages':2,
+                            'qualityCompared':False})
+
         for path,expected in originals.items():assert digest(path)==expected,path
-        assert len(results)==16,results
+        assert len(results)==17,results
         assert len(contract_receipts)==7,contract_receipts
         from fulltest_csv_native import run as run_csv_native
         csv_report=run_csv_native(args.executable,args.output/'csv-decimal-originals')

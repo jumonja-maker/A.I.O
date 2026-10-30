@@ -9,6 +9,7 @@ from .calc_pages import CALC_PAGES_SOURCE
 NATIVE_FIDELITY_SOURCE = PRESERVATION_POLICY_SOURCE + CALC_PAGES_SOURCE + r'''
 import json
 import re
+import hashlib
 import unicodedata
 from collections import Counter
 from html.parser import HTMLParser
@@ -119,16 +120,75 @@ def aio_verify_presentation_xhtml(paths, expected):
 
 
 
-def aio_try_ppt_xhtml_textboxes(model, target, export_options, expected):
-    """Recover only native text boxes dropped by LibreOffice's PPT XHTML XSLT.
 
-    Restrict to simple old-PPT mso-spt202 boxes and ordinary text shapes.
-    Images, diagrams, groups, non-text shapes and ambiguous geometry must keep
-    the existing ENGINE_OUTPUT_CONTENT_LOSS refusal. Source is never saved.
+class _AioXhtmlVisualScope(HTMLParser):
+    """Remember original image references and graphical container attributes.
+
+    Only used after native PPT -> XHTML has already demonstrably lost text.
+    It cannot prove source/visual equivalence; it detects further loss caused
+    by our recovery candidate and refuses to publish a changed visual subset.
+    """
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.images, self.links = [], []
+        self.divs = Counter()
+        self.unsupported = False
+
+    def handle_starttag(self, tag, attrs):
+        tag = tag.lower()
+        if tag in ('svg', 'canvas', 'object', 'embed', 'iframe',
+                   'script', 'video', 'audio', 'picture', 'source',
+                   'applet', 'foreignobject', 'svg:image'):
+            self.unsupported = True
+        if tag == 'img':
+            value = dict(attrs).get('src')
+            prefix = (value.split(',', 1)[0].lower()
+                      if isinstance(value, str) and ',' in value else '')
+            if prefix not in ('data:image/png;base64',
+                              'data:image/jpeg;base64', 'data:image/gif;base64',
+                              'data:image/webp;base64', 'data:image/bmp;base64'):
+                self.unsupported = True
+            self.images.append(hashlib.sha256(repr(attrs).encode('utf-8')).hexdigest())
+        elif tag == 'div':
+            self.divs[tuple(sorted(attrs))] += 1
+        elif tag == 'link':
+            self.links.append(tuple(sorted(attrs)))
+
+    def handle_startendtag(self, tag, attrs):
+        self.handle_starttag(tag, attrs)
+
+
+def aio_xhtml_visual_scope(path):
+    parser = _AioXhtmlVisualScope()
+    total = 0
+    if Path(path).stat().st_size > 16 * 1024 * 1024:
+        raise AioPresentationUnverified('ppt_xhtml_visual_budget')
+    with Path(path).open('r', encoding='utf-8-sig', errors='strict') as stream:
+        while True:
+            block = stream.read(65536)
+            if not block:
+                break
+            total += len(block)
+            if total > 16 * 1024 * 1024:
+                raise AioPresentationUnverified('ppt_xhtml_visual_budget')
+            parser.feed(block)
+    parser.close()
+    return parser
+
+
+def aio_try_ppt_xhtml_textboxes(model, target, export_options, expected):
+    """Recover text while keeping preexisting XHTML images and shape containers.
+
+    Old PPT may import text as mso-spt202 / rectangle / round-rectangle native
+    CustomShapes. Mixed slides are eligible only when all other shapes are
+    native image objects and the original XHTML already exported *all* of
+    them as embedded images. Any loss/change in image refs, link refs or
+    existing DIV attributes during retry fails closed. Unknown shape classes,
+    media objects, external images and groups remain unsupported.
     """
     if not expected:
         return None
-    boxes = []
+    boxes, graphic_objects, mixed = [], 0, False
     try:
         pages = model.getDrawPages()
         count = pages.getCount()
@@ -146,19 +206,40 @@ def aio_try_ppt_xhtml_textboxes(model, target, export_options, expected):
                             'com.sun.star.presentation.TitleTextShape',
                             'com.sun.star.presentation.OutlinerShape'):
                     continue
+                if kind == 'com.sun.star.drawing.GraphicObjectShape':
+                    graphic_objects += 1
+                    mixed = True
+                    continue
                 if kind != 'com.sun.star.drawing.CustomShape':
                     return None
                 shape_type = next((entry.Value for entry in original.CustomShapeGeometry
                                    if entry.Name == 'Type'), None)
-                if shape_type != 'mso-spt202' or not original.getString().strip():
+                if shape_type not in ('mso-spt202', 'rectangle', 'round-rectangle'):
                     return None
+                content = original.getString()
+                if not isinstance(content, str):
+                    return None
+                if not content.strip():
+                    if shape_type == 'mso-spt202':
+                        return None
+                    mixed = True  # Empty rectangle may still be a visible shape.
+                    continue
+                if shape_type != 'mso-spt202':
+                    mixed = True
                 boxes.append((page, original))
     except Exception:
-        return None  # An uninspectable presentation is never eligible.
+        return None
     if not boxes:
         return None
-    # Never overwrite the original primary until a second native XHTML export
-    # exists and its text has passed independent output readback.
+    previous_visual = None
+    if mixed:
+        try:
+            previous_visual = aio_xhtml_visual_scope(target)
+        except (OSError, UnicodeError, ValueError, AioPresentationUnverified):
+            return None
+        if (previous_visual.unsupported
+                or len(previous_visual.images) != graphic_objects):
+            return None
     replacement = target.with_name(target.stem + '__aio_textbox_recovery.xhtml')
     try:
         for page, original in boxes:
@@ -169,13 +250,25 @@ def aio_try_ppt_xhtml_textboxes(model, target, export_options, expected):
             clone.String = original.getString()
         model.storeToURL(replacement.as_uri(), tuple(export_options))
         aio_verify_presentation_xhtml([replacement], expected)
+        if previous_visual is not None:
+            current_visual = aio_xhtml_visual_scope(replacement)
+            if (current_visual.unsupported
+                    or current_visual.images != previous_visual.images
+                    or current_visual.links != previous_visual.links
+                    or previous_visual.divs - current_visual.divs):
+                raise AioPresentationUnverified('ppt_xhtml_visual_subset_changed')
         os.replace(replacement, target)
         return {'check': 'native_ppt_xhtml_textbox_recovery',
                 'status': 'checked_subset', 'textPresent': True,
-                'scope': 'mso_spt202_textboxes_without_other_slide_shapes',
-                'nativeTextboxCount': len(boxes), 'qualityCompared': False,
+                'scope': ('ppt_text_and_embedded_image_subset' if mixed else
+                          'mso_spt202_textboxes_without_other_slide_shapes'),
+                'nativeTextboxCount': len(boxes),
+                'nativeImageCount': graphic_objects,
+                'visualSubsetCompared': mixed,
+                'qualityCompared': False,
                 'notChecked': ['layout_equivalence', 'master_page_graphics',
-                               'animations', 'links', 'visual_equivalence']}
+                               'animations', 'links_functionality',
+                               'all_source_graphics', 'visual_equivalence']}
     finally:
         replacement.unlink(missing_ok=True)
 
