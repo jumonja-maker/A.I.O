@@ -503,9 +503,11 @@ def start_server(port: int = 0, *, guard_recovery_parent=None, guard_history_par
         def log_message(self, *_):
             pass  # Never log filenames or contents of personal spreadsheets.
 
-    legacy_parent = (Path(legacy_recovery_parent) if legacy_recovery_parent is not None else
-                     Path(guard_recovery_parent).parent / 'legacy-jobs' if guard_recovery_parent is not None else
-                     data_directory() / 'legacy-jobs')
+    # Product requirement: history of old conversions is REPORT-ONLY (M04).
+    # Do not silently rediscover or retain previous legacy result files in the
+    # ordinary desktop application. Explicit opt-in is reserved for isolated
+    # compatibility/recovery tests; it must never be implied by Guard storage.
+    legacy_parent = Path(legacy_recovery_parent) if legacy_recovery_parent is not None else None
     server = LocalServer(('127.0.0.1', port), Handler, legacy_recovery_parent=legacy_parent)
     try:
         diagnostic_limit = os.environ.get('AIO_GUARD_REJECTED_OUTPUT_BYTES', '0')
