@@ -164,7 +164,9 @@ class WriterPageRollback(unittest.TestCase):
             with self.subTest(count=count):
                 self.model.count = count
                 with self.assertRaises(WORKER['AioWriterPagesUnverified']):
-                    self.run_export(plan=False)
+                    WORKER['aio_export_writer_pages'](
+                        self.model, None, self.target, self.options,
+                        'writer_png_Export', None)
         self.assertEqual(list(self.root.iterdir()), [])
 
 
