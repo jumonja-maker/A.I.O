@@ -539,7 +539,7 @@
         throw errorOf('Приложение не подтвердило проверку сохранённых байтов. Результаты оставлены в Guard.', 'SAVE_VERIFY_MISSING');
       if (folder && (outcome.incompleteRecovery || outcome.savedAll !== true && !outcome.snapshotComplete))
         throw errorOf('Восстановленный журнал неполон. Доступные файлы скопированы, но в AIO могут оставаться другие результаты. Не удаляйте служебную папку.', 'SAVE_INCOMPLETE_ACK');
-      const acknowledgement = folder ? outcome : await api('/saved', {jobId,ticket:result.ticket,compact:true});
+      const acknowledgement = folder ? outcome : await api('/saved', {jobId,ticket:result.ticket,saveId:outcome.saveId,compact:true});
       ownership.saved.add(result.ticket);
       saved = true;
       // A partial snapshot is not a request to stop conversion. An operation

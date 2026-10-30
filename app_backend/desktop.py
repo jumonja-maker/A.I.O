@@ -80,8 +80,9 @@ class MainWindow(QMainWindow):
         self._server = server
         self.setWindowTitle('A.I.O — All in One помощник')
         self.setWindowIcon(application_icon())
-        self.resize(1280, 800)
-        self.setMinimumSize(900, 650)
+        available = self.screen().availableGeometry()
+        self.setMinimumSize(min(480, available.width()), min(320, available.height()))
+        self.resize(min(1280, available.width()), min(800, available.height()))
 
         self.profile = QWebEngineProfile(self)
         self.profile.setHttpCacheType(QWebEngineProfile.HttpCacheType.MemoryHttpCache)

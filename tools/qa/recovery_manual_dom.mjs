@@ -10,13 +10,14 @@ async function settle(){for(let i=0;i<5;i++)await tick();}
 const clone=value=>JSON.parse(JSON.stringify(value));
 let snapshot={jobs:[],warnings:[],storage:{jobs:0,maxJobs:8,unsavedOutputs:0,unsavedBytes:0,cleanupPending:0},
   recoveryScan:{available:true,state:'idle',loaded:false,pendingFolders:0}};
-const calls=[];let scans=0,fail=false,confirm=true,hold=null;
+const calls=[];let scans=0,fail=false,confirm=true,hold=null,saveHold=null;
 window.AllInOneNativeShell=true;
 window.confirm=()=>confirm;
 window.AllInOneBridge={converter:{
   async recoverable(options){calls.push(options);if(hold){const pending=hold;hold=null;return pending;}if(fail)throw Error('offline');return clone(snapshot);},
   async scanRecovery(){scans++;snapshot.recoveryScan.state='scanning';return clone(snapshot);},
   getHtmlSources(){return [];},getQualityCheck(){return false;},canRetry(){return false;},
+  async saveRetained(){return saveHold||{downloadStarted:true};},
   async discardRetained(id){snapshot.jobs=snapshot.jobs.filter(job=>job.jobId!==id);snapshot.storage.cleanupPending=1;
     window.dispatchEvent(new window.CustomEvent('aio-guard-job-released',{detail:{jobId:id}}));}
 }};
@@ -67,6 +68,17 @@ assert.equal(chosen.value,'old');
 assert.equal(document.querySelector('[data-g-folder]').disabled,false,'list selection enables save');
 confirm=false;click('[data-g-discard]');await settle();
 assert.equal(snapshot.jobs.length,1);assert.match(document.querySelector('[data-g-current]').textContent,/отменено/);
+// A save can finish after closing/reopening the modal. Its old callback must
+// not replace the new view's feedback, focus or selection with stale data.
+let finishSave;saveHold=new Promise(resolve=>{finishSave=resolve;});
+click('[data-g-folder]');await tick();dialog.close();
+click('.aio-guard-state-button');await settle();
+finishSave({saved:true,outputs:999});await settle();saveHold=null;
+assert.doesNotMatch(document.querySelector('[data-g-current]').textContent,/999/);
+assert.doesNotMatch(document.querySelector('[data-g-warning]').textContent,/999/);
+assert.equal(document.querySelector('[data-g-folder]').disabled,false);
+click('[data-g-zip]');await settle();
+assert.match(document.querySelector('[data-g-current]').textContent,/не подтверждено/);
 confirm=true;click('[data-g-discard]');await settle();
 assert.equal(snapshot.jobs.length,0);assert.doesNotMatch(document.querySelector('[data-g-current]').textContent,/Обновляем состояние/);
 assert.match(document.querySelector('[data-g-scan-status]').textContent,/Удаляем служебные папки/);
@@ -87,4 +99,5 @@ assert.ok(calls.every(options=>options?.scan===false));
 console.log(JSON.stringify({status:'PASS',scope:'production queue + real DOM; controlled HTTP, mutation delivery and native dialog',
   manualScanOnly:true,snapshotOnlyPolls:true,visibleProgress:true,closedPollingStopped:true,
   boundedInlineList:true,recoveredNotCurrent:true,transportFailureKeepsResults:true,
-  cancelledDiscardPreservesResults:true,cleanupCompletionVisible:true,staleUnmountRejected:true,pagehideStopsRequests:true}));
+  cancelledDiscardPreservesResults:true,cleanupCompletionVisible:true,staleUnmountRejected:true,
+  staleClosedSaveRejected:true,unconfirmedDownloadVisible:true,pagehideStopsRequests:true}));

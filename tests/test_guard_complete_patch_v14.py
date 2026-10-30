@@ -10,6 +10,7 @@ import unittest
 from unittest.mock import patch
 import zipfile
 
+from save_test_support import verify_download_for_test
 from app_backend.converter_guard import ConverterGuard, GuardError, GuardLimits
 from app_backend.converter_guard.core import _html_resource_warning
 from app_backend.converter_guard.csv_import import inspect_csv_stream
@@ -52,6 +53,7 @@ class SlotLifecycle(unittest.TestCase):
                     guard.create([{'id':'new','name':'new.odt','size':1}],['pdf'])
                 self.assertEqual(raised.exception.code,'JOB_LIMIT')
                 self.assertIn('Состояние',raised.exception.message)
+                verify_download_for_test(self, guard, a['result']['ticket'])
                 guard.confirm_saved(one,a['result']['ticket'])
                 self.assertEqual(guard.status(one)['files'][0]['targets'][0]['state'],'saved')
                 root=guard._jobs[one].root
@@ -67,6 +69,7 @@ class SlotLifecycle(unittest.TestCase):
             try:
                 identity,state=made(guard);ticket=state['result']['ticket']
                 with guard.open_result(ticket):
+                    verify_download_for_test(self, guard, ticket)
                     guard.confirm_saved(identity,ticket)
                     with self.assertRaises(GuardError):guard.create([{'id':'x','name':'x.odt','size':0}],['pdf'])
                 guard.create([{'id':'x','name':'x.odt','size':0}],['pdf'])
@@ -286,6 +289,7 @@ class RecoveryCapacityAndChartProof(unittest.TestCase):
                 first=current.recoverable();self.assertEqual(len(first['jobs']),2)
                 self.assertEqual(first['pendingRecoveryFolders'],1)
                 identity=first['jobs'][0]['jobId'];ticket=current.status(identity)['result']['ticket']
+                verify_download_for_test(self, current, ticket)
                 current.confirm_saved(identity,ticket)
                 second=current.recoverable();self.assertEqual(len(second['jobs']),2)
                 self.assertEqual(second['pendingRecoveryFolders'],0)

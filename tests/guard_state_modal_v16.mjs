@@ -41,6 +41,7 @@ const bar={querySelector(selector){
 }};
 const cancelledTimers=[];let renders=0;
 const context=vm.createContext({bar,stateButton,Number,rowCache:{jobId:'fixture'},paintedRows:[{}],
+  viewRevision:0,refreshRevision:0,actionFeedback:null,cancelPreview(){},
   recoveryTimer:1,clearTimeout(id){cancelledTimers.push(id);},render(){renders++;}});
 vm.runInContext(source.slice(pollStart,pollEnd)+'\n'+source.slice(helperStart,helperEnd)+'\n'+source.slice(start,end),context);
 const point=(type,x,y,properties={})=>dialog.dispatch(type,{clientX:x,clientY:y,...properties});

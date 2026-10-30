@@ -15,7 +15,7 @@ from .html_resources import resource_path
 from .result_store import path_is_link
 
 CHUNK = 64 * 1024
-METADATA = frozenset(('AIO-conversion-report.json', 'AIO-results-manifest.json'))
+METADATA = frozenset(('AIO-conversion-report.json', 'AIO-results-manifest.json', 'AIO-save-status.json'))
 
 
 def _stop(cancel):
