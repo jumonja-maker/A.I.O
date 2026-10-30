@@ -36,7 +36,11 @@ const context={window,document,fetch,AbortController,URL,CustomEvent:window.Cust
 for(const name of ['legacy-recovery.js','guard-queue.js'])
   vm.runInNewContext(readFileSync(new URL('../src/'+name,import.meta.url),'utf8'),context);
 await flush();
-assert.equal(document.querySelectorAll('[data-legacy-recovery]').length,1,'Production State mounts the actual component');
+assert.equal(document.querySelectorAll('[data-legacy-recovery]').length,0,
+  'Ordinary product must not mount legacy recovery');
+const explicitLegacy = window.AIOLegacyRecovery.mount(document.querySelector('.aio-guard-popup'));
+assert.equal(document.querySelectorAll('[data-legacy-recovery]').length,1,
+  'Explicit compatibility fixture can still mount the component');
 assert.equal(calls.length,0,'No legacy inventory scanning/polling at mount');
 document.querySelector('.aio-guard-state-button').click();await flush();
 assert.equal(calls.length,0,'Collapsed details stay idle');
@@ -82,7 +86,8 @@ window.dispatchEvent(new window.Event('pagehide'));
 pageReply({ok:true,json:async()=>({state:'ready',result:{ticket:'T'.repeat(43),
   downloadUrl:'/api/converter/result?ticket='+'T'.repeat(43)}})});await flush();
 assert.equal(saves.length,2,'Page teardown ignores a late lookup');
-assert.equal(panel.isConnected,false,'Page teardown disposes the component');
+explicitLegacy.dispose();
+assert.equal(panel.isConnected,false,'Explicit compatibility teardown disposes the component');
 console.log(JSON.stringify({status:'PASS',lazyDiscovery:true,paginated:20,htmlEscaped:true,
   partialVisible:true,noAutomaticRelease:true,explicitDiscard:true,browserDownloadNotSaved:true,
   nativeCopyStillRetained:true,warningsBounded:40,lateReplyIgnored:true,reopenUsable:true}));
