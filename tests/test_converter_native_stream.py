@@ -304,6 +304,44 @@ class NativeTransportHTTPTests(unittest.TestCase):
         self.assertFalse(path.exists())
         self.assertFalse(self.server.converter.results)
 
+    def test_lost_reply_ticket_recoverable_by_original_request_identity(self):
+        identity = '9' * 32
+        # The client can forget the HTTP response yet keep its request id.
+        self.convert([('recovery.bmp', b'BM')], request=identity)
+        request = Request(self.base + '/api/converter/recover?request=' + identity,
+                          headers={'X-AIO-Token': self.token})
+        with urlopen(request, timeout=5) as response:
+            recovered = json.load(response)
+        self.assertEqual(recovered['state'], 'ready')
+        self.assertEqual(recovered['requestId'], identity)
+        self.assertEqual(recovered['result']['targetReport']['succeeded'], 1)
+        ticket = recovered['result']['ticket']
+        with urlopen(self.base + recovered['result']['downloadUrl'], timeout=5) as response:
+            self.assertTrue(response.read().startswith(b'%PDF'))
+        # A repeated request identity cannot invalidate an unsaved ticket.
+        with self.assertRaises(HTTPError) as error:
+            self.convert([('second.bmp', b'BM')], request=identity)
+        self.assertEqual(error.exception.code, 422)
+        self.assertEqual(json.load(error.exception)['code'], 'REQUEST_BUSY')
+        self.json('release', {'ticket': ticket})
+        with self.assertRaises(HTTPError) as missing:
+            urlopen(request, timeout=5)
+        self.assertEqual(missing.exception.code, 404)
+
+    def test_legacy_recovery_lookup_requires_token_and_exact_request_id(self):
+        identity = '8' * 32
+        url = self.base + '/api/converter/recover?request=' + identity
+        with self.assertRaises(HTTPError) as denied:
+            urlopen(url, timeout=5)
+        self.assertEqual(denied.exception.code, 403)
+        with self.assertRaises(HTTPError) as malformed:
+            urlopen(Request(url + '&request=' + identity,
+                            headers={'X-AIO-Token': self.token}), timeout=5)
+        self.assertEqual(malformed.exception.code, 400)
+        with self.assertRaises(HTTPError) as absent:
+            urlopen(Request(url, headers={'X-AIO-Token': self.token}), timeout=5)
+        self.assertEqual(absent.exception.code, 404)
+
     def test_cancel_preserves_finished_outputs_and_next_request_can_run(self):
         identity = 'a' * 32
         reply, errors = [], []

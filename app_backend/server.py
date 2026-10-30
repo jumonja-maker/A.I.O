@@ -265,6 +265,17 @@ def start_server(port: int = 0, *, guard_recovery_parent=None, guard_history_par
                         return self._json(404, {'code': exc.code, 'error': str(exc)})
                     except (BrokenPipeError, ConnectionResetError):
                         return
+                if path == '/api/converter/recover':
+                    if not self._authorized():
+                        return self._json(403, {'error': 'Нет доступа.'})
+                    identities = query.get('request', [])
+                    if (len(identities) != 1 or set(query) != {'request'} or
+                            not JOB_PATTERN.fullmatch(identities[0])):
+                        return self._json(400, {'code': 'INVALID_REQUEST',
+                            'error': 'Укажите идентификатор задания для восстановления.'})
+                    recovered = self.server.converter.recover(identities[0])
+                    return self._json(404 if recovered['state'] == 'not_found'
+                        else 200, recovered)
                 if path == '/api/converter/progress':
                     if not self._authorized():
                         return self._json(403, {'error': 'Нет доступа.'})

@@ -41,6 +41,10 @@ class Result:
     path: Path
     name: str
     mime: str
+    request_id: str = ''
+    size: int = 0
+    target_report: dict | None = None
+    format_ids: tuple = ()
     leases: int = 0
     released: bool = False
     cleaning: bool = False
@@ -51,6 +55,7 @@ class ConverterTransport:
         self.lock = threading.RLock()
         self.active = {}
         self.results = {}
+        self.results_by_request = {}
         self.cleanup_pending = []
         self.closed = False
         self._cleanup_timer = None
@@ -61,12 +66,32 @@ class ConverterTransport:
         # eligible for automatic cleanup.
         self.retry_cleanup()
         with self.lock:
-            if self.closed or identity in self.active:
+            if self.closed or identity in self.active or identity in self.results_by_request:
                 raise LibreOfficeError('Задание недоступно.', 'REQUEST_BUSY')
             request = Request(identity, connection, tempfile.TemporaryDirectory(prefix='aio-lo-'))
             self.active[identity] = request
             return request
 
+
+    def recover(self, identity):
+        """Recover a previously retained ticket after a lost HTTP response.
+
+        The caller must already know the 32-hex request identity and the
+        session token. Never read unrelated jobs or visit the recovery spool.
+        """
+        with self.lock:
+            ticket = self.results_by_request.get(identity)
+            result = self.results.get(ticket)
+            if result is not None and not result.released:
+                return {'state': 'ready', 'requestId': identity,
+                    'result': {'name': result.name, 'mime': result.mime,
+                        'size': result.size, 'ticket': ticket,
+                        'downloadUrl': '/api/converter/result?ticket=' + ticket,
+                        'targetReport': result.target_report,
+                        'formatIds': list(result.format_ids)}}
+            if identity in self.active:
+                return {'state': 'running', 'requestId': identity}
+        return {'state': 'not_found', 'requestId': identity}
 
     def cancel(self, identity):
         with self.lock:
@@ -176,13 +201,17 @@ class ConverterTransport:
                 with self.lock:
                     request.packaging = False
             name, mime = path.name, 'application/zip'
+        size = path.stat().st_size
         ticket = secrets.token_urlsafe(32)
         with self.lock:
             self._check_packaging_cancel(request)
             if self.closed:
                 raise LibreOfficeError('Программа закрывается.', 'CANCELLED')
-            self.results[ticket] = Result(request.temporary, path, name, mime)
-        return {'ok': True, 'result': {'name': name, 'mime': mime, 'size': path.stat().st_size,
+            self.results[ticket] = Result(request.temporary, path, name, mime,
+                request_id=request.identity, size=size, target_report=report,
+                format_ids=tuple(formats))
+            self.results_by_request[request.identity] = ticket
+        return {'ok': True, 'result': {'name': name, 'mime': mime, 'size': size,
                 'ticket': ticket, 'downloadUrl': '/api/converter/result?ticket=' + ticket,
                 'targetReport': report, 'formatIds': formats},
                 'message': ('Готово преобразований: ' + str(report['succeeded']) +
@@ -231,6 +260,8 @@ class ConverterTransport:
             with self.lock:
                 if self.results.get(ticket) is result:
                     self.results.pop(ticket, None)
+                    if self.results_by_request.get(result.request_id) == ticket:
+                        self.results_by_request.pop(result.request_id, None)
             return True
         finally:
             with self.lock:

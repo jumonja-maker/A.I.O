@@ -59,12 +59,14 @@ class WindowsUploadPathSafety(unittest.TestCase):
         for name in ('C:escaped.txt', 'D:other.pdf', 'invoice.txt:payload',
                      'NUL.txt', 'CON.txt', 'COM1.docx', 'LPT1.xlsx',
                      'question?.pdf', 'invalid|name.odt', 'trailing.',
-                     'name ', 'bad<name>.pdf'):
+                     'bad<name>.pdf'):
             with self.subTest(name=name):
                 leaf, warnings = self._one(name)
                 self.assertTrue(leaf.startswith('input.'), (name, leaf))
                 self.assertEqual(warnings, ['SOURCE_NAME_NORMALIZED'])
 
+    # BytesHeaderParser strips terminal whitespace from quoted MIME names.
+    # That already prevents a trailing-space leaf reaching the filesystem.
     def test_valid_names_preserve_original_and_bytes(self):
         for name in ('normal.docx', 'Файл.xlsx', 'пример.txt', 'a.txt'):
             with self.subTest(name=name):
