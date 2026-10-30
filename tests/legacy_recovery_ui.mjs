@@ -83,10 +83,10 @@ assert.equal(panel.querySelector('[data-l-refresh]').disabled,false,'Reopened St
 late=true;panel.querySelector('[data-l-action="save"]').click();await flush();
 const pageReply=late;late=null;
 window.dispatchEvent(new window.Event('pagehide'));
+explicitLegacy.dispose(); // Explicit compatibility callers own teardown, not the production queue.
 pageReply({ok:true,json:async()=>({state:'ready',result:{ticket:'T'.repeat(43),
   downloadUrl:'/api/converter/result?ticket='+'T'.repeat(43)}})});await flush();
-assert.equal(saves.length,2,'Page teardown ignores a late lookup');
-explicitLegacy.dispose();
+assert.equal(saves.length,2,'Explicit teardown ignores a late lookup');
 assert.equal(panel.isConnected,false,'Explicit compatibility teardown disposes the component');
 console.log(JSON.stringify({status:'PASS',lazyDiscovery:true,paginated:20,htmlEscaped:true,
   partialVisible:true,noAutomaticRelease:true,explicitDiscard:true,browserDownloadNotSaved:true,
