@@ -189,6 +189,7 @@ def aio_try_ppt_xhtml_textboxes(model, target, export_options, expected):
     if not expected:
         return None
     boxes, graphic_objects, mixed = [], 0, False
+    inspected_shapes = 0
     try:
         pages = model.getDrawPages()
         count = pages.getCount()
@@ -197,7 +198,8 @@ def aio_try_ppt_xhtml_textboxes(model, target, export_options, expected):
         for index in range(count):
             page = pages.getByIndex(index)
             shapes = page.getCount()
-            if shapes > 256 or len(boxes) + shapes > 256:
+            inspected_shapes += shapes
+            if shapes > 256 or inspected_shapes > 256:
                 return None
             for offset in range(shapes):
                 original = page.getByIndex(offset)
