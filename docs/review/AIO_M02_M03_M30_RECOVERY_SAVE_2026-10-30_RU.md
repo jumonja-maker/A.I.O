@@ -27,7 +27,7 @@
 - Backend: `app_backend/converter_guard/core.py`, `archive_verification.py`, `http_api.py`; Qt: `app_backend/desktop.py`.
 - UI: `src/guard-queue.js`, `guard-queue.css`, `converter-bridge.js`.
 - Новые регрессии: `tests/test_m02_m30_recovery_save.py`, `test_recovery_source_gui.py`, `save_test_support.py`; source GUI runner `tools/qa/recovery_save_webengine.py`.
-- Существующие проверки: `tests/test_archive_readback.py`, `test_converter_guard_http_v02.py`, `test_converter_guard_v02/v03/v04/v05/v08.py`, `test_converter_native_dom.py`, `test_guard_complete_patch_v14.py`, `test_guard_queue_save_v21.py`, `test_guard_save_queue_v09.py`, `test_layout_controls.py`, `guard_state_modal_v16.mjs`, `tools/qa/recovery_manual_dom.mjs`. Обновлены точные ожидания третьего metadata-члена и реальная внешняя save-предпосылка, проверки ошибок/целостности не ослаблены.
+- Существующие проверки: `tests/test_archive_readback.py`, `test_converter_guard_http_v02.py`, `test_converter_guard_v02/v03/v04/v05/v08.py`, `test_converter_native_dom.py`, `test_guard_complete_patch_v14.py`, `test_guard_queue_save_v21.py`, `test_guard_save_queue_v09.py`, `test_layout_controls.py`, `guard_state_modal_v16.mjs`, `native_ui_dom_smoke.mjs`, `tools/qa/recovery_manual_dom.mjs`. Обновлены точные ожидания третьего metadata-члена и реальная внешняя save-предпосылка, проверки ошибок/целостности не ослаблены.
 - Реестр: `docs/review/AIO_ACTIVE_BUG_BAG_2026-10-30_RU.md`.
 
 ## Проверки и границы
@@ -48,3 +48,5 @@
 | Исторический FULLTEST / весь исходный корпус / сравнительный benchmark | **NOT_TESTED**; статусы M02/M03/M30 остаются частичными. |
 
 Начальный локальный общий прогон выявил старые фикстуры, подтверждавшие save без чтения конечной копии, и недостающую системную Qt-библиотеку. Фикстуры усилены реальной копией/readback; Qt-библиотеки для локальной проверки предоставлены изолированно. Эти первоначальные отказы не объявлялись SUCCESS. Актуальный итог полного CI фиксируется отдельно.
+
+Повтор полного локального набора на `bf2172d` (1425 discovered) отдельно выявил гонку существующей DOM-фикстуры: assert ожидал restored-ready индикаторы до завершения асинхронной перерисовки после отмены Save. В `native_ui_dom_smoke.mjs` добавлено ожидание **того же точного числа 2** с прежним timeout, сама строгая проверка сохранена. Предыдущий transient SQLite-history отказ отдельно повторён без изменений M04: 35/35 PASS. Эти локальные промежуточные отказы не подменяются итоговым CI.
