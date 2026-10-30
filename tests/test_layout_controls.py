@@ -65,7 +65,7 @@ class LayoutControlsTests(unittest.TestCase):
         fixture = dom.NativeUIDOMAcceptance('test_ui_contract')
         fixture.setUp()
         self.addCleanup(fixture.tearDown)
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory() as directory, fixture.external_save_host():
             result = subprocess.run([sys.executable, str(ROOT/'tools/qa/layout_controls_webengine.py'),
                 '--url',fixture.base,'--output',directory],env=os.environ.copy(),
                 capture_output=True,text=True,encoding='utf-8',timeout=160)

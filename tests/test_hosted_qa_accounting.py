@@ -18,6 +18,23 @@ class HostedAccounting(unittest.TestCase):
         self.assertEqual(report['passed'],1)
         self.assertEqual(report['skipped'][0]['requiredPlatform'],'Windows')
         self.assertEqual(hosted_summary(result(name,reason),system='Windows')['status'],'INCOMPLETE')
+    def test_real_windows_exclusive_save_lock_is_required_on_windows(self):
+        name = ('test_m02_m30_recovery_save.RecoverySaveRegression.'
+                'test_real_windows_exclusive_destination_lock_blocks_acknowledgement')
+        reason = 'Windows exclusive file sharing contract'
+        self.assertEqual(LINUX_INAPPLICABLE.get(name), reason)
+        linux = hosted_summary(result(name, reason), system='Linux')
+        self.assertEqual(linux['status'], 'PASS')
+        self.assertEqual(linux['skipped'][0]['status'], 'not_applicable')
+        self.assertEqual(linux['skipped'][0]['requiredPlatform'], 'Windows')
+        # A skip on the required platform or a changed skip reason on Linux
+        # is never accepted as a platform exemption.
+        self.assertEqual(hosted_summary(result(name, reason), system='Windows')['status'], 'INCOMPLETE')
+        self.assertEqual(hosted_summary(result(name, 'missing native lock'), system='Linux')['status'], 'INCOMPLETE')
+        self.assertEqual(hosted_summary(result(name, reason,
+                         errors=[(SimpleNamespace(id=lambda:'real_native_error'), 'traceback')]),
+                         system='Linux')['status'], 'FAIL')
+
     def test_same_reason_on_unknown_test_is_not_whitelisted(self):
         self.assertEqual(hosted_summary(result('other.test','Real Windows Job Object control'),system='Linux')['status'],'INCOMPLETE')
     def test_known_test_with_other_skip_reason_is_incomplete(self):

@@ -3,7 +3,7 @@
   'use strict';
   let root=null, bar=null, stateButton=null, state=null, jobs=[], warnings=[], storage=null, page=0, refreshPending=false, clock=null;
   let preview=null, previewId=null, previewRequest=0, previewController=null;
-  let refreshRevision=0, refreshAgain=false;
+  let refreshRevision=0, refreshAgain=false, viewRevision=0;
   let historyPanel=null;
   let renderedRecoveryWarnings=null;
   let recoveryScan=null,recoveryTimer=null,refreshError=false,pageHidden=false;
@@ -36,11 +36,16 @@
     RECOVERY_LEDGER_INCOMPLETE:'Журнал результатов неполон. Полный состав результатов не подтверждён.',
     RECOVERY_METADATA_INVALID:'Служебные сведения задания не удалось прочитать или проверить.',
     RECOVERY_OUTPUT_MISSING:'Ожидаемый выходной файл отсутствует или изменён.',
+    RECOVERY_OUTPUT_UNREADABLE:'Результат заблокирован или недоступен для чтения. Остальные файлы можно сохранить.',
     RECOVERY_UNTRACKED_OUTPUTS:'Найдены файлы без подтверждённой записи в журнале.',
     RECOVERY_RETIREMENT_INVALID:'Маркер удаления не прошёл проверку. Каталог не удалён.',
     RECOVERY_CLEANUP_RETRY:'Не завершилась очистка ранее удалённого задания.',
     RECOVERY_SALVAGED_UNVERIFIED:'Найдены файлы, но полнота и связь с исходниками не подтверждены.',
-    RECOVERY_WRITE_FAILED:'Запись служебного журнала не завершилась.'
+    RECOVERY_WRITE_FAILED:'Запись служебного журнала не завершилась.',
+    RECOVERY_SAVE_UNVERIFIED:'Старое подтверждение сохранения не содержит проверки конечной копии. Результаты доступны для повторного сохранения.',
+    RECOVERY_BUSY:'Каталог занят другим экземпляром AIO или заблокирован. Освободите его и повторите поиск.',
+    RECOVERY_ACCESS_DENIED:'Нет доступа к каталогу или журналу. Восстановите доступ и повторите поиск.',
+    RECOVERY_READ_FAILED:'Не удалось прочитать каталог или журнал. Файлы оставлены на диске; можно повторить поиск.'
   };
   function renderRecoveryWarnings(){
     const box=bar?.querySelector('[data-g-recovery]');
@@ -76,6 +81,7 @@
       stateButton.addEventListener('click',()=>{
         const dialog=bar?.querySelector('.aio-guard-popup');
         if(!dialog||dialog.open)return;
+        viewRevision++;actionFeedback=null;
         bar.hidden=false;dialog.showModal();
         stateButton.setAttribute('aria-expanded','true');
         refresh();renderRows();
@@ -114,13 +120,17 @@
     bar.querySelector('[data-g-folder]').hidden=!window.AllInOneNativeShell;
     const action=(selector,work)=>bar.querySelector(selector).addEventListener('click',async event=>{
       if(pendingActions.has(selector))return;
-      const button=event.currentTarget;pendingActions.add(selector);button.disabled=true;
+      const button=event.currentTarget,view=bar,revision=viewRevision;
+      const current=()=>!pageHidden&&bar===view&&revision===viewRevision;
+      pendingActions.add(selector);button.disabled=true;
       actionFeedback='Выполняется команда…';feedbackRevision=state?.revision;
       renderCurrent();
       text('[data-g-warning]','Выполняется запрос…');
       try{const result=await work();
+        if(!current())return;
         actionFeedback=result?.message||(result?.cancelled?'Действие отменено.':
-          result?.saved?'Сохранено файлов: '+(result.outputs??''):'Команда выполнена.');
+          result?.saved?'Сохранено файлов: '+(result.outputs??''):
+          result?.downloadStarted?'Загрузка начата. Сохранение конечной копии не подтверждено; результаты остаются в AIO.':'Команда выполнена.');
         feedbackRevision=state?.revision;
         text('[data-g-warning]',result?.saved?'Сохранено файлов: '+(result.outputs??'')+
           (result.savedAll?'':(result.remainingCompanionFiles&&!result.remainingDocuments
@@ -128,6 +138,7 @@
         renderCurrent();
         await refresh();
       }catch(error){
+        if(!current())return;
         actionFeedback=error.userMessage||error.message||'Команда не выполнена.';
         feedbackRevision=state?.revision;
         text('[data-g-warning]',actionFeedback);renderCurrent();
@@ -209,6 +220,7 @@
     dialog.addEventListener('close',()=>{
       // Native close is queued: an older close must not clear a reopened view.
       if(dialog.open)return;
+      viewRevision++;refreshRevision++;actionFeedback=null;cancelPreview();
       stopRecoveryPoll();dropRows();
       stateButton?.setAttribute('aria-expanded','false');
       if(stateButton?.isConnected)stateButton.focus({preventScroll:true});
@@ -282,6 +294,7 @@
     const scanMessage=refreshError?'Не удалось обновить список. Уже показанные результаты сохранены. Нажмите «Обновить список».':
       recoveryScan?.state==='scanning'?'Ищем предыдущие результаты и проверяем целостность. Можно закрыть это окно; конвертация не запускается.':
       recoveryScan?.state==='failed'?'Поиск не завершён (RECOVERY_SCAN_FAILED). Доступные файлы не удалены. Можно повторить поиск.':
+      recoveryScan?.retryFolders?'Каталогов для повторной попытки: '+recoveryScan.retryFolders+'. Причины указаны ниже. Освободите файлы или восстановите доступ, затем продолжите поиск.':
       recoveryScan?.pendingFolders?'Ожидают свободных слотов: '+recoveryScan.pendingFolders+'. Сохраните или удалите ненужные пакеты и продолжите поиск.':
       recoveryScan?.loaded?'Поиск предыдущих результатов завершён. Это не проверка качества конвертации.':
       'Старые папки автоматически не загружаются. Для проверки нажмите «Найти предыдущие результаты».';

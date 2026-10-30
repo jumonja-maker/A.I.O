@@ -21,7 +21,8 @@ from test_converter_guard_v02 import FakeAdapter, wait_finished
 
 SNAPSHOT = {'snapshotId': 'a' * 32, 'snapshotRevision': 7}
 META = {'AIO-conversion-report.json': b'{"qualityCompared":false}',
-        'AIO-results-manifest.json': b'{"readbackVerified":false}'}
+        'AIO-results-manifest.json': b'{"readbackVerified":false}',
+        'AIO-save-status.json': b'{"state":"packaged"}'}
 
 
 def entry(name, content):
@@ -64,7 +65,7 @@ class ArchiveReadbackPolicy(unittest.TestCase):
         self.assertEqual((size, digest), (len(raw), hashlib.sha256(raw).hexdigest()))
         self.assertEqual(receipt['outputsVerified'], 2)
         self.assertEqual(receipt['bytesVerified'], 5)
-        self.assertEqual(receipt['metadataVerified'], 2)
+        self.assertEqual(receipt['metadataVerified'], 3)
         self.assertFalse(receipt['externalSaveVerified'])
         self.assertFalse(receipt['qualityCompared'])
         self.assertEqual(receipt['snapshotId'], SNAPSHOT['snapshotId'])

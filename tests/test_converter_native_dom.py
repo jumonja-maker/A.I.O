@@ -1,10 +1,12 @@
 """Opt-in DOM/HTTP acceptance using an existing linkedom installation."""
-from contextlib import nullcontext
+from contextlib import nullcontext, contextmanager
 import os
 from pathlib import Path
 import shutil
 import subprocess
 import unittest
+from unittest.mock import patch
+from save_test_support import verify_download_for_test
 
 import test_converter_native_stream as cases
 from app_backend.converter_guard import GuardError, LibreOfficeAdapter
@@ -68,11 +70,27 @@ class NativeUIDOMAcceptance(cases.NativeTransportHTTPTests):
         executable, _ = write_registry(self.work.name)
         self.server.guard.adapter = GuardDOMAdapter(executable, self.fake_native)
 
+    @contextmanager
+    def external_save_host(self):
+        # These DOM tests already simulate the native picker/event. Give that
+        # controlled host a real external copy/readback before /saved; never
+        # weaken the production acknowledgement requirement for the test.
+        original = self.server.guard.confirm_saved
+        def confirmed(job_id, ticket, **kwargs):
+            verify_download_for_test(self, self.server.guard, ticket)
+            return original(job_id, ticket, **kwargs)
+        with patch.object(self.server.guard, 'confirm_saved', side_effect=confirmed):
+            yield
+
+    def run_with_external_save_host(self, script):
+        with self.external_save_host():
+            return subprocess.run(['node', str(Path(__file__).with_name(script))],
+                env=dict(os.environ, AIO_TEST_SERVER=self.base), capture_output=True,
+                text=True, timeout=40)
+
     # The inherited HTTP cases are already collected in their own module.
     def test_ui_contract(self):
-        result = subprocess.run(['node', str(Path(__file__).with_name('native_ui_dom_smoke.mjs'))],
-            env=dict(os.environ, AIO_TEST_SERVER=self.base), capture_output=True,
-            text=True, timeout=40)
+        result = self.run_with_external_save_host('native_ui_dom_smoke.mjs')
         self.assertEqual(result.returncode, 0, result.stdout + '\n' + result.stderr)
         print(result.stdout.strip())
 
@@ -84,9 +102,7 @@ class NativeUIDOMAcceptance(cases.NativeTransportHTTPTests):
         print(result.stdout.strip())
 
     def test_guard_unknown_and_renamed_file_selection(self):
-        result = subprocess.run(['node', str(Path(__file__).with_name('guard_ui_dom_smoke.mjs'))],
-            env=dict(os.environ, AIO_TEST_SERVER=self.base), capture_output=True,
-            text=True, timeout=40)
+        result = self.run_with_external_save_host('guard_ui_dom_smoke.mjs')
         self.assertEqual(result.returncode, 0, result.stdout + '\n' + result.stderr)
         self.assertFalse(self.server.guard.storage_stats()['jobs'])
         print(result.stdout.strip())

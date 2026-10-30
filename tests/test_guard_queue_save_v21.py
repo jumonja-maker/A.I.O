@@ -8,6 +8,7 @@ import threading
 import unittest
 from unittest.mock import patch
 
+from save_test_support import verify_download_for_test
 from app_backend.converter_guard import ConverterGuard, GuardError
 from app_backend.converter_guard.result_store import ResultStore
 from app_backend.converter_guard.save_verification import verify_folder
@@ -153,6 +154,7 @@ class QueueSaveAuditV21(unittest.TestCase):
         guard, job, state = self.ready(formats=('pdf',))
         root = guard._jobs[job].root
         with guard.open_result(state['result']['ticket']):
+            verify_download_for_test(self, guard, state['result']['ticket'])
             guard.confirm_saved(job, state['result']['ticket'])
             with patch.object(guard._io_drained, 'wait_for', return_value=False):
                 guard.close()
@@ -167,6 +169,7 @@ class QueueSaveAuditV21(unittest.TestCase):
         guard, job, state = self.ready(formats=('pdf', 'odt'), retain_sources=True)
         owned = guard._jobs[job]
         root, original = owned.root, owned.files[0].source
+        verify_download_for_test(self, guard, owned.artifacts[0].ticket)
         guard.confirm_saved(job, owned.artifacts[0].ticket)
         missing = owned.artifacts[1].path
         guard.close()

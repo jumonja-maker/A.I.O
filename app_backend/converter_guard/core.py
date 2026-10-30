@@ -158,6 +158,8 @@ class _Artifact:
     source_sheet: dict | None = None
     bundle_outputs: tuple | None = None
     archive_verification: dict | None = None
+    archive_expected: tuple | None = None
+    save_receipt: dict | None = None
 
     @property
     def companion(self):
@@ -397,6 +399,7 @@ class ConverterGuard:
         self._proof_cache = OrderedDict()
         self._recovery_issues = []
         self._recovery_pending = []
+        self._recovery_retry = set()
         self._recovery_loaded = not bool(self._recovery)
         self._recovery_lock = threading.Lock()
         # Constructed lazily like the conversion executor: no thread or disk
@@ -501,6 +504,7 @@ class ConverterGuard:
         finally:
             with self._lock:
                 self._recovery_scan_state = ('closed' if self._closed else 'failed' if failed
+                    else 'retry_available' if self._recovery_retry
                     else 'waiting_for_slot' if self._recovery_pending else 'completed')
                 self._recovery_scan_error = 'RECOVERY_SCAN_FAILED' if failed and not self._closed else None
 
@@ -508,6 +512,28 @@ class ConverterGuard:
         with self._lock:
             if value not in self._recovery_issues:
                 self._recovery_issues.append(value)
+
+    def _retry_recovery(self, root, code):
+        # A busy/unreadable tree is not a completed search. Only another
+        # explicit request retries it; snapshots and startup never touch disk.
+        with self._lock:
+            if root not in self._recovery_pending:
+                self._recovery_pending.append(root)
+            self._recovery_retry.add(root)
+        self._recovery_warning({'folder': root.name, 'code': code, 'retryable': True})
+
+    @staticmethod
+    def _recovery_bytes(root):
+        total = 0
+        def failed(error):
+            raise error
+        for base, dirs, names in os.walk(root, followlinks=False, onerror=failed):
+            dirs[:] = [name for name in dirs if not path_is_link(Path(base)/name)]
+            for name in names:
+                path = Path(base)/name
+                if not path_is_link(path):
+                    total += path.stat().st_size
+        return total
 
     def _publish_recovered(self, job):
         if self._history is not None:
@@ -608,10 +634,18 @@ class ConverterGuard:
     def _recover_results(self, roots=None):
         check_recovery_stop(self._recovery_stop)
         ResultStore.reap_finished_retirements(self._recovery, cancel=self._recovery_stop)
-        roots = sorted(self._recovery.glob('aio-guard-*')) if roots is None else roots
+        if roots is None:
+            # scandir reports access failures; glob may silently return an
+            # empty list and falsely declare an unreadable store searched.
+            try:
+                with os.scandir(self._recovery) as entries:
+                    roots = sorted(Path(entry.path) for entry in entries if entry.name.startswith('aio-guard-'))
+            except FileNotFoundError:
+                roots = []  # A first-run store has no old results yet.
         for root in roots:
             check_recovery_stop(self._recovery_stop)
             with self._lock:
+                self._recovery_retry.discard(root)
                 if any(job.root == root for job in self._jobs.values()):
                     # A deleting job may already have closed owner.lock. It is
                     # still ours until physical cleanup releases its quota.
@@ -621,14 +655,17 @@ class ConverterGuard:
                     if root not in self._recovery_pending:
                         self._recovery_pending.append(root)
                     continue
-            if root.is_symlink() or not root.is_dir():
-                continue
-            if path_is_link(root):
-                continue
             store = ResultStore(root)
             try:
+                if path_is_link(root) or not root.is_dir():
+                    continue
                 if not store.acquire():
-                    continue  # Another running A.I.O instance owns this job.
+                    self._retry_recovery(root, 'RECOVERY_BUSY')
+                    continue  # Another instance/Windows lock; never delete it.
+                with self._lock:
+                    self._recovery_retry.discard(root)
+                    self._recovery_issues[:] = [w for w in self._recovery_issues
+                        if w.get('folder') != root.name or not w.get('retryable')]
                 try:
                     retired = store.retirement_pending()
                 except (OSError, ValueError, TypeError):
@@ -762,7 +799,8 @@ class ConverterGuard:
                                     raise ValueError('Invalid archive name')
                                 artifact = _Artifact(identity, path, path.name, output['size'],
                                     secrets.token_urlsafe(32), item.id, task.format, archive_name,
-                                    saved=relative in saved, sha256=output.get('sha256'),
+                                    saved=relative in saved and relative in header.get('readbackVerifiedPaths', []),
+                                    sha256=output.get('sha256'),
                                     readback_verified=relative in header.get('readbackVerifiedPaths', []),
                                     source_sheet=output.get('sourceSheet'))
                                 if artifact.sha256 is not None:
@@ -779,10 +817,16 @@ class ConverterGuard:
                                         raise ValueError('Recovery output fingerprint changed')
                                 task.artifacts.append(artifact)
                                 job.artifacts.append(artifact)
-                            except (OSError, ValueError, KeyError, TypeError):
+                                if relative in saved and not artifact.readback_verified:
+                                    self._recovery_warning({'folder':root.name, 'jobId':identity,
+                                        'code':'RECOVERY_SAVE_UNVERIFIED'})
+                            except (OSError, ValueError, KeyError, TypeError) as error:
                                 job.recovery_error = job.recovery_error or 'RECOVERY_OUTPUT_MISSING'
                                 task.state, task.code = 'error', 'RECOVERY_OUTPUT_MISSING'
                                 task.error = 'Один из результатов отсутствует или изменён. Доступные файлы сохранены.'
+                                if isinstance(error, PermissionError):
+                                    self._recovery_warning({'folder':root.name, 'jobId':identity,
+                                        'code':'RECOVERY_OUTPUT_UNREADABLE'})
                         if task.state in SUCCESS and not task.artifacts:
                             # Legacy journals have no output count. An empty
                             # success cannot mean the file was converted or
@@ -809,7 +853,7 @@ class ConverterGuard:
                         'code':'RECOVERY_UNTRACKED_OUTPUTS', 'jobId':identity})
                 if untracked:
                     self._salvage_outputs(job, indexed)
-                job.reserved = sum(p.stat().st_size for p in root.rglob('*') if p.is_file() and not p.is_symlink())
+                job.reserved = self._recovery_bytes(root)
                 job.result = {**job.artifacts[0].metadata(), 'jobId':identity}
                 job.packaging_error = 'RECOVERED_RESULTS'
                 job.state = 'partial'
@@ -819,7 +863,15 @@ class ConverterGuard:
             except RecoveryStopped:
                 store.close()
                 raise  # Shutdown is not invalid metadata and never triggers salvage.
-            except (OSError, ValueError, TypeError, KeyError, GuardError):
+            except OSError as error:
+                store.close()
+                if isinstance(error, FileNotFoundError) and not root.exists():
+                    with self._lock:
+                        self._recovery_retry.discard(root)
+                    continue
+                self._retry_recovery(root, 'RECOVERY_ACCESS_DENIED' if isinstance(error, PermissionError)
+                                     else 'RECOVERY_READ_FAILED')
+            except (ValueError, TypeError, KeyError, GuardError):
                 store.close()  # Never delete an unreadable recovery directory.
                 self._salvage_orphan(root)
                 self._recovery_warning({'folder':root.name,
@@ -860,7 +912,7 @@ class ConverterGuard:
             if artifacts:
                 while 'rescued-' + str(next_index) in job.files_by_id:
                     next_index += 1
-                task = _Task('bin', next_index, state='ready', stage='recovery',
+                task = _Task('bin', next_index, state='error', stage='recovery',
                              code='RECOVERED_UNVERIFIED', artifacts=artifacts)
                 task.error = 'Файлы спасены с диска. Исходник, формат и полнота результата не подтверждены.'
                 item = _File('rescued-' + str(next_index), 'Спасённые файлы · ' + output.parent.name,
@@ -884,7 +936,7 @@ class ConverterGuard:
             if not self._salvage_outputs(job):
                 store.close()
                 return
-            job.reserved = sum(a.size for a in job.artifacts)
+            job.reserved = self._recovery_bytes(root)
             job.result = {**job.artifacts[0].metadata(), 'jobId':identity}
             job.packaging_error = 'RECOVERED_RESULTS'
             check_recovery_stop(self._recovery_stop)
@@ -892,7 +944,11 @@ class ConverterGuard:
         except RecoveryStopped:
             store.close()
             raise
-        except (OSError, ValueError):
+        except OSError as error:
+            store.close()
+            self._retry_recovery(root, 'RECOVERY_ACCESS_DENIED' if isinstance(error, PermissionError)
+                                 else 'RECOVERY_READ_FAILED')
+        except ValueError:
             store.close()
 
     def recoverable(self, *, scan=True):
@@ -909,6 +965,7 @@ class ConverterGuard:
                         'available': bool(self._recovery), 'loaded': self._recovery_loaded,
                         'requestId': self._recovery_scan_id,
                         'pendingFolders': len(self._recovery_pending),
+                        'retryFolders': len(self._recovery_retry),
                         'errorCode': self._recovery_scan_error},
                     'warnings':list(self._recovery_issues),
                     'jobs': [{'jobId': j.id, 'recovered': j.recovered,
@@ -1993,7 +2050,7 @@ class ConverterGuard:
             job.result['jobId'] = job.id
             self._record(job, 'results_available')
             # A single successful artifact needs no duplicate archive at all.
-            if len(job.artifacts) == 1 and all(t.state in SUCCESS for f in job.files for t in f.targets):
+            if not force_archive and len(job.artifacts) == 1 and all(t.state in SUCCESS for f in job.files for t in f.targets):
                 return
             if job.archive_mode == 'on_demand' and not force_archive:
                 # Folder-save consumes the retained artifacts directly. Do not
@@ -2008,7 +2065,8 @@ class ConverterGuard:
             archive_snapshot = {'schema': 1, 'snapshotId': secrets.token_hex(16),
                 'snapshotRevision': job.revision, 'state': 'packaged',
                 'jobStateAtStart': job.state, 'externalSave': 'not_observed',
-                'saveStateScope': 'at_archive_start_not_this_download'}
+                'saveStateScope': 'at_archive_start_not_this_download',
+                'completionAuthority': 'adjacent_zip_AIO-save-status.json'}
             report_value = copy.deepcopy(self._report(job))
             report_value['reportScope'] = 'conversion_snapshot_at_archive_start'
             report_value['archiveSnapshot'] = archive_snapshot
@@ -2057,6 +2115,8 @@ class ConverterGuard:
                                      'format':artifact.format, 'exportSha256':artifact.sha256,
                                      'copySha256':digest.hexdigest(), 'sourceSheet':copy.deepcopy(artifact.source_sheet)})
                 metadata = {'AIO-conversion-report.json': report,
+                    'AIO-save-status.json': json.dumps({'jobId':job.id,
+                        **archive_snapshot, 'readbackVerified':False}, ensure_ascii=False).encode('utf-8'),
                     'AIO-results-manifest.json': json.dumps(
                         {'schema':2, 'jobId':job.id, 'readbackVerified':False,
                          'archiveSnapshot':archive_snapshot,
@@ -2080,7 +2140,8 @@ class ConverterGuard:
                         else 'AIO_Results.zip')
                 artifact = _Artifact(job.id, bundle, name, actual, secrets.token_urlsafe(32),
                                      sha256=bundle_sha256, bundle_outputs=copies,
-                                     archive_verification=archive_check)
+                                     archive_verification=archive_check,
+                                     archive_expected=(copy.deepcopy(manifest), dict(metadata), dict(archive_snapshot)))
                 job.packaging_error = None
                 job.bundle = artifact
                 self._tickets[artifact.ticket] = artifact
@@ -2346,27 +2407,102 @@ class ConverterGuard:
             self._cleanup(job)
 
     def verify_saved_download(self, ticket, destination, *, cancel=None):
+        """Verify the final host-selected copy; a download event is not evidence.
+
+        ZIP metadata is immutable packaging evidence. A separate adjacent
+        receipt binds this external saveId to that snapshot and final digest.
+        No successful receipt or acknowledgement is inferred from the spool.
+        """
         from .save_verification import sha256_stream, readback_fingerprint
+        from .result_store import atomic_json
         cancel = cancel or threading.Event()
+        destination = Path(destination)
         if self.owns_path(destination):
             raise GuardError('SAVE_OWNED_STORAGE', 'Выберите папку вне хранилища AIO.', stage='save')
         with self._lock:
-            retained = self._tickets.get(ticket)
-            retained_fingerprint = ((retained.size, retained.sha256)
-                if retained is not None and retained.sha256 else None)
-        with self.open_result(ticket) as (stream, _name, _size):
-            expected = sha256_stream(stream, cancel=cancel)
-            if retained_fingerprint is not None and expected != retained_fingerprint:
-                raise GuardError('SAVE_CHANGED',
-                    'Байты результата изменились после проверки, до скачивания.', stage='save')
-            size, digest, unchanged = readback_fingerprint(destination, cancel=cancel)
-            actual = size, digest
-            if expected != actual or not unchanged:
-                raise GuardError('SAVE_VERIFY_FAILED', 'Сохранённые байты отличаются от результата Guard.', stage='save')
-            with self._lock:
-                if retained is self._tickets.get(ticket):
+            retained = self._tickets.get(ticket) if isinstance(ticket, str) else None
+            if retained is None:
+                raise GuardError('RESULT_NOT_FOUND', 'Результат больше недоступен.', status=404)
+            job = self._get(retained.job_id)
+            if job.saving:
+                raise GuardError('SAVE_BUSY', 'Результаты этого задания уже сохраняются.', stage='save', status=409)
+            job.saving = True
+            job.io += 1
+            retained.save_receipt = None
+            cancel = _Cancellation(cancel, job.save_cancel)
+            self._record(job, 'save_started')
+        save_id = secrets.token_hex(16)
+        receipt_path = destination.with_name(destination.name + '.AIO-save-status.json')
+        receipt = {'schema':1, 'jobId':job.id, 'saveId':save_id, 'state':'verifying',
+                   'readbackVerified':False, 'scope':'final_destination_copy',
+                   'qualityCompared':False}
+        is_bundle = retained is job.bundle
+        try:
+            if is_bundle:
+                if retained.archive_expected is None:
+                    raise GuardError('SAVE_VERIFY_MISSING', 'Нет описания состава ZIP. Результаты остаются в AIO.', stage='save')
+                manifest, metadata, snapshot = retained.archive_expected
+                receipt.update(archiveSnapshot=copy.deepcopy(snapshot), outputsExpected=len(manifest),
+                               outputsWritten=len(manifest), bytesWritten=retained.size)
+                atomic_json(receipt_path, receipt)
+            with self.open_result(ticket) as (stream, _name, _size):
+                expected = sha256_stream(stream, cancel=cancel)
+                if retained.sha256 and expected != (retained.size, retained.sha256):
+                    raise GuardError('SAVE_CHANGED',
+                        'Байты результата изменились после проверки, до скачивания.', stage='save')
+                if is_bundle:
+                    from .archive_verification import verify_built_archive
+                    try:
+                        size, digest, check = verify_built_archive(
+                            destination, manifest, metadata, snapshot, cancel=cancel)
+                    except GuardError as error:
+                        raise GuardError('SAVE_CANCELLED' if error.code == 'BUNDLE_CANCELLED' else 'SAVE_VERIFY_FAILED',
+                            'Проверка конечного ZIP не завершена. Результаты остаются в AIO.', stage='save') from error
+                    verification = {**check, 'verificationScope':'final_destination_zip_members',
+                                    'externalSaveVerified':True}
+                else:
+                    size, digest, unchanged = readback_fingerprint(destination, cancel=cancel)
+                    if not unchanged:
+                        raise GuardError('SAVE_VERIFY_FAILED', 'Сохранённый файл изменился при проверке.', stage='save')
+                    verification = {'verificationScope':'download_bytes',
+                                    'verificationMethod':'independent_read_sha256', 'bytesVerified':size}
+                if expected != (size, digest):
+                    raise GuardError('SAVE_VERIFY_FAILED', 'Сохранённые байты отличаются от результата Guard.', stage='save')
+                if cancel.is_set():
+                    raise GuardError('SAVE_CANCELLED', 'Проверка сохранения отменена.', stage='save')
+                receipt.update(verification, state='completed', readbackVerified=True,
+                               destinationSha256=digest, destinationSize=size)
+                if is_bundle:
+                    # Persist the final authority only AFTER reading every ZIP
+                    # member (CRC + expected SHA), metadata and container hash.
+                    atomic_json(receipt_path, receipt)
+                    raw = json.dumps(receipt, ensure_ascii=True, separators=(',', ':')).encode('utf-8')
+                    seen_size, seen_digest, stable = readback_fingerprint(receipt_path, cancel=cancel)
+                    if not stable or (seen_size, seen_digest) != (len(raw), hashlib.sha256(raw).hexdigest()):
+                        raise GuardError('SAVE_VERIFY_FAILED', 'Не удалось проверить квитанцию сохранения ZIP.', stage='save')
+                with self._lock:
                     retained.readback_verified = True
-            return {'readbackVerified':True, 'verificationScope':'download_bytes', 'bytesVerified':actual[0]}
+                    retained.save_receipt = receipt
+                return receipt
+        except Exception as error:
+            if is_bundle:
+                try:
+                    atomic_json(receipt_path, {**receipt, 'state':'cancelled' if
+                        isinstance(error, GuardError) and error.code == 'SAVE_CANCELLED' else 'failed',
+                        'readbackVerified':False, 'externalSaveVerified':False,
+                        'code':error.code if isinstance(error, GuardError) else 'SAVE_STORAGE_FAILED'})
+                except OSError:
+                    pass  # A failed receipt never acknowledges or deletes originals.
+            if isinstance(error, OSError):
+                raise GuardError('SAVE_STORAGE_FAILED', 'Не удалось записать квитанцию сохранения. Результаты остаются в AIO.', stage='save') from error
+            raise
+        finally:
+            with self._lock:
+                job.saving = False
+                job.io -= 1
+                self._record(job, 'save_idle')
+                self._io_drained.notify_all()
+            self._cleanup(job)
 
     def owns_path(self, path):
         """Do not confirm a save into a directory our cleanup will remove."""
@@ -2706,7 +2842,7 @@ class ConverterGuard:
                 self._io_drained.notify_all()
             self._cleanup(job)
 
-    def confirm_saved(self, job_id, ticket, *, compact=False):
+    def confirm_saved(self, job_id, ticket, *, compact=False, save_id=None):
         """Host-confirmed save, with an optional bounded acknowledgement."""
         if type(compact) is not bool:
             raise GuardError('SAVE_REQUEST', 'Некорректный режим подтверждения сохранения.')
@@ -2717,6 +2853,11 @@ class ConverterGuard:
                 raise GuardError('RESULT_NOT_FOUND', 'Результат не относится к заданию.', status=404)
             if job.saving:
                 raise GuardError('SAVE_BUSY', 'Результаты этого задания уже сохраняются.', stage='save', status=409)
+            receipt = artifact.save_receipt or {}
+            if (receipt.get('state') != 'completed' or receipt.get('readbackVerified') is not True or
+                    save_id is not None and save_id != receipt.get('saveId')):
+                raise GuardError('SAVE_VERIFY_MISSING',
+                    'Нет подтверждения проверки конечной копии. Результаты остаются в AIO.', stage='save', status=409)
             if artifact is job.bundle:
                 # Acknowledgement belongs to the immutable ZIP inventory,
                 # never to outputs that appeared after it was packaged.
@@ -2733,10 +2874,10 @@ class ConverterGuard:
             job.io += 1
             self._record(job, 'save_started')
         try:
-            outcome = self._acknowledge_outputs(job, copies, readback_verified=artifact.readback_verified)
+            outcome = self._acknowledge_outputs(job, copies, readback_verified=True)
             with self._lock:
                 artifact.saved = True
-                return outcome if compact else self._snapshot(job)
+                return {**outcome, 'saveId':receipt['saveId'], 'readbackVerified':True} if compact else self._snapshot(job)
         finally:
             # Keep the existing save I/O lease until its metadata snapshot is
             # persisted; close() must not race this final history write.

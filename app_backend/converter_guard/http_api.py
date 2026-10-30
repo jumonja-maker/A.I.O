@@ -319,7 +319,7 @@ class GuardAPI:
                 return self._json(handler,202, self.guard.rebuild_bundle(identity))
             if path == PREFIX + '/saved':
                 return self._json(handler,200, self.guard.confirm_saved(identity, body.get('ticket'),
-                    compact=body.get('compact', False)))
+                    compact=body.get('compact', False), save_id=body.get('saveId')))
             if path == PREFIX + '/release':
                 self.guard.release(identity, discard=body.get('discard', False),defer_cleanup=True)
                 # Preserve the legacy acknowledgement. Cleanup progress remains

@@ -1,7 +1,8 @@
 """Same full test discovery with explicit cross-platform accounting for hosted CI.
 
-Only four exact Windows process tests are inapplicable on Linux; they must run
-on the Windows matrix job. Unknown skips and expected failures stay INCOMPLETE.
+Only explicitly named Windows-only native tests are inapplicable on Linux;
+they must run on the Windows matrix job. Unknown skips and expected failures
+stay INCOMPLETE.
 """
 import argparse
 import json
@@ -15,6 +16,7 @@ sys.path.insert(0,str(ROOT))
 from tools.qa.guard_v17_selfhosted_acceptance import suite_summary, write_json
 
 LINUX_INAPPLICABLE = {
+    'test_m02_m30_recovery_save.RecoverySaveRegression.test_real_windows_exclusive_destination_lock_blocks_acknowledgement': 'Windows exclusive file sharing contract',
     'test_native_profile_safety_b27.RealWindowsOwnedTree.test_descendant_exit_and_unrelated_owned_process_survival': 'Real Windows Job Object control',
     'test_windows_suspended_start.SuspendedStartup.test_failed_assignment_never_resumes_uncontained_launcher': 'Real Windows suspended startup barrier',
     'test_windows_suspended_start.SuspendedStartup.test_failed_resume_reaps_launcher_without_running_its_code': 'Real Windows suspended startup barrier',
