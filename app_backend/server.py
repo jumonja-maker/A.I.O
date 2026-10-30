@@ -62,6 +62,8 @@ MAX_UPLOAD = MAX_TOTAL_BYTES + 2 * 1024 * 1024
 JOB_PATTERN = re.compile(r'[0-9a-f]{32}\Z')
 MAX_PROGRESS_JOBS = 16
 MAX_PROGRESS_AGE = 900
+# Maximum idle time between Excel upload reads, not a merge runtime limit.
+EXCEL_UPLOAD_IDLE_SECONDS = 15.0
 
 
 def asset_root() -> Path:
@@ -421,7 +423,19 @@ def start_server(port: int = 0, *, guard_recovery_parent=None, guard_history_par
                 return self._json(409, {'error':'Уже выполняется объединение Excel.'})
             try:
                 self._progress(job, 'upload')
-                files = self._read_multipart()
+                # Prevent an incomplete HTTP body from indefinitely owning
+                # the single Excel merge gate. Only uploads get this timeout.
+                old_timeout = self.connection.gettimeout()
+                try:
+                    self.connection.settimeout(EXCEL_UPLOAD_IDLE_SECONDS)
+                    files = self._read_multipart()
+                except TimeoutError:
+                    self.close_connection = True
+                    self._progress(job, 'error')
+                    return self._json(408, {'code': 'EXCEL_UPLOAD_TIMEOUT',
+                        'error': 'Загрузка Excel прервана: слишком долго не поступали данные.'})
+                finally:
+                    self.connection.settimeout(old_timeout)
                 output = merge_xlsx(files, progress=lambda phase, current, total:
                                     self._progress(job, phase, current, total))
                 return self._send(200, output,

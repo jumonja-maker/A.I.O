@@ -87,6 +87,28 @@ def _read_simple_table(data: bytes, name: str, row_sink=None):
             raise MergeError(f'«{name}»: скрытые строки или столбцы не поддерживаются.')
         if wb._external_links or wb.defined_names:
             raise MergeError(f'«{name}»: внешние ссылки или именованные диапазоны не поддерживаются.')
+        # Sheet-scoped names are NOT included in wb.defined_names. A merge
+        # must not silently discard local names or print metadata.
+        if ws.defined_names:
+            raise MergeError(f'«{name}»: локальные именованные диапазоны листа не поддерживаются.')
+        if ws.print_title_rows or ws.print_title_cols:
+            raise MergeError(f'«{name}»: повторяемые строки или столбцы печати не поддерживаются.')
+        for attr in ('oddHeader', 'oddFooter', 'evenHeader', 'evenFooter',
+                     'firstHeader', 'firstFooter'):
+            field = getattr(ws, attr)
+            if any(getattr(field, section).text for section in ('left', 'center', 'right')):
+                raise MergeError(f'«{name}»: колонтитулы Excel не поддерживаются ({attr}).')
+        if ws.HeaderFooter.differentOddEven or ws.HeaderFooter.differentFirst:
+            raise MergeError(f'«{name}»: особые колонтитулы страниц не поддерживаются.')
+        if any(getattr(ws.page_setup, key) is not None for key in (
+                'orientation', 'paperSize', 'scale', 'fitToWidth', 'fitToHeight',
+                'firstPageNumber', 'useFirstPageNumber', 'blackAndWhite',
+                'draft', 'cellComments', 'errors', 'horizontalDpi', 'verticalDpi')):
+            raise MergeError(f'«{name}»: настройки страницы печати не поддерживаются.')
+        if any(getattr(ws.print_options, key) not in (None, False) for key in (
+                'horizontalCentered', 'verticalCentered', 'headings',
+                'gridLines', 'gridLinesSet')):
+            raise MergeError(f'«{name}»: параметры печати не поддерживаются.')
         if ws.max_row > MAX_TOTAL_ROWS:
             raise MergeError(f'«{name}»: слишком много строк для первой версии.')
         if ws.max_row * ws.max_column > MAX_GRID_CELLS:
