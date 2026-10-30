@@ -1,8 +1,9 @@
-"""Product decision: ordinary AIO keeps report-only history, not legacy result archives.
+"""Ordinary A.I.O keeps report-only history, not old legacy result files.
 
-Retained legacy recovery remains explicitly opt-in in isolated engineering
-scenarios. Existing user files are never removed during a product transition.
+Legacy persistence is explicit opt-in for isolated compatibility/migration.
+Historical user files are never deleted by this change.
 """
+from contextlib import contextmanager
 from pathlib import Path
 import tempfile
 import unittest
@@ -11,26 +12,28 @@ from app_backend.server import start_server
 
 
 class HistoryOnlyProductDefault(unittest.TestCase):
+    @contextmanager
     def _start(self, root):
         server, _token = start_server(
             guard_recovery_parent=root / 'guard-jobs',
             guard_history_parent=root / 'report-history')
-        self.addCleanup(server.server_close)
-        self.addCleanup(server.guard.close)
-        self.addCleanup(server.converter.close)
-        return server
+        try:
+            yield server
+        finally:
+            server.converter.close()
+            server.guard.close()
+            server.server_close()
 
     def test_normal_desktop_does_not_create_or_scan_legacy_results(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            server = self._start(root)
-            self.assertIsNone(server.converter.recovery_parent)
-            self.assertEqual(server.converter.inventory()['scope'], 'current_process')
-            self.assertEqual(server.converter.inventory()['items'], [])
-            self.assertFalse((root / 'legacy-jobs').exists())
-            self.assertIsNotNone(server.guard._history)
-            # M04 report history stays separate from temporary results.
-            self.assertEqual(server.guard.history_list()['items'], [])
+            with self._start(root) as server:
+                self.assertIsNone(server.converter.recovery_parent)
+                self.assertEqual(server.converter.inventory()['scope'], 'current_process')
+                self.assertEqual(server.converter.inventory()['items'], [])
+                self.assertFalse((root / 'legacy-jobs').exists())
+                self.assertIsNotNone(server.guard._history)
+                self.assertEqual(server.guard.history_list()['items'], [])
 
     def test_old_legacy_files_survive_but_are_not_resurrected_or_counted(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -39,10 +42,11 @@ class HistoryOnlyProductDefault(unittest.TestCase):
             legacy.mkdir(parents=True)
             marker = legacy / 'old-unsaved-result.pdf'
             marker.write_bytes(b'private-old-bytes')
-            server = self._start(root)
-            self.assertIsNone(server.converter.recovery_parent)
-            self.assertEqual(server.converter.inventory()['total'], 0)
-            self.assertEqual(server.converter.storage_stats()['retainedResults'], 0)
+            with self._start(root) as server:
+                self.assertIsNone(server.converter.recovery_parent)
+                self.assertEqual(server.converter.inventory()['total'], 0)
+                self.assertEqual(server.converter.storage_stats()['retainedResults'], 0)
+                self.assertEqual(marker.read_bytes(), b'private-old-bytes')
             self.assertEqual(marker.read_bytes(), b'private-old-bytes')
 
     def test_production_ui_exposes_only_report_history_not_legacy_results(self):
@@ -53,8 +57,8 @@ class HistoryOnlyProductDefault(unittest.TestCase):
         self.assertIn('AIOConversionHistory?.mount', queue)
         self.assertNotIn('src/legacy-recovery.js', html)
         self.assertNotIn('AIOLegacyRecovery', queue)
-        # Recovery M02 is explicitly manual and recovered jobs are excluded
-        # from the live-session unsaved counter.
+        # Guard M02 is a separate, explicitly manual operation and its
+        # recovered rows never enter the displayed live unsaved count.
         self.assertIn("jobs.filter(job=>!job.recovered)", queue)
 
 
