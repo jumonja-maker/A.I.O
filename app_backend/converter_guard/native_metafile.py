@@ -44,7 +44,7 @@ def native_metafile_target(native, target, proof):
     return None
 
 
-def inspect_metafile(path, kind, *, cancel=None):
+def inspect_metafile(path, kind, *, cancel=None, allow_native_count_gap=True):
     """Validate bounded-memory record structure, declared size, count and EOF."""
     path = Path(path)
     if path.is_symlink():
@@ -76,6 +76,8 @@ def inspect_metafile(path, kind, *, cancel=None):
                     _invalid('emf_record_size')
                 if count == 0 and (record_type != 1 or length != header_size):
                     _invalid('emf_first_record')
+                if count and record_type == 1:
+                    _invalid('emf_duplicate_header')
                 # The structure walk already visits each record. Hash its
                 # body here to detect same-size in-place mutations even on
                 # filesystems whose mtime has coarse resolution.
@@ -93,11 +95,19 @@ def inspect_metafile(path, kind, *, cancel=None):
                 if record_type == 14:
                     if length < 20 or position != size:
                         _invalid('emf_eof')
+                    stream.seek(position - length + 8)
+                    palette_count, palette_offset = struct.unpack('<II', stream.read(8))
+                    stream.seek(position - 4)
+                    last_size = struct.unpack('<I', stream.read(4))[0]
+                    if (last_size != length or palette_count != struct.unpack_from('<I', header, 68)[0]
+                            or (palette_count and (palette_offset < 16 or palette_offset % 4
+                                or palette_offset + palette_count * 4 > length - 4))):
+                        _invalid('emf_eof_palette_or_size_last')
                     terminal = True
-            # Native LO counts records following EMR_HEADER in nRecords.
-            # Record boundaries, complete declared byte count and terminal EOF
-            # independently prove completeness; retain its bytes unchanged.
-            if not terminal or declared_count not in (count, count - 1):
+            # The compatibility walk can inspect raw LO evidence. Production
+            # outputs are normalized separately, then require the exact count.
+            accepted_counts = (count, count - 1) if allow_native_count_gap else (count,)
+            if not terminal or declared_count not in accepted_counts:
                 _invalid('emf_count_or_eof')
         elif kind == 'wmf':
             placeable = header[:4] == b'\xd7\xcd\xc6\x9a'
@@ -158,6 +168,68 @@ def inspect_metafile(path, kind, *, cancel=None):
             **({'declaredRecords': declared_count,
                 'nativeHeaderCountExcludesHeader': declared_count == count - 1}
                if declared_count is not None else {})}
+
+
+def repair_native_emf_counts(paths, *, cancel=None):
+    """Normalize only the proven LO 108-byte-header, count-minus-one variant.
+
+    This is called on unpublished native outputs, never source files. Every
+    record and EOF is verified first; only DWORD nRecords at offset 52 changes.
+    A sibling candidate is checked strictly before atomic publication. Correct
+    EMFs keep their exact bytes and timestamps; no speculative bulk increment.
+    """
+    checks = []
+    for path in map(Path, paths):
+        if path.suffix.lower() != '.emf':
+            continue
+        _cancel(cancel)
+        before = path.lstat()
+        facts = inspect_metafile(path, 'emf', cancel=cancel)
+        if not facts['nativeHeaderCountExcludesHeader']:
+            continue
+        with path.open('rb') as stream:
+            header = stream.read(108)
+        if (struct.unpack_from('<II', header, 4)[0] != 108
+                or struct.unpack_from('<I', header, 44)[0] != 0x10000
+                or header[58:72] != b'\0' * 14 or header[88:100] != b'\0' * 12):
+            _invalid('emf_count_variant_unconfirmed')
+        candidate = None
+        try:
+            original_hash = hashlib.sha256()
+            with path.open('rb') as incoming:
+                if _stat_token(os.fstat(incoming.fileno())) != _stat_token(before):
+                    _invalid('source_changed')
+                with tempfile.NamedTemporaryFile(prefix='.' + path.name + '.', suffix='.partial',
+                        dir=path.parent, delete=False) as outgoing:
+                    candidate = Path(outgoing.name)
+                    offset = 0
+                    while True:
+                        _cancel(cancel)
+                        block = incoming.read(64 * 1024)
+                        if not block:
+                            break
+                        original_hash.update(block)
+                        if offset == 0:
+                            block = block[:52] + struct.pack('<I', facts['records']) + block[56:]
+                        outgoing.write(block)
+                        offset += len(block)
+            if (offset != facts['bytes'] or original_hash.hexdigest() != facts['sha256']
+                    or _stat_token(path.lstat()) != _stat_token(before)):
+                _invalid('source_changed')
+            verified = inspect_metafile(candidate, 'emf', cancel=cancel, allow_native_count_gap=False)
+            _cancel(cancel)
+            if _stat_token(path.lstat()) != _stat_token(before):
+                _invalid('source_changed')
+            os.replace(candidate, path)
+            checks.append({'check': 'emf_record_count', 'status': 'corrected',
+                'file': path.name, 'oldRecords': facts['declaredRecords'],
+                'records': verified['records'], 'bytes': verified['bytes'],
+                'sourceSha256': facts['sha256'], 'sha256': verified['sha256'],
+                'changedByteRange': [52, 56], 'qualityCompared': False})
+        finally:
+            if candidate is not None:
+                candidate.unlink(missing_ok=True)
+    return checks
 
 
 # Matches the native page producer's existing bounds, not a new Guard scan.
