@@ -82,6 +82,10 @@ def main():
       if(lr.right>pr.left+2&&pr.right>lr.left+2&&lr.bottom>pr.top+2&&pr.bottom>lr.top+2)violations.push('panes overlap');
       if(document.documentElement.scrollWidth>innerWidth+2)violations.push('document horizontal overflow');
       const workspace=q('.workspace');if(workspace.scrollWidth>workspace.clientWidth+2)violations.push('workspace horizontal overflow');
+      const footer=q('.aio-cv__footer'),fr=rect(footer);
+      for(const s of ['[data-cv-summary]','[data-cv-status]','[data-cv-run]','[data-cv-result-actions]'])if(!fits(rect(q(s)),fr))violations.push(s+' clipped by footer');
+      for(const b of q('[data-cv-result-actions]').children)if(!fits(rect(b),rect(q('[data-cv-result-actions]'))))violations.push('result button clipped by row');
+      const queue=footer.querySelector('.aio-guard-queue');if(queue&&!queue.hidden){const qr=rect(queue);if(!fits(qr,fr)||qr.bottom>rr.top+2)violations.push('queue clips action');}
       return {violations,viewport:[innerWidth,innerHeight],run:[rr.left-pr.left,rr.top-pr.top,rr.width,rr.height],
         runHidden:run.hidden,runVisibility:getComputedStyle(run).visibility,trashColour:getComputedStyle(q('[data-cv-clear-inputs]')).color,
         pane:pr,footer:q('.aio-cv__footer').innerHTML};
@@ -118,6 +122,7 @@ def main():
                 view.resize(width,height)
                 view.setZoomFactor(zoom)
                 pump(.15)
+                evidence['currentCase']={'theme':theme,'window':[width,height],'zoom':zoom}
                 # Re-run through the ordinary UI, not direct invocation of handlers.
                 js("(()=>{document.querySelector('[data-cv-run]').click();return true;})()")
                 wait("!document.querySelector('[data-cv-save]').disabled&&document.querySelector('[data-cv-run]').hidden", 'unsaved completed output')
@@ -150,12 +155,14 @@ def main():
                 check(all(abs(a-b)<1 for a,b in zip(after['run'],lengthy['run'])), 'long message moved repeat slot')
                 js("(()=>{document.querySelector('[data-cv-run]').scrollIntoView({block:'center'});return true;})()")
                 pump(.05)
-                check(js("(()=>{const b=document.querySelector('[data-cv-run]'),r=b.getBoundingClientRect(),p=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return p===b||b.contains(p);})()"), 'repeat inaccessible after scrolling workspace')
+                hit = js("(()=>{const b=document.querySelector('[data-cv-run]'),r=b.getBoundingClientRect(),p=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2),w=document.querySelector('.workspace');return {reachable:p===b||b.contains(p),hit:p?.outerHTML?.slice(0,500),button:{top:r.top,bottom:r.bottom,left:r.left,right:r.right},workspace:{top:w.getBoundingClientRect().top,height:w.clientHeight,scrollHeight:w.scrollHeight,scrollTop:w.scrollTop},viewport:[innerWidth,innerHeight],scrollY};})()")
+                check(hit['reachable'], 'repeat inaccessible after scrolling workspace: '+repr(hit))
                 evidence['cases'].append({'theme':theme,'window':[width,height],'zoom':zoom,'cssViewport':after['viewport'],
                     'status':'PASS','noOverlap':True,'repeatSlotUnchanged':True,'cancelledSavePreservedInput':True,
                     'disabledTrashColour':muted,'activeTrashColour':active_colour})
             js("(()=>{document.querySelector('[data-cv-clear-inputs]').click();return true;})()")
             wait("document.querySelectorAll('.aio-cv__file[data-file-id]').length===0&&document.querySelector('[data-cv-clear-inputs]').disabled", 'clear saved input list')
+        evidence.pop('currentCase',None)
         evidence['status'] = 'PASS'
         evidence['initialTheme'] = initial_theme
     except Exception as exc:

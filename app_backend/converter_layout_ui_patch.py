@@ -121,16 +121,20 @@ LAYOUT_CSS = r'''
 }
 /* Real buttons stay in their original DOM order; hidden slots are inert.
    visibility:hidden retains geometry but cannot receive pointer/keyboard focus. */
-.app-shell .workspace .aio-cv__footer {
+.app-shell .workspace .aio-cv .aio-cv__footer {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: 64px 56px 48px 44px;
+  grid-template-rows: 64px 56px 32px 48px 44px;
   gap: 8px;
-  flex: 0 0 auto;
   min-width: 0;
-  margin-top: auto;
+  flex: 0 0 auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin-top: auto !important;
+  align-content: normal;
 }
-.app-shell .workspace .aio-cv__footer [data-cv-summary] {
+.app-shell .workspace .aio-cv .aio-cv__footer [data-cv-summary] {
   grid-row: 1;
   box-sizing: border-box;
   height: 64px;
@@ -141,7 +145,7 @@ LAYOUT_CSS = r'''
   overflow: auto;
   overflow-wrap: anywhere;
 }
-.app-shell .workspace .aio-cv__footer [data-cv-status] {
+.app-shell .workspace .aio-cv .aio-cv__footer [data-cv-status] {
   grid-row: 2;
   box-sizing: border-box;
   height: 56px;
@@ -152,8 +156,8 @@ LAYOUT_CSS = r'''
   overflow: auto;
   overflow-wrap: anywhere;
 }
-.app-shell .workspace .aio-cv__footer [data-cv-run] {
-  grid-row: 3;
+.app-shell .workspace .aio-cv .aio-cv__footer [data-cv-run] {
+  grid-row: 4;
   box-sizing: border-box;
   width: 100%;
   min-width: 0;
@@ -161,13 +165,13 @@ LAYOUT_CSS = r'''
   margin: 0;
   white-space: normal;
 }
-.app-shell .workspace .aio-cv__footer [data-cv-run][hidden] {
+.app-shell .workspace .aio-cv .aio-cv__footer [data-cv-run][hidden] {
   display: block !important;
   visibility: hidden;
   pointer-events: none;
 }
-.app-shell .workspace .aio-cv__footer [data-cv-result-actions] {
-  grid-row: 4;
+.app-shell .workspace .aio-cv .aio-cv__footer [data-cv-result-actions] {
+  grid-row: 5;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 8px;
@@ -175,21 +179,58 @@ LAYOUT_CSS = r'''
   min-width: 0;
   margin: 0;
 }
-.app-shell .workspace .aio-cv__footer [data-cv-result-actions][hidden] {
+.app-shell .workspace .aio-cv .aio-cv__footer [data-cv-result-actions][hidden] {
   display: grid !important;
   visibility: hidden;
   pointer-events: none;
 }
-.app-shell .workspace .aio-cv__footer [data-cv-result-actions] > button {
+.app-shell .workspace .aio-cv .aio-cv__footer [data-cv-result-actions] > button {
   box-sizing: border-box;
   width: 100%;
   min-width: 0;
-  height: 44px;
-  min-height: 44px;
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+  grid-row: 1;
   padding: 2px 6px;
   line-height: 1.2;
   white-space: normal;
   overflow-wrap: anywhere;
+}
+/* The queue keeps its own reserved row; old queued-state rules must not
+   overlay the run/save rows or clip the summary with a 176px footer. */
+.app-shell .workspace .aio-cv .aio-cv__footer .aio-guard-queue {
+  grid-row: 3;
+  height: 32px;
+  min-height: 32px;
+  min-width: 0;
+}
+.app-shell .workspace .aio-cv .aio-cv__footer [data-cv-summary],
+.app-shell .workspace .aio-cv .aio-cv__footer [data-cv-status] {
+  scrollbar-width: auto;
+}
+.app-shell .workspace .aio-cv .aio-cv__footer [data-cv-summary]::-webkit-scrollbar,
+.app-shell .workspace .aio-cv .aio-cv__footer [data-cv-status]::-webkit-scrollbar {
+  display: block;
+}
+/* On a very short stacked shell the fixed navigation can consume almost
+   the whole viewport. Let the document scroll only in active converter mode;
+   changing tools restores the original shell without a resize listener. */
+@media (max-width: 610px) and (max-height: 540px) {
+  .app-shell:has(.workspace.aio-qa-converter-mode) {
+    height: auto !important;
+    min-height: 100vh !important;
+    overflow: visible;
+  }
+  .app-shell:has(.workspace.aio-qa-converter-mode) .app-layout {
+    flex: 0 0 auto;
+    overflow: visible;
+  }
+  .app-shell .app-layout .workspace.aio-qa-converter-mode {
+    height: auto;
+    overflow-y: visible !important;
+    overflow-x: clip !important;
+  }
 }
 /* M13: the SVG inherits currentColor; colour emoji ignored CSS colour. */
 .app-shell .workspace .aio-cv__clear-inputs {
