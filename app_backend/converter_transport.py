@@ -13,6 +13,7 @@ from zipfile import ZipFile, ZipInfo, ZIP_STORED
 
 from .libreoffice_catalog import mime_for
 from .libreoffice_engine import LibreOfficeError, convert_path
+from .legacy_result_journal import LegacyWorkspace, recover_workspaces
 
 ARCHIVE_CHUNK = 128 * 1024
 MAX_OWNED_ROOTS = 32
@@ -50,10 +51,11 @@ class Result:
     leases: int = 0
     released: bool = False
     cleaning: bool = False
+    restored: bool = False
 
 
 class ConverterTransport:
-    def __init__(self, *, max_owned_roots=MAX_OWNED_ROOTS):
+    def __init__(self, *, max_owned_roots=MAX_OWNED_ROOTS, recovery_parent=None):
         if type(max_owned_roots) is not int or not 1 <= max_owned_roots <= 256:
             raise ValueError('max_owned_roots must be an integer from 1 to 256')
         self.lock = threading.RLock()
@@ -66,13 +68,45 @@ class ConverterTransport:
         self.closed = False
         self._cleanup_timer = None
         self._cleanup_retries = 0
+        self.recovery_parent = Path(recovery_parent) if recovery_parent is not None else None
+        self.recovery_issues = []
+        self.recovery_available = True
+        if self.recovery_parent is not None:
+            try:
+                recovered, self.recovery_issues = recover_workspaces(self.recovery_parent)
+            except OSError:
+                # Legacy storage must not prevent Guard/the shell from
+                # starting. Never fall back to disposable output storage.
+                recovered = []
+                self.recovery_available = False
+                self.recovery_issues = [{'workspaceId': 'legacy',
+                                         'code': 'LEGACY_RECOVERY_UNAVAILABLE'}]
+            seen_ids = set()
+            for workspace, value in recovered:
+                identity = value['requestId']
+                if identity in seen_ids:
+                    previous = self.results.pop(self.results_by_request.pop(identity, None), None)
+                    if previous is not None:
+                        previous.temporary.close()
+                        self.recovery_issues.append({'workspaceId': Path(previous.temporary.name).name,
+                                                     'code': 'LEGACY_RECOVERY_DUPLICATE_ID'})
+                    workspace.close()
+                    self.recovery_issues.append({'workspaceId': Path(workspace.name).name,
+                                                 'code': 'LEGACY_RECOVERY_DUPLICATE_ID'})
+                    continue
+                seen_ids.add(identity)
+                ticket = secrets.token_urlsafe(32)
+                self.results[ticket] = Result(workspace, value['path'], value['name'], value['mime'],
+                    request_id=identity, size=value['size'], target_report=value['targetReport'],
+                    format_ids=tuple(value['formatIds']), restored=True)
+                self.results_by_request[identity] = ticket
 
     def _owned_root_count(self):
         # Caller holds lock. Published-but-not-finished work shares one owner;
         # leased/released/in-flight cleanup remains counted until deletion ends.
         return len({id(item.temporary) for item in self.active.values()} |
                    {id(item.temporary) for item in self.results.values()} |
-                   {id(item) for item in self.cleanup_pending})
+                   {id(item) for item in self.cleanup_pending}) + len(self.recovery_issues)
 
     def begin(self, identity, connection):
         # Retry only already-released storage. Unsaved tickets are never
@@ -81,12 +115,17 @@ class ConverterTransport:
         with self.lock:
             if self.closed or identity in self.active or identity in self.results_by_request:
                 raise LibreOfficeError('Задание недоступно.', 'REQUEST_BUSY')
+            if not self.recovery_available:
+                raise LibreOfficeError('Хранилище прежних результатов недоступно. '
+                    'Проверьте права и диск; конвертация не начата.', 'LEGACY_STORAGE_UNAVAILABLE')
             if self._owned_root_count() >= self.max_owned_roots:
                 raise LibreOfficeError(
                     'Достигнут предел временных заданий старого конвертера. '
                     'Сохраните и закройте прежние результаты или повторите очистку. '
                     'Несохранённые результаты не удалены.', 'LEGACY_STORAGE_LIMIT')
-            request = Request(identity, connection, tempfile.TemporaryDirectory(prefix='aio-lo-'))
+            temporary = (tempfile.TemporaryDirectory(prefix='aio-lo-') if self.recovery_parent is None
+                         else LegacyWorkspace.create(self.recovery_parent))
+            request = Request(identity, connection, temporary)
             self.active[identity] = request
             return request
 
@@ -107,8 +146,12 @@ class ConverterTransport:
                       'formatIds': list(result.format_ids),
                       'recoverUrl': '/api/converter/recover?request=' + result.request_id}
                      for result in available[offset:offset + limit]]
-            return {'state': 'inventory', 'scope': 'current_process',
-                    'restartRecovery': False, 'retention': 'until_release_or_process_shutdown',
+            durable = self.recovery_parent is not None
+            return {'state': 'inventory', 'scope': 'durable_published_results' if durable else 'current_process',
+                    'restartRecovery': durable and self.recovery_available,
+                    'storageAvailable': self.recovery_available,
+                    'recoveryWarnings': [dict(item) for item in self.recovery_issues],
+                    'retention': 'until_explicit_release' if durable else 'until_release_or_process_shutdown',
                     'total': len(available), 'offset': offset, 'limit': limit,
                     'more': offset + len(items) < len(available), 'items': items}
 
@@ -127,6 +170,8 @@ class ConverterTransport:
                         'size': result.size, 'ticket': ticket,
                         'downloadUrl': '/api/converter/result?ticket=' + ticket,
                         'targetReport': result.target_report,
+                        'restoredFromJournal': result.restored,
+                        'conversionQualityCompared': False,
                         'formatIds': list(result.format_ids)}}
             if identity in self.active:
                 return {'state': 'running', 'requestId': identity}
@@ -158,7 +203,15 @@ class ConverterTransport:
     def finish(self, request, retained=False):
         try:
             if not retained:
-                request.temporary.cleanup()
+                if isinstance(request.temporary, LegacyWorkspace) and request.temporary.preserve_outputs:
+                    # Failed publication/packing never deletes the only copy
+                    # of native outputs. An incomplete journal stays unverified.
+                    request.temporary.close()
+                    with self.lock:
+                        self.recovery_issues.append({'workspaceId': request.root.name,
+                                                     'code': 'LEGACY_RECOVERY_UNVERIFIED'})
+                else:
+                    request.temporary.cleanup()
         except OSError:
             with self.lock:
                 self.cleanup_pending.append(request.temporary)
@@ -170,6 +223,8 @@ class ConverterTransport:
 
     def execute(self, request, files, ids, formats):
         artifacts = []
+        if isinstance(request.temporary, LegacyWorkspace):
+            request.temporary.preserve_outputs = True
         with self.lock:
             request.total = len(files) * len(formats)
             request.files = [{'fileId': identity, 'targets': [
@@ -243,16 +298,18 @@ class ConverterTransport:
             name, mime = path.name, 'application/zip'
         size = path.stat().st_size
         ticket = secrets.token_urlsafe(32)
+        report['cancelledRequested'] = bool(request.cancel.is_set())
+        result = Result(request.temporary, path, name, mime,
+            request_id=request.identity, size=size, target_report=report, format_ids=tuple(formats))
+        if isinstance(request.temporary, LegacyWorkspace):
+            request.temporary.record(result)
         with self.lock:
             self._check_packaging_cancel(request)
             if self.closed:
                 raise LibreOfficeError('Программа закрывается.', 'CANCELLED')
-            self.results[ticket] = Result(request.temporary, path, name, mime,
-                request_id=request.identity, size=size, target_report=report,
-                format_ids=tuple(formats))
+            self.results[ticket] = result
             self.results_by_request[request.identity] = ticket
             request.published = True
-            report['cancelledRequested'] = bool(request.cancel.is_set())
         return {'ok': True, 'cancelledRequested': report['cancelledRequested'], 'result': {'name': name, 'mime': mime, 'size': size,
                 'ticket': ticket, 'downloadUrl': '/api/converter/result?ticket=' + ticket,
                 'targetReport': report, 'formatIds': formats},
@@ -270,7 +327,7 @@ class ConverterTransport:
     def lease(self, ticket):
         with self.lock:
             result = self.results.get(ticket)
-            if result is None or result.released:
+            if result is None or result.released or self.closed:
                 raise LibreOfficeError('Результат недоступен.', 'RESULT_NOT_FOUND')
             result.leases += 1
         try:
@@ -281,6 +338,8 @@ class ConverterTransport:
                 clean = result.released and not result.leases
             if clean:
                 self.release(ticket)
+            elif self.closed and not result.leases and isinstance(result.temporary, LegacyWorkspace):
+                result.temporary.close()
 
     def release(self, ticket):
         # The lock protects ownership/leases, not filesystem deletion. A slow
@@ -308,6 +367,33 @@ class ConverterTransport:
         finally:
             with self.lock:
                 result.cleaning = False
+
+    def stream_result(self, ticket, on_headers, write):
+        """Release the file lease before the HTTP response can be complete.
+
+        Keep only the final chunk in memory. A client may issue release as
+        soon as Content-Length bytes arrive; it must not race our lease's
+        finally block. Empty responses similarly defer their headers.
+        """
+        pending = b''
+        with self.lease(ticket) as result:
+            size = result.path.stat().st_size
+            read = 0
+            with result.path.open('rb') as stream:
+                pending = stream.read(64 * 1024)
+                read += len(pending)
+                if pending:
+                    on_headers(result, size)
+                while block := stream.read(64 * 1024):
+                    write(pending)
+                    pending = block
+                    read += len(block)
+            if read != size:
+                raise OSError('Legacy result size changed while streaming')
+        if pending:
+            write(pending)
+        else:
+            on_headers(result, size)
 
     def _schedule_cleanup(self):
         # No idle timer in normal operation. After a sharing violation only,
@@ -377,7 +463,15 @@ class ConverterTransport:
         for request in active:
             request.done.wait(3)
         for ticket in tickets:
-            self.release(ticket)
+            with self.lock:
+                result = self.results.get(ticket)
+                keep = (result is not None and not result.released and
+                        isinstance(result.temporary, LegacyWorkspace))
+            if keep:
+                if not result.leases:
+                    result.temporary.close()
+            else:
+                self.release(ticket)
         # Share cleanup claims with timer/begin retries instead of concurrently
         # deleting the same pending directory during shutdown.
         self.retry_cleanup()
