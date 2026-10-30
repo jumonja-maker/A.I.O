@@ -31,6 +31,19 @@ class StalledExcelUpload(unittest.TestCase):
                 server, token = server_module.start_server(
                     guard_recovery_parent=Path(temporary)/'jobs',
                     guard_history_parent=Path(temporary)/'history')
+                # Assert the release ordering *at the moment of response*;
+                # a delayed post-response assertion alone races the worker.
+                observed = []
+                send = server.RequestHandlerClass._send
+                def check_send(handler, status, payload, content_type='application/octet-stream'):
+                    if handler.path == '/api/merge':
+                        free = handler.server.merge_gate.acquire(blocking=False)
+                        if free:
+                            handler.server.merge_gate.release()
+                        observed.append((status, free))
+                    return send(handler, status, payload, content_type)
+                patcher = patch.object(server.RequestHandlerClass, '_send', check_send)
+                patcher.start()
                 thread = threading.Thread(target=server.serve_forever, daemon=True)
                 thread.start()
                 base = 'http://127.0.0.1:' + str(server.server_port)
@@ -71,7 +84,12 @@ class StalledExcelUpload(unittest.TestCase):
                         self.assertGreater(len(reply.read()), 500)
                     self.assertTrue(server.merge_gate.acquire(blocking=False))
                     server.merge_gate.release()
+                    self.assertIn((408, True), observed,
+                        'HTTP 408 may be observed before the merge gate is released')
+                    self.assertIn((200, True), observed,
+                        'HTTP 200 may be observed before the merge gate is released')
                 finally:
+                    patcher.stop()
                     server.shutdown()
                     server.server_close()
                     thread.join(timeout=5)
