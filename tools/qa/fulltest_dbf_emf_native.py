@@ -9,6 +9,7 @@ import datetime
 from decimal import Decimal
 import gzip
 import hashlib
+import io
 import json
 import os
 from pathlib import Path
@@ -16,6 +17,7 @@ import struct
 import sys
 import threading
 import time
+from zipfile import ZipFile
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
@@ -182,10 +184,10 @@ def main():
     book = Workbook()
     for i in range(2):
         sheet = book.active if i == 0 else book.create_sheet('Second')
-        sheet.append(['ID', 'Name', 'Amount', 'Empty', 'Mixed'])
-        sheet.append(['000123', 'Семён Ёлкин', -12.75, None, 42])
-        sheet.append(['000007', 'Алёна Фёдорова', 0.125, None, '00123'])
-        sheet.append(['000099', 'Ёжик ёлка ' + 'длинная строка ' * 20, 123.5, None, 'текст'])
+        sheet.append(['ID', 'Name', 'Amount', 'Empty', 'Mixed', 'Date', 'Active'])
+        sheet.append(['000123', 'Семён Ёлкин', -12.75, None, 42, datetime.date(1993, 3, 30), True])
+        sheet.append(['000007', 'Алёна Фёдорова', 0.125, None, '00123', datetime.date(2002, 8, 22), False])
+        sheet.append(['000099', 'Ёжик ёлка ' + 'длинная строка ' * 20, 123.5, None, 'текст', None, None])
         sheet['C2'].number_format = sheet['C3'].number_format = sheet['C4'].number_format = '0.000'
     book.save(source)
     book.close()
@@ -215,6 +217,11 @@ def main():
                 assert [Decimal(r[2]) for r in raw['rows']] == [Decimal('-12.75'), Decimal('0.125'), Decimal('123.5')]
                 assert [r[1] for r in raw['rows']] == ['Семён Ёлкин', 'Алёна Фёдорова', 'Ёжик ёлка ' + 'длинная строка ' * 20]
                 assert [r[4] for r in raw['rows']] == ['42', '00123', 'текст']
+                assert all(r[3] == '' for r in raw['rows'])
+                if path.suffix != '.csv':
+                    assert [f['type'] for f in raw['fields']] == ['C', 'M', 'N', 'C', 'M', 'D', 'L'], raw
+                    assert [r[5] for r in raw['rows']] == ['19930330', '20020822', ''], raw
+                    assert [r[6] for r in raw['rows'][:2]] == ['T', 'F'], raw
                 counter += 1
                 imported = convert_path(dbf, 'xlsx', args.output/('readback-%d' % counter),
                     executable=args.executable, import_filter='dBase:76')
@@ -244,14 +251,54 @@ def main():
             assert mappings, ('literal_headers_have_no_mapping', facts)
             metadata = json.loads(mappings[0].read_text(encoding='utf-8').splitlines()[0])
             assert metadata['originalHeaders'] == names, metadata
+            assert metadata.get('renamedFields'), metadata
             assert [r[0] for r in facts['rows']] == ['000123', '000007'], facts
             assert [r[5] for r in facts['rows']] == ['42', '00042'], facts
             assert len({f['name'].upper() for f in facts['fields']}) == len(names)
             return {'fields': facts['fields'], 'mapping': metadata}
         run('literal_duplicate_long_cyrillic_headers', literal_case)
+        def literal_only():
+            path = args.output/'literal-only.xlsx'
+            book = Workbook()
+            book.active.append(['ID,C,8'])
+            book.active.append(['000123'])
+            book.active.append(['000007'])
+            book.save(path)
+            book.close()
+            # Establish provenance independently: the native exporter itself
+            # interprets this literal XLSX heading as field metadata.
+            native = convert_path(path, 'dbf', args.output/'raw-literal-dbase',
+                executable=args.executable, convert_spec='dbf:dBase:76')
+            native_facts = read_dbf(next(p for p in native if p.suffix == '.dbf'))
+            assert native_facts['fields'][0]['name'] == 'ID', native_facts
+            exported = convert(path, 'dbf')
+            dbf = next(p for p in exported if p.suffix == '.dbf')
+            facts = read_dbf(dbf)
+            metadata = json.loads(next(p for p in exported if p.name.endswith('.aio-columns.jsonl'))
+                                  .read_text(encoding='utf-8').splitlines()[0])
+            assert metadata['originalHeaders'] == ['ID,C,8'], metadata
+            assert metadata['fieldNames'] == [facts['fields'][0]['name']], (metadata, facts)
+            assert [r[0] for r in facts['rows']] == ['000123', '000007']
+            assert 'NATIVE_DBF_FIELD_NAME_MAPPING' in adapter.export_info()['warnings']
+            return {'nativeField': native_facts['fields'][0], 'aioField': facts['fields'][0], 'mapping': metadata}
+        run('literal_only_header_origin_and_mapping', literal_only)
         def vectors():
+            from app_backend.converter_guard.native_metafile import repair_native_emf_counts
             source = args.output/'vectors.fodg'
             source.write_text(fixture('fodg'), encoding='utf-8')
+            native = convert_path(source, 'emf', args.output/'raw-native-emf',
+                executable=args.executable, convert_spec='emf:draw_emf_Export')
+            raw_path = next(p for p in native if p.suffix == '.emf')
+            raw_before = raw_path.read_bytes()
+            native_before = emf_records(raw_before)
+            before_render = gdi_render(raw_path) if os.name == 'nt' else None
+            repairs = repair_native_emf_counts([raw_path])
+            raw_after = raw_path.read_bytes()
+            native_after = emf_records(raw_after)
+            assert native_after['declaredRecords'] == native_after['physicalRecords']
+            assert raw_before[:52] == raw_after[:52] and raw_before[56:] == raw_after[56:]
+            if os.name == 'nt':
+                assert before_render == gdi_render(raw_path), (native_before, native_after)
             plain = [p for p in convert(source, 'emf') if p.suffix == '.emf']
             compressed = [p for p in convert(source, 'emz') if p.suffix == '.emz']
             assert len(plain) == len(compressed) == 3
@@ -260,6 +307,8 @@ def main():
                 raw = emf.read_bytes()
                 inner = gzip.decompress(emz.read_bytes())
                 facts, gzip_facts = emf_records(raw), emf_records(inner)
+                assert facts['declaredRecords'] == facts['physicalRecords'], facts
+                assert gzip_facts['declaredRecords'] == gzip_facts['physicalRecords'], gzip_facts
                 row = {'page': index+1, 'emf': facts, 'emz': gzip_facts}
                 if os.name == 'nt':
                     render = gdi_render(emf)
@@ -270,8 +319,52 @@ def main():
                     assert gzip_render['pixelSha256'] == render['pixelSha256'], (gzip_render, render)
                     row['gdi'] = render
                 findings.append(row)
-            return {'pages': findings}
+            return {'rawNativeBefore': native_before, 'rawNativeAfter': native_after,
+                    'rawNativeGdiBeforeAfter': before_render, 'repairs': repairs, 'pages': findings}
         run('emf_emz_structure_gdi_and_gzip', vectors)
+    def save_case():
+        from app_backend.converter_guard import ConverterGuard
+        guard = ConverterGuard(adapter=LibreOfficeAdapter(args.executable), recovery_parent=args.output/'owned')
+        try:
+            raw = source.read_bytes()
+            job = guard.create([{'id': 'source', 'name': source.name, 'size': len(raw)}], ['dbf'])['jobId']
+            guard.upload(job, 'source', io.BytesIO(raw), len(raw))
+            guard.start(job)
+            deadline = time.monotonic() + 180
+            while not (state := guard.status(job))['finished']:
+                assert time.monotonic() < deadline, state
+                time.sleep(.05)
+            assert state['state'] == 'ready', state
+            ticket = state['result']['ticket']
+            destination = args.output/'saved'
+            destination.mkdir()
+            saved = guard.save_folder(ticket, destination)
+            folder = destination/saved['name']
+            manifest = json.loads((folder/'AIO-results-manifest.json').read_text(encoding='utf-8'))
+            inventory = {row['path']: row for row in manifest['outputs']}
+            dbfs = [name for name in inventory if name.endswith('.dbf')]
+            assert len(dbfs) == 2 and manifest['readbackVerified'], manifest
+            for name in dbfs:
+                assert str(Path(name).with_suffix('.cpg')).replace('\\', '/') in inventory, inventory
+                assert str(Path(name).with_suffix('.dbt')).replace('\\', '/') in inventory, inventory
+            for name, row in inventory.items():
+                assert hashlib.sha256((folder/name).read_bytes()).hexdigest() == row['sha256'], row
+            with guard.open_result(ticket) as (stream, name, size):
+                assert name.endswith('.zip')
+                with ZipFile(stream) as archive:
+                    assert archive.testzip() is None
+                    zipped = json.loads(archive.read('AIO-results-manifest.json'))
+                    assert {r['path'] for r in zipped['outputs']} == set(inventory)
+                    for row in zipped['outputs']:
+                        assert hashlib.sha256(archive.read(row['path'])).hexdigest() == row['sha256'], row
+                    report = json.loads(archive.read('AIO-conversion-report.json'))
+                    warnings = report['files'][0]['targets'][0]['warnings']
+                    assert warnings, report
+            return {'dbfFiles': len(dbfs), 'outputs': len(inventory), 'folderReadback': True,
+                    'zipReadback': True, 'reportsAndCompanions': True}
+        finally:
+            guard.close()
+    run('real_native_guard_folder_zip_manifest_cpg_dbt_mapping', save_case)
     assert all(hashlib.sha256(p.read_bytes()).hexdigest() == sha for p, sha in originals.items())
     result = {'status': 'FAIL' if failures else 'PASS', 'cases': cases,
               'sourceUnchanged': True, 'historicalFULLTEST': 'NOT_RUN'}

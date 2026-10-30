@@ -694,7 +694,7 @@ class LibreOfficeAdapter:
         self._local.export_info = {}
         from .media_fidelity import copy_media_identity
         from .native_identity import copy_chart_identity
-        from .native_metafile import native_metafile_target, wrap_native_metafiles
+        from .native_metafile import native_metafile_target, wrap_native_metafiles, repair_native_emf_counts
         from .odf_table_import import prepare_odf_table_source
         from .qt_media import convert_media_frames, convert_document_pages
         proof = getattr(self._local, 'proof', None) or {}
@@ -811,6 +811,13 @@ class LibreOfficeAdapter:
                         on_document_service=on_document_service, on_stage=on_stage)
             finally:
                 self._local.import_filter, self._local.import_options = previous_import
+            if target in ('emf', 'emz') and self.execution_mode() in ('native_uno', 'native_cli'):
+                repairs = repair_native_emf_counts(paths, cancel=identity_control)
+                if repairs:
+                    self._local.export_info['resultChecks'] = list(
+                        self._local.export_info.get('resultChecks', ())) + repairs
+                    self._local.export_info['warnings'] = tuple(dict.fromkeys((
+                        *self._local.export_info.get('warnings', ()), 'NATIVE_EMF_RECORD_COUNT_CORRECTED')))
             if plain:
                 paths, metafile_check = wrap_native_metafiles(paths, target, cancel=identity_control)
                 self._local.export_info['executionReason'] = 'native_plain_metafile_gzip'
@@ -847,13 +854,17 @@ class LibreOfficeAdapter:
                 filter_name=self._local.export_info.get('filter'),
                 cancel=identity_control)
             if codepages:
-                paths = list(paths) + codepages
+                paths = list(dict.fromkeys([*paths, *codepages]))
                 self._local.export_info['warnings'] = tuple(dict.fromkeys((
                     *self._local.export_info.get('warnings', ()), 'NATIVE_DBF_UTF8_CPG')))
                 self._local.export_info['resultChecks'] = list(
                     self._local.export_info.get('resultChecks', ())) + [{
                     'check': 'dbf_utf8_codepage', 'status': 'checked_subset',
                     'sidecars': len(codepages), 'qualityCompared': False}]
+            if (self._local.export_info.get('filter') == 'dBase'
+                    and len(codepages) < sum(Path(p).suffix.lower() == '.dbf' for p in paths)):
+                self._local.export_info['warnings'] = tuple(dict.fromkeys((
+                    *self._local.export_info.get('warnings', ()), 'NATIVE_DBF_ENCODING_NOT_CHECKED')))
         source_evidence = None
         if getattr(self._local, 'batch', None) is not None:
             source_evidence = getattr(self._local, 'source_evidence', None)
@@ -1026,6 +1037,9 @@ class LibreOfficeAdapter:
             self._local.csv_sheet_snapshot = is_csv
             self._local.import_filter, self._local.import_options = flat, None
             for index, snapshot in enumerate(snapshots):
+                if target == 'dbf':
+                    from .dbf_schema import validate_cli_dbf_headers
+                    validate_cli_dbf_headers(snapshot, trusted_schema=saved[0] == 'dBase', cancel=control)
                 for result in export(snapshot, target, workspace / ('legacy-export-%04d' % index)):
                     control.is_set()
                     destination = output / result.name
@@ -1212,6 +1226,7 @@ class LibreOfficeAdapter:
                         response_received = True
                         declared = tuple(code for code in result.get('warnings', ())
                                          if code in ('NATIVE_DBF_MIXED_COLUMN_TEXT',
+                                                     'NATIVE_DBF_FIELD_NAME_MAPPING',
                                                      'NATIVE_WRITER_RASTER_PAGES',
                                                      'NATIVE_CALC_RASTER_PAGES',
                                                      'NATIVE_OUTPUT_NOT_CHECKED',
