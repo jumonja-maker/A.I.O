@@ -120,7 +120,7 @@ def dbf_mixed_columns(sheet, area, *, trusted_schema=False):
                     name = 'FIELD%05d' % number
                 renamed.append({'column': column, 'originalName': original, 'fieldName': name})
         used.add(name.upper())
-        field_names.append(name)
+        field_names.append(name.upper())  # Calc's dBase exporter uppercases descriptors.
         if header and (not trusted_schema or column in mixed):
             names[column] = name + (',M' if column in mixed else '')
     return {'header': header, 'originalHeaders': list(first) if header else None,

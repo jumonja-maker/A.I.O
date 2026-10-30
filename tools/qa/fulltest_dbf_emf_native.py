@@ -218,6 +218,9 @@ def main():
                 assert [r[1] for r in raw['rows']] == ['Семён Ёлкин', 'Алёна Фёдорова', 'Ёжик ёлка ' + 'длинная строка ' * 20]
                 assert [r[4] for r in raw['rows']] == ['42', '00123', 'текст']
                 assert all(r[3] == '' for r in raw['rows'])
+                for mapping in (p for p in exported if p.name == dbf.name+'.aio-columns.jsonl'):
+                    metadata = json.loads(mapping.read_text(encoding='utf-8').splitlines()[0])
+                    assert metadata['fieldNames'] == [f['name'] for f in raw['fields']], (metadata, raw['fields'])
                 if path.suffix != '.csv':
                     assert [f['type'] for f in raw['fields']] == ['C', 'M', 'N', 'C', 'M', 'D', 'L'], raw
                     assert [r[5] for r in raw['rows']] == ['19930330', '20020822', ''], raw

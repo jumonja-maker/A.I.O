@@ -28,6 +28,11 @@ class LiteralDbfHeaders(unittest.TestCase):
         self.assertEqual(profile['mixed'], [])
         self.assertNotIn(',', profile['exportHeaders'][0])
 
+    def test_mapping_names_match_native_uppercase_descriptors(self):
+        profile = self.profile([['Mixed', 'Amount'], [42, 1.25], ['text', 2.5]])
+        self.assertEqual(profile['fieldNames'], ['MIXED', 'AMOUNT'])
+        self.assertEqual(profile['originalHeaders'], ['Mixed', 'Amount'])
+
     def test_native_import_retains_typed_declarations(self):
         profile = self.profile([['ID,C,8', 'AMOUNT,N,12,3', 'DATE,D', 'FLAG,L', 'NOTE,M'],
                                 ['000123', -12.75, 45000, 1, 'текст']], trusted_schema=True)
