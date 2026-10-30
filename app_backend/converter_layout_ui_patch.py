@@ -9,12 +9,18 @@ TRASH_CONTROL = ('aria-label="Очистить список исходников
     '</svg></button>')
 
 
+SAVE_ENTRY_ANCHOR = 'saving=true;renderFileList();saveBtn.disabled=true;'
+SAVE_ENTRY_CONTROL = 'saving=true;renderFileList();renderSummary();saveBtn.disabled=true;'
+
+
 def apply_layout_controls(raw: bytes) -> bytes:
-    """Only replace the verified lifecycle trash glyph, preserving its handler."""
+    """Keep existing handlers; synchronize lock state before entering native save."""
     code = raw.decode('utf-8')
-    if code.count(TRASH_ANCHOR) != 1:
-        raise ValueError('Layout controls require review of the lifecycle trash anchor')
-    return code.replace(TRASH_ANCHOR, TRASH_CONTROL, 1).encode('utf-8')
+    for old, new in ((TRASH_ANCHOR, TRASH_CONTROL), (SAVE_ENTRY_ANCHOR, SAVE_ENTRY_CONTROL)):
+        if code.count(old) != 1:
+            raise ValueError('Layout controls require review of anchor: ' + old[:70])
+        code = code.replace(old, new, 1)
+    return code.encode('utf-8')
 
 
 LAYOUT_CSS = r'''

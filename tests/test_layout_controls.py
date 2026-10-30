@@ -8,14 +8,14 @@ import tempfile
 import unittest
 
 from app_backend.converter_assets import read_designer_asset
-from app_backend.converter_layout_ui_patch import LAYOUT_CSS, TRASH_ANCHOR, apply_layout_controls
+from app_backend.converter_layout_ui_patch import LAYOUT_CSS, TRASH_ANCHOR, SAVE_ENTRY_ANCHOR, SAVE_ENTRY_CONTROL, apply_layout_controls
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 class LayoutControlsTests(unittest.TestCase):
     def test_svg_preserves_accessible_label_and_does_not_add_handlers(self):
-        original = ('prefix <button ' + TRASH_ANCHOR + ' suffix').encode('utf-8')
+        original = ('prefix <button ' + TRASH_ANCHOR + ' suffix ' + SAVE_ENTRY_ANCHOR).encode('utf-8')
         patched = apply_layout_controls(original).decode('utf-8')
         self.assertIn('aria-label="Очистить список исходников"', patched)
         self.assertIn('aria-hidden="true" focusable="false"', patched)
@@ -24,7 +24,11 @@ class LayoutControlsTests(unittest.TestCase):
         self.assertNotIn('onclick', patched)
 
     def test_missing_duplicate_or_reapplied_anchor_fails_closed(self):
-        for data in (b'', (TRASH_ANCHOR*2).encode('utf-8'), apply_layout_controls(TRASH_ANCHOR.encode('utf-8'))):
+        original = (TRASH_ANCHOR + SAVE_ENTRY_ANCHOR).encode('utf-8')
+        for data in (b'', (TRASH_ANCHOR*2 + SAVE_ENTRY_ANCHOR).encode('utf-8'),
+                     TRASH_ANCHOR.encode('utf-8'),
+                     (TRASH_ANCHOR + SAVE_ENTRY_ANCHOR*2).encode('utf-8'),
+                     apply_layout_controls(original)):
             with self.subTest(data=data[:50]), self.assertRaises(ValueError):
                 apply_layout_controls(data)
 
@@ -36,6 +40,15 @@ class LayoutControlsTests(unittest.TestCase):
         self.assertIn('local(saveBtn,\'click\',saveOutput)', code)
         self.assertIn('Закрыть</button>', code)
         self.assertIn('Сохранить результаты</button>', code)
+
+    def test_save_locks_summary_before_the_native_boundary(self):
+        code = read_designer_asset(str(ROOT), 'file-converter.js').decode('utf-8')
+        start = code.index('    async function saveOutput() {')
+        native = code.index('adapter.saveResult', start)
+        # First occurrence can be the typeof guard; inspect the actual await.
+        native = code.index('await adapter.saveResult', native)
+        self.assertIn(SAVE_ENTRY_CONTROL, code[start:native])
+        self.assertNotIn(SAVE_ENTRY_ANCHOR, code[start:native])
 
     def test_materialized_css_contains_bounded_layout_and_theme_states(self):
         css = read_designer_asset(str(ROOT), 'file-converter.css').decode('utf-8')
