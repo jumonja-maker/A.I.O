@@ -118,6 +118,68 @@ def aio_verify_presentation_xhtml(paths, expected):
 
 
 
+
+def aio_try_ppt_xhtml_textboxes(model, target, export_options, expected):
+    """Recover only native text boxes dropped by LibreOffice's PPT XHTML XSLT.
+
+    Restrict to simple old-PPT mso-spt202 boxes and ordinary text shapes.
+    Images, diagrams, groups, non-text shapes and ambiguous geometry must keep
+    the existing ENGINE_OUTPUT_CONTENT_LOSS refusal. Source is never saved.
+    """
+    if not expected:
+        return None
+    boxes = []
+    try:
+        pages = model.getDrawPages()
+        count = pages.getCount()
+        if not 1 <= count <= 32:
+            return None
+        for index in range(count):
+            page = pages.getByIndex(index)
+            shapes = page.getCount()
+            if shapes > 256 or len(boxes) + shapes > 256:
+                return None
+            for offset in range(shapes):
+                original = page.getByIndex(offset)
+                kind = original.getShapeType()
+                if kind in ('com.sun.star.drawing.TextShape',
+                            'com.sun.star.presentation.TitleTextShape',
+                            'com.sun.star.presentation.OutlinerShape'):
+                    continue
+                if kind != 'com.sun.star.drawing.CustomShape':
+                    return None
+                shape_type = next((entry.Value for entry in original.CustomShapeGeometry
+                                   if entry.Name == 'Type'), None)
+                if shape_type != 'mso-spt202' or not original.getString().strip():
+                    return None
+                boxes.append((page, original))
+    except Exception:
+        return None  # An uninspectable presentation is never eligible.
+    if not boxes:
+        return None
+    # Never overwrite the original primary until a second native XHTML export
+    # exists and its text has passed independent output readback.
+    replacement = target.with_name(target.stem + '__aio_textbox_recovery.xhtml')
+    try:
+        for page, original in boxes:
+            clone = model.createInstance('com.sun.star.drawing.TextShape')
+            page.add(clone)
+            clone.Position = original.Position
+            clone.Size = original.Size
+            clone.String = original.getString()
+        model.storeToURL(replacement.as_uri(), tuple(export_options))
+        aio_verify_presentation_xhtml([replacement], expected)
+        os.replace(replacement, target)
+        return {'check': 'native_ppt_xhtml_textbox_recovery',
+                'status': 'checked_subset', 'textPresent': True,
+                'scope': 'mso_spt202_textboxes_without_other_slide_shapes',
+                'nativeTextboxCount': len(boxes), 'qualityCompared': False,
+                'notChecked': ['layout_equivalence', 'master_page_graphics',
+                               'animations', 'links', 'visual_equivalence']}
+    finally:
+        replacement.unlink(missing_ok=True)
+
+
 def aio_export_writer_pages(model, prop, target, export_options, filter_name, preservation=None):
     """Export all Writer pages by moving the UNO view cursor in one loaded model.
 

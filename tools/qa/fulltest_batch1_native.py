@@ -250,16 +250,31 @@ def main():
                 assert mapping['pageCount']==3 and len(mapping['pages'])==3
                 results.append({'case':'three_pages_'+target,'status':'PASS','pages':3})
             ppt=next(f for f in convert(slides,'ppt',sp) if f.suffix=='.ppt')
+            ppt_sha=digest(ppt)
             for path,pf in ((slides,sp),(ppt,proof(ppt))):
                 try:
                     files=convert(path,'xhtml',pf)
                 except GuardError as error:
+                    # M19: this deliberately text-box-only PPT must no longer
+                    # disappear from XHTML. Other, graphical PPTs remain
+                    # fail-closed, so no blanket export-route enablement.
+                    assert path.suffix != '.ppt', (error.code, error.diagnostic)
                     assert error.code in ('ENGINE_OUTPUT_CONTENT_LOSS','ENGINE_OUTPUT_VALIDATION_INCOMPLETE'),(error.code,error.diagnostic)
                     results.append({'case':path.suffix+'_xhtml','status':'SAFE_REJECTION','code':error.code})
                 else:
-                    text=''.join(f.read_text(encoding='utf-8') for f in files if f.suffix=='.xhtml')
+                    xhtml=next(f for f in files if f.suffix=='.xhtml')
+                    text=xhtml.read_text(encoding='utf-8')
+                    assert ET.parse(xhtml).getroot().tag=='{http://www.w3.org/1999/xhtml}html'
                     assert all('AIO_SLIDE_'+str(n) in text for n in range(1,4)),text[:200]
+                    if path.suffix == '.ppt':
+                        receipt=next((c for c in adapter.export_info().get('resultChecks', ())
+                            if c.get('check')=='native_ppt_xhtml_textbox_recovery'), None)
+                        if receipt is not None:
+                            assert receipt['status']=='checked_subset' and receipt['textPresent'] is True,receipt
+                            assert receipt['qualityCompared'] is False,receipt
+                            assert 'NATIVE_OUTPUT_NOT_CHECKED' in adapter.export_info().get('warnings', ()),adapter.export_info()
                     results.append({'case':path.suffix+'_xhtml','status':'PASS','textRetained':True})
+            assert digest(ppt)==ppt_sha,'Native XHTML export modified PPT source'
         for path,expected in originals.items():assert digest(path)==expected,path
         assert len(results)==16,results
         assert len(contract_receipts)==7,contract_receipts

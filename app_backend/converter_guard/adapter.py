@@ -1214,7 +1214,8 @@ class LibreOfficeAdapter:
                                          if code in ('NATIVE_DBF_MIXED_COLUMN_TEXT',
                                                      'NATIVE_WRITER_RASTER_PAGES',
                                                      'NATIVE_CALC_RASTER_PAGES',
-                                                     'NATIVE_OUTPUT_NOT_CHECKED'))
+                                                     'NATIVE_OUTPUT_NOT_CHECKED',
+                                                     'NATIVE_PPT_XHTML_TEXTBOX_RECOVERY'))
                         if declared:
                             self._local.export_info['warnings'] = tuple(dict.fromkeys((
                                 *self._local.export_info.get('warnings', ()), *declared)))
@@ -1228,6 +1229,10 @@ class LibreOfficeAdapter:
                         if result.get('ok') and isinstance(receipt, dict):
                             self._local.export_info['resultChecks'] = list(
                                 self._local.export_info.get('resultChecks', ())) + [receipt]
+                        xhtml_receipt = result.get('xhtmlTextRecovery')
+                        if result.get('ok') and isinstance(xhtml_receipt, dict):
+                            self._local.export_info['resultChecks'] = list(
+                                self._local.export_info.get('resultChecks', ())) + [xhtml_receipt]
                         colour_receipt = result.get('pptxColourPreservation')
                         if result.get('ok') and isinstance(colour_receipt, dict):
                             self._local.export_info['resultChecks'] = list(

@@ -495,6 +495,7 @@ def main(boot_name):
                     presentation_text = (aio_presentation_text(model)
                         if req['format'] == 'xhtml' and
                         'com.sun.star.presentation.PresentationDocument' in services else None)
+                    xhtml_textbox_recovery = None
                     try:
                         if req['format'] == 'txt' and req['exportFilter'] == 'Text (encoded)':
                             try:
@@ -539,7 +540,20 @@ def main(boot_name):
                                 # the requested single primary filename.
                                 exported_paths = automatic_csv_outputs(req, model)
                         if presentation_text is not None:
-                            aio_verify_presentation_xhtml(exported_paths, presentation_text)
+                            try:
+                                aio_verify_presentation_xhtml(exported_paths, presentation_text)
+                            except AioPresentationTextLoss:
+                                # The PPT 97 importer exposes text boxes as
+                                # CustomShapes, which native XHTML can omit.
+                                # No fallback to lossy HTML outline or an
+                                # unverified presentation with graphics.
+                                if (source.suffix.lower() != '.ppt' or
+                                        req['exportFilter'] != 'XHTML Impress File'):
+                                    raise
+                                xhtml_textbox_recovery = aio_try_ppt_xhtml_textboxes(
+                                    model, target, export_options, presentation_text)
+                                if xhtml_textbox_recovery is None:
+                                    raise
                     finally:
                         timings['exportMs'] = round((time.monotonic()-export_tick)*1000)
                     present = all(p.is_file() and not p.is_symlink() and p.stat().st_size > 0
@@ -558,6 +572,10 @@ def main(boot_name):
                                       'EXPORT_INTERACTION_REQUIRED' if export_handler.blocked else
                                       'ENGINE_OUTPUT_MISSING' if not present else None)}
                     warnings = []
+                    if xhtml_textbox_recovery is not None:
+                        result['xhtmlTextRecovery'] = xhtml_textbox_recovery
+                        warnings.extend(('NATIVE_PPT_XHTML_TEXTBOX_RECOVERY',
+                                         'NATIVE_OUTPUT_NOT_CHECKED'))
                     if pptx_colour_check is not None:
                         result['pptxColourPreservation'] = pptx_colour_check
                         if pptx_colour_check.get('status') == 'not_checked':

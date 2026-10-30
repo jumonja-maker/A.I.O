@@ -401,6 +401,12 @@ def start_server(port: int = 0, *, guard_recovery_parent=None, guard_history_par
                 retained = True
                 return self._json(200, outcome)
             except LibreOfficeError as exc:
+                # A rejected begin() has no Request to finish. Release the slot
+                # before writing the response so an immediate retry cannot
+                # transiently observe ENGINE_BUSY after an HTTP 429.
+                if acquired and request is None:
+                    self.server.converter_gate.release()
+                    acquired = False
                 if exc.code in ('INVALID_REQUEST', 'LEGACY_STORAGE_LIMIT', 'REQUEST_BUSY'):
                     # These errors can precede body consumption. Never parse
                     # an unread upload as a subsequent keep-alive request.
