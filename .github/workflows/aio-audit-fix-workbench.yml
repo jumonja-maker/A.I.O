@@ -1,0 +1,51 @@
+name: Audit 101 isolated source workbench
+on:
+  push:
+    branches: [fix/deep-audit-d01-d09-20261031]
+    paths: ['tools/qa/apply_deep_audit_fix.py', '.github/workflows/aio-audit-fix-workbench.yml']
+permissions:
+  contents: write
+concurrency:
+  group: audit-101-workbench
+  cancel-in-progress: false
+jobs:
+  source:
+    if: github.ref == 'refs/heads/fix/deep-audit-d01-d09-20261031'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.11'
+      - name: Source index or exact guarded edit
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f tools/qa/apply_deep_audit_fix.py ]; then
+            python tools/qa/apply_deep_audit_fix.py
+            python -m compileall -q app_backend tests
+            git diff --check
+            git diff --stat
+            git add app_backend tests
+            if ! git diff --cached --quiet; then
+              git config user.name 'github-actions[bot]'
+              git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+              git commit -m 'Apply reviewed audit 101 source corrections and regression tests (QA only)'
+              git push origin HEAD:refs/heads/fix/deep-audit-d01-d09-20261031
+            fi
+          fi
+          python - <<'PY'
+          import ast
+          from pathlib import Path
+          for name in ('app_backend/converter_guard/core.py', 'app_backend/converter_transport.py', 'app_backend/excel.py'):
+              tree=ast.parse(Path(name).read_text(encoding='utf-8-sig'))
+              print('SOURCE_INDEX',name)
+              for node in ast.walk(tree):
+                  if isinstance(node,(ast.FunctionDef,ast.AsyncFunctionDef)):
+                      print(node.name,node.lineno,node.end_lineno)
+          PY
+      - name: Scope
+        run: echo 'SOURCE_ONLY; RELEASE_NOT_RUN; MAIN_UNCHANGED; USER_INSTALLER_NOT_BUILT; TEST_RESULTS_REPORTED_SEPARATELY'
