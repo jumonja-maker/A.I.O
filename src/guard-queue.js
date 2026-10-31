@@ -4,7 +4,7 @@
   let root=null, bar=null, stateButton=null, state=null, jobs=[], warnings=[], storage=null, page=0, refreshPending=false, clock=null;
   let preview=null, previewId=null, previewRequest=0, previewController=null;
   let refreshRevision=0, refreshAgain=false, viewRevision=0;
-  let historyPanel=null;
+  let historyPanel=null,legacyPanel=null;
   let renderedRecoveryWarnings=null;
   let recoveryScan=null,recoveryTimer=null,refreshError=false,pageHidden=false;
   function stopRecoveryPoll(){if(recoveryTimer!==null){clearTimeout(recoveryTimer);recoveryTimer=null;}}
@@ -85,6 +85,7 @@
         bar.hidden=false;dialog.showModal();
         stateButton.setAttribute('aria-expanded','true');
         refresh();renderRows();
+        legacyPanel?.refresh();
       });
     }
     if(!stateButton.isConnected)
@@ -92,11 +93,11 @@
   }
   function mount() {
     const next=document.querySelector('.aio-cv');
-    if(!next){historyPanel?.dispose();historyPanel=null;if(root)refreshRevision++;stopRecoveryPoll();cancelPreview();dropRows();stateButton?.remove();stateButton=null;root=bar=null;if(clock){clearInterval(clock);clock=null;}return;}
+    if(!next){historyPanel?.dispose();historyPanel=null;legacyPanel?.dispose();legacyPanel=null;if(root)refreshRevision++;stopRecoveryPoll();cancelPreview();dropRows();stateButton?.remove();stateButton=null;root=bar=null;if(clock){clearInterval(clock);clock=null;}return;}
     if(next===root&&bar?.isConnected){attachTopButton();return;}
     refreshRevision++;stopRecoveryPoll();cancelPreview();dropRows();stateButton?.remove();stateButton=null;
     historyPanel?.dispose();historyPanel=null;
-    
+    legacyPanel?.dispose();legacyPanel=null;
     root=next;rowCache=paintedRows=null;renderedRecoveryWarnings=null;
     const footer=root.querySelector('.aio-cv__footer');if(!footer)return;
     bar=document.createElement('div');bar.className='aio-guard-queue';bar.hidden=true;
@@ -118,6 +119,7 @@
       '</dialog>';
     footer.append(bar);attachTopButton();
     historyPanel=window.AIOConversionHistory?.mount(bar.querySelector('.aio-guard-popup'));
+    legacyPanel=window.AIOLegacyRecovery?.mount(bar.querySelector('.aio-guard-popup'));
     bar.querySelector('[data-g-folder]').hidden=!window.AllInOneNativeShell;
     const action=(selector,work)=>bar.querySelector(selector).addEventListener('click',async event=>{
       if(pendingActions.has(selector))return;
@@ -487,7 +489,7 @@
   const observer=new MutationObserver(mount);
   observer.observe(document.body,{subtree:true,childList:true});mount();
   window.addEventListener('pagehide',()=>{
-    
+    legacyPanel?.dispose();legacyPanel=null;
     pageHidden=true;stopRecoveryPoll();refreshRevision++;refreshAgain=false;cancelPreview();dropRows();state=null;jobs=[];warnings=[];storage=null;renderedRecoveryWarnings=null;
     if(clock){clearInterval(clock);clock=null;}observer.disconnect();
   });
