@@ -169,8 +169,12 @@ os._exit(23)
             self.assertTrue(owner.store.retirement_pending())
             owner.close()
             second = self.transport()
-            self.assertEqual(second.inventory()['total'], 0)
-            self.assertTrue(request.root.exists())
+            snapshot = second.inventory()
+            self.assertEqual(snapshot['total'], 0)
+            self.assertEqual(snapshot['recoveryWarnings'], [])
+            # The durable retirement marker authorizes retry, not recovery.
+            # Once the Windows/POSIX lock is gone the old files are removed.
+            self.assertFalse(request.root.exists())
 
     def test_failed_journal_write_preserves_native_bytes_without_false_success(self):
         transport = self.transport()
