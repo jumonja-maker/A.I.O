@@ -193,10 +193,28 @@ class LegacyByteBudget(unittest.TestCase):
     def test_link_and_reparse_point_are_never_followed_or_charged_as_zero(self):
         for info in (SimpleNamespace(st_mode=stat.S_IFLNK, st_file_attributes=0),
                      SimpleNamespace(st_mode=stat.S_IFDIR, st_file_attributes=0x400)):
-            with self.subTest(info=info), patch.object(Path, 'lstat', return_value=info), \
+            with self.subTest(info=info), patch('app_backend.legacy_storage_budget.os.lstat', return_value=info), \
                     patch('os.scandir', side_effect=AssertionError('must not follow')):
                 with self.assertRaises(OSError):
                     measured_bytes([self.parent])
+
+    def test_child_entry_links_and_reparse_points_are_not_traversed(self):
+        # Check the optimized DirEntry branch, not just the root lstat path.
+        from unittest.mock import MagicMock
+        self.parent.mkdir()
+        for info in (SimpleNamespace(st_mode=stat.S_IFLNK, st_file_attributes=0),
+                     SimpleNamespace(st_mode=stat.S_IFDIR, st_file_attributes=0x400)):
+            entry = MagicMock()
+            entry.path = str(self.parent / 'untrusted-child')
+            entry.stat.return_value = info
+            listing = MagicMock()
+            listing.__enter__.return_value = iter([entry])
+            with self.subTest(info=info), patch('app_backend.legacy_storage_budget.os.scandir',
+                                               return_value=listing) as scan:
+                with self.assertRaises(OSError):
+                    measured_bytes([self.parent])
+                scan.assert_called_once_with(str(self.parent))
+                entry.stat.assert_called_once_with(follow_symlinks=False)
 
     def test_inspection_entry_limit_fails_instead_of_under_counting(self):
         self.parent.mkdir()
