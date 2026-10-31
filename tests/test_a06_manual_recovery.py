@@ -1,11 +1,14 @@
 """A06 automatic hosted regressions. No user-machine tests or user files."""
 import hashlib
+import io
 import json
+import threading
 from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
 from zipfile import ZipFile
+from urllib.request import Request, urlopen
 
 from app_backend.converter_transport import ConverterTransport
 from app_backend.libreoffice_engine import LibreOfficeError
@@ -68,7 +71,7 @@ class A06ManualRecovery(unittest.TestCase):
         self.assertTrue(output.is_file())
         self.assertEqual(transport.inventory()['total'], 0)
 
-    def test_invalid_and_verified_workspace_cannot_be_salvaged(self):
+    def test_invalid_workspace_cannot_be_salvaged(self):
         root, output = self.make_orphan()
         transport = self.transport()
         transport.inventory()
@@ -114,6 +117,46 @@ class A06ManualRecovery(unittest.TestCase):
         two = second.scan_recovery()
         self.assertEqual(two['warnings'][0]['code'], 'LEGACY_RECOVERY_UNVERIFIED')
         self.assertTrue(source.exists())
+
+    def test_real_local_http_recover_salvage_and_release(self):
+        from app_backend.server import start_server
+        root, output = self.make_orphan('e')
+        server, token = start_server(
+            legacy_recovery_parent=self.parent,
+            guard_recovery_parent=Path(self.folder.name) / 'guard',
+            guard_history_parent=Path(self.folder.name) / 'history')
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        base = 'http://127.0.0.1:' + str(server.server_port)
+        def http(path, body=None):
+            payload = None if body is None else json.dumps(body).encode('utf-8')
+            request = Request(base + path, data=payload,
+                headers={'X-AIO-Token': token, 'Origin': base,
+                         **({'Content-Type': 'application/json'} if payload is not None else {})},
+                method='POST' if payload is not None else 'GET')
+            with urlopen(request, timeout=15) as response:
+                return response.read()
+        try:
+            self.assertFalse(server.converter._recovery_loaded)
+            found = json.loads(http('/api/converter/recover?limit=20&offset=0'))
+            self.assertEqual(found['total'], 0)
+            self.assertEqual(found['recoveryWarnings'][0]['workspaceId'], root.name)
+            salvaged = json.loads(http('/api/converter/salvage', {'workspaceId': root.name}))
+            self.assertTrue(salvaged['result']['salvagedUnverified'])
+            ticket = salvaged['result']['ticket']
+            payload = http(salvaged['result']['downloadUrl'])
+            with ZipFile(io.BytesIO(payload)) as archive:
+                self.assertEqual(archive.read('native/0/0/output/survivor.pdf'), output.read_bytes())
+            done = json.loads(http('/api/converter/release', {'ticket': ticket}))
+            self.assertTrue(done['ok'])
+            self.assertTrue(output.is_file())
+            scan = json.loads(http('/api/converter/rescan', {}))
+            self.assertEqual(scan['state'], 'completed')
+            self.assertEqual(json.loads(http('/api/converter/recover?offset=0&limit=20'))['total'], 0)
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(5)
 
     def test_guard_history_remains_independent_of_legacy_storage(self):
         from app_backend.server import start_server
