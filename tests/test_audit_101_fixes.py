@@ -471,4 +471,41 @@ class ExcelMetadataTests(Disposable):
         with self.assertRaises(MergeError): merge_xlsx([('one.xlsx',self.book(change)),('two.xlsx',self.book())])
 
 
+class ExplicitAvailabilityIntegration(Disposable):
+    def test_current_lookup_refresh_reconciles_without_loading_old_jobs(self):
+        guard, job = self.ready(('pdf',))
+        job.artifacts[0].path.unlink()
+        with patch.object(guard, '_load_recovery', side_effect=AssertionError('Old jobs must not auto-load')):
+            state = guard.status(job.id, recover=False)
+        self.assertEqual(state['state'], 'failed')
+        self.assertEqual(state['conversionState'], 'ready')
+        self.assertEqual(state['unavailableOutputs'], 1)
+        self.assertEqual(state['unsavedDocuments'], 0)
+        self.assertIsNone(state['result'])
+
+    def test_explicit_manual_scan_reconciles_even_when_history_already_loaded(self):
+        guard, job = self.ready(('pdf',))
+        guard._recovery_loaded = True
+        job.artifacts[0].path.unlink()
+        with patch.object(guard, '_recover_results', side_effect=AssertionError('Already loaded, no old-root rescan')):
+            guard.start_recovery_scan()
+            guard._recovery_future.result(timeout=5)
+        snapshot = guard.recoverable(scan=False)
+        self.assertEqual(snapshot['recoveryScan']['state'], 'completed')
+        row = next(item for item in snapshot['jobs'] if item['jobId'] == job.id)
+        self.assertEqual(row['unsavedOutputs'], 0)
+        self.assertEqual(row['unavailableOutputs'], 1)
+        self.assertEqual(row['state'], 'failed')
+
+    def test_current_lookup_delta_poll_never_reads_file_metadata(self):
+        guard, job = self.ready(('pdf',))
+        revision = job.revision
+        job.artifacts[0].path.unlink()
+        with patch('app_backend.file_identity.file_identity', side_effect=AssertionError('No disk poll')):
+            state = guard.status(job.id, recover=False, since_revision=revision, delta=True)
+        self.assertTrue(state['unchanged'])
+        # The next explicit refresh, not the poll, reconciles the missing output.
+        self.assertEqual(guard.status(job.id, recover=False)['unavailableOutputs'], 1)
+
+
 if __name__ == '__main__': unittest.main()

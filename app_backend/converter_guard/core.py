@@ -487,25 +487,26 @@ class ConverterGuard:
         with self._lock:
             if self._closed:
                 raise GuardError('GUARD_CLOSED', 'Guard завершает работу.', status=503)
-            if self._recovery and self._recovery_scan_state != 'scanning':
-                if not self._recovery_loaded or self._recovery_pending:
-                    self._recovery_scan_state = 'scanning'
-                    self._recovery_scan_error = None
-                    self._recovery_scan_id += 1
-                    # Claim and submit under one lock: shutdown cannot overtake
-                    # admission, and repeated clicks cannot queue extra scans.
-                    try:
-                        self._recovery_future = self._recovery_executor.submit(self._run_recovery_scan)
-                    except RuntimeError as error:
-                        self._recovery_scan_state = 'failed'
-                        self._recovery_scan_error = 'RECOVERY_SCAN_FAILED'
-                        raise GuardError('RECOVERY_SCAN_FAILED', 'Не удалось начать поиск результатов.', status=503) from error
+            if (self._recovery or self._jobs) and self._recovery_scan_state != 'scanning':
+                # Every explicit request also reconciles known output files;
+                # loaded old-job discovery alone cannot refresh their availability.
+                self._recovery_scan_state = 'scanning'
+                self._recovery_scan_error = None
+                self._recovery_scan_id += 1
+                # Claim and submit under one lock: duplicate clicks while the
+                # worker runs still share one request and never perform inline I/O.
+                try:
+                    self._recovery_future = self._recovery_executor.submit(self._run_recovery_scan)
+                except RuntimeError as error:
+                    self._recovery_scan_state = 'failed'
+                    self._recovery_scan_error = 'RECOVERY_SCAN_FAILED'
+                    raise GuardError('RECOVERY_SCAN_FAILED', 'Не удалось начать поиск результатов.', status=503) from error
         return self.recoverable(scan=False)
 
     def _run_recovery_scan(self):
         failed = False
         try:
-            self._load_recovery()
+            self.recoverable(scan=True)
         except Exception:
             failed = True  # Paths and exception text never enter the UI status.
         finally:
@@ -2696,7 +2697,9 @@ class ConverterGuard:
         if type(result_delta) is not bool:
             raise GuardError('STATUS_RESULT_DELTA', 'Некорректный режим состояния результатов.')
         self._prune(defer_cleanup=not recover)
-        if recover and since_revision is None:
+        # lookup=current suppresses old-job discovery, not verification of
+        # a known job on an explicit full refresh. ETag/delta polling stays cheap.
+        if since_revision is None:
             self._reconcile_results(job_id)
         with self._lock:
             job = self._get(job_id)
