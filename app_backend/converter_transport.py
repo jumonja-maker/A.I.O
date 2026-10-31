@@ -13,7 +13,7 @@ from zipfile import ZipFile, ZipInfo, ZIP_STORED
 
 from .libreoffice_catalog import mime_for
 from .libreoffice_engine import LibreOfficeError, convert_path
-from .legacy_result_journal import LegacyWorkspace, recover_workspaces
+from .legacy_result_journal import LegacyWorkspace, ROOT_NAME, recover_workspaces, salvage_unverified_workspace
 from .legacy_storage_budget import LegacyRunControl, measured_bytes, storage_error
 
 ARCHIVE_CHUNK = 128 * 1024
@@ -53,11 +53,12 @@ class Result:
     released: bool = False
     cleaning: bool = False
     restored: bool = False
+    salvaged: bool = False
 
 
 class ConverterTransport:
     def __init__(self, *, max_owned_roots=MAX_OWNED_ROOTS, recovery_parent=None,
-                 max_owned_bytes=None):
+                 max_owned_bytes=None, lazy_recovery=False):
         if type(max_owned_roots) is not int or not 1 <= max_owned_roots <= 256:
             raise ValueError('max_owned_roots must be an integer from 1 to 256')
         if max_owned_bytes is not None and (type(max_owned_bytes) is not int or max_owned_bytes <= 0):
@@ -78,35 +79,114 @@ class ConverterTransport:
         self.recovery_parent = Path(recovery_parent) if recovery_parent is not None else None
         self.recovery_issues = []
         self.recovery_available = True
-        if self.recovery_parent is not None:
+        self._recovery_scan_lock = threading.Lock()
+        self._recovery_loaded = self.recovery_parent is None
+        # The desktop opens immediately, without hashing historical files.
+        # The explicit Legacy Recovery panel performs the first disk scan.
+        # Direct transport compatibility tests may still request eager recovery.
+        if self.recovery_parent is not None and not lazy_recovery:
+            self.scan_recovery()
+
+    def scan_recovery(self):
+        """Explicit idempotent rescan; never release or overwrite existing bytes."""
+        if self.recovery_parent is None:
+            return {'state': 'disabled', 'warnings': []}
+        with self._recovery_scan_lock:
+            with self.lock:
+                if self.closed:
+                    raise LibreOfficeError('Программа закрывается.', 'CANCELLED')
+                claimed = {Path(result.temporary.name).name for result in self.results.values()
+                           if isinstance(result.temporary, LegacyWorkspace)}
+                claimed.update(Path(request.temporary.name).name for request in self.active.values()
+                               if isinstance(request.temporary, LegacyWorkspace))
+                claimed.update(Path(value.name).name for value in self.cleanup_pending
+                               if isinstance(value, LegacyWorkspace))
             try:
-                recovered, self.recovery_issues = recover_workspaces(self.recovery_parent)
+                recovered, issues = recover_workspaces(self.recovery_parent, skip_roots=claimed)
             except OSError:
-                # Legacy storage must not prevent Guard/the shell from
-                # starting. Never fall back to disposable output storage.
-                recovered = []
-                self.recovery_available = False
-                self.recovery_issues = [{'workspaceId': 'legacy',
-                                         'code': 'LEGACY_RECOVERY_UNAVAILABLE'}]
-            seen_ids = set()
-            for workspace, value in recovered:
-                identity = value['requestId']
-                if identity in seen_ids:
-                    previous = self.results.pop(self.results_by_request.pop(identity, None), None)
-                    if previous is not None:
-                        previous.temporary.close()
-                        self.recovery_issues.append({'workspaceId': Path(previous.temporary.name).name,
-                                                     'code': 'LEGACY_RECOVERY_DUPLICATE_ID'})
-                    workspace.close()
-                    self.recovery_issues.append({'workspaceId': Path(workspace.name).name,
-                                                 'code': 'LEGACY_RECOVERY_DUPLICATE_ID'})
-                    continue
-                seen_ids.add(identity)
+                with self.lock:
+                    self.recovery_issues = [{'workspaceId': 'legacy',
+                                             'code': 'LEGACY_RECOVERY_UNAVAILABLE'}]
+                    self.recovery_available = False
+                    self._recovery_loaded = True
+                return {'state': 'unavailable', 'warnings': list(self.recovery_issues)}
+            pending, duplicates = {}, set()
+            with self.lock:
+                for workspace, value in recovered:
+                    identity = value['requestId']
+                    if identity in self.active or identity in self.results_by_request or identity in duplicates:
+                        workspace.close()
+                        issues.append({'workspaceId': Path(workspace.name).name,
+                                       'code': 'LEGACY_RECOVERY_DUPLICATE_ID'})
+                    elif identity in pending:
+                        previous = pending.pop(identity)[0]
+                        previous.close()
+                        issues.extend(({'workspaceId': Path(previous.name).name,
+                                        'code': 'LEGACY_RECOVERY_DUPLICATE_ID'},
+                                       {'workspaceId': Path(workspace.name).name,
+                                        'code': 'LEGACY_RECOVERY_DUPLICATE_ID'}))
+                        workspace.close()
+                        duplicates.add(identity)
+                    else:
+                        pending[identity] = (workspace, value)
+                for identity, (workspace, value) in pending.items():
+                    ticket = secrets.token_urlsafe(32)
+                    self.results[ticket] = Result(workspace, value['path'], value['name'], value['mime'],
+                        request_id=identity, size=value['size'], target_report=value['targetReport'],
+                        format_ids=tuple(value['formatIds']), restored=True)
+                    self.results_by_request[identity] = ticket
+                self.recovery_issues = issues
+                self.recovery_available = True
+                self._recovery_loaded = True
+                return {'state': 'completed', 'restored': len(pending),
+                        'warnings': [dict(item) for item in issues]}
+
+    def salvage_workspace(self, workspace_id):
+        """Manually copy intact output bytes from an unverified workspace.
+
+        It is NOT a conversion success. The source workspace is never deleted.
+        """
+        if self.recovery_parent is None:
+            raise LibreOfficeError('Хранилище восстановления выключено.', 'LEGACY_SALVAGE_UNAVAILABLE')
+        if not self._recovery_loaded:
+            self.scan_recovery()
+        if not isinstance(workspace_id, str) or not ROOT_NAME.fullmatch(workspace_id):
+            raise LibreOfficeError('Неверный идентификатор каталога.', 'LEGACY_SALVAGE_INVALID')
+        with self._recovery_scan_lock:
+            with self.lock:
+                if self.closed:
+                    raise LibreOfficeError('Программа закрывается.', 'CANCELLED')
+                if not any(item.get('workspaceId') == workspace_id and
+                           item.get('code') == 'LEGACY_RECOVERY_UNVERIFIED'
+                           for item in self.recovery_issues):
+                    raise LibreOfficeError('Каталог не помечен как непроверенный.',
+                                          'LEGACY_SALVAGE_INVALID')
+            temporary = tempfile.TemporaryDirectory(prefix='aio-legacy-salvage-')
+            target = Path(temporary.name) / 'Непроверенные_результаты.zip'
+            try:
+                count = salvage_unverified_workspace(self.recovery_parent, workspace_id, target,
+                                                      check_budget=self.check_storage)
+                request_id = secrets.token_hex(16)
                 ticket = secrets.token_urlsafe(32)
-                self.results[ticket] = Result(workspace, value['path'], value['name'], value['mime'],
-                    request_id=identity, size=value['size'], target_report=value['targetReport'],
-                    format_ids=tuple(value['formatIds']), restored=True)
-                self.results_by_request[identity] = ticket
+                report = {'state': 'error', 'code': 'RECOVERED_UNVERIFIED',
+                          'succeeded': 0, 'failed': count, 'total': count,
+                          'qualityCompared': False, 'completenessVerified': False}
+                result = Result(temporary, target, target.name, 'application/zip',
+                                request_id=request_id, size=target.stat().st_size,
+                                target_report=report, salvaged=True)
+                with self.lock:
+                    if self.closed:
+                        raise LibreOfficeError('Программа закрывается.', 'CANCELLED')
+                    self.results[ticket] = result
+                    self.results_by_request[request_id] = ticket
+                return {'state': 'ready', 'result': {
+                    'name': result.name, 'mime': result.mime, 'size': result.size,
+                    'ticket': ticket, 'downloadUrl': '/api/converter/result?ticket=' + ticket,
+                    'targetReport': report, 'formatIds': [], 'salvagedUnverified': True},
+                    'sourceKept': True, 'conversionSuccess': False}
+            except BaseException:
+                temporary.cleanup()
+                raise
 
     def _owned_root_count(self):
         # Caller holds lock. Published-but-not-finished work shares one owner;
@@ -124,7 +204,9 @@ class ConverterTransport:
         with self.lock:
             # Durable storage includes foreign-owned, incomplete and unknown
             # children, not just byte-verified published result payloads.
-            roots = ([self.recovery_parent] if self.recovery_parent is not None else
+            roots = ([self.recovery_parent] + [result.temporary.name
+                      for result in self.results.values() if result.salvaged]
+                     if self.recovery_parent is not None else
                      list({item.temporary.name for item in self.active.values()} |
                           {item.temporary.name for item in self.results.values()} |
                           {item.name for item in self.cleanup_pending}))
@@ -153,13 +235,24 @@ class ConverterTransport:
                 raise LibreOfficeError('Хранилище прежних результатов недоступно. '
                     'Проверьте права и диск; конвертация не начата.', 'LEGACY_STORAGE_UNAVAILABLE')
         self.check_storage(expected_upload_bytes)
+        # Slot counting includes unverified roots even before manual recovery
+        # has been opened. A shallow name-only scan never hashes old documents.
+        disk_roots = 0
+        if self.recovery_parent is not None:
+            try:
+                disk_roots = sum(ROOT_NAME.fullmatch(item.name) is not None
+                                 for item in self.recovery_parent.iterdir())
+            except FileNotFoundError:
+                pass
+            except OSError as error:
+                raise storage_error('LEGACY_STORAGE_MEASUREMENT_FAILED') from error
         with self.lock:
             if self.closed or identity in self.active or identity in self.results_by_request:
                 raise LibreOfficeError('Задание недоступно.', 'REQUEST_BUSY')
             if not self.recovery_available:
                 raise LibreOfficeError('Хранилище прежних результатов недоступно. '
                     'Проверьте права и диск; конвертация не начата.', 'LEGACY_STORAGE_UNAVAILABLE')
-            if self._owned_root_count() >= self.max_owned_roots:
+            if max(self._owned_root_count(), disk_roots) >= self.max_owned_roots:
                 raise LibreOfficeError(
                     'Достигнут предел временных заданий старого конвертера. '
                     'Сохраните и закройте прежние результаты или повторите очистку. '
@@ -180,9 +273,12 @@ class ConverterTransport:
         if (type(offset) is not int or offset < 0 or type(limit) is not int or
                 not 1 <= limit <= 50):
             raise ValueError('Invalid recovery page')
+        if not self._recovery_loaded:
+            self.scan_recovery()
         with self.lock:
             available = [result for result in self.results.values() if not result.released]
-            items = [{'state': 'ready', 'requestId': result.request_id,
+            items = [{'state': 'salvaged_unverified' if result.salvaged else 'ready',
+                      'salvagedUnverified': result.salvaged, 'requestId': result.request_id,
                       'name': result.name, 'mime': result.mime, 'size': result.size,
                       'formatIds': list(result.format_ids),
                       'partial': bool((result.target_report or {}).get('failed')),
@@ -191,6 +287,7 @@ class ConverterTransport:
             durable = self.recovery_parent is not None
             return {'state': 'inventory', 'scope': 'durable_published_results' if durable else 'current_process',
                     'restartRecovery': durable and self.recovery_available,
+                    'scanLoaded': self._recovery_loaded,
                     'storageAvailable': self.recovery_available,
                     'storage': self.storage_stats(),
                     'recoveryWarnings': [dict(item) for item in self.recovery_issues],
@@ -204,6 +301,8 @@ class ConverterTransport:
         HTTP callers need the session token and an exact 32-hex request ID,
         either retained by the client or selected from inventory().
         """
+        if not self._recovery_loaded:
+            self.scan_recovery()
         with self.lock:
             ticket = self.results_by_request.get(identity)
             result = self.results.get(ticket)
@@ -214,6 +313,7 @@ class ConverterTransport:
                         'downloadUrl': '/api/converter/result?ticket=' + ticket,
                         'targetReport': result.target_report,
                         'restoredFromJournal': result.restored,
+                        'salvagedUnverified': result.salvaged,
                         'conversionQualityCompared': False,
                         'formatIds': list(result.format_ids)}}
             if identity in self.active:

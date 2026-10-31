@@ -86,7 +86,8 @@ class LocalServer(ThreadingHTTPServer):
         self.converter_gate = threading.BoundedSemaphore(1)
         try:
             self.converter = ConverterTransport(recovery_parent=legacy_recovery_parent,
-                                                max_owned_bytes=int(storage_bytes))
+                                                max_owned_bytes=int(storage_bytes),
+                                                lazy_recovery=True)
         except BaseException:
             super().server_close()
             raise
@@ -371,6 +372,16 @@ def start_server(port: int = 0, *, guard_recovery_parent=None, guard_history_par
                 if path.endswith('/inspect'):
                     metadata = self._read_converter_json()
                     return self._json(200, inspect_metadata(metadata.get('files')))
+                if path.endswith('/rescan'):
+                    value = self._read_converter_json()
+                    if value:
+                        raise LibreOfficeError('Неверный запрос повторного поиска.', 'INVALID_REQUEST')
+                    return self._json(200, self.server.converter.scan_recovery())
+                if path.endswith('/salvage'):
+                    value = self._read_converter_json()
+                    if set(value) != {'workspaceId'}:
+                        raise LibreOfficeError('Укажите каталог для спасения файлов.', 'INVALID_REQUEST')
+                    return self._json(200, self.server.converter.salvage_workspace(value['workspaceId']))
                 if path.endswith('/release'):
                     value = self._read_converter_json()
                     released = self.server.converter.release(value.get('ticket'))
@@ -450,7 +461,8 @@ def start_server(port: int = 0, *, guard_recovery_parent=None, guard_history_par
             if path == '/api/icon-theme':
                 return self._json(200, {'ok':True})
             if path in ('/api/converter/inspect', '/api/converter/convert',
-                        '/api/converter/release', '/api/converter/cancel'):
+                        '/api/converter/release', '/api/converter/cancel',
+                        '/api/converter/rescan', '/api/converter/salvage'):
                 return self._convert_request(path)
             if path.startswith('/api/converter'):
                 return self._json(404, {'code':'UNKNOWN_CONVERTER_ENDPOINT',
@@ -503,11 +515,12 @@ def start_server(port: int = 0, *, guard_recovery_parent=None, guard_history_par
         def log_message(self, *_):
             pass  # Never log filenames or contents of personal spreadsheets.
 
-    # Product requirement: history of old conversions is REPORT-ONLY (M04).
-    # Do not silently rediscover or retain previous legacy result files in the
-    # ordinary desktop application. Explicit opt-in is reserved for isolated
-    # compatibility/recovery tests; it must never be implied by Guard storage.
-    legacy_parent = Path(legacy_recovery_parent) if legacy_recovery_parent is not None else None
+    # A06: persist legacy outputs across restart, but never scan old documents
+    # until the user opens recovery. M04 history remains report-only and the
+    # Guard current-unsaved counter remains independent of legacy workspaces.
+    legacy_parent = (Path(legacy_recovery_parent) if legacy_recovery_parent is not None else
+                     Path(guard_recovery_parent).parent / 'legacy-jobs' if guard_recovery_parent is not None else
+                     data_directory() / 'legacy-jobs')
     server = LocalServer(('127.0.0.1', port), Handler, legacy_recovery_parent=legacy_parent)
     try:
         diagnostic_limit = os.environ.get('AIO_GUARD_REJECTED_OUTPUT_BYTES', '0')
