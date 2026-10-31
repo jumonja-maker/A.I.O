@@ -138,6 +138,19 @@ def recover_workspaces(parent, *, skip_roots=()):
         try:
             if path_is_link(root) or not root.is_dir():
                 raise ValueError('Invalid legacy workspace')
+            # A previously confirmed refusal uses ResultStore's durable
+            # identity-bound retirement barrier. An interrupted deletion must
+            # never become a new "unsaved" result or prompt on next launch.
+            if ResultStore(root).retirement_pending():
+                try:
+                    workspace = LegacyWorkspace(root)
+                    try:
+                        workspace.store.cleanup_retired()
+                    finally:
+                        workspace.close()
+                except (OSError, ValueError, TypeError, RecursionError):
+                    pass  # Keep the barrier for a later safe cleanup retry.
+                continue
             workspace = LegacyWorkspace(root)
             value = workspace.load()
             recovered.append((workspace, value))

@@ -382,6 +382,19 @@ def start_server(port: int = 0, *, guard_recovery_parent=None, guard_history_par
                     if set(value) != {'workspaceId'}:
                         raise LibreOfficeError('Укажите каталог для спасения файлов.', 'INVALID_REQUEST')
                     return self._json(200, self.server.converter.salvage_workspace(value['workspaceId']))
+                if path.endswith('/decline'):
+                    value = self._read_converter_json()
+                    if (value.get('confirm') is not True or
+                            set(value) not in ({'confirm', 'requestId'},
+                                               {'confirm', 'workspaceId'},
+                                               {'confirm', 'scope'})):
+                        raise LibreOfficeError('Нужно явное подтверждение отказа.', 'LEGACY_DECLINE_INVALID')
+                    if 'scope' in value:
+                        if value['scope'] != 'all_previous':
+                            raise LibreOfficeError('Недопустимый режим отказа.', 'LEGACY_DECLINE_INVALID')
+                        return self._json(200, self.server.converter.decline_all_recovery())
+                    return self._json(200, self.server.converter.decline_recovery(
+                        request_id=value.get('requestId'), workspace_id=value.get('workspaceId')))
                 if path.endswith('/release'):
                     value = self._read_converter_json()
                     released = self.server.converter.release(value.get('ticket'))
@@ -462,7 +475,7 @@ def start_server(port: int = 0, *, guard_recovery_parent=None, guard_history_par
                 return self._json(200, {'ok':True})
             if path in ('/api/converter/inspect', '/api/converter/convert',
                         '/api/converter/release', '/api/converter/cancel',
-                        '/api/converter/rescan', '/api/converter/salvage'):
+                        '/api/converter/rescan', '/api/converter/salvage', '/api/converter/decline'):
                 return self._convert_request(path)
             if path.startswith('/api/converter'):
                 return self._json(404, {'code':'UNKNOWN_CONVERTER_ENDPOINT',

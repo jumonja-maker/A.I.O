@@ -7,8 +7,8 @@
     const panel=document.createElement('details');
     panel.setAttribute('data-legacy-recovery','');
     panel.innerHTML='<summary>Результаты прежнего конвертера</summary>'+
-      '<p>Здесь доступны результаты прежних заданий. Сохранение копии не удаляет их из AIO.</p>'+
-      '<div class="aio-guard-save"><button type="button" data-l-refresh>Обновить список</button></div>'+
+      '<p>Здесь доступны результаты прежних заданий. Они не входят в счётчик текущих несохранённых. Сохранение копии не удаляет результат из AIO.</p>'+
+      '<div class="aio-guard-save"><button type="button" data-l-refresh>Обновить список</button><button type="button" data-l-decline-all hidden>Не восстанавливать все предыдущие результаты</button></div>'+
       '<p data-l-status role="status" aria-live="polite"></p><p data-l-storage></p>'+
       '<div data-l-list style="max-height:16rem;overflow:auto;overflow-wrap:anywhere"></div>'+
       '<div class="aio-guard-pages"><button type="button" data-l-prev>Назад</button><span data-l-page></span><button type="button" data-l-next>Далее</button></div>'+
@@ -22,7 +22,8 @@
       get('[data-l-refresh]').disabled=pending||loading;
       get('[data-l-prev]').disabled=pending||loading||offset===0;
       get('[data-l-next]').disabled=pending||loading||!more;
-      for(const button of panel.querySelectorAll('[data-l-action]'))button.disabled=pending||loading;
+      for(const button of panel.querySelectorAll('[data-l-action],[data-l-decline],[data-l-salvage]'))button.disabled=pending||loading;
+      get('[data-l-decline-all]').disabled=pending||loading;
     };
     async function api(path,body,signal){
       const response=await fetch('/api/converter/'+path,{method:body?'POST':'GET',
@@ -31,6 +32,36 @@
       const packet=await response.json();
       if(!response.ok)throw Error(packet.error||'Не удалось получить прежние результаты.');
       return packet;
+    }
+    async function decline(target,all=false){
+      if(pending||loading)return;
+      const question=all?
+        'Отказаться от восстановления ВСЕХ предыдущих результатов? Временные файлы будут удалены. История конвертаций останется. Отменить удаление нельзя.':
+        'Не восстанавливать эти результаты и удалить их временные файлы? История конвертации останется. Отменить удаление нельзя.';
+      if(!window.confirm(question))return;
+      const id=revision;pending=true;controls();
+      status('Записываем отказ от восстановления…');
+      let finished=false;
+      try{
+        const outcome=await api('decline',{confirm:true,...target});
+        if(!current(id))return;
+        if(all){
+          status(outcome.notDeclined?
+            'Отказ записан для '+outcome.declined+' пакетов. '+outcome.notDeclined+
+            ' каталогов заняты или недоступны; их не удаляли. Повторите после освобождения.':
+            'Отказ от восстановления записан. Эти результаты больше не появятся после перезапуска.'+
+            (outcome.cleanupPending?' Очистка части временных файлов ещё продолжается.':''));
+        }else{
+          if(outcome.declined!==true)throw Error('Отказ не подтверждён. Файлы оставлены без изменений.');
+          status('Отказ записан. Эти результаты больше не будут предлагаться.'+
+            (outcome.cleanupPending?' Очистка временных файлов ещё не завершена.':''));
+        }
+        finished=true;
+      }catch(error){if(current(id))status(error.message||'Отказ не записан. Никакие результаты не скрыты.');}
+      finally{
+        pending=false;
+        if(alive){controls();if(finished&&current(id))refresh(false);}
+      }
     }
     async function act(identity,discard){
       if(pending||loading)return;
@@ -100,6 +131,11 @@
           const label=document.createElement('span');label.textContent=String(item.name||'Результат').slice(0,255)+
             ' · '+(Number.isSafeInteger(item.size)?item.size+' байт':'размер неизвестен')+
             (item.salvagedUnverified===true?' · НЕПРОВЕРЕННЫЕ файлы':item.partial===true?' · есть ошибки преобразования':'');row.append(label);
+          if(item.restoredFromJournal===true){
+            const button=document.createElement('button');button.type='button';
+            button.textContent='Не восстанавливать';button.setAttribute('data-l-decline',item.requestId);
+            button.addEventListener('click',()=>decline({requestId:item.requestId}));row.append(button);
+          }
           for(const [label,discard] of [['Сохранить копию',false],['Удалить из AIO',true]]){
             const button=document.createElement('button');button.type='button';button.textContent=label;
             button.setAttribute('data-l-action',discard?'discard':'save');
@@ -119,6 +155,13 @@
           const text=document.createElement('p');text.textContent=code+
             ' — файлы не подтверждены или заняты другим экземпляром. Оригиналы оставлены на диске.';
           line.append(text);
+          if(/^aio-legacy-[a-f0-9]{32}$/.test(warning.workspaceId||'')){
+            const button=document.createElement('button');button.type='button';
+            button.textContent='Не восстанавливать';
+            button.setAttribute('data-l-decline',warning.workspaceId);
+            button.addEventListener('click',()=>decline({workspaceId:warning.workspaceId}));
+            line.append(button);
+          }
           if(code==='LEGACY_RECOVERY_UNVERIFIED'&&
              /^aio-legacy-[a-f0-9]{32}$/.test(warning.workspaceId||'')){
             const button=document.createElement('button');button.type='button';
@@ -128,6 +171,8 @@
           }
           warnings.append(line);
         }
+        get('[data-l-decline-all]').hidden=!(packet.restoredCount>0||
+          (packet.recoveryWarnings||[]).some(w=>/^aio-legacy-[a-f0-9]{32}$/.test(w.workspaceId||'')));
         if(clear)status(packet.storageAvailable===false?'Хранилище недоступно. Проверьте права и диск.':
           'Найдено результатов: '+total+'. Целостность восстановленных файлов проверена; качество конвертации не подтверждено.');
       }catch(error){if(current(id)&&error.name!=='AbortError')status(error.message||'Не удалось обновить список.');}
@@ -138,6 +183,7 @@
     const close=()=>{if(!host.open)invalidate();};
     panel.addEventListener('toggle',toggle);host.addEventListener('close',close);
     get('[data-l-refresh]').addEventListener('click',()=>refresh(true,true));
+    get('[data-l-decline-all]').addEventListener('click',()=>decline({scope:'all_previous'},true));
     get('[data-l-prev]').addEventListener('click',()=>{offset=Math.max(0,offset-20);refresh();});
     get('[data-l-next]').addEventListener('click',()=>{if(more){offset+=20;refresh();}});
     controls();
