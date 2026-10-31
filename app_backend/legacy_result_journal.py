@@ -9,6 +9,7 @@ import os
 from pathlib import Path, PurePosixPath
 import re
 import secrets
+from zipfile import ZipFile, ZIP_STORED
 
 from .converter_guard.result_store import ResultStore, atomic_json, path_is_link
 from .libreoffice_catalog import mime_for
@@ -123,7 +124,7 @@ class LegacyWorkspace:
         return value
 
 
-def recover_workspaces(parent):
+def recover_workspaces(parent, *, skip_roots=()):
     """Claim only complete, byte-verified journals; leave every other root intact."""
     parent = Path(parent)
     parent.mkdir(parents=True, exist_ok=True)
@@ -131,7 +132,7 @@ def recover_workspaces(parent):
         raise OSError('Legacy recovery parent is linked')
     recovered, issues = [], []
     for root in sorted(parent.iterdir()):
-        if not ROOT_NAME.fullmatch(root.name):
+        if not ROOT_NAME.fullmatch(root.name) or root.name in skip_roots:
             continue
         workspace = None
         try:
@@ -147,3 +148,88 @@ def recover_workspaces(parent):
                 'LEGACY_RECOVERY_BUSY' if isinstance(error, BlockingIOError)
                 else 'LEGACY_RECOVERY_UNVERIFIED')})
     return recovered, issues
+
+def salvage_unverified_workspace(parent, workspace_id, destination, *, check_budget=None):
+    """Copy surviving native outputs into a *separate*, unverified ZIP.
+
+    Only a manual request can call this. The original workspace and its broken
+    journal are never modified or retired, even when the ZIP is later released.
+    A verified published result must be downloaded via its ordinary ticket.
+    """
+    if not isinstance(workspace_id, str) or not ROOT_NAME.fullmatch(workspace_id):
+        raise ValueError('Invalid legacy workspace identity')
+    root = Path(parent) / workspace_id
+    if path_is_link(root) or not root.is_dir():
+        raise ValueError('Legacy workspace is not an ordinary directory')
+    workspace = LegacyWorkspace(root)  # Nonblocking exclusive ownership.
+    try:
+        try:
+            workspace.load()
+        except (OSError, ValueError, TypeError, RecursionError):
+            pass
+        else:
+            raise ValueError('A verified legacy result does not need salvage')
+        native = root / 'native'
+        if not native.is_dir() or path_is_link(native):
+            raise ValueError('No safe native outputs in legacy workspace')
+        files, total = [], 0
+        for candidate in sorted(native.glob('*/*/output/**/*')):
+            relative = candidate.relative_to(root).as_posix()
+            parts = PurePosixPath(relative).parts
+            if (len(parts) < 5 or parts[0] != 'native' or
+                    not parts[1].isdecimal() or not parts[2].isdecimal() or
+                    parts[3] != 'output'):
+                continue
+            # Reject links and exotic file types; never follow paths outside
+            # the owned output tree or use the original user-upload directory.
+            if path_is_link(candidate):
+                raise ValueError('Linked native output cannot be salvaged')
+            if candidate.is_dir():
+                continue
+            output = workspace._path(relative)
+            size = output.stat().st_size
+            total += size
+            files.append((relative, output, size))
+            if len(files) > 4096 or total > 8 * 1024 ** 3:
+                raise ValueError('Legacy salvage inspection limit exceeded')
+        if not files:
+            raise ValueError('No surviving native outputs were found')
+        # ZIP_STORED duplicates the bytes, so reserve before any disk writes.
+        if check_budget is not None:
+            check_budget(total + 1024 * 1024 + 512 * len(files))
+        destination = Path(destination)
+        entries = []
+        with ZipFile(destination, 'w', compression=ZIP_STORED, allowZip64=True) as archive:
+            for relative, output, size in files:
+                digest = hashlib.sha256()
+                copied = 0
+                with output.open('rb') as source, archive.open(relative, 'w', force_zip64=True) as target:
+                    while block := source.read(128 * 1024):
+                        target.write(block)
+                        digest.update(block)
+                        copied += len(block)
+                if copied != size or output.stat().st_size != size:
+                    raise OSError('Native output changed during salvage')
+                entries.append({'path': relative, 'size': size, 'sha256': digest.hexdigest()})
+            archive.writestr('AIO-salvage-report.json', json.dumps({
+                'schema': 1, 'status': 'RECOVERED_UNVERIFIED',
+                'conversionSuccess': False, 'qualityCompared': False,
+                'completenessVerified': False, 'sourceWorkspaceId': workspace_id,
+                'files': entries,
+            }, ensure_ascii=False).encode('utf-8'))
+        # Read the ZIP, not only the original files, before publishing a ticket.
+        with ZipFile(destination) as archive:
+            if archive.testzip() is not None:
+                raise OSError('Salvaged ZIP failed CRC validation')
+            for entry in entries:
+                digest = hashlib.sha256()
+                with archive.open(entry['path']) as stream:
+                    while block := stream.read(128 * 1024):
+                        digest.update(block)
+                if digest.hexdigest() != entry['sha256']:
+                    raise OSError('Salvaged ZIP bytes changed')
+        if check_budget is not None:
+            check_budget()
+        return len(entries)
+    finally:
+        workspace.close()
