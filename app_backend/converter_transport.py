@@ -4,6 +4,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 import json
+import re
 from pathlib import Path
 import secrets
 import tempfile
@@ -14,6 +15,7 @@ from zipfile import ZipFile, ZipInfo, ZIP_STORED
 from .libreoffice_catalog import mime_for
 from .libreoffice_engine import LibreOfficeError, convert_path
 from .legacy_result_journal import LegacyWorkspace, ROOT_NAME, recover_workspaces, salvage_unverified_workspace
+from .converter_guard.result_store import path_is_link
 from .legacy_storage_budget import LegacyRunControl, measured_bytes, storage_error
 
 ARCHIVE_CHUNK = 128 * 1024
@@ -140,6 +142,97 @@ class ConverterTransport:
                 self._recovery_loaded = True
                 return {'state': 'completed', 'restored': len(pending),
                         'warnings': [dict(item) for item in issues]}
+
+    def decline_recovery(self, *, request_id=None, workspace_id=None):
+        """Explicit confirmed refusal: retire only one previous legacy workspace.
+
+        A durable retirement barrier is written before a refusal is acknowledged.
+        If Windows cannot delete files yet, that barrier prevents the same
+        results being offered again after a restart. M04 history is untouched.
+        This method is never called automatically or for current conversions.
+        """
+        if (request_id is None) == (workspace_id is None):
+            raise LibreOfficeError('Укажите ровно один прежний результат.',
+                                   'LEGACY_DECLINE_INVALID')
+        if self.recovery_parent is None:
+            raise LibreOfficeError('Восстановление прежних результатов отключено.',
+                                   'LEGACY_DECLINE_INVALID')
+        if not self._recovery_loaded:
+            self.scan_recovery()
+        with self._recovery_scan_lock:
+            with self.lock:
+                if self.closed:
+                    raise LibreOfficeError('Программа закрывается.', 'CANCELLED')
+                if request_id is not None:
+                    if not isinstance(request_id, str) or not re.fullmatch(r'[a-f0-9]{32}', request_id):
+                        raise LibreOfficeError('Некорректный идентификатор задания.',
+                                               'LEGACY_DECLINE_INVALID')
+                    ticket = self.results_by_request.get(request_id)
+                    result = self.results.get(ticket)
+                    if (result is None or result.released or not result.restored or
+                            not isinstance(result.temporary, LegacyWorkspace)):
+                        raise LibreOfficeError('Прежний результат не найден.',
+                                               'LEGACY_DECLINE_INVALID')
+                    if result.leases or result.cleaning:
+                        raise LibreOfficeError('Результат сейчас сохраняется. Повторите отказ позже.',
+                                               'LEGACY_DECLINE_BUSY')
+                    workspace = result.temporary
+                else:
+                    if not isinstance(workspace_id, str) or not ROOT_NAME.fullmatch(workspace_id):
+                        raise LibreOfficeError('Некорректный идентификатор каталога.',
+                                               'LEGACY_DECLINE_INVALID')
+                    # Only an explicit warning from a completed manual scan is
+                    # eligible. Never retire an unrelated user-created directory.
+                    if not any(item.get('workspaceId') == workspace_id for item in self.recovery_issues):
+                        raise LibreOfficeError('Каталог не найден в списке прежних результатов.',
+                                               'LEGACY_DECLINE_INVALID')
+                    if any(Path(item.temporary.name).name == workspace_id
+                           for item in self.results.values() if isinstance(item.temporary, LegacyWorkspace)):
+                        raise LibreOfficeError('Каталог уже доступен как результат.',
+                                               'LEGACY_DECLINE_INVALID')
+                    if any(Path(item.temporary.name).name == workspace_id
+                           for item in self.active.values() if isinstance(item.temporary, LegacyWorkspace)):
+                        raise LibreOfficeError('Каталог используется конвертацией.',
+                                               'LEGACY_DECLINE_BUSY')
+                    root = self.recovery_parent / workspace_id
+                    workspace = None
+            if workspace_id is not None:
+                try:
+                    if path_is_link(root) or not root.is_dir():
+                        raise ValueError('Invalid legacy storage root')
+                    workspace = LegacyWorkspace(root)
+                except (BlockingIOError, OSError):
+                    raise LibreOfficeError('Каталог занят другим экземпляром AIO. '
+                                           'Закройте его и повторите отказ.',
+                                           'LEGACY_DECLINE_BUSY') from None
+                except ValueError:
+                    raise LibreOfficeError('Каталог изменился. Ничего не удалено.',
+                                           'LEGACY_DECLINE_INVALID') from None
+            try:
+                # The marker is fsynced before returning "declined". Failure
+                # to write it means refusal is NOT confirmed.
+                try:
+                    workspace.store.retire()
+                except (OSError, ValueError) as error:
+                    raise LibreOfficeError('Не удалось записать отказ. Результаты не удалены.',
+                                           'LEGACY_DECLINE_WRITE_FAILED') from error
+                if request_id is not None:
+                    deleted = self.release(ticket)
+                else:
+                    try:
+                        workspace.store.cleanup_retired()
+                        deleted = True
+                    except OSError:
+                        deleted = False
+                with self.lock:
+                    if workspace_id is not None:
+                        self.recovery_issues = [item for item in self.recovery_issues
+                                                if item.get('workspaceId') != workspace_id]
+                return {'declined': True, 'cleanupPending': not deleted,
+                        'willReappear': False, 'historyUntouched': True}
+            finally:
+                if workspace_id is not None and workspace is not None:
+                    workspace.close()
 
     def salvage_workspace(self, workspace_id):
         """Manually copy intact output bytes from an unverified workspace.
