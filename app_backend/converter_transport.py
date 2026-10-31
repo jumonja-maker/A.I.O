@@ -234,6 +234,37 @@ class ConverterTransport:
                 if workspace_id is not None and workspace is not None:
                     workspace.close()
 
+    def decline_all_recovery(self):
+        """One explicit opt-out for all previous A06 results; never live work.
+
+        Individual failures are reported instead of silently claiming that a
+        locked workspace was deleted. Successful refusals have durable markers
+        and cannot reappear in the recovery panel.
+        """
+        if self.recovery_parent is None:
+            return {'declined': 0, 'notDeclined': 0, 'cleanupPending': 0, 'errors': []}
+        if not self._recovery_loaded:
+            self.scan_recovery()
+        with self.lock:
+            identities = [result.request_id for result in self.results.values()
+                          if result.restored and not result.released and
+                          isinstance(result.temporary, LegacyWorkspace)]
+            workspaces = sorted({item.get('workspaceId') for item in self.recovery_issues
+                                 if isinstance(item.get('workspaceId'), str) and
+                                 ROOT_NAME.fullmatch(item['workspaceId'])})
+        completed, pending, errors = 0, 0, []
+        for kwargs in ([{'request_id': identity} for identity in identities] +
+                       [{'workspace_id': identity} for identity in workspaces]):
+            try:
+                result = self.decline_recovery(**kwargs)
+                completed += 1
+                pending += bool(result['cleanupPending'])
+            except LibreOfficeError as error:
+                errors.append({'code': error.code, 'workspaceId': kwargs.get('workspace_id')})
+        return {'declined': completed, 'notDeclined': len(errors),
+                'cleanupPending': pending, 'errors': errors,
+                'historyUntouched': True}
+
     def salvage_workspace(self, workspace_id):
         """Manually copy intact output bytes from an unverified workspace.
 
