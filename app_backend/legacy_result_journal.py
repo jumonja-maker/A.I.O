@@ -18,11 +18,19 @@ ROOT_NAME = re.compile(r'aio-legacy-[a-f0-9]{32}')
 MAX_JOURNAL_BYTES = 16 * 1024 * 1024
 
 
-def file_hash(path):
+def _check_cancel(cancel):
+    if cancel is not None and cancel.is_set():
+        raise InterruptedError('Legacy recovery stopped')
+
+
+def file_hash(path, *, cancel=None):
+    _check_cancel(cancel)
     digest = hashlib.sha256()
     with path.open('rb') as stream:
         while block := stream.read(1024 * 1024):
+            _check_cancel(cancel)
             digest.update(block)
+    _check_cancel(cancel)
     return digest.hexdigest()
 
 
@@ -94,7 +102,8 @@ class LegacyWorkspace:
             raise ValueError('Legacy output missing')
         return current
 
-    def load(self):
+    def load(self, *, cancel=None):
+        _check_cancel(cancel)
         root = Path(self.name)
         if self.store.retirement_pending():
             raise ValueError('Legacy result was explicitly released')
@@ -102,9 +111,12 @@ class LegacyWorkspace:
         if path_is_link(path) or path.stat().st_size > MAX_JOURNAL_BYTES:
             raise ValueError('Invalid legacy journal')
         value = json.loads(path.read_text(encoding='utf-8'))
+        if not isinstance(value, dict):
+            raise ValueError('Invalid legacy journal object')
         checksum = value.pop('checksum', None)
         if (checksum != ResultStore._digest(value) or value.get('schema') != 1 or
                 value.get('kind') != 'aio_legacy_result' or
+                not isinstance(value.get('path'), str) or
                 not isinstance(value.get('requestId'), str) or
                 not re.fullmatch(r'[a-f0-9]{32}', value['requestId']) or
                 type(value.get('size')) is not int or value['size'] < 0 or
@@ -116,7 +128,7 @@ class LegacyWorkspace:
                     for item in value['formatIds'])):
             raise ValueError('Legacy journal integrity failed')
         output = self._path(value['path'])
-        if output.stat().st_size != value['size'] or file_hash(output) != value['sha256']:
+        if output.stat().st_size != value['size'] or file_hash(output, cancel=cancel) != value['sha256']:
             raise ValueError('Legacy output bytes changed')
         value.update(path=output, name=output.name,
                      mime=mime_for(output.suffix.lower().lstrip('.')))
@@ -124,63 +136,69 @@ class LegacyWorkspace:
         return value
 
 
-def recover_workspaces(parent, *, skip_roots=()):
-    """Claim only complete, byte-verified journals; leave every other root intact."""
+def recover_workspaces(parent, *, skip_roots=(), cancel=None):
+    """Claim complete journals, closing every untransferred owner on abort."""
     parent = Path(parent)
+    _check_cancel(cancel)
     parent.mkdir(parents=True, exist_ok=True)
     if path_is_link(parent):
         raise OSError('Legacy recovery parent is linked')
     recovered, issues = [], []
-    for root in sorted(parent.iterdir()):
-        if not ROOT_NAME.fullmatch(root.name) or root.name in skip_roots:
-            continue
-        workspace = None
-        try:
-            if path_is_link(root) or not root.is_dir():
-                raise ValueError('Invalid legacy workspace')
-            # A previously confirmed refusal uses ResultStore's durable
-            # identity-bound retirement barrier. An interrupted deletion must
-            # never become a new "unsaved" result or prompt on next launch.
-            if ResultStore(root).retirement_pending():
-                try:
-                    workspace = LegacyWorkspace(root)
-                    try:
-                        workspace.store.cleanup_retired()
-                    finally:
-                        workspace.close()
-                except (OSError, ValueError, TypeError, RecursionError):
-                    pass  # Keep the barrier for a later safe cleanup retry.
+    try:
+        for root in sorted(parent.iterdir()):
+            _check_cancel(cancel)
+            if not ROOT_NAME.fullmatch(root.name) or root.name in skip_roots:
                 continue
-            workspace = LegacyWorkspace(root)
-            value = workspace.load()
-            recovered.append((workspace, value))
-        except (OSError, ValueError, TypeError, RecursionError) as error:
-            if workspace is not None:
-                workspace.close()
-            issues.append({'workspaceId': root.name, 'code': (
-                'LEGACY_RECOVERY_BUSY' if isinstance(error, BlockingIOError)
-                else 'LEGACY_RECOVERY_UNVERIFIED')})
-    return recovered, issues
+            workspace = None
+            try:
+                if path_is_link(root) or not root.is_dir():
+                    raise ValueError('Invalid legacy workspace')
+                if ResultStore(root).retirement_pending():
+                    try:
+                        workspace = LegacyWorkspace(root)
+                        try:
+                            workspace.store.cleanup_retired()
+                        finally:
+                            workspace.close()
+                    except (OSError, ValueError, TypeError, RecursionError):
+                        pass
+                    continue
+                workspace = LegacyWorkspace(root)
+                value = workspace.load(cancel=cancel)
+                _check_cancel(cancel)
+                recovered.append((workspace, value))
+                workspace = None
+            except InterruptedError:
+                raise
+            except (OSError, ValueError, TypeError, RecursionError) as error:
+                issues.append({'workspaceId': root.name, 'code': (
+                    'LEGACY_RECOVERY_BUSY' if isinstance(error, BlockingIOError) else 'LEGACY_RECOVERY_UNVERIFIED')})
+            finally:
+                if workspace is not None:
+                    workspace.close()
+        _check_cancel(cancel)
+        return recovered, issues
+    except BaseException:
+        for workspace, _value in recovered:
+            workspace.close()
+        raise
 
-def salvage_unverified_workspace(parent, workspace_id, destination, *, check_budget=None):
-    """Copy surviving native outputs into a *separate*, unverified ZIP.
-
-    Only a manual request can call this. The original workspace and its broken
-    journal are never modified or retired, even when the ZIP is later released.
-    A verified published result must be downloaded via its ordinary ticket.
-    """
+def salvage_unverified_workspace(parent, workspace_id, destination, *, check_budget=None, cancel=None):
+    """Copy an unverified snapshot. One independent CRC/SHA read per member."""
+    _check_cancel(cancel)
     if not isinstance(workspace_id, str) or not ROOT_NAME.fullmatch(workspace_id):
         raise ValueError('Invalid legacy workspace identity')
     root = Path(parent) / workspace_id
     if path_is_link(root) or not root.is_dir():
         raise ValueError('Legacy workspace is not an ordinary directory')
-    workspace = LegacyWorkspace(root)  # Nonblocking exclusive ownership.
+    workspace = LegacyWorkspace(root)
     try:
-        # An explicit deletion barrier must never become recoverable data.
         if workspace.store.retirement_pending():
             raise ValueError('Previously retired workspace must not be salvaged')
         try:
-            workspace.load()
+            workspace.load(cancel=cancel)
+        except InterruptedError:
+            raise
         except (OSError, ValueError, TypeError, RecursionError):
             pass
         else:
@@ -188,16 +206,17 @@ def salvage_unverified_workspace(parent, workspace_id, destination, *, check_bud
         native = root / 'native'
         if not native.is_dir() or path_is_link(native):
             raise ValueError('No safe native outputs in legacy workspace')
-        files, total = [], 0
-        for candidate in sorted(native.glob('*/*/output/**/*')):
+        files, total, visited = [], 0, 0
+        for candidate in native.glob('*/*/output/**/*'):
+            visited += 1
+            if visited > 100_000:
+                raise ValueError('Legacy salvage inspection limit exceeded')
+            _check_cancel(cancel)
             relative = candidate.relative_to(root).as_posix()
             parts = PurePosixPath(relative).parts
             if (len(parts) < 5 or parts[0] != 'native' or
-                    not parts[1].isdecimal() or not parts[2].isdecimal() or
-                    parts[3] != 'output'):
+                    not parts[1].isdecimal() or not parts[2].isdecimal() or parts[3] != 'output'):
                 continue
-            # Reject links and exotic file types; never follow paths outside
-            # the owned output tree or use the original user-upload directory.
             if path_is_link(candidate):
                 raise ValueError('Linked native output cannot be salvaged')
             if candidate.is_dir():
@@ -208,42 +227,53 @@ def salvage_unverified_workspace(parent, workspace_id, destination, *, check_bud
             files.append((relative, output, size))
             if len(files) > 4096 or total > 8 * 1024 ** 3:
                 raise ValueError('Legacy salvage inspection limit exceeded')
+        files.sort(key=lambda item: item[0])
         if not files:
             raise ValueError('No surviving native outputs were found')
-        # ZIP_STORED duplicates the bytes, so reserve before any disk writes.
         if check_budget is not None:
             check_budget(total + 1024 * 1024 + 512 * len(files))
+        _check_cancel(cancel)
         destination = Path(destination)
         entries = []
-        with ZipFile(destination, 'w', compression=ZIP_STORED, allowZip64=True) as archive:
+        with ZipFile(destination, 'x', compression=ZIP_STORED, allowZip64=True) as archive:
             for relative, output, size in files:
+                _check_cancel(cancel)
                 digest = hashlib.sha256()
                 copied = 0
                 with output.open('rb') as source, archive.open(relative, 'w', force_zip64=True) as target:
                     while block := source.read(128 * 1024):
+                        _check_cancel(cancel)
+                        if copied + len(block) > size:
+                            raise OSError('Native output grew during salvage')
                         target.write(block)
                         digest.update(block)
                         copied += len(block)
                 if copied != size or output.stat().st_size != size:
                     raise OSError('Native output changed during salvage')
                 entries.append({'path': relative, 'size': size, 'sha256': digest.hexdigest()})
-            archive.writestr('AIO-salvage-report.json', json.dumps({
-                'schema': 1, 'status': 'RECOVERED_UNVERIFIED',
+            report = json.dumps({'schema': 1, 'status': 'RECOVERED_UNVERIFIED',
                 'conversionSuccess': False, 'qualityCompared': False,
                 'completenessVerified': False, 'sourceWorkspaceId': workspace_id,
-                'files': entries,
-            }, ensure_ascii=False).encode('utf-8'))
-        # Read the ZIP, not only the original files, before publishing a ticket.
+                'files': entries}, ensure_ascii=False).encode('utf-8')
+            archive.writestr('AIO-salvage-report.json', report)
+        _check_cancel(cancel)
         with ZipFile(destination) as archive:
-            if archive.testzip() is not None:
-                raise OSError('Salvaged ZIP failed CRC validation')
+            names = [entry['path'] for entry in entries] + ['AIO-salvage-report.json']
+            if sorted(archive.namelist()) != sorted(names):
+                raise OSError('Salvaged ZIP inventory changed')
+            if archive.read('AIO-salvage-report.json') != report:
+                raise OSError('Salvaged ZIP report changed')
             for entry in entries:
-                digest = hashlib.sha256()
+                _check_cancel(cancel)
+                digest, size = hashlib.sha256(), 0
                 with archive.open(entry['path']) as stream:
                     while block := stream.read(128 * 1024):
+                        _check_cancel(cancel)
                         digest.update(block)
-                if digest.hexdigest() != entry['sha256']:
+                        size += len(block)
+                if size != entry['size'] or digest.hexdigest() != entry['sha256']:
                     raise OSError('Salvaged ZIP bytes changed')
+        _check_cancel(cancel)
         if check_budget is not None:
             check_budget()
         return len(entries)

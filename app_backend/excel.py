@@ -20,6 +20,8 @@ import tempfile
 from openpyxl import Workbook, load_workbook
 from openpyxl.cell import WriteOnlyCell
 from openpyxl.utils.exceptions import InvalidFileException
+from openpyxl.utils import get_column_letter, column_index_from_string
+from openpyxl.worksheet.page import PageMargins
 
 MAX_INPUT_FILES = 100
 MAX_FILE_BYTES = 20 * 1024 * 1024
@@ -109,6 +111,13 @@ def _read_simple_table(data: bytes, name: str, row_sink=None):
                 'horizontalCentered', 'verticalCentered', 'headings',
                 'gridLines', 'gridLinesSet')):
             raise MergeError(f'«{name}»: параметры печати не поддерживаются.')
+        if any(d.outlineLevel or d.collapsed for d in
+               (*ws.row_dimensions.values(), *ws.column_dimensions.values())):
+            raise MergeError(f'«{name}»: группировка строк или столбцов пока не поддерживается.')
+        if ws.page_margins != PageMargins():
+            raise MergeError(f'«{name}»: нестандартные поля печати пока не поддерживаются.')
+        if ws.sheet_view.rightToLeft is True or ws.sheet_view.showGridLines is False:
+            raise MergeError(f'«{name}»: направление справа налево или скрытая сетка пока не поддерживаются.')
         if ws.max_row > MAX_TOTAL_ROWS:
             raise MergeError(f'«{name}»: слишком много строк для первой версии.')
         if ws.max_row * ws.max_column > MAX_GRID_CELLS:
@@ -161,8 +170,19 @@ def _read_simple_table(data: bytes, name: str, row_sink=None):
             raise MergeError(f'«{name}»: названия столбцов повторяются.')
         # Column widths are layout guidance, not data; use the widest source
         # width when equally named columns have different settings.
-        widths = {key: dim.width for key, dim in ws.column_dimensions.items()
-                  if dim.width is not None}
+        widths = {}
+        for key, dim in ws.column_dimensions.items():
+            if dim.width is None:
+                continue
+            first = dim.min or column_index_from_string(key)
+            last = dim.max or first
+            if not 1 <= first <= last <= 16384:
+                raise MergeError(f'«{name}»: недопустимый диапазон ширины столбцов.')
+            for index in range(first, last + 1):
+                column = get_column_letter(index)
+                if column in widths and widths[column] != dim.width:
+                    raise MergeError(f'«{name}»: пересекающиеся настройки ширины столбцов.')
+                widths[column] = dim.width
         heights = {index: dim.height for index, dim in ws.row_dimensions.items()
                    if dim.height is not None}
         return (headers, rows, style_cache, header_cells, widths, heights,

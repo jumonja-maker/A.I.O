@@ -17,19 +17,22 @@ MAX_SCAN_DEPTH = 32
 
 
 def measured_bytes(roots):
+    """Full bounded scans, reusing scandir metadata instead of Path per file.
+
+    No stale byte cache can hide active writers or foreign-owned files.
+    """
     total, visited = 0, 0
-    pending = [(Path(root), 0) for root in roots]
+    pending = [(os.fspath(root), 0, None) for root in roots]
     while pending:
-        path, depth = pending.pop()
+        path, depth, entry = pending.pop()
         visited += 1
         if visited > MAX_SCAN_ENTRIES or depth > MAX_SCAN_DEPTH:
             raise OSError('Legacy storage inspection budget exceeded')
         try:
-            info = path.lstat()
+            info = (os.lstat(path) if entry is None else entry.stat(follow_symlinks=False))
         except FileNotFoundError:
-            continue  # Explicitly released storage may disappear during a scan.
-        if (stat.S_ISLNK(info.st_mode) or
-                getattr(info, 'st_file_attributes', 0) & 0x400):
+            continue
+        if stat.S_ISLNK(info.st_mode) or getattr(info, 'st_file_attributes', 0) & 0x400:
             raise OSError('Linked legacy storage cannot be measured safely')
         if stat.S_ISREG(info.st_mode):
             total += info.st_size
@@ -37,7 +40,7 @@ def measured_bytes(roots):
             try:
                 with os.scandir(path) as entries:
                     for item in entries:
-                        pending.append((Path(item.path), depth + 1))
+                        pending.append((item.path, depth + 1, item))
                         if visited + len(pending) > MAX_SCAN_ENTRIES:
                             raise OSError('Legacy storage inspection budget exceeded')
             except FileNotFoundError:
@@ -58,8 +61,8 @@ class LegacyRunControl:
             return True
         now = time.monotonic()
         if now >= self.next_scan:
-            self.next_scan = now + .5
             self.check()
+            self.next_scan = time.monotonic() + .5
         return False
 
     def wait(self, seconds):

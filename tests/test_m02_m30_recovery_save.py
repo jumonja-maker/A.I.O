@@ -187,12 +187,17 @@ os._exit(23)
 
     def test_failed_or_cancelled_external_read_never_reuses_an_earlier_receipt(self):
         guard, job = self.ready(); path = self.bundle(guard, job)
-        guard.verify_saved_download(job.bundle.ticket, path)
+        first_receipt = guard.verify_saved_download(job.bundle.ticket, path)
+        first_path = path.parent / first_receipt['receiptFile']
+        first_bytes = first_path.read_bytes()
         path.write_bytes(b'broken zip')
         with self.assertRaises(GuardError): guard.verify_saved_download(job.bundle.ticket, path)
         self.assertIsNone(job.bundle.save_receipt)
         with self.assertRaises(GuardError): guard.confirm_saved(job.id, job.bundle.ticket)
-        status = json.loads(path.with_name(path.name+'.AIO-save-status.json').read_text())
+        self.assertEqual(first_path.read_bytes(), first_bytes)
+        attempts = [json.loads(p.read_text()) for p in path.parent.glob(path.name+'.AIO-save-status-*.json')]
+        status = next(item for item in attempts if item['state'] == 'failed')
+        self.assertNotEqual(status['saveId'], first_receipt['saveId'])
         self.assertEqual(status['state'], 'failed')
         self.assertFalse(status['readbackVerified'])
         path.write_bytes(job.bundle.path.read_bytes())

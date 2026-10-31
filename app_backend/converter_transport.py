@@ -17,6 +17,7 @@ from .libreoffice_engine import LibreOfficeError, convert_path
 from .legacy_result_journal import LegacyWorkspace, ROOT_NAME, recover_workspaces, salvage_unverified_workspace
 from .converter_guard.result_store import path_is_link
 from .legacy_storage_budget import LegacyRunControl, measured_bytes, storage_error
+from .file_identity import owned_file_identity
 
 ARCHIVE_CHUNK = 128 * 1024
 MAX_OWNED_ROOTS = 32
@@ -56,6 +57,12 @@ class Result:
     cleaning: bool = False
     restored: bool = False
     salvaged: bool = False
+    source_workspace_id: str | None = None
+    availability_error: str | None = None
+    file_identity: tuple | None = field(default=None, init=False)
+
+    def __post_init__(self):
+        self.file_identity = owned_file_identity(self.path, self.temporary.name)
 
 
 class ConverterTransport:
@@ -82,6 +89,9 @@ class ConverterTransport:
         self.recovery_issues = []
         self.recovery_available = True
         self._recovery_scan_lock = threading.Lock()
+        self._admission_lock = threading.Lock()
+        self._shutdown = threading.Event()
+        self._salvage_roots = {}
         self._recovery_loaded = self.recovery_parent is None
         # The desktop opens immediately, without hashing historical files.
         # The explicit Legacy Recovery panel performs the first disk scan.
@@ -89,14 +99,34 @@ class ConverterTransport:
         if self.recovery_parent is not None and not lazy_recovery:
             self.scan_recovery()
 
+    def _refresh_result_availability(self, tickets=None):
+        """Metadata-only explicit reconciliation; inventory polls never touch disk."""
+        with self.lock:
+            if self.closed:
+                return
+            selected = [(ticket, result) for ticket, result in self.results.items()
+                        if not result.released and (tickets is None or ticket in tickets)]
+        observed = [(ticket, result, owned_file_identity(result.path, result.temporary.name))
+                    for ticket, result in selected]
+        with self.lock:
+            if self.closed:
+                return
+            for ticket, result, identity in observed:
+                if self.results.get(ticket) is not result or result.released:
+                    continue
+                result.availability_error = (None if identity is not None and
+                    identity == result.file_identity else 'LEGACY_RESULT_UNAVAILABLE')
+
     def scan_recovery(self):
-        """Explicit idempotent rescan; never release or overwrite existing bytes."""
+        """Explicit rescan with cancellation and a post-I/O publication barrier."""
         if self.recovery_parent is None:
             return {'state': 'disabled', 'warnings': []}
         with self._recovery_scan_lock:
             with self.lock:
                 if self.closed:
                     raise LibreOfficeError('Программа закрывается.', 'CANCELLED')
+            self._refresh_result_availability()
+            with self.lock:
                 claimed = {Path(result.temporary.name).name for result in self.results.values()
                            if isinstance(result.temporary, LegacyWorkspace)}
                 claimed.update(Path(request.temporary.name).name for request in self.active.values()
@@ -104,29 +134,35 @@ class ConverterTransport:
                 claimed.update(Path(value.name).name for value in self.cleanup_pending
                                if isinstance(value, LegacyWorkspace))
             try:
-                recovered, issues = recover_workspaces(self.recovery_parent, skip_roots=claimed)
+                recovered, issues = recover_workspaces(self.recovery_parent,
+                    skip_roots=claimed, cancel=self._shutdown)
+            except InterruptedError:
+                return {'state': 'cancelled', 'warnings': []}
             except OSError:
                 with self.lock:
-                    self.recovery_issues = [{'workspaceId': 'legacy',
-                                             'code': 'LEGACY_RECOVERY_UNAVAILABLE'}]
+                    if self.closed:
+                        return {'state': 'cancelled', 'warnings': []}
+                    self.recovery_issues = [{'workspaceId': 'legacy', 'code': 'LEGACY_RECOVERY_UNAVAILABLE'}]
                     self.recovery_available = False
                     self._recovery_loaded = True
-                return {'state': 'unavailable', 'warnings': list(self.recovery_issues)}
+                    return {'state': 'unavailable', 'warnings': list(self.recovery_issues)}
             pending, duplicates = {}, set()
             with self.lock:
+                # Shutdown may have overtaken slow hashing. Close every late owner.
+                if self.closed:
+                    for workspace, _value in recovered:
+                        workspace.close()
+                    return {'state': 'cancelled', 'warnings': []}
                 for workspace, value in recovered:
                     identity = value['requestId']
                     if identity in self.active or identity in self.results_by_request or identity in duplicates:
                         workspace.close()
-                        issues.append({'workspaceId': Path(workspace.name).name,
-                                       'code': 'LEGACY_RECOVERY_DUPLICATE_ID'})
+                        issues.append({'workspaceId': Path(workspace.name).name, 'code': 'LEGACY_RECOVERY_DUPLICATE_ID'})
                     elif identity in pending:
                         previous = pending.pop(identity)[0]
                         previous.close()
-                        issues.extend(({'workspaceId': Path(previous.name).name,
-                                        'code': 'LEGACY_RECOVERY_DUPLICATE_ID'},
-                                       {'workspaceId': Path(workspace.name).name,
-                                        'code': 'LEGACY_RECOVERY_DUPLICATE_ID'}))
+                        issues.extend(({'workspaceId': Path(previous.name).name, 'code': 'LEGACY_RECOVERY_DUPLICATE_ID'},
+                                       {'workspaceId': Path(workspace.name).name, 'code': 'LEGACY_RECOVERY_DUPLICATE_ID'}))
                         workspace.close()
                         duplicates.add(identity)
                     else:
@@ -140,7 +176,8 @@ class ConverterTransport:
                 self.recovery_issues = issues
                 self.recovery_available = True
                 self._recovery_loaded = True
-                return {'state': 'completed', 'restored': len(pending),
+                unavailable = sum(bool(result.availability_error) for result in self.results.values() if not result.released)
+                return {'state': 'completed', 'restored': len(pending), 'unavailableResults': unavailable,
                         'warnings': [dict(item) for item in issues]}
 
     def decline_recovery(self, *, request_id=None, workspace_id=None):
@@ -216,6 +253,10 @@ class ConverterTransport:
                 except (OSError, ValueError) as error:
                     raise LibreOfficeError('Не удалось записать отказ. Результаты не удалены.',
                                            'LEGACY_DECLINE_WRITE_FAILED') from error
+                with self.lock:
+                    derivatives = [key for key, result in self.results.items()
+                                   if result.source_workspace_id == Path(workspace.name).name]
+                copies_deleted = all([self.release(key) for key in derivatives])
                 if request_id is not None:
                     deleted = self.release(ticket)
                 else:
@@ -228,7 +269,7 @@ class ConverterTransport:
                     if workspace_id is not None:
                         self.recovery_issues = [item for item in self.recovery_issues
                                                 if item.get('workspaceId') != workspace_id]
-                return {'declined': True, 'cleanupPending': not deleted,
+                return {'declined': True, 'cleanupPending': not (deleted and copies_deleted),
                         'willReappear': False, 'historyUntouched': True}
             finally:
                 if workspace_id is not None and workspace is not None:
@@ -243,8 +284,13 @@ class ConverterTransport:
         """
         if self.recovery_parent is None:
             return {'declined': 0, 'notDeclined': 0, 'cleanupPending': 0, 'errors': []}
-        if not self._recovery_loaded:
-            self.scan_recovery()
+        self.scan_recovery()
+        with self.lock:
+            if self.closed:
+                raise LibreOfficeError('Программа закрывается.', 'CANCELLED')
+            if not self.recovery_available:
+                raise LibreOfficeError('Не удалось прочитать хранилище. Общий отказ не подтверждён.',
+                                       'LEGACY_STORAGE_UNAVAILABLE')
         with self.lock:
             identities = [result.request_id for result in self.results.values()
                           if result.restored and not result.released and
@@ -261,15 +307,18 @@ class ConverterTransport:
                 pending += bool(result['cleanupPending'])
             except LibreOfficeError as error:
                 errors.append({'code': error.code, 'workspaceId': kwargs.get('workspace_id')})
-        return {'declined': completed, 'notDeclined': len(errors),
+        # Also retire derivatives whose source disappeared externally.
+        with self.lock:
+            derivatives = [key for key, result in self.results.items()
+                           if result.salvaged and result.source_workspace_id and not result.released]
+        for key in derivatives:
+            pending += not self.release(key)
+        return {'declined': completed, 'derivedDiscarded': len(derivatives), 'notDeclined': len(errors),
                 'cleanupPending': pending, 'errors': errors,
                 'historyUntouched': True}
 
     def salvage_workspace(self, workspace_id):
-        """Manually copy intact output bytes from an unverified workspace.
-
-        It is NOT a conversion success. The source workspace is never deleted.
-        """
+        """Reserve before copying; only one outstanding derivative per source."""
         if self.recovery_parent is None:
             raise LibreOfficeError('Хранилище восстановления выключено.', 'LEGACY_SALVAGE_UNAVAILABLE')
         if not self._recovery_loaded:
@@ -277,47 +326,90 @@ class ConverterTransport:
         if not isinstance(workspace_id, str) or not ROOT_NAME.fullmatch(workspace_id):
             raise LibreOfficeError('Неверный идентификатор каталога.', 'LEGACY_SALVAGE_INVALID')
         with self._recovery_scan_lock:
-            with self.lock:
-                if self.closed:
-                    raise LibreOfficeError('Программа закрывается.', 'CANCELLED')
-                if not any(item.get('workspaceId') == workspace_id and
-                           item.get('code') == 'LEGACY_RECOVERY_UNVERIFIED'
-                           for item in self.recovery_issues):
-                    raise LibreOfficeError('Каталог не помечен как непроверенный.',
-                                          'LEGACY_SALVAGE_INVALID')
-            temporary = tempfile.TemporaryDirectory(prefix='aio-legacy-salvage-')
-            target = Path(temporary.name) / 'Непроверенные_результаты.zip'
+            with self._admission_lock:
+                disk_roots = self._disk_roots()
+                with self.lock:
+                    if self.closed:
+                        raise LibreOfficeError('Программа закрывается.', 'CANCELLED')
+                    if not self.recovery_available:
+                        raise storage_error('LEGACY_STORAGE_MEASUREMENT_FAILED')
+                    if not any(item.get('workspaceId') == workspace_id and item.get('code') == 'LEGACY_RECOVERY_UNVERIFIED'
+                               for item in self.recovery_issues):
+                        raise LibreOfficeError('Каталог не помечен как непроверенный.', 'LEGACY_SALVAGE_INVALID')
+                    if any(result.source_workspace_id == workspace_id for result in self.results.values()):
+                        raise LibreOfficeError('Извлечённая копия уже существует. Сохраните и закройте её перед повторным извлечением.',
+                                               'LEGACY_SALVAGE_EXISTS')
+                    if self._owned_root_count(disk_roots) >= self.max_owned_roots:
+                        raise LibreOfficeError('Нет свободного места для временного задания. Закройте прежние результаты.',
+                                               'LEGACY_STORAGE_LIMIT')
+                    self._salvage_roots[workspace_id] = None
+            temporary = None
+            published = False
             try:
+                temporary = tempfile.TemporaryDirectory(prefix='aio-legacy-salvage-')
+                with self.lock:
+                    self._salvage_roots[workspace_id] = temporary
+                target = Path(temporary.name) / 'Непроверенные_результаты.zip'
                 count = salvage_unverified_workspace(self.recovery_parent, workspace_id, target,
-                                                      check_budget=self.check_storage)
+                    check_budget=self.check_storage, cancel=self._shutdown)
                 request_id = secrets.token_hex(16)
                 ticket = secrets.token_urlsafe(32)
                 report = {'state': 'error', 'code': 'RECOVERED_UNVERIFIED',
                           'succeeded': 0, 'failed': count, 'total': count,
                           'qualityCompared': False, 'completenessVerified': False}
                 result = Result(temporary, target, target.name, 'application/zip',
-                                request_id=request_id, size=target.stat().st_size,
-                                target_report=report, salvaged=True)
+                    request_id=request_id, size=target.stat().st_size,
+                    target_report=report, salvaged=True, source_workspace_id=workspace_id)
                 with self.lock:
                     if self.closed:
                         raise LibreOfficeError('Программа закрывается.', 'CANCELLED')
                     self.results[ticket] = result
                     self.results_by_request[request_id] = ticket
+                    self._salvage_roots.pop(workspace_id, None)
+                    published = True
                 return {'state': 'ready', 'result': {
                     'name': result.name, 'mime': result.mime, 'size': result.size,
                     'ticket': ticket, 'downloadUrl': '/api/converter/result?ticket=' + ticket,
                     'targetReport': report, 'formatIds': [], 'salvagedUnverified': True},
                     'sourceKept': True, 'conversionSuccess': False}
-            except BaseException:
-                temporary.cleanup()
-                raise
+            except InterruptedError as error:
+                raise LibreOfficeError('Извлечение отменено.', 'CANCELLED') from error
+            finally:
+                if not published:
+                    try:
+                        if temporary is not None:
+                            temporary.cleanup()
+                    except OSError:
+                        with self.lock:
+                            self.cleanup_pending.append(temporary)
+                        self._schedule_cleanup()
+                    finally:
+                        with self.lock:
+                            self._salvage_roots.pop(workspace_id, None)
 
-    def _owned_root_count(self):
-        # Caller holds lock. Published-but-not-finished work shares one owner;
-        # leased/released/in-flight cleanup remains counted until deletion ends.
-        return len({id(item.temporary) for item in self.active.values()} |
-                   {id(item.temporary) for item in self.results.values()} |
-                   {id(item) for item in self.cleanup_pending}) + len(self.recovery_issues)
+    def _disk_roots(self):
+        if self.recovery_parent is None:
+            return ()
+        try:
+            return tuple(str(item.absolute()) for item in self.recovery_parent.iterdir()
+                         if ROOT_NAME.fullmatch(item.name))
+        except FileNotFoundError:
+            return ()
+        except OSError as error:
+            raise storage_error('LEGACY_STORAGE_MEASUREMENT_FAILED') from error
+
+    def _owned_root_count(self, disk_roots=()):
+        # Caller holds lock. De-duplicate physical roots across owners/warnings.
+        owners = ([item.temporary for item in self.active.values()] +
+                  [item.temporary for item in self.results.values()] + list(self.cleanup_pending) +
+                  [item for item in self._salvage_roots.values() if item is not None])
+        roots = {str(Path(item.name).absolute()) for item in owners}
+        roots.update(disk_roots)
+        if self.recovery_parent is not None:
+            roots.update(str((self.recovery_parent / item['workspaceId']).absolute())
+                         for item in self.recovery_issues if isinstance(item.get('workspaceId'), str) and
+                         ROOT_NAME.fullmatch(item['workspaceId']))
+        return len(roots) + sum(item is None for item in self._salvage_roots.values())
 
     def check_storage(self, additional=0):
         """Measure outside the transport lock; status/cancel never wait on I/O."""
@@ -328,12 +420,15 @@ class ConverterTransport:
         with self.lock:
             # Durable storage includes foreign-owned, incomplete and unknown
             # children, not just byte-verified published result payloads.
-            roots = ([self.recovery_parent] + [result.temporary.name
-                      for result in self.results.values() if result.salvaged]
-                     if self.recovery_parent is not None else
-                     list({item.temporary.name for item in self.active.values()} |
-                          {item.temporary.name for item in self.results.values()} |
-                          {item.name for item in self.cleanup_pending}))
+            owned = {item.temporary.name for item in self.active.values()} | {
+                item.temporary.name for item in self.results.values()} | {
+                item.name for item in self.cleanup_pending} | {
+                item.name for item in self._salvage_roots.values() if item is not None}
+            roots = list(owned)
+            if self.recovery_parent is not None:
+                parent = self.recovery_parent.absolute()
+                roots = [parent] + [name for name in owned
+                                    if not Path(name).absolute().is_relative_to(parent)]
         try:
             used = measured_bytes(roots)
         except OSError as error:
@@ -351,6 +446,11 @@ class ConverterTransport:
                 LegacyRunControl(request.cancel, self.check_storage))
 
     def begin(self, identity, connection, *, expected_upload_bytes=0):
+        # Serialize admission/reservation, not status, cancellation or native work.
+        with self._admission_lock:
+            return self._begin_owned(identity, connection, expected_upload_bytes=expected_upload_bytes)
+
+    def _begin_owned(self, identity, connection, *, expected_upload_bytes=0):
         # Retry only already-released storage. Unsaved tickets are never
         # eligible for automatic cleanup.
         self.retry_cleanup()
@@ -361,22 +461,14 @@ class ConverterTransport:
         self.check_storage(expected_upload_bytes)
         # Slot counting includes unverified roots even before manual recovery
         # has been opened. A shallow name-only scan never hashes old documents.
-        disk_roots = 0
-        if self.recovery_parent is not None:
-            try:
-                disk_roots = sum(ROOT_NAME.fullmatch(item.name) is not None
-                                 for item in self.recovery_parent.iterdir())
-            except FileNotFoundError:
-                pass
-            except OSError as error:
-                raise storage_error('LEGACY_STORAGE_MEASUREMENT_FAILED') from error
+        disk_roots = self._disk_roots()
         with self.lock:
             if self.closed or identity in self.active or identity in self.results_by_request:
                 raise LibreOfficeError('Задание недоступно.', 'REQUEST_BUSY')
             if not self.recovery_available:
                 raise LibreOfficeError('Хранилище прежних результатов недоступно. '
                     'Проверьте права и диск; конвертация не начата.', 'LEGACY_STORAGE_UNAVAILABLE')
-            if max(self._owned_root_count(), disk_roots) >= self.max_owned_roots:
+            if self._owned_root_count(disk_roots) >= self.max_owned_roots:
                 raise LibreOfficeError(
                     'Достигнут предел временных заданий старого конвертера. '
                     'Сохраните и закройте прежние результаты или повторите очистку. '
@@ -401,13 +493,16 @@ class ConverterTransport:
             self.scan_recovery()
         with self.lock:
             available = [result for result in self.results.values() if not result.released]
-            items = [{'state': 'salvaged_unverified' if result.salvaged else 'ready',
+            items = [{'state': 'unavailable' if result.availability_error else
+                                'salvaged_unverified' if result.salvaged else 'ready',
+                      'available': result.availability_error is None,
+                      'availabilityCode': result.availability_error,
                       'salvagedUnverified': result.salvaged,
                       'restoredFromJournal': result.restored, 'requestId': result.request_id,
                       'name': result.name, 'mime': result.mime, 'size': result.size,
                       'formatIds': list(result.format_ids),
                       'partial': bool((result.target_report or {}).get('failed')),
-                      'recoverUrl': '/api/converter/recover?request=' + result.request_id}
+                      'recoverUrl': None if result.availability_error else '/api/converter/recover?request=' + result.request_id}
                      for result in available[offset:offset + limit]]
             durable = self.recovery_parent is not None
             return {'state': 'inventory', 'scope': 'durable_published_results' if durable else 'current_process',
@@ -419,7 +514,10 @@ class ConverterTransport:
                     'storage': self.storage_stats(),
                     'recoveryWarnings': [dict(item) for item in self.recovery_issues],
                     'retention': 'until_explicit_release' if durable else 'until_release_or_process_shutdown',
-                    'total': len(available), 'offset': offset, 'limit': limit,
+                    'total': len(available), 'saveableTotal': sum(not r.availability_error for r in available),
+                    'unavailableResults': sum(bool(r.availability_error) for r in available),
+                    'salvagedCount': sum(r.salvaged for r in available),
+                    'offset': offset, 'limit': limit,
                     'more': offset + len(items) < len(available), 'items': items}
 
     def recover(self, identity):
@@ -431,9 +529,15 @@ class ConverterTransport:
         if not self._recovery_loaded:
             self.scan_recovery()
         with self.lock:
+            selected = self.results_by_request.get(identity)
+        self._refresh_result_availability({selected})
+        with self.lock:
             ticket = self.results_by_request.get(identity)
             result = self.results.get(ticket)
             if result is not None and not result.released:
+                if result.availability_error:
+                    return {'state': 'unavailable', 'requestId': identity,
+                            'code': result.availability_error}
                 return {'state': 'ready', 'requestId': identity,
                     'result': {'name': result.name, 'mime': result.mime,
                         'size': result.size, 'ticket': ticket,
@@ -631,6 +735,10 @@ class ConverterTransport:
                 raise LibreOfficeError('Результат недоступен.', 'RESULT_NOT_FOUND')
             result.leases += 1
         try:
+            self._refresh_result_availability({ticket})
+            if result.availability_error:
+                raise LibreOfficeError('Файл результата отсутствует или изменён. Обновите список.',
+                                       'RESULT_NOT_FOUND')
             yield result
         finally:
             with self.lock:
@@ -757,6 +865,7 @@ class ConverterTransport:
     def close(self):
         with self.lock:
             self.closed = True
+            self._shutdown.set()
             if self._cleanup_timer is not None:
                 self._cleanup_timer.cancel()
                 self._cleanup_timer = None
