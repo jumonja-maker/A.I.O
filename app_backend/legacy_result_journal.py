@@ -163,6 +163,9 @@ def salvage_unverified_workspace(parent, workspace_id, destination, *, check_bud
         raise ValueError('Legacy workspace is not an ordinary directory')
     workspace = LegacyWorkspace(root)  # Nonblocking exclusive ownership.
     try:
+        # An explicit deletion barrier must never become recoverable data.
+        if workspace.store.retirement_pending():
+            raise ValueError('Previously retired workspace must not be salvaged')
         try:
             workspace.load()
         except (OSError, ValueError, TypeError, RecursionError):
