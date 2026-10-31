@@ -385,8 +385,14 @@ def start_server(port: int = 0, *, guard_recovery_parent=None, guard_history_par
                 if path.endswith('/decline'):
                     value = self._read_converter_json()
                     if (value.get('confirm') is not True or
-                            set(value) not in ({'confirm', 'requestId'}, {'confirm', 'workspaceId'})):
+                            set(value) not in ({'confirm', 'requestId'},
+                                               {'confirm', 'workspaceId'},
+                                               {'confirm', 'scope'})):
                         raise LibreOfficeError('Нужно явное подтверждение отказа.', 'LEGACY_DECLINE_INVALID')
+                    if 'scope' in value:
+                        if value['scope'] != 'all_previous':
+                            raise LibreOfficeError('Недопустимый режим отказа.', 'LEGACY_DECLINE_INVALID')
+                        return self._json(200, self.server.converter.decline_all_recovery())
                     return self._json(200, self.server.converter.decline_recovery(
                         request_id=value.get('requestId'), workspace_id=value.get('workspaceId')))
                 if path.endswith('/release'):
