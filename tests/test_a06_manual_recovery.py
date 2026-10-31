@@ -109,6 +109,7 @@ class A06ManualRecovery(unittest.TestCase):
         source.parent.mkdir(parents=True)
         source.write_bytes(b'%PDF-1.7\nretry')
         (root / 'legacy-result.json').write_bytes(b'{broken')
+        request.temporary.preserve_outputs = True  # Failed publication left native bytes.
         second = self.transport()
         one = second.inventory()
         self.assertEqual(one['recoveryWarnings'][0]['code'], 'LEGACY_RECOVERY_BUSY')
