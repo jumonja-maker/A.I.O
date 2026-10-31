@@ -402,7 +402,8 @@ class ConverterTransport:
         with self.lock:
             available = [result for result in self.results.values() if not result.released]
             items = [{'state': 'salvaged_unverified' if result.salvaged else 'ready',
-                      'salvagedUnverified': result.salvaged, 'requestId': result.request_id,
+                      'salvagedUnverified': result.salvaged,
+                      'restoredFromJournal': result.restored, 'requestId': result.request_id,
                       'name': result.name, 'mime': result.mime, 'size': result.size,
                       'formatIds': list(result.format_ids),
                       'partial': bool((result.target_report or {}).get('failed')),
@@ -412,6 +413,8 @@ class ConverterTransport:
             return {'state': 'inventory', 'scope': 'durable_published_results' if durable else 'current_process',
                     'restartRecovery': durable and self.recovery_available,
                     'scanLoaded': self._recovery_loaded,
+                    'restoredCount': sum(result.restored and not result.released
+                                         for result in self.results.values()),
                     'storageAvailable': self.recovery_available,
                     'storage': self.storage_stats(),
                     'recoveryWarnings': [dict(item) for item in self.recovery_issues],
