@@ -27,10 +27,16 @@ def convert_fixture(source, target, workspace, **kwargs):
     return [path]
 
 
-def retained(transport, identity='a' * 32):
+def retained(transport, identity='a' * 32, *, payload=None, output_format='pdf'):
     request = transport.begin(identity, None)
-    with patch('app_backend.converter_transport.convert_path', side_effect=convert_fixture):
-        value = transport.execute(request, [{'path': Path('source.txt'), 'warnings': []}], ['file'], ['pdf'])
+    def convert(source, target, workspace, **kwargs):
+        outputs = convert_fixture(source, target, workspace, **kwargs)
+        if payload is not None:
+            outputs[0].write_bytes(payload)
+        return outputs
+    # The fixture bytes are final BEFORE publication and identity capture.
+    with patch('app_backend.converter_transport.convert_path', side_effect=convert):
+        value = transport.execute(request, [{'path': Path('source.txt'), 'warnings': []}], ['file'], [output_format])
     transport.finish(request, retained=True)
     return request, value['result']['ticket']
 
@@ -237,9 +243,8 @@ os._exit(23)
 
     def test_final_http_bytes_are_written_only_after_file_lease_is_released(self):
         transport = self.transport()
-        _, ticket = retained(transport)
+        _, ticket = retained(transport, payload=b'a' * (64 * 1024 + 17), output_format='txt')
         result = transport.results[ticket]
-        result.path.write_bytes(b'a' * (64 * 1024 + 17))
         received, header_sizes = bytearray(), []
         def write(chunk):
             received.extend(chunk)
@@ -252,9 +257,8 @@ os._exit(23)
 
     def test_empty_http_headers_are_written_after_lease_is_released(self):
         transport = self.transport()
-        _, ticket = retained(transport)
+        _, ticket = retained(transport, payload=b'', output_format='txt')
         result = transport.results[ticket]
-        result.path.write_bytes(b'')
         def headers(result, size):
             self.assertEqual(size, 0)
             self.assertEqual(result.leases, 0)

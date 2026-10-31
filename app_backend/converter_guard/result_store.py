@@ -33,13 +33,7 @@ def data_directory():
     return base / 'AIO' / 'ConverterGuard'
 
 
-def atomic_json(path, value):
-    temporary = path.with_suffix('.new')
-    with temporary.open('w', encoding='utf-8') as output:
-        json.dump(value, output, ensure_ascii=True, separators=(',', ':'))
-        output.flush()
-        os.fsync(output.fileno())
-    temporary.replace(path)
+from ..atomic_metadata import atomic_json
 
 
 class ResultStore:

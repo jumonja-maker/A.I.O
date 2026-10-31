@@ -160,6 +160,12 @@ class _Artifact:
     archive_verification: dict | None = None
     archive_expected: tuple | None = None
     save_receipt: dict | None = None
+    availability_error: str | None = None
+    file_identity: tuple | None = field(default=None, init=False)
+
+    def __post_init__(self):
+        from ..file_identity import file_identity
+        self.file_identity = file_identity(self.path)
 
     @property
     def companion(self):
@@ -168,13 +174,14 @@ class _Artifact:
         return self.name == 'AIO-sheets.json' and self.source_sheet is None and self.format in ('csv','tab','tsv')
 
     def metadata(self):
-        return {'supportingFile': self.companion, 'fileId': self.file_id, 'format': self.format, 'name': self.name,
+        return {'available': self.availability_error is None, 'availabilityCode': self.availability_error,
+                'supportingFile': self.companion, 'fileId': self.file_id, 'format': self.format, 'name': self.name,
                 'archiveName': self.archive_name, 'size': self.size, 'saved': self.saved,
                 'sha256': self.sha256, 'readbackVerified':self.readback_verified,
                 'sourceSheet':copy.deepcopy(self.source_sheet),
-                'ticket': self.ticket,
+                'ticket': None if self.availability_error else self.ticket,
                 'mime': mime_for(self.path.suffix.lower().lstrip('.')),
-                'downloadUrl': '/api/converter-guard/result?ticket=' + self.ticket,
+                'downloadUrl': None if self.availability_error else '/api/converter-guard/result?ticket=' + self.ticket,
                 **({'archiveVerification':copy.deepcopy(self.archive_verification)}
                    if self.archive_verification is not None else {})}
 
@@ -480,25 +487,26 @@ class ConverterGuard:
         with self._lock:
             if self._closed:
                 raise GuardError('GUARD_CLOSED', 'Guard завершает работу.', status=503)
-            if self._recovery and self._recovery_scan_state != 'scanning':
-                if not self._recovery_loaded or self._recovery_pending:
-                    self._recovery_scan_state = 'scanning'
-                    self._recovery_scan_error = None
-                    self._recovery_scan_id += 1
-                    # Claim and submit under one lock: shutdown cannot overtake
-                    # admission, and repeated clicks cannot queue extra scans.
-                    try:
-                        self._recovery_future = self._recovery_executor.submit(self._run_recovery_scan)
-                    except RuntimeError as error:
-                        self._recovery_scan_state = 'failed'
-                        self._recovery_scan_error = 'RECOVERY_SCAN_FAILED'
-                        raise GuardError('RECOVERY_SCAN_FAILED', 'Не удалось начать поиск результатов.', status=503) from error
+            if (self._recovery or self._jobs) and self._recovery_scan_state != 'scanning':
+                # Every explicit request also reconciles known output files;
+                # loaded old-job discovery alone cannot refresh their availability.
+                self._recovery_scan_state = 'scanning'
+                self._recovery_scan_error = None
+                self._recovery_scan_id += 1
+                # Claim and submit under one lock: duplicate clicks while the
+                # worker runs still share one request and never perform inline I/O.
+                try:
+                    self._recovery_future = self._recovery_executor.submit(self._run_recovery_scan)
+                except RuntimeError as error:
+                    self._recovery_scan_state = 'failed'
+                    self._recovery_scan_error = 'RECOVERY_SCAN_FAILED'
+                    raise GuardError('RECOVERY_SCAN_FAILED', 'Не удалось начать поиск результатов.', status=503) from error
         return self.recoverable(scan=False)
 
     def _run_recovery_scan(self):
         failed = False
         try:
-            self._load_recovery()
+            self.recoverable(scan=True)
         except Exception:
             failed = True  # Paths and exception text never enter the UI status.
         finally:
@@ -959,6 +967,14 @@ class ConverterGuard:
         self._prune(reap_saved=True, defer_cleanup=not scan)
         if scan:
             self._load_recovery()
+            with self._lock:
+                identities = [job.id for job in self._jobs.values() if not job.released]
+            for identity in identities:
+                try:
+                    self._reconcile_results(identity)
+                except GuardError as error:
+                    if error.code not in ('JOB_NOT_FOUND', 'GUARD_CLOSED'):
+                        raise
         with self._lock:
             return {'storage': self.storage_stats(), 'pendingRecoveryFolders':len(self._recovery_pending),
                     'recoveryScan': {'state': self._recovery_scan_state,
@@ -970,12 +986,15 @@ class ConverterGuard:
                     'warnings':list(self._recovery_issues),
                     'jobs': [{'jobId': j.id, 'recovered': j.recovered,
                               'label':j.files[0].name if j.files else 'Результаты',
-                              'outputs': len(j.artifacts), 'bytes': sum(a.size for a in j.artifacts),
-                              'state': j.state, 'running': j.running, 'saveInProgress': j.saving,
-                              'unsavedOutputs': sum(not a.saved for a in j.artifacts),
-                              'unsavedCompanionFiles': sum(not a.saved and a.companion for a in j.artifacts),
-                              'unsavedDocuments': sum(not a.saved and not a.companion for a in j.artifacts),
-                              'unsavedBytes': sum(a.size for a in j.artifacts if not a.saved),
+                              'outputs': sum(not a.availability_error for a in j.artifacts),
+                              'knownOutputs': len(j.artifacts),
+                              'unavailableOutputs': sum(bool(a.availability_error) for a in j.artifacts),
+                              'bytes': sum(a.size for a in j.artifacts if not a.availability_error),
+                              'state': self._availability_state(j), 'conversionState': j.state, 'running': j.running, 'saveInProgress': j.saving,
+                              'unsavedOutputs': sum(not a.saved and not a.availability_error for a in j.artifacts),
+                              'unsavedCompanionFiles': sum(not a.saved and not a.availability_error and a.companion for a in j.artifacts),
+                              'unsavedDocuments': sum(not a.saved and not a.availability_error and not a.companion for a in j.artifacts),
+                              'unsavedBytes': sum(a.size for a in j.artifacts if not a.saved and not a.availability_error),
                               'recoveryDurable': bool(j.store and not j.recovery_error),
                               'retainSources': j.retain_sources,
                               'comparisonAvailable': False,
@@ -2015,7 +2034,8 @@ class ConverterGuard:
                           'exportFilter': t.export_filter, 'warnings': warning_details(t.warnings),
                           'quality':copy.deepcopy(t.quality) if t.quality else None,
                           'outputs': [{'path': a.archive_name, 'size': a.size, 'sha256':a.sha256,
-                                       'saved':a.saved, 'readbackVerified':a.readback_verified,
+                                       'saved':a.saved, 'available':not a.availability_error,
+                                       'availabilityCode':a.availability_error, 'readbackVerified':a.readback_verified,
                                        'sourceSheet':copy.deepcopy(a.source_sheet)} for a in t.artifacts],
                           'route': t.route,
                           'libreOfficeStarted': t.lo_started} for t in f.targets]}
@@ -2407,12 +2427,7 @@ class ConverterGuard:
             self._cleanup(job)
 
     def verify_saved_download(self, ticket, destination, *, cancel=None):
-        """Verify the final host-selected copy; a download event is not evidence.
-
-        ZIP metadata is immutable packaging evidence. A separate adjacent
-        receipt binds this external saveId to that snapshot and final digest.
-        No successful receipt or acknowledgement is inferred from the spool.
-        """
+        """Verify final bytes and publish an immutable, no-clobber receipt."""
         from .save_verification import sha256_stream, readback_fingerprint
         from .result_store import atomic_json
         cancel = cancel or threading.Event()
@@ -2429,14 +2444,31 @@ class ConverterGuard:
             job.saving = True
             job.io += 1
             retained.save_receipt = None
+            retained.readback_verified = False
             cancel = _Cancellation(cancel, job.save_cancel)
             self._record(job, 'save_started')
         save_id = secrets.token_hex(16)
-        receipt_path = destination.with_name(destination.name + '.AIO-save-status.json')
-        receipt = {'schema':1, 'jobId':job.id, 'saveId':save_id, 'state':'verifying',
-                   'readbackVerified':False, 'scope':'final_destination_copy',
-                   'qualityCompared':False}
+        receipt = {'schema': 1, 'jobId': job.id, 'saveId': save_id, 'state': 'verifying',
+                   'readbackVerified': False, 'scope': 'final_destination_copy', 'qualityCompared': False}
         is_bundle = retained is job.bundle
+
+        def publish(value):
+            # Never replace an earlier receipt, arbitrary file or concurrent writer.
+            for attempt in range(32):
+                suffix = ('.AIO-save-status.json' if attempt == 0 else
+                          '.AIO-save-status-' + save_id + '-' + str(attempt) + '.json')
+                name = destination.name + suffix
+                if len(name.encode('utf-8')) > 240:
+                    name = 'AIO-save-status-' + save_id + '-' + str(attempt) + '.json'
+                path = destination.with_name(name)
+                value['receiptFile'] = name
+                try:
+                    atomic_json(path, value, overwrite=False)
+                    return path
+                except FileExistsError:
+                    continue
+            raise OSError('Could not reserve a new save receipt name')
+
         try:
             if is_bundle:
                 if retained.archive_expected is None:
@@ -2444,28 +2476,24 @@ class ConverterGuard:
                 manifest, metadata, snapshot = retained.archive_expected
                 receipt.update(archiveSnapshot=copy.deepcopy(snapshot), outputsExpected=len(manifest),
                                outputsWritten=len(manifest), bytesWritten=retained.size)
-                atomic_json(receipt_path, receipt)
             with self.open_result(ticket) as (stream, _name, _size):
                 expected = sha256_stream(stream, cancel=cancel)
                 if retained.sha256 and expected != (retained.size, retained.sha256):
-                    raise GuardError('SAVE_CHANGED',
-                        'Байты результата изменились после проверки, до скачивания.', stage='save')
+                    raise GuardError('SAVE_CHANGED', 'Байты результата изменились до скачивания.', stage='save')
                 if is_bundle:
                     from .archive_verification import verify_built_archive
                     try:
-                        size, digest, check = verify_built_archive(
-                            destination, manifest, metadata, snapshot, cancel=cancel)
+                        size, digest, check = verify_built_archive(destination, manifest, metadata, snapshot, cancel=cancel)
                     except GuardError as error:
                         raise GuardError('SAVE_CANCELLED' if error.code == 'BUNDLE_CANCELLED' else 'SAVE_VERIFY_FAILED',
                             'Проверка конечного ZIP не завершена. Результаты остаются в AIO.', stage='save') from error
-                    verification = {**check, 'verificationScope':'final_destination_zip_members',
-                                    'externalSaveVerified':True}
+                    verification = {**check, 'verificationScope': 'final_destination_zip_members', 'externalSaveVerified': True}
                 else:
                     size, digest, unchanged = readback_fingerprint(destination, cancel=cancel)
                     if not unchanged:
                         raise GuardError('SAVE_VERIFY_FAILED', 'Сохранённый файл изменился при проверке.', stage='save')
-                    verification = {'verificationScope':'download_bytes',
-                                    'verificationMethod':'independent_read_sha256', 'bytesVerified':size}
+                    verification = {'verificationScope': 'download_bytes',
+                                    'verificationMethod': 'independent_read_sha256', 'bytesVerified': size}
                 if expected != (size, digest):
                     raise GuardError('SAVE_VERIFY_FAILED', 'Сохранённые байты отличаются от результата Guard.', stage='save')
                 if cancel.is_set():
@@ -2473,13 +2501,13 @@ class ConverterGuard:
                 receipt.update(verification, state='completed', readbackVerified=True,
                                destinationSha256=digest, destinationSize=size)
                 if is_bundle:
-                    # Persist the final authority only AFTER reading every ZIP
-                    # member (CRC + expected SHA), metadata and container hash.
-                    atomic_json(receipt_path, receipt)
+                    receipt_path = publish(receipt)
                     raw = json.dumps(receipt, ensure_ascii=True, separators=(',', ':')).encode('utf-8')
                     seen_size, seen_digest, stable = readback_fingerprint(receipt_path, cancel=cancel)
                     if not stable or (seen_size, seen_digest) != (len(raw), hashlib.sha256(raw).hexdigest()):
                         raise GuardError('SAVE_VERIFY_FAILED', 'Не удалось проверить квитанцию сохранения ZIP.', stage='save')
+                if cancel.is_set():
+                    raise GuardError('SAVE_CANCELLED', 'Проверка сохранения отменена.', stage='save')
                 with self._lock:
                     retained.readback_verified = True
                     retained.save_receipt = receipt
@@ -2487,14 +2515,14 @@ class ConverterGuard:
         except Exception as error:
             if is_bundle:
                 try:
-                    atomic_json(receipt_path, {**receipt, 'state':'cancelled' if
+                    publish({**receipt, 'state': 'cancelled' if
                         isinstance(error, GuardError) and error.code == 'SAVE_CANCELLED' else 'failed',
-                        'readbackVerified':False, 'externalSaveVerified':False,
-                        'code':error.code if isinstance(error, GuardError) else 'SAVE_STORAGE_FAILED'})
+                        'readbackVerified': False, 'externalSaveVerified': False,
+                        'code': error.code if isinstance(error, GuardError) else 'SAVE_STORAGE_FAILED'})
                 except OSError:
-                    pass  # A failed receipt never acknowledges or deletes originals.
+                    pass
             if isinstance(error, OSError):
-                raise GuardError('SAVE_STORAGE_FAILED', 'Не удалось записать квитанцию сохранения. Результаты остаются в AIO.', stage='save') from error
+                raise GuardError('SAVE_STORAGE_FAILED', 'Не удалось записать квитанцию. Результаты остаются в AIO.', stage='save') from error
             raise
         finally:
             with self._lock:
@@ -2546,7 +2574,13 @@ class ConverterGuard:
                          'targets': targets, 'warnings': (
                              ['SOURCE_NAME_NORMALIZED'] if item.name_normalized else [])})
         counts = self._counts(job)
+        available = [a for a in job.artifacts if not a.availability_error]
         result = copy.deepcopy(job.result)
+        if result is not None:
+            anchor = self._tickets.get(result.get('ticket'))
+            if anchor is not None and anchor.availability_error:
+                result = ({**available[0].metadata(), 'jobId': job.id, 'folderOnly': True}
+                          if available else None)
         outputs_delta = bool(result_delta and only_files is not None and result is not None)
         if result is not None:
             # This negotiated wire representation avoids repeatedly allocating
@@ -2555,7 +2589,7 @@ class ConverterGuard:
             # the complete inventory. Artifact tickets survive ready -> saved.
             artifacts = (job.artifacts if not outputs_delta else
                          (a for item in selected for task in item.targets for a in task.artifacts))
-            result['outputs'] = [a.metadata() for a in artifacts]
+            result['outputs'] = [a.metadata() for a in artifacts if not a.availability_error]
         finished = not job.running and job.state in TERMINAL
         current = None
         if job.current:
@@ -2567,15 +2601,19 @@ class ConverterGuard:
                 current['taskId']=job.id+':preflight:'+item.id
                 current['position']=-task.index
         snapshot = {'schemaVersion': 3, 'jobId': job.id, 'revision': job.revision,
-                'state': job.state, 'finished': finished,
+                'state': self._availability_state(job), 'conversionState': job.state, 'finished': finished,
+                'unavailableOutputs': sum(bool(a.availability_error) for a in job.artifacts),
                 'diagnosticBytes':job.diagnostic_bytes,
-                'unsavedCompanionFiles':sum(not a.saved and a.companion for a in job.artifacts),
-                'unsavedDocuments':sum(not a.saved and not a.companion for a in job.artifacts),
+                'unsavedCompanionFiles':sum(not a.saved and not a.availability_error and a.companion for a in job.artifacts),
+                'unsavedDocuments':sum(not a.saved and not a.availability_error and not a.companion for a in job.artifacts),
                 'currentTask': current, 'pauseRequested': job.paused,
                 'fileTimeoutSeconds': job.file_timeout, 'officeStarts': job.office_starts,
                 'recovered': job.recovered, 'salvaged': job.salvage, 'recoveryError': job.recovery_error,
                 'recoveryDurable': bool(job.store and not job.recovery_error),
-                'resultAvailability': ('recovered_unverified' if job.salvage else
+                'resultAvailability': ('unavailable' if job.artifacts and not available and
+                                        (job.bundle is None or job.bundle.availability_error) else
+                                       'partial_unavailable' if any(a.availability_error for a in job.artifacts) else
+                                       'recovered_unverified' if job.salvage else
                                        'ready_volatile' if job.artifacts and job.recovery_error else
                                        'ready_retained' if job.artifacts else 'none'),
                 'qualityCheckRequested':job.quality_check,
@@ -2599,12 +2637,54 @@ class ConverterGuard:
                 'trace': job.trace.snapshot() if include_trace else None,
                 'archiveMode': job.archive_mode, 'bundleDeferred': job.bundle_deferred,
                 'packagingError': job.packaging_error, 'saveInProgress': job.saving,
-                'partialResult': ({**job.artifacts[0].metadata(), 'jobId': job.id,
-                    'outputsCount': len(job.artifacts), 'folderOnly': True}
-                    if job.artifacts else None)}
+                'partialResult': ({**available[0].metadata(), 'jobId': job.id,
+                    'outputsCount': len(available), 'folderOnly': True}
+                    if available else None)}
         if outputs_delta:
             snapshot['resultOutputsDelta'] = True
         return snapshot
+
+    def _reconcile_results(self, job_id):
+        """Explicit metadata reconciliation; never ordinary delta polling."""
+        from ..file_identity import file_identity
+        with self._lock:
+            job = self._get(job_id)
+            if job.running or job.saving:
+                return
+            artifacts = list(job.artifacts)
+            if job.bundle is not None and all(job.bundle is not a for a in artifacts):
+                artifacts.append(job.bundle)
+            job.io += 1
+        try:
+            observations = []
+            for artifact in artifacts:
+                path = self._owned_file_path(job, artifact.path, artifact.size)
+                identity = file_identity(path) if path is not None else None
+                code = (None if identity is not None and identity == artifact.file_identity else 'RESULT_UNAVAILABLE')
+                observations.append((artifact, code))
+            with self._lock:
+                current = {id(a) for a in job.artifacts}
+                if job.bundle is not None:
+                    current.add(id(job.bundle))
+                changed = False
+                for artifact, code in observations:
+                    if id(artifact) in current and artifact.availability_error != code:
+                        artifact.availability_error = code
+                        changed = True
+                if changed and not job.released:
+                    self._record(job, 'results_reconciled', file_id='*')
+        finally:
+            with self._lock:
+                job.io -= 1
+                self._io_drained.notify_all()
+            self._cleanup(job)
+
+    @staticmethod
+    def _availability_state(job):
+        if job.running or not any(a.availability_error and not a.saved for a in job.artifacts):
+            return job.state
+        return ('partial' if any(not a.availability_error or a.saved for a in job.artifacts)
+                or job.bundle is not None and not job.bundle.availability_error else 'failed')
 
     def status(self, job_id, *, include_trace=False, since_revision=None, delta=False,
                result_delta=False, recover=True):
@@ -2617,6 +2697,10 @@ class ConverterGuard:
         if type(result_delta) is not bool:
             raise GuardError('STATUS_RESULT_DELTA', 'Некорректный режим состояния результатов.')
         self._prune(defer_cleanup=not recover)
+        # lookup=current suppresses old-job discovery, not verification of
+        # a known job on an explicit full refresh. ETag/delta polling stays cheap.
+        if since_revision is None:
+            self._reconcile_results(job_id)
         with self._lock:
             job = self._get(job_id)
             if not include_trace and since_revision == job.revision:
@@ -2664,12 +2748,17 @@ class ConverterGuard:
             return None
 
     def _owned_artifact_path(self, job, artifact, *, stage):
-        """Recheck retained outputs at every read boundary, not only export."""
+        """Validate identity at every read and invalidate metadata on failure."""
+        from ..file_identity import file_identity
         path = self._owned_file_path(job, artifact.path, artifact.size)
-        if path is None:
+        identity = file_identity(path) if path is not None else None
+        if path is None or (artifact.file_identity is not None and identity != artifact.file_identity):
+            with self._lock:
+                if not artifact.availability_error:
+                    artifact.availability_error = 'RESULT_UNAVAILABLE'
+                    self._record(job, 'results_reconciled', file_id='*')
             raise GuardError('SAVE_CHANGED',
-                'Результат изменён или находится вне служебного хранилища AIO.',
-                stage=stage, status=409)
+                'Результат отсутствует, изменён или находится вне служебного хранилища AIO.', stage=stage, status=409)
         return path
 
     @contextmanager

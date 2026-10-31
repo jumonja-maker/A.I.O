@@ -236,6 +236,16 @@ class StructuralEvidence(unittest.TestCase):
 
 
 class DirectCleanupConcurrency(unittest.TestCase):
+    def owned_result(self, owner):
+        # The cleanup behavior is controlled, but the retained file identity
+        # is real: production must never accept a made-up path as saveable.
+        backing = tempfile.TemporaryDirectory()
+        self.addCleanup(backing.cleanup)
+        owner.name = str(Path(backing.name).resolve())
+        path = Path(owner.name) / 'file.pdf'
+        path.write_bytes(b'owned result')
+        return Result(owner, path, path.name, 'application/pdf', size=path.stat().st_size)
+
     def test_failed_cleanup_schedules_only_bounded_retries_and_close_cancels_timer(self):
         callbacks=[]
         class Timer:
@@ -245,7 +255,7 @@ class DirectCleanupConcurrency(unittest.TestCase):
         class Busy:
             def cleanup(self):raise PermissionError('sharing violation')
         transport=ConverterTransport()
-        transport.results['ticket']=Result(Busy(),Path('unused'),'file.pdf','application/pdf')
+        transport.results['ticket']=self.owned_result(Busy())
         with patch('app_backend.converter_transport.threading.Timer',Timer):
             self.assertFalse(transport.release('ticket'))
             for _ in range(5):
@@ -261,12 +271,12 @@ class DirectCleanupConcurrency(unittest.TestCase):
             calls=0
             def cleanup(self):self.calls+=1;entered.set();leave.wait(2)
         transport=ConverterTransport();temporary=Slow()
-        transport.results['ticket']=Result(temporary,Path('unused'),'file.pdf','application/pdf')
+        transport.results['ticket']=self.owned_result(temporary)
         with transport.lease('ticket'):
             self.assertFalse(transport.release('ticket'));self.assertEqual(temporary.calls,0)
         # Lease release does cleanup outside the lock; use a new result to hold
         # an actual deletion barrier while unrelated status can still respond.
-        temporary=Slow();entered.clear();transport.results['two']=Result(temporary,Path('unused'),'f.pdf','application/pdf')
+        temporary=Slow();entered.clear();transport.results['two']=self.owned_result(temporary)
         thread=threading.Thread(target=lambda:transport.release('two'));thread.start()
         try:
             self.assertTrue(entered.wait(1));tick=time.monotonic()

@@ -22,7 +22,7 @@
       get('[data-l-refresh]').disabled=pending||loading;
       get('[data-l-prev]').disabled=pending||loading||offset===0;
       get('[data-l-next]').disabled=pending||loading||!more;
-      for(const button of panel.querySelectorAll('[data-l-action],[data-l-decline],[data-l-salvage]'))button.disabled=pending||loading;
+      for(const button of panel.querySelectorAll('[data-l-action],[data-l-decline],[data-l-salvage]'))button.disabled=pending||loading||button.dataset.unavailable==='true';
       get('[data-l-decline-all]').disabled=pending||loading;
     };
     async function api(path,body,signal){
@@ -130,7 +130,7 @@
           const row=document.createElement('div');row.className='aio-guard-save';
           const label=document.createElement('span');label.textContent=String(item.name||'Результат').slice(0,255)+
             ' · '+(Number.isSafeInteger(item.size)?item.size+' байт':'размер неизвестен')+
-            (item.salvagedUnverified===true?' · НЕПРОВЕРЕННЫЕ файлы':item.partial===true?' · есть ошибки преобразования':'');row.append(label);
+            (item.available===false?' · ФАЙЛ НЕДОСТУПЕН':item.salvagedUnverified===true?' · НЕПРОВЕРЕННЫЕ файлы':item.partial===true?' · есть ошибки преобразования':'');row.append(label);
           if(item.restoredFromJournal===true){
             const button=document.createElement('button');button.type='button';
             button.textContent='Не восстанавливать';button.setAttribute('data-l-decline',item.requestId);
@@ -139,6 +139,7 @@
           for(const [label,discard] of [['Сохранить копию',false],['Удалить из AIO',true]]){
             const button=document.createElement('button');button.type='button';button.textContent=label;
             button.setAttribute('data-l-action',discard?'discard':'save');
+            if(item.available===false){button.dataset.unavailable='true';button.disabled=true;}
             button.addEventListener('click',()=>act(item.requestId,discard));row.append(button);
           }
           list.append(row);
@@ -171,10 +172,10 @@
           }
           warnings.append(line);
         }
-        get('[data-l-decline-all]').hidden=!(packet.restoredCount>0||
+        get('[data-l-decline-all]').hidden=!(packet.restoredCount>0||packet.salvagedCount>0||
           (packet.recoveryWarnings||[]).some(w=>/^aio-legacy-[a-f0-9]{32}$/.test(w.workspaceId||'')));
         if(clear)status(packet.storageAvailable===false?'Хранилище недоступно. Проверьте права и диск.':
-          'Найдено результатов: '+total+'. Целостность восстановленных файлов проверена; качество конвертации не подтверждено.');
+          'Найдено записей: '+total+'. Недоступных файлов: '+(packet.unavailableResults||0)+'. Качество конвертации не подтверждено.');
       }catch(error){if(current(id)&&error.name!=='AbortError')status(error.message||'Не удалось обновить список.');}
       finally{if(alive&&revision===id){loading=false;controls();}}
     }
