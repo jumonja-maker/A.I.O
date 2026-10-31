@@ -57,11 +57,33 @@
       }catch(error){if(current(id))status(error.message||'Действие не выполнено. Результат остаётся в AIO.');}
       finally{pending=false;if(alive){controls();if(discard&&current(id))refresh(false);}}
     }
-    async function refresh(clear=true){
+    async function salvage(workspaceId){
+      if(pending||loading)return;
+      const id=revision;pending=true;controls();
+      status('Собираем уцелевшие файлы. Полнота и качество конвертации не подтверждены…');
+      try{
+        const found=await api('salvage',{workspaceId});
+        if(!current(id))return;
+        const result=found?.result;
+        if(found.state!=='ready'||result?.salvagedUnverified!==true||
+           !/^[A-Za-z0-9_-]{32,128}$/.test(result.ticket)||
+           result.downloadUrl!=='/api/converter/result?ticket='+result.ticket)
+          throw Error('Непроверенный ZIP не создан. Оригинальные файлы оставлены на диске.');
+        if(typeof window.AllInOneBridge?.saveExcel!=='function')
+          throw Error('Сохранение недоступно. Исходные файлы оставлены на диске.');
+        const outcome=await window.AllInOneBridge.saveExcel(result);
+        if(current(id))status(outcome?.saved?
+          'Копия уцелевших файлов сохранена. Это НЕ подтверждение успешной конвертации. Оригиналы оставлены в AIO.':
+          'Сохранение копии не подтверждено. Оригинальные файлы оставлены в AIO.');
+      }catch(error){if(current(id))status(error.message||'Не удалось сохранить найденные файлы. Оригиналы не удалены.');}
+      finally{pending=false;if(alive)controls();}
+    }
+    async function refresh(clear=true,forceScan=false){
       if(!alive||!host.open||!panel.open||pending)return;
       controller?.abort();controller=new AbortController();
       const id=++revision;loading=true;controls();if(clear)status('Получаем список прежних результатов…');
       try{
+        if(forceScan)await api('rescan',{},controller.signal);
         const packet=await api('recover?offset='+offset+'&limit=20',undefined,controller.signal);
         if(!current(id))return;
         if(!Array.isArray(packet.items)||packet.items.length>20||!Number.isSafeInteger(packet.total)||packet.total<0)
@@ -77,7 +99,7 @@
           const row=document.createElement('div');row.className='aio-guard-save';
           const label=document.createElement('span');label.textContent=String(item.name||'Результат').slice(0,255)+
             ' · '+(Number.isSafeInteger(item.size)?item.size+' байт':'размер неизвестен')+
-            (item.partial===true?' · есть ошибки преобразования':'');row.append(label);
+            (item.salvagedUnverified===true?' · НЕПРОВЕРЕННЫЕ файлы':item.partial===true?' · есть ошибки преобразования':'');row.append(label);
           for(const [label,discard] of [['Сохранить копию',false],['Удалить из AIO',true]]){
             const button=document.createElement('button');button.type='button';button.textContent=label;
             button.setAttribute('data-l-action',discard?'discard':'save');
@@ -92,8 +114,19 @@
             'Занято при последней проверке: '+storage.usedBytes+' байт.':'Занятое место пока не измерено или недоступно.') : '';
         const warnings=get('[data-l-warnings]');warnings.replaceChildren();
         for(const warning of (packet.recoveryWarnings||[]).slice(0,40)){
-          const text=document.createElement('p');text.textContent=String(warning.code||'LEGACY_RECOVERY_UNVERIFIED').slice(0,96)+
-            ' — эти файлы не подтверждены или заняты другим экземпляром. Они оставлены на диске.';warnings.append(text);
+          const line=document.createElement('div');line.className='aio-guard-save';
+          const code=String(warning.code||'LEGACY_RECOVERY_UNVERIFIED').slice(0,96);
+          const text=document.createElement('p');text.textContent=code+
+            ' — файлы не подтверждены или заняты другим экземпляром. Оригиналы оставлены на диске.';
+          line.append(text);
+          if(code==='LEGACY_RECOVERY_UNVERIFIED'&&
+             /^aio-legacy-[a-f0-9]{32}$/.test(warning.workspaceId||'')){
+            const button=document.createElement('button');button.type='button';
+            button.textContent='Сохранить уцелевшие файлы (непроверенные)';
+            button.setAttribute('data-l-salvage',warning.workspaceId);
+            button.addEventListener('click',()=>salvage(warning.workspaceId));line.append(button);
+          }
+          warnings.append(line);
         }
         if(clear)status(packet.storageAvailable===false?'Хранилище недоступно. Проверьте права и диск.':
           'Найдено результатов: '+total+'. Целостность восстановленных файлов проверена; качество конвертации не подтверждено.');
@@ -104,7 +137,7 @@
     const toggle=()=>{if(panel.open)refresh();else invalidate();};
     const close=()=>{if(!host.open)invalidate();};
     panel.addEventListener('toggle',toggle);host.addEventListener('close',close);
-    get('[data-l-refresh]').addEventListener('click',()=>refresh());
+    get('[data-l-refresh]').addEventListener('click',()=>refresh(true,true));
     get('[data-l-prev]').addEventListener('click',()=>{offset=Math.max(0,offset-20);refresh();});
     get('[data-l-next]').addEventListener('click',()=>{if(more){offset+=20;refresh();}});
     controls();
