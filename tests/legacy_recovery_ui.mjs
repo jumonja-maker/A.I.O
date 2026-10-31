@@ -13,9 +13,9 @@ window.confirm=()=>yes;
 window.AllInOneBridge={saveExcel:async result=>{saves.push(result);return saveOutcome;},
   converter:{recoverable:async()=>({jobs:[],warnings:[],storage:{}}),canRetry:()=>false}};
 const item=n=>({requestId:n.toString(16).padStart(32,'0'),name:n===0?'<img src=x> Результат.zip':'result-'+n+'.pdf',
-  size:123,partial:n===0});
+  size:123,partial:n===0,restoredFromJournal:true});
 const inventory=offset=>({items:Array.from({length:offset?1:20},(_,i)=>item(offset+i)),
-  total:21,more:offset===0,storageAvailable:true,recoveryWarnings:[],
+  total:21,more:offset===0,restoredCount:21,storageAvailable:true,recoveryWarnings:[],
   storage:{maxOwnedBytes:10000,usedBytes:8000,storageMeasurementOk:true}});
 const fetch=async(url,options)=>{
   calls.push({url,options});
@@ -27,6 +27,14 @@ const fetch=async(url,options)=>{
   else if(url.endsWith('/rescan')){
     assert.equal(options.method,'POST');assert.deepEqual(JSON.parse(options.body),{});
     body={state:'completed',restored:0,warnings:[]};
+  }else if(url.endsWith('/decline')){
+    assert.equal(options.method,'POST');
+    const request=JSON.parse(options.body);
+    assert.equal(request.confirm,true,'Backend refusal always requires explicit confirmation');
+    packet={...inventory(0),items:[],total:0,more:false,restoredCount:0,recoveryWarnings:[]};
+    body=request.scope==='all_previous'?
+      {declined:21,notDeclined:0,cleanupPending:0,historyUntouched:true}:
+      {declined:true,cleanupPending:false,willReappear:false,historyUntouched:true};
   }else if(url.endsWith('/salvage')){
     assert.equal(options.method,'POST');
     body={state:'ready',result:{name:'salvage.zip',salvagedUnverified:true,
@@ -76,6 +84,22 @@ assert.equal(panel.querySelectorAll('[data-l-warnings] p').length,40);
 assert.equal(panel.querySelectorAll('img').length,0);
 assert.equal(calls.filter(call=>call.url.endsWith('/rescan')).length,1,
   'Retry explicitly rescans instead of silently polling the disk');
+assert.equal(panel.querySelector('[data-l-decline-all]').hidden,false,
+  'Recovered results offer a single bulk-refusal action');
+yes=false;
+panel.querySelector('[data-l-decline-all]').click();await flush();
+assert.equal(calls.filter(call=>call.url.endsWith('/decline')).length,0,
+  'Declining the confirmation never changes recovery state');
+yes=true;
+panel.querySelector('[data-l-decline-all]').click();await flush();
+const declineCalls=calls.filter(call=>call.url.endsWith('/decline'));
+assert.equal(declineCalls.length,1,'All previous results require one confirmed request');
+assert.equal(JSON.parse(declineCalls[0].options.body).scope,'all_previous');
+assert.equal(panel.querySelector('[data-l-decline-all]').hidden,true,
+  'No repeated refusal prompt once the inventory is empty');
+assert.equal(panel.querySelectorAll('[data-l-list] > div').length,0);
+packet={...inventory(0),recoveryWarnings:[]};
+panel.querySelector('[data-l-refresh]').click();await flush();
 late=true;panel.querySelector('[data-l-action="save"]').click();await flush();
 assert.equal(typeof late,'function');
 const dialog=document.querySelector('.aio-guard-popup');dialog.close();
@@ -95,4 +119,4 @@ assert.equal(saves.length,2,'Production pagehide ignores a late lookup');
 assert.equal(panel.isConnected,false,'Production pagehide disposes the component');
 console.log(JSON.stringify({status:'PASS',lazyDiscovery:true,paginated:20,htmlEscaped:true,
   partialVisible:true,noAutomaticRelease:true,explicitDiscard:true,browserDownloadNotSaved:true,
-  nativeCopyStillRetained:true,warningsBounded:40,lateReplyIgnored:true,reopenUsable:true}));
+  nativeCopyStillRetained:true,warningsBounded:40,lateReplyIgnored:true,reopenUsable:true,oneConfirmedDeclineAll:true,noRepeatAfterRefusal:true}));
