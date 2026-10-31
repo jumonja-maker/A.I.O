@@ -641,15 +641,25 @@ def copy_media_identity(source, output_dir, target, *, cancel=None):
     source, output_dir = Path(source), Path(output_dir)
     if target not in RASTER:
         return None
-    # JPEG/BMP metadata alone does not validate all compressed image bytes.
-    # Identity is restricted to containers whose structure is fully traversed.
-    if ALIASES.get(target, target) not in ('png', 'gif', 'webp', 'tiff'):
+    canonical = ALIASES.get(target, target)
+    if canonical not in ('png', 'gif', 'webp', 'tiff', 'jpeg'):
         return None
-    info = inspect_media(source, cancel=cancel)
+    # JPEG: complete marker traversal through EOI and decode before identity.
+    info = inspect_media(source, cancel=cancel, validate_container=canonical == 'jpeg')
     if info is None or info['format'] != ALIASES.get(target, target):
         return None
     if target == 'apng' and not info.get('animationContainer'):
         return None
+    if canonical == 'jpeg':
+        from .qt_media import _qt, _bounds
+        _bounds(info['width'], info['height'])
+        reader = _qt()[5](str(source))
+        _cancel(cancel)
+        image = reader.read()
+        if image.isNull():
+            raise GuardError('MEDIA_OUTPUT_INVALID', 'JPEG не декодируется; копия не выдана как готовый результат.', stage='result')
+        _cancel(cancel)
+        del image, reader
     output_dir.mkdir(parents=True, exist_ok=True)
     output = output_dir / (source.stem + '.' + target)
     if output.resolve() == source.resolve():
@@ -675,9 +685,22 @@ def check_media_preservation(paths, target, source, *, cancel, source_evidence=N
         return None
     source = Path(source)
     def source_profile():
-        return (inspect_media(source, cancel=cancel) if source_evidence is None else
-                source_evidence.get('media_profile', source,
-                                    lambda: inspect_media(source, cancel=cancel)))
+        def inspect_source():
+            result = inspect_media(source, cancel=cancel)
+            if result is None and source.suffix.lower() in ('.pbm', '.pgm', '.ppm', '.xbm', '.xpm'):
+                # Do not turn every native export into a second Guard scan.
+                # For these formats Qt has already confirmed image structure
+                # during preflight; one cheap header probe proves dimensions.
+                from .qt_media import qt_pnm_profile, qt_xbm_xpm_profile
+                try:
+                    result = (qt_pnm_profile(source, cancel=cancel)
+                              or qt_xbm_xpm_profile(source, cancel=cancel))
+                except GuardError as error:
+                    if error.code not in ('MEDIA_QT_UNAVAILABLE', 'MEDIA_CANVAS_BUDGET'):
+                        raise
+            return result
+        return (inspect_source() if source_evidence is None else
+                source_evidence.get('media_profile', source, inspect_source))
     if target == 'pdf':
         before = source_profile()
         if before is None or before['format'] != 'tiff':

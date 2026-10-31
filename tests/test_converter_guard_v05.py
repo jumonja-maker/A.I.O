@@ -7,6 +7,7 @@ import unittest
 from unittest.mock import patch
 import zipfile
 
+from save_test_support import verify_download_for_test
 from app_backend.converter_guard import ConverterGuard, GuardLimits, LibreOfficeAdapter
 from test_converter_guard_v02 import FakeAdapter, wait_finished
 from test_converter_guard_v04 import RoutedAdapter, write_registry
@@ -70,6 +71,7 @@ class GuardV05Contracts(unittest.TestCase):
         self.assertEqual(result['ticket'], result['downloadUrl'].split('ticket=')[1])
         with self.guard.open_result(result['ticket']) as (stream, _, _):
             self.assertEqual(stream.read(), b'data')
+        verify_download_for_test(self, self.guard, result['ticket'])
         saved = self.guard.confirm_saved(done['jobId'], result['ticket'])
         self.assertEqual(saved['files'][0]['targets'][0]['state'], 'saved')
         self.assert_counts(saved, succeeded=1, failed=0, cancelled=0, filtered=0, pending=0)

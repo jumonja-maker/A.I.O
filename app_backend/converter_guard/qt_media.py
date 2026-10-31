@@ -2,12 +2,15 @@
 
 Qt decodes/composes GIF/WebP and encodes lossless WebP. APNG/GIF/TIFF framing
 below keeps every decoded frame/page rather than exporting a Draw page. No new
-image library is used. At most the current canvas, disposal snapshot and one
-encoded frame are retained; cancellation/deadlines are checked between rows.
+image library is used for ordinary sources. PCX and Sun RAS use a separate,
+content-confirmed Pillow decoder to avoid LibreOffice's white Draw canvas.
+Cancellation and bounded pixel allocation are checked between stages.
 """
 from fractions import Fraction
+import json
 import os
 import math
+import re
 from pathlib import Path
 import struct
 import tempfile
@@ -39,11 +42,199 @@ def _bounds(width, height):
                          'Холст изображения превышает безопасный бюджет обработки Qt.', stage='engine')
 
 
+
+_PNM_MAGICS = {
+    'pbm': frozenset((b'P1', b'P4')),
+    'pgm': frozenset((b'P2', b'P5')),
+    'ppm': frozenset((b'P3', b'P6')),
+}
+
+
+def qt_pnm_profile(source, *, cancel=None):
+    """Small, content-confirmed Qt route for plain portable bitmaps.
+
+    This is only attempted for the three image suffixes and does not decode
+    the raster in preflight. Qt independently confirms format and dimensions.
+    Unknown sources continue through the existing native LibreOffice path.
+    """
+    source = Path(source)
+    kind = source.suffix.lower().lstrip('.')
+    signatures = _PNM_MAGICS.get(kind)
+    if signatures is None:
+        return None
+    _cancel(cancel)
+    with source.open('rb') as stream:
+        prefix = stream.read(3)
+    if len(prefix) < 3 or prefix[:2] not in signatures or prefix[2] not in b' \r\n\t':
+        return None
+    QImageReader = _qt()[5]
+    reader = QImageReader(str(source))
+    observed = bytes(reader.format()).decode('ascii', errors='ignore').lower()
+    if observed != kind or not reader.canRead():
+        return None
+    size = reader.size()
+    _bounds(size.width(), size.height())
+    # PBM is a real 1-bit format. Treating it as 8-bit caused our mandatory
+    # media check to reject a lossless 1-bit PNG as a depth reduction.
+    bit_depth = 1
+    if kind != 'pbm':
+        # Only the bounded header is needed to distinguish 8- from 16-bit PNM.
+        # Never interpret 16-bit input as an 8-bit source.
+        with source.open('rb') as stream:
+            header = stream.read(4096)
+        values = []
+        for row in header.splitlines():
+            values.extend(row.split(b'#', 1)[0].split())
+            if len(values) >= 4:
+                break
+        try:
+            header_width, header_height, maxval = map(int, values[1:4])
+        except (ValueError, TypeError):
+            return None
+        if (len(values) < 4 or header_width != size.width()
+                or header_height != size.height() or not 1 <= maxval <= 65535):
+            return None
+        bit_depth = 16 if maxval > 255 else 8
+    _cancel(cancel)
+    return {'format': kind, 'width': size.width(), 'height': size.height(),
+            'frames': 1, 'pages': 1, 'alpha': False, 'durationsMs': [],
+            'orientation': 1, 'bitDepth': bit_depth}
+
+
+def qt_xbm_xpm_profile(source, *, cancel=None):
+    """Use the existing Qt decoder for bounded, content-confirmed X bitmaps.
+
+    Only XBM/XPM suffixes pay for the declaration check; normal documents
+    incur no extra work. No pixel decode occurs during preflight. Unknown or
+    unparseable declarations remain on the original native LibreOffice route.
+    """
+    source = Path(source)
+    kind = source.suffix.lower().lstrip('.')
+    if kind not in ('xbm', 'xpm'):
+        return None
+    _cancel(cancel)
+    with source.open('rb') as stream:
+        prefix = stream.read(65536)
+    if kind == 'xbm':
+        width = re.search(rb'(?m)^#define[ \t]+[A-Za-z0-9_]+_width[ \t]+([0-9]+)[ \t]*$', prefix)
+        height = re.search(rb'(?m)^#define[ \t]+[A-Za-z0-9_]+_height[ \t]+([0-9]+)[ \t]*$', prefix)
+        if not width or not height:
+            return None
+        declared = (int(width.group(1)), int(height.group(1)))
+        alpha, depth = False, 1
+    else:
+        if not prefix.lstrip().startswith(b'/* XPM */'):
+            return None
+        rows = re.findall(rb'"([^"\r\n]{1,2048})"', prefix)
+        if not rows:
+            return None
+        parts = rows[0].split()
+        if len(parts) != 4 or any(not part.isdigit() for part in parts):
+            return None
+        width, height, colors, cpp = (int(part) for part in parts)
+        if not 1 <= colors <= 4096 or not 1 <= cpp <= 8 or len(rows) < colors + 1:
+            return None
+        palette = rows[1:colors + 1]
+        if any(len(row) < cpp or not re.search(rb'(?i)(?:^|\s)c\s+\S+', row[cpp:])
+               for row in palette):
+            return None
+        alpha = any(re.search(rb'(?i)(?:^|\s)c\s+none(?:\s|$)', row[cpp:])
+                    for row in palette)
+        declared, depth = (width, height), 8
+    _bounds(*declared)
+    QImageReader = _qt()[5]
+    reader = QImageReader(str(source))
+    observed = bytes(reader.format()).decode('ascii', errors='ignore').lower()
+    if observed != kind or not reader.canRead():
+        return None
+    size = reader.size()
+    if (size.width(), size.height()) != declared or reader.imageCount() > 1:
+        return None
+    _cancel(cancel)
+    return {'format': kind, 'width': size.width(), 'height': size.height(),
+            'frames': 1, 'pages': 1, 'alpha': bool(alpha),
+            'durationsMs': [], 'orientation': 1, 'bitDepth': depth}
+
+
+
+_LEGACY_PIL_FORMATS = {'pcx': 'PCX', 'ras': 'SUN'}
+# Pillow RGBA plus the owned QImage copy: avoid unbounded dual pixel buffers.
+_LEGACY_PIL_PIXELS = 16 * 1024 * 1024
+# PDF always uses a page-specific Qt renderer, not a first-page LO bitmap.
+_PDF_PAGE_TARGETS = frozenset(('png', 'jpg', 'jpeg', 'jpe', 'jfif', 'jif'))
+
+
+def pillow_legacy_profile(source, *, cancel=None):
+    """Admit PCX/RAS only with a plausible binary header and Pillow metadata.
+
+    Ordinary office files and other images do not import Pillow or make any
+    additional passes. Preflight opens the header only, not the pixel raster.
+    """
+    source = Path(source)
+    kind = source.suffix.lower().lstrip('.')
+    if kind not in _LEGACY_PIL_FORMATS:
+        return None
+    _cancel(cancel)
+    with source.open('rb') as stream:
+        header = stream.read(128)
+        total = stream.seek(0, 2)
+    if kind == 'pcx':
+        if len(header) != 128 or header[0] != 10 or header[2] != 1:
+            return None
+        xmin, ymin, xmax, ymax = struct.unpack_from('<HHHH', header, 4)
+        depth, planes = header[3], header[65]
+        stride = struct.unpack_from('<H', header, 66)[0]
+        if (xmax < xmin or ymax < ymin or not stride
+                or depth not in (1, 2, 4, 8) or planes not in (1, 3, 4)
+                or total <= 128):
+            return None
+        width, height = xmax - xmin + 1, ymax - ymin + 1
+        if stride * 8 < width * depth:
+            return None
+    else:
+        if len(header) < 32 or header[:4] != b'\x59\xa6\x6a\x95':
+            return None
+        _, width, height, depth, data_length, encoding, map_type, map_length = (
+            struct.unpack_from('>8I', header))
+        if (encoding not in (0, 1, 2, 3) or depth not in (1, 4, 8, 24, 32)
+                or map_type not in (0, 1) or map_length > 1024
+                or (map_length and map_type != 1) or total <= 32 + map_length):
+            return None
+    _bounds(width, height)
+    if width * height > _LEGACY_PIL_PIXELS:
+        raise GuardError('MEDIA_CANVAS_BUDGET',
+                         'Растр PCX/RAS превышает бюджет памяти декодера.',
+                         stage='preflight')
+    try:
+        from PIL import Image
+    except ImportError as error:
+        raise GuardError('MEDIA_CODEC_UNAVAILABLE',
+                         'Графический декодер PCX/RAS недоступен.',
+                         stage='preflight') from error
+    try:
+        with Image.open(source) as image:
+            if (image.format != _LEGACY_PIL_FORMATS[kind]
+                    or image.size != (width, height)
+                    or getattr(image, 'n_frames', 1) != 1):
+                raise ValueError('legacy_image_model_mismatch')
+            alpha = 'A' in image.getbands()
+    except (OSError, ValueError, SyntaxError) as error:
+        raise GuardError('MEDIA_SOURCE_INVALID',
+                         'Изображение PCX/RAS не подтвердилось декодером.',
+                         stage='preflight') from error
+    _cancel(cancel)
+    return {'format': kind, 'width': width, 'height': height,
+            'frames': 1, 'pages': 1, 'alpha': alpha, 'durationsMs': [],
+            'orientation': 1, 'bitDepth': min(depth, 8)}
+
+
 def media_frame_route(source, target, *, cancel=None):
     """Return a content-based route description, or None for a non-raster route."""
     if target not in RASTER:
         return None
-    info = inspect_media(source, cancel=cancel)
+    info = (inspect_media(source, cancel=cancel) or qt_pnm_profile(source, cancel=cancel)
+            or qt_xbm_xpm_profile(source, cancel=cancel)
+            or pillow_legacy_profile(source, cancel=cancel))
     if info is None:
         return None
     _bounds(info['width'], info['height'])
@@ -60,7 +251,14 @@ def supported_media_targets(info):
             from PySide6.QtPdf import QPdfDocument  # noqa: F401
         except ImportError:
             return ()
-        return ('tif', 'tiff')
+        output_formats = {bytes(fmt).decode('ascii').lower()
+                          for fmt in _qt()[6].supportedImageFormats()}
+        targets = {'tif', 'tiff'}
+        if 'png' in output_formats:
+            targets.add('png')
+        if 'jpeg' in output_formats or 'jpg' in output_formats:
+            targets.update(('jpg', 'jpeg', 'jpe', 'jfif', 'jif'))
+        return tuple(sorted(targets))
     formats = {bytes(value).decode('ascii') for value in QImageReader.supportedImageFormats()}
     writers = {bytes(value).decode('ascii') for value in QImageWriter.supportedImageFormats()}
     source_kind = info['format']
@@ -70,6 +268,8 @@ def supported_media_targets(info):
         targets.add(source_kind)
         if source_kind == 'tiff': targets.add('tif')
         if info.get('animationContainer'): targets.add('apng')
+    if source_kind in _LEGACY_PIL_FORMATS:
+        formats.add(source_kind)  # Pillow provides source decode; Qt writes output.
     if source_kind not in formats:
         return tuple(sorted(targets))
     targets.update(('png', 'apng', 'gif', 'tif', 'tiff'))
@@ -88,7 +288,9 @@ def media_preflight(source, *, cancel=None):
     """Content summary and loaded-codec targets, without exporting/decoding."""
     source = Path(source)
     _cancel(cancel)
-    info = inspect_media(source, cancel=cancel)
+    info = (inspect_media(source, cancel=cancel) or qt_pnm_profile(source, cancel=cancel)
+            or qt_xbm_xpm_profile(source, cancel=cancel)
+            or pillow_legacy_profile(source, cancel=cancel))
     if info is None:
         with source.open('rb') as stream:
             magic = stream.read(5)
@@ -112,8 +314,11 @@ def media_preflight(source, *, cancel=None):
             document.close()
     _bounds(info['width'], info['height'])
     targets = supported_media_targets(info)
-    decoder = 'manual_apng_qt_png' if info.get('animationContainer') else 'qt_image_reader'
-    if info['format'] != 'pdf':
+    decoder = ('pillow_legacy' if info['format'] in _LEGACY_PIL_FORMATS else
+               'manual_apng_qt_png' if info.get('animationContainer') else 'qt_image_reader')
+    if info['format'] in _LEGACY_PIL_FORMATS:
+        can_read = True
+    elif info['format'] != 'pdf':
         reader = _qt()[5](str(source))
         can_read = reader.canRead()
         if not can_read:
@@ -280,6 +485,33 @@ def _orient_image(image, orientation):
     return image.transformed(QTransform().rotate(rotation)) if rotation else image
 
 def _frames(source, scratch, info, cancel):
+    if info.get('format') in _LEGACY_PIL_FORMATS:
+        from PIL import Image
+        QImage = _qt()[4]
+        with Image.open(source) as decoded:
+            _cancel(cancel)
+            if (decoded.format != _LEGACY_PIL_FORMATS[info['format']]
+                    or decoded.size != (info['width'], info['height'])):
+                raise GuardError('MEDIA_SOURCE_CHANGED',
+                                 'PCX/RAS изменился после проверки.',
+                                 stage='engine')
+            decoded.load()
+            _cancel(cancel)
+            pixels = decoded.convert('RGBA').tobytes()
+            width, height = decoded.size
+            if len(pixels) != width * height * 4:
+                raise GuardError('MEDIA_DECODE_FAILED',
+                                 'Неполный кадр PCX/RAS.', stage='engine')
+            frame = QImage(pixels, width, height, width * 4,
+                           QImage.Format.Format_RGBA8888).copy()
+            if frame.isNull():
+                raise GuardError('MEDIA_DECODE_FAILED',
+                                 'Не удалось передать пиксели PCX/RAS в Qt.',
+                                 stage='engine')
+            del pixels
+            _cancel(cancel)
+            yield frame
+        return
     if info.get('animationContainer'):
         for image in _apng_frames(source, scratch, info, cancel):
             yield _orient_image(image, info.get('orientation', 1))
@@ -308,6 +540,11 @@ def _frames(source, scratch, info, cancel):
                              'Qt не смог прочитать все кадры или страницы изображения.', stage='engine',
                              diagnostic=reader.errorString())
         _bounds(image.width(), image.height())
+        if info.get('format') == 'xbm':
+            # Qt's monochrome XBM reader maps a set source bit to white;
+            # XBM specifies a set bit as black. Flip in-place once after
+            # decoding, without a second raster buffer or another file pass.
+            image.invertPixels()
         orientation = info.get('pageOrientations', [info.get('orientation', 1)] * expected)[index]
         yield _orient_image(image, orientation)
 
@@ -659,6 +896,10 @@ def convert_media_frames(source, output_dir, target, *, cancel=None, on_started=
                 actual = inspect_media(partial, cancel=cancel)
                 if actual is None or actual['format'] != normal:
                     raise GuardError('MEDIA_ENCODE_FAILED', 'Контейнер результата не прошёл проверку.', stage='result')
+                if (info['format'] in _LEGACY_PIL_FORMATS
+                        and (actual['width'], actual['height']) != (info['width'], info['height'])):
+                    raise GuardError('MEDIA_CANVAS_CHANGED',
+                                     'Результат PCX/RAS изменил размер исходного холста.', stage='result')
                 os.replace(partial, output)
             finally:
                 frames.close()
@@ -734,22 +975,107 @@ def _write_pdf(path, frames, cancel, info=None):
         del writer
 
 
+def _export_pdf_raster_pages(source, output_dir, target, expected_pages, cancel, on_started):
+    """Stream each PDF page at 144 dpi into its own Qt image output.
+
+    The current QtPdf renderer is reused; no second LibreOffice import, no
+    extra Guard scan, and no multi-page input is silently reduced to one PNG.
+    Outputs are private until all pages and the manifest are present.
+    """
+    from PySide6.QtCore import Qt
+    from PySide6.QtGui import QImage, QImageWriter, QPainter
+    output_dir.mkdir(parents=True, exist_ok=True)
+    normal = ALIASES.get(target, target)
+    final = output_dir / (source.stem + '.' + target)
+    outputs, mapping = [], []
+    manifest = output_dir / 'AIO-pages.json'
+    if on_started:
+        on_started()
+    frames = _pdf_frames(source, cancel)
+    try:
+        for index, frame in enumerate(frames, start=1):
+            _cancel(cancel)
+            if index > expected_pages:
+                raise GuardError('MEDIA_PAGE_LOSS',
+                                 'Qt вывел больше страниц, чем подтверждено у PDF.',
+                                 stage='result')
+            path = (final if index == 1 else final.with_name(
+                final.stem + '__page_%04d' % index + final.suffix))
+            staged = path.with_name(path.name + '.part')
+            try:
+                # JPEG cannot carry transparency. Composite on white paper
+                # rather than let the codec turn clear PDF regions black.
+                if normal == 'jpeg' and frame.hasAlphaChannel():
+                    background = QImage(frame.size(), QImage.Format.Format_RGB32)
+                    background.fill(Qt.GlobalColor.white)
+                    painter = QPainter(background)
+                    try:
+                        painter.drawImage(0, 0, frame)
+                    finally:
+                        painter.end()
+                    frame = background
+                writer = QImageWriter(str(staged), normal.encode('ascii'))
+                try:
+                    if not writer.write(frame):
+                        raise GuardError('MEDIA_ENCODE_FAILED',
+                                         'Qt не смог сохранить страницу PDF.',
+                                         stage='engine', diagnostic=writer.errorString())
+                finally:
+                    # QImageWriter owns its QFile until destruction. Windows
+                    # rejects both os.replace and unlink on that open handle.
+                    del writer
+                actual = inspect_media(staged, cancel=cancel)
+                if (actual is None or actual['format'] != normal
+                        or (actual['width'], actual['height']) !=
+                           (frame.width(), frame.height())):
+                    raise GuardError('MEDIA_CANVAS_CHANGED',
+                                     'Файл страницы PDF не прошёл проверку геометрии.',
+                                     stage='result')
+                _cancel(cancel)
+                os.replace(staged, path)
+                outputs.append(path)
+                mapping.append({'page': index, 'file': path.name})
+            finally:
+                staged.unlink(missing_ok=True)
+        if len(outputs) != expected_pages:
+            raise GuardError('MEDIA_PAGE_LOSS',
+                             'Qt не сохранил все исходные страницы PDF.',
+                             stage='result')
+        if expected_pages > 1:
+            manifest.write_text(json.dumps({'schema': 1, 'pageCount': expected_pages,
+                                            'pages': mapping}, ensure_ascii=False),
+                                encoding='utf-8')
+            outputs.append(manifest)
+        return outputs
+    except BaseException:
+        for path in outputs:
+            path.unlink(missing_ok=True)
+        manifest.unlink(missing_ok=True)
+        raise
+    finally:
+        frames.close()
+
+
 def convert_document_pages(source, output_dir, target, *, cancel=None, on_started=None):
-    """Only PDF→TIFF rasterisation and TIFF→PDF page assembly; no PDF→PDF."""
+    """Render every PDF page, or assemble TIFF pages into PDF; never PDF→PDF."""
     source, output_dir = Path(source), Path(output_dir)
     target = target.lower()
-    if target not in ('pdf', 'tif', 'tiff'):
+    if target not in ('pdf', 'tif', 'tiff') and target not in _PDF_PAGE_TARGETS:
         return None
     proof = media_preflight(source, cancel=cancel)
     if proof is None:
         return None
     info = proof['source']
-    if not (info['format'] == 'pdf' and target in ('tif', 'tiff') or
+    if not (info['format'] == 'pdf' and (target in ('tif', 'tiff') or
+                                        target in _PDF_PAGE_TARGETS) or
             info['format'] == 'tiff' and target == 'pdf'):
         return None
     if target not in proof['targets']:
         raise GuardError('MEDIA_QT_CODEC_UNAVAILABLE',
                          'Установленный Qt не содержит декодер страниц TIFF.', stage='engine')
+    if info['format'] == 'pdf' and target in _PDF_PAGE_TARGETS:
+        return _export_pdf_raster_pages(source, output_dir, target, info['pages'],
+                                        cancel, on_started)
     output_dir.mkdir(parents=True, exist_ok=True)
     output = output_dir / (source.stem + '.' + target)
     partial = output.with_name(output.name + '.part')

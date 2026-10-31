@@ -184,12 +184,14 @@ class PackagingCancellation(unittest.TestCase):
 
     def test_cancel_when_packaging_starts_prevents_first_archive_write(self):
         transport = self.transport
-        class CancelAtPackaging:
-            def emit(self, kind, **fields):
-                if kind == 'archive_started':
-                    transport.cancel(fields['request_id'])
-        transport.telemetry = CancelAtPackaging()
-        with patch('app_backend.converter_transport.convert_path', side_effect=self.convert):
+        original = transport._check_packaging_cancel
+        def at_packaging(request):
+            if request.packaging:
+                transport.cancel(request.identity)
+            return original(request)
+        with patch('app_backend.converter_transport.convert_path', side_effect=self.convert), \
+                patch.object(transport, '_check_packaging_cancel', side_effect=at_packaging), \
+                patch.object(zipfile._ZipWriteFile, 'write', side_effect=AssertionError('No archive bytes may be written')):
             with self.assertRaises(LibreOfficeError) as error:
                 self.execute()
         self.assertEqual(error.exception.code, 'CANCELLED')

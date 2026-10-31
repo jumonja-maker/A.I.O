@@ -20,12 +20,16 @@ from .native_logs import NativeLogs, close_native_pipes
 from .dif_evidence import DIF_CORE_SOURCE
 from .native_profile import PrivateNativeProfile, private_profile_required
 from .sheet_outputs import SHEET_OUTPUT_SOURCE
+from .native_fidelity import NATIVE_FIDELITY_SOURCE
+from .native_pptx_colours import PPTX_COLOUR_SOURCE
 
-WORKER_SOURCE = DIF_CORE_SOURCE + SHEET_OUTPUT_SOURCE + r'''
+WORKER_SOURCE = DIF_CORE_SOURCE + SHEET_OUTPUT_SOURCE + NATIVE_FIDELITY_SOURCE + PPTX_COLOUR_SOURCE + r'''
 import json, os, sys, time, subprocess
 from pathlib import Path
 
 PREFIX = 'AIO_GUARD_RPC '
+class DbfSchemaUnconfirmed(RuntimeError):
+    pass
 def send(value):
     print(PREFIX + json.dumps(value, ensure_ascii=True), flush=True)
 
@@ -67,7 +71,7 @@ def automatic_csv_outputs(req, model):
         raise RuntimeError('AUTOMATIC_CSV_SHEETS_MISSING')
     return paths
 
-def dbf_mixed_columns(sheet, area):
+def dbf_mixed_columns(sheet, area, *, trusted_schema=False):
     """Find columns native dBase's first-record type inference would truncate."""
     first = tuple(sheet.getCellRangeByPosition(0, 0, area.EndColumn, 0).getDataArray()[0])
     header = bool(first) and all(isinstance(value, str) and value != '' for value in first)
@@ -86,14 +90,44 @@ def dbf_mixed_columns(sheet, area):
                             kinds[column + offset].add('text')
                     else:
                         kinds[column + offset].add('number')
+    # Only a confirmed native dBase import owns Calc's Field,Type,Width
+    # notation. A spreadsheet heading is literal user text, even if it looks
+    # exactly like that notation. LO itself parses commas during dBase export.
+    import re
+    names = list(first) if header else None
+    field_names, renamed = [], []
+    reserved = {str(value).upper() for value in first
+                if re.fullmatch(r'[A-Za-z_][A-Za-z_0-9]{0,9}', str(value))}
+    used = set()
     mixed = []
     for column, observed in enumerate(kinds):
-        declared = str(first[column]).split(',')[1:2] if header else []
+        original = str(first[column]) if header else 'FIELD' + str(column + 1)
+        declared = original.split(',')[1:2] if header and trusted_schema else []
         if len(observed) > 1 or ('text' in observed and declared and declared[0].strip().upper() in ('N', 'D', 'L')):
             mixed.append(column)
-    return {'header': header, 'originalHeaders': list(first) if header else None, 'mixed': mixed}
+        if trusted_schema and header:
+            if not re.fullmatch(r'[A-Za-z_][A-Za-z_0-9]{0,9}(?:,[CNDLM](?:,[0-9]+(?:,[0-9]+)?)?)?', original, re.I):
+                raise DbfSchemaUnconfirmed('DBF_SCHEMA_HEADER_UNCONFIRMED')
+            name = original.split(',')[0]
+        else:
+            name = original
+            if (not re.fullmatch(r'[A-Za-z_][A-Za-z_0-9]{0,9}', name)
+                    or name.upper() in used):
+                number = column + 1
+                name = 'FIELD%05d' % number
+                while name.upper() in used or name.upper() in reserved:
+                    number += 1
+                    name = 'FIELD%05d' % number
+                renamed.append({'column': column, 'originalName': original, 'fieldName': name})
+        used.add(name.upper())
+        field_names.append(name.upper())  # Calc's dBase exporter uppercases descriptors.
+        if header and (not trusted_schema or column in mixed):
+            names[column] = name + (',M' if column in mixed else '')
+    return {'header': header, 'originalHeaders': list(first) if header else None,
+            'mixed': mixed, 'exportHeaders': names, 'fieldNames': field_names,
+            'renamedFields': renamed, 'trustedSchema': trusted_schema}
 
-def export_table_sheets(model, desktop, prop, target, export_options, *, csv_format=None, raw_values=False):
+def export_table_sheets(model, desktop, prop, target, export_options, *, csv_format=None, raw_values=False, preservation=None, dbf_schema=False):
     """One native legacy file per sheet, without approving a lossy dialog.
 
     DIF's native exporter always starts at sheet zero; it warns and drops all
@@ -103,7 +137,7 @@ def export_table_sheets(model, desktop, prop, target, export_options, *, csv_for
     calculation, update-links or macro permission is enabled on the copy.
     """
     sheets = model.getSheets()
-    count = sheets.getCount()
+    count = preservation.expected if preservation is not None else sheets.getCount()
     if count < 1:
         raise SheetOutputMismatch('native_sheet_count_missing')
     entries = []
@@ -126,8 +160,9 @@ def export_table_sheets(model, desktop, prop, target, export_options, *, csv_for
         cursor = sheet.createCursor()
         cursor.gotoEndOfUsedArea(False)
         area = cursor.getRangeAddress()
-        profiles.append((area, dbf_mixed_columns(sheet, area) if is_dbf else {'mixed': []}))
-    if not csv_format and count <= 1 and not profiles[0][1]['mixed']:
+        profiles.append((area, dbf_mixed_columns(sheet, area, trusted_schema=dbf_schema)
+                         if is_dbf else {'mixed': [], 'renamedFields': []}))
+    if not csv_format and count <= 1 and not profiles[0][1]['mixed'] and not profiles[0][1]['renamedFields']:
         model.storeToURL(target.as_uri(), tuple(export_options))
         return [target]
     outputs = []
@@ -160,13 +195,18 @@ def export_table_sheets(model, desktop, prop, target, export_options, *, csv_for
             if csv_format:
                 path = target.with_name(sheet_output_name(target.stem, index, csv_format))
             mapping = None
-            if profile['mixed']:
+            if profile['mixed'] or profile['renamedFields']:
                 mapping = path.with_name(path.name + '.aio-columns.jsonl').open('x', encoding='utf-8')
                 mapping.write(json.dumps({'schemaVersion': 1, 'format': 'dBase',
                     'sheetName': source_sheet.getName(), 'sourceRows': area.EndRow + 1,
                     'sourceColumns': area.EndColumn + 1, 'sourceHasHeader': profile['header'],
                     'originalHeaders': profile['originalHeaders'], 'memoColumns': profile['mixed'],
-                    'numericColumnsRemainTyped': True, 'warning': 'NATIVE_DBF_MIXED_COLUMN_TEXT'},
+                    'numericColumnsRemainTyped': True,
+                    'renamedFields': profile['renamedFields'], 'fieldNames': profile['fieldNames'],
+                    'headerNotationFromNativeDbf': profile['trustedSchema'],
+                    'warning': ('NATIVE_DBF_MIXED_COLUMN_TEXT' if profile['mixed'] else 'NATIVE_DBF_FIELD_NAME_MAPPING'),
+                    'warnings': (['NATIVE_DBF_MIXED_COLUMN_TEXT'] if profile['mixed'] else []) +
+                        (['NATIVE_DBF_FIELD_NAME_MAPPING'] if profile['renamedFields'] else [])},
                     ensure_ascii=True, allow_nan=False) + '\n')
             # Bounded bridge messages, including on very wide worksheets.
             for row in range(0, area.EndRow + 1, 128):
@@ -202,15 +242,17 @@ def export_table_sheets(model, desktop, prop, target, export_options, *, csv_for
                         values = tuple(tuple(record) for record in changed)
                     copied.getCellRangeByPosition(
                         column, row, last_column, last_row).setDataArray(values)
-            if profile['mixed']:
+            if profile['mixed'] or profile['renamedFields']:
                 if not profile['header']:
                     copied.getRows().insertByIndex(0, 1)
                     for column in range(area.EndColumn + 1):
                         copied.getCellByPosition(column, 0).setString('FIELD' + str(column + 1))
-                for column in profile['mixed']:
-                    header_name = (str(profile['originalHeaders'][column]).split(',')[0]
-                                   if profile['header'] else 'FIELD' + str(column + 1))
-                    copied.getCellByPosition(column, 0).setString(header_name + ',M')
+                if profile['header']:
+                    for column, heading in enumerate(profile['exportHeaders']):
+                        copied.getCellByPosition(column, 0).setString(heading)
+                else:
+                    for column in profile['mixed']:
+                        copied.getCellByPosition(column, 0).setString(profile['fieldNames'][column] + ',M')
                 mapping.close()
                 mapping = None
             temporary.storeToURL(path.as_uri(), tuple(export_options))
@@ -398,6 +440,7 @@ def main(boot_name):
         req = json.loads(raw)
         model, result, stage = None, None, 'import'
         dif_import_check = None
+        pptx_colour_check = None
         operation_tick = time.monotonic()
         import_tick = export_tick = export_handler = handler = None
         timings = {'source':'uno_document'}
@@ -487,7 +530,12 @@ def main(boot_name):
                         export_options.append(prop('FilterOptions', req['exportOptions']))
                     export_options.extend(automatic_export_properties(req, prop, uno))
                     export_tick = time.monotonic()
+                    preservation_plan = aio_native_preservation_plan(model, services, req['format'])
                     exported_paths = [target]
+                    presentation_text = (aio_presentation_text(model)
+                        if req['format'] == 'xhtml' and
+                        'com.sun.star.presentation.PresentationDocument' in services else None)
+                    xhtml_textbox_recovery = None
                     try:
                         if req['format'] == 'txt' and req['exportFilter'] == 'Text (encoded)':
                             try:
@@ -498,25 +546,61 @@ def main(boot_name):
                             text_exports, text_reason = inspect_native_text_export(remote, native_text, services)
                             if text_exports.get('txt') != 'Text (encoded)':
                                 raise RuntimeError('NATIVE_TEXT_EXPORT_CAPABILITY_CHANGED:' + text_reason)
-                        if (req.get('graphicExport') == 'svm' and req['format'] == 'svm'
+                        calc_export = (aio_export_calc_pages(model, remote, prop, target, req['exportFilter'])
+                            if 'com.sun.star.sheet.SpreadsheetDocument' in services else None)
+                        graphic_pages = (aio_export_graphic_pages(model, remote, prop, target, preservation_plan)
+                            if set(services).intersection(('com.sun.star.drawing.DrawingDocument',
+                                'com.sun.star.presentation.PresentationDocument')) else None)
+                        writer_pages = (aio_export_writer_pages(
+                            model, prop, target, export_options, req['exportFilter'], preservation_plan)
+                            if 'com.sun.star.text.TextDocument' in services else None)
+                        if calc_export is not None:
+                            exported_paths, preservation_plan = calc_export
+                        elif graphic_pages is not None:
+                            exported_paths = graphic_pages
+                        elif writer_pages is not None:
+                            exported_paths = writer_pages
+                        elif (req.get('graphicExport') == 'svm' and req['format'] == 'svm'
                                 and 'com.sun.star.drawing.DrawingDocument' in services):
                             exported_paths = export_draw_svm(model, remote, prop, target)
-                        elif (req['exportFilter'] in ('DIF', 'dBase', 'Text - txt - csv (StarCalc)')
+                        elif (req['exportFilter'] in ('DIF', 'dBase', 'SYLK', 'Text - txt - csv (StarCalc)')
                                 and 'com.sun.star.sheet.SpreadsheetDocument' in services):
                             exported_paths = export_table_sheets(model, desktop, prop, target, export_options,
                                 csv_format=req['format'] if req['format'] in ('csv','tab','tsv') else None,
-                                raw_values=req.get('automaticRecipe') == 'csv_preserve_values')
+                                raw_values=req.get('automaticRecipe') == 'csv_preserve_values',
+                                preservation=preservation_plan, dbf_schema=actual_filter == 'dBase')
                         else:
-                            model.storeToURL(target.as_uri(), tuple(export_options))
+                            pptx_colour_check = aio_export_theme_free_pptx(
+                                model, source, actual_filter, target, export_options, req['exportFilter'])
+                            if pptx_colour_check is None:
+                                model.storeToURL(target.as_uri(), tuple(export_options))
                             if req.get('automaticRecipe') == 'csv_preserve_values':
                                 # ExportAllSheets (-1) produces native
                                 # basename-SheetName.csv files rather than
                                 # the requested single primary filename.
                                 exported_paths = automatic_csv_outputs(req, model)
+                        if presentation_text is not None:
+                            try:
+                                aio_verify_presentation_xhtml(exported_paths, presentation_text)
+                            except AioPresentationTextLoss:
+                                # The PPT 97 importer exposes text boxes as
+                                # CustomShapes, which native XHTML can omit.
+                                # No fallback to lossy HTML outline or an
+                                # unverified presentation with graphics.
+                                if (source.suffix.lower() != '.ppt' or
+                                        req['exportFilter'] != 'XHTML Impress File'):
+                                    raise
+                                xhtml_textbox_recovery = aio_try_ppt_xhtml_textboxes(
+                                    model, target, export_options, presentation_text)
+                                if xhtml_textbox_recovery is None:
+                                    raise
                     finally:
                         timings['exportMs'] = round((time.monotonic()-export_tick)*1000)
                     present = all(p.is_file() and not p.is_symlink() and p.stat().st_size > 0
                                   for p in exported_paths)
+                    preservation_check = (aio_verify_preservation(
+                        preservation_plan, [p.name for p in exported_paths])
+                        if present and not export_handler.blocked and not handler.blocked else None)
                     # Result paths stay on disk. Thousands of HTML sidecars
                     # must not overflow the small control-message channel.
                     result = {'id':request_id,'ok':present and not export_handler.blocked and not handler.blocked,
@@ -527,12 +611,44 @@ def main(boot_name):
                               'code':('PREFLIGHT_INTERACTION_REQUIRED' if handler.blocked else
                                       'EXPORT_INTERACTION_REQUIRED' if export_handler.blocked else
                                       'ENGINE_OUTPUT_MISSING' if not present else None)}
-                    if req['exportFilter'] == 'dBase' and list(Path(req['output']).glob('*.aio-columns.jsonl')):
-                        result['warnings'] = ['NATIVE_DBF_MIXED_COLUMN_TEXT']
+                    warnings = []
+                    if xhtml_textbox_recovery is not None:
+                        result['xhtmlTextRecovery'] = xhtml_textbox_recovery
+                        warnings.extend(('NATIVE_PPT_XHTML_TEXTBOX_RECOVERY',
+                                         'NATIVE_OUTPUT_NOT_CHECKED'))
+                    if pptx_colour_check is not None:
+                        result['pptxColourPreservation'] = pptx_colour_check
+                        if pptx_colour_check.get('status') == 'not_checked':
+                            warnings.append('NATIVE_OUTPUT_NOT_CHECKED')
+                    if preservation_check is not None:
+                        if calc_export is not None:
+                            preservation_check['notChecked'].append('hidden_or_unprinted_cells')
+                        result['preservationContract'] = preservation_check
+                    elif (result['ok'] and 'com.sun.star.sheet.SpreadsheetDocument' in services
+                            and req['format'] in _AIO_PAGE_TARGETS):
+                        # Other Calc graphic filters are not covered by the PNG/JPEG executor.
+                        # Do not present a successful image encoder as verified coverage.
+                        result['preservationContract'] = {
+                            'check': 'native_preservation_contract', 'status': 'not_checked',
+                            'reason': 'calc_graphic_page_scope_not_implemented',
+                            'scope': 'loaded_calc_print_layout', 'qualityCompared': False}
+                        warnings.append('NATIVE_OUTPUT_NOT_CHECKED')
+                    if calc_export is not None:
+                        warnings.append('NATIVE_CALC_RASTER_PAGES')
+                    if writer_pages is not None:
+                        warnings.append('NATIVE_WRITER_RASTER_PAGES')
+                    if req['exportFilter'] == 'dBase':
+                        for mapping_path in Path(req['output']).glob('*.aio-columns.jsonl'):
+                            with mapping_path.open(encoding='utf-8') as mapping:
+                                metadata = json.loads(mapping.readline())
+                            warnings.extend(metadata.get('warnings', [metadata['warning']]))
+                    if warnings:
+                        result['warnings'] = warnings
         except Exception as error:
             result = {'id':request_id,'ok':False,'code':('DIF_NUMERIC_IMPORT_MISMATCH'
                       if isinstance(error, DifNumericMismatch) else
-                      'ENGINE_OUTPUT_CONTENT_LOSS' if isinstance(error, SheetOutputMismatch) else
+                      'ENGINE_OUTPUT_CONTENT_LOSS' if isinstance(error, (SheetOutputMismatch, AioPresentationTextLoss, AioPreservationLoss)) else
+                      'ENGINE_OUTPUT_VALIDATION_INCOMPLETE' if isinstance(error, (AioPresentationUnverified, AioWriterPagesUnverified, AioPreservationIncomplete, AioPptxColourUnverified, DbfSchemaUnconfirmed)) else
                       'PREFLIGHT_INTERACTION_REQUIRED'
                       if handler is not None and handler.blocked else
                       'SOURCE_IMPORT_FAILED' if stage == 'import' else

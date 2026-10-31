@@ -80,7 +80,12 @@ def read_designer_asset(root: str, name: str) -> bytes:
         raw = apply_native_ui(raw)
         from .converter_lifecycle_ui_patch import apply_lifecycle_ui
         raw = apply_lifecycle_ui(raw)
+        from .converter_layout_ui_patch import apply_layout_controls
+        raw = apply_layout_controls(raw)
         # Advanced and the historical conversion backend intentionally stay
         # in the archived repository. Only approved visual UI transformations
         # are materialized here; Guard will be implemented independently.
+    elif name == 'file-converter.css':
+        from .converter_layout_ui_patch import LAYOUT_CSS
+        raw += LAYOUT_CSS.encode('utf-8')
     return raw

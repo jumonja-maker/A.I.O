@@ -110,12 +110,14 @@ const save=document.querySelector('[data-cv-save]');
 save.click();
 await until(()=>document.querySelector('[data-cv-status]').textContent.includes('отменено'),'save cancellation');
 await until(()=>!save.disabled,'save retry enabled');
+await until(()=>rows().slice(1).filter(r=>r.querySelector('.aio-fp-check')?.hidden===false).length===2,
+  'ready paint restored after cancelled save');
 assert.equal(rows().slice(1).filter(r=>r.querySelector('.aio-fp-check')?.hidden===false).length,2);
 assert.equal(rows()[0].querySelector('.aio-fp-check').textContent,'⊘');
 save.click();
 await until(()=>document.querySelector('[data-cv-status]').classList.contains('aio-cv__saved'),'save confirmation');
 assert.equal(downloaded,true);
-assert.deepEqual([...document.querySelector('[data-cv-result-actions]').querySelectorAll('button')].map(b=>b.textContent),['Закрыть','Сохранить результаты','До/После']);
+assert.deepEqual([...document.querySelector('[data-cv-result-actions]').querySelectorAll('button')].map(b=>b.textContent),['Закрыть','Сохранить результаты']);
 await until(()=>rows().slice(1).every(r=>r.dataset.aioFpState),'restored saved paint');
 assert.equal(rows().slice(1).filter(r=>r.querySelector('.aio-fp-check')?.hidden===false).length,0);
 assert.equal(rows()[0].dataset.aioFpState,'skipped');

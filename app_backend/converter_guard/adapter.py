@@ -694,7 +694,7 @@ class LibreOfficeAdapter:
         self._local.export_info = {}
         from .media_fidelity import copy_media_identity
         from .native_identity import copy_chart_identity
-        from .native_metafile import native_metafile_target, wrap_native_metafiles
+        from .native_metafile import native_metafile_target, wrap_native_metafiles, repair_native_emf_counts
         from .odf_table_import import prepare_odf_table_source
         from .qt_media import convert_media_frames, convert_document_pages
         proof = getattr(self._local, 'proof', None) or {}
@@ -800,7 +800,7 @@ class LibreOfficeAdapter:
                 self._local.import_filter = 'OpenDocument Spreadsheet Flat XML'
                 self._local.import_options = None
             try:
-                if (target in ('dbf', 'dif') and not live_uno and
+                if (target in ('dbf', 'dif', 'slk', 'sylk') and not live_uno and
                         proof.get('documentServices') == ['com.sun.star.sheet.SpreadsheetDocument']):
                     paths = self._convert_legacy_sheets(native_source, target, workspace,
                         control=identity_control, on_started=on_started, on_stage=on_stage)
@@ -811,10 +811,18 @@ class LibreOfficeAdapter:
                         on_document_service=on_document_service, on_stage=on_stage)
             finally:
                 self._local.import_filter, self._local.import_options = previous_import
+            if target in ('emf', 'emz') and self.execution_mode() in ('native_uno', 'native_cli'):
+                repairs = repair_native_emf_counts(paths, cancel=identity_control)
+                if repairs:
+                    self._local.export_info['resultChecks'] = list(
+                        self._local.export_info.get('resultChecks', ())) + repairs
+                    self._local.export_info['warnings'] = tuple(dict.fromkeys((
+                        *self._local.export_info.get('warnings', ()), 'NATIVE_EMF_RECORD_COUNT_CORRECTED')))
             if plain:
                 paths, metafile_check = wrap_native_metafiles(paths, target, cancel=identity_control)
                 self._local.export_info['executionReason'] = 'native_plain_metafile_gzip'
-                self._local.export_info['resultChecks'] = [metafile_check]
+                self._local.export_info['resultChecks'] = list(
+                    self._local.export_info.get('resultChecks', ())) + [metafile_check]
             if preparation:
                 self._local.export_info['sourcePreparation'] = preparation
                 if preparation.get('kind') == 'native_dif_numeric_snapshot':
@@ -837,6 +845,36 @@ class LibreOfficeAdapter:
                     self._local.export_info.get('resultChecks', [])) + repairs
                 self._local.export_info['warnings'] = tuple(dict.fromkeys(
                     (*self._local.export_info.get('warnings', ()), 'NATIVE_BMP_HEADER_CORRECTED')))
+        # The pinned dBase exporter uses native UTF-8 FilterOptions=76, while
+        # LibreOffice can leave DBF's LDID unset. One 32-byte header read per
+        # output is enough to attach .cpg metadata; no Guard rescanning.
+        if target == 'dbf':
+            from .dbf_codepage import attach_utf8_codepages
+            codepages = attach_utf8_codepages(paths,
+                filter_name=self._local.export_info.get('filter'),
+                cancel=identity_control)
+            if codepages:
+                paths = list(dict.fromkeys([*paths, *codepages]))
+                self._local.export_info['warnings'] = tuple(dict.fromkeys((
+                    *self._local.export_info.get('warnings', ()), 'NATIVE_DBF_UTF8_CPG')))
+                self._local.export_info['resultChecks'] = list(
+                    self._local.export_info.get('resultChecks', ())) + [{
+                    'check': 'dbf_utf8_codepage', 'status': 'checked_subset',
+                    'sidecars': len(codepages), 'qualityCompared': False}]
+            if (self._local.export_info.get('filter') == 'dBase'
+                    and len(codepages) < sum(Path(p).suffix.lower() == '.dbf' for p in paths)):
+                self._local.export_info['warnings'] = tuple(dict.fromkeys((
+                    *self._local.export_info.get('warnings', ()), 'NATIVE_DBF_ENCODING_NOT_CHECKED')))
+        # M21: the native preservation receipt counts SVG files but does not
+        # bind AIO-pages.json to their actual ordered names. A wrong/stale
+        # manifest must not become a ready/savable multi-page result.
+        if target == 'svg':
+            from .svg_page_manifest import verify_svg_page_manifest
+            page_map = verify_svg_page_manifest(paths, workspace / 'output',
+                                                cancel=identity_control)
+            if page_map is not None:
+                self._local.export_info['resultChecks'] = list(
+                    self._local.export_info.get('resultChecks', ())) + [page_map]
         source_evidence = None
         if getattr(self._local, 'batch', None) is not None:
             source_evidence = getattr(self._local, 'source_evidence', None)
@@ -1009,6 +1047,9 @@ class LibreOfficeAdapter:
             self._local.csv_sheet_snapshot = is_csv
             self._local.import_filter, self._local.import_options = flat, None
             for index, snapshot in enumerate(snapshots):
+                if target == 'dbf':
+                    from .dbf_schema import validate_cli_dbf_headers
+                    validate_cli_dbf_headers(snapshot, trusted_schema=saved[0] == 'dBase', cancel=control)
                 for result in export(snapshot, target, workspace / ('legacy-export-%04d' % index)):
                     control.is_set()
                     destination = output / result.name
@@ -1072,6 +1113,9 @@ class LibreOfficeAdapter:
             return None
         if control.is_set():
             return None
+        from .dbf_schema import csv_cli_headers_confirmed
+        if not csv_cli_headers_confirmed(source, options, cancel=control):
+            return None  # A CLI retry cannot preserve unconfirmed literal headings.
         recovery = Path(workspace) / 'dbf-native-cli-recovery'
         import_filter = selected + ':' + options
         try:
@@ -1193,15 +1237,34 @@ class LibreOfficeAdapter:
                             'expectedSourceServices':proof.get('sourceContract', {}).get('expectedServices', [])},
                             cancel=control,timeout=timeout,on_stage=on_stage or (lambda stage:None))
                         response_received = True
-                        if 'NATIVE_DBF_MIXED_COLUMN_TEXT' in result.get('warnings', ()):
-                            self._local.export_info['warnings'] = tuple(
-                                self._local.export_info.get('warnings', ())) + ('NATIVE_DBF_MIXED_COLUMN_TEXT',)
+                        declared = tuple(code for code in result.get('warnings', ())
+                                         if code in ('NATIVE_DBF_MIXED_COLUMN_TEXT',
+                                                     'NATIVE_DBF_FIELD_NAME_MAPPING',
+                                                     'NATIVE_WRITER_RASTER_PAGES',
+                                                     'NATIVE_CALC_RASTER_PAGES',
+                                                     'NATIVE_OUTPUT_NOT_CHECKED',
+                                                     'NATIVE_PPT_XHTML_TEXTBOX_RECOVERY'))
+                        if declared:
+                            self._local.export_info['warnings'] = tuple(dict.fromkeys((
+                                *self._local.export_info.get('warnings', ()), *declared)))
                         if result.get('difNumericImport') is not None:
                             dif_check = result['difNumericImport']
                             self._local.export_info['resultChecks'] = [dif_check]
                             if dif_check.get('status') == 'not_checked':
                                 self._local.export_info['warnings'] = tuple(
                                     self._local.export_info.get('warnings', ())) + ('DIF_NUMERIC_CONTENT_NOT_CHECKED',)
+                        receipt = result.get('preservationContract')
+                        if result.get('ok') and isinstance(receipt, dict):
+                            self._local.export_info['resultChecks'] = list(
+                                self._local.export_info.get('resultChecks', ())) + [receipt]
+                        xhtml_receipt = result.get('xhtmlTextRecovery')
+                        if result.get('ok') and isinstance(xhtml_receipt, dict):
+                            self._local.export_info['resultChecks'] = list(
+                                self._local.export_info.get('resultChecks', ())) + [xhtml_receipt]
+                        colour_receipt = result.get('pptxColourPreservation')
+                        if result.get('ok') and isinstance(colour_receipt, dict):
+                            self._local.export_info['resultChecks'] = list(
+                                self._local.export_info.get('resultChecks', ())) + [colour_receipt]
                         if result.get('nativeCloseInterrupted'):
                             self._local.export_info['warnings'] = tuple(
                                 self._local.export_info.get('warnings', ())) + ('NATIVE_CLOSE_INTERRUPTED',)
@@ -1266,6 +1329,22 @@ class LibreOfficeAdapter:
                 if len(tokens) > 11:
                     tokens[11] = '0'
                 export_args['convert_spec'] = target + ':' + recipe.filter_name + ':' + ','.join(tokens)
+            # A CLI fallback has no loaded-model receipt. Keep its existing
+            # conversion route, but never label it as a checked native contract.
+            from .preservation_contract import aio_preservation_scope
+            scope = aio_preservation_scope(proof.get('documentServices', ()), target)
+            if (scope is None and 'com.sun.star.sheet.SpreadsheetDocument' in
+                    proof.get('documentServices', ()) and
+                    target in ('png', 'jpg', 'jpeg', 'jfif', 'jif', 'jpe')):
+                scope = ('native_all_calc_print_pages_v1', 'pages', 'loaded_calc_print_layout')
+            if scope is not None:
+                self._local.export_info['resultChecks'] = list(
+                    self._local.export_info.get('resultChecks', ())) + [{
+                    'check': 'native_preservation_contract', 'status': 'not_checked',
+                    'policyId': scope[0], 'scope': scope[2],
+                    'reason': 'native_cli_has_no_model_receipt', 'qualityCompared': False}]
+                self._local.export_info['warnings'] = tuple(dict.fromkeys((
+                    *self._local.export_info.get('warnings', ()), 'NATIVE_OUTPUT_NOT_CHECKED')))
             prepare_profile(workspace / 'profile')
             self._local.execution_mode = 'native_cli'
             filtered = getattr(self._local, 'import_filter', None)

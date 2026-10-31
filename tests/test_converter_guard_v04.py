@@ -14,6 +14,7 @@ from urllib.request import Request, urlopen
 from xml.sax.saxutils import escape
 import zipfile
 
+from save_test_support import verify_download_for_test
 from app_backend.converter_guard import ConverterGuard, GuardError, LibreOfficeAdapter
 from app_backend.converter_guard.native_observation import NativeObservation
 from app_backend.converter_guard.routes import registry, _load
@@ -331,6 +332,7 @@ class RuntimeRoutingTests(unittest.TestCase):
                 report=json.loads(bundle.read('AIO-conversion-report.json'))
                 self.assertFalse(report['qualityCompared'])
                 self.assertEqual(report['files'][0]['targets'][1]['state'],'skipped')
+        verify_download_for_test(self, self.guard, ticket(done['result']))
         saved=self.guard.confirm_saved(done['jobId'],ticket(done['result']))
         self.assertEqual(saved['files'][0]['state'],'saved')
 

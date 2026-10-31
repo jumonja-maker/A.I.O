@@ -8,7 +8,6 @@ import unittest
 import zipfile
 
 from app_backend.converter_guard import ConverterGuard, GuardError, GuardLimits
-from app_backend.converter_guard.diagnostic_export import diagnostic_package
 from test_converter_guard_v02 import FakeAdapter, wait_finished
 
 
@@ -31,7 +30,7 @@ class SessionLifecycleContracts(unittest.TestCase):
         retained=guard.recoverable()['jobs']
         self.assertEqual([r['jobId'] for r in retained],[job])
         self.assertEqual(retained[0]['unsavedOutputs'],0)
-        self.assertTrue(guard.status(job)['comparisonAvailable'])
+        self.assertFalse(guard.status(job)['comparisonAvailable'])
         guard.close_conversion(job)
         with self.assertRaises(GuardError):guard.status(job)
         self.assertTrue((self.root/saved['name']).is_dir())
@@ -107,37 +106,6 @@ class SessionLifecycleContracts(unittest.TestCase):
         self.assertTrue(guard.close_conversion(live,discard=True)['closed'])
         guard._jobs.get(live) and guard._jobs[live].future.result(timeout=3)
         self.assertEqual(guard.adapter.active,0)
-    def test_selected_diagnostic_never_saves_or_adds_required_outputs(self):
-        guard,job,state=self.ready();before=guard.storage_stats()['unsavedOutputs']
-        package=diagnostic_package(guard,job,job+':1',{'status':'confirmed_loss','findings':[]},output_index=0)
-        self.assertTrue(package['optionalDiagnostic']);self.assertFalse(package['requiredForSave'])
-        self.assertEqual(guard.storage_stats()['unsavedOutputs'],before)
-        with guard.open_result(package['ticket']) as (stream,_,__):data=stream.read()
-        with zipfile.ZipFile(io.BytesIO(data)) as archive:
-            names=archive.namelist();self.assertEqual(len([n for n in names if n.startswith('result/')]),1)
-            self.assertFalse(any(n.startswith('source/') for n in names))
-            self.assertFalse(any(n.endswith('.pdf') for n in names))
-        guard.confirm_saved(job,package['ticket'])
-        self.assertEqual(guard.storage_stats()['unsavedOutputs'],before)
-        self.assertFalse(any(o['saved'] for o in guard.status(job)['result']['outputs']))
-    def test_failed_without_output_exports_report_only_unless_source_explicitly_chosen(self):
-        guard,job,state=self.ready(name='bad.docx',targets=('pdf',))
-        self.assertEqual(state['failed'],1)
-        for include in (False,True):
-            package=diagnostic_package(guard,job,job+':0',{'status':'not_checked'},include_source=include)
-            with guard.open_result(package['ticket']) as (stream,_,__):data=stream.read()
-            with zipfile.ZipFile(io.BytesIO(data)) as archive:
-                names=archive.namelist();self.assertFalse(any(n.startswith('result/') for n in names))
-                self.assertEqual(any(n.startswith('source/') for n in names),include)
-                self.assertFalse(json.loads(archive.read('AIO-diagnostic.json'))['outputPresent'])
-        self.assertEqual(guard.storage_stats()['unsavedOutputs'],0)
-    def test_diagnostic_rejects_other_task_and_changed_or_symlinked_output(self):
-        guard,job,state=self.ready()
-        with self.assertRaises(GuardError):diagnostic_package(guard,job,'f'*32+':0',{},output_index=0)
-        artifact=guard._jobs[job].artifacts[0];artifact.path.write_bytes(b'evil')
-        with self.assertRaises(GuardError) as err:diagnostic_package(guard,job,job+':0',{},output_index=0)
-        self.assertEqual(err.exception.code,'SAVE_CHANGED')
-        self.assertEqual(guard.storage_stats()['unsavedOutputs'],3)
 
 
 if __name__=='__main__':unittest.main()

@@ -16,6 +16,16 @@ WRITER = 'com.sun.star.text.TextDocument'
 CALC_TEXT = 'Text - txt - csv (StarCalc)'
 TEXT_OPTIONS = {'csv': '44,34,76,1,', 'tsv': '9,34,76,1,', 'tab': '9,34,76,1,'}
 WARNING_TEXT = {
+    'NATIVE_CALC_RASTER_PAGES': (
+        'Каждая печатная страница Calc сохранена отдельным изображением. '
+        'Имена, листы, диапазоны и разрешение указаны в AIO-pages.json. '
+        'Скрытые листы и ячейки вне печатных областей не включаются; '
+        'полное совпадение импорта и оформления не проверено.'),
+    'NATIVE_WRITER_RASTER_PAGES': (
+        'Каждая страница Writer экспортирована отдельным изображением. '
+        'Номера и имена страниц указаны в AIO-pages.json; точность '
+        'внешнего вида и шрифтов отдельно не сравнивалась.'),
+    'NATIVE_SYLK_ALL_SHEETS': ('Каждый лист сохранён отдельным SLK/SYLK. Формулы представлены вычисленными значениями; межлистовые связи этим режимом не сохраняются.'),
     'NATIVE_CSV_ALL_SHEETS': (
         'Каждый лист книги сохранён отдельным файлом CSV/TAB/TSV; индекс и имя листа '
         'указаны в AIO-sheets.json. Формулы представлены вычисленными значениями. '
@@ -55,11 +65,24 @@ WARNING_TEXT = {
         'CSV повторно экспортирован в UTF-8 с исходной числовой точностью и отдельным файлом '
         'для каждого листа. Отображение дат, валют и округлённых чисел может измениться. '
         'Формулы представлены вычисленными значениями; оформление CSV не поддерживает.'),
+    'NATIVE_EMF_RECORD_COUNT_CORRECTED': (
+        'В нативном EMF исправлен подтверждённый счётчик записей заголовка. '
+        'Графические записи не изменены; структура проверена повторно.'),
+    'NATIVE_DBF_ENCODING_NOT_CHECKED': (
+        'DBF содержит ненулевой LDID. Его байты и объявленная кодировка сохранены; '
+        'соответствие UTF-8 и совместимость с получателем не подтверждены.'),
+    'NATIVE_DBF_UTF8_CPG': (
+        'При экспорте DBF в UTF-8 создан сопровождающий файл .cpg. '
+        'Его нужно сохранять рядом с DBF; совместимость конкретного получателя проверяется отдельно.'),
     'NATIVE_DBF_CLI_RECOVERY': (
         'Первая попытка штатного UNO-экспорта DBF не создала файл. '
         'Guard выполнил одну изолированную повторную попытку через штатный CLI LibreOffice '
         'с теми же подтверждёнными фильтрами CSV/dBase. DBF создан и проверен структурно; '
         'полное совпадение значений и кодировки отдельно не гарантируется.'),
+    'NATIVE_DBF_FIELD_NAME_MAPPING': (
+        'Некоторые названия столбцов нельзя однозначно представить в DBF. '
+        'Назначены уникальные имена полей; полные исходные названия и соответствия '
+        'сохранены в .aio-columns.jsonl. Храните этот файл рядом с DBF.'),
     'NATIVE_DBF_MIXED_COLUMN_TEXT': (
         'В DBF столбцы со смешанными числами и текстом сохранены как Memo, чтобы не потерять текст. '
         'Числа в этих столбцах представлены отображаемыми строками; исходные значения, типы '
@@ -217,6 +240,23 @@ def native_export_recipe(native, target, proof):
         # not the import-only SVM document filter or a CLI format guess.
         return ExportRecipe('svm_Export', warnings=('NATIVE_DRAW_SVM_PAGES',))
     selected = native.export_filter(target, services)
+    if target == 'xhtml':
+        # HTML filters also claim the .xhtml extension. Require the real exporter.
+        names = {CALC: 'XHTML Calc File', WRITER: 'XHTML Writer File',
+                 DRAW: 'XHTML Draw File',
+                 'com.sun.star.presentation.PresentationDocument': 'XHTML Impress File'}
+        eligible = list(services)
+        if proof.get('nativeTextDocument') is True and WRITER not in eligible:
+            eligible.append(WRITER)
+        for service in eligible:
+            name = names.get(service)
+            item = native.filters.get(name)
+            if item and item[0] == service and 'EXPORT' in item[2]:
+                return ExportRecipe(name)
+        raise GuardError('XHTML_EXPORT_UNAVAILABLE',
+            'Установленный движок не подтвердил настоящий XHTML-экспорт. HTML не будет выдан под расширением XHTML.', stage='route')
+    if selected == 'SYLK' and target in ('slk', 'sylk'):
+        return ExportRecipe(selected, warnings=('NATIVE_SYLK_ALL_SHEETS',))
     if proof.get('basis') == 'native_preflight_uno_document':
         observed = proof.get('selectedImportFilter')
         item = native.filters.get(observed)

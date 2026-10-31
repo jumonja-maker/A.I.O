@@ -31,3 +31,18 @@
 
 /* Long native preflight: keep the actual completed/total counter visible. */
 .aio-cv .aio-cv__format-head .aio-guard-state-button.aio-guard-checking{flex:0 0 156px;min-width:145px;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* Inline listbox: never open a native popup beyond the State dialog. */
+.aio-guard-popup select[data-g-jobs]{flex:1 1 100%;width:100%;min-width:0;max-width:100%;height:7rem;max-height:7rem;overflow:auto;box-sizing:border-box}
+.aio-guard-popup select[data-g-jobs] option{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+[data-g-scan-status]{font-size:12px;line-height:1.45;overflow-wrap:anywhere;margin:6px 0}
+
+/* Recovery remains reachable at small logical viewports and 200% scaling. */
+.aio-guard-popup{max-width:calc(100vw - 16px);max-height:calc(100vh - 16px);overscroll-behavior:contain;overflow-wrap:anywhere}
+.aio-guard-popup button,.aio-guard-popup input,.aio-guard-popup select{box-sizing:border-box;max-width:100%;min-width:0}
+.aio-guard-popup button{white-space:normal;overflow-wrap:anywhere}
+.aio-guard-popup .aio-guard-tools input{min-width:0;flex-basis:120px}
+.aio-guard-popup .aio-guard-task{grid-template-columns:minmax(0,1fr) minmax(0,auto)}
+.aio-guard-popup .aio-guard-task button{min-width:0}
+.aio-guard-popup .aio-guard-dialog-head strong{min-width:0}
+.aio-guard-popup .aio-guard-dialog-head [data-g-close]{flex:0 0 32px}

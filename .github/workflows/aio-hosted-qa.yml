@@ -1,0 +1,162 @@
+name: AIO hosted QA and Windows engine 26.8.2
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [fix/guard-v182-matrix-progress-cancel-20261025, fix/fulltest-critical-hosted-lo-20261029, main]
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+  merge_group:
+    types: [checks_requested]
+permissions:
+  contents: read
+concurrency:
+  group: aio-hosted-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+env:
+  PYTHONUTF8: '1'
+  PYTHONIOENCODING: utf-8
+  PYTHONDONTWRITEBYTECODE: '1'
+  QT_QPA_PLATFORM: offscreen
+  QT_OPENGL: software
+  QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --disable-gpu-compositing
+  AIO_QT_SAVE_QA: '1'
+  AIO_LO_QA_MUST_HAVE_ENGINE: '1'
+jobs:
+  qa:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        env:
+          GIT_CONFIG_COUNT: '1'
+          GIT_CONFIG_KEY_0: core.autocrlf
+          GIT_CONFIG_VALUE_0: 'false'
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.11'
+      - name: Canonical disposable test TEMP (no 8.3 user-profile aliases)
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os,pathlib
+          temp=pathlib.Path(os.environ['RUNNER_TEMP']).resolve()/'aio-tests-temp'
+          temp.mkdir(exist_ok=False)
+          with open(os.environ['GITHUB_ENV'],'a',encoding='utf-8') as f:
+              for key in ('TEMP','TMP','TMPDIR'):
+                  f.write(key+'='+str(temp)+'\n')
+          PY
+      - name: Python and DOM test dependencies (no cache or artifact storage)
+        id: deps
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "AIO_QA_SOURCE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          python tools/build/verify_qa_dependency_lock.py --phase runtime --check-locks
+          AIO_QA_SOURCE_SHA=$(git rev-parse HEAD) python tools/build/qa_wheels.py --phase runtime --wheelhouse "$RUNNER_TEMP/aio-qa-wheels"
+          AIO_QA_SOURCE_SHA=$(git rev-parse HEAD) python tools/build/qa_sca.py --phase runtime --output build/aio-qa-sca-runtime.json
+          npm install --no-save --ignore-scripts --package-lock=false linkedom@0.18.12
+          python -c "import os,pathlib; p=pathlib.Path('node_modules/linkedom/esm/index.js').resolve(); assert p.is_file(); print('AIO_DOM_MODULE='+str(p))" >> "$GITHUB_ENV"
+          AIO_QA_SOURCE_SHA=$(git rev-parse HEAD) python tools/build/verify_qa_dependency_lock.py --phase runtime --wheel-receipt build/aio-qa-wheels-runtime.json --sca-report build/aio-qa-sca-runtime.json
+      - name: Linux test engine and Qt libraries
+        if: runner.os == 'Linux'
+        id: linux_engine
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y libreoffice python3-uno libegl1 libopengl0 libxkbcommon-x11-0 libnss3 libxcb-cursor0
+          echo "AIO_LIBREOFFICE=$(command -v libreoffice)" >> "$GITHUB_ENV"
+          echo "AIO_QA_ENGINE=$(command -v libreoffice)" >> "$GITHUB_ENV"
+          echo 'QTWEBENGINE_DISABLE_SANDBOX=1' >> "$GITHUB_ENV"
+          libreoffice --version
+      - name: Verified stable Windows LibreOffice payload (not a personal installation)
+        if: runner.os == 'Windows'
+        id: windows_engine
+        shell: pwsh
+        run: ./tools/build/prepare-libreoffice.ps1 -Destination (Join-Path $env:RUNNER_TEMP 'aio-engine-26.8.2')
+      - name: Native critical FULLTEST controls on pinned Windows engine
+        if: ${{ !cancelled() && runner.os == 'Windows' && steps.windows_engine.outcome == 'success' && steps.deps.outcome == 'success' }}
+        id: fidelity
+        shell: bash
+        run: python tools/qa/fulltest_batch1_native.py --executable "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-batch1-native"
+      - name: Native EMF WMF BMP page preservation on pinned Windows engine
+        if: ${{ !cancelled() && runner.os == 'Windows' && steps.windows_engine.outcome == 'success' && steps.deps.outcome == 'success' }}
+        id: vector_pages
+        shell: bash
+        run: |
+          python tools/qa/fulltest_vector_pages_native.py --executable "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-vector-pages-native"
+          python tools/qa/fulltest_pptx_colours_native.py --executable "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-pptx-colours-native"
+          python tools/qa/fulltest_compressed_pages_native.py --executable "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-compressed-pages-native"
+          python tools/qa/fulltest_dbf_emf_native.py --executable "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-dbf-emf-native"
+          python tools/qa/m21_svg_native.py --executable "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-m21-svg-native"
+          python tools/qa/m14_native_matrix.py --executable "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-m14-native"
+      - name: Complete source regression suite
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' && (steps.windows_engine.outcome == 'success' || steps.linux_engine.outcome == 'success') }}
+        id: units
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m compileall -q app_backend tools tests
+          python tools/qa/hosted_unit_tests.py --report "$RUNNER_TEMP/aio-units.json"
+      - name: Windows EXE packaging and real frozen smoke (no publication)
+        if: runner.os == 'Windows' && steps.units.outcome == 'success' && steps.fidelity.outcome == 'success' && steps.vector_pages.outcome == 'success'
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/build/verify_qa_dependency_lock.py --phase build --check-locks
+          python tools/build/qa_wheels.py --phase build --wheelhouse "$RUNNER_TEMP/aio-qa-wheels"
+          python tools/build/qa_sca.py --phase build --output build/aio-qa-sca-build.json
+          python tools/build/verify_qa_dependency_lock.py --phase build --wheel-receipt build/aio-qa-wheels-build.json --sca-report build/aio-qa-sca-build.json
+          AIO_QA_REQUIRE_MANIFEST=1 python -m PyInstaller --noconfirm --clean AllInOne.spec
+          python -c "from pathlib import Path; p=Path('dist/A.I.O'); assert (p/'A.I.O.exe').is_file(); assert (p/'_internal/libreoffice/program/soffice.exe').is_file(); print('AIO_HOSTED_EXE_PACKAGE=PASS')"
+          python -c "import os; from pathlib import Path; p=Path('dist/A.I.O/_internal/build-info/aio-source-revision.txt'); assert p.read_text(encoding='ascii').strip()==os.environ['AIO_QA_SOURCE_SHA']; print('AIO_BUNDLED_BUILD_REVISION=PASS')"
+          python -c "import os,json; from pathlib import Path; p=Path('dist/A.I.O/_internal/build-info/aio-qa-dependencies.json'); d=json.loads(p.read_text(encoding='utf-8')); assert d['sourceRevision']==os.environ['AIO_QA_SOURCE_SHA'] and d['phase']=='build'; print('AIO_BUNDLED_DEPENDENCY_MANIFEST=PASS')"
+          python -c "import hashlib,json; from pathlib import Path; b=Path('dist/A.I.O/_internal/build-info'); d=json.loads((b/'aio-qa-dependencies.json').read_text(encoding='utf-8')); assert d['wheelHashesVerified'] is True and hashlib.sha256((b/d['sbomFile']).read_bytes()).hexdigest()==d['sbomSha256']; print('AIO_BUNDLED_WHEEL_HASHES_AND_SBOM=PASS')"
+          python -c "import hashlib,json; from pathlib import Path; b=Path('dist/A.I.O/_internal/build-info'); d=json.loads((b/'aio-qa-dependencies.json').read_text(encoding='utf-8')); assert d['scaStatus']=='pass_python_distribution_scope' and hashlib.sha256((b/d['scaReportFile']).read_bytes()).hexdigest()==d['scaReportSha256']; print('AIO_BUNDLED_PYTHON_SCA=PASS')"
+          python tools/qa/runtime_frozen_acceptance.py --executable dist/A.I.O/A.I.O.exe --output "$RUNNER_TEMP/aio-hosted-frozen" --seconds 120
+      - name: Preserve truthful summary in job log (no upload-artifact)
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json,os,pathlib
+          for name in ('aio-units.json','aio-batch1-native/evidence.json','aio-vector-pages-native/evidence.json','aio-pptx-colours-native/evidence.json','aio-compressed-pages-native/evidence.json','aio-dbf-emf-native/evidence.json','aio-m14-native/evidence.json','aio-m21-svg-native/evidence.json','aio-hosted-frozen/evidence.json'):
+              p=pathlib.Path(os.environ['RUNNER_TEMP'])/name
+              if p.is_file():
+                  data=json.loads(p.read_text(encoding='utf-8'))
+                  print('AIO_EVIDENCE='+json.dumps({'file':name,**data},ensure_ascii=True))
+          print('HISTORICAL_FULLTEST=NOT_RUN;USER_INSTALLER=NOT_BUILT;RELEASE=NOT_RUN')
+          PY
+      - name: Require all platform-specific QA stages
+        if: ${{ always() }}
+        env:
+          AIO_QA_STEPS: ${{ toJSON(steps) }}
+        shell: bash
+        run: python tools/qa/required_qa_gate.py --platform "${{ runner.os }}"
+  required-qa:
+    name: AIO QA gate
+    needs: [qa]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.11'
+      - name: Require successful Windows and Linux matrix
+        env:
+          AIO_QA_MATRIX_RESULT: ${{ needs.qa.result }}
+        run: python tools/qa/required_qa_gate.py --matrix

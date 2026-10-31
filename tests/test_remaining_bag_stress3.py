@@ -51,7 +51,9 @@ class Stress3EvidenceContracts(unittest.TestCase):
         self.assertEqual(stages['dbf-jpeg'],{'dbf':8,'largeDbf':1,'jpeg':120,'negative':6})
         self.assertEqual(stages['tiff'],{'cases':24,'negative':6})
         self.assertEqual(stages['html'],{'positive':18,'excluded':30,'negative':3})
-        self.assertEqual(stages['viewer-150']['checks'],5)
+        self.assertNotIn('viewer-150',stages)
+        self.assertNotIn('viewer-100',stages)
+        self.assertNotIn('session',stages)
     def test_native_sheet_count_keys_and_tiff_case_paths_bind_real_sources(self):
         with tempfile.TemporaryDirectory() as tmp:
             folder=Path(tmp)/'all-sheets';folder.mkdir()
@@ -66,7 +68,7 @@ class Stress3EvidenceContracts(unittest.TestCase):
     def test_new_parser_corpus_keeps_unknown_distinct_from_loss(self):
         with tempfile.TemporaryDirectory() as tmp:
             rows=qa.safety_negative_corpus(Path(tmp)/'new-controls')
-            self.assertEqual(len(rows),12)
+            self.assertEqual(len(rows),3)
             self.assertEqual({row['name']:row['actualDecision'] for row in rows},qa.SAFETY_DECISIONS)
-            self.assertEqual(next(r for r in rows if r['name']=='empty-result')['actualDecision'],'confirmed_loss')
-            self.assertEqual(next(r for r in rows if r['name']=='dtd-entity')['actualDecision'],'not_checked')
+            self.assertEqual(next(r for r in rows if r['name']=='conflicting-mime')['actualDecision'],'invalid')
+            self.assertEqual(next(r for r in rows if r['name']=='inspection-budget')['actualDecision'],'not_checked')

@@ -29,6 +29,7 @@ from .policy import GuardLimits, validate_files, validate_plan
 from .result_store import ResultStore, path_is_link
 from .native_metrics import clean_timings
 from .export_recipe import warning_details, WARNING_TEXT
+from .build_info import report_build_identity
 
 CHUNK = 64 * 1024
 SUCCESS = {'ready', 'saved'}
@@ -155,6 +156,16 @@ class _Artifact:
     sha256: str | None = None
     readback_verified: bool = False
     source_sheet: dict | None = None
+    bundle_outputs: tuple | None = None
+    archive_verification: dict | None = None
+    archive_expected: tuple | None = None
+    save_receipt: dict | None = None
+    availability_error: str | None = None
+    file_identity: tuple | None = field(default=None, init=False)
+
+    def __post_init__(self):
+        from ..file_identity import file_identity
+        self.file_identity = file_identity(self.path)
 
     @property
     def companion(self):
@@ -163,13 +174,16 @@ class _Artifact:
         return self.name == 'AIO-sheets.json' and self.source_sheet is None and self.format in ('csv','tab','tsv')
 
     def metadata(self):
-        return {'supportingFile': self.companion, 'fileId': self.file_id, 'format': self.format, 'name': self.name,
+        return {'available': self.availability_error is None, 'availabilityCode': self.availability_error,
+                'supportingFile': self.companion, 'fileId': self.file_id, 'format': self.format, 'name': self.name,
                 'archiveName': self.archive_name, 'size': self.size, 'saved': self.saved,
                 'sha256': self.sha256, 'readbackVerified':self.readback_verified,
                 'sourceSheet':copy.deepcopy(self.source_sheet),
-                'ticket': self.ticket,
+                'ticket': None if self.availability_error else self.ticket,
                 'mime': mime_for(self.path.suffix.lower().lstrip('.')),
-                'downloadUrl': '/api/converter-guard/result?ticket=' + self.ticket}
+                'downloadUrl': None if self.availability_error else '/api/converter-guard/result?ticket=' + self.ticket,
+                **({'archiveVerification':copy.deepcopy(self.archive_verification)}
+                   if self.archive_verification is not None else {})}
 
 
 @dataclass
@@ -187,6 +201,8 @@ class _Job:
     running: bool = False
     released: bool = False
     cleaning: bool = False
+    cleanup_background: bool = False
+    cleanup_retry_at: float = 0.0
     io: int = 0
     future: object = None
     artifacts: list = field(default_factory=list)
@@ -213,6 +229,7 @@ class _Job:
     store: object = None
     recovery_error: str | None = None
     recovered: bool = False
+    history_session: str = field(default_factory=lambda: secrets.token_hex(16))
     detached: bool = False
     strict_native: bool = False
     save_cancel: threading.Event = field(default_factory=threading.Event)
@@ -230,6 +247,7 @@ class _Job:
     quality_compared: bool = False
     input_accounting: list = field(default_factory=list)
     retain_sources: bool = False
+    retain_results: bool = False  # This process/UI lifetime, never a source lease.
     comparison_parent_job_id: str | None = None
     comparison_recipe: str | None = None
     comparison_parent_tasks: tuple = ()
@@ -355,40 +373,25 @@ class _Cancellation:
         return self.is_set()
 
 
-class _RetryCancellation:
-    """Owned cancellation combined with a caller, without a watcher thread."""
-    def __init__(self, owned, caller):
-        self.owned, self.caller = owned, caller
 
-    def is_set(self):
-        return self.owned.is_set() or self.caller.is_set()
 
-    def set(self):
-        self.owned.set()
-
-    def clear(self):
-        self.owned.clear()
-
-    def wait(self, timeout=None):
-        until = None if timeout is None else time.monotonic() + timeout
-        while not self.is_set():
-            remaining = None if until is None else until - time.monotonic()
-            if remaining is not None and remaining <= 0:
-                return self.is_set()
-            self.owned.wait(.05 if remaining is None else min(.05, remaining))
-        return True
+from .recovery_control import RecoveryStopped, check_recovery_stop
 
 
 class ConverterGuard:
-    def __init__(self, *, adapter=None, limits=None, spool_parent=None, recovery_parent=None, telemetry=None):
+    def __init__(self, *, adapter=None, limits=None, spool_parent=None, recovery_parent=None, history_parent=None):
         self.adapter = adapter if adapter is not None else LibreOfficeAdapter()
-        self.telemetry = telemetry
-        declared_revision = os.environ.get('AIO_BUILD_REVISION', '')
-        self.build_identity = {'scope': 'report_runtime', 'sourceRevision': declared_revision if re.fullmatch(r'[0-9a-f]{40}', declared_revision) else None,
-                               'basis': 'configured' if re.fullmatch(r'[0-9a-f]{40}', declared_revision) else 'unknown'}
+        self.build_identity = report_build_identity()
         self.limits = limits if limits is not None else GuardLimits()
         self._recovery = None if recovery_parent is None else Path(recovery_parent).resolve()
         self._parent = self._recovery or (None if spool_parent is None else Path(spool_parent).resolve())
+        from .conversion_history import ConversionHistory
+        self._history = None if history_parent is None else ConversionHistory(history_parent)
+        self._history_write_error = None
+        if self._history is not None and self._parent is not None:
+            history_root = self._history.root.resolve()
+            if history_root.is_relative_to(self._parent) or self._parent.is_relative_to(history_root):
+                raise ValueError('History must be outside result storage')
         self._lock = threading.RLock()
         self._io_drained = threading.Condition(self._lock)
         self._jobs, self._tickets = {}, {}
@@ -396,24 +399,174 @@ class ConverterGuard:
         # Construction and metadata inspection start no worker. Native preflight
         # is explicit; the export executor starts its thread only at start().
         self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix='aio-guard')
+        # Lazy, separate disk cleanup: never queue deletion behind native conversion.
+        self._cleanup_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix='aio-cleanup')
         self._closed = False
         self._preflight_gate = threading.BoundedSemaphore(1)
         self._proof_cache = OrderedDict()
         self._recovery_issues = []
         self._recovery_pending = []
+        self._recovery_retry = set()
         self._recovery_loaded = not bool(self._recovery)
         self._recovery_lock = threading.Lock()
+        # Constructed lazily like the conversion executor: no thread or disk
+        # search starts until the user explicitly requests old results.
+        self._recovery_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix='aio-recovery')
+        self._recovery_stop = threading.Event()
+        self._recovery_future = None
+        self._recovery_scan_state = 'idle'
+        self._recovery_scan_id = 0
+        self._recovery_scan_error = None
+
+    def _remember_history(self, job):
+        """Persist metadata on worker/save boundaries, outside the state lock.
+
+        No outputs or sources are opened. An unavailable history must never
+        change conversion success, save acknowledgements or result ownership.
+        """
+        if self._history is None:
+            return
+        try:
+            with self._lock:
+                if job.preparation or job.running or job.state not in TERMINAL:
+                    return
+                revision = job.revision
+                report = copy.deepcopy({**self._report(job), 'jobId':job.id,
+                    'state':job.state, 'officeStarts':job.office_starts,
+                    'packagingError':job.packaging_error})
+            self._history.record(job.id, revision, report, session=job.history_session)
+        except Exception:
+            # Sticky for this process: a later successful write does not prove
+            # that a previously missed report was recovered.
+            self._history_write_error = 'HISTORY_WRITE_FAILED'
+
+    def history_list(self, *, before=None, limit=25):
+        if self._history is None:
+            return {'schema':1, 'enabled':False, 'items':[], 'nextCursor':None}
+        return {**self._history.list(before=before, limit=limit),
+                'writeWarning':self._history_write_error}
+
+    def history_report(self, identity):
+        if self._history is None:
+            raise GuardError('HISTORY_DISABLED', 'Постоянная история недоступна.',
+                             stage='history', status=503)
+        return self._history.report(identity)
+
+    def delete_history(self, identity):
+        if self._history is None:
+            raise GuardError('HISTORY_DISABLED', 'Постоянная история недоступна.',
+                             stage='history', status=503)
+        return self._history.delete(identity)
 
     def _load_recovery(self):
-        # Excel/startup does no recovery scan. The first explicit recovery or
-        # retained-job lookup runs on its HTTP caller, never the Qt UI thread.
-        with self._recovery_lock:
-            if not self._recovery_loaded and not self._closed:
-                self._recover_results()
-                self._recovery_loaded = True
-            elif self._recovery_pending and not self._closed and len(self._jobs)<self.limits.max_jobs:
-                pending,self._recovery_pending=self._recovery_pending,[]
-                self._recover_results(pending)
+        # Legacy direct lookups retain synchronous semantics. The desktop UI
+        # reads snapshots and submits this operation only on explicit request.
+        try:
+            with self._recovery_lock:
+                with self._lock:
+                    if self._closed:
+                        return
+                    initial = not self._recovery_loaded
+                    pending = []
+                    if not initial and len(self._jobs) < self.limits.max_jobs:
+                        pending, self._recovery_pending = self._recovery_pending, []
+                if initial:
+                    self._recover_results()
+                    with self._lock:
+                        self._recovery_loaded = True
+                elif pending:
+                    self._recover_results(pending)
+        except RecoveryStopped as error:
+            raise GuardError('GUARD_CLOSED', 'Guard завершает работу.', status=503) from error
+        except Exception:
+            with self._lock:
+                self._recovery_loaded = False  # A later explicit retry must rescan.
+            raise
+
+    def start_recovery_scan(self):
+        with self._lock:
+            if self._closed:
+                raise GuardError('GUARD_CLOSED', 'Guard завершает работу.', status=503)
+            if (self._recovery or self._jobs) and self._recovery_scan_state != 'scanning':
+                # Every explicit request also reconciles known output files;
+                # loaded old-job discovery alone cannot refresh their availability.
+                self._recovery_scan_state = 'scanning'
+                self._recovery_scan_error = None
+                self._recovery_scan_id += 1
+                # Claim and submit under one lock: duplicate clicks while the
+                # worker runs still share one request and never perform inline I/O.
+                try:
+                    self._recovery_future = self._recovery_executor.submit(self._run_recovery_scan)
+                except RuntimeError as error:
+                    self._recovery_scan_state = 'failed'
+                    self._recovery_scan_error = 'RECOVERY_SCAN_FAILED'
+                    raise GuardError('RECOVERY_SCAN_FAILED', 'Не удалось начать поиск результатов.', status=503) from error
+        return self.recoverable(scan=False)
+
+    def _run_recovery_scan(self):
+        failed = False
+        try:
+            self.recoverable(scan=True)
+        except Exception:
+            failed = True  # Paths and exception text never enter the UI status.
+        finally:
+            with self._lock:
+                self._recovery_scan_state = ('closed' if self._closed else 'failed' if failed
+                    else 'retry_available' if self._recovery_retry
+                    else 'waiting_for_slot' if self._recovery_pending else 'completed')
+                self._recovery_scan_error = 'RECOVERY_SCAN_FAILED' if failed and not self._closed else None
+
+    def _recovery_warning(self, value):
+        with self._lock:
+            if value not in self._recovery_issues:
+                self._recovery_issues.append(value)
+
+    def _retry_recovery(self, root, code):
+        # A busy/unreadable tree is not a completed search. Only another
+        # explicit request retries it; snapshots and startup never touch disk.
+        with self._lock:
+            if root not in self._recovery_pending:
+                self._recovery_pending.append(root)
+            self._recovery_retry.add(root)
+        self._recovery_warning({'folder': root.name, 'code': code, 'retryable': True})
+
+    @staticmethod
+    def _recovery_bytes(root):
+        total = 0
+        def failed(error):
+            raise error
+        for base, dirs, names in os.walk(root, followlinks=False, onerror=failed):
+            dirs[:] = [name for name in dirs if not path_is_link(Path(base)/name)]
+            for name in names:
+                path = Path(base)/name
+                if not path_is_link(path):
+                    total += path.stat().st_size
+        return total
+
+    def _publish_recovered(self, job):
+        if self._history is not None:
+            try:
+                # Only explicit recovery reaches here, with ownership of the
+                # result journal. Never open SQLite under the Guard state lock.
+                self._history.adopt(job.id, job.history_session)
+            except Exception:
+                self._history_write_error = 'HISTORY_WRITE_FAILED'
+        # Validation/hashing happened without holding the state lock. A new
+        # conversion can consume the final slot meanwhile; recheck atomically.
+        with self._lock:
+            if self._closed or job.id in self._jobs or any(j.root == job.root for j in self._jobs.values()):
+                job.store.close()
+                return
+            if len(self._jobs) >= self.limits.max_jobs:
+                if job.root not in self._recovery_pending:
+                    self._recovery_pending.append(job.root)
+                job.store.close()
+                return
+            self._jobs[job.id] = job
+            self._reserved += job.reserved
+            for artifact in job.artifacts:
+                self._tickets[artifact.ticket] = artifact
+            self._record(job, 'recovered')
 
     def _batch(self, job, name):
         method = getattr(self.adapter, 'batch', None)
@@ -487,32 +640,52 @@ class ConverterGuard:
                 job.recovery_error = 'RECOVERY_WRITE_FAILED'
 
     def _recover_results(self, roots=None):
-        ResultStore.reap_finished_retirements(self._recovery)
-        roots = sorted(self._recovery.glob('aio-guard-*')) if roots is None else roots
+        check_recovery_stop(self._recovery_stop)
+        ResultStore.reap_finished_retirements(self._recovery, cancel=self._recovery_stop)
+        if roots is None:
+            # scandir reports access failures; glob may silently return an
+            # empty list and falsely declare an unreadable store searched.
+            try:
+                with os.scandir(self._recovery) as entries:
+                    roots = sorted(Path(entry.path) for entry in entries if entry.name.startswith('aio-guard-'))
+            except FileNotFoundError:
+                roots = []  # A first-run store has no old results yet.
         for root in roots:
-            if len(self._jobs)>=self.limits.max_jobs:
-                self._recovery_pending.append(root)
-                continue
-            if root.is_symlink() or not root.is_dir():
-                continue
-            if path_is_link(root):
-                continue
+            check_recovery_stop(self._recovery_stop)
+            with self._lock:
+                self._recovery_retry.discard(root)
+                if any(job.root == root for job in self._jobs.values()):
+                    # A deleting job may already have closed owner.lock. It is
+                    # still ours until physical cleanup releases its quota.
+                    continue
+            with self._lock:
+                if len(self._jobs) >= self.limits.max_jobs:
+                    if root not in self._recovery_pending:
+                        self._recovery_pending.append(root)
+                    continue
             store = ResultStore(root)
             try:
+                if path_is_link(root) or not root.is_dir():
+                    continue
                 if not store.acquire():
-                    continue  # Another running A.I.O instance owns this job.
+                    self._retry_recovery(root, 'RECOVERY_BUSY')
+                    continue  # Another instance/Windows lock; never delete it.
+                with self._lock:
+                    self._recovery_retry.discard(root)
+                    self._recovery_issues[:] = [w for w in self._recovery_issues
+                        if w.get('folder') != root.name or not w.get('retryable')]
                 try:
                     retired = store.retirement_pending()
                 except (OSError, ValueError, TypeError):
                     store.close()
-                    self._recovery_issues.append({'folder': root.name,
+                    self._recovery_warning({'folder': root.name,
                         'code': 'RECOVERY_RETIREMENT_INVALID', 'manualRecovery': True})
                     continue  # An unreadable marker never authorizes deletion.
                 if retired:
                     try:
                         store.cleanup_retired()
                     except (OSError, ValueError, TypeError):
-                        self._recovery_issues.append({'folder': root.name,
+                        self._recovery_warning({'folder': root.name,
                             'code': 'RECOVERY_CLEANUP_RETRY', 'manualRecovery': True})
                     finally:
                         store.close()
@@ -520,17 +693,18 @@ class ConverterGuard:
                 if not (root/'job.json').is_file():
                     # Crash during initial metadata write: preserve and surface
                     # the otherwise invisible directory for manual inspection.
-                    self._recovery_issues.append({'folder': root.name,
+                    self._recovery_warning({'folder': root.name,
                         'code': 'RECOVERY_MANIFEST_MISSING', 'manualRecovery': True})
                     self._salvage_orphan(root, store=store)
                     continue
-                header, records, saved, integrity = store.read()
+                header, records, saved, integrity = store.read(cancel=self._recovery_stop)
                 identity = header.get('jobId')
                 if not isinstance(identity, str) or not re.fullmatch(r'[0-9a-f]{32}', identity):
                     raise ValueError('Invalid recovery job')
                 rows = validate_files(header.get('files'), self.limits)
                 files, indices = [], set()
                 for row, original in zip(rows, header['files']):
+                    check_recovery_stop(self._recovery_stop)
                     tasks = []
                     for target in original.get('targets', []):
                         index, format_id = target['index'], target['format']
@@ -546,14 +720,14 @@ class ConverterGuard:
                     if header.get('retainSources') is True:
                         try:
                             item.source = store.input_path(original.get('sourcePath'), row['size'],
-                                                           item.content_digest)
+                                                           item.content_digest, cancel=self._recovery_stop)
                             from .html_resources import resource_manifest
                             metadata = original.get('resources', [])
                             resources = resource_manifest(metadata, item.source.name) if metadata else {}
                             for resource in metadata:
                                 name = resource['path']
                                 relative = (item.source.parent / name).relative_to(root).as_posix()
-                                store.input_path(relative, resource['size'], resource.get('digest'))
+                                store.input_path(relative, resource['size'], resource.get('digest'), cancel=self._recovery_stop)
                                 resources[name].update(ready=True, digest=resource['digest'])
                             item.resources = resources
                             item.source_released = False
@@ -579,7 +753,7 @@ class ConverterGuard:
                 job.input_accounting = header.get('inputAccounting', [])
                 if integrity != 'complete':
                     job.recovery_error = 'RECOVERY_LEDGER_INCOMPLETE'
-                    self._recovery_issues.append({'folder':root.name,
+                    self._recovery_warning({'folder':root.name,
                         'code':'RECOVERY_LEDGER_INCOMPLETE', 'integrity':integrity,
                         'jobId':identity})
                 summary=header.get('summary',{})
@@ -588,6 +762,7 @@ class ConverterGuard:
                 job.file_timeout=summary.get('fileTimeoutSeconds')
                 job.files_by_id = {item.id:item for item in files}
                 for item in files:
+                    check_recovery_stop(self._recovery_stop)
                     for task in item.targets:
                         record = records.get(task.index, {})
                         if record.get('fileId') != item.id or record.get('state') not in DONE:
@@ -620,6 +795,7 @@ class ConverterGuard:
                         if task.state not in SUCCESS:
                             continue
                         for output in record.get('outputs', []):
+                            check_recovery_stop(self._recovery_stop)
                             try:
                                 relative = output['path']
                                 if Path(relative).parts[:3] != ('work', str(task.index), 'output'):
@@ -631,7 +807,8 @@ class ConverterGuard:
                                     raise ValueError('Invalid archive name')
                                 artifact = _Artifact(identity, path, path.name, output['size'],
                                     secrets.token_urlsafe(32), item.id, task.format, archive_name,
-                                    saved=relative in saved, sha256=output.get('sha256'),
+                                    saved=relative in saved and relative in header.get('readbackVerifiedPaths', []),
+                                    sha256=output.get('sha256'),
                                     readback_verified=relative in header.get('readbackVerifiedPaths', []),
                                     source_sheet=output.get('sourceSheet'))
                                 if artifact.sha256 is not None:
@@ -639,15 +816,25 @@ class ConverterGuard:
                                         raise ValueError('Invalid output fingerprint')
                                     from .save_verification import sha256_stream
                                     with path.open('rb') as restored:
-                                        actual = sha256_stream(restored, cancel=threading.Event())
+                                        try:
+                                            actual = sha256_stream(restored, cancel=self._recovery_stop)
+                                        except GuardError:
+                                            check_recovery_stop(self._recovery_stop)
+                                            raise
                                     if actual != (artifact.size, artifact.sha256):
                                         raise ValueError('Recovery output fingerprint changed')
                                 task.artifacts.append(artifact)
                                 job.artifacts.append(artifact)
-                            except (OSError, ValueError, KeyError, TypeError):
+                                if relative in saved and not artifact.readback_verified:
+                                    self._recovery_warning({'folder':root.name, 'jobId':identity,
+                                        'code':'RECOVERY_SAVE_UNVERIFIED'})
+                            except (OSError, ValueError, KeyError, TypeError) as error:
                                 job.recovery_error = job.recovery_error or 'RECOVERY_OUTPUT_MISSING'
                                 task.state, task.code = 'error', 'RECOVERY_OUTPUT_MISSING'
                                 task.error = 'Один из результатов отсутствует или изменён. Доступные файлы сохранены.'
+                                if isinstance(error, PermissionError):
+                                    self._recovery_warning({'folder':root.name, 'jobId':identity,
+                                        'code':'RECOVERY_OUTPUT_UNREADABLE'})
                         if task.state in SUCCESS and not task.artifacts:
                             # Legacy journals have no output count. An empty
                             # success cannot mean the file was converted or
@@ -658,7 +845,7 @@ class ConverterGuard:
                         elif task.artifacts and task.state in SUCCESS:
                             task.state = 'saved' if all(a.saved for a in task.artifacts) else 'ready'
                 if not job.artifacts:
-                    self._recovery_issues.append({'folder':root.name,
+                    self._recovery_warning({'folder':root.name,
                         'code':'RECOVERY_UNFINISHED_PREPARATION', 'jobId':identity,
                         'manualRecovery': True,
                         'bytes':sum(p.stat().st_size for p in root.rglob('*')
@@ -670,28 +857,32 @@ class ConverterGuard:
                               if p.is_file() and not p.is_symlink())
                 if untracked and not job.recovery_error:
                     job.recovery_error='RECOVERY_UNTRACKED_OUTPUTS'
-                    self._recovery_issues.append({'folder':root.name,
+                    self._recovery_warning({'folder':root.name,
                         'code':'RECOVERY_UNTRACKED_OUTPUTS', 'jobId':identity})
                 if untracked:
                     self._salvage_outputs(job, indexed)
-                job.reserved = sum(p.stat().st_size for p in root.rglob('*') if p.is_file() and not p.is_symlink())
+                job.reserved = self._recovery_bytes(root)
                 job.result = {**job.artifacts[0].metadata(), 'jobId':identity}
                 job.packaging_error = 'RECOVERED_RESULTS'
                 job.state = 'partial'
                 job.diagnostic_bytes=sum(len(t.diagnostic.encode('utf-8')) for f in files for t in f.targets)
-                with self._lock:
-                    if self._closed or identity in self._jobs:
-                        store.close()
-                        continue
-                    self._jobs[identity] = job
-                    self._reserved += job.reserved
-                    for artifact in job.artifacts:
-                        self._tickets[artifact.ticket] = artifact
-                    self._record(job, 'recovered')
-            except (OSError, ValueError, TypeError, KeyError, GuardError):
+                check_recovery_stop(self._recovery_stop)
+                self._publish_recovered(job)
+            except RecoveryStopped:
+                store.close()
+                raise  # Shutdown is not invalid metadata and never triggers salvage.
+            except OSError as error:
+                store.close()
+                if isinstance(error, FileNotFoundError) and not root.exists():
+                    with self._lock:
+                        self._recovery_retry.discard(root)
+                    continue
+                self._retry_recovery(root, 'RECOVERY_ACCESS_DENIED' if isinstance(error, PermissionError)
+                                     else 'RECOVERY_READ_FAILED')
+            except (ValueError, TypeError, KeyError, GuardError):
                 store.close()  # Never delete an unreadable recovery directory.
                 self._salvage_orphan(root)
-                self._recovery_issues.append({'folder':root.name,
+                self._recovery_warning({'folder':root.name,
                     'code':'RECOVERY_METADATA_INVALID', 'manualRecovery': True})
 
     def _salvage_outputs(self, job, indexed=()):
@@ -710,6 +901,7 @@ class ConverterGuard:
                 dirs[:] = sorted(d for d in dirs if not (Path(base)/d).is_symlink()
                                  and not path_is_link(Path(base)/d))
                 for name in sorted(names):
+                    check_recovery_stop(self._recovery_stop)
                     candidate = Path(base)/name
                     try:
                         if candidate.is_symlink() or candidate.stat().st_nlink != 1:
@@ -728,7 +920,7 @@ class ConverterGuard:
             if artifacts:
                 while 'rescued-' + str(next_index) in job.files_by_id:
                     next_index += 1
-                task = _Task('bin', next_index, state='ready', stage='recovery',
+                task = _Task('bin', next_index, state='error', stage='recovery',
                              code='RECOVERED_UNVERIFIED', artifacts=artifacts)
                 task.error = 'Файлы спасены с диска. Исходник, формат и полнота результата не подтверждены.'
                 item = _File('rescued-' + str(next_index), 'Спасённые файлы · ' + output.parent.name,
@@ -752,39 +944,60 @@ class ConverterGuard:
             if not self._salvage_outputs(job):
                 store.close()
                 return
-            job.reserved = sum(a.size for a in job.artifacts)
+            job.reserved = self._recovery_bytes(root)
             job.result = {**job.artifacts[0].metadata(), 'jobId':identity}
             job.packaging_error = 'RECOVERED_RESULTS'
-            with self._lock:
-                if identity in self._jobs or self._closed:
-                    store.close()
-                    return
-                self._jobs[identity] = job
-                self._reserved += job.reserved
-                for artifact in job.artifacts:
-                    self._tickets[artifact.ticket] = artifact
-                self._record(job, 'recovered')
-        except (OSError, ValueError):
+            check_recovery_stop(self._recovery_stop)
+            self._publish_recovered(job)
+        except RecoveryStopped:
+            store.close()
+            raise
+        except OSError as error:
+            store.close()
+            self._retry_recovery(root, 'RECOVERY_ACCESS_DENIED' if isinstance(error, PermissionError)
+                                 else 'RECOVERY_READ_FAILED')
+        except ValueError:
             store.close()
 
-    def recoverable(self):
-        self._prune(reap_saved=True)
-        self._load_recovery()
+    def recoverable(self, *, scan=True):
+        if type(scan) is not bool:
+            raise GuardError('RECOVERY_REQUEST', 'Неверный режим получения результатов.')
+        # Lightweight GUI polls do not enumerate directories, hash documents,
+        # wait for an existing scan, or synchronously remove a large tree.
+        self._prune(reap_saved=True, defer_cleanup=not scan)
+        if scan:
+            self._load_recovery()
+            with self._lock:
+                identities = [job.id for job in self._jobs.values() if not job.released]
+            for identity in identities:
+                try:
+                    self._reconcile_results(identity)
+                except GuardError as error:
+                    if error.code not in ('JOB_NOT_FOUND', 'GUARD_CLOSED'):
+                        raise
         with self._lock:
             return {'storage': self.storage_stats(), 'pendingRecoveryFolders':len(self._recovery_pending),
+                    'recoveryScan': {'state': self._recovery_scan_state,
+                        'available': bool(self._recovery), 'loaded': self._recovery_loaded,
+                        'requestId': self._recovery_scan_id,
+                        'pendingFolders': len(self._recovery_pending),
+                        'retryFolders': len(self._recovery_retry),
+                        'errorCode': self._recovery_scan_error},
                     'warnings':list(self._recovery_issues),
                     'jobs': [{'jobId': j.id, 'recovered': j.recovered,
                               'label':j.files[0].name if j.files else 'Результаты',
-                              'outputs': len(j.artifacts), 'bytes': sum(a.size for a in j.artifacts),
-                              'state': j.state, 'running': j.running, 'saveInProgress': j.saving,
-                              'unsavedOutputs': sum(not a.saved for a in j.artifacts),
-                              'unsavedCompanionFiles': sum(not a.saved and a.companion for a in j.artifacts),
-                              'unsavedDocuments': sum(not a.saved and not a.companion for a in j.artifacts),
-                              'unsavedBytes': sum(a.size for a in j.artifacts if not a.saved),
+                              'outputs': sum(not a.availability_error for a in j.artifacts),
+                              'knownOutputs': len(j.artifacts),
+                              'unavailableOutputs': sum(bool(a.availability_error) for a in j.artifacts),
+                              'bytes': sum(a.size for a in j.artifacts if not a.availability_error),
+                              'state': self._availability_state(j), 'conversionState': j.state, 'running': j.running, 'saveInProgress': j.saving,
+                              'unsavedOutputs': sum(not a.saved and not a.availability_error for a in j.artifacts),
+                              'unsavedCompanionFiles': sum(not a.saved and not a.availability_error and a.companion for a in j.artifacts),
+                              'unsavedDocuments': sum(not a.saved and not a.availability_error and not a.companion for a in j.artifacts),
+                              'unsavedBytes': sum(a.size for a in j.artifacts if not a.saved and not a.availability_error),
                               'recoveryDurable': bool(j.store and not j.recovery_error),
                               'retainSources': j.retain_sources,
-                              'comparisonAvailable': bool(j.retain_sources and not j.running and
-                                  j.artifacts and any(not f.source_released for f in j.files)),
+                              'comparisonAvailable': False,
                               'comparisonParentJobId': j.comparison_parent_job_id,
                               'comparisonRecipe': j.comparison_recipe,
                               'comparisonParentTasks': list(j.comparison_parent_tasks),
@@ -842,174 +1055,6 @@ class ConverterGuard:
         if stage in ('preflight_started','preflight_done','job_queued','job_started',
                      'engine_started','packaging_started','bundle_ready','job_finished'):
             job.timings.setdefault(stage+'Ms',round((time.monotonic()-job.trace.started)*1000))
-        # Best-effort observation of already-committed GUARD state. The emitter
-        # performs ONLY bounded put_nowait here; its separate writer owns I/O.
-        # No telemetry exception may escape into a conversion task.
-        if self.telemetry is not None:
-            try:
-                self._telemetry_record(job, stage, details)
-            except Exception:
-                pass
-
-    def _telemetry_record(self, job, stage, details):
-        sink = self.telemetry
-        identity = job.id
-        file_id, target = details.get('file_id'), details.get('target')
-        code = details.get('code')
-        item = job.files_by_id.get(file_id) if file_id is not None else None
-        task = next((t for t in item.targets if t.format == target), None) if item and target else None
-
-        def send(kind, *, phase=None, status=None, reason=None, elapsed=None,
-                 fid=file_id, fmt=target):
-            source = job.files_by_id.get(fid) if fid is not None else None
-            current = (next((t for t in source.targets if t.format == fmt), None)
-                       if source and fmt else None)
-            task_id = (identity + ':' + str(current.index)) if current else None
-            artifact = current.artifacts[0] if current and current.artifacts else None
-            native_mode = current.execution_mode if current else None
-            sink.emit(kind, request_id=identity, file_id=fid, target=fmt,
-                      stage=phase, status=status, reason_code=reason,
-                      duration_ms=elapsed, module_id='guard',
-                      task_id=task_id,
-                      attempt_id=task_id + ':1' if task_id else None,
-                      result_id=artifact.ticket if artifact else None,
-                      backend=native_mode if native_mode else 'unknown',
-                      filter_name=current.export_filter if current else None,
-                      native_status=('completed' if kind == 'task_succeeded' else
-                                     'failed' if kind == 'task_failed' else
-                                     'cancelled' if kind == 'task_cancelled' else None),
-                      output_contract_status=(
-                          'invalid' if kind in ('task_succeeded', 'output_contract_warning')
-                          and current and any(a.size == 0 for a in current.artifacts)
-                          else 'checked' if kind == 'task_succeeded'
-                          else 'not_checked' if kind == 'task_failed' else None),
-                      fidelity_status='not_checked' if kind == 'task_succeeded' else None,
-                      save_status='saved' if kind == 'save_confirmed' else None,
-                      result_size=sum(a.size for a in current.artifacts)
-                          if current and current.artifacts else None,
-                      source_size=source.size if source and kind == 'input_registered' else None,
-                      source_sha256=source.content_digest if source and kind == 'input_registered' else None,
-                      reason_family=('CANCEL' if kind in ('task_cancelled', 'cancel_requested') else
-                                     'ENGINE' if kind == 'task_failed' and
-                                     (reason or '').startswith('ENGINE_') else
-                                     'STORAGE' if reason and ('STORAGE' in reason or 'DISK' in reason)
-                                     else 'PREFLIGHT' if reason and ('PREFLIGHT' in reason or 'ROUTE' in reason)
-                                     else 'UNCLASSIFIED' if kind == 'task_failed' else None),
-                      error_fingerprint=(current.diagnostic if current and
-                                         kind == 'task_failed' and current.diagnostic
-                                         else None))
-
-        if stage == 'job_queued':
-            send('job_queued', phase='queue', status='queued')
-            # Each planned operation has a stable (opaque-hashed) file ID and
-            # target, even if it was filtered by preflight before execution.
-            for source in job.files:
-                for action in source.targets:
-                    send('task_queued', fid=source.id, fmt=action.format,
-                         phase='queue', status='queued')
-                    if action.state == 'skipped':
-                        send('task_failed', fid=source.id, fmt=action.format,
-                             phase='preflight', status='skipped',
-                             reason=action.code or 'PREFLIGHT_ROUTE_UNAVAILABLE')
-            return
-        if stage == 'route_selected':
-            send('route_selected', phase='route', status='registered')
-            send('task_started', phase='engine', status='running')
-            return
-        if stage == 'result_ready':
-            send('result_created', phase='result', status='ready')
-            send('task_succeeded', phase='result', status='ready',
-                 elapsed=task.duration_ms if task else None)
-            # Diagnostic only. Native success remains as GUARD determined.
-            if task and any(a.size == 0 for a in task.artifacts):
-                send('output_contract_warning', phase='result', status='failed',
-                     reason='OUTPUT_EMPTY')
-            for warning in task.warnings if task else ():
-                send('native_export_warning',phase='result',status='ready',reason=warning)
-            return
-        if stage == 'route_filtered':
-            send('task_failed', phase='route', status='skipped',
-                 reason=code or 'NATIVE_ROUTE_UNAVAILABLE')
-            return
-        if stage == 'native_stage':
-            native_phase = task.stage if task else 'engine'
-            send('native_stage', phase=native_phase, status='running')
-            # Start is observable. Do not invent phase completion while the
-            # underlying UNO/CLI call may still be inside native code.
-            if native_phase in ('import', 'export'):
-                send(native_phase + '_started', phase=native_phase, status='started')
-            return
-        if stage == 'task_finished':
-            # Task completion is derived from *actual* task state, not this
-            # finally hook: emitting success here would misclassify failures.
-            return
-        if item is not None and task is not None and task.state in {'error','cancelled'}:
-            send('task_cancelled' if task.state == 'cancelled' else 'task_failed',
-                 phase=task.stage if task.stage in ('queue','import','export','engine',
-                                                   'storage','result','route','launch','preflight')
-                       else 'engine',
-                 status='cancelled' if task.state == 'cancelled' else 'failed',
-                 reason=task.code, elapsed=task.duration_ms)
-            return
-        if stage == 'preflight_file_started':
-            send('preflight_started', phase='preflight', status='started')
-        elif stage == 'preflight_finished':
-            proof = item.native_route if item else None
-            send('preflight_finished', phase='preflight',
-                 status='detected' if proof and proof.get('state') == 'detected'
-                 else 'undetermined', reason=code)
-        elif stage == 'engine_started':
-            send('libreoffice_started', phase='launch', status='started')
-        elif stage == 'save_confirmed':
-            send('save_confirmed', phase='save', status='saved')
-            send('save_finished', phase='save', status='saved')
-        elif stage == 'save_started':
-            send('save_started', phase='save', status='started')
-        elif stage == 'save_failed':
-            send('save_failed', phase='save', status='cancelled' if code == 'SAVE_CANCELLED' else 'failed',
-                 reason=code)
-        elif stage == 'packaging_started':
-            send('archive_started', phase='packaging', status='started')
-        elif stage == 'bundle_ready':
-            send('archive_ready', phase='bundle', status='ready')
-        elif stage == 'bundle':
-            send('archive_failed', phase='bundle', status='failed', reason=code)
-        elif stage == 'cancel_requested':
-            send('cancel_requested', phase='cancel', status='cancelled')
-        elif stage == 'file_cancel_requested':
-            send('file_cancel_requested', phase='cancel', status='cancelled')
-        elif stage == 'job_started':
-            send('job_started', phase='queue', status='running')
-            fingerprints = {f.native_route.get('registryFingerprint') for f in job.files
-                            if isinstance(f.native_route, dict)}
-            if len(fingerprints) == 1:
-                fingerprint = next(iter(fingerprints))
-                if isinstance(fingerprint, str) and re.fullmatch('[0-9a-f]{64}', fingerprint):
-                    sink.emit('native_registry_identified', request_id=identity,
-                              module_id='guard', stage='preflight', status='detected',
-                              engine_registry_fingerprint=fingerprint)
-        elif stage == 'job_finished':
-            send('job_finished', phase='complete', status=job.state, reason=code)
-        elif stage == 'job_failed':
-            send('job_failed', phase='complete', status='failed', reason=code)
-        elif stage == 'worker_finished':
-            send('worker_finished', phase='complete', status='finished')
-        elif stage in {'job_created','input_stored','preflight_started',
-                       'preflight_done','route_filtered','route_selected',
-                       'results_available','recovered','results_retained'}:
-            mapping = {'job_created':'job_created', 'input_stored':'input_stored',
-                       'preflight_started':'preflight_batch_started',
-                       'preflight_done':'preflight_batch_finished',
-                       'results_available':'results_available',
-                       'recovered':'job_recovered',
-                       'results_retained':'results_retained'}
-            kind = mapping.get(stage)
-            if kind:
-                send(kind, phase='preflight' if stage.startswith('preflight')
-                     else 'recovery' if stage == 'recovered' else 'idle')
-            if stage == 'input_stored':
-                send('input_registered', phase='upload', status='completed')
-
     def _get(self, identity):
         if self._closed:
             raise GuardError('GUARD_CLOSED', 'Guard завершает работу.', status=503)
@@ -1019,15 +1064,16 @@ class ConverterGuard:
         job.touched = time.monotonic()
         return job
 
-    def _prune(self, *, reap_saved=False):
+    def _prune(self, *, reap_saved=False, defer_cleanup=False):
         with self._lock:
             now = time.monotonic()
             expired = [j for j in self._jobs.values() if j.released or (
                 not j.running and not j.io and not j.pending_journal and (
-                    reap_saved and self._saved_all(j) and not j.retain_sources or not j.artifacts and not j.recovery_error
+                    reap_saved and self._saved_all(j) and not (j.retain_sources or j.retain_results) or not j.artifacts and not j.recovery_error
                     and now - j.touched > self.limits.retention_seconds))]
             for job in expired:
                 job.released = True
+                job.cleanup_background = job.cleanup_background or defer_cleanup
                 job.cancel.set()
         for job in expired:
             self._cleanup(job)
@@ -1044,7 +1090,9 @@ class ConverterGuard:
         self._reserved -= amount
         job.reserved -= amount
 
-    def create(self, files, formats=None, *, plan=None, prepare_only=False, retain_sources=False):
+    def create(self, files, formats=None, *, plan=None, prepare_only=False, retain_sources=False, retain_results=False):
+        if type(retain_results) is not bool:
+            raise GuardError('RETENTION_POLICY', 'Некорректный режим хранения результатов.')
         if type(retain_sources) is not bool:
             raise GuardError('COMPARISON_POLICY', 'Некорректный режим хранения исходников.')
         rows = validate_files(files, self.limits)
@@ -1080,7 +1128,7 @@ class ConverterGuard:
                                    targets=tasks, name_normalized=normalized))
             identity = secrets.token_hex(16)
             job = _Job(identity, root, files, size, preparation=prepare_only,
-                       retain_sources=retain_sources)
+                       retain_sources=retain_sources, retain_results=retain_results)
             job.files_by_id = {item.id: item for item in files}
             self._record(job, 'job_created')
             self._jobs[identity] = job
@@ -1584,18 +1632,6 @@ class ConverterGuard:
             task.automatic_recipe = (automatic if isinstance(automatic, str) and
                 re.fullmatch(r'[a-z0-9_]{1,64}', automatic) else None)
             task.automatic_parameters = self._automatic_parameters(export.get('automaticParameters'))
-        if value and self.telemetry is not None:
-            for key, phase in (('workerStartupMs','launch'), ('importMs','import'),
-                               ('exportMs','export'), ('processMs','engine')):
-                if key in value:
-                    try:
-                        identity = job.id + ':' + str(task.index)
-                        self.telemetry.emit('native_phase_measured', request_id=job.id,
-                            file_id=item.id, target=task.format, task_id=identity,
-                            attempt_id=identity+':1', module_id='guard', stage=phase,
-                            status='finished', duration_ms=value[key], backend=task.execution_mode)
-                    except Exception:
-                        pass
 
     @staticmethod
     def _automatic_parameters(value):
@@ -1788,25 +1824,6 @@ class ConverterGuard:
                                     task.execution_mode = getattr(self.adapter,'execution_mode',lambda:None)()
                                     self._record(job, 'engine_started', file_id=item.id,
                                                   target=task.format, lo_started=True)
-                                    # If the current batch exposes a native worker,
-                                    # correlate its *actual* PID with the task.
-                                    # In UNO mode this can be the Python/UNO
-                                    # bridge, NOT necessarily soffice.exe itself.
-                                    tree = getattr(office, 'tree', None) if office else None
-                                    child = getattr(tree, 'process', None)
-                                    worker_pid = getattr(child, 'pid', None)
-                                    if (self.telemetry is not None and
-                                            type(worker_pid) is int and worker_pid > 0):
-                                        try:
-                                            key = job.id + ':' + str(task.index)
-                                            self.telemetry.emit('native_worker_observed',
-                                                request_id=job.id, file_id=item.id,
-                                                target=task.format, module_id='guard',
-                                                task_id=key, attempt_id=key + ':1',
-                                                process_pid=worker_pid, stage='engine',
-                                                backend=task.execution_mode or 'unknown')
-                                        except Exception:
-                                            pass
 
                             routing = getattr(self.adapter, 'route_decision', None)
                             decision = routing(task.format, item.native_route) if routing else None
@@ -1841,7 +1858,7 @@ class ConverterGuard:
                             try:
                                 prepare_recipe = getattr(self.adapter, 'prepare_retry_recipe', None)
                                 if prepare_recipe:
-                                    prepare_recipe(job.comparison_recipe)
+                                    prepare_recipe(None)
                                 paths = self.adapter.convert(item.source, task.format, workspace,
                                     cancel=_Cancellation(job.cancel, item.cancel),
                                     timeout=job.file_timeout, on_started=started,
@@ -1894,7 +1911,7 @@ class ConverterGuard:
                         item.state = self._file_state(item)
                         self._record(job, 'input_finished', file_id=item.id)
                     # Ordinary API jobs retain their existing cleanup policy.
-                    # UI comparison jobs keep disk-owned originals until their
+                    # Legacy retained jobs keep disk-owned originals until their
                     # owning result job is explicitly released/saved/discarded.
                     if not job.retain_sources:
                         self._drop_source(job, item)
@@ -1936,16 +1953,9 @@ class ConverterGuard:
                 self._store_write(job, job.store.finish, job)
             with self._lock:
                 job.running = False
-                if isinstance(job.cancel, _RetryCancellation):
-                    # A caller may reuse its operation event for a subsequent
-                    # retry. Keep this candidate's terminal cancellation fact,
-                    # not a live link to unrelated future operations.
-                    combined = job.cancel
-                    if combined.is_set():
-                        combined.owned.set()
-                    job.cancel = combined.owned
                 job.touched = time.monotonic()
                 self._record(job, 'worker_finished', code=job.state)
+            self._remember_history(job)
             self._cleanup(job)
 
     def _wait_unpaused(self, job):
@@ -2024,7 +2034,8 @@ class ConverterGuard:
                           'exportFilter': t.export_filter, 'warnings': warning_details(t.warnings),
                           'quality':copy.deepcopy(t.quality) if t.quality else None,
                           'outputs': [{'path': a.archive_name, 'size': a.size, 'sha256':a.sha256,
-                                       'saved':a.saved, 'readbackVerified':a.readback_verified,
+                                       'saved':a.saved, 'available':not a.availability_error,
+                                       'availabilityCode':a.availability_error, 'readbackVerified':a.readback_verified,
                                        'sourceSheet':copy.deepcopy(a.source_sheet)} for a in t.artifacts],
                           'route': t.route,
                           'libreOfficeStarted': t.lo_started} for t in f.targets]}
@@ -2035,8 +2046,10 @@ class ConverterGuard:
             'comparisonRecipe':job.comparison_recipe,
             'comparisonParentTasks':list(job.comparison_parent_tasks)}
 
-    def report(self, job_id):
-        if job_id not in self._jobs:
+    def report(self, job_id, *, recover=True):
+        if type(recover) is not bool:
+            raise GuardError('RECOVERY_REQUEST', 'Неверный режим поиска задания.')
+        if recover and job_id not in self._jobs:
             self._load_recovery()
         with self._lock:
             job = self._get(job_id)
@@ -2057,7 +2070,7 @@ class ConverterGuard:
             job.result['jobId'] = job.id
             self._record(job, 'results_available')
             # A single successful artifact needs no duplicate archive at all.
-            if len(job.artifacts) == 1 and all(t.state in SUCCESS for f in job.files for t in f.targets):
+            if not force_archive and len(job.artifacts) == 1 and all(t.state in SUCCESS for f in job.files for t in f.targets):
                 return
             if job.archive_mode == 'on_demand' and not force_archive:
                 # Folder-save consumes the retained artifacts directly. Do not
@@ -2068,15 +2081,23 @@ class ConverterGuard:
                 self._record(job, 'bundle_deferred')
                 return
             job.bundle_deferred = False
-            report_value = self._report(job)
+            copies = tuple(job.artifacts)
+            archive_snapshot = {'schema': 1, 'snapshotId': secrets.token_hex(16),
+                'snapshotRevision': job.revision, 'state': 'packaged',
+                'jobStateAtStart': job.state, 'externalSave': 'not_observed',
+                'saveStateScope': 'at_archive_start_not_this_download',
+                'completionAuthority': 'adjacent_zip_AIO-save-status.json'}
+            report_value = copy.deepcopy(self._report(job))
+            report_value['reportScope'] = 'conversion_snapshot_at_archive_start'
+            report_value['archiveSnapshot'] = archive_snapshot
         # Encoding a large report is CPU work, not a shared-state operation.
         report = json.dumps(report_value, ensure_ascii=False, indent=2).encode('utf-8')
         manifest_budget = len(json.dumps({'schema':2, 'jobId':job.id, 'outputs':[
             {'path':a.archive_name, 'size':a.size, 'sha256':'0'*64,
-             'fileId':a.file_id, 'format':a.format, 'sourceSheet':a.source_sheet} for a in job.artifacts]},
+             'fileId':a.file_id, 'format':a.format, 'sourceSheet':a.source_sheet} for a in copies]},
             ensure_ascii=False).encode('utf-8'))
         with self._lock:
-            budget = (sum(a.size + 512 + 2 * len(a.archive_name.encode('utf-8')) for a in job.artifacts)
+            budget = (sum(a.size + 512 + 2 * len(a.archive_name.encode('utf-8')) for a in copies)
                       + len(report) + manifest_budget + 4096)
             if job.bundle_cancel.is_set():
                 job.packaging_error = 'BUNDLE_CANCELLED'
@@ -2093,7 +2114,7 @@ class ConverterGuard:
         try:
             with zipfile.ZipFile(bundle, 'x', compression=zipfile.ZIP_STORED, allowZip64=True) as archive:
                 manifest = []
-                for artifact in job.artifacts:
+                for artifact in copies:
                     digest, written = hashlib.sha256(), 0
                     source_path = self._owned_artifact_path(job, artifact, stage='bundle')
                     info = zipfile.ZipInfo.from_file(source_path, arcname=artifact.archive_name)
@@ -2113,16 +2134,23 @@ class ConverterGuard:
                                      'sha256':digest.hexdigest(), 'fileId':artifact.file_id,
                                      'format':artifact.format, 'exportSha256':artifact.sha256,
                                      'copySha256':digest.hexdigest(), 'sourceSheet':copy.deepcopy(artifact.source_sheet)})
-                with archive.open('AIO-conversion-report.json', 'w', force_zip64=True) as output:
-                    output.write(report)
-                with archive.open('AIO-results-manifest.json', 'w', force_zip64=True) as output:
-                    output.write(json.dumps(
-                    {'schema':2, 'jobId':job.id, 'readbackVerified':False,
-                     'verificationScope':'hashes_during_zip', 'outputs':manifest}, ensure_ascii=False).encode('utf-8'))
-            from .save_verification import sha256_stream
-            with bundle.open('rb') as stream:
-                actual, bundle_sha256 = sha256_stream(stream, cancel=job.bundle_cancel)
+                metadata = {'AIO-conversion-report.json': report,
+                    'AIO-save-status.json': json.dumps({'jobId':job.id,
+                        **archive_snapshot, 'readbackVerified':False}, ensure_ascii=False).encode('utf-8'),
+                    'AIO-results-manifest.json': json.dumps(
+                        {'schema':2, 'jobId':job.id, 'readbackVerified':False,
+                         'archiveSnapshot':archive_snapshot,
+                         'verificationScope':'hashes_during_zip', 'outputs':manifest},
+                        ensure_ascii=False).encode('utf-8')}
+                for name, content in metadata.items():
+                    with archive.open(name, 'w', force_zip64=True) as output:
+                        output.write(content)
+            from .archive_verification import verify_built_archive
+            actual, bundle_sha256, archive_check = verify_built_archive(
+                bundle, manifest, metadata, archive_snapshot, cancel=job.bundle_cancel)
             with self._lock:
+                if job.bundle_cancel.is_set():
+                    raise GuardError('BUNDLE_CANCELLED', 'Упаковка отменена.', stage='bundle')
                 delta = actual - budget
                 if delta > 0:
                     self._reserve(job, delta)
@@ -2131,7 +2159,9 @@ class ConverterGuard:
                 name = ('AIO_Results_Partial.zip' if any(t.state not in SUCCESS for f in job.files for t in f.targets)
                         else 'AIO_Results.zip')
                 artifact = _Artifact(job.id, bundle, name, actual, secrets.token_urlsafe(32),
-                                     sha256=bundle_sha256)
+                                     sha256=bundle_sha256, bundle_outputs=copies,
+                                     archive_verification=archive_check,
+                                     archive_expected=(copy.deepcopy(manifest), dict(metadata), dict(archive_snapshot)))
                 job.packaging_error = None
                 job.bundle = artifact
                 self._tickets[artifact.ticket] = artifact
@@ -2182,6 +2212,7 @@ class ConverterGuard:
                 # Creating a ZIP does not change conversion success/failure.
                 job.state, job.running = terminal_state, False
                 self._record(job, 'job_finished')
+            self._remember_history(job)
             self._cleanup(job)
 
     @staticmethod
@@ -2228,6 +2259,7 @@ class ConverterGuard:
         """
         from .result_store import atomic_json
         from .save_verification import verify_folder
+        from .save_snapshot import snapshot_report
         if type(verify) is not bool:
             raise GuardError('SAVE_VERIFY_POLICY', 'Неверный режим проверки сохранения.', stage='save')
         # Retain the API parameter for older hosts. A legacy false value cannot
@@ -2325,21 +2357,12 @@ class ConverterGuard:
                                  'sha256': digest.hexdigest(), 'fileId': artifact.file_id,
                                  'format': artifact.format, 'exportSha256':artifact.sha256,
                                  'copySha256':digest.hexdigest(), 'sourceSheet':copy.deepcopy(artifact.source_sheet)})
-                if self.telemetry is not None:
-                    try:
-                        self.telemetry.emit('save_file_written',
-                            request_id=job.id, file_id=artifact.file_id,
-                            target=artifact.format, module_id='guard',
-                            result_id=artifact.ticket, result_size=written,
-                            result_sha256=digest.hexdigest(),
-                            stage='save', status='completed', save_status='completed')
-                    except Exception:
-                        pass
                 try:
                     on_progress(number, len(copies))
                 except Exception:
                     pass  # A detached GUI observer cannot interrupt a disk save.
-            atomic_json(folder / 'AIO-conversion-report.json', report)
+            atomic_json(folder / 'AIO-conversion-report.json', snapshot_report(
+                report, manifest, save_status('verifying'), job_state_at_start=state_at_start))
             atomic_json(folder / 'AIO-results-manifest.json', {
                 'schema':2, 'jobId':job.id, 'saveId':save_id,
                 'snapshotRevision':snapshot_revision, 'jobStateAtStart':state_at_start,
@@ -2359,6 +2382,8 @@ class ConverterGuard:
             # Complete the external snapshot before acknowledging or releasing
             # any source. Every output has been independently read back from
             # its final disk path. This verifies bytes, not document fidelity.
+            atomic_json(folder / 'AIO-conversion-report.json', snapshot_report(
+                report, manifest, save_status('completed'), job_state_at_start=state_at_start))
             atomic_json(folder / 'AIO-save-status.json', save_status('completed'))
             outcome = self._acknowledge_outputs(job, copies, readback_verified=True)
             return {**outcome, 'saveId': save_id, 'snapshotComplete': True,
@@ -2377,8 +2402,10 @@ class ConverterGuard:
                         'schema':2, 'jobId':job.id, 'saveId':save_id,
                         'snapshotRevision':snapshot_revision, 'jobStateAtStart':state_at_start,
                         **verification, 'outputs':manifest})
-                    atomic_json(folder / 'AIO-save-status.json',
-                                save_status('cancelled' if code == 'SAVE_CANCELLED' else 'failed', code))
+                    failed_status = save_status('cancelled' if code == 'SAVE_CANCELLED' else 'failed', code)
+                    atomic_json(folder / 'AIO-conversion-report.json', snapshot_report(
+                        report, manifest, failed_status, job_state_at_start=state_at_start))
+                    atomic_json(folder / 'AIO-save-status.json', failed_status)
                 except OSError:
                     pass
             with self._lock:
@@ -2389,6 +2416,9 @@ class ConverterGuard:
                     stage='save', status=507) from error
             raise
         finally:
+            # Keep the existing save I/O lease until its metadata snapshot is
+            # persisted; close() must not race this final history write.
+            self._remember_history(job)
             with self._lock:
                 job.saving = False
                 job.io -= 1
@@ -2397,27 +2427,110 @@ class ConverterGuard:
             self._cleanup(job)
 
     def verify_saved_download(self, ticket, destination, *, cancel=None):
+        """Verify final bytes and publish an immutable, no-clobber receipt."""
         from .save_verification import sha256_stream, readback_fingerprint
+        from .result_store import atomic_json
         cancel = cancel or threading.Event()
+        destination = Path(destination)
         if self.owns_path(destination):
             raise GuardError('SAVE_OWNED_STORAGE', 'Выберите папку вне хранилища AIO.', stage='save')
         with self._lock:
-            retained = self._tickets.get(ticket)
-            retained_fingerprint = ((retained.size, retained.sha256)
-                if retained is not None and retained.sha256 else None)
-        with self.open_result(ticket) as (stream, _name, _size):
-            expected = sha256_stream(stream, cancel=cancel)
-            if retained_fingerprint is not None and expected != retained_fingerprint:
-                raise GuardError('SAVE_CHANGED',
-                    'Байты результата изменились после проверки, до скачивания.', stage='save')
-            size, digest, unchanged = readback_fingerprint(destination, cancel=cancel)
-            actual = size, digest
-            if expected != actual or not unchanged:
-                raise GuardError('SAVE_VERIFY_FAILED', 'Сохранённые байты отличаются от результата Guard.', stage='save')
-            with self._lock:
-                if retained is self._tickets.get(ticket):
+            retained = self._tickets.get(ticket) if isinstance(ticket, str) else None
+            if retained is None:
+                raise GuardError('RESULT_NOT_FOUND', 'Результат больше недоступен.', status=404)
+            job = self._get(retained.job_id)
+            if job.saving:
+                raise GuardError('SAVE_BUSY', 'Результаты этого задания уже сохраняются.', stage='save', status=409)
+            job.saving = True
+            job.io += 1
+            retained.save_receipt = None
+            retained.readback_verified = False
+            cancel = _Cancellation(cancel, job.save_cancel)
+            self._record(job, 'save_started')
+        save_id = secrets.token_hex(16)
+        receipt = {'schema': 1, 'jobId': job.id, 'saveId': save_id, 'state': 'verifying',
+                   'readbackVerified': False, 'scope': 'final_destination_copy', 'qualityCompared': False}
+        is_bundle = retained is job.bundle
+
+        def publish(value):
+            # Never replace an earlier receipt, arbitrary file or concurrent writer.
+            for attempt in range(32):
+                suffix = ('.AIO-save-status.json' if attempt == 0 else
+                          '.AIO-save-status-' + save_id + '-' + str(attempt) + '.json')
+                name = destination.name + suffix
+                if len(name.encode('utf-8')) > 240:
+                    name = 'AIO-save-status-' + save_id + '-' + str(attempt) + '.json'
+                path = destination.with_name(name)
+                value['receiptFile'] = name
+                try:
+                    atomic_json(path, value, overwrite=False)
+                    return path
+                except FileExistsError:
+                    continue
+            raise OSError('Could not reserve a new save receipt name')
+
+        try:
+            if is_bundle:
+                if retained.archive_expected is None:
+                    raise GuardError('SAVE_VERIFY_MISSING', 'Нет описания состава ZIP. Результаты остаются в AIO.', stage='save')
+                manifest, metadata, snapshot = retained.archive_expected
+                receipt.update(archiveSnapshot=copy.deepcopy(snapshot), outputsExpected=len(manifest),
+                               outputsWritten=len(manifest), bytesWritten=retained.size)
+            with self.open_result(ticket) as (stream, _name, _size):
+                expected = sha256_stream(stream, cancel=cancel)
+                if retained.sha256 and expected != (retained.size, retained.sha256):
+                    raise GuardError('SAVE_CHANGED', 'Байты результата изменились до скачивания.', stage='save')
+                if is_bundle:
+                    from .archive_verification import verify_built_archive
+                    try:
+                        size, digest, check = verify_built_archive(destination, manifest, metadata, snapshot, cancel=cancel)
+                    except GuardError as error:
+                        raise GuardError('SAVE_CANCELLED' if error.code == 'BUNDLE_CANCELLED' else 'SAVE_VERIFY_FAILED',
+                            'Проверка конечного ZIP не завершена. Результаты остаются в AIO.', stage='save') from error
+                    verification = {**check, 'verificationScope': 'final_destination_zip_members', 'externalSaveVerified': True}
+                else:
+                    size, digest, unchanged = readback_fingerprint(destination, cancel=cancel)
+                    if not unchanged:
+                        raise GuardError('SAVE_VERIFY_FAILED', 'Сохранённый файл изменился при проверке.', stage='save')
+                    verification = {'verificationScope': 'download_bytes',
+                                    'verificationMethod': 'independent_read_sha256', 'bytesVerified': size}
+                if expected != (size, digest):
+                    raise GuardError('SAVE_VERIFY_FAILED', 'Сохранённые байты отличаются от результата Guard.', stage='save')
+                if cancel.is_set():
+                    raise GuardError('SAVE_CANCELLED', 'Проверка сохранения отменена.', stage='save')
+                receipt.update(verification, state='completed', readbackVerified=True,
+                               destinationSha256=digest, destinationSize=size)
+                if is_bundle:
+                    receipt_path = publish(receipt)
+                    raw = json.dumps(receipt, ensure_ascii=True, separators=(',', ':')).encode('utf-8')
+                    seen_size, seen_digest, stable = readback_fingerprint(receipt_path, cancel=cancel)
+                    if not stable or (seen_size, seen_digest) != (len(raw), hashlib.sha256(raw).hexdigest()):
+                        raise GuardError('SAVE_VERIFY_FAILED', 'Не удалось проверить квитанцию сохранения ZIP.', stage='save')
+                if cancel.is_set():
+                    raise GuardError('SAVE_CANCELLED', 'Проверка сохранения отменена.', stage='save')
+                with self._lock:
                     retained.readback_verified = True
-            return {'readbackVerified':True, 'verificationScope':'download_bytes', 'bytesVerified':actual[0]}
+                    retained.save_receipt = receipt
+                return receipt
+        except Exception as error:
+            if is_bundle:
+                try:
+                    publish({**receipt, 'state': 'cancelled' if
+                        isinstance(error, GuardError) and error.code == 'SAVE_CANCELLED' else 'failed',
+                        'readbackVerified': False, 'externalSaveVerified': False,
+                        'code': error.code if isinstance(error, GuardError) else 'SAVE_STORAGE_FAILED'})
+                except OSError:
+                    pass
+            if isinstance(error, OSError):
+                raise GuardError('SAVE_STORAGE_FAILED', 'Не удалось записать квитанцию. Результаты остаются в AIO.', stage='save') from error
+            raise
+        finally:
+            with self._lock:
+                job.saving = False
+                job.io -= 1
+                self._record(job, 'save_idle')
+                self._io_drained.notify_all()
+            self._cleanup(job)
 
     def owns_path(self, path):
         """Do not confirm a save into a directory our cleanup will remove."""
@@ -2461,7 +2574,13 @@ class ConverterGuard:
                          'targets': targets, 'warnings': (
                              ['SOURCE_NAME_NORMALIZED'] if item.name_normalized else [])})
         counts = self._counts(job)
+        available = [a for a in job.artifacts if not a.availability_error]
         result = copy.deepcopy(job.result)
+        if result is not None:
+            anchor = self._tickets.get(result.get('ticket'))
+            if anchor is not None and anchor.availability_error:
+                result = ({**available[0].metadata(), 'jobId': job.id, 'folderOnly': True}
+                          if available else None)
         outputs_delta = bool(result_delta and only_files is not None and result is not None)
         if result is not None:
             # This negotiated wire representation avoids repeatedly allocating
@@ -2470,7 +2589,7 @@ class ConverterGuard:
             # the complete inventory. Artifact tickets survive ready -> saved.
             artifacts = (job.artifacts if not outputs_delta else
                          (a for item in selected for task in item.targets for a in task.artifacts))
-            result['outputs'] = [a.metadata() for a in artifacts]
+            result['outputs'] = [a.metadata() for a in artifacts if not a.availability_error]
         finished = not job.running and job.state in TERMINAL
         current = None
         if job.current:
@@ -2482,22 +2601,25 @@ class ConverterGuard:
                 current['taskId']=job.id+':preflight:'+item.id
                 current['position']=-task.index
         snapshot = {'schemaVersion': 3, 'jobId': job.id, 'revision': job.revision,
-                'state': job.state, 'finished': finished,
+                'state': self._availability_state(job), 'conversionState': job.state, 'finished': finished,
+                'unavailableOutputs': sum(bool(a.availability_error) for a in job.artifacts),
                 'diagnosticBytes':job.diagnostic_bytes,
-                'unsavedCompanionFiles':sum(not a.saved and a.companion for a in job.artifacts),
-                'unsavedDocuments':sum(not a.saved and not a.companion for a in job.artifacts),
+                'unsavedCompanionFiles':sum(not a.saved and not a.availability_error and a.companion for a in job.artifacts),
+                'unsavedDocuments':sum(not a.saved and not a.availability_error and not a.companion for a in job.artifacts),
                 'currentTask': current, 'pauseRequested': job.paused,
                 'fileTimeoutSeconds': job.file_timeout, 'officeStarts': job.office_starts,
                 'recovered': job.recovered, 'salvaged': job.salvage, 'recoveryError': job.recovery_error,
                 'recoveryDurable': bool(job.store and not job.recovery_error),
-                'resultAvailability': ('recovered_unverified' if job.salvage else
+                'resultAvailability': ('unavailable' if job.artifacts and not available and
+                                        (job.bundle is None or job.bundle.availability_error) else
+                                       'partial_unavailable' if any(a.availability_error for a in job.artifacts) else
+                                       'recovered_unverified' if job.salvage else
                                        'ready_volatile' if job.artifacts and job.recovery_error else
                                        'ready_retained' if job.artifacts else 'none'),
                 'qualityCheckRequested':job.quality_check,
                 'qualityCompared': job.quality_compared,
                 'retainSources':job.retain_sources,
-                'comparisonAvailable':bool(job.retain_sources and not job.running and
-                    job.artifacts and any(not f.source_released for f in job.files)),
+                'comparisonAvailable':False,
                 'comparisonParentJobId':job.comparison_parent_job_id,
                 'comparisonRecipe':job.comparison_recipe,
                 'timings':dict(job.timings),
@@ -2515,22 +2637,70 @@ class ConverterGuard:
                 'trace': job.trace.snapshot() if include_trace else None,
                 'archiveMode': job.archive_mode, 'bundleDeferred': job.bundle_deferred,
                 'packagingError': job.packaging_error, 'saveInProgress': job.saving,
-                'partialResult': ({**job.artifacts[0].metadata(), 'jobId': job.id,
-                    'outputsCount': len(job.artifacts), 'folderOnly': True}
-                    if job.artifacts else None)}
+                'partialResult': ({**available[0].metadata(), 'jobId': job.id,
+                    'outputsCount': len(available), 'folderOnly': True}
+                    if available else None)}
         if outputs_delta:
             snapshot['resultOutputsDelta'] = True
         return snapshot
 
+    def _reconcile_results(self, job_id):
+        """Explicit metadata reconciliation; never ordinary delta polling."""
+        from ..file_identity import file_identity
+        with self._lock:
+            job = self._get(job_id)
+            if job.running or job.saving:
+                return
+            artifacts = list(job.artifacts)
+            if job.bundle is not None and all(job.bundle is not a for a in artifacts):
+                artifacts.append(job.bundle)
+            job.io += 1
+        try:
+            observations = []
+            for artifact in artifacts:
+                path = self._owned_file_path(job, artifact.path, artifact.size)
+                identity = file_identity(path) if path is not None else None
+                code = (None if identity is not None and identity == artifact.file_identity else 'RESULT_UNAVAILABLE')
+                observations.append((artifact, code))
+            with self._lock:
+                current = {id(a) for a in job.artifacts}
+                if job.bundle is not None:
+                    current.add(id(job.bundle))
+                changed = False
+                for artifact, code in observations:
+                    if id(artifact) in current and artifact.availability_error != code:
+                        artifact.availability_error = code
+                        changed = True
+                if changed and not job.released:
+                    self._record(job, 'results_reconciled', file_id='*')
+        finally:
+            with self._lock:
+                job.io -= 1
+                self._io_drained.notify_all()
+            self._cleanup(job)
+
+    @staticmethod
+    def _availability_state(job):
+        if job.running or not any(a.availability_error and not a.saved for a in job.artifacts):
+            return job.state
+        return ('partial' if any(not a.availability_error or a.saved for a in job.artifacts)
+                or job.bundle is not None and not job.bundle.availability_error else 'failed')
+
     def status(self, job_id, *, include_trace=False, since_revision=None, delta=False,
-               result_delta=False):
-        if job_id not in self._jobs:
+               result_delta=False, recover=True):
+        if type(recover) is not bool:
+            raise GuardError('RECOVERY_REQUEST', 'Неверный режим поиска задания.')
+        if recover and job_id not in self._jobs:
             self._load_recovery()
         if since_revision is not None and (type(since_revision) is not int or since_revision < 0):
             raise GuardError('STATUS_REVISION', 'Некорректная версия состояния.')
         if type(result_delta) is not bool:
             raise GuardError('STATUS_RESULT_DELTA', 'Некорректный режим состояния результатов.')
-        self._prune()
+        self._prune(defer_cleanup=not recover)
+        # lookup=current suppresses old-job discovery, not verification of
+        # a known job on an explicit full refresh. ETag/delta polling stays cheap.
+        if since_revision is None:
+            self._reconcile_results(job_id)
         with self._lock:
             job = self._get(job_id)
             if not include_trace and since_revision == job.revision:
@@ -2562,7 +2732,7 @@ class ConverterGuard:
                     'requiresUpload': bool(files), 'retainedOutputs': len(job.artifacts)}
 
     @staticmethod
-    def _comparison_path(job, path, size):
+    def _owned_file_path(job, path, size):
         """Resolve only a regular, existing file under this job's owned tree."""
         try:
             path = Path(path)
@@ -2578,16 +2748,21 @@ class ConverterGuard:
             return None
 
     def _owned_artifact_path(self, job, artifact, *, stage):
-        """Recheck retained outputs at every read boundary, not only export."""
-        path = self._comparison_path(job, artifact.path, artifact.size)
-        if path is None:
+        """Validate identity at every read and invalidate metadata on failure."""
+        from ..file_identity import file_identity
+        path = self._owned_file_path(job, artifact.path, artifact.size)
+        identity = file_identity(path) if path is not None else None
+        if path is None or (artifact.file_identity is not None and identity != artifact.file_identity):
+            with self._lock:
+                if not artifact.availability_error:
+                    artifact.availability_error = 'RESULT_UNAVAILABLE'
+                    self._record(job, 'results_reconciled', file_id='*')
             raise GuardError('SAVE_CHANGED',
-                'Результат изменён или находится вне служебного хранилища AIO.',
-                stage=stage, status=409)
+                'Результат отсутствует, изменён или находится вне служебного хранилища AIO.', stage=stage, status=409)
         return path
 
     @contextmanager
-    def comparison_inputs(self, job_id):
+    def retained_inputs(self, job_id):
         """Lease completed originals/results for an explicit analysis only.
 
         Paths are generated from owned records, never accepted from clients.
@@ -2605,11 +2780,11 @@ class ConverterGuard:
         try:
             records = []
             for item in items:
-                source = (self._comparison_path(job, item.source, item.size)
+                source = (self._owned_file_path(job, item.source, item.size)
                           if not item.source_released else None)
                 resources = []
                 for name, metadata in item.resources.items():
-                    path = self._comparison_path(job, item.source.parent/name, metadata['size'])
+                    path = self._owned_file_path(job, item.source.parent/name, metadata['size'])
                     if path is None or not metadata.get('ready'):
                         source = None
                     resources.append(MappingProxyType({'path':name, 'size':metadata['size'],
@@ -2619,7 +2794,7 @@ class ConverterGuard:
                     # but a parent directory can since become a symlink or a
                     # Windows junction. Revalidate outputs just like originals
                     # before an analyzer or preview receives filesystem paths.
-                    output_paths = tuple(self._comparison_path(job, artifact.path, artifact.size)
+                    output_paths = tuple(self._owned_file_path(job, artifact.path, artifact.size)
                                          for artifact in task.artifacts)
                     paths = tuple(path for path in output_paths if path is not None)
                     records.append(MappingProxyType({
@@ -2644,86 +2819,6 @@ class ConverterGuard:
                 self._io_drained.notify_all()
             self._cleanup(job)
 
-    def retry_comparison(self, job_id, task_ids, recipe_id, *, cancel=None, on_created=None):
-        """Create a separate candidate from explicitly selected retained pairs.
-
-        Copies stream through the ordinary upload/guard paths. Native admission
-        is repeated against the current engine. Previous outputs/tickets are
-        never mutated or replaced by an automatic candidate.
-        """
-        from .export_recipe import validate_retry_recipe
-        if (not isinstance(task_ids, list) or not task_ids
-                or any(not isinstance(value, str) for value in task_ids)
-                or len(set(task_ids)) != len(task_ids)):
-            raise GuardError('COMPARISON_SELECTION', 'Выберите конкретные результаты для повтора.')
-        if not callable(getattr(self.adapter, 'preflight', None)):
-            raise GuardError('AUTO_RETRY_UNAVAILABLE', 'Движок не поддерживает повторную проверку исходника.')
-        cancel = cancel if cancel is not None else threading.Event()
-        identity = None
-        with self.comparison_inputs(job_id) as records:
-            selected = {record['taskId']:record for record in records if record['taskId'] in task_ids}
-            if len(selected) != len(task_ids):
-                raise GuardError('COMPARISON_SELECTION', 'Выбранный результат не относится к этому заданию.')
-            for record in selected.values():
-                if record['state'] not in SUCCESS or not record['paths']:
-                    raise GuardError('COMPARISON_SELECTION', 'Для этого преобразования нет готового результата.')
-                if not record['sourceAvailable']:
-                    raise GuardError('COMPARISON_SOURCE_UNAVAILABLE',
-                        'Служебный исходник недоступен. Выберите оригинал повторно.')
-                validate_retry_recipe(recipe_id, record['format'])
-                validate_native = getattr(self.adapter, 'validate_retry_recipe', None)
-                if validate_native:
-                    validate_native(recipe_id, record['format'], record['nativeRoute'])
-            if cancel.is_set():
-                raise GuardError('CANCELLED', 'Повторная конвертация отменена.')
-            sources, planned = {}, {}
-            for task_id in task_ids:
-                record = selected[task_id]
-                sources.setdefault(record['fileId'], record)
-                planned.setdefault(record['fileId'], []).append(record['format'])
-            rows = [{'id':fid, 'name':r['name'], 'size':r['size']} for fid,r in sources.items()]
-            try:
-                created = self.create(rows, prepare_only=True, retain_sources=True)
-                identity = created['jobId']
-                with self._lock:
-                    child = self._get(identity)
-                    child.cancel = _RetryCancellation(child.cancel, cancel)
-                    child.comparison_parent_job_id = job_id
-                    child.comparison_recipe = recipe_id
-                    child.comparison_parent_tasks = tuple(task_ids)
-                if on_created:
-                    on_created(identity)
-                for fid, record in sources.items():
-                    if child.cancel.is_set():
-                        raise GuardError('CANCELLED', 'Подготовка повтора отменена.')
-                    with record['source'].open('rb') as stream:
-                        self.upload(identity, fid, stream, record['size'])
-                    if child.files_by_id[fid].content_digest != record['sourceSha256']:
-                        raise GuardError('COMPARISON_SOURCE_CHANGED',
-                            'Исходник изменён после первой конвертации. Повтор не запущен.')
-                    if record['resources']:
-                        self.configure_resources(identity, fid,
-                            [{'path':r['path'], 'size':r['size']} for r in record['resources']])
-                        for resource in record['resources']:
-                            with resource['source'].open('rb') as stream:
-                                self.upload_resource(identity, fid, resource['path'], stream, resource['size'])
-                            if child.files_by_id[fid].resources[resource['path']].get('digest') != resource['sha256']:
-                                raise GuardError('COMPARISON_SOURCE_CHANGED',
-                                    'Ресурсы исходника изменены. Повтор не запущен.')
-                self.preflight(identity)
-                with self._lock:
-                    if self._closed or self._jobs[job_id].released or child.cancel.is_set():
-                        raise GuardError('CANCELLED', 'Повторная конвертация отменена.')
-                plan = [{'fileId':fid, 'formats':formats} for fid,formats in planned.items()]
-                return self.start(identity, file_ids=list(sources), plan=plan, only_verified=True,
-                                  archive_mode='on_demand', quality_check=False)
-            except BaseException:
-                if identity is not None:
-                    try:
-                        self.release(identity, discard=True)
-                    except GuardError:
-                        pass
-                raise
 
     def _cancel_queued(self, job):
         if job.state == 'queued' and job.future is not None and job.future.cancel():
@@ -2836,7 +2931,7 @@ class ConverterGuard:
                 self._io_drained.notify_all()
             self._cleanup(job)
 
-    def confirm_saved(self, job_id, ticket, *, compact=False):
+    def confirm_saved(self, job_id, ticket, *, compact=False, save_id=None):
         """Host-confirmed save, with an optional bounded acknowledgement."""
         if type(compact) is not bool:
             raise GuardError('SAVE_REQUEST', 'Некорректный режим подтверждения сохранения.')
@@ -2847,16 +2942,35 @@ class ConverterGuard:
                 raise GuardError('RESULT_NOT_FOUND', 'Результат не относится к заданию.', status=404)
             if job.saving:
                 raise GuardError('SAVE_BUSY', 'Результаты этого задания уже сохраняются.', stage='save', status=409)
-            copies = tuple(job.artifacts) if artifact is job.bundle else (artifact,)
+            receipt = artifact.save_receipt or {}
+            if (receipt.get('state') != 'completed' or receipt.get('readbackVerified') is not True or
+                    save_id is not None and save_id != receipt.get('saveId')):
+                raise GuardError('SAVE_VERIFY_MISSING',
+                    'Нет подтверждения проверки конечной копии. Результаты остаются в AIO.', stage='save', status=409)
+            if artifact is job.bundle:
+                # Acknowledgement belongs to the immutable ZIP inventory,
+                # never to outputs that appeared after it was packaged.
+                copies = artifact.bundle_outputs
+                check = artifact.archive_verification or {}
+                if (not copies or check.get('status') != 'byte_verified' or
+                        check.get('outputsVerified') != len(copies)):
+                    raise GuardError('BUNDLE_VERIFY_FAILED',
+                        'Нет подтверждения состава архива. Результаты остаются в AIO.',
+                        stage='save')
+            else:
+                copies = (artifact,)
             job.saving = True
             job.io += 1
             self._record(job, 'save_started')
         try:
-            outcome = self._acknowledge_outputs(job, copies, readback_verified=artifact.readback_verified)
+            outcome = self._acknowledge_outputs(job, copies, readback_verified=True)
             with self._lock:
                 artifact.saved = True
-                return outcome if compact else self._snapshot(job)
+                return {**outcome, 'saveId':receipt['saveId'], 'readbackVerified':True} if compact else self._snapshot(job)
         finally:
+            # Keep the existing save I/O lease until its metadata snapshot is
+            # persisted; close() must not race this final history write.
+            self._remember_history(job)
             with self._lock:
                 job.saving = False
                 job.io -= 1
@@ -2864,8 +2978,8 @@ class ConverterGuard:
                 self._io_drained.notify_all()
             self._cleanup(job)
 
-    def close_conversion(self, job_id, *, discard=False):
-        if type(discard) is not bool:
+    def close_conversion(self, job_id, *, discard=False, defer_cleanup=False):
+        if type(discard) is not bool or type(defer_cleanup) is not bool:
             raise GuardError('DISCARD_REQUEST','Некорректное подтверждение закрытия.')
         with self._lock:
             job=self._get(job_id)
@@ -2884,6 +2998,7 @@ class ConverterGuard:
             # Commit ownership/cancellation atomically with the save check.
             # Slow worker interruption and filesystem cleanup run after unlock.
             job.bundle_cancel.set();job.save_cancel.set();job.released=True
+            job.cleanup_background = job.cleanup_background or defer_cleanup
             callbacks=self._stop(job)
             for artifact in job.artifacts + job.diagnostic_artifacts + ([job.bundle] if job.bundle else []):
                 self._tickets.pop(artifact.ticket,None)
@@ -2892,10 +3007,12 @@ class ConverterGuard:
         self._interrupt(callbacks)
         if not job.running:self._flush_journal(job)
         self._cleanup(job)
+        with self._lock:
+            outcome['cleanupPending'] = job.id in self._jobs
         return outcome
 
-    def release(self, job_id, *, discard=False):
-        if type(discard) is not bool:
+    def release(self, job_id, *, discard=False, defer_cleanup=False):
+        if type(discard) is not bool or type(defer_cleanup) is not bool:
             raise GuardError('DISCARD_REQUEST', 'Некорректное подтверждение удаления.')
         with self._lock:
             job = self._get(job_id)
@@ -2911,6 +3028,7 @@ class ConverterGuard:
                 job.bundle_cancel.set()
                 job.save_cancel.set()
                 job.released = True
+                job.cleanup_background = job.cleanup_background or defer_cleanup
                 callbacks = self._stop(job)
                 for artifact in job.artifacts + job.diagnostic_artifacts + ([job.bundle] if job.bundle else []):
                     self._tickets.pop(artifact.ticket, None)
@@ -2919,12 +3037,17 @@ class ConverterGuard:
             self._flush_journal(job)
         if not preserve:
             self._cleanup(job)
+        with self._lock:
+            return {'jobId': job.id, 'released': not preserve, 'retained': preserve,
+                    'cleanupPending': not preserve and job.id in self._jobs}
 
     def _cleanup(self, job):
         with self._lock:
             if job.running or job.io or job.pending_journal or job.cleaning:
                 return
-            # Shutdown may time out while an HTTP/comparison reader still
+            if job.cleanup_background and not self._closed and time.monotonic() < job.cleanup_retry_at:
+                return
+            # Shutdown may time out while an HTTP/diagnostic reader still
             # holds an I/O lease. Keep both the OS ownership lock and quota
             # accounting until that last lease calls cleanup. Unsaved bytes
             # then detach for recovery; explicit discard still means delete.
@@ -2936,6 +3059,23 @@ class ConverterGuard:
                 if not preserve:
                     job.released = True
             job.cleaning = True
+            if job.cleanup_background and not self._closed:
+                try:
+                    # Submit under the state lock so close() cannot shut this
+                    # executor down between claiming and submitting the job.
+                    self._cleanup_executor.submit(self._cleanup_owned, job, preserve)
+                except RuntimeError:
+                    self._cleanup_deferred(job)
+                return
+        self._cleanup_owned(job, preserve)
+
+    def _cleanup_deferred(self, job):
+        with self._lock:
+            job.cleaning = False
+            job.cleanup_retry_at = time.monotonic() + 2.0
+            self._record(job, 'cleanup_deferred', code='CLEANUP_RETRY')
+
+    def _cleanup_owned(self, job, preserve):
         # Potentially slow filesystem deletion never holds the global job lock.
         try:
             if job.store and not preserve:
@@ -2948,11 +3088,13 @@ class ConverterGuard:
             elif not preserve:
                 shutil.rmtree(job.root)
         except FileNotFoundError:
-            pass
-        except (OSError, ValueError):
-            with self._lock:
-                job.cleaning = False
-                self._record(job, 'cleanup_deferred', code='CLEANUP_RETRY')
+            # A disappearing CHILD is not proof that the owned tree is gone.
+            # Keep the retirement barrier, ownership and quota until retried.
+            if os.path.lexists(job.root):
+                self._cleanup_deferred(job)
+                return
+        except Exception:
+            self._cleanup_deferred(job)
             return
         with self._lock:
             for artifact in job.artifacts + job.diagnostic_artifacts + ([job.bundle] if job.bundle else []):
@@ -2964,6 +3106,7 @@ class ConverterGuard:
     def close(self):
         with self._lock:
             self._closed = True
+            self._recovery_stop.set()
             callbacks = []
             for job in self._jobs.values():
                 job.bundle_cancel.set()
@@ -2973,6 +3116,7 @@ class ConverterGuard:
             self._tickets.clear()
             self._proof_cache.clear()
         self._interrupt(callbacks)
+        self._recovery_executor.shutdown(wait=True)
         self._executor.shutdown(wait=True)
         with self._lock:
             jobs = list(self._jobs.values())
@@ -2989,6 +3133,7 @@ class ConverterGuard:
             # Leased jobs deliberately remain registered until their final
             # caller exits. Clearing them here would unlock a live recovery
             # tree and lose accounting after the bounded shutdown wait.
+        self._cleanup_executor.shutdown(wait=True)
 
     def storage_stats(self):
         with self._lock:
@@ -2999,6 +3144,8 @@ class ConverterGuard:
                     'pendingRecoveryFolders': len(self._recovery_pending),
                     'reclaimableSavedJobs': sum(self._saved_all(j) and not j.io for j in jobs),
                     'cleanupPending': sum(j.released for j in self._jobs.values()),
+                    'cleanupRetryJobs': sum(j.released and j.cleanup_retry_at > 0 and not j.cleaning
+                                            for j in self._jobs.values()),
                     'running': sum(j.state in {'checking', 'running', 'packaging'} for j in jobs),
                     'queued': sum(j.state == 'queued' for j in jobs),
                     'retainedJobs': sum(bool(j.artifacts) for j in jobs),

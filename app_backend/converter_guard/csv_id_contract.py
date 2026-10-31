@@ -93,8 +93,10 @@ def _import_dialect(import_filter, options):
             return None
         last = 0
         for position, code in zip(pairs[::2], pairs[1::2]):
+            # Decimal hints must not accidentally bypass the source-ID check.
+            # Skip/date/unknown format codes still do not establish a mapping.
             if (re.fullmatch(r'[1-9][0-9]{0,2}', position) is None or
-                    not last < int(position) <= MAX_COLUMNS or code != '2'):
+                    not last < int(position) <= MAX_COLUMNS or code not in ('2', '10')):
                 return None
             last = int(position)
     return DELIMITERS[int(parts[0])]

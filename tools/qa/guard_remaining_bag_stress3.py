@@ -1,7 +1,7 @@
 """Separate targeted stress3 corpus and acceptance, never the user's FULLTEST.
 
 Run only in a new directory. Child generators use synthetic controls and the
-installed native stack. This driver requires the reviewed feature PRs together.
+installed native stack. Comparative UI stages are archived separately; native safeguards remain.
 """
 import argparse
 import csv
@@ -28,21 +28,11 @@ STAGES=(
     ('dbf-jpeg','guard_native_routes_b13_b31.py',{'dbf':8,'largeDbf':1,'jpeg':120,'negative':6}),
     ('tiff','guard_b32_tiff_native_acceptance.py',{'cases':24,'negative':6}),
     ('html','guard_b33_html_native_acceptance.py',{'positive':18,'excluded':30,'negative':3}),
-    ('session','guard_session_native_acceptance.py',{'checks':3}),
-    ('viewer-100','guard_before_after_b19_b25_acceptance.py',{'checks':5}),
-    ('viewer-150','guard_before_after_b19_b25_acceptance.py',{'checks':5}),
 )
 
 # These are parser/identity decisions, not claims about a native conversion.
 # Native corrupt IFD/DBF, timeout/cancel and restart are separate child stages.
-SAFETY_DECISIONS={
-    'truncated-zip':'not_checked','truncated-xml':'not_checked',
-    'dtd-entity':'not_checked','missing-html-resource':'not_checked',
-    'dynamic-hidden-html':'not_checked','text-mismatch':'uncertain',
-    'empty-result':'confirmed_loss','conflicting-mime':'invalid',
-    'renamed-writer':'recognized','inspection-budget':'not_checked',
-    'changed-source-preview':'unavailable','changed-result-preview':'unavailable',
-}
+SAFETY_DECISIONS={'conflicting-mime':'invalid','renamed-writer':'recognized','inspection-budget':'not_checked'}
 
 
 def digest(path):
@@ -92,7 +82,7 @@ def decision_records(name,data,expected,evidence_sha):
                 'actualEvidenceField':basis,'childVerdict':row['status'],
                 'verdict':row['status'],
                 'reason':'required child invariants passed; actual decision captured only when explicitly available',
-                'scope':'lifecycle_or_viewer_invariants' if category=='checks' else 'native_conversion_decision',
+                'scope':'native_lifecycle_invariants' if category=='checks' else 'native_conversion_decision',
                 'source':row.get('source',row.get('name','')),'target':row.get('target',''),
                 'sourceSha256':row.get('sourceSha256') or row.get('originalSha256') or check.get('sourceSHA256') or independent.get('originalSha256',''),
                 'outputSha256':row.get('outputSha256',row.get('sha256','')),
@@ -153,12 +143,7 @@ def referenced_sources(folder,data):
 
 
 def safety_negative_corpus(folder):
-    """New bytes through real inert parsers and the isolated preview worker.
-
-    No importer mocks, network requests, external entity expansion or reduced
-    production limits. Inspection-budget exercises the public bounded API.
-    """
-    from app_backend.converter_guard.comparison_analysis import analyze_pair
+    """Retained bounded source declarations; comparative controls are archived."""
     from app_backend.converter_guard.source_contract import inspect_source_contract
     folder.mkdir();records=[]
     office='urn:oasis:names:tc:opendocument:xmlns:office:1.0'
@@ -166,54 +151,20 @@ def safety_negative_corpus(folder):
     writer=(f'<office:document xmlns:office="{office}" xmlns:text="{text}" '
         'office:mimetype="application/vnd.oasis.opendocument.text"><office:body>'
         '<office:text><text:p>ALPHA 001 OMEGA</text:p></office:text></office:body></office:document>')
-    result=folder/'result.txt';result.write_text('ALPHA 001 OMEGA',encoding='utf-8')
-    sentinel=folder/'entity-private.txt';sentinel.write_text('ENTITY_MUST_NEVER_BE_EXPANDED',encoding='utf-8')
     controls={
-        'truncated-zip':('broken.docx',b'PK\x03\x04'+b'x'*64),
-        'truncated-xml':('broken.fodt',f'<office:document xmlns:office="{office}"'.encode()),
-        'dtd-entity':('entity.fodt',('<!DOCTYPE office:document [<!ENTITY private SYSTEM "'+sentinel.resolve().as_uri()+'">]>'+writer.replace('ALPHA 001 OMEGA','&private;')).encode()),
-        'missing-html-resource':('missing.html',b'<html><body><p>ALPHA 001 OMEGA</p><img src="absent.png"></body></html>'),
-        'dynamic-hidden-html':('dynamic.html',b'<html><body><p hidden>ALPHA</p><script>throw Error("MUST_NOT_EXECUTE")</script><p>OMEGA</p></body></html>'),
-        'text-mismatch':('mismatch.txt',b'OTHER 123 VALUE'),
-        'empty-result':('empty-source.txt',b'ALPHA 001 OMEGA'),
         'conflicting-mime':('conflicting.fods',writer.replace('opendocument.text','opendocument.spreadsheet').encode()),
         'renamed-writer':('writer-renamed.xlsx',writer.encode()),
         'inspection-budget':('bounded.fodt',writer.encode()),
     }
     for name,(filename,raw) in controls.items():
         source=folder/filename;source.write_bytes(raw);before=digest(source)
-        if name in ('conflicting-mime','renamed-writer','inspection-budget'):
-            outcome=inspect_source_contract(source,**({'budget':8} if name=='inspection-budget' else {}))
-            actual=outcome['state']
-        else:
-            output=result
-            if name=='empty-result':output=folder/'empty.txt';output.write_bytes(b'')
-            outcome=analyze_pair(source,[output],'txt');actual=outcome['status']
-            if actual in ('not_checked','uncertain') and outcome['checkedFeatures']:
-                raise ValueError(name+': unsupported control acquired quality proof')
+        outcome=inspect_source_contract(source,**({'budget':8} if name=='inspection-budget' else {}))
+        actual=outcome['state']
         if actual!=SAFETY_DECISIONS[name]:raise ValueError(name+': unexpected decision '+actual)
         if digest(source)!=before:raise ValueError(name+': parser changed original')
-        if 'ENTITY_MUST_NEVER_BE_EXPANDED' in json.dumps(outcome):raise ValueError('entity expansion leaked')
         records.append({'name':name,'file':filename,'sha256':before,'status':'PASS',
             'expectedDecision':SAFETY_DECISIONS[name],'actualDecision':actual,
-            'scope':'bounded_source_declaration' if 'state' in outcome else 'inert_pair_analysis',
-            'evidence':outcome})
-    for side in ('source','result'):
-        name='changed-'+side+'-preview';case=folder/name;case.mkdir()
-        source=case/'data.txt';source.write_bytes(b'NEW BYTES');before=digest(source)
-        request=case/'request.json';write(request,{'source':str(source.resolve()),'mode':'preview',
-            'previewSide':side,'expectedSha256':hashlib.sha256(b'OLD BYTES').hexdigest()})
-        run=subprocess.run([sys.executable,'-m','app_backend.converter_guard.comparison_worker',str(request.resolve())],
-            cwd=ROOT,capture_output=True,timeout=30)
-        if run.returncode:raise ValueError(name+': preview worker failed '+run.stderr.decode(errors='replace')[-1000:])
-        outcome=json.loads((case/'preview.json').read_text(encoding='utf-8'))
-        if outcome.get('kind')!='unavailable' or outcome.get('code')!=side.upper()+'_CHANGED' or (case/'preview.png').exists():
-            raise ValueError(name+': changed bytes were published as the old report')
-        if digest(source)!=before:raise ValueError(name+': preview changed original')
-        records.append({'name':name,'file':source.relative_to(folder).as_posix(),'sha256':before,
-            'status':'PASS','expectedDecision':'unavailable','actualDecision':outcome['kind'],
-            'scope':'preview_identity_boundary','evidence':outcome})
-    if set(row['name'] for row in records)!=set(SAFETY_DECISIONS):raise ValueError('incomplete safety corpus')
+            'scope':'bounded_source_declaration','evidence':outcome})
     write(folder/'manifest.json',{'status':'PASS','controls':records})
     return records
 
@@ -315,7 +266,7 @@ def main():
         for index,row in enumerate(report['parserAndIdentityControls']):
             report['decisionIndex'].append(dict(row,stage='safety-controls',category='controls',index=index,
                 verdict=row['status'],source=row['file'],sourceSha256=row['sha256'],
-                reason='fixed bounded parser or preview identity control',
+                reason='fixed bounded source declaration control',
                 evidenceFile='safety-controls/manifest.json',evidenceSha256=digest(args.output/'safety-controls/manifest.json'),
                 evidencePointer='/controls/'+str(index)))
         positives=native_positive_corpus(args.output/'native-positives',args.executable)
@@ -332,7 +283,7 @@ def main():
             if not path.is_file():raise ValueError('required reviewed feature missing: '+script)
             folder=args.output/name
             env=dict(os.environ)
-            env['QT_SCALE_FACTOR']='1.5' if name=='viewer-150' else '1'
+            env['QT_SCALE_FACTOR']='1'
             result=subprocess.run([sys.executable,str(path),'--output',str(folder),'--executable',str(args.executable)],env=env,cwd=ROOT,timeout=1800)
             evidence=folder/'evidence.json'
             if result.returncode or not evidence.is_file():raise ValueError(name+': child failed, see retained evidence')

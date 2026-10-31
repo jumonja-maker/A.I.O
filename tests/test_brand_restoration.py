@@ -5,6 +5,8 @@ import json
 import os
 from pathlib import Path
 import struct
+import subprocess
+import sys
 import tempfile
 import threading
 from types import SimpleNamespace
@@ -34,7 +36,7 @@ class BrandRestorationTests(unittest.TestCase):
                 data=(BRAND/name).read_bytes()
                 self.assertEqual(hashlib.sha256(data).hexdigest(),digest)
                 self.assertEqual(png_size(data),(1254,1254))
-                self.assertEqual(data[25],6)  # PNG truecolour + alpha
+                self.assertEqual(data[25],6)
 
     def test_every_manifest_resource_matches_the_committed_bytes(self):
         provenance=json.loads((BRAND/'BRAND_PROVENANCE.json').read_text(encoding='utf-8'))
@@ -79,19 +81,27 @@ class BrandRestorationTests(unittest.TestCase):
             calls['icon']=kwargs['icon'];return object()
         namespace={'SPECPATH':str(ROOT),'Analysis':analysis,'PYZ':lambda *a,**k:object(),
                    'EXE':exe,'COLLECT':lambda *a,**k:None,'Tree':lambda *a,**k:[]}
-        # Controlled placeholder payload is never executed; this tests asset
-        # wiring, not a Windows build or the real LibreOffice distribution.
+        # Placeholder binaries are never executed. This is asset wiring;
+        # the hosted Windows packaging stage validates the real payload.
+        pin=json.loads((ROOT/'tools/build/libreoffice-release.json').read_text(encoding='utf-8'))
         with tempfile.TemporaryDirectory() as directory:
             payload=Path(directory)
             (payload/'program').mkdir();(payload/'share').mkdir()
-            for name in ('soffice.exe','soffice.bin'):(payload/'program'/name).touch()
+            for name in ('soffice.exe','soffice.com','soffice.bin','python.exe'):
+                (payload/'program'/name).touch()
             (payload/'LICENSE').write_text('fixture')
-            with patch.dict(os.environ,{'AIO_LIBREOFFICE_ROOT':str(payload)}):
+            with patch.dict(os.environ,{'AIO_LIBREOFFICE_ROOT':str(payload)}), patch.object(
+                    subprocess,'run',return_value=SimpleNamespace(stdout='LibreOffice '+pin['version']+' fixture\n')) as version_call:
                 exec(compile((ROOT/'AllInOne.spec').read_text(encoding='utf-8'),'AllInOne.spec','exec'),namespace)
+                if sys.platform=='win32':
+                    version_call.assert_called_once()
+                    self.assertEqual(version_call.call_args.args[0],[str(payload.resolve()/'program/soffice.com'),'--version'])
+                    self.assertTrue(version_call.call_args.kwargs['check'])
         self.assertEqual(Path(calls['icon']),BRAND/'icons/aio.ico')
         bundled={Path(source).relative_to(ROOT).as_posix() for source,_ in calls['datas']}
         self.assertTrue({'assets/brand/icons/aio.ico','assets/brand/elva-v13-happy-source.png',
-                         'assets/brand/aio-new-brand-source.png','assets/brand/elva-v13-happy-128.png'}<=bundled)
+                         'assets/brand/aio-new-brand-source.png','assets/brand/elva-v13-happy-128.png',
+                         'tools/build/libreoffice-release.json'}<=bundled)
 
     def test_both_installers_reference_the_packaged_icon(self):
         for name in ('AIO-Clean-QA.iss','AIO-LibreOffice-Direct-QA.iss'):

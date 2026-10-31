@@ -13,6 +13,8 @@ import secrets
 import stat
 import shutil
 
+from .recovery_control import check_recovery_stop
+
 
 def path_is_link(path):
     # pathlib.Path.is_junction is Python 3.12+, while packaged A.I.O uses
@@ -31,13 +33,7 @@ def data_directory():
     return base / 'AIO' / 'ConverterGuard'
 
 
-def atomic_json(path, value):
-    temporary = path.with_suffix('.new')
-    with temporary.open('w', encoding='utf-8') as output:
-        json.dump(value, output, ensure_ascii=True, separators=(',', ':'))
-        output.flush()
-        os.fsync(output.fileno())
-    temporary.replace(path)
+from ..atomic_metadata import atomic_json
 
 
 class ResultStore:
@@ -143,10 +139,11 @@ class ResultStore:
             self.retirement_path.unlink(missing_ok=True)
 
     @classmethod
-    def reap_finished_retirements(cls, parent):
+    def reap_finished_retirements(cls, parent, *, cancel=None):
         # A crash after root deletion but before marker deletion leaves only a
         # tiny barrier. Reap validated barriers with no root, never user trees.
         for marker in Path(parent).glob('.aio-guard-*.retiring.json'):
+            check_recovery_stop(cancel)
             root = marker.parent / marker.name[1:-len('.retiring.json')]
             store = cls(root)
             try:
@@ -231,7 +228,8 @@ class ResultStore:
         self.append({'kind':'summary','timings':dict(job.timings),'officeStarts':job.office_starts,
                      'fileTimeoutSeconds':job.file_timeout,'state':job.state})
 
-    def read(self):
+    def read(self, *, cancel=None):
+        check_recovery_stop(cancel)
         header = self.root / 'job.json'
         if header.is_symlink() or header.stat().st_size > 32 * 1024 * 1024:
             raise ValueError('Invalid recovery header')
@@ -254,6 +252,7 @@ class ResultStore:
         if ledger.exists():
             with ledger.open(encoding='utf-8') as stream:
                 while line := stream.readline(8 * 1024 * 1024 + 1):
+                    check_recovery_stop(cancel)
                     # A crash may leave an incomplete final append. Earlier
                     # fsynced records remain valid; never infer a ready output.
                     if len(line) > 8 * 1024 * 1024:
@@ -326,18 +325,21 @@ class ResultStore:
             raise ValueError('Output is missing or changed')
         return path
 
-    def input_path(self, relative, size, digest):
+    def input_path(self, relative, size, digest, *, cancel=None):
         """Restore only a verified original inside this job's private input tree."""
         if (not isinstance(relative, str) or '\\' in relative
                 or len(Path(relative).parts) < 3 or Path(relative).parts[0] != 'input'
                 or not isinstance(digest, str) or len(digest) != 64
                 or any(c not in '0123456789abcdef' for c in digest)):
             raise ValueError('Invalid retained source metadata')
+        check_recovery_stop(cancel)
         path = self.output_path(relative, size)
         actual = hashlib.sha256()
         with path.open('rb') as source:
             while block := source.read(64 * 1024):
+                check_recovery_stop(cancel)
                 actual.update(block)
+        check_recovery_stop(cancel)
         if actual.hexdigest() != digest:
             raise ValueError('Retained source changed')
         return path
