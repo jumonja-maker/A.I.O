@@ -1,0 +1,102 @@
+name: AIO QA-only exact 10 OOXML originals vs namespace-only copies Windows
+
+on:
+  push:
+    branches: [qa/diag-ooxml-namespace-win-20261109]
+    paths: [.github/workflows/aio-ooxml-exact10-win-20261109.yml]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aio-ooxml-namespace-win-20261109
+  cancel-in-progress: false
+
+jobs:
+  exact-windows-ooxml:
+    if: github.repository == 'jumonja-maker/A.I.O' && github.ref == 'refs/heads/qa/diag-ooxml-namespace-win-20261109'
+    runs-on: windows-latest
+    timeout-minutes: 75
+    env:
+      AIO_QA_SOURCE_SHA: b7216d1210489a5fd1eadb21daf2e3b3849e30f4
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: utf-8
+      PYTHONDONTWRITEBYTECODE: '1'
+      QT_QPA_PLATFORM: offscreen
+      QT_OPENGL: software
+      QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --disable-gpu-compositing
+      AIO_LO_QA_MUST_HAVE_ENGINE: '1'
+    steps:
+      - name: Checkout isolated diagnostic branch, not main
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - name: Verify product code exactly matches accepted QA SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='b7216d1210489a5fd1eadb21daf2e3b3849e30f4'
+          test "$(git rev-parse HEAD^)" = "$base"
+          python - <<'PY'
+          import subprocess
+          changed=set(subprocess.check_output(['git','diff','--name-only','HEAD^','HEAD'],text=True).splitlines())
+          expected={'.github/workflows/aio-ooxml-exact10-win-20261109.yml',
+                    'tools/qa/aio_ooxml_windows_exact_probe_20261109.py',
+                    'tools/qa/fixtures/aio_ooxml_win10_pairs_20261109.zip'}
+          if changed!=expected: raise SystemExit('Unexpected difference from accepted QA source: '+repr(changed))
+          print('PRODUCT_CODE_UNCHANGED=TRUE;QA_BASE_SHA=b7216d1210489a5fd1eadb21daf2e3b3849e30f4')
+          PY
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.11'
+      - name: Prepare hash-locked Python dependencies, SBOM and SCA
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/build/verify_qa_dependency_lock.py --phase runtime --check-locks
+          python tools/build/qa_wheels.py --phase runtime --wheelhouse "$RUNNER_TEMP/aio-qa-wheels-ooxml-ns"
+          python tools/build/qa_sca.py --phase runtime --output "$RUNNER_TEMP/aio-qa-sca-ooxml.json"
+          python tools/build/verify_qa_dependency_lock.py --phase runtime \
+             --wheel-receipt build/aio-qa-wheels-runtime.json \
+             --sca-report "$RUNNER_TEMP/aio-qa-sca-ooxml.json"
+      - name: Extract hash-verified Windows LibreOffice 26.8.2.2 without installation
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          ./tools/build/prepare-libreoffice.ps1 -Destination (Join-Path $env:RUNNER_TEMP 'aio-ooxml-namespace-windows-lo')
+      - name: Exact source comparisons with direct Windows LibreOffice and AIO Guard
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          python tools/qa/aio_ooxml_windows_exact_probe_20261109.py `
+            --samples tools/qa/fixtures/aio_ooxml_win10_pairs_20261109.zip `
+            --engine "$env:AIO_QA_ENGINE" `
+            --output (Join-Path $env:RUNNER_TEMP 'aio-ooxml-namespace-windows-evidence')
+          if ($LASTEXITCODE -ne 0) { throw 'Incomplete diagnostic; inspect evidence, do not claim success.' }
+      - name: Print outcome counts (not file content)
+        if: always()
+        shell: pwsh
+        run: |
+          $p=Join-Path $env:RUNNER_TEMP 'aio-ooxml-namespace-windows-evidence/evidence.json'
+          if (Test-Path -LiteralPath $p) {
+            $r=Get-Content -LiteralPath $p -Raw | ConvertFrom-Json
+            Write-Host ('AIO_OOXML_FINAL_STATUS='+$r.result)
+            Write-Host ('AIO_OOXML_ENGINE='+$r.engineVersion)
+            Write-Host ('AIO_OOXML_ORIGINAL_SHA_UNCHANGED='+$r.filesUnchanged)
+            Write-Host ('AIO_OOXML_MUTATED_ONLY_XML='+(@($r.pairs | Where-Object { $_.expandedXmlEquivalent -eq $true }).Count))
+            Write-Host ('AIO_OOXML_NATIVE_ORIGINAL_PDFS='+(@($r.direct | Where-Object { $_.kind -eq 'original' -and $_.pdfCreated }).Count))
+            Write-Host ('AIO_OOXML_NATIVE_COPIES_PDFS='+(@($r.direct | Where-Object { $_.kind -eq 'namespace_only' -and $_.pdfCreated }).Count))
+            foreach($kind in @('original','namespace_only')) {
+              $g=$r.guard.$kind
+              Write-Host ('AIO_OOXML_GUARD_'+$kind+'='+$g.status+';PDF_ELIGIBLE='+@($g.pdfVerified).Count)
+            }
+          } else { Write-Host 'AIO_OOXML_NO_RESULTS_JSON'; }
+      - name: Upload only diagnostic evidence (not user documents, no release)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: aio-ooxml-namespace-win10-20261109-evidence
+          path: ${{ runner.temp }}/aio-ooxml-namespace-windows-evidence/evidence.json
+          if-no-files-found: warn
+          retention-days: 7
