@@ -1,0 +1,14 @@
+{
+  "command": [
+    "/workspace/scratch/aio-inspection-20261108/venv/bin/python",
+    "tools/qa/fulltest_batch1_native.py",
+    "--executable",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/native/libreoffice-headless/libreoffice/program/soffice",
+    "--output",
+    "/workspace/scratch/aio-inspection-20261108/native-batch1"
+  ],
+  "cwd": "/workspace/AIO-inspection",
+  "actualPlatform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "returncode": 1,
+  "durationSeconds": 3.17
+}

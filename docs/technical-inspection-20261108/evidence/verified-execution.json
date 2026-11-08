@@ -1,0 +1,11 @@
+{
+  "command": [
+    "/workspace/scratch/aio-inspection-20261108/venv/bin/python",
+    "tools/qa/hosted_unit_tests.py",
+    "--report",
+    "/workspace/scratch/aio-inspection-20261108/verified-suite.json"
+  ],
+  "cwd": "/workspace/AIO-inspection",
+  "returncode": 0,
+  "durationSeconds": 72.74
+}

@@ -1,0 +1,32 @@
+{
+  "base": "a698821453dceb80159cbe608726f67c41347ce9",
+  "testFilesFrom": "patch/technical-inspection-20261108",
+  "tests": [
+    "test_technical_storage_preservation.ExcelExactValues.test_exact_integers_stay_numeric_and_booleans_and_floats_keep_their_types",
+    "test_technical_storage_preservation.ExcelExactValues.test_inherited_row_and_column_styles_are_rejected_before_output",
+    "test_technical_storage_preservation.SaveStageOwnership.test_exclusive_stage_collision_preserves_other_writer_file",
+    "test_legacy_archive_readback.LegacyArchiveReadback.test_valid_crc_changed_payload_is_rejected_before_ticket_or_journal",
+    "test_legacy_archive_readback.LegacyArchiveReadback.test_changed_partial_report_is_rejected",
+    "test_technical_integrity_20261108.TechnicalIntegrity.test_every_exported_raster_page_must_have_a_complete_container",
+    "test_technical_integrity_20261108.TechnicalIntegrity.test_svg_filter_image_dependencies_are_checked_in_html_and_companions",
+    "test_technical_integrity_20261108.TechnicalIntegrity.test_truncated_resource_attributes_are_not_verified",
+    "test_technical_integrity_20261108.TechnicalIntegrity.test_distinct_source_cells_cannot_reuse_overlapping_output_text"
+  ],
+  "command": [
+    "/workspace/scratch/aio-inspection-20261108/venv/bin/python",
+    "-m",
+    "unittest",
+    "-v",
+    "test_technical_storage_preservation.ExcelExactValues.test_exact_integers_stay_numeric_and_booleans_and_floats_keep_their_types",
+    "test_technical_storage_preservation.ExcelExactValues.test_inherited_row_and_column_styles_are_rejected_before_output",
+    "test_technical_storage_preservation.SaveStageOwnership.test_exclusive_stage_collision_preserves_other_writer_file",
+    "test_legacy_archive_readback.LegacyArchiveReadback.test_valid_crc_changed_payload_is_rejected_before_ticket_or_journal",
+    "test_legacy_archive_readback.LegacyArchiveReadback.test_changed_partial_report_is_rejected",
+    "test_technical_integrity_20261108.TechnicalIntegrity.test_every_exported_raster_page_must_have_a_complete_container",
+    "test_technical_integrity_20261108.TechnicalIntegrity.test_svg_filter_image_dependencies_are_checked_in_html_and_companions",
+    "test_technical_integrity_20261108.TechnicalIntegrity.test_truncated_resource_attributes_are_not_verified",
+    "test_technical_integrity_20261108.TechnicalIntegrity.test_distinct_source_cells_cannot_reuse_overlapping_output_text"
+  ],
+  "returncode": 1,
+  "expectedOutcome": "behavioral assertion failures, no import/setup errors"
+}

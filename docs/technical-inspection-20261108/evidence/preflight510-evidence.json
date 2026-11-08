@@ -1,0 +1,195 @@
+{
+  "schema": 1,
+  "scope": "real Windows native 510-file Guard preflight only",
+  "count": 510,
+  "deadlineSeconds": 600.0,
+  "types": {
+    ".docx": 128,
+    ".xlsx": 128,
+    ".csv": 127,
+    ".bmp": 127
+  },
+  "status": "PASS",
+  "samples": [
+    {
+      "completed": 0,
+      "total": 510,
+      "elapsedSeconds": 0.0
+    },
+    {
+      "completed": 50,
+      "total": 510,
+      "elapsedSeconds": 9.8,
+      "activeSuffix": ".csv"
+    },
+    {
+      "completed": 75,
+      "total": 510,
+      "elapsedSeconds": 14.59,
+      "activeSuffix": ".bmp"
+    },
+    {
+      "completed": 125,
+      "total": 510,
+      "elapsedSeconds": 24.42,
+      "activeSuffix": ".xlsx"
+    },
+    {
+      "completed": 150,
+      "total": 510,
+      "elapsedSeconds": 29.22,
+      "activeSuffix": ".csv"
+    },
+    {
+      "completed": 175,
+      "total": 510,
+      "elapsedSeconds": 34.02,
+      "activeSuffix": ".bmp"
+    },
+    {
+      "completed": 200,
+      "total": 510,
+      "elapsedSeconds": 38.82,
+      "activeSuffix": ".docx"
+    },
+    {
+      "completed": 225,
+      "total": 510,
+      "elapsedSeconds": 43.89,
+      "activeSuffix": ".xlsx"
+    },
+    {
+      "completed": 250,
+      "total": 510,
+      "elapsedSeconds": 48.71,
+      "activeSuffix": ".csv"
+    },
+    {
+      "completed": 300,
+      "total": 510,
+      "elapsedSeconds": 58.35,
+      "activeSuffix": ".docx"
+    },
+    {
+      "completed": 350,
+      "total": 510,
+      "elapsedSeconds": 67.76,
+      "activeSuffix": ".csv"
+    },
+    {
+      "completed": 400,
+      "total": 510,
+      "elapsedSeconds": 77.22,
+      "activeSuffix": ".docx"
+    },
+    {
+      "completed": 425,
+      "total": 510,
+      "elapsedSeconds": 81.81,
+      "activeSuffix": ".xlsx"
+    },
+    {
+      "completed": 475,
+      "total": 510,
+      "elapsedSeconds": 91.53,
+      "activeSuffix": ".bmp"
+    },
+    {
+      "completed": 500,
+      "total": 510,
+      "elapsedSeconds": 96.14,
+      "activeSuffix": ".docx"
+    },
+    {
+      "completed": 510,
+      "total": 510,
+      "elapsedSeconds": 97.94
+    }
+  ],
+  "negativeSamples": 0,
+  "originalsPreserved": true,
+  "uploadSeconds": 0.039,
+  "nativePreflightSeconds": 98.199,
+  "completed": 510,
+  "preflightTotal": 510,
+  "budgetPerFileSeconds": 15.0,
+  "officeStarts": 0,
+  "sawChecking": true,
+  "errors": [],
+  "deadlineTriggered": false,
+  "proofStates": {
+    "detected": 510
+  },
+  "verifiedRouteCounts": {
+    "pdf": 510,
+    "docx": 128,
+    "doc": 128,
+    "odt": 128,
+    "rtf": 128,
+    "txt": 383,
+    "html": 510,
+    "xlsx": 255,
+    "xls": 255,
+    "ods": 255,
+    "csv": 383,
+    "png": 510,
+    "jpg": 510,
+    "jpeg": 510,
+    "bmp": 127,
+    "gif": 127,
+    "tif": 127,
+    "tiff": 127,
+    "svg": 127,
+    "webp": 510,
+    "apng": 127,
+    "dbf": 255,
+    "dif": 255,
+    "docm": 128,
+    "dot": 128,
+    "dotm": 128,
+    "dotx": 128,
+    "emf": 127,
+    "emz": 127,
+    "eps": 127,
+    "epub": 128,
+    "et": 255,
+    "ett": 255,
+    "fodg": 127,
+    "fods": 255,
+    "fodt": 128,
+    "htm": 510,
+    "jfif": 510,
+    "jif": 510,
+    "jpe": 510,
+    "markdown": 128,
+    "md": 128,
+    "odg": 127,
+    "odm": 128,
+    "otg": 127,
+    "oth": 128,
+    "otm": 128,
+    "ots": 255,
+    "ott": 128,
+    "slk": 255,
+    "svgz": 127,
+    "sxw": 128,
+    "sylk": 255,
+    "tab": 383,
+    "tsv": 383,
+    "wmf": 127,
+    "wmz": 127,
+    "wps": 128,
+    "wpt": 128,
+    "xhtml": 510,
+    "xlc": 255,
+    "xlk": 255,
+    "xlm": 255,
+    "xlsm": 255,
+    "xlt": 255,
+    "xltm": 255,
+    "xltx": 255,
+    "xlw": 255,
+    "xml": 510
+  },
+  "totalSeconds": 98.251
+}
