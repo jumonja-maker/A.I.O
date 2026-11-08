@@ -1,0 +1,290 @@
+name: A.I.O QA Windows installer and portable (restricted self-hosted 2026-11-08)
+
+# One-shot QA build from pinned verified cumulative source, not a public release.
+# Never overwrite an existing user installation or alter main.
+on:
+  push:
+    branches: [ops/qa-windows-selfhosted-build-20261108]
+    paths: [.github/workflows/aio-qa-windows-selfhosted-build-20261108.yml]
+permissions:
+  contents: read
+concurrency:
+  group: aio-qa-20261108-restricted-build
+  cancel-in-progress: false
+env:
+  AIO_QA_SOURCE_SHA: b7216d1210489a5fd1eadb21daf2e3b3849e30f4
+  AIO_QA_TREE_SHA: 75023f09e8ecf84f4c514cbdcbb6d8e08e821160
+  AIO_QA_LABEL: AIO-QA-20261108-b7216d121048
+  AIO_BASE_PYTHON: D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\Scripts\python.exe
+  PYTHONUTF8: '1'
+  PYTHONIOENCODING: utf-8
+  PYTHONDONTWRITEBYTECODE: '1'
+  PYTHONNOUSERSITE: '1'
+  PIP_NO_INPUT: '1'
+  PIP_DISABLE_PIP_VERSION_CHECK: '1'
+  QT_QPA_PLATFORM: offscreen
+  QT_OPENGL: software
+jobs:
+  qa-build:
+    if: github.repository == 'jumonja-maker/A.I.O' && github.ref == 'refs/heads/ops/qa-windows-selfhosted-build-20261108'
+    runs-on: [self-hosted, Windows, X64, local-d-manual]
+    timeout-minutes: 180
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - name: Restrict runner identity and check C/D disk before checkout
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:RUNNER_NAME -cne 'NIKITA' -or $env:RUNNER_OS -cne 'Windows' -or $env:USERNAME -ine 'aio-runner') {
+            throw 'Expected known non-elevated NIKITA / aio-runner host, not a personal Windows session.'
+          }
+          $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+          if ($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Refusing elevated build.' }
+          foreach ($key in @('GITHUB_WORKSPACE','RUNNER_TEMP','TEMP','TMP')) {
+            $value = [Environment]::GetEnvironmentVariable($key)
+            if ([string]::IsNullOrWhiteSpace($value) -or -not [IO.Path]::GetFullPath($value).StartsWith('D:\',[StringComparison]::OrdinalIgnoreCase)) { throw ($key+' must be on D: work drive.') }
+          }
+          if ((Get-PSDrive -PSProvider FileSystem -Name C).Free -lt 10GB -or
+              (Get-PSDrive -PSProvider FileSystem -Name D).Free -lt 30GB) { throw 'Need 10 GB free C: and 30 GB free D:.' }
+          $marker = 'D:\AIO-Lab\AIO-QA-Env\docx-py311-qt6103\.00aio-test-only-venv.txt'
+          if (-not (Test-Path -LiteralPath $env:AIO_BASE_PYTHON -PathType Leaf) -or
+              -not (Test-Path -LiteralPath $marker -PathType Leaf) -or
+              (Get-Content -LiteralPath $marker -Raw).Trim() -cne '00AIO NIKITA ISOLATED DOCX PDF QA PY311 QT6103') {
+            throw 'Known restricted base Python is missing. No setup or package touched.'
+          }
+          if (Test-Path -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'qa-pinned-${{ github.run_id }}')) { throw 'Source path already exists.' }
+          if (Test-Path -LiteralPath (Join-Path 'D:\AIO-Lab\AIO-QA-Dist' 'qa-20261108-b7216d121048-${{ github.run_id }}')) { throw 'Archive already exists.' }
+          Write-Host 'RUNNER_PREFLIGHT=PASS;NO_INSTALL=TRUE;NO_RELEASE=TRUE'
+      - name: Checkout exact QA source commit (separate from workflow branch)
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        env:
+          GIT_CONFIG_COUNT: '1'
+          GIT_CONFIG_KEY_0: core.autocrlf
+          GIT_CONFIG_VALUE_0: 'false'
+        with:
+          repository: jumonja-maker/A.I.O
+          ref: b7216d1210489a5fd1eadb21daf2e3b3849e30f4
+          path: qa-pinned-${{ github.run_id }}
+          fetch-depth: 1
+          clean: false
+          persist-credentials: false
+      - name: Verify entire immutable Git tree before executing application code
+        working-directory: qa-pinned-${{ github.run_id }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $verify = Join-Path $env:RUNNER_TEMP 'aio-qa-source-${{ github.run_id }}.py'
+          if (Test-Path -LiteralPath $verify) { throw 'Verifier file already exists.' }
+          $code = @'
+          import hashlib,sys
+          from pathlib import Path
+          def tree(root):
+              entries=[]
+              for p in root.iterdir():
+                  if p.name=='.git': continue
+                  if p.is_symlink(): raise ValueError('Untrusted source link')
+                  key=p.name.encode('utf-8')
+                  if p.is_dir(): mode,oid,sort=b'40000',tree(p),key+b'/'
+                  elif p.is_file():
+                      buf=p.read_bytes()
+                      oid=hashlib.sha1(b'blob '+str(len(buf)).encode()+bytes((0,))+buf).digest()
+                      mode,sort=b'100644',key
+                  else: raise ValueError('Non-file source')
+                  entries.append((sort,mode+b' '+key+bytes((0,))+oid))
+              payload=b''.join(v for _,v in sorted(entries,key=lambda x:x[0]))
+              return hashlib.sha1(b'tree '+str(len(payload)).encode()+bytes((0,))+payload).digest()
+          observed=tree(Path(sys.argv[1])).hex()
+          print('QA_VERIFIED_TREE='+observed)
+          if observed != sys.argv[2]: raise SystemExit('SOURCE_TREE_MISMATCH')
+          '@
+          [IO.File]::WriteAllText($verify,$code,[Text.UTF8Encoding]::new($false))
+          & $env:AIO_BASE_PYTHON $verify (Get-Location).Path $env:AIO_QA_TREE_SHA
+          if ($LASTEXITCODE -ne 0) { throw 'Full reviewed source tree differs; build forbidden.' }
+          Write-Host ('QA_PRODUCT_SOURCE='+$env:AIO_QA_SOURCE_SHA)
+      - name: Use exact LibreOffice 26.8.2.2, without installing another program
+        working-directory: qa-pinned-${{ github.run_id }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $pin = Get-Content -LiteralPath 'tools\build\libreoffice-release.json' -Raw | ConvertFrom-Json
+          if ($pin.version -cne '26.8.2.2') { throw 'Unexpected LibreOffice review pin.' }
+          $root=$null
+          foreach($candidate in @('D:\LBR','D:\LBR\LibreOffice','D:\AIO-Lab\LibreOffice','C:\Program Files\LibreOffice')) {
+            $soffice=Join-Path $candidate 'program\soffice.com'
+            if (-not (Test-Path -LiteralPath $soffice -PathType Leaf)) { continue }
+            $required=@('program\soffice.exe','program\soffice.bin','program\python.exe','share')
+            if (@($required | Where-Object { -not (Test-Path -LiteralPath (Join-Path $candidate $_)) }).Count) { continue }
+            $version=(& $soffice --version | Out-String).Trim()
+            if ($LASTEXITCODE -ne 0 -or $version -notmatch '^LibreOffice\s+26\.8\.2\.2(?:\s|$)') { continue }
+            if (@(Get-ChildItem -LiteralPath $candidate -Filter 'LICENSE*' -Recurse -File).Count -gt 0) { $root=$candidate; break }
+          }
+          if (-not $root) {
+            # Verified MSI SHA-256, administrative extraction only to fresh RUNNER_TEMP.
+            # This neither installs the app nor overwrites a local Office.
+            $destination=Join-Path $env:RUNNER_TEMP 'aio-reviewed-lo-${{ github.run_id }}'
+            if (Test-Path -LiteralPath $destination) { throw 'LO extraction path occupied.' }
+            & .\tools\build\prepare-libreoffice.ps1 -Destination $destination
+            if ($LASTEXITCODE -ne 0) { throw 'Pinned LO extraction failed.' }
+            $found=@(Get-ChildItem -LiteralPath (Join-Path $destination 'payload') -Filter soffice.com -Recurse -File)
+            if ($found.Count -ne 1) { throw 'No unambiguous trusted extracted LO.' }
+            $root=Split-Path -Parent (Split-Path -Parent $found[0].FullName)
+          }
+          $version=(& (Join-Path $root 'program\soffice.com') --version | Out-String).Trim()
+          if ($LASTEXITCODE -ne 0 -or $version -notmatch '^LibreOffice\s+26\.8\.2\.2(?:\s|$)') { throw 'Wrong LO version.' }
+          ('AIO_LIBREOFFICE_ROOT='+$root) | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host ('QA_BUNDLE_LO='+$version)
+      - name: Isolated Python venv, hash-locked wheels, SBOM and independent SCA
+        working-directory: qa-pinned-${{ github.run_id }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $venv=Join-Path $env:RUNNER_TEMP 'aio-qa-build-venv-${{ github.run_id }}'
+          $wheelhouse=Join-Path $env:RUNNER_TEMP 'aio-qa-wheels-${{ github.run_id }}'
+          if ((Test-Path -LiteralPath $venv) -or (Test-Path -LiteralPath $wheelhouse)) { throw 'Build temp directory occupied.' }
+          & $env:AIO_BASE_PYTHON -m venv $venv
+          if ($LASTEXITCODE -ne 0) { throw 'Private venv creation failed.' }
+          $py=Join-Path $venv 'Scripts\python.exe'
+          if (-not (Test-Path -LiteralPath $py -PathType Leaf)) { throw 'Private Python missing.' }
+          ('AIO_BUILD_PY='+$py) | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          $env:LOCALAPPDATA=Join-Path $env:RUNNER_TEMP 'aio-qa-pip-appdata-${{ github.run_id }}'
+          $env:APPDATA=$env:LOCALAPPDATA
+          New-Item -ItemType Directory -Path $env:LOCALAPPDATA | Out-Null
+          & $py tools\build\verify_qa_dependency_lock.py --phase build --check-locks
+          if ($LASTEXITCODE -ne 0) { throw 'Build lock graph invalid.' }
+          & $py tools\build\qa_wheels.py --phase build --wheelhouse $wheelhouse
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned and SHA-verified wheel installation failed.' }
+          & $py tools\build\qa_sca.py --phase build --output build\aio-qa-sca-build.json
+          if ($LASTEXITCODE -ne 0) { throw 'OSV SCA failure or incomplete result.' }
+          & $py tools\build\verify_qa_dependency_lock.py --phase build --wheel-receipt build\aio-qa-wheels-build.json --sca-report build\aio-qa-sca-build.json
+          if ($LASTEXITCODE -ne 0) { throw 'Source-bound dependency report rejected.' }
+          Write-Host 'PRIVATE_PYTHON_WHEELS_SHA256_SBOM_SCA=PASS'
+      - name: Build full frozen EXE with bundled LO and verify source / dependencies
+        id: frozen
+        working-directory: qa-pinned-${{ github.run_id }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:AIO_QA_REQUIRE_MANIFEST='1'
+          $env:PYINSTALLER_CONFIG_DIR=Join-Path $env:RUNNER_TEMP 'aio-pyinst-private-${{ github.run_id }}'
+          if (Test-Path -LiteralPath $env:PYINSTALLER_CONFIG_DIR) { throw 'Private PyInstaller cache occupied.' }
+          New-Item -ItemType Directory -Path $env:PYINSTALLER_CONFIG_DIR | Out-Null
+          & $env:AIO_BUILD_PY -m PyInstaller --noconfirm --clean AllInOne.spec
+          if ($LASTEXITCODE -ne 0) { throw 'PyInstaller QA build failed.' }
+          foreach($part in @('dist\A.I.O\A.I.O.exe','dist\A.I.O\_internal\libreoffice\program\soffice.exe',
+                'dist\A.I.O\_internal\libreoffice\program\soffice.bin',
+                'dist\A.I.O\_internal\assets\brand\icons\aio.ico',
+                'dist\A.I.O\_internal\build-info\aio-source-revision.txt',
+                'dist\A.I.O\_internal\build-info\aio-qa-dependencies.json')) {
+            if (-not (Test-Path -LiteralPath $part -PathType Leaf)) { throw ('Bundled component missing: '+$part) }
+          }
+          if (-not (Test-Path -LiteralPath 'dist\A.I.O\_internal\libreoffice\share' -PathType Container)) { throw 'LO share missing.' }
+          $embedded=(Get-Content 'dist\A.I.O\_internal\build-info\aio-source-revision.txt' -Raw).Trim()
+          $m=Get-Content 'dist\A.I.O\_internal\build-info\aio-qa-dependencies.json' -Raw | ConvertFrom-Json
+          if ($embedded -cne $env:AIO_QA_SOURCE_SHA -or $m.sourceRevision -cne $env:AIO_QA_SOURCE_SHA -or
+              $m.phase -cne 'build' -or $m.wheelHashesVerified -ne $true -or $m.scaStatus -cne 'pass_python_distribution_scope') {
+            throw 'Bundled QA SHA/wheel/SBOM/SCA manifest mismatch.'
+          }
+          & $env:AIO_BUILD_PY tools\qa\runtime_frozen_acceptance.py --executable dist\A.I.O\A.I.O.exe --output (Join-Path $env:RUNNER_TEMP 'aio-qa-frozen-smoke-${{ github.run_id }}') --seconds 120
+          if ($LASTEXITCODE -ne 0) { throw 'Frozen structural worker smoke failed.' }
+          Write-Host 'QA_FROZEN_EXE=PASS;NO_GUI_INSTALL;NO_RELEASE'
+      - name: Create independent side-by-side QA Inno installer and portable ZIP
+        id: package
+        working-directory: qa-pinned-${{ github.run_id }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $out='build\installer'
+          if (-not (Test-Path -LiteralPath $out -PathType Container)) { New-Item -ItemType Directory -Path $out | Out-Null }
+          $zip=Join-Path $out ($env:AIO_QA_LABEL+'-PORTABLE.zip')
+          if (Test-Path -LiteralPath $zip) { throw 'ZIP target occupied.' }
+          Compress-Archive -LiteralPath 'dist\A.I.O' -DestinationPath $zip -CompressionLevel Optimal
+          if (-not (Test-Path -LiteralPath $zip -PathType Leaf)) { throw 'Portable archive missing.' }
+          & $env:AIO_BUILD_PY -m zipfile -t $zip
+          if ($LASTEXITCODE -ne 0) { throw 'ZIP CRC check failed.' }
+          $original='installer\windows\AIO-Guard-QA.iss'
+          $generated='installer\windows\AIO-QA-20261108-generated.iss'
+          if (Test-Path -LiteralPath $generated) { throw 'Inno script target occupied.' }
+          $iss=Get-Content -LiteralPath $original -Raw -Encoding utf8
+          $replace=[ordered]@{
+            'AppId={{39D44E94-0C7E-4E26-8A5A-87021BB0B493}'='AppId={{27F4B972-EE91-4EF3-B080-AB234E8A24F7}'
+            '#define AppVersion "0.7.0-guard-qa"'='#define AppVersion "0.2026.11.08-qa"'
+            'A.I.O (Guard QA)'='A.I.O (QA Preview 2026-11-08)'
+            'DefaultDirName={localappdata}\Programs\A.I.O-Guard-QA'='DefaultDirName={localappdata}\Programs\A.I.O-20261108-QA'
+            'DefaultGroupName=A.I.O Guard QA'='DefaultGroupName=A.I.O QA 2026-11-08'
+            'OutputBaseFilename=AIO-Guard-QA-win-x64'='OutputBaseFilename=AIO-QA-20261108-b7216d121048-win-x64'
+            'UninstallDisplayName=A.I.O + LibreOffice + Converter Guard (QA)'='UninstallDisplayName=A.I.O QA Preview 2026-11-08 (not a release)'
+          }
+          foreach($old in $replace.Keys) {
+            if (-not $iss.Contains($old)) { throw ('QA installer template mismatch: '+$old) }
+            $iss=$iss.Replace($old,$replace[$old])
+          }
+          [IO.File]::WriteAllText((Join-Path (Get-Location).Path $generated),$iss,[Text.UTF8Encoding]::new($true))
+          $dir='D:\AIO-Lab\AIO-QA-Env\inno-673-portable\compiler'
+          $compilers=@(Get-ChildItem -LiteralPath $dir -Filter 'ISCC.exe' -File -Recurse -ErrorAction Stop)
+          if ($compilers.Count -ne 1) { throw 'Trusted portable Inno 6.7.3 compiler missing.' }
+          & $compilers[0].FullName $generated
+          if ($LASTEXITCODE -ne 0) { throw 'Installer compilation failed.' }
+          $setup=Join-Path $out ($env:AIO_QA_LABEL+'-win-x64.exe')
+          if (-not (Test-Path -LiteralPath $setup -PathType Leaf)) { throw 'Installer missing.' }
+          $checks=foreach($file in @($setup,$zip)) {
+            $info=Get-Item -LiteralPath $file
+            if ($info.Length -le 0) { throw ('Empty built package: '+$info.FullName) }
+            (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()+'  '+$info.Name
+          }
+          $checks | Set-Content -LiteralPath (Join-Path $out 'SHA256SUMS.txt') -Encoding ascii
+          @(
+            ('SOURCE='+$env:AIO_QA_SOURCE_SHA),('TREE='+$env:AIO_QA_TREE_SHA),
+            'QA_SOURCE_CI=42449969395:SUCCESS','QA_MERGE_CI=42496097382:SUCCESS',
+            'LO=26.8.2.2;BUNDLED=YES','WHEEL_HASHES=PASS;SBOM=PASS;PYTHON_SCA=PASS',
+            'FROZEN_WORKER_SMOKE=PASS','GUI_INSTALL=NOT_RUN;FULLTEST=NOT_RUN',
+            'RELEASE=NOT_RUN;MAIN=UNCHANGED'
+          ) | Set-Content -LiteralPath (Join-Path $out 'BUILD-STATUS.txt') -Encoding utf8
+          $checks | ForEach-Object { Write-Host ('QA_SHA256='+$_) }
+      - name: Save both QA packages to a NEW D drive directory with SHA readback
+        id: archive
+        working-directory: qa-pinned-${{ github.run_id }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $parent='D:\AIO-Lab\AIO-QA-Dist'
+          if (-not (Test-Path -LiteralPath $parent -PathType Container) -or
+              ((Get-Item -LiteralPath $parent).Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+            throw 'Expected trusted existing QA distribution parent is absent.'
+          }
+          $dest=Join-Path $parent 'qa-20261108-b7216d121048-${{ github.run_id }}'
+          if (Test-Path -LiteralPath $dest) { throw 'QA archive target occupied.' }
+          New-Item -ItemType Directory -Path $dest | Out-Null
+          foreach($name in @(($env:AIO_QA_LABEL+'-win-x64.exe'),($env:AIO_QA_LABEL+'-PORTABLE.zip'),'SHA256SUMS.txt','BUILD-STATUS.txt')) {
+            $old=Join-Path 'build\installer' $name
+            $new=Join-Path $dest $name
+            if (-not (Test-Path -LiteralPath $old -PathType Leaf) -or (Test-Path -LiteralPath $new)) { throw ('Invalid archive input/target: '+$name) }
+            $before=(Get-FileHash -LiteralPath $old -Algorithm SHA256).Hash.ToLowerInvariant()
+            Copy-Item -LiteralPath $old -Destination $new -ErrorAction Stop
+            $after=(Get-FileHash -LiteralPath $new -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($after -cne $before) { throw ('Archived file hash mismatch: '+$name) }
+            Write-Host ('ARCHIVED='+$name+';SHA256='+$after)
+          }
+          Write-Host ('QA_LOCAL_DOWNLOAD_DIRECTORY='+$dest)
+          Write-Host 'NO_INSTALL;NO_RELEASE;MAIN_UNCHANGED'
+      - name: Upload installer/checksums as expiring QA artifact (no Release)
+        id: upload
+        if: steps.archive.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: AIO-QA-20261108-b7216d121048-Installer-${{ github.run_id }}
+          path: |
+            qa-pinned-${{ github.run_id }}/build/installer/AIO-QA-20261108-b7216d121048-win-x64.exe
+            qa-pinned-${{ github.run_id }}/build/installer/SHA256SUMS.txt
+            qa-pinned-${{ github.run_id }}/build/installer/BUILD-STATUS.txt
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+          overwrite: false
+      - name: Record truthful build and distribution status
+        if: always()
+        run: |
+          Write-Host ('AIO_QA_SOURCE='+$env:AIO_QA_SOURCE_SHA)
+          Write-Host 'FROZEN=${{ steps.frozen.outcome }}'
+          Write-Host 'PACKAGE=${{ steps.package.outcome }}'
+          Write-Host 'D_ARCHIVE=${{ steps.archive.outcome }}'
+          Write-Host 'DOWNLOAD=${{ steps.upload.outcome }}'
+          Write-Host 'INSTALL=NOT_RUN;HISTORICAL_FULLTEST=NOT_RUN;RELEASE=NOT_RUN;MAIN=UNCHANGED'
+          if ('${{ steps.frozen.outcome }}' -ne 'success' -or '${{ steps.package.outcome }}' -ne 'success' -or
+              '${{ steps.archive.outcome }}' -ne 'success' -or '${{ steps.upload.outcome }}' -ne 'success') {
+            throw 'QA Windows package not fully verified and delivered.'
+          }
