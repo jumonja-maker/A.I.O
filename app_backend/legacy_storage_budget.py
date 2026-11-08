@@ -16,14 +16,21 @@ MAX_SCAN_ENTRIES = 100_000
 MAX_SCAN_DEPTH = 32
 
 
-def measured_bytes(roots):
+def _check_cancel(cancel):
+    if cancel is not None and cancel.is_set():
+        raise LibreOfficeError('Проверка занятого места отменена.', 'CANCELLED')
+
+
+def measured_bytes(roots, *, cancel=None):
     """Full bounded scans, reusing scandir metadata instead of Path per file.
 
     No stale byte cache can hide active writers or foreign-owned files.
     """
+    _check_cancel(cancel)
     total, visited = 0, 0
     pending = [(os.fspath(root), 0, None) for root in roots]
     while pending:
+        _check_cancel(cancel)
         path, depth, entry = pending.pop()
         visited += 1
         if visited > MAX_SCAN_ENTRIES or depth > MAX_SCAN_DEPTH:
@@ -40,6 +47,7 @@ def measured_bytes(roots):
             try:
                 with os.scandir(path) as entries:
                     for item in entries:
+                        _check_cancel(cancel)
                         pending.append((item.path, depth + 1, item))
                         if visited + len(pending) > MAX_SCAN_ENTRIES:
                             raise OSError('Legacy storage inspection budget exceeded')
@@ -47,6 +55,7 @@ def measured_bytes(roots):
                 continue
         else:
             raise OSError('Unsupported legacy storage entry')
+    _check_cancel(cancel)
     return total
 
 
@@ -63,7 +72,7 @@ class LegacyRunControl:
         if now >= self.next_scan:
             self.check()
             self.next_scan = time.monotonic() + .5
-        return False
+        return self.cancel.is_set()
 
     def wait(self, seconds):
         self.cancel.wait(seconds)

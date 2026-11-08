@@ -383,6 +383,9 @@ def _apng_frames(source, scratch, info, cancel):
             raise GuardError('MEDIA_DECODE_FAILED',
                              'Qt не смог прочитать кадр APNG.', stage='engine',
                              diagnostic=reader.errorString())
+        image = _managed_rgb_frame(image, info.get('iccProfilePresent', False))
+        canvas.setDotsPerMeterX(image.dotsPerMeterX())
+        canvas.setDotsPerMeterY(image.dotsPerMeterY())
         if image.colorSpace().isValid() and not canvas.colorSpace().isValid():
             canvas.setColorSpace(image.colorSpace())
         if canvas.colorSpace().isValid() and image.colorSpace().isValid() and image.colorSpace() != canvas.colorSpace():
@@ -450,7 +453,7 @@ def _apng_frames(source, scratch, info, cancel):
                 if kind == b'IHDR':
                     ihdr = stream.read(size)
                     stream.read(4)
-                elif kind in (b'PLTE', b'tRNS', b'gAMA', b'cHRM', b'sRGB', b'iCCP') and current is None:
+                elif kind in (b'PLTE', b'tRNS', b'gAMA', b'cHRM', b'sRGB', b'iCCP', b'pHYs') and current is None:
                     aux_size += size
                     if aux_size > MAX_PNG_AUX_BYTES:
                         raise GuardError('MEDIA_METADATA_BUDGET',
@@ -477,12 +480,55 @@ def _orient_image(image, orientation):
     if orientation == 1:
         return image
     from PySide6.QtGui import QTransform
+    resolution = image.dotsPerMeterX(), image.dotsPerMeterY()
     if orientation in (2, 5, 7):
         image = image.mirrored(True, False)
     elif orientation == 4:
         return image.mirrored(False, True)
     rotation = {3: 180, 5: 270, 6: 90, 7: 90, 8: 270}.get(orientation)
-    return image.transformed(QTransform().rotate(rotation)) if rotation else image
+    image = image.transformed(QTransform().rotate(rotation)) if rotation else image
+    if orientation >= 5:
+        image.setDotsPerMeterX(resolution[1])
+        image.setDotsPerMeterY(resolution[0])
+    return image
+
+
+def _managed_rgb_frame(image, profile_present):
+    """Never attach a Gray/CMYK ICC profile to an RGB/RGBA raster.
+
+    Qt's format conversion alone performs unmanaged CMYK arithmetic and keeps
+    the old profile. Convert the color space *before* changing channel models.
+    Existing RGB spaces (including Display P3) keep their original values and
+    profiles. Untagged CMYK has no confirmed source color interpretation.
+    """
+    from PySide6.QtGui import QColorSpace, QImage
+    space = image.colorSpace()
+    if not space.isValid():
+        if profile_present:
+            raise GuardError('MEDIA_COLOR_PROFILE_UNSUPPORTED',
+                             'Встроенный цветовой профиль не подтверждён декодером; '
+                             'преобразование цветов остановлено.', stage='engine')
+        if image.format() == QImage.Format.Format_CMYK8888:
+            raise GuardError('MEDIA_COLOR_PROFILE_UNCONFIRMED',
+                             'Для CMYK не подтверждён исходный цветовой профиль. '
+                             'Преобразование в RGB не выполнено.', stage='engine')
+        return image
+    if space.colorModel() == QColorSpace.ColorModel.Rgb:
+        return image
+    if space.colorModel() not in (QColorSpace.ColorModel.Gray, QColorSpace.ColorModel.Cmyk):
+        raise GuardError('MEDIA_COLOR_PROFILE_UNSUPPORTED',
+                         'Не подтверждено преобразование цветовой модели изображения.', stage='engine')
+    target = QColorSpace(QColorSpace.NamedColorSpace.SRgb)
+    pixel_format = (QImage.Format.Format_RGBA64 if image.depth() > 32 or
+                    image.format() == QImage.Format.Format_Grayscale16 else
+                    QImage.Format.Format_RGBA8888)
+    converted = image.convertedToColorSpace(target, pixel_format)
+    if converted.isNull() or not converted.colorSpace().isValid() or converted.colorSpace() != target:
+        raise GuardError('MEDIA_COLOR_PROFILE_UNSUPPORTED',
+                         'Qt не подтвердил управляемое преобразование цветов в sRGB.', stage='engine')
+    converted.setDotsPerMeterX(image.dotsPerMeterX())
+    converted.setDotsPerMeterY(image.dotsPerMeterY())
+    return converted
 
 def _frames(source, scratch, info, cancel):
     if info.get('format') in _LEGACY_PIL_FORMATS:
@@ -546,7 +592,12 @@ def _frames(source, scratch, info, cancel):
             # decoding, without a second raster buffer or another file pass.
             image.invertPixels()
         orientation = info.get('pageOrientations', [info.get('orientation', 1)] * expected)[index]
-        yield _orient_image(image, orientation)
+        page_resolution = info.get('pageDpi', [info.get('dpi')] * expected)[index]
+        if page_resolution:
+            image.setDotsPerMeterX(round(page_resolution[0] / 0.0254))
+            image.setDotsPerMeterY(round(page_resolution[1] / 0.0254))
+        profile_present = info.get('pageIccProfiles', [info.get('iccProfilePresent', False)] * expected)[index]
+        yield _managed_rgb_frame(_orient_image(image, orientation), profile_present)
 
 
 def _write_apng(stream, frames, info, cancel):
@@ -557,6 +608,7 @@ def _write_apng(stream, frames, info, cancel):
     _png_chunk(stream, b'acTL', struct.pack('>II', count, info.get('loopCount', 1)))
     sequence = 0
     first_profile = None
+    first_resolution = None
     for index, image in enumerate(frames):
         _cancel(cancel)
         if (image.width(), image.height()) != (width, height):
@@ -570,6 +622,15 @@ def _write_apng(stream, frames, info, cancel):
                              'APNG хранит один цветовой профиль для всех кадров; страницы имеют разные профили. Используйте TIFF.', stage='engine')
         if index == 0 and profile:
             _png_chunk(stream, b'iCCP', b'Qt ICC Profile\0\0' + zlib.compress(profile))
+        resolution = image.dotsPerMeterX(), image.dotsPerMeterY()
+        if first_resolution is None:
+            first_resolution = resolution
+            if all(0 < value <= 0xffffffff for value in resolution):
+                _png_chunk(stream, b'pHYs', struct.pack('>IIB', *resolution, 1))
+        elif resolution != first_resolution:
+            raise GuardError('MEDIA_PAGE_RESOLUTION_MISMATCH',
+                             'APNG хранит один физический масштаб для всех кадров; '
+                             'страницы имеют разное разрешение. Используйте TIFF.', stage='engine')
         duration = info['durationsMs'][index] if info['frames'] > 1 else 0
         delay = Fraction(duration / 1000).limit_denominator(65535)
         if delay.numerator > 65535:
@@ -836,6 +897,10 @@ def convert_media_frames(source, output_dir, target, *, cancel=None, on_started=
     if route is None:
         return None
     info = route['source']
+    if info.get('metadataComplete') is False:
+        raise GuardError('MEDIA_SOURCE_INVALID',
+                         'Заголовок исходного JPEG неполон: размер известен, '
+                         'но метаданные и декодирование не подтверждены.', stage='engine')
     output_dir.mkdir(parents=True, exist_ok=True)
     output = output_dir / (source.stem + '.' + target)
     if output.resolve() == source.resolve():
@@ -1008,6 +1073,8 @@ def _export_pdf_raster_pages(source, output_dir, target, expected_pages, cancel,
                 if normal == 'jpeg' and frame.hasAlphaChannel():
                     background = QImage(frame.size(), QImage.Format.Format_RGB32)
                     background.fill(Qt.GlobalColor.white)
+                    background.setDotsPerMeterX(frame.dotsPerMeterX())
+                    background.setDotsPerMeterY(frame.dotsPerMeterY())
                     painter = QPainter(background)
                     try:
                         painter.drawImage(0, 0, frame)

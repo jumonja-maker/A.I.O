@@ -1,0 +1,29 @@
+{
+  "status": "PASS",
+  "timestampUtc": "2026-11-08T04:48:50.845335+00:00",
+  "scope": "read-only source review; focused unit tests and independent text oracle; no LibreOffice/native acceptance",
+  "base": "660b470",
+  "source": "/workspace/AIO-inspection",
+  "command": [
+    "/workspace/scratch/aio-inspection-20261108/venv/bin/python",
+    "-m",
+    "unittest",
+    "test_default_pdf_image_policy",
+    "test_presentation_text_occurrences_deep",
+    "test_csv_precise_literals_deep",
+    "test_deep_html_resources",
+    "test_deep_upload_stage_ownership",
+    "test_deep_storage_cancellation",
+    "-v"
+  ],
+  "testReturnCode": 0,
+  "independentAllocatorInputsByWordBoundaries": {
+    "True": 7560,
+    "False": 7560
+  },
+  "allocatorImplementationsCompared": [
+    "host",
+    "actual embedded UNO source"
+  ],
+  "oracleMethod": "exhaustive disjoint character bitmask assignments"
+}

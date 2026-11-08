@@ -440,7 +440,8 @@
         const quality=task.quality;
         const qualityText=quality?quality.status==='risks_found'?'Возможны потери структуры · подробности в отчёте':
           quality.qualityCompared?'Часть структуры проверена · внешний вид не проверен':'Структуру сопоставить не удалось':'';
-        detail.textContent=task.error||qualityText||(task.warnings||[]).map(w=>w.message).join(' ')||task.stage||'';
+        const warningText=(task.warnings||[]).map(w=>w.message).join(' ');
+        detail.textContent=task.error||[qualityText,warningText].filter(Boolean).join(' ')||task.stage||'';
         row.append(name,status,detail);list.append(row);
       }
       paintedRows=visible;

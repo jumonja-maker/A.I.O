@@ -114,6 +114,7 @@ class _PreparedSourceCache:
 
 
 def prepare_profile(profile, *, numeric_locale=None):
+    from ..pdf_export_policy import PDF_PROFILE_ITEM
     # Macro prevention is independent from document import/export selection.
     # Do not use DisableActiveContent: it hid native formula objects in QA.
     if numeric_locale not in (None, 'en-US'):
@@ -139,7 +140,7 @@ def prepare_profile(profile, *, numeric_locale=None):
         '<prop oor:name="DisableMacrosExecution" oor:op="fuse"><value>true</value></prop>'
         '<prop oor:name="BlockUntrustedReferrerLinks" oor:op="fuse"><value>true</value></prop>'
         '<prop oor:name="MacroSecurityLevel" oor:op="fuse"><value>3</value></prop>'
-        '</item>' + numeric_settings + '</oor:items>\n', encoding='utf-8')
+        '</item>' + numeric_settings + PDF_PROFILE_ITEM + '</oor:items>\n', encoding='utf-8')
 
 
 class _RunControl:
@@ -889,6 +890,20 @@ class LibreOfficeAdapter:
             self._local.export_info['resultChecks'] = list(self._local.export_info.get('resultChecks', [])) + checks
             warnings = list(self._local.export_info.get('warnings', ()))
             for result_check in checks:
+                if result_check.get('check') == 'media_properties':
+                    loss_warnings = {
+                        'alpha': 'MEDIA_ALPHA_REMOVED',
+                        'animation': ('MEDIA_ANIMATION_AS_PAGES' if target in ('tif', 'tiff') else
+                                      'MEDIA_ANIMATION_FIRST_FRAME'),
+                        'pages': 'MEDIA_IMAGE_PAGES_FIRST_PAGE',
+                        'page_semantics_as_frames': 'MEDIA_PAGES_AS_ANIMATION',
+                        'bit_depth': 'MEDIA_BIT_DEPTH_REDUCED',
+                        'gif_palette_and_binary_alpha': 'MEDIA_GIF_PALETTE_LIMITS',
+                    }
+                    for loss in result_check.get('expectedLosses', ()):
+                        code = loss_warnings.get(loss, 'MEDIA_PROPERTIES_CHANGED')
+                        if code not in warnings:
+                            warnings.append(code)
                 if result_check.get('status') == 'not_checked':
                     code = ('ODF_TABLE_CONTENT_NOT_CHECKED' if result_check.get('check') == 'odf_table_text'
                             else 'NATIVE_OUTPUT_NOT_CHECKED')
@@ -918,6 +933,9 @@ class LibreOfficeAdapter:
         if text_ids:
             self._local.export_info['resultChecks'] = list(
                 self._local.export_info.get('resultChecks', ())) + [text_ids]
+            if text_ids.get('warnings'):
+                self._local.export_info['warnings'] = tuple(dict.fromkeys((
+                    *self._local.export_info.get('warnings', ()), *text_ids['warnings'])))
             if text_ids.get('status') == 'not_checked':
                 self._local.export_info['warnings'] = tuple(dict.fromkeys((
                     *self._local.export_info.get('warnings', ()),
@@ -1043,10 +1061,16 @@ class LibreOfficeAdapter:
         paths, sheet_entries = [], []
         is_csv = target in ('csv', 'tab', 'tsv')
         previous_csv = getattr(self._local, 'csv_sheet_snapshot', False)
+        previous_snapshot = getattr(self._local, 'preservation_sheet_snapshot', None)
         try:
             self._local.csv_sheet_snapshot = is_csv
             self._local.import_filter, self._local.import_options = flat, None
             for index, snapshot in enumerate(snapshots):
+                # This exact private FODS has one indexed sheet. The original
+                # model proof still describes the complete source workbook;
+                # bind the internal CLI exception to this immutable snapshot,
+                # not to every export on the thread or merely its extension.
+                self._local.preservation_sheet_snapshot = _source_identity(snapshot)
                 if target == 'dbf':
                     from .dbf_schema import validate_cli_dbf_headers
                     validate_cli_dbf_headers(snapshot, trusted_schema=saved[0] == 'dBase', cancel=control)
@@ -1077,6 +1101,7 @@ class LibreOfficeAdapter:
                 paths.append(write_sheet_manifest(output, sheet_entries))
         finally:
             self._local.csv_sheet_snapshot = previous_csv
+            self._local.preservation_sheet_snapshot = previous_snapshot
             self._local.import_filter, self._local.import_options = saved
         self._local.execution_mode = 'native_cli'
         self._local.metrics = {'source': 'cli_process',
@@ -1329,15 +1354,20 @@ class LibreOfficeAdapter:
                 if len(tokens) > 11:
                     tokens[11] = '0'
                 export_args['convert_spec'] = target + ':' + recipe.filter_name + ':' + ','.join(tokens)
-            # A CLI fallback has no loaded-model receipt. Keep its existing
-            # conversion route, but never label it as a checked native contract.
+            # A CLI filter can silently export only the first page. A warning
+            # cannot authorize a result whose required all-page/all-sheet
+            # contract remains unconfirmed. The existing all-sheet splitter
+            # separately handles its exact indexed one-sheet FODS snapshots.
             from .preservation_contract import aio_preservation_scope
             scope = aio_preservation_scope(proof.get('documentServices', ()), target)
             if (scope is None and 'com.sun.star.sheet.SpreadsheetDocument' in
                     proof.get('documentServices', ()) and
                     target in ('png', 'jpg', 'jpeg', 'jfif', 'jif', 'jpe')):
                 scope = ('native_all_calc_print_pages_v1', 'pages', 'loaded_calc_print_layout')
-            if scope is not None:
+            snapshot = getattr(self._local, 'preservation_sheet_snapshot', None)
+            prepared_sheet = (scope is not None and scope[1] == 'sheets' and
+                              snapshot is not None and snapshot == _source_identity(source))
+            if scope is not None and not prepared_sheet:
                 self._local.export_info['resultChecks'] = list(
                     self._local.export_info.get('resultChecks', ())) + [{
                     'check': 'native_preservation_contract', 'status': 'not_checked',
@@ -1345,6 +1375,10 @@ class LibreOfficeAdapter:
                     'reason': 'native_cli_has_no_model_receipt', 'qualityCompared': False}]
                 self._local.export_info['warnings'] = tuple(dict.fromkeys((
                     *self._local.export_info.get('warnings', ()), 'NATIVE_OUTPUT_NOT_CHECKED')))
+                raise GuardError('ENGINE_OUTPUT_VALIDATION_INCOMPLETE',
+                    'Не подтверждено сохранение всех страниц или листов. '
+                    'Результат не отмечен готовым; исходный файл сохранён.',
+                    stage='result', diagnostic=scope[0] + ':native_cli_has_no_model_receipt')
             prepare_profile(workspace / 'profile')
             self._local.execution_mode = 'native_cli'
             filtered = getattr(self._local, 'import_filter', None)

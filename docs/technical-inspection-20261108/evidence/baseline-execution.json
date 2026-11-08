@@ -1,0 +1,11 @@
+{
+  "command": [
+    "/workspace/scratch/aio-inspection-20261108/venv/bin/python",
+    "tools/qa/hosted_unit_tests.py",
+    "--report",
+    "/workspace/scratch/aio-inspection-20261108/baseline-suite.json"
+  ],
+  "cwd": "/workspace/scratch/aio-inspection-20261108/baseline",
+  "returncode": 0,
+  "durationSeconds": 75.17
+}

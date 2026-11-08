@@ -1,0 +1,56 @@
+{
+  "status": "FAIL",
+  "discovered": 1668,
+  "passed": 1660,
+  "failed": 0,
+  "errors": 3,
+  "skipped": [
+    {
+      "test": "test_m02_m30_recovery_save.RecoverySaveRegression.test_real_windows_exclusive_destination_lock_blocks_acknowledgement",
+      "reason": "Windows exclusive file sharing contract",
+      "status": "not_applicable",
+      "requiredPlatform": "Windows"
+    },
+    {
+      "test": "test_native_profile_safety_b27.RealWindowsOwnedTree.test_descendant_exit_and_unrelated_owned_process_survival",
+      "reason": "Real Windows Job Object control",
+      "status": "not_applicable",
+      "requiredPlatform": "Windows"
+    },
+    {
+      "test": "test_windows_suspended_start.SuspendedStartup.test_failed_assignment_never_resumes_uncontained_launcher",
+      "reason": "Real Windows suspended startup barrier",
+      "status": "not_applicable",
+      "requiredPlatform": "Windows"
+    },
+    {
+      "test": "test_windows_suspended_start.SuspendedStartup.test_failed_resume_reaps_launcher_without_running_its_code",
+      "reason": "Real Windows suspended startup barrier",
+      "status": "not_applicable",
+      "requiredPlatform": "Windows"
+    },
+    {
+      "test": "test_windows_suspended_start.SuspendedStartup.test_venv_launcher_is_suspended_before_assignment_and_child_is_in_owned_job",
+      "reason": "Real Windows suspended startup barrier",
+      "status": "not_applicable",
+      "requiredPlatform": "Windows"
+    }
+  ],
+  "failureDetails": [
+    {
+      "test": "test_guard_output_integrity_v16.OutputIntegrity.test_html_local_sidecars_must_exist_and_stay_in_output_directory",
+      "traceback": "Traceback (most recent call last):\n  File \"/workspace/AIO-inspection/app_backend/converter_guard/postconditions.py\", line 301, in validate_resource\n    raise GuardError('MEDIA_OUTPUT_INVALID', 'Не распознан контейнер изображения.',\napp_backend.converter_guard.errors.GuardError: Не распознан контейнер изображения.\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"/workspace/AIO-inspection/tests/test_guard_output_integrity_v16.py\", line 148, in test_html_local_sidecars_must_exist_and_stay_in_output_directory\n    self.assertTrue(self.check(data, 'html')['localResourcesChecked'])\n                    ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/AIO-inspection/tests/test_guard_output_integrity_v16.py\", line 23, in check\n    return check_native_output([path], target, self.root / 'original.bin',\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/AIO-inspection/app_backend/converter_guard/postconditions.py\", line 353, in check_native_output\n    result = _check_html(paths, Path(source), cancel=cancel, budget=budget)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/AIO-inspection/app_backend/converter_guard/postconditions.py\", line 312, in _check_html\n    resources = inspect_dependencies(primary, _LocalHtmlResources, cancel=cancel,\n                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/AIO-inspection/app_backend/converter_guard/html_resources.py\", line 130, in inspect_dependencies\n    parser.feed(transform.feed(text) if transform else text)\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/html/parser.py\", line 168, in feed\n    self.goahead(0)\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/html/parser.py\", line 260, in goahead\n    k = self.parse_starttag(i)\n        ^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/html/parser.py\", line 475, in parse_starttag\n    self.handle_starttag(tag, attrs)\n  File \"/workspace/AIO-inspection/app_backend/converter_guard/core.py\", line 358, in handle_starttag\n    self._notice(url)\n  File \"/workspace/AIO-inspection/app_backend/converter_guard/core.py\", line 286, in _notice\n    if self._local(value) and (self.resolver is None or not self.resolver(value)):\n                                                            ^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/AIO-inspection/app_backend/converter_guard/html_resources.py\", line 86, in resolve\n    resource_visitor(resolved)\n  File \"/workspace/AIO-inspection/app_backend/converter_guard/postconditions.py\", line 306, in validate_resource\n    raise GuardError('ENGINE_OUTPUT_RESOURCE_INVALID',\napp_backend.converter_guard.errors.GuardError: Изображение, на которое ссылается HTML, повреждено или не распознано. Результат не отмечен готовым.\n"
+    },
+    {
+      "test": "test_tiff_reader_b32.TiffAbsolutePages.test_each_validated_ifd_has_its_own_reader_and_keeps_thumbnail_mapping",
+      "traceback": "Traceback (most recent call last):\n  File \"/workspace/AIO-inspection/tests/test_tiff_reader_b32.py\", line 27, in test_each_validated_ifd_has_its_own_reader_and_keeps_thumbnail_mapping\n    images=list(_frames(Path('input.tiff'),Path('.'),profile,threading.Event()))\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/AIO-inspection/app_backend/converter_guard/qt_media.py\", line 600, in _frames\n    yield _managed_rgb_frame(_orient_image(image, orientation), profile_present)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/AIO-inspection/app_backend/converter_guard/qt_media.py\", line 505, in _managed_rgb_frame\n    space = image.colorSpace()\n            ^^^^^^^^^^^^^^^^\nAttributeError: 'types.SimpleNamespace' object has no attribute 'colorSpace'\n"
+    },
+    {
+      "test": "test_tiff_reader_b32.TiffAbsolutePages.test_missing_page_still_fails_and_cancel_does_not_decode",
+      "traceback": "Traceback (most recent call last):\n  File \"/workspace/AIO-inspection/tests/test_tiff_reader_b32.py\", line 41, in test_missing_page_still_fails_and_cancel_does_not_decode\n    with self.assertRaises(GuardError) as error:list(_frames(Path('input.tif'),Path('.'),profile,threading.Event()))\n                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/AIO-inspection/app_backend/converter_guard/qt_media.py\", line 600, in _frames\n    yield _managed_rgb_frame(_orient_image(image, orientation), profile_present)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/AIO-inspection/app_backend/converter_guard/qt_media.py\", line 505, in _managed_rgb_frame\n    space = image.colorSpace()\n            ^^^^^^^^^^^^^^^^\nAttributeError: 'types.SimpleNamespace' object has no attribute 'colorSpace'\n"
+    }
+  ],
+  "expectedFailures": [],
+  "unexpectedSuccesses": [],
+  "scope": "complete source suite on Linux; platform-specific tests require both matrix jobs"
+}

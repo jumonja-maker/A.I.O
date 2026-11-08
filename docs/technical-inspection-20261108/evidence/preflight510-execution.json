@@ -1,0 +1,18 @@
+{
+  "command": [
+    "/workspace/scratch/aio-inspection-20261108/venv/bin/python",
+    "tools/qa/guard_v182_large_preflight_acceptance.py",
+    "--engine",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/native/libreoffice-headless/libreoffice/program/soffice",
+    "--output",
+    "/workspace/scratch/aio-inspection-20261108/native-preflight510",
+    "--count",
+    "510",
+    "--deadline-seconds",
+    "600"
+  ],
+  "cwd": "/workspace/AIO-inspection",
+  "actualPlatform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "returncode": 0,
+  "durationSeconds": 98.36
+}

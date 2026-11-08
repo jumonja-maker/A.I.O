@@ -1,0 +1,56 @@
+{
+  "status": "FAIL",
+  "discovered": 1575,
+  "passed": 1567,
+  "failed": 0,
+  "errors": 3,
+  "skipped": [
+    {
+      "test": "test_m02_m30_recovery_save.RecoverySaveRegression.test_real_windows_exclusive_destination_lock_blocks_acknowledgement",
+      "reason": "Windows exclusive file sharing contract",
+      "status": "not_applicable",
+      "requiredPlatform": "Windows"
+    },
+    {
+      "test": "test_native_profile_safety_b27.RealWindowsOwnedTree.test_descendant_exit_and_unrelated_owned_process_survival",
+      "reason": "Real Windows Job Object control",
+      "status": "not_applicable",
+      "requiredPlatform": "Windows"
+    },
+    {
+      "test": "test_windows_suspended_start.SuspendedStartup.test_failed_assignment_never_resumes_uncontained_launcher",
+      "reason": "Real Windows suspended startup barrier",
+      "status": "not_applicable",
+      "requiredPlatform": "Windows"
+    },
+    {
+      "test": "test_windows_suspended_start.SuspendedStartup.test_failed_resume_reaps_launcher_without_running_its_code",
+      "reason": "Real Windows suspended startup barrier",
+      "status": "not_applicable",
+      "requiredPlatform": "Windows"
+    },
+    {
+      "test": "test_windows_suspended_start.SuspendedStartup.test_venv_launcher_is_suspended_before_assignment_and_child_is_in_owned_job",
+      "reason": "Real Windows suspended startup barrier",
+      "status": "not_applicable",
+      "requiredPlatform": "Windows"
+    }
+  ],
+  "failureDetails": [
+    {
+      "test": "test_guard_export_recipes_v10.ExportRecipesQA.test_missing_or_stale_proof_leaves_native_cli_detection_available (proof={'state': 'detected', 'basis': 'native_preflight_document_kind', 'registryFingerprint': 'stale', 'documentServices': ['com.sun.star.sheet.SpreadsheetDocument'], 'selectedImportFilter': 'Text - txt - csv (StarCalc)', 'selectedImportOptions': '59,34,76,1'})",
+      "traceback": "Traceback (most recent call last):\n  File \"/workspace/AIO-inspection/tests/test_guard_export_recipes_v10.py\", line 92, in test_missing_or_stale_proof_leaves_native_cli_detection_available\n    self.assertNotIn('convert_spec', self.cli('tsv', proof))\n                                     ^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/AIO-inspection/tests/test_guard_export_recipes_v10.py\", line 60, in cli\n    self.adapter.convert(self.source, target, self.root / f'cli-{self.sequence}',\n  File \"/workspace/AIO-inspection/app_backend/converter_guard/adapter.py\", line 808, in convert\n    paths = self._convert_native(native_source, plain or target, workspace,\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/AIO-inspection/app_backend/converter_guard/adapter.py\", line 1360, in _convert_native\n    raise GuardError('ENGINE_OUTPUT_VALIDATION_INCOMPLETE',\napp_backend.converter_guard.errors.GuardError: Не подтверждено сохранение всех страниц или листов. Результат не отмечен готовым; исходный файл сохранён.\n"
+    },
+    {
+      "test": "test_guard_export_recipes_v10.ExportRecipesQA.test_requested_hint_cannot_replace_a_different_or_stale_native_model (variant={'nativeKind': 1, 'registryFingerprint': 'stale'})",
+      "traceback": "Traceback (most recent call last):\n  File \"/workspace/AIO-inspection/tests/test_guard_export_recipes_v10.py\", line 149, in test_requested_hint_cannot_replace_a_different_or_stale_native_model\n    args = self.cli('tsv', {**observed, 'requestedImportFilter': CSV,\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/AIO-inspection/tests/test_guard_export_recipes_v10.py\", line 60, in cli\n    self.adapter.convert(self.source, target, self.root / f'cli-{self.sequence}',\n  File \"/workspace/AIO-inspection/app_backend/converter_guard/adapter.py\", line 808, in convert\n    paths = self._convert_native(native_source, plain or target, workspace,\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/AIO-inspection/app_backend/converter_guard/adapter.py\", line 1360, in _convert_native\n    raise GuardError('ENGINE_OUTPUT_VALIDATION_INCOMPLETE',\napp_backend.converter_guard.errors.GuardError: Не подтверждено сохранение всех страниц или листов. Результат не отмечен готовым; исходный файл сохранён.\n"
+    },
+    {
+      "test": "test_guard_export_recipes_v10.ExportRecipesQA.test_unregistered_or_ambiguous_filter_is_not_forced",
+      "traceback": "Traceback (most recent call last):\n  File \"/workspace/AIO-inspection/tests/test_guard_export_recipes_v10.py\", line 97, in test_unregistered_or_ambiguous_filter_is_not_forced\n    self.assertNotIn('convert_spec', self.cli('tsv'))\n                                     ^^^^^^^^^^^^^^^\n  File \"/workspace/AIO-inspection/tests/test_guard_export_recipes_v10.py\", line 60, in cli\n    self.adapter.convert(self.source, target, self.root / f'cli-{self.sequence}',\n  File \"/workspace/AIO-inspection/app_backend/converter_guard/adapter.py\", line 808, in convert\n    paths = self._convert_native(native_source, plain or target, workspace,\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/AIO-inspection/app_backend/converter_guard/adapter.py\", line 1360, in _convert_native\n    raise GuardError('ENGINE_OUTPUT_VALIDATION_INCOMPLETE',\napp_backend.converter_guard.errors.GuardError: Не подтверждено сохранение всех страниц или листов. Результат не отмечен готовым; исходный файл сохранён.\n"
+    }
+  ],
+  "expectedFailures": [],
+  "unexpectedSuccesses": [],
+  "scope": "complete source suite on Linux; platform-specific tests require both matrix jobs"
+}

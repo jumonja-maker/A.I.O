@@ -1,0 +1,21 @@
+{
+  "app_backend/pdf_export_policy.py": "88ca22cd4ed8a76929acad5671aca63fd0539df2ca0802a887eb5e529e9e6a38",
+  "app_backend/libreoffice_engine.py": "343e1c70b67a704eca8240c00a70c353294822162610d237ce2291fa1e3f5c08",
+  "app_backend/converter_guard/adapter.py": "24d6d7b50a6945ea7b169e543d113681e5855f0d20a8fda62cdaa793ff1d2a7f",
+  "app_backend/converter_guard/export_recipe.py": "0c1672361f92916dd706acc5218cef8bc2be9d0389c10d025715681f43613edd",
+  "app_backend/converter_guard/uno_session.py": "652618d67de75ebb952dcb1105f4a6ba2652c3b0e21a61f671162dd3792d40a6",
+  "app_backend/converter_guard/text_occurrences.py": "91bc027e0b756f145b14d7055a8f679bba3d50ad7cb4735b8f54281de801880b",
+  "app_backend/converter_guard/content_invariants.py": "e6ad3de63af6b081dd6a6e892a76052fbdd1e31cee47410ad1cd6cf77475c4f6",
+  "app_backend/converter_guard/native_fidelity.py": "692ce54b79edfad31d68b772c8497e34656b61d7ac11157f222d77b8a1ed039e",
+  "app_backend/converter_guard/presentation_evidence.py": "ce15e19ad51d366d2ea112d9b7ae6af9dde0b29787eed7c386e957020df0a581",
+  "app_backend/converter_guard/csv_import.py": "52a679fb86f8e3ea18e9fe559b790af8503ff7fa6d9b92973f240f4a348aed0c",
+  "app_backend/converter_guard/csv_id_contract.py": "5b99171ba4b48b28c0556be3cd48334b6f6305d6c553ddbf78b6dfc9a2987c25",
+  "app_backend/converter_guard/media_fidelity.py": "2a6cba29b5aab5508a16ae0e3b9a0884f7d15e11c0626856f135da15d4c56c3a",
+  "app_backend/converter_guard/qt_media.py": "b0fe14eddb89cdf355cfe247b52e1da126a59e4a6b6082ae4cf1718dd763d29a",
+  "app_backend/converter_guard/core.py": "f35eebf82591726217404d8bd1811403d31cde96919e8d156b3354d19e38a59c",
+  "app_backend/converter_guard/html_resources.py": "257a05b3a9712814b2c8dc1f3662b8d5555d3c5c59614a0aa7a65b4333c62b08",
+  "app_backend/converter_guard/postconditions.py": "2ad3efb463db239ad91887715a8f03015e65c9b1c73cb93291c763ea0201d938",
+  "app_backend/converter_transport.py": "b48b80229c867452aea52ecd3f68e8485e9d13a772053f3a6ceeea79e1cf652b",
+  "app_backend/legacy_storage_budget.py": "2fa33ff97bba65e88bff4a8c85def257d193463415752c935007dbcd337e4c34",
+  "app_backend/legacy_preservation.py": "ed701e38bcf7c8c929bf2bf613c4f67aefcff81a39af00de38820fa07e89948f"
+}

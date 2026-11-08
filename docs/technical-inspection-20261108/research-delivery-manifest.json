@@ -1,0 +1,14 @@
+{
+  "libreoffice_source_registry.json": {
+    "bytes": 41663,
+    "sha256": "ae7b67aed8ee11623d9ed2693ac33ae6d996255837f2fa1b34be5ca47751c000"
+  },
+  "LIBREOFFICE_RESEARCH_RU.md": {
+    "bytes": 29866,
+    "sha256": "9f6174335d86e07e1ab57a737c59601d5768b7f342a0d1417d341822843bf407"
+  },
+  "build_source_registry.py": {
+    "bytes": 36547,
+    "sha256": "2dd08e961733043f66e0c72e7a65f1bec6ca10160b07b518c32a8634a0804f55"
+  }
+}

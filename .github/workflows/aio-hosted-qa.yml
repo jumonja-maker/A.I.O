@@ -98,6 +98,14 @@ jobs:
           python tools/qa/fulltest_dbf_emf_native.py --executable "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-dbf-emf-native"
           python tools/qa/m21_svg_native.py --executable "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-m21-svg-native"
           python tools/qa/m14_native_matrix.py --executable "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-m14-native"
+      - name: Deep converter pixel, CSV and legacy sheet safeguards
+        if: ${{ !cancelled() && runner.os == 'Windows' && steps.windows_engine.outcome == 'success' && steps.deps.outcome == 'success' }}
+        id: deep_controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/qa/deep_converter_native.py --executable "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-deep-native"
+          python tools/qa/guard_v182_large_preflight_acceptance.py --engine "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-deep-510" --count 510 --deadline-seconds 600
       - name: Complete source regression suite
         if: ${{ !cancelled() && steps.deps.outcome == 'success' && (steps.windows_engine.outcome == 'success' || steps.linux_engine.outcome == 'success') }}
         id: units
@@ -107,7 +115,7 @@ jobs:
           python -m compileall -q app_backend tools tests
           python tools/qa/hosted_unit_tests.py --report "$RUNNER_TEMP/aio-units.json"
       - name: Windows EXE packaging and real frozen smoke (no publication)
-        if: runner.os == 'Windows' && steps.units.outcome == 'success' && steps.fidelity.outcome == 'success' && steps.vector_pages.outcome == 'success'
+        if: runner.os == 'Windows' && steps.units.outcome == 'success' && steps.fidelity.outcome == 'success' && steps.vector_pages.outcome == 'success' && steps.deep_controls.outcome == 'success'
         id: package
         shell: bash
         run: |
@@ -129,7 +137,7 @@ jobs:
         run: |
           python - <<'PY'
           import json,os,pathlib
-          for name in ('aio-units.json','aio-batch1-native/evidence.json','aio-vector-pages-native/evidence.json','aio-pptx-colours-native/evidence.json','aio-compressed-pages-native/evidence.json','aio-dbf-emf-native/evidence.json','aio-m14-native/evidence.json','aio-m21-svg-native/evidence.json','aio-hosted-frozen/evidence.json'):
+          for name in ('aio-units.json','aio-batch1-native/evidence.json','aio-vector-pages-native/evidence.json','aio-pptx-colours-native/evidence.json','aio-compressed-pages-native/evidence.json','aio-dbf-emf-native/evidence.json','aio-m14-native/evidence.json','aio-m21-svg-native/evidence.json','aio-deep-native/evidence.json','aio-deep-510/evidence.json','aio-hosted-frozen/evidence.json'):
               p=pathlib.Path(os.environ['RUNNER_TEMP'])/name
               if p.is_file():
                   data=json.loads(p.read_text(encoding='utf-8'))

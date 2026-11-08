@@ -1,0 +1,13 @@
+{
+  "base": "a698821453dceb80159cbe608726f67c41347ce9",
+  "testedCodeCommit": "726be871bc9f252ddbcc7cd984da04d307289eae",
+  "branch": "patch/technical-inspection-20261108",
+  "localPlatform": "Linux x86-64",
+  "python": "3.12.14",
+  "LibreOffice": "26.8.0.0.alpha0",
+  "PySide6": "6.10.3",
+  "openpyxl": "3.1.5",
+  "Pillow": "13.0.0",
+  "pypdf": "6.10.0",
+  "windowsEvidence": "separate GitHub Actions run; see final handoff supplement"
+}

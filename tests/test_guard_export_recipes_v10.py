@@ -7,6 +7,7 @@ import unittest
 from unittest.mock import patch
 
 from app_backend.converter_guard.adapter import LibreOfficeAdapter
+from app_backend.converter_guard.errors import GuardError
 from app_backend.converter_guard.routes import Registry
 from test_converter_guard_v04 import component, node, C, W
 
@@ -44,9 +45,10 @@ class ExportRecipesQA(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
-    def cli(self, target, proof=None):
+    def cli(self, target, proof=None, *, expect_refusal=False):
         self.sequence += 1
         self.adapter.prepare_source(self.proof if proof is None else proof)
+        original = self.source.read_bytes()
         def native_output(source, fmt, work, **kwargs):
             # B30 adds native FODS staging before the same dialect boundary.
             # The fixture models that stage; it is not a native acceptance.
@@ -57,8 +59,18 @@ class ExportRecipesQA(unittest.TestCase):
             p.write_bytes(native_flat(sheet('Data', '42.5')) if fmt == 'fods' else b'42.5\n')
             return [p] if fmt in ('fods', 'csv', 'tsv', 'tab') else []
         with patch('app_backend.converter_guard.adapter.convert_path', side_effect=native_output) as convert:
-            self.adapter.convert(self.source, target, self.root / f'cli-{self.sequence}',
-                                 cancel=threading.Event(), timeout=None, on_started=lambda: None)
+            def execute():
+                return self.adapter.convert(self.source, target, self.root / f'cli-{self.sequence}',
+                    cancel=threading.Event(), timeout=None, on_started=lambda: None)
+            if expect_refusal:
+                with self.assertRaises(GuardError) as caught:
+                    execute()
+                self.assertEqual(caught.exception.code, 'ENGINE_OUTPUT_VALIDATION_INCOMPLETE')
+                convert.assert_not_called()  # No dialect is forced via a partial CLI export.
+                self.assertNotIn('filter', self.adapter.export_info())
+                self.assertEqual(self.source.read_bytes(), original)
+                return
+            execute()
         return {**convert.call_args.kwargs,
                 'source_import_filter':convert.call_args_list[0].kwargs['import_filter']}
 
@@ -84,17 +96,26 @@ class ExportRecipesQA(unittest.TestCase):
 
     def test_next_pdf_does_not_inherit_a_text_dialect(self):
         self.cli('tsv')
-        self.assertEqual(self.cli('pdf')['convert_spec'], 'pdf:calc_pdf_Export')
+        import json
+        extension, filter_name, properties = self.cli('pdf')['convert_spec'].split(':', 2)
+        self.assertEqual((extension, filter_name), ('pdf', 'calc_pdf_Export'))
+        self.assertEqual(json.loads(properties), {
+            'UseLosslessCompression': {'type': 'boolean', 'value': True},
+            'ReduceImageResolution': {'type': 'boolean', 'value': False}})
 
     def test_missing_or_stale_proof_leaves_native_cli_detection_available(self):
-        for proof in ({}, {**self.proof, 'registryFingerprint': 'stale'}):
-            with self.subTest(proof=proof):
-                self.assertNotIn('convert_spec', self.cli('tsv', proof))
+        self.assertNotIn('convert_spec', self.cli('tsv', {}))
+        stale = {**self.proof, 'registryFingerprint': 'stale'}
+        # A known Calc sheet route cannot safely fall back to a first-sheet
+        # export without a current recipe/all-sheet receipt. Unknown and
+        # unscoped Writer CLI detection remain available without forcing Calc.
+        self.cli('tsv', stale, expect_refusal=True)
+        self.assertNotIn('convert_spec', self.cli('tsv', {**stale, 'documentServices': [W]}))
 
     def test_unregistered_or_ambiguous_filter_is_not_forced(self):
         self.assertNotIn('convert_spec', self.cli('custom'))
         self.native.export_candidates['tsv', C].add('another-text-export')
-        self.assertNotIn('convert_spec', self.cli('tsv'))
+        self.cli('tsv', expect_refusal=True)
 
     def test_uno_and_cli_use_the_same_filter_and_options(self):
         requests = []
@@ -146,9 +167,15 @@ class ExportRecipesQA(unittest.TestCase):
                     observed = self.adapter.preflight(self.source, self.root / 'preflight',
                                                       cancel=threading.Event(), timeout=3)
                 self.assertNotIn('requestedImportFilter', observed)
-                args = self.cli('tsv', {**observed, 'requestedImportFilter': CSV,
-                                        'requestedImportOptions': '59,34,76,1'})
-                self.assertIsNone(args['source_import_filter'])
+                injected = {**observed, 'requestedImportFilter': CSV,
+                            'requestedImportOptions': '59,34,76,1'}
+                if observed.get('documentServices') == [C]:
+                    self.cli('tsv', injected, expect_refusal=True)
+                    self.assertIsNone(self.adapter._local.import_filter)
+                    self.assertIsNone(self.adapter._local.import_options)
+                else:
+                    args = self.cli('tsv', injected)
+                    self.assertIsNone(args['source_import_filter'])
 
 
 if __name__ == '__main__':

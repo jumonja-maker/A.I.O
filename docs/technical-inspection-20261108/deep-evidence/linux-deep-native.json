@@ -1,0 +1,123 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "cases": [
+    {
+      "case": "legacy_default_pdf_source_pixels",
+      "status": "PASS",
+      "pages": 1,
+      "pixelSha256": "566a6d7b2b6338a49120f4b92e63039dfd1b67e827c09457c55e7b13ea5f8a96",
+      "elapsedSeconds": 0.242
+    },
+    {
+      "case": "guard_default_pdf_source_pixels",
+      "status": "PASS",
+      "pages": 1,
+      "pixelSha256": "566a6d7b2b6338a49120f4b92e63039dfd1b67e827c09457c55e7b13ea5f8a96",
+      "executionMode": "native_cli",
+      "elapsedSeconds": 0.207
+    },
+    {
+      "case": "csv_precision_formula_literals_and_unaffected_numeric",
+      "status": "PASS",
+      "values": [
+        [
+          "12345678901234567",
+          "s"
+        ],
+        [
+          "99999999999999999",
+          "s"
+        ],
+        [
+          "=1+1",
+          "s"
+        ],
+        [
+          2,
+          "n"
+        ]
+      ],
+      "exportInfo": {
+        "filter": "Calc MS Excel 2007 XML",
+        "warnings": [
+          "CSV_HIGH_PRECISION_AS_TEXT",
+          "CSV_FORMULA_LITERALS_AS_TEXT"
+        ],
+        "executionReason": "no_native_session",
+        "resultChecks": [
+          {
+            "check": "csv_text_ids",
+            "scope": "source_text_sensitive_cells_and_types",
+            "qualityCompared": false,
+            "fullDocumentFidelity": false,
+            "sourceRows": 3,
+            "sourceColumns": 3,
+            "candidateIds": 3,
+            "candidateKinds": {
+              "leading_zero": 0,
+              "high_precision": 2,
+              "formula_literal": 1
+            },
+            "idsCompared": 3,
+            "idsChanged": 0,
+            "status": "checked_subset",
+            "warnings": [
+              "CSV_HIGH_PRECISION_AS_TEXT",
+              "CSV_FORMULA_LITERALS_AS_TEXT"
+            ]
+          }
+        ]
+      },
+      "elapsedSeconds": 8.853
+    },
+    {
+      "case": "legacy_multi_sheet_flat_export_refused",
+      "status": "PASS_SAFE_REFUSAL",
+      "code": "LEGACY_OUTPUT_CONTENT_LOSS",
+      "sourceSheets": 2,
+      "published": false
+    },
+    {
+      "case": "guard_high_precision_xlsx",
+      "status": "PASS_SAFE_REFUSAL",
+      "code": "ENGINE_OUTPUT_CONTENT_LOSS"
+    },
+    {
+      "case": "legacy_high_precision_xlsx",
+      "status": "PASS_SAFE_REFUSAL",
+      "code": "LEGACY_OUTPUT_CONTENT_LOSS",
+      "published": false
+    }
+  ],
+  "scope": "generated native deep-audit safeguards and distinct engine observation; not full visual QA",
+  "historicalFULLTEST": "NOT_RUN",
+  "desktopGUI": "NOT_RUN",
+  "nativeNumericObservation": {
+    "status": "OBSERVED_NATIVE_VALUE_CHANGE",
+    "sourceValues": {
+      "B2": 10000000000000002,
+      "B3": 12345678901234567
+    },
+    "outputValues": {
+      "B2": 10000000000000000,
+      "B3": 12345678901234600
+    },
+    "differentCoordinates": [
+      "B2",
+      "B3"
+    ],
+    "scope": "two exact source numbers, not a whole workbook value contract",
+    "aIOGeneralXlsxNumericProtection": "NOT_CERTIFIED_BY_THIS_CONTROL"
+  },
+  "sourceUnchanged": true,
+  "sourceHashes": {
+    "noise.png": "e00278ac971237b0f67680f1ff1bc8a3ece6b7752f9e106f25155c72474a73b8",
+    "precise-literals.csv": "46aef869aa9d707c25234893b8f8b95dfe96789e4b549ec446077351ec99f789",
+    "two-sheets.xlsx": "1f7ff672f98aff22d33e66edb06ba3729c583b6ea1931c768a5e91a3ed139bab",
+    "native-precision.xlsx": "33a7f527118826ce7167424b82a820081614408f5a47136ed7e7e37467cde0c5",
+    "guard-precision.xlsx": "33a7f527118826ce7167424b82a820081614408f5a47136ed7e7e37467cde0c5",
+    "legacy-precision.xlsx": "33a7f527118826ce7167424b82a820081614408f5a47136ed7e7e37467cde0c5"
+  },
+  "elapsedSeconds": 39.375
+}

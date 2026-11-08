@@ -20,6 +20,8 @@ import xml.etree.ElementTree as ET
 import zipfile
 
 from .errors import GuardError
+from .text_occurrences import (aio_allocate_text_occurrences,
+                               AioTextAllocationIncomplete, AioTextAllocationOverlap)
 
 OFFICE = 'urn:oasis:names:tc:opendocument:xmlns:office:1.0'
 DRAW = 'urn:oasis:names:tc:opendocument:xmlns:drawing:1.0'
@@ -37,6 +39,7 @@ MAX_NODES = 200000
 MAX_ITEMS = 10000
 MAX_INLINE_ATTRIBUTE = 2 * 1024 * 1024
 MAX_MATCH_WORK = 32 * 1024 * 1024
+MAX_TEXT_ALLOCATION_WORK = 64 * 1024
 
 
 class _Limited(ValueError):
@@ -452,10 +455,19 @@ def check_presentation_html(paths, target, source, *, cancel, source_evidence=No
             raise GuardError('ENGINE_OUTPUT_VALIDATION_INCOMPLETE',
                 'Проверка текста презентации превысила бюджет анализа.', stage='result',
                 diagnostic='presentation_html_text_match_budget')
-        for paragraph, required in expected['paragraphs'].items():
-            _cancel(cancel)
-            actual = sum(1 for _ in re.finditer(r'(?<!\w)' + re.escape(paragraph) + r'(?!\w)', text))
-            missing += max(0, required - actual)
+        try:
+            absent = aio_allocate_text_occurrences(expected['paragraphs'], text,
+                cancel=lambda: _cancel(cancel), match_work=MAX_MATCH_WORK,
+                allocation_work=MAX_TEXT_ALLOCATION_WORK)
+            missing = sum(absent.values())
+        except AioTextAllocationIncomplete as error:
+            raise GuardError('ENGINE_OUTPUT_VALIDATION_INCOMPLETE',
+                'Не удалось независимо проверить все вхождения текста презентации.',
+                stage='result', diagnostic='presentation_html:' + str(error)) from error
+        except AioTextAllocationOverlap as error:
+            raise GuardError('ENGINE_OUTPUT_CONTENT_LOSS',
+                'Отдельные исходные абзацы не сохранились в HTML. Результат не подтверждён.',
+                stage='result', diagnostic='presentation_html_overlapping_paragraphs') from error
         if missing:
             raise GuardError('ENGINE_OUTPUT_CONTENT_LOSS',
                 'В HTML отсутствует исходный текст презентации. Результат не отмечен готовым.',

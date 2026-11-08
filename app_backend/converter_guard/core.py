@@ -267,19 +267,20 @@ def _source_name(name):
 class _LocalHtmlResources(HTMLParser):
     """Fail closed when isolated HTML contains local assets (including CSS)."""
     _tags = {'img', 'link', 'script', 'source', 'video', 'audio', 'iframe', 'object',
-             'embed', 'image', 'use', 'input', 'body', 'table', 'td', 'th', 'base'}
+             'embed', 'image', 'feimage', 'use', 'input', 'body', 'table', 'td', 'th', 'base'}
     _attrs = {'src', 'srcset', 'href', 'xlink:href', 'poster', 'data', 'background'}
     _css_refs = re.compile(
         r"""(?is)\burl\(\s*(?:"([^"]*)"|'([^']*)'|([^'"\s)]+))\s*\)"""
         r"""|@import\s+(?:"([^"]*)"|'([^']*)')""")
 
-    def __init__(self, resolver=None):
+    def __init__(self, resolver=None, *, _inline_depth=0):
         super().__init__(convert_charrefs=True)
         self.resolver = resolver
         self.found = False
         self._in_style = False
         self._css_tail = ''
         self.undetermined = False
+        self._inline_depth = _inline_depth
 
     def _notice(self, value):
         if self._local(value) and (self.resolver is None or not self.resolver(value)):
@@ -311,6 +312,13 @@ class _LocalHtmlResources(HTMLParser):
                     if character in ' \t\r\n\f' else character)
         value = re.sub(r'\\(?:([0-9a-fA-F]{1,6})[ \t\r\n\f]?|([^\r\n]))', unescape, value)
         value = re.sub(r'/\*.*?\*/', ' ', value, flags=re.S)
+        # image-set() permits bare quoted image URLs, unlike url(). A regular
+        # url() scan cannot establish its dependencies. Keep these exports
+        # explicitly unverified until that CSS grammar has a bounded parser.
+        # A quoted content string naming the function is not a function call.
+        functions = re.sub(r'"(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\'', '""', value)
+        if re.search(r'(?i)(?<![\w-])(?:-webkit-)?image-set\s*\(', functions):
+            self.undetermined = True
         unfinished = re.search(r'(?is)(?:\burl\([^)]*|@import\b[^;]*)\Z', value)
         if unfinished and len(unfinished.group())>4096:
             self.undetermined = True
@@ -326,6 +334,17 @@ class _LocalHtmlResources(HTMLParser):
                 continue
             if key == 'style':
                 self._scan_css(value)
+            if tag == 'iframe' and key == 'srcdoc':
+                # srcdoc inherits the containing document's base URL, so its
+                # local references belong to the same resolver/owned tree.
+                if self._inline_depth >= 4 or len(value) > 128 * 1024:
+                    self.undetermined = True
+                else:
+                    child = type(self)(self.resolver, _inline_depth=self._inline_depth + 1)
+                    child.feed(value)
+                    child.close()
+                    self.found |= child.found
+                    self.undetermined |= child.undetermined or bool(child.rawdata)
             if tag not in self._tags or key not in self._attrs:
                 continue
             # Only srcset is a list; a data URL can contain commas.
@@ -1147,6 +1166,7 @@ class ConverterGuard:
             self._cleanup(job)
 
     def upload(self, job_id, file_id, stream, length, *, interrupt=None):
+        from ..file_identity import file_identity
         with self._lock:
             job = self._get(job_id)
             item = job.files_by_id.get(file_id) if isinstance(file_id, str) else None
@@ -1160,9 +1180,12 @@ class ConverterGuard:
             job.io += 1
         part = item.source.parent.parent / (item.source.parent.name + '.part')
         digest = hashlib.sha256()
+        part_identity = None
         try:
             item.source.parent.mkdir(parents=True, exist_ok=True)
             with part.open('xb') as output:
+                created = os.fstat(output.fileno())
+                part_identity = (created.st_dev, created.st_ino)
                 remaining = length
                 while remaining:
                     if job.cancel.is_set() or item.cancel.is_set():
@@ -1175,6 +1198,10 @@ class ConverterGuard:
                     output.write(block)
                     digest.update(block)
                     remaining -= len(block)
+            observed = file_identity(part)
+            if observed is None or observed[:2] != part_identity or observed[2] != length:
+                raise GuardError('INPUT_STORAGE_FAILED',
+                    'Временный исходный файл изменён. Загрузка не опубликована.', stage='upload', status=507)
             with self._lock:
                 if job.cancel.is_set() or item.cancel.is_set():
                     raise GuardError('CANCELLED', 'Загрузка отменена.', stage='upload')
@@ -1191,7 +1218,9 @@ class ConverterGuard:
                              stage='upload', status=507) from error
         finally:
             try:
-                part.unlink(missing_ok=True)
+                observed = file_identity(part) if part_identity is not None else None
+                if observed is not None and observed[:2] == part_identity:
+                    part.unlink(missing_ok=True)
             except OSError:
                 pass
             with self._lock:
@@ -1225,6 +1254,7 @@ class ConverterGuard:
 
     def upload_resource(self, job_id, file_id, path, stream, length, *, interrupt=None):
         from .html_resources import resource_path
+        from ..file_identity import file_identity
         path = resource_path(path)
         with self._lock:
             job = self._get(job_id)
@@ -1244,9 +1274,12 @@ class ConverterGuard:
         target = item.source.parent / path
         part = item.source.parent / ('.aio-resource-' + secrets.token_hex(12))
         digest = hashlib.sha256()
+        part_identity = None
         try:
             target.parent.mkdir(parents=True, exist_ok=True)
             with part.open('xb') as output:
+                created = os.fstat(output.fileno())
+                part_identity = (created.st_dev, created.st_ino)
                 remaining = length
                 while remaining:
                     if job.cancel.is_set() or item.cancel.is_set():
@@ -1257,6 +1290,10 @@ class ConverterGuard:
                     output.write(block)
                     digest.update(block)
                     remaining -= len(block)
+            observed = file_identity(part)
+            if observed is None or observed[:2] != part_identity or observed[2] != length:
+                raise GuardError('INPUT_STORAGE_FAILED',
+                    'Временный ресурс HTML изменён. Загрузка не опубликована.', stage='upload', status=507)
             with self._lock:
                 if job.cancel.is_set() or item.cancel.is_set():
                     raise GuardError('CANCELLED', 'Загрузка ресурсов отменена.', stage='upload')
@@ -1270,7 +1307,11 @@ class ConverterGuard:
                              stage='upload', status=507) from error
         finally:
             try:
-                part.unlink(missing_ok=True)
+                observed = file_identity(part) if part_identity is not None else None
+                if observed is not None and observed[:2] == part_identity:
+                    part.unlink(missing_ok=True)
+            except OSError:
+                pass
             finally:
                 with self._lock:
                     item.resources_uploading.discard(path)
@@ -2260,6 +2301,7 @@ class ConverterGuard:
         from .result_store import atomic_json
         from .save_verification import verify_folder
         from .save_snapshot import snapshot_report
+        from ..file_identity import file_identity
         if type(verify) is not bool:
             raise GuardError('SAVE_VERIFY_POLICY', 'Неверный режим проверки сохранения.', stage='save')
         # Retain the API parameter for older hosts. A legacy false value cannot
@@ -2328,8 +2370,11 @@ class ConverterGuard:
                     raise GuardError('ENGINE_OUTPUT_PATH', 'Недопустимый путь результата.', stage='save')
                 part = target.with_name(target.name + '.aio-part-' + secrets.token_hex(6))
                 digest, written = hashlib.sha256(), 0
+                part_identity = None
                 try:
                     with source_path.open('rb') as source, part.open('xb') as output:
+                        owned = os.fstat(output.fileno())
+                        part_identity = (owned.st_dev, owned.st_ino)
                         while block := source.read(CHUNK):
                             if cancel.is_set():
                                 raise GuardError('SAVE_CANCELLED', 'Сохранение отменено. Результаты остаются в AIO.', stage='save')
@@ -2338,7 +2383,9 @@ class ConverterGuard:
                             written += len(block)
                         output.flush()
                         os.fsync(output.fileno())
-                    if (written != artifact.size or target.exists() or
+                    observed = file_identity(part)
+                    if (observed is None or observed[:2] != part_identity or
+                            written != artifact.size or target.exists() or
                             artifact.sha256 and digest.hexdigest() != artifact.sha256):
                         raise GuardError('SAVE_CHANGED', 'Результат изменён или имя уже занято.', stage='save')
                     try:
@@ -2351,7 +2398,12 @@ class ConverterGuard:
                         raise GuardError('SAVE_CHANGED', 'Имя результата уже занято. Файл не заменён.',
                                          stage='save') from error
                 finally:
-                    part.unlink(missing_ok=True)
+                    # Exclusive creation can fail because another writer owns
+                    # this name. A later replacement also belongs to its writer;
+                    # only clean up a regular file with our created identity.
+                    observed = file_identity(part) if part_identity is not None else None
+                    if observed is not None and observed[:2] == part_identity:
+                        part.unlink(missing_ok=True)
                 bytes_written += written
                 manifest.append({'path': artifact.archive_name, 'size': written,
                                  'sha256': digest.hexdigest(), 'fileId': artifact.file_id,

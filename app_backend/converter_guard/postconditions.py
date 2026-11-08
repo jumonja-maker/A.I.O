@@ -35,7 +35,7 @@ class SourceEvidence:
                 info.st_mtime_ns, info.st_ctime_ns)
 
     def get(self, key, source, loader):
-        if key not in ('odf_table_text', 'media_profile', 'presentation_content'):
+        if key not in ('odf_table_text', 'media_profile', 'presentation_content', 'ooxml_numeric_literals'):
             raise ValueError('unknown_source_evidence_key')
         identity = self._identity(source)
         if identity != self.identity:
@@ -67,6 +67,11 @@ class _Body(HTMLParser):
         if tag in ('script', 'style', 'template', 'head'):
             self.ignored.append(tag)
         if tag in ('script', 'canvas') or 'url(' in attrs.get('style', '').lower():
+            self.dynamic = True
+        if tag == 'iframe':
+            # A nested document can display content without outer body text.
+            # Do not call it empty merely because this body scanner does not
+            # render or flatten its contents.
             self.dynamic = True
         if self.body and not self.ignored:
             if tag in ('img', 'image', 'embed', 'video', 'audio', 'object'):
@@ -106,14 +111,16 @@ def _incomplete(reason):
 class _AttributeLimiter:
     """Keep HTMLParser's pending tags small, including embedded image data.
 
-    Attribute values are needed only to establish that a resource reference
-    exists.  Preserve their prefix and their closing quote, while discarding
-    the rest *only in the parser's inspection copy*.  Output files never change.
+    Keep attribute prefixes and closing quotes in the inspection copy. Mark
+    discarded resource-bearing suffixes so dependency checks remain incomplete
+    instead of silently accepting a shortened CSS value or URL list.
+    Output files never change.
     Comments are copied literally so quotes in comments cannot swallow a body.
     """
     def __init__(self, attribute_limit=4096):
         self.attribute_limit = attribute_limit
         self.truncated = False
+        self.resource_truncated = False
         self.in_tag = False
         self.quote = None
         self.kept = 0
@@ -123,6 +130,9 @@ class _AttributeLimiter:
         self.tag_head = ''
         self.rawtext = None
         self.raw_pending = ''
+        self._attribute_context = ''
+        self._attribute_name = None
+        self._attribute_prefix = ''
 
     def feed(self, text):
         result = []
@@ -145,8 +155,17 @@ class _AttributeLimiter:
                 closing = text.find(self.quote, index)
                 end = len(text) if closing < 0 else closing
                 keep = min(self.attribute_limit - self.kept, end - index)
+                if len(self._attribute_prefix) < 256:
+                    self._attribute_prefix += text[index:index + min(256 - len(self._attribute_prefix), end - index)]
                 if keep < end - index:
                     self.truncated = True
+                    # A data URI in one src/href has no second resource.
+                    # CSS and srcset can introduce another URL after any data
+                    # prefix, so dropping their suffix must remain unverified.
+                    if (self._attribute_name is None or self._attribute_name in ('style', 'srcset', 'srcdoc')
+                            or self._attribute_name in ('src', 'href', 'xlink:href', 'poster', 'data', 'background')
+                            and not self._attribute_prefix.lstrip().lower().startswith('data:')):
+                        self.resource_truncated = True
                 if keep:
                     result.append(text[index:index + keep])
                     self.kept += keep
@@ -154,6 +173,7 @@ class _AttributeLimiter:
                     return ''.join(result)
                 result.append(self.quote)
                 self.quote = None
+                self._attribute_context = ''
                 index = closing + 1
                 continue
             char = text[index]
@@ -171,6 +191,7 @@ class _AttributeLimiter:
                     self.in_tag = True
                     self.prefix = '<'
                     self.tag_head = '<'
+                    self._attribute_context = '<'
                 continue
             if len(self.tag_head) < 64:
                 self.tag_head += char
@@ -181,6 +202,9 @@ class _AttributeLimiter:
                     self.comment_tail = ''
                     continue
             if char in ('"', "'"):
+                attribute = re.search(r'([^\s\x00"\'<>/=]+)\s*=\s*$', self._attribute_context)
+                self._attribute_name = attribute[1].lower() if attribute else None
+                self._attribute_prefix = ''
                 self.quote = char
                 self.kept = 0
             elif char == '>':
@@ -188,6 +212,8 @@ class _AttributeLimiter:
                 opening = re.match(r'<(script|style)(?=[\s/>])', self.tag_head, re.I)
                 if opening and not self.tag_head.rstrip().endswith('/>'):
                     self.rawtext = opening.group(1).lower()
+            else:
+                self._attribute_context = (self._attribute_context + char)[-256:]
         return ''.join(result)
 
 
@@ -256,9 +282,36 @@ def _check_html(paths, source, *, cancel, budget):
         # retrieving any network resource. Reuse the source dependency rules.
         from .core import _LocalHtmlResources
         from .html_resources import inspect_dependencies
+        from .media_fidelity import inspect_media
         missing = []
+        validated_rasters = 0
+
+        def validate_resource(path):
+            nonlocal validated_rasters
+            declared_raster = path.suffix.lower() in ('.png', '.apng', '.jpg', '.jpeg', '.jpe',
+                    '.jif', '.jfif', '.gif', '.webp', '.bmp', '.tif', '.tiff')
+            try:
+                # Detection is by magic, so a renamed PNG/JPEG companion is
+                # still checked. Unknown CSS/font/media types cost a bounded
+                # prefix read and are not mislabeled as invalid images.
+                profile = inspect_media(path, cancel=cancel, validate_container=True)
+                if profile is None:
+                    if not declared_raster:
+                        return
+                    raise GuardError('MEDIA_OUTPUT_INVALID', 'Не распознан контейнер изображения.',
+                                     stage='result')
+            except (GuardError, OSError) as error:
+                if isinstance(error, GuardError) and error.code == 'CANCELLED':
+                    raise
+                raise GuardError('ENGINE_OUTPUT_RESOURCE_INVALID',
+                    'Изображение, на которое ссылается HTML, повреждено или не распознано. '
+                    'Результат не отмечен готовым.', stage='result',
+                    diagnostic='html_raster_resource:' + getattr(error, 'code', type(error).__name__)) from error
+            validated_rasters += 1
+
         resources = inspect_dependencies(primary, _LocalHtmlResources, cancel=cancel,
-            missing=missing, seconds=None, transform_factory=_AttributeLimiter)
+            missing=missing, seconds=None, transform_factory=_AttributeLimiter,
+            resource_visitor=validate_resource)
         if resources == 'HTML_LOCAL_RESOURCES_NOT_UPLOADED':
             raise GuardError('ENGINE_OUTPUT_RESOURCE_MISSING',
                 'В HTML отсутствует локальный ресурс результата. Он не отмечен готовым.',
@@ -266,7 +319,8 @@ def _check_html(paths, source, *, cancel, budget):
         if resources is not None:
             _incomplete('html_resources_not_inspected')
         return {'check': 'html_body', 'status': 'content_present', 'qualityCompared': False,
-                'inspectedBytes': inspected, 'localResourcesChecked': True}
+                'inspectedBytes': inspected, 'localResourcesChecked': True,
+                'validatedRasterResources': validated_rasters}
     if parser.dynamic:
         _incomplete('html_dynamic_content')
     raise GuardError('ENGINE_OUTPUT_CONTENT_EMPTY',
@@ -286,6 +340,9 @@ def check_native_output(paths, target, source, *, cancel, budget=None, source_ev
     from .presentation_evidence import check_presentation_html
     presentation = check_presentation_html(paths, target, source, cancel=cancel,
                                             source_evidence=source_evidence)
+    from .spreadsheet_numeric_contract import check_spreadsheet_numeric_literals
+    numeric = check_spreadsheet_numeric_literals(paths, target, source, cancel=cancel,
+                                                source_evidence=source_evidence)
     media = check_media_preservation(paths, target, source, cancel=cancel,
                                      source_evidence=source_evidence)
     if media is not None:
@@ -296,7 +353,7 @@ def check_native_output(paths, target, source, *, cancel, budget=None, source_ev
         result = _check_html(paths, Path(source), cancel=cancel, budget=budget)
     else:
         result = None
-    checks = [item for item in (invariant, presentation) if item is not None]
+    checks = [item for item in (invariant, presentation, numeric) if item is not None]
     if result is not None:
         return {**result, 'additionalChecks': checks} if checks else result
     if checks:

@@ -5,8 +5,9 @@ application or extra packages into LibreOffice's embedded Python.
 """
 from .preservation_contract import PRESERVATION_POLICY_SOURCE
 from .calc_pages import CALC_PAGES_SOURCE
+from .text_occurrences import TEXT_OCCURRENCE_SOURCE
 
-NATIVE_FIDELITY_SOURCE = PRESERVATION_POLICY_SOURCE + CALC_PAGES_SOURCE + r'''
+NATIVE_FIDELITY_SOURCE = PRESERVATION_POLICY_SOURCE + CALC_PAGES_SOURCE + TEXT_OCCURRENCE_SOURCE + r'''
 import json
 import re
 import hashlib
@@ -23,6 +24,9 @@ class AioPresentationUnverified(RuntimeError):
 
 class AioWriterPagesUnverified(RuntimeError):
     pass
+
+
+_AIO_PRESENTATION_ALLOCATION_WORK = 64 * 1024
 
 
 def aio_native_preservation_plan(model, services, target):
@@ -111,7 +115,16 @@ def aio_verify_presentation_xhtml(paths, expected):
     observed = aio_normal_text(''.join(parser.parts))
     if len(observed) * len(expected) > 32 * 1024 * 1024:
         raise AioPresentationUnverified('presentation_match_budget')
-    missing = sum(max(0, required - observed.count(text)) for text, required in expected.items())
+    try:
+        absent = aio_allocate_text_occurrences(expected, observed, word_boundaries=False,
+            match_work=32 * 1024 * 1024, allocation_work=_AIO_PRESENTATION_ALLOCATION_WORK)
+        missing = sum(absent.values())
+    except AioTextAllocationIncomplete as error:
+        raise AioPresentationUnverified('presentation_' + str(error)) from error
+    except AioTextAllocationOverlap as error:
+        if parser.alternative:
+            raise AioPresentationUnverified('alternative_graphic_representation') from error
+        raise AioPresentationTextLoss('native_presentation_overlapping_paragraphs') from error
     if missing:
         if parser.alternative:
             raise AioPresentationUnverified('alternative_graphic_representation')

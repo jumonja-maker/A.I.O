@@ -15,17 +15,12 @@ from app_backend.converter_guard.uno_session import WORKER_SOURCE
 
 
 def load_worker_contract():
-    source = ast.parse(WORKER_SOURCE)
-    names = {'AioPresentationTextLoss', 'AioPresentationUnverified',
-             'aio_normal_text', '_AioExportText', 'aio_verify_presentation_xhtml',
-             '_AioXhtmlVisualScope', 'aio_xhtml_visual_scope',
-             'aio_try_ppt_xhtml_textboxes'}
-    selected = [node for node in source.body
-                if isinstance(node, (ast.FunctionDef, ast.ClassDef)) and node.name in names]
-    assert {node.name for node in selected} == names
-    context = {'Counter': Counter, 'HTMLParser': HTMLParser, 'Path': Path, 'hashlib': hashlib,
-               'os': os, 're': re, 'unicodedata': unicodedata}
-    exec(compile(ast.Module(body=selected, type_ignores=[]), 'worker_contract', 'exec'), context)
+    # Load the same trusted worker definitions used in production, including
+    # shared text-allocation helpers. A partial AST subset hid dependencies
+    # once the presentation and table validators began sharing one contract.
+    # main() (and therefore UNO/native process startup) is not invoked.
+    context = {'__name__': 'worker_contract'}
+    exec(compile(WORKER_SOURCE, 'worker_contract', 'exec'), context)
     return context
 
 

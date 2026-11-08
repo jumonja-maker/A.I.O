@@ -1,0 +1,40 @@
+{
+  "scope": "synthetic status bookkeeping, negotiated one-row result delta; no native conversion or input/output bytes",
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "runs": [
+    {
+      "inputs": 100,
+      "retainedOutputs": 1000,
+      "changedInputs": 1,
+      "responseOutputs": 10,
+      "iterations": 10,
+      "responseBytes": 17198,
+      "medianMs": 0.30667400005768286,
+      "p95Ms": 0.3344409997225739,
+      "allArtifactListPassesPerRequest": 5.0
+    },
+    {
+      "inputs": 1000,
+      "retainedOutputs": 10000,
+      "changedInputs": 1,
+      "responseOutputs": 10,
+      "iterations": 10,
+      "responseBytes": 17204,
+      "medianMs": 1.9004265000148735,
+      "p95Ms": 2.0474759999160597,
+      "allArtifactListPassesPerRequest": 5.0
+    },
+    {
+      "inputs": 5000,
+      "retainedOutputs": 50000,
+      "changedInputs": 1,
+      "responseOutputs": 10,
+      "iterations": 10,
+      "responseBytes": 17206,
+      "medianMs": 10.337122999999337,
+      "p95Ms": 11.284200999853056,
+      "allArtifactListPassesPerRequest": 5.0
+    }
+  ],
+  "peakRssKiB": 126520
+}

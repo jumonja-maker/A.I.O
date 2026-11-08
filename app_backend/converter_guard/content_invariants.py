@@ -15,6 +15,8 @@ import xml.etree.ElementTree as ET
 import zipfile
 
 from .errors import GuardError
+from .text_occurrences import (aio_allocate_text_occurrences,
+                               AioTextAllocationIncomplete, AioTextAllocationOverlap)
 
 _TABLE = 'urn:oasis:names:tc:opendocument:xmlns:table:1.0'
 _TEXT = 'urn:oasis:names:tc:opendocument:xmlns:text:1.0'
@@ -39,6 +41,9 @@ MAX_UNIQUE_CELL_TEXTS = 10000
 MAX_CELL_TEXT_BYTES = 4 * 1024 * 1024
 MAX_STRUCTURAL_CELLS = 20000
 MAX_TEXT_MATCH_WORK = 64 * 1024 * 1024
+MAX_TEXT_MATCH_OCCURRENCES = 20000
+MAX_TEXT_ALLOCATION_WORK = 64 * 1024
+MAX_TEXT_ALLOCATION_STATES = 4096
 
 
 class _InspectionLimited(Exception):
@@ -406,18 +411,19 @@ class _Presence:
             raise _InspectionLimited('text_read_budget')
         self.parts.append(value)
 
-    def finish(self):
+    def finish(self, cancel=None):
         whole = _normalize(''.join(self.parts))
-        if len(whole) * len(self.expected) > MAX_TEXT_MATCH_WORK:
-            raise _InspectionLimited('text_matching_budget')
-        self.missing.clear()
-        for value, required in self.expected.items():
-            # Entire normalized values with word boundaries; avoid 42 in 1420
-            # and A/B within AB while retaining arbitrary Unicode text.
-            pattern = r'(?<!\w)' + re.escape(value) + r'(?!\w)'
-            observed = sum(1 for _ in re.finditer(pattern, whole))
-            if observed < required:
-                self.missing[value] = required - observed
+        try:
+            self.missing = aio_allocate_text_occurrences(self.expected, whole,
+                cancel=(lambda: _cancel(cancel)) if cancel is not None else None,
+                match_work=MAX_TEXT_MATCH_WORK, allocation_work=MAX_TEXT_ALLOCATION_WORK,
+                max_occurrences=MAX_TEXT_MATCH_OCCURRENCES, max_states=MAX_TEXT_ALLOCATION_STATES)
+        except AioTextAllocationIncomplete as error:
+            raise _InspectionLimited(str(error)) from error
+        except AioTextAllocationOverlap as error:
+            raise GuardError('ENGINE_OUTPUT_CONTENT_LOSS',
+                'В результате отсутствуют отдельные вхождения исходных значений ячеек. Он не отмечен готовым.',
+                stage='result', diagnostic='odf_table_overlapping_cell_occurrences') from error
 
 def _xml_text(stream, matcher, cancel):
     stack, paragraph_depth = [], 0
@@ -539,7 +545,7 @@ def check_content_invariants(paths, target, source, *, cancel, source_evidence=N
         else:
             matcher = _Presence(expected['values'])
             _output_text(candidates[0], target, matcher, cancel)
-            matcher.finish()
+            matcher.finish(cancel)
     except (_InspectionLimited, ET.ParseError, zipfile.BadZipFile, KeyError,
             UnicodeError, OSError, ValueError) as error:
         raise GuardError('ENGINE_OUTPUT_VALIDATION_INCOMPLETE',

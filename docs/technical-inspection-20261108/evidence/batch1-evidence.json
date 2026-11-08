@@ -1,0 +1,38 @@
+{
+  "status": "FAIL",
+  "cases": [
+    {
+      "case": "TGA_model",
+      "status": "PASS",
+      "filter": null
+    },
+    {
+      "case": "JPEG_five_aliases",
+      "status": "PASS",
+      "bytePreserved": true
+    },
+    {
+      "case": "portable_raster_canvas",
+      "status": "PASS",
+      "types": [
+        "pbm",
+        "pgm",
+        "ppm"
+      ]
+    },
+    {
+      "case": "legacy_pcx_ras_xbm_xpm_canvas",
+      "status": "PASS",
+      "types": [
+        "xbm",
+        "xpm",
+        "pcx",
+        "ras"
+      ]
+    }
+  ],
+  "error": "AssertionError",
+  "reason": "{'check': 'native_preservation_contract', 'status': 'not_checked', 'policyId': 'native_all_writer_pages_v1', 'scope': 'loaded_writer_layout', 'reason': 'native_cli_has_no_model_receipt', 'qualityCompared': False}",
+  "code": null,
+  "diagnostic": null
+}
