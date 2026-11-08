@@ -1,0 +1,100 @@
+name: AIO exact 22 new sample files on pinned Windows LibreOffice (diagnostic only)
+on:
+  push:
+    branches: [qa/diag-exact22-windows-20261108]
+    paths: [.github/workflows/aio-exact22-windows-diagnostic.yml]
+permissions:
+  contents: read
+concurrency:
+  group: aio-exact22-windows-diag-20261108
+  cancel-in-progress: false
+jobs:
+  windows-exact-sample-diagnostic:
+    if: github.repository == 'jumonja-maker/A.I.O' && github.ref == 'refs/heads/qa/diag-exact22-windows-20261108'
+    runs-on: windows-latest
+    timeout-minutes: 80
+    env:
+      AIO_QA_SOURCE_SHA: b7216d1210489a5fd1eadb21daf2e3b3849e30f4
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: utf-8
+      PYTHONDONTWRITEBYTECODE: '1'
+      QT_QPA_PLATFORM: offscreen
+      QT_OPENGL: software
+      QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --disable-gpu-compositing
+      AIO_LO_QA_MUST_HAVE_ENGINE: '1'
+    steps:
+      - name: Checkout immutable isolated diagnostic branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - name: Assert product code equals the accepted QA commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='b7216d1210489a5fd1eadb21daf2e3b3849e30f4'
+          test "$(git rev-parse HEAD^)" = "$base"
+          python - <<'PY'
+          import subprocess
+          paths=subprocess.check_output(['git','diff','--name-only','HEAD^','HEAD'],text=True).splitlines()
+          allowed={'.github/workflows/aio-exact22-windows-diagnostic.yml',
+                   'tools/qa/aio_exact22_windows_probe.py',
+                   'tools/qa/fixtures/aio_windows_exact22_new_samples.zip'}
+          if set(paths)!=allowed:
+              raise SystemExit('Unexpected product code change in diagnostic branch: '+str(paths))
+          print('SOURCE_PRODUCTION_DIFF=NONE;QA_BASE_SHA=b7216d1210489a5fd1eadb21daf2e3b3849e30f4')
+          PY
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.11'
+      - name: Install reviewed source QA wheels and verify hash-pinned Python runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/build/verify_qa_dependency_lock.py --phase runtime --check-locks
+          python tools/build/qa_wheels.py --phase runtime --wheelhouse "$RUNNER_TEMP/aio-qa-wheels-exact22"
+          python tools/build/qa_sca.py --phase runtime --output "$RUNNER_TEMP/aio-qa-sca-exact22.json"
+          python tools/build/verify_qa_dependency_lock.py --phase runtime \
+            --wheel-receipt build/aio-qa-wheels-runtime.json \
+            --sca-report "$RUNNER_TEMP/aio-qa-sca-exact22.json"
+      - name: Download and verify exact Windows LibreOffice 26.8.2.2 (no product install)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          ./tools/build/prepare-libreoffice.ps1 -Destination (Join-Path $env:RUNNER_TEMP 'aio-exact22-lo')
+      - name: Probe original 22 sample bytes directly with LO and through AIO Guard
+        id: native
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          python tools/qa/aio_exact22_windows_probe.py `
+            --samples tools/qa/fixtures/aio_windows_exact22_new_samples.zip `
+            --executable "$env:AIO_QA_ENGINE" `
+            --output (Join-Path $env:RUNNER_TEMP 'aio-exact22-native-results')
+          if ($LASTEXITCODE -ne 0) { throw 'Diagnostic incomplete; inspect verified evidence before claiming success.' }
+      - name: Print bounded actual evidence without exposing source content
+        if: always()
+        shell: pwsh
+        run: |
+          $path=Join-Path $env:RUNNER_TEMP 'aio-exact22-native-results/evidence.json'
+          if (Test-Path -LiteralPath $path) {
+            $r=Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+            Write-Host ('EVIDENCE_STATUS='+$r.status)
+            Write-Host ('VERIFIED_INPUT_SHA256='+$r.inputsSha256)
+            Write-Host ('ENGINE_VERSION='+$r.engineVersion)
+            Write-Host ('INPUT_ORIGINALS_PRESERVED='+$r.originalsPreserved)
+            Write-Host ('GUARD='+$r.guard.status)
+            foreach ($case in $r.cases) {
+              $attempts=@($case.directNative | ForEach-Object { ($_.target + ':' + $_.success) }) -join ','
+              $guard=$r.guard.sources.PSObject.Properties[$case.file].Value
+              Write-Host ('CASE='+$case.file+';CONTRACT='+$case.sourceContract.state+';DIRECT='+$attempts+';GUARD='+$guard.state)
+            }
+          } else { Write-Host 'NO_DIAGNOSTIC_EVIDENCE'; }
+      - name: Upload diagnostic JSON only (not the test files)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: aio-exact22-pinned-windows-diagnostic
+          path: ${{ runner.temp }}/aio-exact22-native-results/evidence.json
+          if-no-files-found: warn
+          retention-days: 7
