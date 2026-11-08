@@ -115,7 +115,8 @@ def inspect_dependencies(source, parser_type, *, cancel=None, missing=None, seco
                         css_tail = (css_tail + text)[-4096:]
                     else:
                         parser.feed(transform.feed(text) if transform else text)
-                    if budget_exhausted or parser.undetermined or len(parser.rawdata) > 512 * 1024:
+                    if (budget_exhausted or parser.undetermined or len(parser.rawdata) > 512 * 1024
+                            or transform and getattr(transform, 'resource_truncated', False)):
                         return 'HTML_PREFLIGHT_UNDETERMINED'
                 final = decoder.decode(b'', final=True)
                 if current.suffix.lower() == '.css':
@@ -123,7 +124,8 @@ def inspect_dependencies(source, parser_type, *, cancel=None, missing=None, seco
                 else:
                     parser.feed(transform.feed(final) if transform else final)
                     if transform and (transform.quote is not None or transform.in_tag or
-                                      transform.rawtext is not None):
+                                      transform.rawtext is not None or
+                                      getattr(transform, 'resource_truncated', False)):
                         return 'HTML_PREFLIGHT_UNDETERMINED'
                     parser.close()
         except (UnicodeError, LookupError, ValueError):

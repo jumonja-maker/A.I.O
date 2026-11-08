@@ -106,14 +106,16 @@ def _incomplete(reason):
 class _AttributeLimiter:
     """Keep HTMLParser's pending tags small, including embedded image data.
 
-    Attribute values are needed only to establish that a resource reference
-    exists.  Preserve their prefix and their closing quote, while discarding
-    the rest *only in the parser's inspection copy*.  Output files never change.
+    Keep attribute prefixes and closing quotes in the inspection copy. Mark
+    discarded resource-bearing suffixes so dependency checks remain incomplete
+    instead of silently accepting a shortened CSS value or URL list.
+    Output files never change.
     Comments are copied literally so quotes in comments cannot swallow a body.
     """
     def __init__(self, attribute_limit=4096):
         self.attribute_limit = attribute_limit
         self.truncated = False
+        self.resource_truncated = False
         self.in_tag = False
         self.quote = None
         self.kept = 0
@@ -123,6 +125,9 @@ class _AttributeLimiter:
         self.tag_head = ''
         self.rawtext = None
         self.raw_pending = ''
+        self._attribute_context = ''
+        self._attribute_name = None
+        self._attribute_prefix = ''
 
     def feed(self, text):
         result = []
@@ -145,8 +150,17 @@ class _AttributeLimiter:
                 closing = text.find(self.quote, index)
                 end = len(text) if closing < 0 else closing
                 keep = min(self.attribute_limit - self.kept, end - index)
+                if len(self._attribute_prefix) < 256:
+                    self._attribute_prefix += text[index:index + min(256 - len(self._attribute_prefix), end - index)]
                 if keep < end - index:
                     self.truncated = True
+                    # A data URI in one src/href has no second resource.
+                    # CSS and srcset can introduce another URL after any data
+                    # prefix, so dropping their suffix must remain unverified.
+                    if (self._attribute_name is None or self._attribute_name in ('style', 'srcset')
+                            or self._attribute_name in ('src', 'href', 'xlink:href', 'poster', 'data', 'background')
+                            and not self._attribute_prefix.lstrip().lower().startswith('data:')):
+                        self.resource_truncated = True
                 if keep:
                     result.append(text[index:index + keep])
                     self.kept += keep
@@ -154,6 +168,7 @@ class _AttributeLimiter:
                     return ''.join(result)
                 result.append(self.quote)
                 self.quote = None
+                self._attribute_context = ''
                 index = closing + 1
                 continue
             char = text[index]
@@ -171,6 +186,7 @@ class _AttributeLimiter:
                     self.in_tag = True
                     self.prefix = '<'
                     self.tag_head = '<'
+                    self._attribute_context = '<'
                 continue
             if len(self.tag_head) < 64:
                 self.tag_head += char
@@ -181,6 +197,9 @@ class _AttributeLimiter:
                     self.comment_tail = ''
                     continue
             if char in ('"', "'"):
+                attribute = re.search(r'([^\s\x00"\'<>/=]+)\s*=\s*$', self._attribute_context)
+                self._attribute_name = attribute[1].lower() if attribute else None
+                self._attribute_prefix = ''
                 self.quote = char
                 self.kept = 0
             elif char == '>':
@@ -188,6 +207,8 @@ class _AttributeLimiter:
                 opening = re.match(r'<(script|style)(?=[\s/>])', self.tag_head, re.I)
                 if opening and not self.tag_head.rstrip().endswith('/>'):
                     self.rawtext = opening.group(1).lower()
+            else:
+                self._attribute_context = (self._attribute_context + char)[-256:]
         return ''.join(result)
 
 

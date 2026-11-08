@@ -727,13 +727,21 @@ def check_media_preservation(paths, target, source, *, cancel, source_evidence=N
     if primary is None:
         raise GuardError('MEDIA_INSPECTION_INCOMPLETE',
                          'Не удалось однозначно определить основной результат изображения.', stage='result')
-    after = inspect_media(primary, cancel=cancel, validate_container=True)
-    if after is None or after['format'] != ALIASES.get(target, target):
-        raise GuardError('MEDIA_OUTPUT_INVALID',
-                         'Контейнер изображения не соответствует выбранному формату результата.', stage='result')
-    if target == 'apng' and not after.get('animationContainer'):
-        raise GuardError('MEDIA_OUTPUT_INVALID',
-                         'Вместо APNG получен PNG без структуры анимации.', stage='result')
+    # Native page exporters establish that every file exists, while their
+    # preservation contract counts names. Neither proves that later pages
+    # have complete containers. Validate each output independently; different
+    # document pages may legitimately have different canvas dimensions.
+    after = None
+    for candidate in candidates:
+        observed = inspect_media(candidate, cancel=cancel, validate_container=True)
+        if observed is None or observed['format'] != ALIASES.get(target, target):
+            raise GuardError('MEDIA_OUTPUT_INVALID',
+                             'Контейнер изображения не соответствует выбранному формату результата.', stage='result')
+        if target == 'apng' and not observed.get('animationContainer'):
+            raise GuardError('MEDIA_OUTPUT_INVALID',
+                             'Вместо APNG получен PNG без структуры анимации.', stage='result')
+        if candidate == primary:
+            after = observed
     before = source_profile()
     expected_losses = []
     if before:
@@ -798,4 +806,5 @@ def check_media_preservation(paths, target, source, *, cancel, source_evidence=N
         if count != after['pages']:
             raise GuardError('MEDIA_PAGE_LOSS', 'Экспорт PDF в TIFF изменил число страниц.', stage='result')
     return {'check': 'media_properties', 'status': 'checked_subset', 'qualityCompared': False,
-            'source': before, 'result': after, 'expectedLosses': expected_losses}
+            'source': before, 'result': after, 'expectedLosses': expected_losses,
+            'validatedOutputContainers': len(candidates)}

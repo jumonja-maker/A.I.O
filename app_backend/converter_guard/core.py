@@ -267,7 +267,7 @@ def _source_name(name):
 class _LocalHtmlResources(HTMLParser):
     """Fail closed when isolated HTML contains local assets (including CSS)."""
     _tags = {'img', 'link', 'script', 'source', 'video', 'audio', 'iframe', 'object',
-             'embed', 'image', 'use', 'input', 'body', 'table', 'td', 'th', 'base'}
+             'embed', 'image', 'feimage', 'use', 'input', 'body', 'table', 'td', 'th', 'base'}
     _attrs = {'src', 'srcset', 'href', 'xlink:href', 'poster', 'data', 'background'}
     _css_refs = re.compile(
         r"""(?is)\burl\(\s*(?:"([^"]*)"|'([^']*)'|([^'"\s)]+))\s*\)"""
@@ -2260,6 +2260,7 @@ class ConverterGuard:
         from .result_store import atomic_json
         from .save_verification import verify_folder
         from .save_snapshot import snapshot_report
+        from ..file_identity import file_identity
         if type(verify) is not bool:
             raise GuardError('SAVE_VERIFY_POLICY', 'Неверный режим проверки сохранения.', stage='save')
         # Retain the API parameter for older hosts. A legacy false value cannot
@@ -2328,8 +2329,11 @@ class ConverterGuard:
                     raise GuardError('ENGINE_OUTPUT_PATH', 'Недопустимый путь результата.', stage='save')
                 part = target.with_name(target.name + '.aio-part-' + secrets.token_hex(6))
                 digest, written = hashlib.sha256(), 0
+                part_identity = None
                 try:
                     with source_path.open('rb') as source, part.open('xb') as output:
+                        owned = os.fstat(output.fileno())
+                        part_identity = (owned.st_dev, owned.st_ino)
                         while block := source.read(CHUNK):
                             if cancel.is_set():
                                 raise GuardError('SAVE_CANCELLED', 'Сохранение отменено. Результаты остаются в AIO.', stage='save')
@@ -2338,7 +2342,9 @@ class ConverterGuard:
                             written += len(block)
                         output.flush()
                         os.fsync(output.fileno())
-                    if (written != artifact.size or target.exists() or
+                    observed = file_identity(part)
+                    if (observed is None or observed[:2] != part_identity or
+                            written != artifact.size or target.exists() or
                             artifact.sha256 and digest.hexdigest() != artifact.sha256):
                         raise GuardError('SAVE_CHANGED', 'Результат изменён или имя уже занято.', stage='save')
                     try:
@@ -2351,7 +2357,12 @@ class ConverterGuard:
                         raise GuardError('SAVE_CHANGED', 'Имя результата уже занято. Файл не заменён.',
                                          stage='save') from error
                 finally:
-                    part.unlink(missing_ok=True)
+                    # Exclusive creation can fail because another writer owns
+                    # this name. A later replacement also belongs to its writer;
+                    # only clean up a regular file with our created identity.
+                    observed = file_identity(part) if part_identity is not None else None
+                    if observed is not None and observed[:2] == part_identity:
+                        part.unlink(missing_ok=True)
                 bytes_written += written
                 manifest.append({'path': artifact.archive_name, 'size': written,
                                  'sha256': digest.hexdigest(), 'fileId': artifact.file_id,

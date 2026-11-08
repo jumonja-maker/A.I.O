@@ -84,6 +84,44 @@ def verify_built_archive(path, entries, metadata, snapshot, *, cancel=None):
     output_count, output_bytes = len(expected), sum(value[0] for value in expected.values())
     for name, content in metadata.items():
         expected[name] = (len(content), hashlib.sha256(content).hexdigest())
+    actual_size, digest = verify_archive_members(path, expected, cancel=cancel)
+    return actual_size, digest, {
+        'check': 'archive_contents', 'status': 'byte_verified',
+        'snapshotId': snapshot['snapshotId'],
+        'snapshotRevision': snapshot['snapshotRevision'],
+        'verificationScope': 'owned_zip_members_before_download',
+        'verificationMethod': 'independent_zip_entry_sha256',
+        'outputsVerified': output_count, 'bytesVerified': output_bytes,
+        'metadataVerified': len(metadata), 'qualityCompared': False,
+        'externalSaveVerified': False}
+
+
+def verify_archive_members(path, expected, *, cancel=None):
+    """Read an owned ZIP against independently captured (size, SHA-256) pairs.
+
+    Shared by Guard and legacy packaging. Digests must describe the retained
+    exports / report bytes before writing, never values read from this ZIP.
+    Returns its size and digest from the same handle used for member readback.
+    This proves packaging bytes, not document fidelity or an external save.
+    """
+    _stop(cancel)
+    if not isinstance(expected, dict) or not expected:
+        _invalid('entry_metadata')
+    names = set()
+    for name, value in expected.items():
+        try:
+            key = resource_path(name).casefold()
+        except GuardError:
+            _invalid('entry_path')
+        if (key in names or not isinstance(value, tuple) or len(value) != 2 or
+                type(value[0]) is not int or value[0] < 0 or
+                not isinstance(value[1], str) or
+                not re.fullmatch('[0-9a-f]{64}', value[1])):
+            _invalid('entry_metadata')
+        names.add(key)
+    if any('/'.join(name.split('/')[:i]) in names
+           for name in names for i in range(1, len(name.split('/')))):
+        _invalid('entry_collision')
 
     path = Path(path)
     descriptor = None
@@ -127,15 +165,7 @@ def verify_built_archive(path, entries, metadata, snapshot, *, cancel=None):
             if (path_is_link(path) or _token(initial) != _token(final) or
                     _token(final) != _token(current) or actual_size != initial.st_size):
                 _invalid('container_changed')
-        return actual_size, digest, {
-            'check': 'archive_contents', 'status': 'byte_verified',
-            'snapshotId': snapshot['snapshotId'],
-            'snapshotRevision': snapshot['snapshotRevision'],
-            'verificationScope': 'owned_zip_members_before_download',
-            'verificationMethod': 'independent_zip_entry_sha256',
-            'outputsVerified': output_count, 'bytesVerified': output_bytes,
-            'metadataVerified': len(metadata), 'qualityCompared': False,
-            'externalSaveVerified': False}
+        return actual_size, digest
     except (OSError, EOFError, ValueError, RuntimeError, zipfile.BadZipFile) as error:
         _invalid('container_unreadable')
     finally:

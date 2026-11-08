@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from dataclasses import dataclass, field
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -16,11 +17,20 @@ from .libreoffice_catalog import mime_for
 from .libreoffice_engine import LibreOfficeError, convert_path
 from .legacy_result_journal import LegacyWorkspace, ROOT_NAME, recover_workspaces, salvage_unverified_workspace
 from .converter_guard.result_store import path_is_link
+from .converter_guard.archive_verification import verify_archive_members
+from .converter_guard.errors import GuardError
 from .legacy_storage_budget import LegacyRunControl, measured_bytes, storage_error
 from .file_identity import owned_file_identity
 
 ARCHIVE_CHUNK = 128 * 1024
 MAX_OWNED_ROOTS = 32
+
+
+class _ArchiveStorageFailure(Exception):
+    """Keep a storage-control error out of the ZIP parser's ValueError handler."""
+    def __init__(self, error):
+        super().__init__(str(error))
+        self.error = error
 
 
 @dataclass
@@ -674,6 +684,18 @@ class ConverterTransport:
                                       for name, output in artifacts)
                 self.check_storage(archive_budget)
             storage_control = LegacyRunControl(threading.Event(), self.check_storage)
+
+            def check_verification_storage():
+                try:
+                    self.check_storage()
+                except LibreOfficeError as error:
+                    # LibreOfficeError is a ValueError. Without a narrow
+                    # control boundary, a mid-readback quota failure would be
+                    # mistaken for a malformed ZIP by the shared verifier.
+                    raise _ArchiveStorageFailure(error) from error
+
+            verification_control = LegacyRunControl(request.packaging_cancel, check_verification_storage)
+            expected = {}
             with self.lock:
                 request.packaging = True
             try:
@@ -681,6 +703,7 @@ class ConverterTransport:
                     for archive_name, output in artifacts:
                         self._check_packaging_cancel(request)
                         info = ZipInfo.from_file(output, archive_name)
+                        digest, copied = hashlib.sha256(), 0
                         with output.open('rb') as source, archive.open(info, 'w', force_zip64=True) as target:
                             while True:
                                 self._check_packaging_cancel(request)
@@ -688,13 +711,34 @@ class ConverterTransport:
                                 if not chunk:
                                     break
                                 storage_control.is_set()
+                                digest.update(chunk)
+                                copied += len(chunk)
                                 target.write(chunk)
+                        if archive_name in expected:
+                            raise LibreOfficeError('Имена результатов в архиве совпали. Отдельные результаты сохранены.',
+                                                   'LEGACY_BUNDLE_VERIFY_FAILED')
+                        expected[archive_name] = (copied, digest.hexdigest())
                     self._check_packaging_cancel(request)
                     if report['failed']:
-                        archive.writestr('AIO-conversion-report.json',
-                                         json.dumps(report, ensure_ascii=False, indent=2).encode())
+                        report_bytes = json.dumps(report, ensure_ascii=False, indent=2).encode()
+                        expected['AIO-conversion-report.json'] = (len(report_bytes),
+                            hashlib.sha256(report_bytes).hexdigest())
+                        archive.writestr('AIO-conversion-report.json', report_bytes)
                     self._check_packaging_cancel(request)
                     self.check_storage()
+                # CRC alone accepts a valid ZIP containing altered payloads.
+                # Compare every member with bytes read from retained exports,
+                # before recording a durable result or publishing a ticket.
+                try:
+                    verify_archive_members(path, expected, cancel=verification_control)
+                except _ArchiveStorageFailure as error:
+                    raise error.error from error
+                except GuardError as error:
+                    if error.code == 'BUNDLE_CANCELLED':
+                        raise LibreOfficeError('Упаковка результатов отменена.', 'CANCELLED') from error
+                    raise LibreOfficeError(
+                        'Архив не прошёл проверку. Отдельные результаты сохранены в AIO.',
+                        'LEGACY_BUNDLE_VERIFY_FAILED') from error
             finally:
                 with self.lock:
                     request.packaging = False
