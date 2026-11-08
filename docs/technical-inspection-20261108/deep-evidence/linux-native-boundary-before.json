@@ -1,0 +1,101 @@
+{
+  "htmlPdfOracle": {
+    "pageCount": 3,
+    "texts": [
+      "PAGE_ONE_UNIQUE_001",
+      "PAGE_TWO_UNIQUE_002",
+      "PAGE_THREE_UNIQUE_003"
+    ],
+    "seconds": 0.23734221499944397
+  },
+  "actualHtmlProof": {
+    "state": "detected",
+    "documentServices": [
+      "com.sun.star.text.TextDocument",
+      "com.sun.star.text.WebDocument",
+      "com.sun.star.text.GlobalDocument"
+    ],
+    "basis": "native_preflight_document_kind",
+    "nativeKind": 0,
+    "drawPages": null,
+    "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+    "exported": false,
+    "sourceContract": {
+      "state": "not_checked",
+      "reason": "source_contract_dtd_entities_or_encoding"
+    }
+  },
+  "htmlGuardPng": {
+    "status": "refused",
+    "code": "ENGINE_OUTPUT_VALIDATION_INCOMPLETE",
+    "diagnostic": "native_all_writer_pages_v1:native_cli_has_no_model_receipt",
+    "exportInfo": {
+      "filter": "writer_png_Export",
+      "warnings": [
+        "NATIVE_OUTPUT_NOT_CHECKED"
+      ],
+      "executionReason": "no_native_session",
+      "resultChecks": [
+        {
+          "check": "native_preservation_contract",
+          "status": "not_checked",
+          "policyId": "native_all_writer_pages_v1",
+          "scope": "loaded_writer_layout",
+          "reason": "native_cli_has_no_model_receipt",
+          "qualityCompared": false
+        }
+      ]
+    }
+  },
+  "legacyCsv": {
+    "files": [
+      "two-sheets.csv"
+    ],
+    "text": "Marker,Value\nFIRST_UNIQUE,123\n",
+    "containsFirst": true,
+    "containsSecond": false
+  },
+  "nativeFodsOracle": {
+    "sheetCount": 2,
+    "names": [
+      "First",
+      "Second"
+    ],
+    "containsFirst": true,
+    "containsSecond": true
+  },
+  "defaultPdfImage": {
+    "pageCount": 1,
+    "imageCount": 1,
+    "imageSize": [
+      64,
+      64
+    ],
+    "encoding": "jpeg",
+    "pixelBytesDifferent": 12212,
+    "maxChannelError": 234,
+    "sourcePixelSha256": "566a6d7b2b6338a49120f4b92e63039dfd1b67e827c09457c55e7b13ea5f8a96",
+    "outputPixelSha256": "edf7eb016225669f5091c5684ec06d288cac6e97a762771a7e2b666b55ee644d",
+    "pdfBytes": 11454
+  },
+  "explicitLosslessPdfImage": {
+    "pageCount": 1,
+    "imageCount": 1,
+    "imageSize": [
+      64,
+      64
+    ],
+    "encoding": "png",
+    "pixelBytesDifferent": 0,
+    "maxChannelError": 0,
+    "sourcePixelSha256": "566a6d7b2b6338a49120f4b92e63039dfd1b67e827c09457c55e7b13ea5f8a96",
+    "outputPixelSha256": "566a6d7b2b6338a49120f4b92e63039dfd1b67e827c09457c55e7b13ea5f8a96",
+    "pdfBytes": 19050
+  },
+  "originals": {
+    "three-pages.html": "58f3b071acddf6aaa8b9422121e8d0004026b76e1c46ae58e0693eb3dabbbf53",
+    "two-sheets.xlsx": "5432ecf6d0ea7e6ad8b7868cc9d7d7d34db9793665d55fd72e901548bda607c3",
+    "noise.png": "e00278ac971237b0f67680f1ff1bc8a3ece6b7752f9e106f25155c72474a73b8"
+  },
+  "scope": "actual installed Linux LibreOfficeDev26.8alpha; generated controls; no Windows/nativeUNO claim"
+}

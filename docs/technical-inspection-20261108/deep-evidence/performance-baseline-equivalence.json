@@ -1,0 +1,11 @@
+{
+  "baselineRefs": [
+    "a698821453dceb80159cbe608726f67c41347ce9",
+    "660b47002672a3ad86e4ce8b1cd7c514df178295"
+  ],
+  "checks": {
+    "legacy_storage_budget_identical": true,
+    "upload_function_identical": true,
+    "upload_resource_function_identical": true
+  }
+}
