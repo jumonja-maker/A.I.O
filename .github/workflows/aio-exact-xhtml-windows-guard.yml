@@ -1,0 +1,70 @@
+name: AIO exact 2 XHTML Guard PDF end-to-end pinned Windows (QA diagnostic)
+on:
+  push:
+    branches: [qa/diag-exact-xhtml-e2e-20261108]
+    paths: [.github/workflows/aio-exact-xhtml-windows-guard.yml]
+permissions:
+  contents: read
+jobs:
+  windows-xhtml-e2e:
+    if: github.repository == 'jumonja-maker/A.I.O' && github.ref == 'refs/heads/qa/diag-exact-xhtml-e2e-20261108'
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      AIO_QA_SOURCE_SHA: b7216d1210489a5fd1eadb21daf2e3b3849e30f4
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: utf-8
+      QT_QPA_PLATFORM: offscreen
+      QT_OPENGL: software
+      QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu --disable-gpu-compositing
+      AIO_LO_QA_MUST_HAVE_ENGINE: '1'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Require unchanged product code from verified QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = 'b7216d1210489a5fd1eadb21daf2e3b3849e30f4'
+          python - <<'PY'
+          import subprocess
+          actual=set(subprocess.check_output(['git','diff','--name-only','HEAD^','HEAD'],text=True).splitlines())
+          wanted={'.github/workflows/aio-exact-xhtml-windows-guard.yml',
+                  'tools/qa/aio_exact_xhtml_windows_guard.py',
+                  'tools/qa/fixtures/aio_windows_exact22_new_samples.zip'}
+          if actual!=wanted:raise SystemExit('Unexpected product changes: '+str(actual))
+          print('QA_PRODUCT_CODE_UNCHANGED=PASS')
+          PY
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.11'
+      - name: Reviewed Python QA wheel runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/build/verify_qa_dependency_lock.py --phase runtime --check-locks
+          python tools/build/qa_wheels.py --phase runtime --wheelhouse "$RUNNER_TEMP/aio-qa-xhtml-wheels"
+          python tools/build/qa_sca.py --phase runtime --output "$RUNNER_TEMP/aio-qa-xhtml-sca.json"
+          python tools/build/verify_qa_dependency_lock.py --phase runtime \
+            --wheel-receipt build/aio-qa-wheels-runtime.json --sca-report "$RUNNER_TEMP/aio-qa-xhtml-sca.json"
+      - name: Pinned Windows LO 26.8.2.2
+        shell: pwsh
+        run: ./tools/build/prepare-libreoffice.ps1 -Destination (Join-Path $env:RUNNER_TEMP 'aio-xhtml-pinned-lo')
+      - name: Exact original XHTML through Guard preflight, conversion and folder save
+        shell: pwsh
+        run: |
+          python tools/qa/aio_exact_xhtml_windows_guard.py `
+            --samples tools/qa/fixtures/aio_windows_exact22_new_samples.zip `
+            --engine "$env:AIO_QA_ENGINE" `
+            --output (Join-Path $env:RUNNER_TEMP 'aio-xhtml-guard-e2e')
+          if ($LASTEXITCODE -ne 0) { throw 'XHTML diagnostic failed to run; inspect evidence.' }
+      - name: Upload JSON evidence only
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: aio-exact-xhtml-guard-e2e-windows
+          path: ${{ runner.temp }}/aio-xhtml-guard-e2e/evidence.json
+          if-no-files-found: warn
+          retention-days: 7
