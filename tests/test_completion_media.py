@@ -265,6 +265,7 @@ class CompletionMedia(unittest.TestCase):
         with self.assertRaises(GuardError) as caught:
             check_media_preservation([output], 'png', source, cancel=self.cancel)
         self.assertEqual(caught.exception.code, 'MEDIA_CANVAS_CHANGED')
+        self.assertEqual(caught.exception.diagnostic, 'source_canvas:37x19:result_canvas:794x1123')
 
     def test_pict_native_extraction_requires_actual_import_filter_and_one_unmodified_graphic(self):
         namespace = {}
@@ -280,11 +281,18 @@ class CompletionMedia(unittest.TestCase):
             GraphicCrop=SimpleNamespace(Top=0, Bottom=0, Left=0, Right=0))
         model = SimpleNamespace(getDrawPages=lambda: Items(Items(shape)))
         stored = []
-        def store(graphic, properties):
+        source_documents = []
+        def render(properties):
             stored.append(dict(properties))
             Image.new('RGB', (37, 19), 'black').save(target)
-        provider = SimpleNamespace(storeGraphic=store)
-        remote = SimpleNamespace(ServiceManager=SimpleNamespace(createInstanceWithContext=lambda *_: provider))
+            return True
+        exporter = SimpleNamespace(filter=render, supportsMimeType=lambda mime: mime == 'image/png',
+                                   setSourceDocument=source_documents.append)
+        services = []
+        def service(name, context):
+            services.append(name)
+            return exporter
+        remote = SimpleNamespace(ServiceManager=SimpleNamespace(createInstanceWithContext=service))
         export = namespace['aio_export_graphic_pages']
         self.assertIsNone(export(model, remote, lambda *p:p, target, source=source,
                                  import_filter='draw8'))
@@ -292,6 +300,9 @@ class CompletionMedia(unittest.TestCase):
             self.assertEqual(export(model, remote, lambda *p:p, target, source=source,
                                     import_filter='PCT - Mac Pict'), [target])
         self.assertEqual(dict(stored[0]['FilterData']), {'PixelWidth':37, 'PixelHeight':19})
+        self.assertEqual(stored[0]['MediaType'], 'image/png')
+        self.assertEqual(source_documents, [shape])
+        self.assertEqual(services, ['com.sun.star.drawing.GraphicExportFilter'])
         target.unlink()
         shape.RotateAngle = 9000
         with self.assertRaisesRegex(namespace['AioPreservationIncomplete'], 'pict_graphic_model_unconfirmed'):

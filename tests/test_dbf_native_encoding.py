@@ -93,6 +93,20 @@ class NativeDbfEncoding(unittest.TestCase):
                 declare_native_cp1251(path)
             self.assertEqual(path.read_bytes(), before)
 
+    def test_metadata_write_preserves_terminal_dbase_eof_in_both_native_paths(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            for index, declare in enumerate((declare_native_cp1251,
+                    lambda p: functions()['declare_native_dbf_encoding'](p, {'cp1251': True}))):
+                path = sample_dbf(Path(temporary)/f'eof-{index}.dbf')
+                with path.open('ab') as stream:
+                    stream.write(b'\x1a')
+                before = path.read_bytes()
+                declare(path)
+                expected = bytearray(before)
+                expected[29] = 0xC9
+                self.assertEqual(path.read_bytes(), bytes(expected))
+                self.assertEqual(path.read_bytes()[-1:], b'\x1a')
+
     def test_link_rejection_precedes_metadata_write_for_both_native_paths(self):
         with tempfile.TemporaryDirectory() as temporary:
             victim = sample_dbf(Path(temporary)/'victim.dbf')

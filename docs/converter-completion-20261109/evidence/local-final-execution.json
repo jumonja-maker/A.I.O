@@ -3,9 +3,9 @@
     "/workspace/scratch/aio-inspection-20261108/venv/bin/python",
     "tools/qa/hosted_unit_tests.py",
     "--report",
-    "/workspace/scratch/aio-inspection-20261108/completion-verified-suite.json"
+    "/workspace/scratch/aio-inspection-20261108/completion-revised-suite.json"
   ],
   "cwd": "/workspace/AIO-completion",
   "returncode": 0,
-  "durationSeconds": 74.35
+  "durationSeconds": 76.4
 }

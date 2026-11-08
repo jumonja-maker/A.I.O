@@ -11,12 +11,19 @@ TRASH_CONTROL = ('aria-label="Очистить список исходников
 
 SAVE_ENTRY_ANCHOR = 'saving=true;renderFileList();saveBtn.disabled=true;'
 SAVE_ENTRY_CONTROL = 'saving=true;renderFileList();renderSummary();saveBtn.disabled=true;'
+ADD_BUTTON_ANCHOR = 'data-cv-add>+ Добавить файлы</button>'
+ADD_BUTTON_CONTROL = ('data-cv-add aria-label="Добавить файлы" title="Добавить файлы">'
+    '<svg class="aio-cv__add-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
+    '<path d="M12 5v14M5 12h14"/></svg><span class="aio-cv__add-label">Добавить файлы</span></button>')
+ADD_VISIBILITY_ANCHOR = "root.querySelector('[data-cv-add]').hidden = files.length === 0;"
+ADD_VISIBILITY_CONTROL = "root.querySelector('[data-cv-add]').hidden = false;"
 
 
 def apply_layout_controls(raw: bytes) -> bytes:
     """Keep existing handlers; synchronize lock state before entering native save."""
     code = raw.decode('utf-8')
-    for old, new in ((TRASH_ANCHOR, TRASH_CONTROL), (SAVE_ENTRY_ANCHOR, SAVE_ENTRY_CONTROL)):
+    for old, new in ((TRASH_ANCHOR, TRASH_CONTROL), (SAVE_ENTRY_ANCHOR, SAVE_ENTRY_CONTROL),
+                     (ADD_BUTTON_ANCHOR, ADD_BUTTON_CONTROL), (ADD_VISIBILITY_ANCHOR, ADD_VISIBILITY_CONTROL)):
         if code.count(old) != 1:
             raise ValueError('Layout controls require review of anchor: ' + old[:70])
         code = code.replace(old, new, 1)
@@ -24,7 +31,7 @@ def apply_layout_controls(raw: bytes) -> bytes:
 
 
 LAYOUT_CSS = r'''
-/* AIO_M01_M13_M15_LAYOUT_V2. Higher specificity than historical late sheets.
+/* AIO_M01_M13_M15_LAYOUT_V3. Higher specificity than historical late sheets.
    Lists use the available desktop height. Short/stacked windows scroll only
    as far as needed for readable controls; file count never grows the page.
    No JS resize/mutation observer, no preflight and no document operations. */
@@ -59,27 +66,50 @@ LAYOUT_CSS = r'''
 }
 .app-shell .workspace .aio-cv__pane--left .aio-cv__pane-head {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto 36px;
-  flex: 0 0 auto;
-  height: auto;
+  grid-template-columns: 11ch minmax(0, 1fr) 36px;
+  grid-template-rows: 44px;
+  flex: 0 0 44px;
+  height: 44px;
   min-height: 44px;
+  max-height: 44px;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 6px;
 }
-.app-shell .workspace .aio-cv-filter__actions {
+.app-shell .workspace .aio-cv__pane--left .aio-cv__pane-head .aio-cv__pane-title {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  width: auto;
+  height: 38px;
+  min-width: 0;
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+.app-shell .workspace .aio-cv__pane--left .aio-cv-filter__actions {
+  grid-column: 2;
+  grid-row: 1;
   display: flex;
   flex-wrap: nowrap !important;
   flex: 0 1 auto;
   min-width: 0;
-  width: auto;
+  width: 100%;
+  justify-content: flex-end;
+  align-items: center;
   margin-left: 0;
   gap: 6px;
 }
-.app-shell .workspace .aio-cv-filter__trigger {
+.app-shell .workspace .aio-cv__pane--left .aio-cv-filter__trigger {
   flex: 0 0 104px;
   width: 104px;
   min-width: 104px;
-  max-width: 116px;
+  max-width: 104px;
+  font-size: 13px;
+  line-height: 1.2;
+  padding-inline: 8px;
+  height: 38px;
+  min-height: 38px;
 }
 .app-shell .workspace [data-filter-label] {
   min-width: 0;
@@ -88,12 +118,34 @@ LAYOUT_CSS = r'''
   white-space: nowrap;
 }
 .app-shell .workspace [data-cv-add] {
-  flex: 1 1 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  flex: 0 1 156px;
+  font-size: 13px;
+  line-height: 1.2;
   min-width: 0;
-  min-height: 34px;
-  height: auto;
+  min-height: 38px;
+  height: 38px;
   white-space: nowrap;
   padding-inline: 8px;
+}
+.app-shell .workspace .aio-cv__add-icon {
+  display: block;
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+.app-shell .workspace .aio-cv__add-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .app-shell .workspace .aio-cv__pane--left .aio-cv__search {
   flex: 0 0 40px;
@@ -233,34 +285,34 @@ LAYOUT_CSS = r'''
 .app-shell .workspace .aio-cv .aio-cv__footer [data-cv-status]::-webkit-scrollbar {
   display: block;
 }
-/* On a very short stacked shell the fixed navigation can consume almost
-   the whole viewport. Let the document scroll only in active converter mode;
-   changing tools restores the original shell without a resize listener. */
-@media (max-width: 610px) and (max-height: 540px) {
-  .app-shell:has(.workspace.aio-qa-converter-mode) {
-    height: auto !important;
-    min-height: 100vh !important;
-    overflow: visible;
-  }
-  .app-shell:has(.workspace.aio-qa-converter-mode) .app-layout {
-    flex: 0 0 auto;
-    overflow: visible;
-  }
-  .app-shell .app-layout .workspace.aio-qa-converter-mode {
-    height: auto;
-    overflow-y: visible !important;
-    overflow-x: clip !important;
-  }
+/* The document never becomes a second scroll owner. Short logical viewports
+   keep wheel/keyboard access through the bounded workspace and list viewports. */
+html:has(.workspace.aio-qa-converter-mode),
+body:has(.workspace.aio-qa-converter-mode) {
+  height: 100%;
+  overflow: hidden;
+}
+body:has(.workspace.aio-qa-converter-mode) {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  /* hidden still permits focus/scrollIntoView to scroll the fixed body.
+     clip leaves scrolling to the reachable workspace instead. */
+  overflow: clip;
 }
 /* M13: the SVG inherits currentColor; colour emoji ignored CSS colour. */
 .app-shell .workspace .aio-cv__clear-inputs {
+  grid-column: 3;
+  grid-row: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
   width: 36px;
   min-width: 36px;
-  height: 36px;
+  height: 38px;
+  min-height: 38px;
+  align-self: center;
   padding: 6px;
   color: var(--danger);
 }
@@ -280,21 +332,48 @@ LAYOUT_CSS = r'''
   stroke-linejoin: round;
   pointer-events: none;
 }
-@container aio-inputs (max-width: 460px) {
-  .app-shell .workspace .aio-cv__pane--left .aio-cv__pane-head {
-    grid-template-columns: minmax(0, 1fr) 36px;
-    grid-template-rows: auto auto;
-    height: auto;
-    flex-basis: auto;
-    min-height: 72px;
+@container aio-inputs (max-width: 420px) {
+  .app-shell .workspace .aio-cv__pane--left .aio-cv-filter__trigger {
+    flex: 0 0 36px;
+    width: 36px;
+    min-width: 36px;
+    max-width: 36px;
+    padding-inline: 8px;
   }
-  .app-shell .workspace .aio-cv__pane--left .aio-cv__pane-title { grid-column: 1 / -1; grid-row: 1; }
-  .app-shell .workspace .aio-cv__pane--left .aio-cv-filter__actions { grid-column: 1; grid-row: 2; width: 100%; }
-  .app-shell .workspace .aio-cv__pane--left .aio-cv__clear-inputs { grid-column: 2; grid-row: 2; align-self: center; }
+  .app-shell .workspace .aio-cv__pane--left [data-filter-label] { display: none; }
+}
+@container aio-inputs (max-width: 350px) {
+  .app-shell .workspace .aio-cv__pane--left [data-cv-add] {
+    flex: 0 0 36px;
+    width: 36px;
+    min-width: 36px;
+    padding-inline: 8px;
+  }
+  .app-shell .workspace .aio-cv__pane--left .aio-cv__add-label { display: none; }
 }
 @container (max-width: 740px) {
   .app-shell .workspace .aio-cv__columns { display: grid; grid-template-columns: minmax(0, 1fr); grid-auto-rows: auto; flex: 0 0 auto; min-height: 0; }
   .app-shell .workspace .aio-cv__pane--left { height: clamp(300px, 42vh, 400px) !important; min-height: 300px !important; }
   .app-shell .workspace .aio-cv__pane--right { height: 600px !important; min-height: 600px !important; }
+}
+@media (max-width: 610px) {
+  .app-shell:has(.workspace.aio-qa-converter-mode) .app-layout { min-height: 0; }
+  .app-shell:has(.workspace.aio-qa-converter-mode) .sidebar {
+    flex: 0 0 auto;
+    padding: 8px 12px;
+    grid-template-rows: 36px 36px;
+    gap: 6px;
+  }
+  .app-shell:has(.workspace.aio-qa-converter-mode) .search-wrap { height: 36px; }
+  .app-shell:has(.workspace.aio-qa-converter-mode) .tool-nav { flex-direction: row; gap: 6px; }
+  .app-shell:has(.workspace.aio-qa-converter-mode) .nav-item { flex: 1; width: auto; min-height: 36px; padding: 5px; gap: 6px; }
+  .app-shell:has(.workspace.aio-qa-converter-mode) .tool-glyph { width: 24px; height: 24px; font-size: 16px; }
+  .app-shell:has(.workspace.aio-qa-converter-mode) .tool-name { font-size: 12px; }
+  .app-shell .app-layout .workspace.aio-qa-converter-mode {
+    flex: 1 1 0;
+    height: auto;
+    min-height: 0;
+    overflow-y: auto !important;
+  }
 }
 '''

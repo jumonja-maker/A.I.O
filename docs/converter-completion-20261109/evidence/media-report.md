@@ -1,3 +1,7 @@
+# История первого локального этапа
+
+После первого Windows CI PICT GraphicProvider заменён на shape GraphicExportFilter; см. media-windows-pct-fix.md и итоговый CI-протокол. Четыре Linux BLOCKED здесь не означают положительную Windows-проверку.
+
 Media completion patch evidence (base b7216d1210489a5fd1eadb21daf2e3b3849e30f4)
 
 Baseline reproduced from an isolated `git archive` of app_backend, not a mixed

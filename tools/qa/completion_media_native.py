@@ -150,6 +150,11 @@ def main():
             row.update(status='FAIL', error=type(error).__name__, reason=str(error),
                        code=getattr(error, 'code', None),
                        diagnostic=getattr(error, 'diagnostic', None))
+            info = adapter.export_info()
+            row['nativeExportDiagnostic'] = json.dumps({
+                'executionMode': adapter.execution_mode(), 'filter': info.get('filter'),
+                'executionReason': info.get('executionReason'),
+                'resultChecks': info.get('resultChecks', [])}, ensure_ascii=True, default=str)[:8000]
         row['elapsedSeconds'] = round(time.monotonic() - begin, 3)
         cases.append(row)
         summary = {key: row[key] for key in ('case', 'status', 'source', 'executionMode',

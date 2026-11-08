@@ -413,23 +413,29 @@ def aio_export_pict_graphic(model, remote, prop, target, source, import_filter, 
                 or shape.RotateAngle != 0 or shape.ShearAngle != 0
                 or any(getattr(crop, edge) != 0 for edge in ('Top', 'Bottom', 'Left', 'Right'))):
             raise ValueError('pict_graphic_transformation')
-        graphic = shape.Graphic
+        if shape.Graphic is None:
+            raise ValueError('pict_graphic_missing')
     except Exception as error:
         raise AioPreservationIncomplete('pict_graphic_model_unconfirmed') from error
-    # GraphicProvider serializes the native graphic itself. GraphicExportFilter
-    # on a Draw page scales it into the white default page instead.
-    provider = remote.ServiceManager.createInstanceWithContext(
-        'com.sun.star.graphic.GraphicProvider', remote)
-    if provider is None or not mimes:
+    # GraphicProvider can serialize a vector PICT at its preferred device
+    # resolution despite PixelWidth/PixelHeight. GraphicExportFilter explicitly
+    # renders an XShape to the requested pixel size. Supplying this shape (not
+    # its Draw page) excludes the importer's white default page canvas.
+    exporter = remote.ServiceManager.createInstanceWithContext(
+        'com.sun.star.drawing.GraphicExportFilter', remote)
+    mime = next((value for value in mimes if exporter.supportsMimeType(value)), None) if exporter is not None else None
+    if mime is None:
         raise AioPreservationIncomplete('pict_graphic_encoder_unavailable')
+    exporter.setSourceDocument(shape)
     import uno
     data = uno.Any('[]com.sun.star.beans.PropertyValue',
                    (prop('PixelWidth', frame[0]), prop('PixelHeight', frame[1])))
     with target.open('xb'):
         pass
     try:
-        provider.storeGraphic(graphic, (prop('URL', target.as_uri()),
-            prop('MimeType', mimes[0]), prop('FilterData', data)))
+        if not exporter.filter((prop('URL', target.as_uri()),
+                prop('MediaType', mime), prop('FilterData', data))):
+            raise AioPreservationIncomplete('pict_graphic_export_failed')
         if target.is_symlink() or not target.is_file() or target.stat().st_size <= 0:
             raise AioPreservationIncomplete('pict_graphic_output_missing')
         return [target]

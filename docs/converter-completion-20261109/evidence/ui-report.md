@@ -1,11 +1,15 @@
-# UI completion evidence
+# Single-row UI follow-up — PASS
 
-UI01/02 fixed in materialized layout CSS: grouped filter/add/trash, bounded desktop panes and stable reserved run/save slots. At 1440×1000 workspace excess fell from145px to0; at1280×800 from76px to0. Empty, one-file and32-file panes remain540.39px at1280×800. Short/narrow screens intentionally scroll and every visible header/run control is reached using elementFromPoint after scrollIntoView. Tabs no longer split a last character into a clipped second line.
+This supersedes the earlier ui-report for header geometry. Production UI frozen at the file hashes in ui-header-row-report.json.
 
-FT4-08 State rows now show checked properties, observed pixel dimensions/DPI/pages/frames, optional structural unknowns, format limits and whether the final saved bytes were verified. Text remains escaped. Standalone DOM process fails with baseline queue source and passes with patch (8 variants).
+Count, Filter, Add and Trash share one fixed row. Add is visible at0 files; reserved tabular count width prevents controls moving when the text grows. Full labels fit on roomy desktop; narrow panels use accessible icon controls.
 
-Real production Qt/WebEngine driver:20 cases at ordinary scale including32 original XHTML copies, 32/32 native PDFs, actual Qt folder save with controlled destination, independent pypdf checks for original level marker,00123,12345678901234567 andМосква in every PDF. Separate17-case Qt150% run records actual devicePixelRatio1.5, both themes, browser zoom/narrow windows, native PNG save and stable run slot. Existing layout unit/WebEngine suite:6 tests passed,10 browser/save scenarios.
+Actual Qt/WebEngine passed31 normal-scale cases and27 cases with Qt150% (actual devicePixelRatio1.5). Every case checks counter/button vertical centers≤1px and unchanged header/control rects≤1px when comparing the same viewport across states. Synthetic4096/4096 and10000/10000 counters fit all5 sizes. Root document scrollHeight equals viewport; body.scrollTop remains0. Real Filter popovers and Qt Tab(Filter→Add) work in all5 sizes. Bounded workspace/list scrolling keeps all controls reachable.
 
-Authoritative artifacts: accepted-final/evidence.json, final-scale150/evidence.json, layout-baseline/evidence.json, quality-scope-regression.json, ui-report.json. Screenshots are alongside each evidence file. Baseline/failed exploratory runs are retained separately.
+Body overflow:hidden previously permitted programmatic scrollIntoView to move the whole shell73px; overflow:clip prevents that scroll owner. Raw body extent remains a diagnostic, while root document and actual shell positions stay fixed.
 
-Scope: Linux source Qt shell. Native save destinations are controlled, not manual OS dialog interaction. Windows installed/frozen acceptance is owned by the parent task. FT4-09 cannot be a report-print UI fix because current reports are JSON and the product has no report print flow. No recovery changes or retired features were introduced.
+32 original XHTML copies completed real UI preflight→native PDF→Qt folder save;32/32 PDFs retained their level marker,00123,12345678901234567 andМосква. Existing layout suite:6 tests,10 real WebEngine save/cancel cases PASS.
+
+Authoritative evidence: header-row-verified/evidence.json and header-row-scale150/evidence.json. Header screenshots ending -header.png in the scale150 directory show the single row at narrow and high DPI sizes. Earlier failed diagnostic runs are retained separately.
+
+Scope: Linux production source Qt. Installed Windows/frozen acceptance remains with root; native save destinations are controlled, not manually selected OS dialogs.

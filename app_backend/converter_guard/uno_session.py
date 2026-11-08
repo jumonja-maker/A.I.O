@@ -158,7 +158,8 @@ def declare_native_dbf_encoding(path, profile):
     metadata = path.lstat()
     if not stat.S_ISREG(metadata.st_mode) or getattr(metadata, 'st_file_attributes', 0) & 0x400:
         raise DbfSchemaUnconfirmed('DBF_NATIVE_CODEPAGE_PATH_INVALID')
-    descriptor = os.open(path, os.O_RDWR | getattr(os, 'O_NOFOLLOW', 0))
+    # Windows CRT O_TEXT can remove terminal Ctrl-Z already at open time.
+    descriptor = os.open(path, os.O_RDWR | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_BINARY', 0))
     with os.fdopen(descriptor, 'r+b') as stream:
         head = stream.read(32)
         expected = (0, 0xC9) if profile['cp1251'] else (0,)

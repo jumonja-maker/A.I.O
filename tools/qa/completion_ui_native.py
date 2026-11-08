@@ -22,6 +22,8 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from PySide6.QtWidgets import QApplication, QFileDialog
 from PySide6.QtCore import QCoreApplication, QEvent
+from PySide6.QtCore import Qt
+from PySide6.QtTest import QTest
 from app_backend.server import start_server
 from app_backend.desktop import MainWindow
 
@@ -30,16 +32,26 @@ GEOMETRY = r'''(()=>{
  const fits=(a,b)=>a.left>=b.left-2&&a.right<=b.right+2&&a.top>=b.top-2&&a.bottom<=b.bottom+2;
  const visible=e=>e&&!e.hidden&&getComputedStyle(e).display!=='none'&&getComputedStyle(e).visibility!=='hidden';
  const ws=q('.workspace'),left=q('.aio-cv__pane--left'),right=q('.aio-cv__pane--right'),lr=r(left),rr=r(right),head=r(left.querySelector('.aio-cv__pane-head')),search=r(q('.aio-cv__search')),area=r(q('[data-cv-file-area]'));
- const violations=[],controls=['[data-cv-type-filter]','[data-cv-add]','[data-cv-clear-inputs]'].map(q).filter(visible).map(r);
+ const counter=r(q('[data-cv-count]')),counterBox=r(left.querySelector('.aio-cv__pane-title'));
+ const violations=[],controlElements=['[data-cv-type-filter]','[data-cv-add]','[data-cv-clear-inputs]'].map(q).filter(visible),controls=controlElements.map(r);
  for(const a of controls)if(!fits(a,head)||!fits(a,lr))violations.push('header control outside header/pane');
+ for(const a of controls)if(Math.abs((a.top+a.bottom-counter.top-counter.bottom)/2)>1)violations.push('header control below/above file counter');
+ if(!fits(counter,counterBox))violations.push('file count outside reserved slot');
+ for(const e of controlElements)if(!e.getAttribute('aria-label'))violations.push('header control missing accessible label');
+ const labelMetrics=[...left.querySelectorAll('[data-filter-label],.aio-cv__add-label')].map(e=>({text:e.textContent,visible:visible(e),client:e.clientWidth,scroll:e.scrollWidth}));
+ for(const e of labelMetrics)if(innerWidth>=1280&&e.visible&&e.scroll>e.client+1)violations.push('desktop header label clipped: '+e.text);
  for(let i=0;i<controls.length;i++)for(let j=i+1;j<controls.length;j++){const a=controls[i],b=controls[j];if(Math.min(a.right,b.right)>Math.max(a.left,b.left)+2&&Math.min(a.bottom,b.bottom)>Math.max(a.top,b.top)+2)violations.push('header controls overlap');}
  if(head.bottom>search.top+2||search.bottom>area.top+2)violations.push('header/search/files overlap');
  if(Math.min(lr.right,rr.right)>Math.max(lr.left,rr.left)+2&&Math.min(lr.bottom,rr.bottom)>Math.max(lr.top,rr.top)+2)violations.push('panes overlap');
  for(const e of [left,right,ws])if(e.scrollWidth>e.clientWidth+2)violations.push('horizontal overflow '+e.className);
+ if(document.documentElement.scrollHeight>document.documentElement.clientHeight+2)violations.push('document vertical overflow');
+ if(document.body.scrollHeight>innerHeight+2&&!['hidden','clip'].includes(getComputedStyle(document.body).overflowY))violations.push('body has an external scrollbar');
+ if(document.body.scrollTop!==0)violations.push('focus scrolled the outer body');
+ if(document.documentElement.scrollWidth>innerWidth+2)violations.push('document horizontal overflow');
  for(const e of document.querySelectorAll('.aio-cv__category'))if(e.scrollHeight>e.clientHeight+2)violations.push('category label clipped vertically: '+e.textContent);
  const footer=r(q('.aio-cv__footer'));
  for(const s of ['[data-cv-run]','[data-cv-result-actions]','[data-cv-summary]','[data-cv-status]'])if(!fits(r(q(s)),footer)||!fits(r(q(s)),rr))violations.push(s+' outside footer/pane');
- return {violations,viewport:[innerWidth,innerHeight],devicePixelRatio,workspace:{client:ws.clientHeight,scroll:ws.scrollHeight,excess:ws.scrollHeight-ws.clientHeight},document:{client:document.documentElement.clientHeight,scroll:document.documentElement.scrollHeight},left:lr,right:rr,header:head,controls,run:r(q('[data-cv-run]')),runVisibility:getComputedStyle(q('[data-cv-run]')).visibility,fileArea:area,fileCount:q('[data-cv-count]').textContent};
+ return {violations,viewport:[innerWidth,innerHeight],devicePixelRatio,workspace:{client:ws.clientHeight,scroll:ws.scrollHeight,excess:ws.scrollHeight-ws.clientHeight},document:{client:document.documentElement.clientHeight,scroll:document.documentElement.scrollHeight,bodyScroll:document.body.scrollHeight,bodyScrollTop:document.body.scrollTop,bodyOverflow:getComputedStyle(document.body).overflowY,bodyChildren:[...document.body.children].filter(visible).map(e=>({tag:e.tagName,cls:e.className,rect:r(e),position:getComputedStyle(e).position,client:e.clientHeight,scroll:e.scrollHeight}))},shell:r(q('.app-shell')),appHeader:r(q('.app-header')),appLayout:r(q('.app-layout')),sidebar:r(q('.sidebar')),left:lr,right:rr,header:head,counter,counterBox,controls,labelMetrics,run:r(q('[data-cv-run]')),runVisibility:getComputedStyle(q('[data-cv-run]')).visibility,fileArea:area,fileCount:q('[data-cv-count]').textContent};
 })()'''
 
 
@@ -62,6 +74,7 @@ def main():
     window.show()
     evidence = {'status':'RUNNING', 'scope':'production source Qt WebEngine + HTTP + native LibreOffice; controlled save destination',
         'installedWindowsGUI':'NOT_RUN', 'cases':[], 'bulkXhtml':'NOT_REQUESTED'}
+    header_references={}
 
     def pump(seconds=.05):
         end = time.monotonic()+seconds
@@ -93,9 +106,12 @@ def main():
     def click(selector):
         js('(()=>{const e=document.querySelector('+json.dumps(selector)+');if(!e||e.disabled)throw Error("Unavailable control: "+'+json.dumps(selector)+');e.click();return true;})()')
 
-    def add(files):
+    def add(files, checking_label=None):
         payload=json.dumps([{'name':name,'data':base64.b64encode(data).decode()} for name,data in files],ensure_ascii=False)
         js('(()=>{const dt=new DataTransfer();for(const f of '+payload+')dt.items.add(new File([Uint8Array.from(atob(f.data),c=>c.charCodeAt(0))],f.name));const p=document.querySelector("[data-cv-picker]");p.files=dt.files;p.dispatchEvent(new Event("change",{bubbles:true}));return true;})()')
+        if checking_label:
+            wait('document.querySelector("[data-cv-add]").disabled','preflight running')
+            capture(checking_label,roomy=True)
         wait('!document.querySelector("[data-cv-add]").disabled','native preflight',timeout=480)
 
     def capture(label, check=True, roomy=False):
@@ -107,11 +123,23 @@ def main():
         if check and not args.record_only:
             assert not metric['violations'],metric
             if roomy:assert metric['workspace']['excess']<=2,metric
+            key=tuple(metric['viewport'])+(metric['devicePixelRatio'],)
+            previous=header_references.get(key)
+            if previous:
+                for name in ('header','counterBox'):
+                    assert all(abs(metric[name][k]-previous['metrics'][name][k])<=1 for k in ('left','top','width','height')),(label,name,previous['label'],metric)
+                for current,original in zip(metric['controls'],previous['metrics']['controls']):
+                    assert all(abs(current[k]-original[k])<=1 for k in ('left','top','width','height')),(label,'header control moved',previous['label'],metric)
+                metric['headerStableTo']=previous['label']
+            else:header_references[key]={'label':label,'metrics':metric}
             metric['reachability']={}
             for selector in ('[data-cv-type-filter]','[data-cv-add]','[data-cv-clear-inputs]','[data-cv-run]'):
                 hit=js('(()=>{const e=document.querySelector('+json.dumps(selector)+');if(e.hidden||getComputedStyle(e).visibility==="hidden")return {hidden:true};e.scrollIntoView({block:"center",behavior:"instant"});const r=e.getBoundingClientRect(),h=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return {reachable:h===e||e.contains(h),hit:h?.tagName,rect:{top:r.top,bottom:r.bottom}};})()')
                 metric['reachability'][selector]=hit
                 assert hit.get('hidden') or hit.get('reachable'),(label,selector,hit)
+                if selector=='[data-cv-clear-inputs]':
+                    pump(.1)
+                    window.view.grab().save(str(output/(label+'-header.png')))
             pump(.1)
             window.view.grab().save(str(output/(label+'-actions.png')))
             js('(()=>{document.querySelector(".workspace").scrollTop=0;window.scrollTo(0,0);return true;})()')
@@ -122,7 +150,37 @@ def main():
             window.resize(width,height)
             window.view.setZoomFactor(zoom)
             pump(.25)
-            capture(prefix+f'-{width}x{height}-zoom{zoom}',roomy=width>=1280 and zoom==1)
+            case_metric=capture(prefix+f'-{width}x{height}-zoom{zoom}',roomy=width>=1280 and zoom==1)
+            if prefix=='empty' and not args.record_only:
+                original=js('document.querySelector("[data-cv-count]").textContent')
+                for maximum in ('4096/4096','10000/10000'):
+                    js('(()=>{document.querySelector("[data-cv-count]").textContent='+json.dumps(maximum)+';return true;})()')
+                    capture(f'max-counter-{maximum.split("/")[0]}-{width}x{height}-zoom{zoom}',roomy=width>=1280 and zoom==1)
+                js('(()=>{document.querySelector("[data-cv-count]").textContent='+json.dumps(original)+';return true;})()')
+            # The real body portal must remain reachable after body containment.
+            js('(()=>{document.querySelector("[data-cv-type-filter]").scrollIntoView({block:"center",behavior:"instant"});return true;})()')
+            click('[data-cv-type-filter]')
+            wait('document.querySelector("[data-cv-type-filter]").getAttribute("aria-expanded")==="true"','filter open')
+            pump(.15)
+            popover=js('(()=>{const p=document.querySelector(".aio-cv-filter__popover:not(.aio-cv-flyout--closing)"),b=p.querySelector(".aio-cv-filter__choice-main"),r=p.getBoundingClientRect(),br=b.getBoundingClientRect(),h=document.elementFromPoint(br.left+br.width/2,br.top+br.height/2);return {withinViewport:r.left>=0&&r.top>=0&&r.right<=innerWidth+1&&r.bottom<=innerHeight+1,choiceReachable:h===b||b.contains(h),bodyPortal:p.parentElement===document.body};})()')
+            assert all(popover.values()),popover
+            click('.aio-cv-filter__popover:not(.aio-cv-flyout--closing) .aio-cv-filter__choice-main')
+            window.view.grab().save(str(output/(prefix+f'-filter-{width}x{height}-zoom{zoom}.png')))
+            click('[data-cv-type-filter]')
+            wait('document.querySelector("[data-cv-type-filter]").getAttribute("aria-expanded")==="false"','filter close')
+            wait('!document.querySelector(".aio-cv-filter__popover")','filter portal disposal')
+            case_metric['filterPopover']=popover
+            if prefix=='one-file':
+                # A real Qt Tab key reaches Add from Filter even inside the
+                # short, bounded workspace; browser focus scrolls it into view.
+                window.view.setFocus()
+                pump(.1)
+                js('(()=>{document.querySelector("[data-cv-type-filter]").focus();return true;})()')
+                QTest.keyClick(window.view.focusProxy() or window.view,Qt.Key.Key_Tab)
+                wait('document.activeElement===document.querySelector("[data-cv-add]")','keyboard Tab to Add',timeout=5)
+                hit=js('(()=>{const e=document.activeElement,r=e.getBoundingClientRect(),h=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return {reachable:h===e||e.contains(h)};})()')
+                assert hit['reachable'],hit
+                case_metric['keyboardTabToAdd']=True
         window.resize(1280,800)
         window.view.setZoomFactor(1)
         pump(.2)
@@ -193,7 +251,7 @@ def main():
             with zipfile.ZipFile(args.xhtml_zip) as archive:
                 originals=[archive.read(f'NEW_0{level}_LEVEL_{level}.xhtml') for level in (1,2)]
             bulk=[(f'bulk_{index:03d}_level_{index%2+1}.xhtml',originals[index%2]) for index in range(args.bulk_count)]
-            add(bulk)
+            add(bulk,checking_label='bulk-xhtml-checking')
             js('(()=>{[...document.querySelectorAll(".aio-cv__category")].find(e=>e.textContent==="Документы").click();return true;})()')
             prepared=server.guard.report(js('window.__qaGuardState.jobId'))
             pdf=js('(()=>{const b=document.querySelector("[aria-label=\\"Выбрать PDF\\"]");return !!b&&!b.disabled;})()')

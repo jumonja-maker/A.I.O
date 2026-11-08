@@ -871,7 +871,9 @@ def check_media_preservation(paths, target, source, *, cancel, source_evidence=N
             expected_losses.append('alpha')
         if display_dimensions(before) != display_dimensions(after):
             raise GuardError('MEDIA_CANVAS_CHANGED',
-                             'Экспорт изменил размер холста изображения.', stage='result')
+                             'Экспорт изменил размер холста изображения.', stage='result',
+                             diagnostic='source_canvas:%dx%d:result_canvas:%dx%d' % (
+                                 *display_dimensions(before), *display_dimensions(after)))
         if before['pages'] > 1 and target not in ('tif', 'tiff'):
             if target in ANIMATED_TARGETS and after['frames'] == before['pages']:
                 expected_losses.append('page_semantics_as_frames')
