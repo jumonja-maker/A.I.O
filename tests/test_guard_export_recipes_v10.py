@@ -96,7 +96,12 @@ class ExportRecipesQA(unittest.TestCase):
 
     def test_next_pdf_does_not_inherit_a_text_dialect(self):
         self.cli('tsv')
-        self.assertEqual(self.cli('pdf')['convert_spec'], 'pdf:calc_pdf_Export')
+        import json
+        extension, filter_name, properties = self.cli('pdf')['convert_spec'].split(':', 2)
+        self.assertEqual((extension, filter_name), ('pdf', 'calc_pdf_Export'))
+        self.assertEqual(json.loads(properties), {
+            'UseLosslessCompression': {'type': 'boolean', 'value': True},
+            'ReduceImageResolution': {'type': 'boolean', 'value': False}})
 
     def test_missing_or_stale_proof_leaves_native_cli_detection_available(self):
         self.assertNotIn('convert_spec', self.cli('tsv', {}))

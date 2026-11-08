@@ -35,7 +35,7 @@ class SourceEvidence:
                 info.st_mtime_ns, info.st_ctime_ns)
 
     def get(self, key, source, loader):
-        if key not in ('odf_table_text', 'media_profile', 'presentation_content'):
+        if key not in ('odf_table_text', 'media_profile', 'presentation_content', 'ooxml_numeric_literals'):
             raise ValueError('unknown_source_evidence_key')
         identity = self._identity(source)
         if identity != self.identity:
@@ -67,6 +67,11 @@ class _Body(HTMLParser):
         if tag in ('script', 'style', 'template', 'head'):
             self.ignored.append(tag)
         if tag in ('script', 'canvas') or 'url(' in attrs.get('style', '').lower():
+            self.dynamic = True
+        if tag == 'iframe':
+            # A nested document can display content without outer body text.
+            # Do not call it empty merely because this body scanner does not
+            # render or flatten its contents.
             self.dynamic = True
         if self.body and not self.ignored:
             if tag in ('img', 'image', 'embed', 'video', 'audio', 'object'):
@@ -157,7 +162,7 @@ class _AttributeLimiter:
                     # A data URI in one src/href has no second resource.
                     # CSS and srcset can introduce another URL after any data
                     # prefix, so dropping their suffix must remain unverified.
-                    if (self._attribute_name is None or self._attribute_name in ('style', 'srcset')
+                    if (self._attribute_name is None or self._attribute_name in ('style', 'srcset', 'srcdoc')
                             or self._attribute_name in ('src', 'href', 'xlink:href', 'poster', 'data', 'background')
                             and not self._attribute_prefix.lstrip().lower().startswith('data:')):
                         self.resource_truncated = True
@@ -277,9 +282,36 @@ def _check_html(paths, source, *, cancel, budget):
         # retrieving any network resource. Reuse the source dependency rules.
         from .core import _LocalHtmlResources
         from .html_resources import inspect_dependencies
+        from .media_fidelity import inspect_media
         missing = []
+        validated_rasters = 0
+
+        def validate_resource(path):
+            nonlocal validated_rasters
+            declared_raster = path.suffix.lower() in ('.png', '.apng', '.jpg', '.jpeg', '.jpe',
+                    '.jif', '.jfif', '.gif', '.webp', '.bmp', '.tif', '.tiff')
+            try:
+                # Detection is by magic, so a renamed PNG/JPEG companion is
+                # still checked. Unknown CSS/font/media types cost a bounded
+                # prefix read and are not mislabeled as invalid images.
+                profile = inspect_media(path, cancel=cancel, validate_container=True)
+                if profile is None:
+                    if not declared_raster:
+                        return
+                    raise GuardError('MEDIA_OUTPUT_INVALID', 'Не распознан контейнер изображения.',
+                                     stage='result')
+            except (GuardError, OSError) as error:
+                if isinstance(error, GuardError) and error.code == 'CANCELLED':
+                    raise
+                raise GuardError('ENGINE_OUTPUT_RESOURCE_INVALID',
+                    'Изображение, на которое ссылается HTML, повреждено или не распознано. '
+                    'Результат не отмечен готовым.', stage='result',
+                    diagnostic='html_raster_resource:' + getattr(error, 'code', type(error).__name__)) from error
+            validated_rasters += 1
+
         resources = inspect_dependencies(primary, _LocalHtmlResources, cancel=cancel,
-            missing=missing, seconds=None, transform_factory=_AttributeLimiter)
+            missing=missing, seconds=None, transform_factory=_AttributeLimiter,
+            resource_visitor=validate_resource)
         if resources == 'HTML_LOCAL_RESOURCES_NOT_UPLOADED':
             raise GuardError('ENGINE_OUTPUT_RESOURCE_MISSING',
                 'В HTML отсутствует локальный ресурс результата. Он не отмечен готовым.',
@@ -287,7 +319,8 @@ def _check_html(paths, source, *, cancel, budget):
         if resources is not None:
             _incomplete('html_resources_not_inspected')
         return {'check': 'html_body', 'status': 'content_present', 'qualityCompared': False,
-                'inspectedBytes': inspected, 'localResourcesChecked': True}
+                'inspectedBytes': inspected, 'localResourcesChecked': True,
+                'validatedRasterResources': validated_rasters}
     if parser.dynamic:
         _incomplete('html_dynamic_content')
     raise GuardError('ENGINE_OUTPUT_CONTENT_EMPTY',
@@ -307,6 +340,9 @@ def check_native_output(paths, target, source, *, cancel, budget=None, source_ev
     from .presentation_evidence import check_presentation_html
     presentation = check_presentation_html(paths, target, source, cancel=cancel,
                                             source_evidence=source_evidence)
+    from .spreadsheet_numeric_contract import check_spreadsheet_numeric_literals
+    numeric = check_spreadsheet_numeric_literals(paths, target, source, cancel=cancel,
+                                                source_evidence=source_evidence)
     media = check_media_preservation(paths, target, source, cancel=cancel,
                                      source_evidence=source_evidence)
     if media is not None:
@@ -317,7 +353,7 @@ def check_native_output(paths, target, source, *, cancel, budget=None, source_ev
         result = _check_html(paths, Path(source), cancel=cancel, budget=budget)
     else:
         result = None
-    checks = [item for item in (invariant, presentation) if item is not None]
+    checks = [item for item in (invariant, presentation, numeric) if item is not None]
     if result is not None:
         return {**result, 'additionalChecks': checks} if checks else result
     if checks:

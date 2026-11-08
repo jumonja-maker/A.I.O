@@ -84,10 +84,11 @@ def csv_import_hint(source: Path, native):
     # UTF-8 charset 76, and first data row 1. Never depend on UI dialogs.
     separator = ord(choices[0])
     # Only a confirmed Calc Text importer supports documented per-column
-    # text types. Never force a whole sheet to text: money/dates need their
-    # normal native parsing. The bounded preview is an import hint, not a
-    # claim that every row was inspected; final output has an independent
-    # source-ID contract.
+    # text types. Only sensitive columns (zero-padded IDs, high-precision
+    # numbers, formula-like literals) become Text; normal money/date columns
+    # retain native parsing. The bounded preview is an import hint, not a
+    # whole-source guarantee; supported Excel targets have an independent
+    # exact token/type contract, including rows outside this sample.
     columns = ''
     if selected == 'Text - txt - csv (StarCalc)':
         try:

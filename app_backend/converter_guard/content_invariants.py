@@ -6,7 +6,6 @@ Instead, compare actual nonempty cell text with an inspectable text export.
 This is a content subset check, not a visual or semantic fidelity certificate.
 """
 import codecs
-from bisect import bisect_left
 from collections import Counter
 from contextlib import contextmanager
 from html.parser import HTMLParser
@@ -16,6 +15,8 @@ import xml.etree.ElementTree as ET
 import zipfile
 
 from .errors import GuardError
+from .text_occurrences import (aio_allocate_text_occurrences,
+                               AioTextAllocationIncomplete, AioTextAllocationOverlap)
 
 _TABLE = 'urn:oasis:names:tc:opendocument:xmlns:table:1.0'
 _TEXT = 'urn:oasis:names:tc:opendocument:xmlns:text:1.0'
@@ -412,110 +413,17 @@ class _Presence:
 
     def finish(self, cancel=None):
         whole = _normalize(''.join(self.parts))
-        if len(whole) * len(self.expected) > MAX_TEXT_MATCH_WORK:
-            raise _InspectionLimited('text_matching_budget')
-        self.missing.clear()
-        patterns = []
-        for value, required in self.expected.items():
-            # Entire normalized values with word boundaries; avoid 42 in 1420
-            # and A/B within AB while retaining arbitrary Unicode text.
-            pattern = re.compile(r'(?<!\w)' + re.escape(value) + r'(?!\w)')
-            patterns.append(pattern)
-            observed = sum(1 for _ in pattern.finditer(whole))
-            if observed < required:
-                self.missing[value] = required - observed
-            if cancel is not None:
-                _cancel(cancel)
-        if self.missing or len(patterns) < 2:
-            return
-
-        required = tuple(self.expected.values())
-        # A successful allocation is a witness even when cell order is lost
-        # in TXT. This cheap path handles ordinary large tables without
-        # retaining every repeated occurrence. Failure is not evidence of loss.
-        end = 0
-        for pattern, count in zip(patterns, required):
-            if cancel is not None:
-                _cancel(cancel)
-            for _ in range(count):
-                match = pattern.search(whole, end)
-                if match is None:
-                    break
-                end = match.end()
-            else:
-                continue
-            break
-        else:
-            return
-
-        work = 0
-        def charge(amount):
-            nonlocal work
-            work += amount
-            if work > MAX_TEXT_ALLOCATION_WORK:
-                raise _InspectionLimited('text_allocation_budget')
-            if cancel is not None:
-                _cancel(cancel)
-
-        charge(len(patterns))
-        starts, intervals = [], []
-        for index, pattern in enumerate(patterns):
-            positions, offset = [], 0
-            while match := pattern.search(whole, offset):
-                charge(1)
-                if len(intervals) >= MAX_TEXT_MATCH_OCCURRENCES:
-                    raise _InspectionLimited('text_occurrence_budget')
-                positions.append(match.start())
-                intervals.append((match.end(), match.start(), index))
-                # Keep self-overlapping candidates: an alternate placement
-                # may be needed to leave another value its own occurrence.
-                offset = match.start() + 1
-            starts.append(positions)
-
-        # Earliest-end interval selection often proves interleaved duplicate
-        # cells in linear space. It may fail despite a valid assignment; only
-        # the bounded exact search below may establish impossibility.
-        remaining, end = list(required), 0
-        for finish, start, index in sorted(intervals):
-            if remaining[index] and start >= end:
-                remaining[index] -= 1
-                end = finish
-        if not any(remaining):
-            return
-
-        # For identical fulfilled-count vectors, the earliest ending position
-        # dominates all later positions. Explore every possible next value,
-        # retaining just that earliest end. This is exact, unlike choosing
-        # longest/shortest matches greedily across different cell values.
-        states = {tuple(0 for _ in required): 0}
-        lengths = tuple(len(value) for value in self.expected)
-        for _ in range(sum(required)):
-            following = {}
-            for counts, end in states.items():
-                charge(len(patterns))
-                for index, count in enumerate(counts):
-                    if count >= required[index]:
-                        continue
-                    position = bisect_left(starts[index], end)
-                    if position == len(starts[index]):
-                        continue
-                    charge(len(patterns))
-                    advanced = list(counts)
-                    advanced[index] += 1
-                    advanced = tuple(advanced)
-                    if advanced == required:
-                        return
-                    finish = starts[index][position] + lengths[index]
-                    if finish < following.get(advanced, float('inf')):
-                        following[advanced] = finish
-                    if len(following) > MAX_TEXT_ALLOCATION_STATES:
-                        raise _InspectionLimited('text_allocation_state_budget')
-            states = following
-            if not states:
-                break
-        raise GuardError('ENGINE_OUTPUT_CONTENT_LOSS',
-            'В результате отсутствуют отдельные вхождения исходных значений ячеек. Он не отмечен готовым.',
-            stage='result', diagnostic='odf_table_overlapping_cell_occurrences')
+        try:
+            self.missing = aio_allocate_text_occurrences(self.expected, whole,
+                cancel=(lambda: _cancel(cancel)) if cancel is not None else None,
+                match_work=MAX_TEXT_MATCH_WORK, allocation_work=MAX_TEXT_ALLOCATION_WORK,
+                max_occurrences=MAX_TEXT_MATCH_OCCURRENCES, max_states=MAX_TEXT_ALLOCATION_STATES)
+        except AioTextAllocationIncomplete as error:
+            raise _InspectionLimited(str(error)) from error
+        except AioTextAllocationOverlap as error:
+            raise GuardError('ENGINE_OUTPUT_CONTENT_LOSS',
+                'В результате отсутствуют отдельные вхождения исходных значений ячеек. Он не отмечен готовым.',
+                stage='result', diagnostic='odf_table_overlapping_cell_occurrences') from error
 
 def _xml_text(stream, matcher, cancel):
     stack, paragraph_depth = [], 0

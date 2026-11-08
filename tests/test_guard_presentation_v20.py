@@ -27,7 +27,10 @@ class PresentationHtmlTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.root = Path(self.tmp.name)
         self.cancel = threading.Event()
-        self.asset = b'known-original-image-content'
+        # Positive exported-resource checks now inspect image containers, so
+        # use an actual 1x1 PNG instead of arbitrary bytes under a .png name.
+        self.asset = base64.b64decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC')
         self.source = self.root / 'slides.pptx'
         self.make_source(self.source)
 

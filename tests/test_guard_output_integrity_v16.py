@@ -144,7 +144,11 @@ class OutputIntegrity(unittest.TestCase):
     def test_html_local_sidecars_must_exist_and_stay_in_output_directory(self):
         data = b'<html><body><img src="figure.png"></body></html>'
         self.assert_failure(data, 'ENGINE_OUTPUT_RESOURCE_MISSING', 'html')
-        (self.root / 'figure.png').write_bytes(b'image bytes')
+        # Resource closure now also validates raster containers. Keep this
+        # positive path a real PNG; missing/traversal assertions stay intact.
+        import base64
+        (self.root / 'figure.png').write_bytes(base64.b64decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC'))
         self.assertTrue(self.check(data, 'html')['localResourcesChecked'])
         self.assert_failure(b'<body><img src="../outside.png"></body>',
                             'ENGINE_OUTPUT_RESOURCE_MISSING', 'html')

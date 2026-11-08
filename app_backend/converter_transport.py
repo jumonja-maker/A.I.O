@@ -421,7 +421,7 @@ class ConverterTransport:
                          ROOT_NAME.fullmatch(item['workspaceId']))
         return len(roots) + sum(item is None for item in self._salvage_roots.values())
 
-    def check_storage(self, additional=0):
+    def check_storage(self, additional=0, *, cancel=None):
         """Measure outside the transport lock; status/cancel never wait on I/O."""
         if type(additional) is not int or additional < 0:
             raise ValueError('additional must be a non-negative integer')
@@ -440,7 +440,14 @@ class ConverterTransport:
                 roots = [parent] + [name for name in owned
                                     if not Path(name).absolute().is_relative_to(parent)]
         try:
-            used = measured_bytes(roots)
+            used = (measured_bytes(roots) if cancel is None else
+                    measured_bytes(roots, cancel=cancel))
+        except LibreOfficeError:
+            # An interrupted scan supplies no fresh exact total. Keep the
+            # prior count for diagnostics, but never expose it as verified.
+            with self.lock:
+                self.storage_measurement_ok = False
+            raise
         except OSError as error:
             with self.lock:
                 self.storage_measurement_ok = False
@@ -453,7 +460,8 @@ class ConverterTransport:
 
     def run_control(self, request):
         return (request.cancel if self.max_owned_bytes is None else
-                LegacyRunControl(request.cancel, self.check_storage))
+                LegacyRunControl(request.cancel,
+                    lambda: self.check_storage(cancel=request.cancel)))
 
     def begin(self, identity, connection, *, expected_upload_bytes=0):
         # Serialize admission/reservation, not status, cancellation or native work.
@@ -616,6 +624,11 @@ class ConverterTransport:
                 {'format': target, 'state': 'queued', 'libreOfficeStarted': False}
                 for target in formats]} for identity in ids]
         for i, source in enumerate(files):
+            from .converter_guard.postconditions import SourceEvidence
+            try:
+                numeric_evidence = SourceEvidence(source['path'])
+            except OSError:
+                numeric_evidence = None
             for j, target in enumerate(formats):
                 row = request.files[i]['targets'][j]
                 row['state'] = 'running'
@@ -631,13 +644,32 @@ class ConverterTransport:
                     outputs = convert_path(source['path'], target,
                         request.root / 'native' / str(i) / str(j),
                         cancel=control, on_started=started)
+                    from .legacy_preservation import check_legacy_sheet_preservation
+                    sheet_check = check_legacy_sheet_preservation(source['path'], target, outputs,
+                        request.root / 'native' / str(i) / str(j) / 'output', cancel=control)
+                    if sheet_check is not None:
+                        row['resultChecks'] = [sheet_check]
+                    from .converter_guard.spreadsheet_numeric_contract import check_spreadsheet_numeric_literals
+                    try:
+                        numeric_check = check_spreadsheet_numeric_literals(outputs, target,
+                            source['path'], cancel=control, source_evidence=numeric_evidence)
+                    except GuardError as error:
+                        code = ('CANCELLED' if error.code == 'CANCELLED' else
+                                'LEGACY_OUTPUT_CONTENT_LOSS' if error.code == 'ENGINE_OUTPUT_CONTENT_LOSS'
+                                else 'LEGACY_OUTPUT_VALIDATION_INCOMPLETE')
+                        raise LibreOfficeError(error.message, code, diagnostic=error.diagnostic) from error
+                    if numeric_check is not None:
+                        row.setdefault('resultChecks', []).append(numeric_check)
                     self.check_storage()
                     output_root = request.root / 'native' / str(i) / str(j) / 'output'
                     for path in outputs:
                         archive_path = f'{i + 1:03d}_{target}/' + path.relative_to(output_root).as_posix()
                         artifacts.append((archive_path, path))
                     row['state'] = 'ready'
-                    row['warnings'] = source['warnings']
+                    row['warnings'] = list(source['warnings'])
+                    if numeric_check is not None and numeric_check.get('status') == 'not_checked':
+                        from .converter_guard.export_recipe import WARNING_TEXT
+                        row['warnings'].append(WARNING_TEXT['NATIVE_OUTPUT_NOT_CHECKED'])
                 except LibreOfficeError as exc:
                     row.update(state='error', code=exc.code, error=str(exc))
                     if exc.code.startswith('LEGACY_STORAGE_'):
@@ -683,11 +715,12 @@ class ConverterTransport:
                 archive_budget += sum(output.stat().st_size + 256 + 2 * len(name.encode('utf-8'))
                                       for name, output in artifacts)
                 self.check_storage(archive_budget)
-            storage_control = LegacyRunControl(threading.Event(), self.check_storage)
+            storage_control = LegacyRunControl(request.packaging_cancel,
+                lambda: self.check_storage(cancel=request.packaging_cancel))
 
             def check_verification_storage():
                 try:
-                    self.check_storage()
+                    self.check_storage(cancel=request.packaging_cancel)
                 except LibreOfficeError as error:
                     # LibreOfficeError is a ValueError. Without a narrow
                     # control boundary, a mid-readback quota failure would be

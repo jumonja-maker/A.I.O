@@ -34,14 +34,12 @@ def send(value):
     print(PREFIX + json.dumps(value, ensure_ascii=True), flush=True)
 
 def automatic_export_properties(req, prop, uno_runtime):
-    """A finite trusted recipe, not a bridge for arbitrary UNO properties."""
+    """Vetted PDF defaults/retry recipes, not arbitrary UNO properties."""
     recipe = req.get('automaticRecipe')
     data = req.get('exportFilterData')
-    if recipe is None:
-        if data is not None:
-            raise RuntimeError('AUTOMATIC_FILTER_DATA_WITHOUT_RECIPE')
+    if recipe is None and data is None:
         return []
-    if recipe == 'pdf_preserve_images':
+    if recipe in (None, 'pdf_preserve_images'):
         expected = {'UseLosslessCompression': True, 'ReduceImageResolution': False}
         if (req.get('format') != 'pdf' or
                 not req.get('exportFilter', '').endswith('_pdf_Export') or

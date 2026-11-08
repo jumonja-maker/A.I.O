@@ -126,6 +126,14 @@ def display_page_dimensions(info):
     return [[height, width] if orientation >= 5 else [width, height]
             for (width, height), orientation in zip(dimensions, orientations)]
 
+
+def _display_resolutions(info):
+    count = max(info['pages'], info['frames'])
+    resolutions = info.get('pageDpi', [info.get('dpi')] * count)
+    orientations = info.get('pageOrientations', [info.get('orientation', 1)] * count)
+    return [resolution[::-1] if resolution and orientation >= 5 else resolution
+            for resolution, orientation in zip(resolutions, orientations)]
+
 def _png(r):
     if r.read(8) != b'\x89PNG\r\n\x1a\n':
         raise _Invalid('png_signature')
@@ -138,6 +146,8 @@ def _png(r):
     saw_data = False
     sequence = 0
     first = True
+    icc_present = False
+    dpi = None
     while True:
         r.record()
         length, kind = struct.unpack('>I4s', r.read(8))
@@ -165,6 +175,14 @@ def _png(r):
             alpha = colour in (4, 6)
         elif kind == b'eXIf':
             orientation = _exif_orientation(head)
+        elif kind == b'iCCP':
+            icc_present = True
+        elif kind == b'pHYs':
+            if length != 9:
+                raise _Invalid('png_physical_resolution')
+            x, y, unit = struct.unpack('>IIB', head)
+            if unit == 1 and x and y:
+                dpi = [x * 0.0254, y * 0.0254]
         elif kind == b'tRNS':
             alpha = True
         elif kind == b'acTL':
@@ -199,6 +217,10 @@ def _png(r):
             result['loopCount'] = loops
             result['bitDepth'] = depth
             result['orientation'] = orientation
+            if icc_present:
+                result['iccProfilePresent'] = True
+            if dpi is not None:
+                result['dpi'] = dpi
             return result
 
 
@@ -284,6 +306,7 @@ def _webp(r):
     loops = 1
     durations = []
     image = False
+    icc_present = False
     while r.file.tell() < r.size:
         r.record()
         kind, length = struct.unpack('<4sI', r.read(8))
@@ -312,6 +335,8 @@ def _webp(r):
             image = True
         elif kind == b'EXIF':
             orientation = _exif_orientation(head)
+        elif kind == b'ICCP':
+            icc_present = True
         elif kind == b'ANIM':
             if length != 6 or not animation:
                 raise _Invalid('webp_anim')
@@ -329,6 +354,8 @@ def _webp(r):
     result = _base('webp', width, height, frames=len(durations) or 1, alpha=alpha, durations=durations)
     result['loopCount'] = loops
     result['orientation'] = orientation
+    if icc_present:
+        result['iccProfilePresent'] = True
     return result
 
 
@@ -405,6 +432,7 @@ def _tiff(r, *, complete=False):
     page_indexes = []
     page_orientations = []
     page_dpi = []
+    page_profiles = []
     alpha = False
     sizes = {1: 1, 3: 2, 4: 4, 5: 8, 16: 8}
     codes = {1: 'B', 3: 'H', 4: 'I', 16: 'Q'}
@@ -419,10 +447,13 @@ def _tiff(r, *, complete=False):
             raise _Invalid('tiff_ifd_bounds')
         values = {}
         data_tables = {}
+        icc_present = False
         for _ in range(count):
             r.record()
             entry = r.read(entry_size)
             tag, typ = struct.unpack(endian+'HH', entry[:4])
+            if tag == 34675:
+                icc_present = True
             if complete and tag in (273, 279, 324, 325, 513, 514):
                 if tag in data_tables:
                     raise _Invalid('tiff_duplicate_data_table')
@@ -463,6 +494,7 @@ def _tiff(r, *, complete=False):
         factor = 1 if unit == 2 else 2.54 if unit == 3 else 0
         dx, dy = values.get(282, (0,))[0] * factor, values.get(283, (0,))[0] * factor
         page_dpi.append([dx, dy] if dx > 0 and dy > 0 else None)
+        page_profiles.append(icc_present)
         alpha |= any(v in (1, 2) for v in values.get(338, ()))
     if not dimensions:
         raise _Invalid('tiff_pages')
@@ -473,6 +505,9 @@ def _tiff(r, *, complete=False):
     result['pageOrientations'] = page_orientations
     result['orientation'] = page_orientations[0]
     result['pageDpi'] = page_dpi
+    if any(page_profiles):
+        result['iccProfilePresent'] = True
+        result['pageIccProfiles'] = page_profiles
     return result
 
 
@@ -516,8 +551,22 @@ def _jpeg(r, *, complete=False):
     result = None
     pending_marker = None
     saw_scan = False
+    icc_present = False
+
+    def incomplete_source_metadata():
+        # A native decoder may recover an incomplete source. Retain the old
+        # dimensions-only probe without certifying the unfinished metadata or
+        # relaxing the independent complete-output validator.
+        result['orientation'] = orientation
+        result['metadataComplete'] = False
+        if icc_present:
+            result['iccProfilePresent'] = True
+        return result
+
     while True:
         r.record()
+        if not complete and result is not None and r.size-r.file.tell() < 4:
+            return incomplete_source_metadata()
         if pending_marker is None:
             if r.read(1) != b'\xff':
                 raise _Invalid('jpeg_marker')
@@ -537,6 +586,8 @@ def _jpeg(r, *, complete=False):
         length = struct.unpack('>H', r.read(2))[0]
         if length < 2:
             raise _Invalid('jpeg_segment')
+        if not complete and result is not None and length-2 > r.size-r.file.tell():
+            return incomplete_source_metadata()
         if marker in (0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf):
             if length < 8:
                 raise _Invalid('jpeg_sof')
@@ -544,8 +595,8 @@ def _jpeg(r, *, complete=False):
             if result is None:
                 result = _base('jpeg', width, height)
                 result['orientation'] = orientation
-            if not complete:
-                return result
+            if not complete and length-7 > r.size-r.file.tell():
+                return incomplete_source_metadata()
             components = r.read(length - 7)
             if not components or not components[0] or len(components) != 1 + 3 * components[0]:
                 raise _Invalid('jpeg_frame_components')
@@ -556,11 +607,20 @@ def _jpeg(r, *, complete=False):
             if not payload or not payload[0] or len(payload) != 4 + 2 * payload[0]:
                 raise _Invalid('jpeg_scan_header')
             saw_scan = True
+            result['orientation'] = orientation
+            if icc_present:
+                result['iccProfilePresent'] = True
+            if not complete:
+                return result
             pending_marker = _jpeg_entropy_marker(r)
         elif marker == 0xe1:
             payload = r.read(length - 2)
             if payload.startswith(b'Exif\0\0'):
                 orientation = _exif_orientation(payload)
+        elif marker == 0xe2:
+            payload = r.read(length - 2)
+            if payload.startswith(b'ICC_PROFILE\0'):
+                icc_present = True
         else:
             r.skip(length-2)
 
@@ -790,6 +850,18 @@ def check_media_preservation(paths, target, source, *, cancel, source_evidence=N
         if before.get('pageDimensions') and target in ('tif', 'tiff'):
             if display_page_dimensions(before) != display_page_dimensions(after):
                 raise GuardError('MEDIA_CANVAS_CHANGED', 'Экспорт изменил размеры страниц TIFF.', stage='result')
+        if target in ('png', 'apng', 'tif', 'tiff'):
+            original_resolution = _display_resolutions(before)
+            output_resolution = _display_resolutions(after)
+            for index, expected in enumerate(original_resolution):
+                if expected is None:
+                    continue  # An untagged source has no proven physical scale.
+                actual = output_resolution[index] if index < len(output_resolution) else None
+                if actual is None or any(abs(a-b) > max(0.05, a * .0001)
+                                         for a, b in zip(expected, actual)):
+                    raise GuardError('MEDIA_DPI_LOSS',
+                                     'Экспорт изменил физический масштаб изображения или страниц.',
+                                     stage='result')
     elif source.suffix.lower() == '.pdf' and target in ('tif', 'tiff'):
         try:
             from pypdf import PdfReader
