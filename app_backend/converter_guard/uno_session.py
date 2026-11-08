@@ -24,7 +24,7 @@ from .native_fidelity import NATIVE_FIDELITY_SOURCE
 from .native_pptx_colours import PPTX_COLOUR_SOURCE
 
 WORKER_SOURCE = DIF_CORE_SOURCE + SHEET_OUTPUT_SOURCE + NATIVE_FIDELITY_SOURCE + PPTX_COLOUR_SOURCE + r'''
-import json, os, sys, time, subprocess
+import json, os, sys, time, subprocess, stat
 from pathlib import Path
 
 PREFIX = 'AIO_GUARD_RPC '
@@ -73,14 +73,29 @@ def dbf_mixed_columns(sheet, area, *, trusted_schema=False):
     """Find columns native dBase's first-record type inference would truncate."""
     first = tuple(sheet.getCellRangeByPosition(0, 0, area.EndColumn, 0).getDataArray()[0])
     header = bool(first) and all(isinstance(value, str) and value != '' for value in first)
+    def representable(value):
+        try:
+            if isinstance(value, str):
+                value.encode('cp1251', 'strict')
+                # The current native source-admission contract confirms memo
+                # imports as UTF-8. Keep long text on that supported path.
+                if len(value.encode('utf-8')) > 254:
+                    return False
+            return True
+        except UnicodeEncodeError:
+            return False
+    cp1251 = all(representable(value) for value in first)
     kinds = [set() for _ in first]
     for row in range(1 if header else 0, area.EndRow + 1, 128):
         last_row = min(area.EndRow, row + 127)
         for column in range(0, area.EndColumn + 1, 128):
             last_column = min(area.EndColumn, column + 127)
             values = sheet.getCellRangeByPosition(column, row, last_column, last_row).getDataArray()
-            for record in values:
+            for row_offset, record in enumerate(values):
                 for offset, value in enumerate(record):
+                    actual = (sheet.getCellByPosition(column + offset, row + row_offset).getString()
+                              if value is None else value)
+                    cp1251 = cp1251 and representable(actual)
                     if value is None:
                         kinds[column + offset].add('text')
                     elif isinstance(value, str):
@@ -101,6 +116,8 @@ def dbf_mixed_columns(sheet, area, *, trusted_schema=False):
     for column, observed in enumerate(kinds):
         original = str(first[column]) if header else 'FIELD' + str(column + 1)
         declared = original.split(',')[1:2] if header and trusted_schema else []
+        if declared and declared[0].strip().upper() == 'M':
+            cp1251 = False
         if len(observed) > 1 or ('text' in observed and declared and declared[0].strip().upper() in ('N', 'D', 'L')):
             mixed.append(column)
         if trusted_schema and header:
@@ -123,9 +140,43 @@ def dbf_mixed_columns(sheet, area, *, trusted_schema=False):
             names[column] = name + (',M' if column in mixed else '')
     return {'header': header, 'originalHeaders': list(first) if header else None,
             'mixed': mixed, 'exportHeaders': names, 'fieldNames': field_names,
-            'renamedFields': renamed, 'trustedSchema': trusted_schema}
+            'renamedFields': renamed, 'trustedSchema': trusted_schema,
+            'cp1251': cp1251 and not mixed}
 
-def export_table_sheets(model, desktop, prop, target, export_options, *, csv_format=None, raw_values=False, preservation=None, dbf_schema=False):
+def dbf_native_options(options, prop, profile):
+    # Native export owns all value/width/memo encoding. Strict representability
+    # was checked while profiling the sheet; no replacement-character fallback.
+    return [prop('FilterOptions', '34' if profile['cp1251'] else '76')
+            if option.Name == 'FilterOptions' else option for option in options] + (
+                [] if any(option.Name == 'FilterOptions' for option in options)
+                else [prop('FilterOptions', '34' if profile['cp1251'] else '76')])
+
+def declare_native_dbf_encoding(path, profile):
+    # LO can emit LDID zero even for explicit FilterOptions=34. C9 declares
+    # exactly those native Windows-1251 bytes. Change only the metadata byte;
+    # UTF-8 has no interoperable dBASE III LDID and must retain its CPG caveat.
+    metadata = path.lstat()
+    if not stat.S_ISREG(metadata.st_mode) or getattr(metadata, 'st_file_attributes', 0) & 0x400:
+        raise DbfSchemaUnconfirmed('DBF_NATIVE_CODEPAGE_PATH_INVALID')
+    descriptor = os.open(path, os.O_RDWR | getattr(os, 'O_NOFOLLOW', 0))
+    with os.fdopen(descriptor, 'r+b') as stream:
+        head = stream.read(32)
+        expected = (0, 0xC9) if profile['cp1251'] else (0,)
+        if (len(head) != 32 or head[0] not in (3, 4, 0x30, 0x83, 0x8b, 0xf5)
+                or head[29] not in expected
+                or int.from_bytes(head[8:10], 'little') < 33
+                or int.from_bytes(head[10:12], 'little') < 1):
+            raise DbfSchemaUnconfirmed('DBF_NATIVE_CODEPAGE_UNCONFIRMED')
+        if profile['cp1251']:
+            declaration = stream.read(int.from_bytes(head[8:10], 'little')-32)
+            if (head[0] != 3 or not declaration or declaration[-1] != 13 or (len(declaration)-1) % 32
+                    or any(declaration[index+11] == ord('M') for index in range(0, len(declaration)-1, 32))):
+                raise DbfSchemaUnconfirmed('DBF_NATIVE_CP1251_MEMO_IMPORT_UNCONFIRMED')
+        if profile['cp1251'] and head[29] == 0:
+            stream.seek(29)
+            stream.write(b'\xc9')
+
+def export_table_sheets(model, desktop, prop, target, export_options, *, csv_format=None, raw_values=False, preservation=None, dbf_schema=False, declare_dbf_encoding=False):
     """One native legacy file per sheet, without approving a lossy dialog.
 
     DIF's native exporter always starts at sheet zero; it warns and drops all
@@ -161,7 +212,10 @@ def export_table_sheets(model, desktop, prop, target, export_options, *, csv_for
         profiles.append((area, dbf_mixed_columns(sheet, area, trusted_schema=dbf_schema)
                          if is_dbf else {'mixed': [], 'renamedFields': []}))
     if not csv_format and count <= 1 and not profiles[0][1]['mixed'] and not profiles[0][1]['renamedFields']:
-        model.storeToURL(target.as_uri(), tuple(export_options))
+        options = dbf_native_options(export_options, prop, profiles[0][1]) if is_dbf else export_options
+        model.storeToURL(target.as_uri(), tuple(options))
+        if is_dbf and declare_dbf_encoding:
+            declare_native_dbf_encoding(target, profiles[0][1])
         return [target]
     outputs = []
     for index in range(count):
@@ -238,6 +292,16 @@ def export_table_sheets(model, desktop, prop, target, export_options, *, csv_for
                                     'sourceValue': original, 'exportedText': text},
                                     ensure_ascii=True, allow_nan=False) + '\n')
                         values = tuple(tuple(record) for record in changed)
+                    if is_dbf and profile['cp1251']:
+                        try:
+                            for record in values:
+                                for value in record:
+                                    if isinstance(value, str):
+                                        value.encode('cp1251', 'strict')
+                                        if len(value.encode('utf-8')) > 254:
+                                            profile['cp1251'] = False
+                        except UnicodeEncodeError:
+                            profile['cp1251'] = False
                     copied.getCellRangeByPosition(
                         column, row, last_column, last_row).setDataArray(values)
             if profile['mixed'] or profile['renamedFields']:
@@ -253,7 +317,10 @@ def export_table_sheets(model, desktop, prop, target, export_options, *, csv_for
                         copied.getCellByPosition(column, 0).setString(profile['fieldNames'][column] + ',M')
                 mapping.close()
                 mapping = None
-            temporary.storeToURL(path.as_uri(), tuple(export_options))
+            options = dbf_native_options(export_options, prop, profile) if is_dbf else export_options
+            temporary.storeToURL(path.as_uri(), tuple(options))
+            if is_dbf and declare_dbf_encoding:
+                declare_native_dbf_encoding(path, profile)
             if csv_format:
                 cache = {}
                 def expected(row, column):
@@ -546,7 +613,8 @@ def main(boot_name):
                                 raise RuntimeError('NATIVE_TEXT_EXPORT_CAPABILITY_CHANGED:' + text_reason)
                         calc_export = (aio_export_calc_pages(model, remote, prop, target, req['exportFilter'])
                             if 'com.sun.star.sheet.SpreadsheetDocument' in services else None)
-                        graphic_pages = (aio_export_graphic_pages(model, remote, prop, target, preservation_plan)
+                        graphic_pages = (aio_export_graphic_pages(model, remote, prop, target, preservation_plan,
+                            source=source, import_filter=actual_filter)
                             if set(services).intersection(('com.sun.star.drawing.DrawingDocument',
                                 'com.sun.star.presentation.PresentationDocument')) else None)
                         writer_pages = (aio_export_writer_pages(
@@ -566,7 +634,8 @@ def main(boot_name):
                             exported_paths = export_table_sheets(model, desktop, prop, target, export_options,
                                 csv_format=req['format'] if req['format'] in ('csv','tab','tsv') else None,
                                 raw_values=req.get('automaticRecipe') == 'csv_preserve_values',
-                                preservation=preservation_plan, dbf_schema=actual_filter == 'dBase')
+                                preservation=preservation_plan, dbf_schema=actual_filter == 'dBase',
+                                declare_dbf_encoding=req['exportFilter'] == 'dBase')
                         else:
                             pptx_colour_check = aio_export_theme_free_pptx(
                                 model, source, actual_filter, target, export_options, req['exportFilter'])

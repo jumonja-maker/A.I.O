@@ -1,0 +1,4467 @@
+{
+  "status": "PASS",
+  "scope": "production source Qt WebEngine + HTTP + native LibreOffice; controlled save destination",
+  "installedWindowsGUI": "NOT_RUN",
+  "cases": [
+    {
+      "label": "empty-1440x1000-zoom1",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          1440,
+          1000
+        ],
+        "devicePixelRatio": 1,
+        "workspace": {
+          "client": 732,
+          "scroll": 732,
+          "excess": 0
+        },
+        "document": {
+          "client": 1000,
+          "scroll": 1000
+        },
+        "left": {
+          "left": 323,
+          "top": 216.140625,
+          "right": 794.953125,
+          "bottom": 827,
+          "width": 471.953125,
+          "height": 610.859375
+        },
+        "right": {
+          "left": 808.953125,
+          "top": 216.140625,
+          "right": 1363,
+          "bottom": 827,
+          "width": 554.046875,
+          "height": 610.859375
+        },
+        "header": {
+          "left": 340,
+          "top": 233.140625,
+          "right": 777.953125,
+          "bottom": 305.140625,
+          "width": 437.953125,
+          "height": 72
+        },
+        "controls": [
+          {
+            "left": 340,
+            "top": 265.65625,
+            "right": 444,
+            "bottom": 303.65625,
+            "width": 104,
+            "height": 38
+          },
+          {
+            "left": 741.953125,
+            "top": 265.65625,
+            "right": 777.953125,
+            "bottom": 303.65625,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "run": {
+          "left": 825.953125,
+          "top": 712,
+          "right": 1346,
+          "bottom": 760,
+          "width": 520.046875,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 340,
+          "top": 369.140625,
+          "right": 777.953125,
+          "bottom": 810,
+          "width": 437.953125,
+          "height": 440.859375
+        },
+        "fileCount": "0/0"
+      }
+    },
+    {
+      "label": "empty-1280x800-zoom1",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          1280,
+          800
+        ],
+        "devicePixelRatio": 1,
+        "workspace": {
+          "client": 660,
+          "scroll": 660,
+          "excess": 0
+        },
+        "document": {
+          "client": 800,
+          "scroll": 800
+        },
+        "left": {
+          "left": 303,
+          "top": 214.203125,
+          "right": 719.75,
+          "bottom": 754.59375,
+          "width": 416.75,
+          "height": 540.390625
+        },
+        "right": {
+          "left": 733.75,
+          "top": 214.203125,
+          "right": 1223,
+          "bottom": 754.59375,
+          "width": 489.25,
+          "height": 540.390625
+        },
+        "header": {
+          "left": 320,
+          "top": 231.203125,
+          "right": 702.75,
+          "bottom": 303.203125,
+          "width": 382.75,
+          "height": 72
+        },
+        "controls": [
+          {
+            "left": 320,
+            "top": 263.71875,
+            "right": 424,
+            "bottom": 301.71875,
+            "width": 104,
+            "height": 38
+          },
+          {
+            "left": 666.75,
+            "top": 263.71875,
+            "right": 702.75,
+            "bottom": 301.71875,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "run": {
+          "left": 750.75,
+          "top": 639.59375,
+          "right": 1206,
+          "bottom": 687.59375,
+          "width": 455.25,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 320,
+          "top": 367.203125,
+          "right": 702.75,
+          "bottom": 737.59375,
+          "width": 382.75,
+          "height": 370.390625
+        },
+        "fileCount": "0/0"
+      }
+    },
+    {
+      "label": "empty-1024x640-zoom1",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          1024,
+          640
+        ],
+        "devicePixelRatio": 1,
+        "workspace": {
+          "client": 500,
+          "scroll": 1008,
+          "excess": 508
+        },
+        "document": {
+          "client": 640,
+          "scroll": 640
+        },
+        "left": {
+          "left": 303,
+          "top": 201.703125,
+          "right": 967,
+          "bottom": 501.703125,
+          "width": 664,
+          "height": 300
+        },
+        "right": {
+          "left": 303,
+          "top": 515.703125,
+          "right": 967,
+          "bottom": 1115.703125,
+          "width": 664,
+          "height": 600
+        },
+        "header": {
+          "left": 320,
+          "top": 218.703125,
+          "right": 950,
+          "bottom": 262.703125,
+          "width": 630,
+          "height": 44
+        },
+        "controls": [
+          {
+            "left": 804,
+            "top": 221.703125,
+            "right": 908,
+            "bottom": 259.703125,
+            "width": 104,
+            "height": 38
+          },
+          {
+            "left": 914,
+            "top": 221.703125,
+            "right": 950,
+            "bottom": 259.703125,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "run": {
+          "left": 320,
+          "top": 1000.703125,
+          "right": 950,
+          "bottom": 1048.703125,
+          "width": 630,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 320,
+          "top": 326.703125,
+          "right": 950,
+          "bottom": 484.703125,
+          "width": 630,
+          "height": 158
+        },
+        "fileCount": "0/0"
+      }
+    },
+    {
+      "label": "empty-800x600-zoom1.5",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          533,
+          400
+        ],
+        "devicePixelRatio": 1.5,
+        "workspace": {
+          "client": 1047,
+          "scroll": 1047,
+          "excess": 0
+        },
+        "document": {
+          "client": 400,
+          "scroll": 1309
+        },
+        "left": {
+          "left": 24,
+          "top": 376.9583435058594,
+          "right": 497.3333435058594,
+          "bottom": 676.9583435058594,
+          "width": 473.3333435058594,
+          "height": 300
+        },
+        "right": {
+          "left": 24,
+          "top": 690.9583740234375,
+          "right": 497.3333435058594,
+          "bottom": 1290.9583740234375,
+          "width": 473.3333435058594,
+          "height": 600
+        },
+        "header": {
+          "left": 40.66666793823242,
+          "top": 393.625,
+          "right": 480.6666679382324,
+          "bottom": 465.625,
+          "width": 440,
+          "height": 72
+        },
+        "controls": [
+          {
+            "left": 40.66666793823242,
+            "top": 425.5,
+            "right": 144.66666793823242,
+            "bottom": 463.5,
+            "width": 104,
+            "height": 38
+          },
+          {
+            "left": 444.66668701171875,
+            "top": 425.5,
+            "right": 480.66668701171875,
+            "bottom": 463.5,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "run": {
+          "left": 40.66666793823242,
+          "top": 1176.291748046875,
+          "right": 480.6666679382324,
+          "bottom": 1224.291748046875,
+          "width": 440,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 40.66666793823242,
+          "top": 529.625,
+          "right": 480.6666679382324,
+          "bottom": 660.2916717529297,
+          "width": 440,
+          "height": 130.6666717529297
+        },
+        "fileCount": "0/0"
+      }
+    },
+    {
+      "label": "empty-640x480-zoom1.5",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          427,
+          320
+        ],
+        "devicePixelRatio": 1.5,
+        "workspace": {
+          "client": 1070,
+          "scroll": 1070,
+          "excess": 0
+        },
+        "document": {
+          "client": 320,
+          "scroll": 1332
+        },
+        "left": {
+          "left": 24,
+          "top": 399.9375,
+          "right": 390.66668701171875,
+          "bottom": 699.9375,
+          "width": 366.66668701171875,
+          "height": 300
+        },
+        "right": {
+          "left": 24,
+          "top": 713.9375,
+          "right": 390.66668701171875,
+          "bottom": 1313.9375,
+          "width": 366.66668701171875,
+          "height": 600
+        },
+        "header": {
+          "left": 35.66666793823242,
+          "top": 411.60418701171875,
+          "right": 379.0000114440918,
+          "bottom": 483.60418701171875,
+          "width": 343.3333435058594,
+          "height": 72
+        },
+        "controls": [
+          {
+            "left": 233,
+            "top": 443.47918701171875,
+            "right": 337,
+            "bottom": 481.47918701171875,
+            "width": 104,
+            "height": 38
+          },
+          {
+            "left": 343,
+            "top": 443.47918701171875,
+            "right": 379,
+            "bottom": 481.47918701171875,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "run": {
+          "left": 35.66666793823242,
+          "top": 1204.2708740234375,
+          "right": 379.0000114440918,
+          "bottom": 1252.2708740234375,
+          "width": 343.3333435058594,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 35.66666793823242,
+          "top": 547.6041870117188,
+          "right": 379.0000114440918,
+          "bottom": 688.2708587646484,
+          "width": 343.3333435058594,
+          "height": 140.6666717529297
+        },
+        "fileCount": "0/0"
+      }
+    },
+    {
+      "label": "one-file-1440x1000-zoom1",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          1440,
+          1000
+        ],
+        "devicePixelRatio": 1,
+        "workspace": {
+          "client": 732,
+          "scroll": 732,
+          "excess": 0
+        },
+        "document": {
+          "client": 1000,
+          "scroll": 1000
+        },
+        "left": {
+          "left": 323,
+          "top": 216.140625,
+          "right": 794.953125,
+          "bottom": 827,
+          "width": 471.953125,
+          "height": 610.859375
+        },
+        "right": {
+          "left": 808.953125,
+          "top": 216.140625,
+          "right": 1363,
+          "bottom": 827,
+          "width": 554.046875,
+          "height": 610.859375
+        },
+        "header": {
+          "left": 340,
+          "top": 233.140625,
+          "right": 777.953125,
+          "bottom": 305.140625,
+          "width": 437.953125,
+          "height": 72
+        },
+        "controls": [
+          {
+            "left": 340,
+            "top": 265.65625,
+            "right": 444,
+            "bottom": 303.65625,
+            "width": 104,
+            "height": 38
+          },
+          {
+            "left": 451,
+            "top": 266.65625,
+            "right": 735.953125,
+            "bottom": 302.65625,
+            "width": 284.953125,
+            "height": 36
+          },
+          {
+            "left": 741.953125,
+            "top": 265.65625,
+            "right": 777.953125,
+            "bottom": 303.65625,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "run": {
+          "left": 825.953125,
+          "top": 712,
+          "right": 1346,
+          "bottom": 760,
+          "width": 520.046875,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 340,
+          "top": 369.140625,
+          "right": 777.953125,
+          "bottom": 810,
+          "width": 437.953125,
+          "height": 440.859375
+        },
+        "fileCount": "1/1"
+      }
+    },
+    {
+      "label": "one-file-1280x800-zoom1",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          1280,
+          800
+        ],
+        "devicePixelRatio": 1,
+        "workspace": {
+          "client": 660,
+          "scroll": 660,
+          "excess": 0
+        },
+        "document": {
+          "client": 800,
+          "scroll": 800
+        },
+        "left": {
+          "left": 303,
+          "top": 214.203125,
+          "right": 719.75,
+          "bottom": 754.59375,
+          "width": 416.75,
+          "height": 540.390625
+        },
+        "right": {
+          "left": 733.75,
+          "top": 214.203125,
+          "right": 1223,
+          "bottom": 754.59375,
+          "width": 489.25,
+          "height": 540.390625
+        },
+        "header": {
+          "left": 320,
+          "top": 231.203125,
+          "right": 702.75,
+          "bottom": 303.203125,
+          "width": 382.75,
+          "height": 72
+        },
+        "controls": [
+          {
+            "left": 320,
+            "top": 263.71875,
+            "right": 424,
+            "bottom": 301.71875,
+            "width": 104,
+            "height": 38
+          },
+          {
+            "left": 431,
+            "top": 264.71875,
+            "right": 660.75,
+            "bottom": 300.71875,
+            "width": 229.75,
+            "height": 36
+          },
+          {
+            "left": 666.75,
+            "top": 263.71875,
+            "right": 702.75,
+            "bottom": 301.71875,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "run": {
+          "left": 750.75,
+          "top": 639.59375,
+          "right": 1206,
+          "bottom": 687.59375,
+          "width": 455.25,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 320,
+          "top": 367.203125,
+          "right": 702.75,
+          "bottom": 737.59375,
+          "width": 382.75,
+          "height": 370.390625
+        },
+        "fileCount": "1/1"
+      }
+    },
+    {
+      "label": "one-file-1024x640-zoom1",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          1024,
+          640
+        ],
+        "devicePixelRatio": 1,
+        "workspace": {
+          "client": 500,
+          "scroll": 1008,
+          "excess": 508
+        },
+        "document": {
+          "client": 640,
+          "scroll": 640
+        },
+        "left": {
+          "left": 303,
+          "top": 201.703125,
+          "right": 967,
+          "bottom": 501.703125,
+          "width": 664,
+          "height": 300
+        },
+        "right": {
+          "left": 303,
+          "top": 515.703125,
+          "right": 967,
+          "bottom": 1115.703125,
+          "width": 664,
+          "height": 600
+        },
+        "header": {
+          "left": 320,
+          "top": 218.703125,
+          "right": 950,
+          "bottom": 262.703125,
+          "width": 630,
+          "height": 44
+        },
+        "controls": [
+          {
+            "left": 667.09375,
+            "top": 221.703125,
+            "right": 771.09375,
+            "bottom": 259.703125,
+            "width": 104,
+            "height": 38
+          },
+          {
+            "left": 778.09375,
+            "top": 223.203125,
+            "right": 908,
+            "bottom": 258.203125,
+            "width": 129.90625,
+            "height": 35
+          },
+          {
+            "left": 914,
+            "top": 221.703125,
+            "right": 950,
+            "bottom": 259.703125,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "run": {
+          "left": 320,
+          "top": 1000.703125,
+          "right": 950,
+          "bottom": 1048.703125,
+          "width": 630,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 320,
+          "top": 326.703125,
+          "right": 950,
+          "bottom": 484.703125,
+          "width": 630,
+          "height": 158
+        },
+        "fileCount": "1/1"
+      }
+    },
+    {
+      "label": "one-file-800x600-zoom1.5",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          533,
+          400
+        ],
+        "devicePixelRatio": 1.5,
+        "workspace": {
+          "client": 1047,
+          "scroll": 1047,
+          "excess": 0
+        },
+        "document": {
+          "client": 400,
+          "scroll": 1309
+        },
+        "left": {
+          "left": 24,
+          "top": 376.9583435058594,
+          "right": 497.3333435058594,
+          "bottom": 676.9583435058594,
+          "width": 473.3333435058594,
+          "height": 300
+        },
+        "right": {
+          "left": 24,
+          "top": 690.9583740234375,
+          "right": 497.3333435058594,
+          "bottom": 1290.9583740234375,
+          "width": 473.3333435058594,
+          "height": 600
+        },
+        "header": {
+          "left": 40.66666793823242,
+          "top": 393.625,
+          "right": 480.6666679382324,
+          "bottom": 465.625,
+          "width": 440,
+          "height": 72
+        },
+        "controls": [
+          {
+            "left": 40.66666793823242,
+            "top": 425.5,
+            "right": 144.66666793823242,
+            "bottom": 463.5,
+            "width": 104,
+            "height": 38
+          },
+          {
+            "left": 151.6666717529297,
+            "top": 427.5,
+            "right": 438.6666717529297,
+            "bottom": 461.5,
+            "width": 287,
+            "height": 34
+          },
+          {
+            "left": 444.66668701171875,
+            "top": 425.5,
+            "right": 480.66668701171875,
+            "bottom": 463.5,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "run": {
+          "left": 40.66666793823242,
+          "top": 1176.291748046875,
+          "right": 480.6666679382324,
+          "bottom": 1224.291748046875,
+          "width": 440,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 40.66666793823242,
+          "top": 529.625,
+          "right": 480.6666679382324,
+          "bottom": 660.2916717529297,
+          "width": 440,
+          "height": 130.6666717529297
+        },
+        "fileCount": "1/1"
+      }
+    },
+    {
+      "label": "one-file-640x480-zoom1.5",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          427,
+          320
+        ],
+        "devicePixelRatio": 1.5,
+        "workspace": {
+          "client": 1070,
+          "scroll": 1070,
+          "excess": 0
+        },
+        "document": {
+          "client": 320,
+          "scroll": 1332
+        },
+        "left": {
+          "left": 24,
+          "top": 399.9375,
+          "right": 390.66668701171875,
+          "bottom": 699.9375,
+          "width": 366.66668701171875,
+          "height": 300
+        },
+        "right": {
+          "left": 24,
+          "top": 713.9375,
+          "right": 390.66668701171875,
+          "bottom": 1313.9375,
+          "width": 366.66668701171875,
+          "height": 600
+        },
+        "header": {
+          "left": 35.66666793823242,
+          "top": 411.60418701171875,
+          "right": 379.0000114440918,
+          "bottom": 483.60418701171875,
+          "width": 343.3333435058594,
+          "height": 72
+        },
+        "controls": [
+          {
+            "left": 35.66666793823242,
+            "top": 443.47918701171875,
+            "right": 139.66666793823242,
+            "bottom": 481.47918701171875,
+            "width": 104,
+            "height": 38
+          },
+          {
+            "left": 144.6666717529297,
+            "top": 445.47918701171875,
+            "right": 337.00001525878906,
+            "bottom": 479.47918701171875,
+            "width": 192.33334350585938,
+            "height": 34
+          },
+          {
+            "left": 343,
+            "top": 443.47918701171875,
+            "right": 379,
+            "bottom": 481.47918701171875,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "run": {
+          "left": 35.66666793823242,
+          "top": 1204.2708740234375,
+          "right": 379.0000114440918,
+          "bottom": 1252.2708740234375,
+          "width": 343.3333435058594,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 35.66666793823242,
+          "top": 547.6041870117188,
+          "right": 379.0000114440918,
+          "bottom": 688.2708587646484,
+          "width": 343.3333435058594,
+          "height": 140.6666717529297
+        },
+        "fileCount": "1/1"
+      }
+    },
+    {
+      "label": "dark-one-file-1440x1000-zoom1",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          1440,
+          1000
+        ],
+        "devicePixelRatio": 1,
+        "workspace": {
+          "client": 732,
+          "scroll": 732,
+          "excess": 0
+        },
+        "document": {
+          "client": 1000,
+          "scroll": 1000
+        },
+        "left": {
+          "left": 323,
+          "top": 216.140625,
+          "right": 794.953125,
+          "bottom": 827,
+          "width": 471.953125,
+          "height": 610.859375
+        },
+        "right": {
+          "left": 808.953125,
+          "top": 216.140625,
+          "right": 1363,
+          "bottom": 827,
+          "width": 554.046875,
+          "height": 610.859375
+        },
+        "header": {
+          "left": 340,
+          "top": 233.140625,
+          "right": 777.953125,
+          "bottom": 305.140625,
+          "width": 437.953125,
+          "height": 72
+        },
+        "controls": [
+          {
+            "left": 340,
+            "top": 265.65625,
+            "right": 444,
+            "bottom": 303.65625,
+            "width": 104,
+            "height": 38
+          },
+          {
+            "left": 451,
+            "top": 266.65625,
+            "right": 735.953125,
+            "bottom": 302.65625,
+            "width": 284.953125,
+            "height": 36
+          },
+          {
+            "left": 741.953125,
+            "top": 265.65625,
+            "right": 777.953125,
+            "bottom": 303.65625,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "run": {
+          "left": 825.953125,
+          "top": 712,
+          "right": 1346,
+          "bottom": 760,
+          "width": 520.046875,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 340,
+          "top": 369.140625,
+          "right": 777.953125,
+          "bottom": 810,
+          "width": 437.953125,
+          "height": 440.859375
+        },
+        "fileCount": "1/1"
+      }
+    },
+    {
+      "label": "dark-one-file-1280x800-zoom1",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          1280,
+          800
+        ],
+        "devicePixelRatio": 1,
+        "workspace": {
+          "client": 660,
+          "scroll": 660,
+          "excess": 0
+        },
+        "document": {
+          "client": 800,
+          "scroll": 800
+        },
+        "left": {
+          "left": 303,
+          "top": 214.203125,
+          "right": 719.75,
+          "bottom": 754.59375,
+          "width": 416.75,
+          "height": 540.390625
+        },
+        "right": {
+          "left": 733.75,
+          "top": 214.203125,
+          "right": 1223,
+          "bottom": 754.59375,
+          "width": 489.25,
+          "height": 540.390625
+        },
+        "header": {
+          "left": 320,
+          "top": 231.203125,
+          "right": 702.75,
+          "bottom": 303.203125,
+          "width": 382.75,
+          "height": 72
+        },
+        "controls": [
+          {
+            "left": 320,
+            "top": 263.71875,
+            "right": 424,
+            "bottom": 301.71875,
+            "width": 104,
+            "height": 38
+          },
+          {
+            "left": 431,
+            "top": 264.71875,
+            "right": 660.75,
+            "bottom": 300.71875,
+            "width": 229.75,
+            "height": 36
+          },
+          {
+            "left": 666.75,
+            "top": 263.71875,
+            "right": 702.75,
+            "bottom": 301.71875,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "run": {
+          "left": 750.75,
+          "top": 639.59375,
+          "right": 1206,
+          "bottom": 687.59375,
+          "width": 455.25,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 320,
+          "top": 367.203125,
+          "right": 702.75,
+          "bottom": 737.59375,
+          "width": 382.75,
+          "height": 370.390625
+        },
+        "fileCount": "1/1"
+      }
+    },
+    {
+      "label": "dark-one-file-1024x640-zoom1",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          1024,
+          640
+        ],
+        "devicePixelRatio": 1,
+        "workspace": {
+          "client": 500,
+          "scroll": 1008,
+          "excess": 508
+        },
+        "document": {
+          "client": 640,
+          "scroll": 640
+        },
+        "left": {
+          "left": 303,
+          "top": 201.703125,
+          "right": 967,
+          "bottom": 501.703125,
+          "width": 664,
+          "height": 300
+        },
+        "right": {
+          "left": 303,
+          "top": 515.703125,
+          "right": 967,
+          "bottom": 1115.703125,
+          "width": 664,
+          "height": 600
+        },
+        "header": {
+          "left": 320,
+          "top": 218.703125,
+          "right": 950,
+          "bottom": 262.703125,
+          "width": 630,
+          "height": 44
+        },
+        "controls": [
+          {
+            "left": 667.09375,
+            "top": 221.703125,
+            "right": 771.09375,
+            "bottom": 259.703125,
+            "width": 104,
+            "height": 38
+          },
+          {
+            "left": 778.09375,
+            "top": 223.203125,
+            "right": 908,
+            "bottom": 258.203125,
+            "width": 129.90625,
+            "height": 35
+          },
+          {
+            "left": 914,
+            "top": 221.703125,
+            "right": 950,
+            "bottom": 259.703125,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "run": {
+          "left": 320,
+          "top": 1000.703125,
+          "right": 950,
+          "bottom": 1048.703125,
+          "width": 630,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 320,
+          "top": 326.703125,
+          "right": 950,
+          "bottom": 484.703125,
+          "width": 630,
+          "height": 158
+        },
+        "fileCount": "1/1"
+      }
+    },
+    {
+      "label": "dark-one-file-800x600-zoom1.5",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          533,
+          400
+        ],
+        "devicePixelRatio": 1.5,
+        "workspace": {
+          "client": 1047,
+          "scroll": 1047,
+          "excess": 0
+        },
+        "document": {
+          "client": 400,
+          "scroll": 1309
+        },
+        "left": {
+          "left": 24,
+          "top": 376.9583435058594,
+          "right": 497.3333435058594,
+          "bottom": 676.9583435058594,
+          "width": 473.3333435058594,
+          "height": 300
+        },
+        "right": {
+          "left": 24,
+          "top": 690.9583740234375,
+          "right": 497.3333435058594,
+          "bottom": 1290.9583740234375,
+          "width": 473.3333435058594,
+          "height": 600
+        },
+        "header": {
+          "left": 40.66666793823242,
+          "top": 393.625,
+          "right": 480.6666679382324,
+          "bottom": 465.625,
+          "width": 440,
+          "height": 72
+        },
+        "controls": [
+          {
+            "left": 40.66666793823242,
+            "top": 425.5,
+            "right": 144.66666793823242,
+            "bottom": 463.5,
+            "width": 104,
+            "height": 38
+          },
+          {
+            "left": 151.6666717529297,
+            "top": 427.5,
+            "right": 438.6666717529297,
+            "bottom": 461.5,
+            "width": 287,
+            "height": 34
+          },
+          {
+            "left": 444.66668701171875,
+            "top": 425.5,
+            "right": 480.66668701171875,
+            "bottom": 463.5,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "run": {
+          "left": 40.66666793823242,
+          "top": 1176.291748046875,
+          "right": 480.6666679382324,
+          "bottom": 1224.291748046875,
+          "width": 440,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 40.66666793823242,
+          "top": 529.625,
+          "right": 480.6666679382324,
+          "bottom": 660.2916717529297,
+          "width": 440,
+          "height": 130.6666717529297
+        },
+        "fileCount": "1/1"
+      }
+    },
+    {
+      "label": "dark-one-file-640x480-zoom1.5",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          427,
+          320
+        ],
+        "devicePixelRatio": 1.5,
+        "workspace": {
+          "client": 1070,
+          "scroll": 1070,
+          "excess": 0
+        },
+        "document": {
+          "client": 320,
+          "scroll": 1332
+        },
+        "left": {
+          "left": 24,
+          "top": 399.9375,
+          "right": 390.66668701171875,
+          "bottom": 699.9375,
+          "width": 366.66668701171875,
+          "height": 300
+        },
+        "right": {
+          "left": 24,
+          "top": 713.9375,
+          "right": 390.66668701171875,
+          "bottom": 1313.9375,
+          "width": 366.66668701171875,
+          "height": 600
+        },
+        "header": {
+          "left": 35.66666793823242,
+          "top": 411.60418701171875,
+          "right": 379.0000114440918,
+          "bottom": 483.60418701171875,
+          "width": 343.3333435058594,
+          "height": 72
+        },
+        "controls": [
+          {
+            "left": 35.66666793823242,
+            "top": 443.47918701171875,
+            "right": 139.66666793823242,
+            "bottom": 481.47918701171875,
+            "width": 104,
+            "height": 38
+          },
+          {
+            "left": 144.6666717529297,
+            "top": 445.47918701171875,
+            "right": 337.00001525878906,
+            "bottom": 479.47918701171875,
+            "width": 192.33334350585938,
+            "height": 34
+          },
+          {
+            "left": 343,
+            "top": 443.47918701171875,
+            "right": 379,
+            "bottom": 481.47918701171875,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "run": {
+          "left": 35.66666793823242,
+          "top": 1204.2708740234375,
+          "right": 379.0000114440918,
+          "bottom": 1252.2708740234375,
+          "width": 343.3333435058594,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 35.66666793823242,
+          "top": 547.6041870117188,
+          "right": 379.0000114440918,
+          "bottom": 688.2708587646484,
+          "width": 343.3333435058594,
+          "height": 140.6666717529297
+        },
+        "fileCount": "1/1"
+      }
+    },
+    {
+      "label": "native-ready",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          1280,
+          800
+        ],
+        "devicePixelRatio": 1,
+        "workspace": {
+          "client": 660,
+          "scroll": 660,
+          "excess": 0
+        },
+        "document": {
+          "client": 800,
+          "scroll": 800
+        },
+        "left": {
+          "left": 303,
+          "top": 214.203125,
+          "right": 719.75,
+          "bottom": 754.59375,
+          "width": 416.75,
+          "height": 540.390625
+        },
+        "right": {
+          "left": 733.75,
+          "top": 214.203125,
+          "right": 1223,
+          "bottom": 754.59375,
+          "width": 489.25,
+          "height": 540.390625
+        },
+        "header": {
+          "left": 320,
+          "top": 231.203125,
+          "right": 702.75,
+          "bottom": 303.203125,
+          "width": 382.75,
+          "height": 72
+        },
+        "controls": [
+          {
+            "left": 320,
+            "top": 263.71875,
+            "right": 424,
+            "bottom": 301.71875,
+            "width": 104,
+            "height": 38
+          },
+          {
+            "left": 431,
+            "top": 264.71875,
+            "right": 660.75,
+            "bottom": 300.71875,
+            "width": 229.75,
+            "height": 36
+          },
+          {
+            "left": 666.75,
+            "top": 263.71875,
+            "right": 702.75,
+            "bottom": 301.71875,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "run": {
+          "left": 750.75,
+          "top": 639.59375,
+          "right": 1206,
+          "bottom": 687.59375,
+          "width": 455.25,
+          "height": 48
+        },
+        "runVisibility": "hidden",
+        "fileArea": {
+          "left": 320,
+          "top": 367.203125,
+          "right": 702.75,
+          "bottom": 737.59375,
+          "width": 382.75,
+          "height": 370.390625
+        },
+        "fileCount": "1/1"
+      }
+    },
+    {
+      "label": "native-saved",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          1280,
+          800
+        ],
+        "devicePixelRatio": 1,
+        "workspace": {
+          "client": 660,
+          "scroll": 660,
+          "excess": 0
+        },
+        "document": {
+          "client": 800,
+          "scroll": 800
+        },
+        "left": {
+          "left": 303,
+          "top": 214.203125,
+          "right": 719.75,
+          "bottom": 754.59375,
+          "width": 416.75,
+          "height": 540.390625
+        },
+        "right": {
+          "left": 733.75,
+          "top": 214.203125,
+          "right": 1223,
+          "bottom": 754.59375,
+          "width": 489.25,
+          "height": 540.390625
+        },
+        "header": {
+          "left": 320,
+          "top": 231.203125,
+          "right": 702.75,
+          "bottom": 303.203125,
+          "width": 382.75,
+          "height": 72
+        },
+        "controls": [
+          {
+            "left": 320,
+            "top": 263.71875,
+            "right": 424,
+            "bottom": 301.71875,
+            "width": 104,
+            "height": 38
+          },
+          {
+            "left": 431,
+            "top": 264.71875,
+            "right": 660.75,
+            "bottom": 300.71875,
+            "width": 229.75,
+            "height": 36
+          },
+          {
+            "left": 666.75,
+            "top": 263.71875,
+            "right": 702.75,
+            "bottom": 301.71875,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "run": {
+          "left": 750.75,
+          "top": 639.59375,
+          "right": 1206,
+          "bottom": 687.59375,
+          "width": 455.25,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 320,
+          "top": 367.203125,
+          "right": 702.75,
+          "bottom": 737.59375,
+          "width": 382.75,
+          "height": 370.390625
+        },
+        "fileCount": "1/1"
+      }
+    },
+    {
+      "label": "bulk-xhtml-prepared",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          1280,
+          800
+        ],
+        "devicePixelRatio": 1,
+        "workspace": {
+          "client": 660,
+          "scroll": 660,
+          "excess": 0
+        },
+        "document": {
+          "client": 800,
+          "scroll": 800
+        },
+        "left": {
+          "left": 303,
+          "top": 214.203125,
+          "right": 719.75,
+          "bottom": 754.59375,
+          "width": 416.75,
+          "height": 540.390625
+        },
+        "right": {
+          "left": 733.75,
+          "top": 214.203125,
+          "right": 1223,
+          "bottom": 754.59375,
+          "width": 489.25,
+          "height": 540.390625
+        },
+        "header": {
+          "left": 320,
+          "top": 231.203125,
+          "right": 702.75,
+          "bottom": 303.203125,
+          "width": 382.75,
+          "height": 72
+        },
+        "controls": [
+          {
+            "left": 320,
+            "top": 263.71875,
+            "right": 424,
+            "bottom": 301.71875,
+            "width": 104,
+            "height": 38
+          },
+          {
+            "left": 431,
+            "top": 264.71875,
+            "right": 660.75,
+            "bottom": 300.71875,
+            "width": 229.75,
+            "height": 36
+          },
+          {
+            "left": 666.75,
+            "top": 263.71875,
+            "right": 702.75,
+            "bottom": 301.71875,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "run": {
+          "left": 750.75,
+          "top": 639.59375,
+          "right": 1206,
+          "bottom": 687.59375,
+          "width": 455.25,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 320,
+          "top": 367.203125,
+          "right": 702.75,
+          "bottom": 737.59375,
+          "width": 382.75,
+          "height": 370.390625
+        },
+        "fileCount": "32/32"
+      }
+    },
+    {
+      "label": "bulk-xhtml-ready",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          1280,
+          800
+        ],
+        "devicePixelRatio": 1,
+        "workspace": {
+          "client": 660,
+          "scroll": 660,
+          "excess": 0
+        },
+        "document": {
+          "client": 800,
+          "scroll": 800
+        },
+        "left": {
+          "left": 303,
+          "top": 214.203125,
+          "right": 719.75,
+          "bottom": 754.59375,
+          "width": 416.75,
+          "height": 540.390625
+        },
+        "right": {
+          "left": 733.75,
+          "top": 214.203125,
+          "right": 1223,
+          "bottom": 754.59375,
+          "width": 489.25,
+          "height": 540.390625
+        },
+        "header": {
+          "left": 320,
+          "top": 231.203125,
+          "right": 702.75,
+          "bottom": 303.203125,
+          "width": 382.75,
+          "height": 72
+        },
+        "controls": [
+          {
+            "left": 320,
+            "top": 263.71875,
+            "right": 424,
+            "bottom": 301.71875,
+            "width": 104,
+            "height": 38
+          },
+          {
+            "left": 431,
+            "top": 264.71875,
+            "right": 660.75,
+            "bottom": 300.71875,
+            "width": 229.75,
+            "height": 36
+          },
+          {
+            "left": 666.75,
+            "top": 263.71875,
+            "right": 702.75,
+            "bottom": 301.71875,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "run": {
+          "left": 750.75,
+          "top": 639.59375,
+          "right": 1206,
+          "bottom": 687.59375,
+          "width": 455.25,
+          "height": 48
+        },
+        "runVisibility": "hidden",
+        "fileArea": {
+          "left": 320,
+          "top": 367.203125,
+          "right": 702.75,
+          "bottom": 737.59375,
+          "width": 382.75,
+          "height": 370.390625
+        },
+        "fileCount": "32/32"
+      }
+    },
+    {
+      "label": "bulk-xhtml-saved",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          1280,
+          800
+        ],
+        "devicePixelRatio": 1,
+        "workspace": {
+          "client": 660,
+          "scroll": 660,
+          "excess": 0
+        },
+        "document": {
+          "client": 800,
+          "scroll": 800
+        },
+        "left": {
+          "left": 303,
+          "top": 214.203125,
+          "right": 719.75,
+          "bottom": 754.59375,
+          "width": 416.75,
+          "height": 540.390625
+        },
+        "right": {
+          "left": 733.75,
+          "top": 214.203125,
+          "right": 1223,
+          "bottom": 754.59375,
+          "width": 489.25,
+          "height": 540.390625
+        },
+        "header": {
+          "left": 320,
+          "top": 231.203125,
+          "right": 702.75,
+          "bottom": 303.203125,
+          "width": 382.75,
+          "height": 72
+        },
+        "controls": [
+          {
+            "left": 320,
+            "top": 263.71875,
+            "right": 424,
+            "bottom": 301.71875,
+            "width": 104,
+            "height": 38
+          },
+          {
+            "left": 431,
+            "top": 264.71875,
+            "right": 660.75,
+            "bottom": 300.71875,
+            "width": 229.75,
+            "height": 36
+          },
+          {
+            "left": 666.75,
+            "top": 263.71875,
+            "right": 702.75,
+            "bottom": 301.71875,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "run": {
+          "left": 750.75,
+          "top": 639.59375,
+          "right": 1206,
+          "bottom": 687.59375,
+          "width": 455.25,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 320,
+          "top": 367.203125,
+          "right": 702.75,
+          "bottom": 737.59375,
+          "width": 382.75,
+          "height": 370.390625
+        },
+        "fileCount": "32/32"
+      }
+    }
+  ],
+  "bulkXhtml": {
+    "count": 32,
+    "originalZipSha256": "fc3fedff2160b65c0b463826e317e284e700d1c45994e809a370bbd7d134988f",
+    "preparedAll": true,
+    "pdfSelectable": true,
+    "report": {
+      "schemaVersion": 3,
+      "total": 0,
+      "completed": 0,
+      "attempted": 0,
+      "succeeded": 0,
+      "failed": 0,
+      "cancelled": 0,
+      "filtered": 0,
+      "pending": 0,
+      "preflightChecks": 32,
+      "buildIdentity": {
+        "scope": "report_runtime",
+        "sourceRevision": null,
+        "basis": "unknown"
+      },
+      "nativeRegistryFingerprints": [
+        "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6"
+      ],
+      "inputsUploaded": 32,
+      "inputsPlanned": 32,
+      "inputsWithoutTasks": [],
+      "recoveryError": null,
+      "files": [
+        {
+          "fileId": "f2",
+          "name": "bulk_000_level_1.xhtml",
+          "sourceSha256": "10c8bf6275981568a73ccb6625639f717c8d22041202ecc2e456416df8c6980c",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.text.TextDocument",
+              "com.sun.star.text.WebDocument",
+              "com.sun.star.text.GlobalDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 0,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": []
+        },
+        {
+          "fileId": "f3",
+          "name": "bulk_001_level_2.xhtml",
+          "sourceSha256": "6039244b5c67c5d30b7f965c9773cd2d0bb720c63778d40a905b66310aa94676",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.text.TextDocument",
+              "com.sun.star.text.WebDocument",
+              "com.sun.star.text.GlobalDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 0,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": []
+        },
+        {
+          "fileId": "f4",
+          "name": "bulk_002_level_1.xhtml",
+          "sourceSha256": "10c8bf6275981568a73ccb6625639f717c8d22041202ecc2e456416df8c6980c",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.text.TextDocument",
+              "com.sun.star.text.WebDocument",
+              "com.sun.star.text.GlobalDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 0,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": []
+        },
+        {
+          "fileId": "f5",
+          "name": "bulk_003_level_2.xhtml",
+          "sourceSha256": "6039244b5c67c5d30b7f965c9773cd2d0bb720c63778d40a905b66310aa94676",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.text.TextDocument",
+              "com.sun.star.text.WebDocument",
+              "com.sun.star.text.GlobalDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 0,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": []
+        },
+        {
+          "fileId": "f6",
+          "name": "bulk_004_level_1.xhtml",
+          "sourceSha256": "10c8bf6275981568a73ccb6625639f717c8d22041202ecc2e456416df8c6980c",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.text.TextDocument",
+              "com.sun.star.text.WebDocument",
+              "com.sun.star.text.GlobalDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 0,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": []
+        },
+        {
+          "fileId": "f7",
+          "name": "bulk_005_level_2.xhtml",
+          "sourceSha256": "6039244b5c67c5d30b7f965c9773cd2d0bb720c63778d40a905b66310aa94676",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.text.TextDocument",
+              "com.sun.star.text.WebDocument",
+              "com.sun.star.text.GlobalDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 0,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": []
+        },
+        {
+          "fileId": "f8",
+          "name": "bulk_006_level_1.xhtml",
+          "sourceSha256": "10c8bf6275981568a73ccb6625639f717c8d22041202ecc2e456416df8c6980c",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.text.TextDocument",
+              "com.sun.star.text.WebDocument",
+              "com.sun.star.text.GlobalDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 0,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": []
+        },
+        {
+          "fileId": "f9",
+          "name": "bulk_007_level_2.xhtml",
+          "sourceSha256": "6039244b5c67c5d30b7f965c9773cd2d0bb720c63778d40a905b66310aa94676",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.text.TextDocument",
+              "com.sun.star.text.WebDocument",
+              "com.sun.star.text.GlobalDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 0,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": []
+        },
+        {
+          "fileId": "f10",
+          "name": "bulk_008_level_1.xhtml",
+          "sourceSha256": "10c8bf6275981568a73ccb6625639f717c8d22041202ecc2e456416df8c6980c",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.text.TextDocument",
+              "com.sun.star.text.WebDocument",
+              "com.sun.star.text.GlobalDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 0,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": []
+        },
+        {
+          "fileId": "f11",
+          "name": "bulk_009_level_2.xhtml",
+          "sourceSha256": "6039244b5c67c5d30b7f965c9773cd2d0bb720c63778d40a905b66310aa94676",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.text.TextDocument",
+              "com.sun.star.text.WebDocument",
+              "com.sun.star.text.GlobalDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 0,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": []
+        },
+        {
+          "fileId": "f12",
+          "name": "bulk_010_level_1.xhtml",
+          "sourceSha256": "10c8bf6275981568a73ccb6625639f717c8d22041202ecc2e456416df8c6980c",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.text.TextDocument",
+              "com.sun.star.text.WebDocument",
+              "com.sun.star.text.GlobalDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 0,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": []
+        },
+        {
+          "fileId": "f13",
+          "name": "bulk_011_level_2.xhtml",
+          "sourceSha256": "6039244b5c67c5d30b7f965c9773cd2d0bb720c63778d40a905b66310aa94676",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.text.TextDocument",
+              "com.sun.star.text.WebDocument",
+              "com.sun.star.text.GlobalDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 0,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": []
+        },
+        {
+          "fileId": "f14",
+          "name": "bulk_012_level_1.xhtml",
+          "sourceSha256": "10c8bf6275981568a73ccb6625639f717c8d22041202ecc2e456416df8c6980c",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.text.TextDocument",
+              "com.sun.star.text.WebDocument",
+              "com.sun.star.text.GlobalDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 0,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": []
+        },
+        {
+          "fileId": "f15",
+          "name": "bulk_013_level_2.xhtml",
+          "sourceSha256": "6039244b5c67c5d30b7f965c9773cd2d0bb720c63778d40a905b66310aa94676",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.text.TextDocument",
+              "com.sun.star.text.WebDocument",
+              "com.sun.star.text.GlobalDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 0,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": []
+        },
+        {
+          "fileId": "f16",
+          "name": "bulk_014_level_1.xhtml",
+          "sourceSha256": "10c8bf6275981568a73ccb6625639f717c8d22041202ecc2e456416df8c6980c",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.text.TextDocument",
+              "com.sun.star.text.WebDocument",
+              "com.sun.star.text.GlobalDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 0,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": []
+        },
+        {
+          "fileId": "f17",
+          "name": "bulk_015_level_2.xhtml",
+          "sourceSha256": "6039244b5c67c5d30b7f965c9773cd2d0bb720c63778d40a905b66310aa94676",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.text.TextDocument",
+              "com.sun.star.text.WebDocument",
+              "com.sun.star.text.GlobalDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 0,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": []
+        },
+        {
+          "fileId": "f18",
+          "name": "bulk_016_level_1.xhtml",
+          "sourceSha256": "10c8bf6275981568a73ccb6625639f717c8d22041202ecc2e456416df8c6980c",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.text.TextDocument",
+              "com.sun.star.text.WebDocument",
+              "com.sun.star.text.GlobalDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 0,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": []
+        },
+        {
+          "fileId": "f19",
+          "name": "bulk_017_level_2.xhtml",
+          "sourceSha256": "6039244b5c67c5d30b7f965c9773cd2d0bb720c63778d40a905b66310aa94676",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.text.TextDocument",
+              "com.sun.star.text.WebDocument",
+              "com.sun.star.text.GlobalDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 0,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": []
+        },
+        {
+          "fileId": "f20",
+          "name": "bulk_018_level_1.xhtml",
+          "sourceSha256": "10c8bf6275981568a73ccb6625639f717c8d22041202ecc2e456416df8c6980c",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.text.TextDocument",
+              "com.sun.star.text.WebDocument",
+              "com.sun.star.text.GlobalDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 0,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": []
+        },
+        {
+          "fileId": "f21",
+          "name": "bulk_019_level_2.xhtml",
+          "sourceSha256": "6039244b5c67c5d30b7f965c9773cd2d0bb720c63778d40a905b66310aa94676",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.text.TextDocument",
+              "com.sun.star.text.WebDocument",
+              "com.sun.star.text.GlobalDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 0,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": []
+        },
+        {
+          "fileId": "f22",
+          "name": "bulk_020_level_1.xhtml",
+          "sourceSha256": "10c8bf6275981568a73ccb6625639f717c8d22041202ecc2e456416df8c6980c",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.text.TextDocument",
+              "com.sun.star.text.WebDocument",
+              "com.sun.star.text.GlobalDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 0,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": []
+        },
+        {
+          "fileId": "f23",
+          "name": "bulk_021_level_2.xhtml",
+          "sourceSha256": "6039244b5c67c5d30b7f965c9773cd2d0bb720c63778d40a905b66310aa94676",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.text.TextDocument",
+              "com.sun.star.text.WebDocument",
+              "com.sun.star.text.GlobalDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 0,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": []
+        },
+        {
+          "fileId": "f24",
+          "name": "bulk_022_level_1.xhtml",
+          "sourceSha256": "10c8bf6275981568a73ccb6625639f717c8d22041202ecc2e456416df8c6980c",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.text.TextDocument",
+              "com.sun.star.text.WebDocument",
+              "com.sun.star.text.GlobalDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 0,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": []
+        },
+        {
+          "fileId": "f25",
+          "name": "bulk_023_level_2.xhtml",
+          "sourceSha256": "6039244b5c67c5d30b7f965c9773cd2d0bb720c63778d40a905b66310aa94676",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.text.TextDocument",
+              "com.sun.star.text.WebDocument",
+              "com.sun.star.text.GlobalDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 0,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": []
+        },
+        {
+          "fileId": "f26",
+          "name": "bulk_024_level_1.xhtml",
+          "sourceSha256": "10c8bf6275981568a73ccb6625639f717c8d22041202ecc2e456416df8c6980c",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.text.TextDocument",
+              "com.sun.star.text.WebDocument",
+              "com.sun.star.text.GlobalDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 0,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": []
+        },
+        {
+          "fileId": "f27",
+          "name": "bulk_025_level_2.xhtml",
+          "sourceSha256": "6039244b5c67c5d30b7f965c9773cd2d0bb720c63778d40a905b66310aa94676",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.text.TextDocument",
+              "com.sun.star.text.WebDocument",
+              "com.sun.star.text.GlobalDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 0,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": []
+        },
+        {
+          "fileId": "f28",
+          "name": "bulk_026_level_1.xhtml",
+          "sourceSha256": "10c8bf6275981568a73ccb6625639f717c8d22041202ecc2e456416df8c6980c",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.text.TextDocument",
+              "com.sun.star.text.WebDocument",
+              "com.sun.star.text.GlobalDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 0,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": []
+        },
+        {
+          "fileId": "f29",
+          "name": "bulk_027_level_2.xhtml",
+          "sourceSha256": "6039244b5c67c5d30b7f965c9773cd2d0bb720c63778d40a905b66310aa94676",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.text.TextDocument",
+              "com.sun.star.text.WebDocument",
+              "com.sun.star.text.GlobalDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 0,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": []
+        },
+        {
+          "fileId": "f30",
+          "name": "bulk_028_level_1.xhtml",
+          "sourceSha256": "10c8bf6275981568a73ccb6625639f717c8d22041202ecc2e456416df8c6980c",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.text.TextDocument",
+              "com.sun.star.text.WebDocument",
+              "com.sun.star.text.GlobalDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 0,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": []
+        },
+        {
+          "fileId": "f31",
+          "name": "bulk_029_level_2.xhtml",
+          "sourceSha256": "6039244b5c67c5d30b7f965c9773cd2d0bb720c63778d40a905b66310aa94676",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.text.TextDocument",
+              "com.sun.star.text.WebDocument",
+              "com.sun.star.text.GlobalDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 0,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": []
+        },
+        {
+          "fileId": "f32",
+          "name": "bulk_030_level_1.xhtml",
+          "sourceSha256": "10c8bf6275981568a73ccb6625639f717c8d22041202ecc2e456416df8c6980c",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.text.TextDocument",
+              "com.sun.star.text.WebDocument",
+              "com.sun.star.text.GlobalDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 0,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": []
+        },
+        {
+          "fileId": "f33",
+          "name": "bulk_031_level_2.xhtml",
+          "sourceSha256": "6039244b5c67c5d30b7f965c9773cd2d0bb720c63778d40a905b66310aa94676",
+          "nativeRoute": {
+            "state": "detected",
+            "documentServices": [
+              "com.sun.star.text.TextDocument",
+              "com.sun.star.text.WebDocument",
+              "com.sun.star.text.GlobalDocument"
+            ],
+            "basis": "native_preflight_document_kind",
+            "nativeKind": 0,
+            "drawPages": null,
+            "registryFingerprint": "795654934d0700c1dc0c505be95d358e150a9322729cad2f9e782f251bce27d6",
+            "exported": false
+          },
+          "warnings": [],
+          "targets": []
+        }
+      ],
+      "timings": {
+        "journalMs": 2,
+        "preflight_startedMs": 118,
+        "preflight_doneMs": 7137
+      },
+      "qualityCheckRequested": false,
+      "qualityCompared": false,
+      "retainSources": false,
+      "comparisonParentJobId": null,
+      "comparisonRecipe": null,
+      "comparisonParentTasks": [],
+      "jobId": "57a7842a99da16cda1e3dc179a727f25",
+      "state": "prepared",
+      "officeStarts": 0,
+      "trace": {
+        "events": [
+          {
+            "sequence": 1,
+            "elapsedMs": 0,
+            "stage": "job_created",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 2,
+            "elapsedMs": 18,
+            "stage": "input_stored",
+            "fileId": "f3",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 3,
+            "elapsedMs": 19,
+            "stage": "input_stored",
+            "fileId": "f2",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 4,
+            "elapsedMs": 19,
+            "stage": "input_stored",
+            "fileId": "f5",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 5,
+            "elapsedMs": 20,
+            "stage": "input_stored",
+            "fileId": "f4",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 6,
+            "elapsedMs": 29,
+            "stage": "input_stored",
+            "fileId": "f6",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 7,
+            "elapsedMs": 29,
+            "stage": "input_stored",
+            "fileId": "f7",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 8,
+            "elapsedMs": 37,
+            "stage": "input_stored",
+            "fileId": "f8",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 9,
+            "elapsedMs": 38,
+            "stage": "input_stored",
+            "fileId": "f9",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 10,
+            "elapsedMs": 42,
+            "stage": "input_stored",
+            "fileId": "f10",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 11,
+            "elapsedMs": 43,
+            "stage": "input_stored",
+            "fileId": "f11",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 12,
+            "elapsedMs": 45,
+            "stage": "input_stored",
+            "fileId": "f12",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 13,
+            "elapsedMs": 53,
+            "stage": "input_stored",
+            "fileId": "f14",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 14,
+            "elapsedMs": 54,
+            "stage": "input_stored",
+            "fileId": "f13",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 15,
+            "elapsedMs": 59,
+            "stage": "input_stored",
+            "fileId": "f16",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 16,
+            "elapsedMs": 59,
+            "stage": "input_stored",
+            "fileId": "f15",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 17,
+            "elapsedMs": 64,
+            "stage": "input_stored",
+            "fileId": "f18",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 18,
+            "elapsedMs": 64,
+            "stage": "input_stored",
+            "fileId": "f17",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 19,
+            "elapsedMs": 68,
+            "stage": "input_stored",
+            "fileId": "f20",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 20,
+            "elapsedMs": 69,
+            "stage": "input_stored",
+            "fileId": "f19",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 21,
+            "elapsedMs": 75,
+            "stage": "input_stored",
+            "fileId": "f21",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 22,
+            "elapsedMs": 75,
+            "stage": "input_stored",
+            "fileId": "f22",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 23,
+            "elapsedMs": 80,
+            "stage": "input_stored",
+            "fileId": "f24",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 24,
+            "elapsedMs": 80,
+            "stage": "input_stored",
+            "fileId": "f23",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 25,
+            "elapsedMs": 86,
+            "stage": "input_stored",
+            "fileId": "f26",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 26,
+            "elapsedMs": 86,
+            "stage": "input_stored",
+            "fileId": "f25",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 27,
+            "elapsedMs": 90,
+            "stage": "input_stored",
+            "fileId": "f27",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 28,
+            "elapsedMs": 91,
+            "stage": "input_stored",
+            "fileId": "f28",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 29,
+            "elapsedMs": 97,
+            "stage": "input_stored",
+            "fileId": "f30",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 30,
+            "elapsedMs": 98,
+            "stage": "input_stored",
+            "fileId": "f29",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 31,
+            "elapsedMs": 103,
+            "stage": "input_stored",
+            "fileId": "f32",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 32,
+            "elapsedMs": 104,
+            "stage": "input_stored",
+            "fileId": "f31",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 33,
+            "elapsedMs": 106,
+            "stage": "input_stored",
+            "fileId": "f33",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 34,
+            "elapsedMs": 118,
+            "stage": "preflight_started",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 35,
+            "elapsedMs": 119,
+            "stage": "preflight_file_started",
+            "fileId": "f2",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 36,
+            "elapsedMs": 372,
+            "stage": "preflight_finished",
+            "fileId": "f2",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 37,
+            "elapsedMs": 372,
+            "stage": "preflight_file_started",
+            "fileId": "f3",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 38,
+            "elapsedMs": 625,
+            "stage": "preflight_finished",
+            "fileId": "f3",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 39,
+            "elapsedMs": 625,
+            "stage": "preflight_file_started",
+            "fileId": "f4",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 40,
+            "elapsedMs": 863,
+            "stage": "preflight_finished",
+            "fileId": "f4",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 41,
+            "elapsedMs": 863,
+            "stage": "preflight_file_started",
+            "fileId": "f5",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 42,
+            "elapsedMs": 1097,
+            "stage": "preflight_finished",
+            "fileId": "f5",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 43,
+            "elapsedMs": 1097,
+            "stage": "preflight_file_started",
+            "fileId": "f6",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 44,
+            "elapsedMs": 1303,
+            "stage": "preflight_finished",
+            "fileId": "f6",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 45,
+            "elapsedMs": 1303,
+            "stage": "preflight_file_started",
+            "fileId": "f7",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 46,
+            "elapsedMs": 1521,
+            "stage": "preflight_finished",
+            "fileId": "f7",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 47,
+            "elapsedMs": 1521,
+            "stage": "preflight_file_started",
+            "fileId": "f8",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 48,
+            "elapsedMs": 1731,
+            "stage": "preflight_finished",
+            "fileId": "f8",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 49,
+            "elapsedMs": 1731,
+            "stage": "preflight_file_started",
+            "fileId": "f9",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 50,
+            "elapsedMs": 1935,
+            "stage": "preflight_finished",
+            "fileId": "f9",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 51,
+            "elapsedMs": 1935,
+            "stage": "preflight_file_started",
+            "fileId": "f10",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 52,
+            "elapsedMs": 2188,
+            "stage": "preflight_finished",
+            "fileId": "f10",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 53,
+            "elapsedMs": 2188,
+            "stage": "preflight_file_started",
+            "fileId": "f11",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 54,
+            "elapsedMs": 2391,
+            "stage": "preflight_finished",
+            "fileId": "f11",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 55,
+            "elapsedMs": 2391,
+            "stage": "preflight_file_started",
+            "fileId": "f12",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 56,
+            "elapsedMs": 2609,
+            "stage": "preflight_finished",
+            "fileId": "f12",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 57,
+            "elapsedMs": 2609,
+            "stage": "preflight_file_started",
+            "fileId": "f13",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 58,
+            "elapsedMs": 2812,
+            "stage": "preflight_finished",
+            "fileId": "f13",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 59,
+            "elapsedMs": 2812,
+            "stage": "preflight_file_started",
+            "fileId": "f14",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 60,
+            "elapsedMs": 3051,
+            "stage": "preflight_finished",
+            "fileId": "f14",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 61,
+            "elapsedMs": 3051,
+            "stage": "preflight_file_started",
+            "fileId": "f15",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 62,
+            "elapsedMs": 3285,
+            "stage": "preflight_finished",
+            "fileId": "f15",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 63,
+            "elapsedMs": 3285,
+            "stage": "preflight_file_started",
+            "fileId": "f16",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 64,
+            "elapsedMs": 3496,
+            "stage": "preflight_finished",
+            "fileId": "f16",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 65,
+            "elapsedMs": 3496,
+            "stage": "preflight_file_started",
+            "fileId": "f17",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 66,
+            "elapsedMs": 3698,
+            "stage": "preflight_finished",
+            "fileId": "f17",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 67,
+            "elapsedMs": 3699,
+            "stage": "preflight_file_started",
+            "fileId": "f18",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 68,
+            "elapsedMs": 3916,
+            "stage": "preflight_finished",
+            "fileId": "f18",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 69,
+            "elapsedMs": 3917,
+            "stage": "preflight_file_started",
+            "fileId": "f19",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 70,
+            "elapsedMs": 4119,
+            "stage": "preflight_finished",
+            "fileId": "f19",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 71,
+            "elapsedMs": 4119,
+            "stage": "preflight_file_started",
+            "fileId": "f20",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 72,
+            "elapsedMs": 4325,
+            "stage": "preflight_finished",
+            "fileId": "f20",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 73,
+            "elapsedMs": 4325,
+            "stage": "preflight_file_started",
+            "fileId": "f21",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 74,
+            "elapsedMs": 4529,
+            "stage": "preflight_finished",
+            "fileId": "f21",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 75,
+            "elapsedMs": 4529,
+            "stage": "preflight_file_started",
+            "fileId": "f22",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 76,
+            "elapsedMs": 4739,
+            "stage": "preflight_finished",
+            "fileId": "f22",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 77,
+            "elapsedMs": 4739,
+            "stage": "preflight_file_started",
+            "fileId": "f23",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 78,
+            "elapsedMs": 4923,
+            "stage": "preflight_finished",
+            "fileId": "f23",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 79,
+            "elapsedMs": 4923,
+            "stage": "preflight_file_started",
+            "fileId": "f24",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 80,
+            "elapsedMs": 5141,
+            "stage": "preflight_finished",
+            "fileId": "f24",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 81,
+            "elapsedMs": 5141,
+            "stage": "preflight_file_started",
+            "fileId": "f25",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 82,
+            "elapsedMs": 5344,
+            "stage": "preflight_finished",
+            "fileId": "f25",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 83,
+            "elapsedMs": 5344,
+            "stage": "preflight_file_started",
+            "fileId": "f26",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 84,
+            "elapsedMs": 5579,
+            "stage": "preflight_finished",
+            "fileId": "f26",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 85,
+            "elapsedMs": 5579,
+            "stage": "preflight_file_started",
+            "fileId": "f27",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 86,
+            "elapsedMs": 5797,
+            "stage": "preflight_finished",
+            "fileId": "f27",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 87,
+            "elapsedMs": 5797,
+            "stage": "preflight_file_started",
+            "fileId": "f28",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 88,
+            "elapsedMs": 6033,
+            "stage": "preflight_finished",
+            "fileId": "f28",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 89,
+            "elapsedMs": 6033,
+            "stage": "preflight_file_started",
+            "fileId": "f29",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 90,
+            "elapsedMs": 6236,
+            "stage": "preflight_finished",
+            "fileId": "f29",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 91,
+            "elapsedMs": 6236,
+            "stage": "preflight_file_started",
+            "fileId": "f30",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 92,
+            "elapsedMs": 6455,
+            "stage": "preflight_finished",
+            "fileId": "f30",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 93,
+            "elapsedMs": 6455,
+            "stage": "preflight_file_started",
+            "fileId": "f31",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 94,
+            "elapsedMs": 6673,
+            "stage": "preflight_finished",
+            "fileId": "f31",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 95,
+            "elapsedMs": 6673,
+            "stage": "preflight_file_started",
+            "fileId": "f32",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 96,
+            "elapsedMs": 6881,
+            "stage": "preflight_finished",
+            "fileId": "f32",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 97,
+            "elapsedMs": 6881,
+            "stage": "preflight_file_started",
+            "fileId": "f33",
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 98,
+            "elapsedMs": 7119,
+            "stage": "preflight_finished",
+            "fileId": "f33",
+            "format": null,
+            "code": "NATIVE_KIND_DETECTED",
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 99,
+            "elapsedMs": 7119,
+            "stage": "preflight_matrix_started",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 100,
+            "elapsedMs": 7120,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 101,
+            "elapsedMs": 7120,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 102,
+            "elapsedMs": 7121,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 103,
+            "elapsedMs": 7121,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 104,
+            "elapsedMs": 7121,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 105,
+            "elapsedMs": 7121,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 106,
+            "elapsedMs": 7122,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 107,
+            "elapsedMs": 7123,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 108,
+            "elapsedMs": 7123,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 109,
+            "elapsedMs": 7123,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 110,
+            "elapsedMs": 7123,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 111,
+            "elapsedMs": 7123,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 112,
+            "elapsedMs": 7124,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 113,
+            "elapsedMs": 7124,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 114,
+            "elapsedMs": 7124,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 115,
+            "elapsedMs": 7124,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 116,
+            "elapsedMs": 7124,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 117,
+            "elapsedMs": 7125,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 118,
+            "elapsedMs": 7125,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 119,
+            "elapsedMs": 7125,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 120,
+            "elapsedMs": 7125,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 121,
+            "elapsedMs": 7125,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 122,
+            "elapsedMs": 7126,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 123,
+            "elapsedMs": 7126,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 124,
+            "elapsedMs": 7126,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 125,
+            "elapsedMs": 7126,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 126,
+            "elapsedMs": 7126,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 127,
+            "elapsedMs": 7126,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 128,
+            "elapsedMs": 7127,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 129,
+            "elapsedMs": 7127,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 130,
+            "elapsedMs": 7127,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 131,
+            "elapsedMs": 7127,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 132,
+            "elapsedMs": 7127,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 133,
+            "elapsedMs": 7128,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 134,
+            "elapsedMs": 7128,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 135,
+            "elapsedMs": 7128,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 136,
+            "elapsedMs": 7128,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 137,
+            "elapsedMs": 7128,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 138,
+            "elapsedMs": 7129,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 139,
+            "elapsedMs": 7129,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 140,
+            "elapsedMs": 7129,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 141,
+            "elapsedMs": 7129,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 142,
+            "elapsedMs": 7129,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 143,
+            "elapsedMs": 7130,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 144,
+            "elapsedMs": 7130,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 145,
+            "elapsedMs": 7130,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 146,
+            "elapsedMs": 7130,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 147,
+            "elapsedMs": 7130,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 148,
+            "elapsedMs": 7130,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 149,
+            "elapsedMs": 7131,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 150,
+            "elapsedMs": 7131,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 151,
+            "elapsedMs": 7131,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 152,
+            "elapsedMs": 7131,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 153,
+            "elapsedMs": 7131,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 154,
+            "elapsedMs": 7131,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 155,
+            "elapsedMs": 7132,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 156,
+            "elapsedMs": 7132,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 157,
+            "elapsedMs": 7132,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 158,
+            "elapsedMs": 7132,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 159,
+            "elapsedMs": 7132,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 160,
+            "elapsedMs": 7132,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 161,
+            "elapsedMs": 7133,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 162,
+            "elapsedMs": 7133,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 163,
+            "elapsedMs": 7133,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 164,
+            "elapsedMs": 7133,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 165,
+            "elapsedMs": 7133,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 166,
+            "elapsedMs": 7134,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 167,
+            "elapsedMs": 7134,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 168,
+            "elapsedMs": 7134,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 169,
+            "elapsedMs": 7134,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 170,
+            "elapsedMs": 7134,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 171,
+            "elapsedMs": 7135,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 172,
+            "elapsedMs": 7135,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 173,
+            "elapsedMs": 7135,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 174,
+            "elapsedMs": 7135,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 175,
+            "elapsedMs": 7135,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 176,
+            "elapsedMs": 7135,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 177,
+            "elapsedMs": 7136,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 178,
+            "elapsedMs": 7136,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 179,
+            "elapsedMs": 7136,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 180,
+            "elapsedMs": 7136,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 181,
+            "elapsedMs": 7136,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 182,
+            "elapsedMs": 7137,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 183,
+            "elapsedMs": 7137,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 184,
+            "elapsedMs": 7137,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 185,
+            "elapsedMs": 7137,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 186,
+            "elapsedMs": 7137,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 187,
+            "elapsedMs": 7137,
+            "stage": "preflight_matrix_progress",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          },
+          {
+            "sequence": 188,
+            "elapsedMs": 7137,
+            "stage": "preflight_done",
+            "fileId": null,
+            "format": null,
+            "code": null,
+            "libreOfficeStarted": false
+          }
+        ],
+        "droppedEvents": 0
+      },
+      "fileTimeoutSeconds": null
+    },
+    "result": {
+      "state": "ready",
+      "total": 32,
+      "succeeded": 32,
+      "failed": 0,
+      "completed": 32
+    },
+    "savedOutputs": [
+      {
+        "name": "bulk_000_level_1.pdf",
+        "bytes": 29863,
+        "sha256": "9141cb514c72c923910aceee591d1087b79691593d3b23608d9f5a9130ce12dc",
+        "markersPreserved": true
+      },
+      {
+        "name": "bulk_001_level_2.pdf",
+        "bytes": 36257,
+        "sha256": "4d08dd5ad64d80ac8ffddb34bafd9fe1b6395ce4af224741241561326b7c386d",
+        "markersPreserved": true
+      },
+      {
+        "name": "bulk_002_level_1.pdf",
+        "bytes": 29863,
+        "sha256": "9bd28250584642f3e7fd1fdad2e67726abe2aebc3f972f8916cfa80e8f2f6f8b",
+        "markersPreserved": true
+      },
+      {
+        "name": "bulk_003_level_2.pdf",
+        "bytes": 36257,
+        "sha256": "72a44d26b5085413d64594994c8261a9d921e7c3122ae48f66702960bab5249e",
+        "markersPreserved": true
+      },
+      {
+        "name": "bulk_004_level_1.pdf",
+        "bytes": 29863,
+        "sha256": "31b90dd1381a9ef8dddbc6f43680effed491880256ec52374456d1fc34961bf4",
+        "markersPreserved": true
+      },
+      {
+        "name": "bulk_005_level_2.pdf",
+        "bytes": 36257,
+        "sha256": "4247a98f947d9fc16403dd38211572c794b8d66d954b405164746b6cca2c9142",
+        "markersPreserved": true
+      },
+      {
+        "name": "bulk_006_level_1.pdf",
+        "bytes": 29863,
+        "sha256": "597531bdc555f3eda6d1ac0c10d3bfcca69e6ee13e8d44578d3ba3c37f049d91",
+        "markersPreserved": true
+      },
+      {
+        "name": "bulk_007_level_2.pdf",
+        "bytes": 36257,
+        "sha256": "aceb94c6fab54a1cf48f6c863a4e3bd07b9aefeaa3e69e3c851c09e600a496bc",
+        "markersPreserved": true
+      },
+      {
+        "name": "bulk_008_level_1.pdf",
+        "bytes": 29863,
+        "sha256": "71045f4a98ab23ba992d4e3c93847bd88741f764bab9298565c5916a87904acc",
+        "markersPreserved": true
+      },
+      {
+        "name": "bulk_009_level_2.pdf",
+        "bytes": 36257,
+        "sha256": "b372e69fc6693401106ac53bf18f4c971dc89b084b619030be9edf3d686a2268",
+        "markersPreserved": true
+      },
+      {
+        "name": "bulk_010_level_1.pdf",
+        "bytes": 29863,
+        "sha256": "b80d060027beafc3556a062097fa5fea93243cbdf87bcd532fc4c29a9fccbd97",
+        "markersPreserved": true
+      },
+      {
+        "name": "bulk_011_level_2.pdf",
+        "bytes": 36257,
+        "sha256": "372df0a8f47dec905d3c8ca79f23e3f34cde833a39ca9f31e4994d9c63678770",
+        "markersPreserved": true
+      },
+      {
+        "name": "bulk_012_level_1.pdf",
+        "bytes": 29863,
+        "sha256": "44c097cb578d1bfb1af196b554dddaf07d1dc9122a23f9a7fd53cdca3bdd612b",
+        "markersPreserved": true
+      },
+      {
+        "name": "bulk_013_level_2.pdf",
+        "bytes": 36257,
+        "sha256": "7aaf138c4acf494dc68f9ad3e2f78e992a754c780e9df344fc34e4592d7f9dbb",
+        "markersPreserved": true
+      },
+      {
+        "name": "bulk_014_level_1.pdf",
+        "bytes": 29863,
+        "sha256": "321454ec8c6b32fb991f87ed9f81c78de2a788b27aabd91c27ddd97ad1bdb705",
+        "markersPreserved": true
+      },
+      {
+        "name": "bulk_015_level_2.pdf",
+        "bytes": 36257,
+        "sha256": "4d3420fcc4a577c38e650fda6c6afd53d400fef27204cf02c5503b980c45133a",
+        "markersPreserved": true
+      },
+      {
+        "name": "bulk_016_level_1.pdf",
+        "bytes": 29863,
+        "sha256": "0610b930c825585c9c8792a1a72d652cd61f3a14e465ded71b8110bc442f17a3",
+        "markersPreserved": true
+      },
+      {
+        "name": "bulk_017_level_2.pdf",
+        "bytes": 36257,
+        "sha256": "45f2861ace54c323eeefa703e3fb21eaea4e3670034e0751b8804e9d43d9d354",
+        "markersPreserved": true
+      },
+      {
+        "name": "bulk_018_level_1.pdf",
+        "bytes": 29863,
+        "sha256": "d282abeb55433219d9cb7c3a70afb833e04f077a63390cae13d031f86b2dab55",
+        "markersPreserved": true
+      },
+      {
+        "name": "bulk_019_level_2.pdf",
+        "bytes": 36257,
+        "sha256": "13d3580d923d6ab4c4d19d8b48e2f32810edd1a3751032aa5d868852ccfe1b03",
+        "markersPreserved": true
+      },
+      {
+        "name": "bulk_020_level_1.pdf",
+        "bytes": 29863,
+        "sha256": "11273529f8f5d4257f52d407efd35f1804120cd4ca02857d4c9b5e22cecc3921",
+        "markersPreserved": true
+      },
+      {
+        "name": "bulk_021_level_2.pdf",
+        "bytes": 36257,
+        "sha256": "6fdbfc588dcd78e7cc39ee8ec24caa4c5a30b3b46e5854e4435f3b8af35589be",
+        "markersPreserved": true
+      },
+      {
+        "name": "bulk_022_level_1.pdf",
+        "bytes": 29863,
+        "sha256": "495cd729e78d5cd2e8e8b94342cba163530c97a990680f2d58ca8eebd153e8d3",
+        "markersPreserved": true
+      },
+      {
+        "name": "bulk_023_level_2.pdf",
+        "bytes": 36257,
+        "sha256": "4f523b2a15b40eb45e84f91ce0ea26458ab1778931fe2a6d1bd8be167053a906",
+        "markersPreserved": true
+      },
+      {
+        "name": "bulk_024_level_1.pdf",
+        "bytes": 29863,
+        "sha256": "ad7b84ea049dbaaef181dedd46f0f9e76fbf030d5bc04e1a8df4d98813dc1521",
+        "markersPreserved": true
+      },
+      {
+        "name": "bulk_025_level_2.pdf",
+        "bytes": 36257,
+        "sha256": "0cde0dc64666515c6c9fa73b31e5206f36d0cf27d4e1eb25e75628fcb0e1e827",
+        "markersPreserved": true
+      },
+      {
+        "name": "bulk_026_level_1.pdf",
+        "bytes": 29863,
+        "sha256": "5c9a336bad4c6e537f72ff7d24160c1252c3a1a1b003b5bcea6e2197bb27f6b9",
+        "markersPreserved": true
+      },
+      {
+        "name": "bulk_027_level_2.pdf",
+        "bytes": 36257,
+        "sha256": "4c22cff8cf7169187ce046c3b96df6b14584d303e1db86348fac1a390194ad2b",
+        "markersPreserved": true
+      },
+      {
+        "name": "bulk_028_level_1.pdf",
+        "bytes": 29863,
+        "sha256": "06072dfdb2a70a14295d88429dc0f3d402d2793a19f92762ec82bb5b9da17d62",
+        "markersPreserved": true
+      },
+      {
+        "name": "bulk_029_level_2.pdf",
+        "bytes": 36257,
+        "sha256": "9042d4c6a91e5f8223bdcbac1d0117fe385058a284ef5fc0f9ec0118bb6d323d",
+        "markersPreserved": true
+      },
+      {
+        "name": "bulk_030_level_1.pdf",
+        "bytes": 29863,
+        "sha256": "638bada468130893025eb5bb92c803828a3c1d4f97da7c5611cd27f531ab553d",
+        "markersPreserved": true
+      },
+      {
+        "name": "bulk_031_level_2.pdf",
+        "bytes": 36257,
+        "sha256": "1ee0b7d14f19643f389fa902e5c20dfe61b291f5177f65f01f1b869bf23cf371",
+        "markersPreserved": true
+      }
+    ]
+  },
+  "quality": {
+    "task": {
+      "taskId": "910098e6c588a0c8211790e65cda3e35:0",
+      "format": "png",
+      "state": "ready",
+      "code": null,
+      "error": null,
+      "stage": "result",
+      "conversionStatus": "ready",
+      "saveStatus": "unsaved",
+      "readbackVerified": false,
+      "qualityCheckRequested": true,
+      "qualityCompared": true,
+      "checkedFeatures": [
+        "media_properties"
+      ],
+      "unknownReasons": [],
+      "formatLimitations": [],
+      "confirmedLoss": false,
+      "diagnostic": "",
+      "executionMode": "qt_media_frames",
+      "executionReason": "qt_media_frames",
+      "resultChecks": [
+        {
+          "check": "media_properties",
+          "status": "checked_subset",
+          "qualityCompared": false,
+          "source": {
+            "format": "bmp",
+            "width": 48,
+            "height": 32,
+            "frames": 1,
+            "pages": 1,
+            "alpha": false,
+            "durationsMs": [],
+            "orientation": 1,
+            "dpi": [
+              99.9998,
+              99.9998
+            ]
+          },
+          "result": {
+            "format": "png",
+            "width": 48,
+            "height": 32,
+            "frames": 1,
+            "pages": 1,
+            "alpha": false,
+            "durationsMs": [],
+            "orientation": 1,
+            "animationContainer": false,
+            "loopCount": 1,
+            "bitDepth": 8,
+            "dpi": [
+              99.9998,
+              99.9998
+            ]
+          },
+          "expectedLosses": [],
+          "validatedOutputContainers": 1
+        }
+      ],
+      "automaticRecipe": null,
+      "automaticParameters": null,
+      "durationMs": 60,
+      "nativeTimings": {
+        "source": "qt_media",
+        "adapterMs": 2
+      },
+      "exportFilter": null,
+      "warnings": [],
+      "quality": {
+        "schema": 1,
+        "status": "checked_subset",
+        "qualityCompared": true,
+        "scope": "structural_subset",
+        "before": {
+          "schema": 1,
+          "status": "checked_subset",
+          "complete": true,
+          "kind": "raster",
+          "counts": {
+            "images": 1,
+            "width": 48,
+            "height": 32
+          },
+          "textDigest": null,
+          "unknown": [
+            "visual_layout",
+            "fonts",
+            "rendered_pixels",
+            "formula_results"
+          ],
+          "documentClass": "image"
+        },
+        "after": {
+          "schema": 1,
+          "status": "checked_subset",
+          "complete": true,
+          "kind": "raster",
+          "counts": {
+            "images": 1,
+            "width": 48,
+            "height": 32
+          },
+          "textDigest": null,
+          "unknown": [
+            "visual_layout",
+            "fonts",
+            "rendered_pixels",
+            "formula_results"
+          ],
+          "documentClass": "image"
+        },
+        "risks": [],
+        "formatLimitations": [],
+        "structureCompared": true,
+        "textCompared": false,
+        "valuesCompared": false,
+        "comparisonCoverage": {
+          "structure": "checked_subset",
+          "text": "not_checked",
+          "values": "not_checked",
+          "visual": "not_checked"
+        },
+        "unknown": [
+          "visual_layout",
+          "fonts",
+          "rendered_pixels",
+          "formula_results"
+        ]
+      },
+      "outputs": [
+        {
+          "path": "0001-png/Контрольный_исходник_100dpi.png",
+          "size": 140,
+          "sha256": "2bba191045f4d1797523db3dba3a483d9124b791327b2f1c7950993deeec3193",
+          "saved": false,
+          "available": true,
+          "availabilityCode": null,
+          "readbackVerified": false,
+          "sourceSheet": null
+        }
+      ],
+      "route": null,
+      "libreOfficeStarted": true
+    },
+    "visibleText": "Часть структуры проверена · внешний вид не проверен Проверки результата: свойства изображения. Свойства результата: 48 × 32 пикс. · 100 × 100 DPI · кадров: 1 · страниц: 1. Копия на диске: не сохранена. Сверка сохранённой копии не подтверждена. Границы проверки: расположение объектов, шрифты, отрисованные пиксели, вычисление формул. Внешний вид, шрифты и расположение объектов не сравнивались."
+  },
+  "nativeSave": {
+    "bytes": 140,
+    "sha256": "2bba191045f4d1797523db3dba3a483d9124b791327b2f1c7950993deeec3193",
+    "realDialogInteraction": false,
+    "runSlotUnchanged": true
+  }
+}

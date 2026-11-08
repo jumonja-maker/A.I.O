@@ -552,6 +552,7 @@ def _jpeg(r, *, complete=False):
     pending_marker = None
     saw_scan = False
     icc_present = False
+    dpi = None
 
     def incomplete_source_metadata():
         # A native decoder may recover an incomplete source. Retain the old
@@ -561,6 +562,8 @@ def _jpeg(r, *, complete=False):
         result['metadataComplete'] = False
         if icc_present:
             result['iccProfilePresent'] = True
+        if dpi is not None:
+            result['dpi'] = dpi
         return result
 
     while True:
@@ -578,6 +581,8 @@ def _jpeg(r, *, complete=False):
         if marker == 0xd9:
             if result is None or not saw_scan:
                 raise _Invalid('jpeg_scan_missing')
+            if dpi is not None:
+                result['dpi'] = dpi
             return result
         if marker in (0, 0xd8):
             raise _Invalid('jpeg_marker')
@@ -610,9 +615,19 @@ def _jpeg(r, *, complete=False):
             result['orientation'] = orientation
             if icc_present:
                 result['iccProfilePresent'] = True
+            if dpi is not None:
+                result['dpi'] = dpi
             if not complete:
                 return result
             pending_marker = _jpeg_entropy_marker(r)
+        elif marker == 0xe0:
+            payload = r.read(length - 2)
+            if payload.startswith(b'JFIF\0') and len(payload) >= 12:
+                unit = payload[7]
+                x, y = struct.unpack_from('>HH', payload, 8)
+                if unit in (1, 2) and x and y:
+                    dpi = [x * (2.54 if unit == 2 else 1),
+                           y * (2.54 if unit == 2 else 1)]
         elif marker == 0xe1:
             payload = r.read(length - 2)
             if payload.startswith(b'Exif\0\0'):
@@ -637,6 +652,12 @@ def _bmp(r, *, complete=False):
     else:
         raise _Invalid('bmp_dib')
     result = _base('bmp', abs(width), abs(height))
+    if dib >= 40 and r.size >= 54:
+        r.seek(38)
+        x, y = struct.unpack('<ii', r.read(8))
+        r.seek(26)
+        if x > 0 and y > 0:
+            result['dpi'] = [x * .0254, y * .0254]
     if complete:
         pixel_offset = int.from_bytes(head[10:14], 'little')
         declared = int.from_bytes(head[2:6], 'little')
@@ -747,14 +768,23 @@ def check_media_preservation(paths, target, source, *, cancel, source_evidence=N
     def source_profile():
         def inspect_source():
             result = inspect_media(source, cancel=cancel)
-            if result is None and source.suffix.lower() in ('.pbm', '.pgm', '.ppm', '.xbm', '.xpm'):
+            if result is None and source.suffix.lower() in ('.pct', '.pict'):
+                from .native_fidelity import aio_pict_frame
+                dimensions = aio_pict_frame(source)
+                if dimensions is not None:
+                    result = _base('pict', *dimensions)
+            if result is None and source.suffix.lower() in (
+                    '.pbm', '.pgm', '.ppm', '.xbm', '.xpm', '.pcx', '.ras', '.pcd', '.tga'):
                 # Do not turn every native export into a second Guard scan.
                 # For these formats Qt has already confirmed image structure
                 # during preflight; one cheap header probe proves dimensions.
-                from .qt_media import qt_pnm_profile, qt_xbm_xpm_profile
+                from .qt_media import (qt_pnm_profile, qt_xbm_xpm_profile,
+                                       pillow_legacy_profile, qt_tga_profile)
                 try:
                     result = (qt_pnm_profile(source, cancel=cancel)
-                              or qt_xbm_xpm_profile(source, cancel=cancel))
+                              or qt_xbm_xpm_profile(source, cancel=cancel)
+                              or qt_tga_profile(source, cancel=cancel)
+                              or pillow_legacy_profile(source, cancel=cancel))
                 except GuardError as error:
                     if error.code not in ('MEDIA_QT_UNAVAILABLE', 'MEDIA_CANVAS_BUDGET'):
                         raise
@@ -850,18 +880,25 @@ def check_media_preservation(paths, target, source, *, cancel, source_evidence=N
         if before.get('pageDimensions') and target in ('tif', 'tiff'):
             if display_page_dimensions(before) != display_page_dimensions(after):
                 raise GuardError('MEDIA_CANVAS_CHANGED', 'Экспорт изменил размеры страниц TIFF.', stage='result')
-        if target in ('png', 'apng', 'tif', 'tiff'):
+        if target in ('png', 'apng', 'tif', 'tiff', 'bmp', 'jpg', 'jpeg', 'jpe', 'jif', 'jfif'):
             original_resolution = _display_resolutions(before)
             output_resolution = _display_resolutions(after)
+            if ALIASES.get(target, target) in ('jpeg', 'bmp'):
+                # Static formats intentionally contain the first frame/page;
+                # the omitted units already have explicit loss receipts.
+                original_resolution = original_resolution[:1]
             for index, expected in enumerate(original_resolution):
                 if expected is None:
                     continue  # An untagged source has no proven physical scale.
                 actual = output_resolution[index] if index < len(output_resolution) else None
-                if actual is None or any(abs(a-b) > max(0.05, a * .0001)
+                tolerance = .51 if ALIASES.get(target, target) == 'jpeg' else .05
+                if actual is None or any(abs(a-b) > max(tolerance, a * .0001)
                                          for a, b in zip(expected, actual)):
                     raise GuardError('MEDIA_DPI_LOSS',
                                      'Экспорт изменил физический масштаб изображения или страниц.',
                                      stage='result')
+        elif before.get('dpi') or any(before.get('pageDpi', ())):
+            expected_losses.append('physical_resolution')
     elif source.suffix.lower() == '.pdf' and target in ('tif', 'tiff'):
         try:
             from pypdf import PdfReader

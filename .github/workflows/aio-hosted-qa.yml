@@ -38,6 +38,7 @@ jobs:
           GIT_CONFIG_VALUE_0: 'false'
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 20
           persist-credentials: false
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
@@ -106,6 +107,18 @@ jobs:
           set -euo pipefail
           python tools/qa/deep_converter_native.py --executable "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-deep-native"
           python tools/qa/guard_v182_large_preflight_acceptance.py --engine "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-deep-510" --count 510 --deadline-seconds 600
+      - name: Converter completion real media DBF bulk XHTML UI and matched performance
+        if: ${{ !cancelled() && runner.os == 'Windows' && steps.windows_engine.outcome == 'success' && steps.deps.outcome == 'success' }}
+        id: completion_controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/qa/completion_media_native.py --executable "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-completion-media"
+          python tools/qa/completion_dbf_native.py --executable "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-completion-dbf" --require-uno
+          python tools/qa/completion_routes_native.py --engine "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-completion-routes"
+          python tools/qa/completion_ui_native.py --output "$RUNNER_TEMP/aio-completion-ui" --xhtml-zip tools/qa/fixtures/aio_windows_exact22_new_samples.zip --bulk-count 32
+          QT_SCALE_FACTOR=1.5 python tools/qa/completion_ui_native.py --output "$RUNNER_TEMP/aio-completion-ui-scale150"
+          python tools/qa/completion_performance_native.py --executable "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-completion-performance" --baseline b7216d1210489a5fd1eadb21daf2e3b3849e30f4
       - name: Complete source regression suite
         if: ${{ !cancelled() && steps.deps.outcome == 'success' && (steps.windows_engine.outcome == 'success' || steps.linux_engine.outcome == 'success') }}
         id: units
@@ -115,7 +128,7 @@ jobs:
           python -m compileall -q app_backend tools tests
           python tools/qa/hosted_unit_tests.py --report "$RUNNER_TEMP/aio-units.json"
       - name: Windows EXE packaging and real frozen smoke (no publication)
-        if: runner.os == 'Windows' && steps.units.outcome == 'success' && steps.fidelity.outcome == 'success' && steps.vector_pages.outcome == 'success' && steps.deep_controls.outcome == 'success'
+        if: runner.os == 'Windows' && steps.units.outcome == 'success' && steps.fidelity.outcome == 'success' && steps.vector_pages.outcome == 'success' && steps.deep_controls.outcome == 'success' && steps.completion_controls.outcome == 'success'
         id: package
         shell: bash
         run: |
@@ -131,17 +144,37 @@ jobs:
           python -c "import hashlib,json; from pathlib import Path; b=Path('dist/A.I.O/_internal/build-info'); d=json.loads((b/'aio-qa-dependencies.json').read_text(encoding='utf-8')); assert d['wheelHashesVerified'] is True and hashlib.sha256((b/d['sbomFile']).read_bytes()).hexdigest()==d['sbomSha256']; print('AIO_BUNDLED_WHEEL_HASHES_AND_SBOM=PASS')"
           python -c "import hashlib,json; from pathlib import Path; b=Path('dist/A.I.O/_internal/build-info'); d=json.loads((b/'aio-qa-dependencies.json').read_text(encoding='utf-8')); assert d['scaStatus']=='pass_python_distribution_scope' and hashlib.sha256((b/d['scaReportFile']).read_bytes()).hexdigest()==d['scaReportSha256']; print('AIO_BUNDLED_PYTHON_SCA=PASS')"
           python tools/qa/runtime_frozen_acceptance.py --executable dist/A.I.O/A.I.O.exe --output "$RUNNER_TEMP/aio-hosted-frozen" --seconds 120
+          python tools/qa/completion_frozen_desktop.py --executable dist/A.I.O/A.I.O.exe --output "$RUNNER_TEMP/aio-completion-frozen-desktop"
       - name: Preserve truthful summary in job log (no upload-artifact)
         if: always()
         shell: bash
         run: |
           python - <<'PY'
-          import json,os,pathlib
-          for name in ('aio-units.json','aio-batch1-native/evidence.json','aio-vector-pages-native/evidence.json','aio-pptx-colours-native/evidence.json','aio-compressed-pages-native/evidence.json','aio-dbf-emf-native/evidence.json','aio-m14-native/evidence.json','aio-m21-svg-native/evidence.json','aio-deep-native/evidence.json','aio-deep-510/evidence.json','aio-hosted-frozen/evidence.json'):
+          import base64,hashlib,json,os,pathlib
+          for name in ('aio-units.json','aio-batch1-native/evidence.json','aio-vector-pages-native/evidence.json','aio-pptx-colours-native/evidence.json','aio-compressed-pages-native/evidence.json','aio-dbf-emf-native/evidence.json','aio-m14-native/evidence.json','aio-m21-svg-native/evidence.json','aio-deep-native/evidence.json','aio-deep-510/evidence.json','aio-hosted-frozen/evidence.json','aio-completion-media/completion-media-report.json','aio-completion-dbf/evidence.json','aio-completion-routes/evidence.json','aio-completion-ui/evidence.json','aio-completion-ui-scale150/evidence.json','aio-completion-performance/evidence.json','aio-completion-frozen-desktop/evidence.json'):
               p=pathlib.Path(os.environ['RUNNER_TEMP'])/name
               if p.is_file():
                   data=json.loads(p.read_text(encoding='utf-8'))
-                  print('AIO_EVIDENCE='+json.dumps({'file':name,**data},ensure_ascii=True))
+                  record=json.dumps({'file':name,**data},ensure_ascii=True)
+                  print('AIO_EVIDENCE='+record)
+                  if len(record)>48000:
+                      chunks=[record[i:i+12000] for i in range(0,len(record),12000)]
+                      digest=hashlib.sha256(record.encode('ascii')).hexdigest()
+                      for index,part in enumerate(chunks):
+                          print('AIO_EVIDENCE_CHUNK='+json.dumps({'file':name,'part':index,'total':len(chunks),'sha256':digest,'data':part},ensure_ascii=True))
+          for name in ('aio-completion-frozen-desktop/desktop-ready.png','aio-completion-ui/bulk-xhtml-saved.png','aio-completion-ui/empty-1440x1000-zoom1.png','aio-completion-ui-scale150/native-saved.png'):
+              p=pathlib.Path(os.environ['RUNNER_TEMP'])/name
+              if not p.is_file():
+                  print('AIO_SCREENSHOT_NOT_RUN='+name)
+                  continue
+              payload=p.read_bytes()
+              if len(payload)>2*1024*1024:
+                  raise ValueError('QA screenshot budget exceeded')
+              encoded=base64.b64encode(payload).decode('ascii')
+              chunks=[encoded[i:i+12000] for i in range(0,len(encoded),12000)]
+              digest=hashlib.sha256(payload).hexdigest()
+              for index,data in enumerate(chunks):
+                  print('AIO_SCREENSHOT_CHUNK='+json.dumps({'file':name,'part':index,'total':len(chunks),'sha256':digest,'data':data},ensure_ascii=True))
           print('HISTORICAL_FULLTEST=NOT_RUN;USER_INSTALLER=NOT_BUILT;RELEASE=NOT_RUN')
           PY
       - name: Require all platform-specific QA stages

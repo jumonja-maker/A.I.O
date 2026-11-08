@@ -7,7 +7,29 @@ from .preservation_contract import PRESERVATION_POLICY_SOURCE
 from .calc_pages import CALC_PAGES_SOURCE
 from .text_occurrences import TEXT_OCCURRENCE_SOURCE
 
-NATIVE_FIDELITY_SOURCE = PRESERVATION_POLICY_SOURCE + CALC_PAGES_SOURCE + TEXT_OCCURRENCE_SOURCE + r'''
+PICT_FRAME_SOURCE = r'''
+def aio_pict_frame(source):
+    """Read the declared QuickDraw frame, only with a v1/v2 version opcode."""
+    import struct
+    from pathlib import Path
+    with Path(source).open('rb') as stream:
+        head = stream.read(526)
+    for offset in (512, 0):
+        if len(head) < offset + 12:
+            continue
+        version = head[offset + 10:offset + 14]
+        if not (version.startswith(b'\x11\x01') or version == b'\x00\x11\x02\xff'):
+            continue
+        top, left, bottom, right = struct.unpack_from('>4h', head, offset + 2)
+        width, height = right - left, bottom - top
+        if width > 0 and height > 0:
+            return width, height
+    return None
+'''
+
+exec(compile(PICT_FRAME_SOURCE, '<aio_pict_frame>', 'exec'))
+
+NATIVE_FIDELITY_SOURCE = PRESERVATION_POLICY_SOURCE + CALC_PAGES_SOURCE + TEXT_OCCURRENCE_SOURCE + PICT_FRAME_SOURCE + r'''
 import json
 import re
 import hashlib
@@ -369,7 +391,55 @@ def aio_export_writer_pages(model, prop, target, export_options, filter_name, pr
             pass
 
 
-def aio_export_graphic_pages(model, remote, prop, target, preservation=None):
+def aio_export_pict_graphic(model, remote, prop, target, source, import_filter, mimes):
+    """Export a confirmed standalone PICT graphic, excluding Draw's A4 canvas.
+
+    A normal drawing containing one picture still exports its complete page.
+    Both the actual native import filter and a QuickDraw declaration are
+    required. Unknown models/transformations fail closed for this image route.
+    """
+    if import_filter != 'PCT - Mac Pict' or source is None:
+        return None
+    frame = aio_pict_frame(source)
+    if frame is None or frame[0] * frame[1] > 64 * 1024 * 1024:
+        raise AioPreservationIncomplete('pict_canvas_unconfirmed')
+    pages = model.getDrawPages()
+    if pages.getCount() != 1 or pages.getByIndex(0).getCount() != 1:
+        raise AioPreservationIncomplete('pict_single_graphic_unconfirmed')
+    shape = pages.getByIndex(0).getByIndex(0)
+    try:
+        crop = shape.GraphicCrop
+        if (shape.getShapeType() != 'com.sun.star.drawing.GraphicObjectShape'
+                or shape.RotateAngle != 0 or shape.ShearAngle != 0
+                or any(getattr(crop, edge) != 0 for edge in ('Top', 'Bottom', 'Left', 'Right'))):
+            raise ValueError('pict_graphic_transformation')
+        graphic = shape.Graphic
+    except Exception as error:
+        raise AioPreservationIncomplete('pict_graphic_model_unconfirmed') from error
+    # GraphicProvider serializes the native graphic itself. GraphicExportFilter
+    # on a Draw page scales it into the white default page instead.
+    provider = remote.ServiceManager.createInstanceWithContext(
+        'com.sun.star.graphic.GraphicProvider', remote)
+    if provider is None or not mimes:
+        raise AioPreservationIncomplete('pict_graphic_encoder_unavailable')
+    import uno
+    data = uno.Any('[]com.sun.star.beans.PropertyValue',
+                   (prop('PixelWidth', frame[0]), prop('PixelHeight', frame[1])))
+    with target.open('xb'):
+        pass
+    try:
+        provider.storeGraphic(graphic, (prop('URL', target.as_uri()),
+            prop('MimeType', mimes[0]), prop('FilterData', data)))
+        if target.is_symlink() or not target.is_file() or target.stat().st_size <= 0:
+            raise AioPreservationIncomplete('pict_graphic_output_missing')
+        return [target]
+    except BaseException:
+        target.unlink(missing_ok=True)
+        raise
+
+
+def aio_export_graphic_pages(model, remote, prop, target, preservation=None,
+                             source=None, import_filter=None):
     """Export each native Draw/Impress page without flattening vector targets.
 
     Only an already confirmed output route reaches this executor. Capabilities
@@ -390,6 +460,11 @@ def aio_export_graphic_pages(model, remote, prop, target, preservation=None):
     if type(count) is not int or not 1 <= count <= 4096:
         raise AioPreservationIncomplete('native_graphic_page_count_unconfirmed')
     if count == 1:
+        if target.suffix.lower() in ('.png', '.jpg', '.jpeg', '.jfif', '.jif', '.jpe',
+                                     '.bmp', '.tif', '.tiff', '.webp'):
+            graphic = aio_export_pict_graphic(model, remote, prop, target, source, import_filter, mimes)
+            if graphic is not None:
+                return graphic
         return None  # Preserve the existing single-page native export path.
     exporter = remote.ServiceManager.createInstanceWithContext(
         'com.sun.star.drawing.GraphicExportFilter', remote)

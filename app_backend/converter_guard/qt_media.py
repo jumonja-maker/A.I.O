@@ -2,7 +2,7 @@
 
 Qt decodes/composes GIF/WebP and encodes lossless WebP. APNG/GIF/TIFF framing
 below keeps every decoded frame/page rather than exporting a Draw page. No new
-image library is used for ordinary sources. PCX and Sun RAS use a separate,
+image library is used for ordinary sources. PCX, Sun RAS and PhotoCD Base use a separate,
 content-confirmed Pillow decoder to avoid LibreOffice's white Draw canvas.
 Cancellation and bounded pixel allocation are checked between stages.
 """
@@ -157,7 +157,7 @@ def qt_xbm_xpm_profile(source, *, cancel=None):
 
 
 
-_LEGACY_PIL_FORMATS = {'pcx': 'PCX', 'ras': 'SUN'}
+_LEGACY_PIL_FORMATS = {'pcx': 'PCX', 'ras': 'SUN', 'pcd': 'PCD'}
 # Pillow RGBA plus the owned QImage copy: avoid unbounded dual pixel buffers.
 _LEGACY_PIL_PIXELS = 16 * 1024 * 1024
 # PDF always uses a page-specific Qt renderer, not a first-page LO bitmap.
@@ -165,7 +165,7 @@ _PDF_PAGE_TARGETS = frozenset(('png', 'jpg', 'jpeg', 'jpe', 'jfif', 'jif'))
 
 
 def pillow_legacy_profile(source, *, cancel=None):
-    """Admit PCX/RAS only with a plausible binary header and Pillow metadata.
+    """Admit legacy rasters only with binary structure and Pillow metadata.
 
     Ordinary office files and other images do not import Pillow or make any
     additional passes. Preflight opens the header only, not the pixel raster.
@@ -177,7 +177,11 @@ def pillow_legacy_profile(source, *, cancel=None):
     _cancel(cancel)
     with source.open('rb') as stream:
         header = stream.read(128)
+        if kind == 'pcd':
+            stream.seek(2048)
+            header = stream.read(1539)
         total = stream.seek(0, 2)
+    dpi = None
     if kind == 'pcx':
         if len(header) != 128 or header[0] != 10 or header[2] != 1:
             return None
@@ -191,6 +195,21 @@ def pillow_legacy_profile(source, *, cancel=None):
         width, height = xmax - xmin + 1, ymax - ymin + 1
         if stride * 8 < width * depth:
             return None
+        resolution = struct.unpack_from('<HH', header, 12)
+        if all(resolution):
+            dpi = list(resolution)
+    elif kind == 'pcd':
+        # Pillow decodes PhotoCD's complete Base image (not the small preview
+        # and not the higher, compressed resolutions). Confirm that the whole
+        # planar Base raster exists before advertising this bounded route.
+        if (len(header) != 1539 or not header.startswith(b'PCD_IPI')
+                or total < 96 * 2048 + 768 * 512 * 3 // 2):
+            return None
+        orientation = header[1538] & 3
+        if orientation == 2:
+            return None  # The installed Pillow decoder does not apply 180°.
+        width, height = ((512, 768) if orientation in (1, 3) else (768, 512))
+        depth = 8
     else:
         if len(header) < 32 or header[:4] != b'\x59\xa6\x6a\x95':
             return None
@@ -203,13 +222,13 @@ def pillow_legacy_profile(source, *, cancel=None):
     _bounds(width, height)
     if width * height > _LEGACY_PIL_PIXELS:
         raise GuardError('MEDIA_CANVAS_BUDGET',
-                         'Растр PCX/RAS превышает бюджет памяти декодера.',
+                         'Растр изображения превышает бюджет памяти декодера.',
                          stage='preflight')
     try:
         from PIL import Image
     except ImportError as error:
         raise GuardError('MEDIA_CODEC_UNAVAILABLE',
-                         'Графический декодер PCX/RAS недоступен.',
+                         'Графический декодер изображения недоступен.',
                          stage='preflight') from error
     try:
         with Image.open(source) as image:
@@ -220,12 +239,41 @@ def pillow_legacy_profile(source, *, cancel=None):
             alpha = 'A' in image.getbands()
     except (OSError, ValueError, SyntaxError) as error:
         raise GuardError('MEDIA_SOURCE_INVALID',
-                         'Изображение PCX/RAS не подтвердилось декодером.',
+                         'Изображение не подтвердилось декодером.',
                          stage='preflight') from error
     _cancel(cancel)
-    return {'format': kind, 'width': width, 'height': height,
+    result = {'format': kind, 'width': width, 'height': height,
             'frames': 1, 'pages': 1, 'alpha': alpha, 'durationsMs': [],
             'orientation': 1, 'bitDepth': min(depth, 8)}
+    if dpi is not None:
+        result['dpi'] = dpi
+    if kind == 'pcd':
+        result['decodedResolution'] = 'PhotoCD_Base'
+    return result
+
+
+def qt_tga_profile(source, *, cancel=None):
+    """Confirm the TGA declaration against the installed Qt raster decoder."""
+    source = Path(source)
+    if source.suffix.lower() != '.tga':
+        return None
+    from .graphic_source import tga_contract
+    declaration = tga_contract(source, cancel=cancel)
+    if declaration is None:
+        return None
+    _bounds(declaration['width'], declaration['height'])
+    reader = _qt()[5](str(source))
+    if bytes(reader.format()).lower() != b'tga' or not reader.canRead():
+        return None
+    size = reader.size()
+    if (size.width(), size.height()) != (declaration['width'], declaration['height']):
+        return None
+    with source.open('rb') as stream:
+        header = stream.read(18)
+    _cancel(cancel)
+    return {'format': 'tga', 'width': size.width(), 'height': size.height(),
+            'frames': 1, 'pages': 1, 'alpha': bool(header[17] & 15),
+            'durationsMs': [], 'orientation': 1, 'bitDepth': 8}
 
 
 def media_frame_route(source, target, *, cancel=None):
@@ -234,6 +282,7 @@ def media_frame_route(source, target, *, cancel=None):
         return None
     info = (inspect_media(source, cancel=cancel) or qt_pnm_profile(source, cancel=cancel)
             or qt_xbm_xpm_profile(source, cancel=cancel)
+            or qt_tga_profile(source, cancel=cancel)
             or pillow_legacy_profile(source, cancel=cancel))
     if info is None:
         return None
@@ -290,6 +339,7 @@ def media_preflight(source, *, cancel=None):
     _cancel(cancel)
     info = (inspect_media(source, cancel=cancel) or qt_pnm_profile(source, cancel=cancel)
             or qt_xbm_xpm_profile(source, cancel=cancel)
+            or qt_tga_profile(source, cancel=cancel)
             or pillow_legacy_profile(source, cancel=cancel))
     if info is None:
         with source.open('rb') as stream:
@@ -539,7 +589,7 @@ def _frames(source, scratch, info, cancel):
             if (decoded.format != _LEGACY_PIL_FORMATS[info['format']]
                     or decoded.size != (info['width'], info['height'])):
                 raise GuardError('MEDIA_SOURCE_CHANGED',
-                                 'PCX/RAS изменился после проверки.',
+                                 'Исходный растр изменился после проверки.',
                                  stage='engine')
             decoded.load()
             _cancel(cancel)
@@ -547,14 +597,17 @@ def _frames(source, scratch, info, cancel):
             width, height = decoded.size
             if len(pixels) != width * height * 4:
                 raise GuardError('MEDIA_DECODE_FAILED',
-                                 'Неполный кадр PCX/RAS.', stage='engine')
+                                 'Неполный кадр изображения.', stage='engine')
             frame = QImage(pixels, width, height, width * 4,
                            QImage.Format.Format_RGBA8888).copy()
             if frame.isNull():
                 raise GuardError('MEDIA_DECODE_FAILED',
-                                 'Не удалось передать пиксели PCX/RAS в Qt.',
+                                 'Не удалось передать пиксели изображения в Qt.',
                                  stage='engine')
             del pixels
+            if info.get('dpi'):
+                frame.setDotsPerMeterX(round(info['dpi'][0] / 0.0254))
+                frame.setDotsPerMeterY(round(info['dpi'][1] / 0.0254))
             _cancel(cancel)
             yield frame
         return
@@ -964,13 +1017,89 @@ def convert_media_frames(source, output_dir, target, *, cancel=None, on_started=
                 if (info['format'] in _LEGACY_PIL_FORMATS
                         and (actual['width'], actual['height']) != (info['width'], info['height'])):
                     raise GuardError('MEDIA_CANVAS_CHANGED',
-                                     'Результат PCX/RAS изменил размер исходного холста.', stage='result')
+                                     'Результат изменил размер исходного холста.', stage='result')
                 os.replace(partial, output)
             finally:
                 frames.close()
     finally:
         partial.unlink(missing_ok=True)
     return [output]
+
+
+def encode_native_gif_pages(paths, *, cancel=None):
+    """Apply the same exact GIF policy to lossless native PNG page renders.
+
+    Native rendering establishes the page raster, not original import/visual
+    equivalence. Encode every page before replacing the task's output list;
+    a later unrepresentable page must never leave a ready GIF subset.
+    """
+    paths = [Path(path) for path in paths]
+    pages = [path for path in paths if path.suffix.lower() == '.png']
+    if not pages:
+        raise GuardError('MEDIA_INSPECTION_INCOMPLETE',
+                         'Не получены PNG-страницы для проверки палитры GIF.', stage='result')
+    output_dir = pages[0].parent
+    if any(path.parent != output_dir for path in paths):
+        raise GuardError('MEDIA_INSPECTION_INCOMPLETE',
+                         'Страницы GIF находятся вне каталога результата.', stage='result')
+    mapping = {page.name: page.with_suffix('.gif').name for page in pages}
+    destinations = [page.with_suffix('.gif') for page in pages]
+    for destination in destinations:
+        if destination.exists() or destination.is_symlink():
+            raise GuardError('ENGINE_OUTPUT_COLLISION',
+                             'Имя результата GIF уже занято.', stage='result')
+    manifest = next((path for path in paths if path.name == 'AIO-pages.json'), None)
+    prepared_manifest = None
+    published = []
+    try:
+        with tempfile.TemporaryDirectory(prefix='.exact-gif-', dir=output_dir) as folder:
+            scratch = Path(folder)
+            for page in pages:
+                _cancel(cancel)
+                info = inspect_media(page, cancel=cancel, validate_container=True)
+                if info is None or info['format'] != 'png' or max(info['frames'], info['pages']) != 1:
+                    raise GuardError('MEDIA_OUTPUT_INVALID',
+                                     'Нативная страница не является статичным PNG.', stage='result')
+                convert_media_frames(page, scratch, 'gif', cancel=cancel)
+            if manifest is not None:
+                if manifest.stat().st_size > MAX_PNG_AUX_BYTES:
+                    raise GuardError('MEDIA_METADATA_BUDGET',
+                                     'Описание страниц GIF превышает бюджет проверки.', stage='result')
+                data = json.loads(manifest.read_text(encoding='utf-8'))
+                records = data.get('pages') if isinstance(data, dict) else None
+                if (not isinstance(data, dict) or type(data.get('schema')) is not int
+                        or data['schema'] != 1 or type(data.get('pageCount')) is not int
+                        or data['pageCount'] != len(pages)
+                        or not isinstance(records, list) or len(records) != len(pages)
+                        or any(not isinstance(record, dict) for record in records)
+                        or any(type(record.get('page')) is not int for record in records)
+                        or [record['page'] for record in records] != list(range(1, len(pages) + 1))
+                        or [record.get('file') for record in records] != [page.name for page in pages]):
+                    raise GuardError('MEDIA_INSPECTION_INCOMPLETE',
+                                     'Описание страниц не соответствует PNG-результатам.', stage='result')
+                for record in records:
+                    record['file'] = mapping[record['file']]
+                prepared_manifest = scratch / manifest.name
+                prepared_manifest.write_text(json.dumps(data, ensure_ascii=False), encoding='utf-8')
+            for destination in destinations:
+                _cancel(cancel)
+                os.replace(scratch / destination.name, destination)
+                published.append(destination)
+            if prepared_manifest is not None:
+                os.replace(prepared_manifest, manifest)
+        for page in pages:
+            page.unlink()
+        result = [path.with_suffix('.gif') if path in pages else path for path in paths]
+        return result, {'check': 'gif_exact_palette', 'status': 'checked_subset',
+                        'policy': 'same_exact_encoder_as_qt_raster_routes',
+                        'nativeRasterFormat': 'png', 'pages': len(pages),
+                        'paletteQuantized': False, 'binaryAlphaChecked': True,
+                        'qualityCompared': False,
+                        'notChecked': ['original_import_equivalence', 'native_render_visual_equivalence']}
+    except BaseException:
+        for destination in published:
+            destination.unlink(missing_ok=True)
+        raise
 
 
 

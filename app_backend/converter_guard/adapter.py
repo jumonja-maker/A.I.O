@@ -806,12 +806,22 @@ class LibreOfficeAdapter:
                     paths = self._convert_legacy_sheets(native_source, target, workspace,
                         control=identity_control, on_started=on_started, on_stage=on_stage)
                 else:
-                    paths = self._convert_native(native_source, plain or target, workspace,
+                    # A native GIF exporter may silently quantize colours.
+                    # Render native pages losslessly, then use the same exact
+                    # palette/binary-alpha encoder as direct raster routes.
+                    native_target = 'png' if target == 'gif' else plain or target
+                    paths = self._convert_native(native_source, native_target, workspace,
                         cancel=identity_control, timeout=remaining,
                         on_started=on_started, output_limit=output_limit,
                         on_document_service=on_document_service, on_stage=on_stage)
             finally:
                 self._local.import_filter, self._local.import_options = previous_import
+            if target == 'gif':
+                from .qt_media import encode_native_gif_pages
+                paths, gif_check = encode_native_gif_pages(paths, cancel=identity_control)
+                self._local.export_info['executionReason'] = 'native_png_pages_exact_gif'
+                self._local.export_info['resultChecks'] = list(
+                    self._local.export_info.get('resultChecks', ())) + [gif_check]
             if target in ('emf', 'emz') and self.execution_mode() in ('native_uno', 'native_cli'):
                 repairs = repair_native_emf_counts(paths, cancel=identity_control)
                 if repairs:
@@ -846,22 +856,29 @@ class LibreOfficeAdapter:
                     self._local.export_info.get('resultChecks', [])) + repairs
                 self._local.export_info['warnings'] = tuple(dict.fromkeys(
                     (*self._local.export_info.get('warnings', ()), 'NATIVE_BMP_HEADER_CORRECTED')))
-        # The pinned dBase exporter uses native UTF-8 FilterOptions=76, while
-        # LibreOffice can leave DBF's LDID unset. One 32-byte header read per
-        # output is enough to attach .cpg metadata; no Guard rescanning.
+        # Native UNO and validated CLI snapshots use CP1251 only for strictly
+        # representable sheets and declare LDID C9. Other Unicode stays UTF-8.
+        # Some receivers, including LO, require explicit encoding selection.
         if target == 'dbf':
-            from .dbf_codepage import attach_utf8_codepages
-            codepages = attach_utf8_codepages(paths,
+            from .dbf_codepage import attach_native_codepages, _cpg_codec
+            codepages = attach_native_codepages(paths,
                 filter_name=self._local.export_info.get('filter'),
                 cancel=identity_control)
             if codepages:
                 paths = list(dict.fromkeys([*paths, *codepages]))
+                encodings = {_cpg_codec(path) for path in codepages}
                 self._local.export_info['warnings'] = tuple(dict.fromkeys((
-                    *self._local.export_info.get('warnings', ()), 'NATIVE_DBF_UTF8_CPG')))
+                    *self._local.export_info.get('warnings', ()),
+                    *(['NATIVE_DBF_CP1251_CPG', 'NATIVE_DBF_CP1251_REQUIRES_ENCODING_SELECTION']
+                      if 'cp1251' in encodings else []),
+                    *(['NATIVE_DBF_UTF8_CPG', 'NATIVE_DBF_UTF8_REQUIRES_ENCODING_SELECTION']
+                      if 'utf-8' in encodings else []))))
                 self._local.export_info['resultChecks'] = list(
                     self._local.export_info.get('resultChecks', ())) + [{
-                    'check': 'dbf_utf8_codepage', 'status': 'checked_subset',
-                    'sidecars': len(codepages), 'qualityCompared': False}]
+                    'check': 'dbf_native_codepage', 'status': 'checked_subset',
+                    'encodings': sorted(encodings), 'sidecars': len(codepages),
+                    'scope': 'native_export_encoding_and_codepage_metadata',
+                    'externalAutoDetectionVerified': False, 'qualityCompared': False}]
             if (self._local.export_info.get('filter') == 'dBase'
                     and len(codepages) < sum(Path(p).suffix.lower() == '.dbf' for p in paths)):
                 self._local.export_info['warnings'] = tuple(dict.fromkeys((
@@ -891,6 +908,8 @@ class LibreOfficeAdapter:
             warnings = list(self._local.export_info.get('warnings', ()))
             for result_check in checks:
                 if result_check.get('check') == 'media_properties':
+                    if (result_check.get('source') or {}).get('decodedResolution') == 'PhotoCD_Base':
+                        warnings.append('MEDIA_PHOTOCD_BASE_ONLY')
                     loss_warnings = {
                         'alpha': 'MEDIA_ALPHA_REMOVED',
                         'animation': ('MEDIA_ANIMATION_AS_PAGES' if target in ('tif', 'tiff') else
@@ -1062,6 +1081,7 @@ class LibreOfficeAdapter:
         is_csv = target in ('csv', 'tab', 'tsv')
         previous_csv = getattr(self._local, 'csv_sheet_snapshot', False)
         previous_snapshot = getattr(self._local, 'preservation_sheet_snapshot', None)
+        previous_dbf_encoding = getattr(self._local, 'dbf_cli_encoding', None)
         try:
             self._local.csv_sheet_snapshot = is_csv
             self._local.import_filter, self._local.import_options = flat, None
@@ -1072,9 +1092,16 @@ class LibreOfficeAdapter:
                 # not to every export on the thread or merely its extension.
                 self._local.preservation_sheet_snapshot = _source_identity(snapshot)
                 if target == 'dbf':
-                    from .dbf_schema import validate_cli_dbf_headers
+                    from .dbf_schema import validate_cli_dbf_headers, cli_dbf_encoding
                     validate_cli_dbf_headers(snapshot, trusted_schema=saved[0] == 'dBase', cancel=control)
-                for result in export(snapshot, target, workspace / ('legacy-export-%04d' % index)):
+                    self._local.dbf_cli_encoding = cli_dbf_encoding(snapshot, cancel=control)
+                results = export(snapshot, target, workspace / ('legacy-export-%04d' % index))
+                if target == 'dbf' and self._local.dbf_cli_encoding == '34':
+                    from .dbf_codepage import declare_native_cp1251
+                    for result in results:
+                        if result.suffix.lower() == '.dbf':
+                            declare_native_cp1251(result)
+                for result in results:
                     control.is_set()
                     destination = output / result.name
                     if is_csv:
@@ -1102,6 +1129,7 @@ class LibreOfficeAdapter:
         finally:
             self._local.csv_sheet_snapshot = previous_csv
             self._local.preservation_sheet_snapshot = previous_snapshot
+            self._local.dbf_cli_encoding = previous_dbf_encoding
             self._local.import_filter, self._local.import_options = saved
         self._local.execution_mode = 'native_cli'
         self._local.metrics = {'source': 'cli_process',
@@ -1354,6 +1382,10 @@ class LibreOfficeAdapter:
                 if len(tokens) > 11:
                     tokens[11] = '0'
                 export_args['convert_spec'] = target + ':' + recipe.filter_name + ':' + ','.join(tokens)
+            if (recipe and target == 'dbf' and recipe.filter_name == 'dBase'
+                    and getattr(self._local, 'dbf_cli_encoding', None) in ('34', '76')
+                    and getattr(self._local, 'preservation_sheet_snapshot', None) == _source_identity(source)):
+                export_args['convert_spec'] = 'dbf:dBase:' + self._local.dbf_cli_encoding
             # A CLI filter can silently export only the first page. A warning
             # cannot authorize a result whose required all-page/all-sheet
             # contract remains unconfirmed. The existing all-sheet splitter

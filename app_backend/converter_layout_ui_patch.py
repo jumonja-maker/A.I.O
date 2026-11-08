@@ -24,26 +24,36 @@ def apply_layout_controls(raw: bytes) -> bytes:
 
 
 LAYOUT_CSS = r'''
-/* AIO_M01_M13_M15_LAYOUT_V1. Higher specificity than historical late sheets.
-   Short windows scroll the workspace, never compress controls over each other.
+/* AIO_M01_M13_M15_LAYOUT_V2. Higher specificity than historical late sheets.
+   Lists use the available desktop height. Short/stacked windows scroll only
+   as far as needed for readable controls; file count never grows the page.
    No JS resize/mutation observer, no preflight and no document operations. */
-.app-shell .workspace .aio-cv {
+.app-shell .workspace.aio-qa-converter-mode {
+  padding: 18px 24px !important;
   height: auto;
-  min-height: 100%;
+}
+.app-shell .workspace > .aio-mounted-tool:not([hidden]):has(.aio-cv) {
+  height: 100%;
+  min-height: 0;
+}
+.app-shell .workspace .aio-cv {
+  height: 100%;
+  min-height: 0;
 }
 .app-shell .workspace .aio-cv__columns {
   display: grid;
-  flex: 0 0 auto;
+  flex: 1 0 500px;
   grid-template-columns: minmax(0, .92fr) minmax(0, 1.08fr);
-  grid-auto-rows: auto;
+  grid-auto-rows: minmax(0, 1fr);
+  min-height: 500px;
   align-items: stretch;
   min-width: 0;
 }
 .app-shell .workspace .aio-cv__pane {
   box-sizing: border-box;
   flex: 0 0 auto;
-  height: clamp(640px, calc(100vh - 220px), 820px) !important;
-  min-height: 640px !important;
+  height: 100% !important;
+  min-height: 500px !important;
   max-height: none !important;
   min-width: 0;
 }
@@ -58,24 +68,32 @@ LAYOUT_CSS = r'''
 }
 .app-shell .workspace .aio-cv-filter__actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap !important;
   flex: 0 1 auto;
   min-width: 0;
   width: auto;
+  margin-left: 0;
   gap: 6px;
 }
 .app-shell .workspace .aio-cv-filter__trigger {
-  flex: 0 1 116px;
-  min-width: 84px;
+  flex: 0 0 104px;
+  width: 104px;
+  min-width: 104px;
   max-width: 116px;
 }
+.app-shell .workspace [data-filter-label] {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .app-shell .workspace [data-cv-add] {
-  flex: 1 1 112px;
+  flex: 1 1 auto;
   min-width: 0;
   min-height: 34px;
   height: auto;
-  white-space: normal;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  padding-inline: 8px;
 }
 .app-shell .workspace .aio-cv__pane--left .aio-cv__search {
   flex: 0 0 40px;
@@ -109,8 +127,10 @@ LAYOUT_CSS = r'''
 .app-shell .workspace .aio-cv__categories > button {
   flex: 1 1 96px;
   min-width: 0;
-  white-space: normal;
-  overflow-wrap: anywhere;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .app-shell .workspace .aio-cv__pane--right .aio-cv__formats {
   flex: 1 1 0;
@@ -124,8 +144,8 @@ LAYOUT_CSS = r'''
 .app-shell .workspace .aio-cv .aio-cv__footer {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: 64px 56px 32px 48px 44px;
-  gap: 8px;
+  grid-template-rows: 40px 44px 32px 48px 44px;
+  gap: 6px;
   min-width: 0;
   flex: 0 0 auto !important;
   height: auto !important;
@@ -137,9 +157,9 @@ LAYOUT_CSS = r'''
 .app-shell .workspace .aio-cv .aio-cv__footer [data-cv-summary] {
   grid-row: 1;
   box-sizing: border-box;
-  height: 64px;
+  height: 40px;
   min-height: 0;
-  max-height: 64px;
+  max-height: 40px;
   min-width: 0;
   margin: 0;
   overflow: auto;
@@ -148,9 +168,9 @@ LAYOUT_CSS = r'''
 .app-shell .workspace .aio-cv .aio-cv__footer [data-cv-status] {
   grid-row: 2;
   box-sizing: border-box;
-  height: 56px;
-  min-height: 56px;
-  max-height: 56px;
+  height: 44px;
+  min-height: 44px;
+  max-height: 44px;
   min-width: 0;
   margin: 0;
   overflow: auto;
@@ -268,11 +288,13 @@ LAYOUT_CSS = r'''
     flex-basis: auto;
     min-height: 72px;
   }
-  .app-shell .workspace .aio-cv__pane--left .aio-cv__pane-title { grid-column: 1 / -1; }
-  .app-shell .workspace .aio-cv__pane--left .aio-cv-filter__actions { grid-column: 1; grid-row: 2; width: auto; }
-  .app-shell .workspace .aio-cv__pane--left .aio-cv__clear-inputs { grid-column: 2; grid-row: 2; align-self: start; }
+  .app-shell .workspace .aio-cv__pane--left .aio-cv__pane-title { grid-column: 1 / -1; grid-row: 1; }
+  .app-shell .workspace .aio-cv__pane--left .aio-cv-filter__actions { grid-column: 1; grid-row: 2; width: 100%; }
+  .app-shell .workspace .aio-cv__pane--left .aio-cv__clear-inputs { grid-column: 2; grid-row: 2; align-self: center; }
 }
 @container (max-width: 740px) {
-  .app-shell .workspace .aio-cv__columns { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .app-shell .workspace .aio-cv__columns { display: grid; grid-template-columns: minmax(0, 1fr); grid-auto-rows: auto; flex: 0 0 auto; min-height: 0; }
+  .app-shell .workspace .aio-cv__pane--left { height: clamp(300px, 42vh, 400px) !important; min-height: 300px !important; }
+  .app-shell .workspace .aio-cv__pane--right { height: 600px !important; min-height: 600px !important; }
 }
 '''

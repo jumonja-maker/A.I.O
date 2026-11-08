@@ -1,0 +1,601 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "scope": "real Guard bulk native preparation, exact two preserved FT4 XHTML sources",
+  "historical178Corpus": "NOT_RUN",
+  "installedWindowsUI": "NOT_RUN",
+  "m14Closed": false,
+  "realBaseReportPositive": "NOT_TESTED",
+  "qualityCompared": false,
+  "count": 32,
+  "cases": [
+    {
+      "source": "NEW_01_LEVEL_1.xhtml",
+      "sourceSha256": "10c8bf6275981568a73ccb6625639f717c8d22041202ecc2e456416df8c6980c",
+      "pdfPages": 1,
+      "pdfBytes": 29863,
+      "pdfSha256": "865e28772e3f2c8dcd1b6d9e3a6e2d682bc3bd84226798cfebcc2b064d1c9c0c",
+      "requiredTextPresent": true,
+      "textMarkers": {
+        "AIO-NEW-20261108-L1": true,
+        "00123": true,
+        "12345678901234567": true,
+        "Москва": true
+      }
+    },
+    {
+      "source": "NEW_02_LEVEL_2.xhtml",
+      "sourceSha256": "6039244b5c67c5d30b7f965c9773cd2d0bb720c63778d40a905b66310aa94676",
+      "pdfPages": 1,
+      "pdfBytes": 36257,
+      "pdfSha256": "59947cef8ee21a0f851787802923810bae7a160cbf16a241613ac80a4f47c04b",
+      "requiredTextPresent": true,
+      "textMarkers": {
+        "AIO-NEW-20261108-L2": true,
+        "00123": true,
+        "12345678901234567": true,
+        "Москва": true
+      }
+    }
+  ],
+  "controls": {
+    "fullConfiguredImportBudget": true,
+    "allBulkSourcesInspected": true,
+    "allBulkSourcesHavePdfRoute": true,
+    "writerDoesNotInventMasterOrReportSupport": true,
+    "twoSelectedSourcesConverted": true,
+    "pdfTextRetained": true,
+    "unprovedModelNeverEnablesMasterExport_NEW_01_LEVEL_1.odm": true,
+    "unprovedModelNeverEnablesMasterExport_NEW_01_LEVEL_1.otm": true,
+    "unprovedModelNeverEnablesMasterExport_NEW_02_LEVEL_2.odm": true,
+    "unprovedModelNeverEnablesMasterExport_NEW_02_LEVEL_2.otm": true,
+    "sourceBytesPreserved": true
+  },
+  "sourceProvenance": {
+    "sourceArchive": "aio_windows_exact22_new_samples.zip",
+    "sourceArchiveSha256": "fc3fedff2160b65c0b463826e317e284e700d1c45994e809a370bbd7d134988f",
+    "provenance": "Exact generated XHTML sources preserved in the prior Windows FT4 diagnostics; copied byte for byte, not regenerated or repaired. Historical 178-file corpus is not included.",
+    "sources": [
+      {
+        "name": "NEW_01_LEVEL_1.xhtml",
+        "sha256": "10c8bf6275981568a73ccb6625639f717c8d22041202ecc2e456416df8c6980c",
+        "bytes": 722
+      },
+      {
+        "name": "NEW_02_LEVEL_2.xhtml",
+        "sha256": "6039244b5c67c5d30b7f965c9773cd2d0bb720c63778d40a905b66310aa94676",
+        "bytes": 3125
+      }
+    ]
+  },
+  "preflightSeconds": 7.573,
+  "preflightBudgetSeconds": 120,
+  "preflightCompleted": 32,
+  "pdfVerifiedIds": [
+    "f0000",
+    "f0001",
+    "f0002",
+    "f0003",
+    "f0004",
+    "f0005",
+    "f0006",
+    "f0007",
+    "f0008",
+    "f0009",
+    "f0010",
+    "f0011",
+    "f0012",
+    "f0013",
+    "f0014",
+    "f0015",
+    "f0016",
+    "f0017",
+    "f0018",
+    "f0019",
+    "f0020",
+    "f0021",
+    "f0022",
+    "f0023",
+    "f0024",
+    "f0025",
+    "f0026",
+    "f0027",
+    "f0028",
+    "f0029",
+    "f0030",
+    "f0031"
+  ],
+  "sources": [
+    {
+      "id": "f0000",
+      "name": "0000_NEW_01_LEVEL_1.xhtml",
+      "preflight": {
+        "state": "detected",
+        "basis": "native_preflight_document_kind",
+        "documentServices": [
+          "com.sun.star.text.TextDocument",
+          "com.sun.star.text.WebDocument",
+          "com.sun.star.text.GlobalDocument"
+        ]
+      }
+    },
+    {
+      "id": "f0001",
+      "name": "0001_NEW_02_LEVEL_2.xhtml",
+      "preflight": {
+        "state": "detected",
+        "basis": "native_preflight_document_kind",
+        "documentServices": [
+          "com.sun.star.text.TextDocument",
+          "com.sun.star.text.WebDocument",
+          "com.sun.star.text.GlobalDocument"
+        ]
+      }
+    },
+    {
+      "id": "f0002",
+      "name": "0002_NEW_01_LEVEL_1.xhtml",
+      "preflight": {
+        "state": "detected",
+        "basis": "native_preflight_document_kind",
+        "documentServices": [
+          "com.sun.star.text.TextDocument",
+          "com.sun.star.text.WebDocument",
+          "com.sun.star.text.GlobalDocument"
+        ]
+      }
+    },
+    {
+      "id": "f0003",
+      "name": "0003_NEW_02_LEVEL_2.xhtml",
+      "preflight": {
+        "state": "detected",
+        "basis": "native_preflight_document_kind",
+        "documentServices": [
+          "com.sun.star.text.TextDocument",
+          "com.sun.star.text.WebDocument",
+          "com.sun.star.text.GlobalDocument"
+        ]
+      }
+    },
+    {
+      "id": "f0004",
+      "name": "0004_NEW_01_LEVEL_1.xhtml",
+      "preflight": {
+        "state": "detected",
+        "basis": "native_preflight_document_kind",
+        "documentServices": [
+          "com.sun.star.text.TextDocument",
+          "com.sun.star.text.WebDocument",
+          "com.sun.star.text.GlobalDocument"
+        ]
+      }
+    },
+    {
+      "id": "f0005",
+      "name": "0005_NEW_02_LEVEL_2.xhtml",
+      "preflight": {
+        "state": "detected",
+        "basis": "native_preflight_document_kind",
+        "documentServices": [
+          "com.sun.star.text.TextDocument",
+          "com.sun.star.text.WebDocument",
+          "com.sun.star.text.GlobalDocument"
+        ]
+      }
+    },
+    {
+      "id": "f0006",
+      "name": "0006_NEW_01_LEVEL_1.xhtml",
+      "preflight": {
+        "state": "detected",
+        "basis": "native_preflight_document_kind",
+        "documentServices": [
+          "com.sun.star.text.TextDocument",
+          "com.sun.star.text.WebDocument",
+          "com.sun.star.text.GlobalDocument"
+        ]
+      }
+    },
+    {
+      "id": "f0007",
+      "name": "0007_NEW_02_LEVEL_2.xhtml",
+      "preflight": {
+        "state": "detected",
+        "basis": "native_preflight_document_kind",
+        "documentServices": [
+          "com.sun.star.text.TextDocument",
+          "com.sun.star.text.WebDocument",
+          "com.sun.star.text.GlobalDocument"
+        ]
+      }
+    },
+    {
+      "id": "f0008",
+      "name": "0008_NEW_01_LEVEL_1.xhtml",
+      "preflight": {
+        "state": "detected",
+        "basis": "native_preflight_document_kind",
+        "documentServices": [
+          "com.sun.star.text.TextDocument",
+          "com.sun.star.text.WebDocument",
+          "com.sun.star.text.GlobalDocument"
+        ]
+      }
+    },
+    {
+      "id": "f0009",
+      "name": "0009_NEW_02_LEVEL_2.xhtml",
+      "preflight": {
+        "state": "detected",
+        "basis": "native_preflight_document_kind",
+        "documentServices": [
+          "com.sun.star.text.TextDocument",
+          "com.sun.star.text.WebDocument",
+          "com.sun.star.text.GlobalDocument"
+        ]
+      }
+    },
+    {
+      "id": "f0010",
+      "name": "0010_NEW_01_LEVEL_1.xhtml",
+      "preflight": {
+        "state": "detected",
+        "basis": "native_preflight_document_kind",
+        "documentServices": [
+          "com.sun.star.text.TextDocument",
+          "com.sun.star.text.WebDocument",
+          "com.sun.star.text.GlobalDocument"
+        ]
+      }
+    },
+    {
+      "id": "f0011",
+      "name": "0011_NEW_02_LEVEL_2.xhtml",
+      "preflight": {
+        "state": "detected",
+        "basis": "native_preflight_document_kind",
+        "documentServices": [
+          "com.sun.star.text.TextDocument",
+          "com.sun.star.text.WebDocument",
+          "com.sun.star.text.GlobalDocument"
+        ]
+      }
+    },
+    {
+      "id": "f0012",
+      "name": "0012_NEW_01_LEVEL_1.xhtml",
+      "preflight": {
+        "state": "detected",
+        "basis": "native_preflight_document_kind",
+        "documentServices": [
+          "com.sun.star.text.TextDocument",
+          "com.sun.star.text.WebDocument",
+          "com.sun.star.text.GlobalDocument"
+        ]
+      }
+    },
+    {
+      "id": "f0013",
+      "name": "0013_NEW_02_LEVEL_2.xhtml",
+      "preflight": {
+        "state": "detected",
+        "basis": "native_preflight_document_kind",
+        "documentServices": [
+          "com.sun.star.text.TextDocument",
+          "com.sun.star.text.WebDocument",
+          "com.sun.star.text.GlobalDocument"
+        ]
+      }
+    },
+    {
+      "id": "f0014",
+      "name": "0014_NEW_01_LEVEL_1.xhtml",
+      "preflight": {
+        "state": "detected",
+        "basis": "native_preflight_document_kind",
+        "documentServices": [
+          "com.sun.star.text.TextDocument",
+          "com.sun.star.text.WebDocument",
+          "com.sun.star.text.GlobalDocument"
+        ]
+      }
+    },
+    {
+      "id": "f0015",
+      "name": "0015_NEW_02_LEVEL_2.xhtml",
+      "preflight": {
+        "state": "detected",
+        "basis": "native_preflight_document_kind",
+        "documentServices": [
+          "com.sun.star.text.TextDocument",
+          "com.sun.star.text.WebDocument",
+          "com.sun.star.text.GlobalDocument"
+        ]
+      }
+    },
+    {
+      "id": "f0016",
+      "name": "0016_NEW_01_LEVEL_1.xhtml",
+      "preflight": {
+        "state": "detected",
+        "basis": "native_preflight_document_kind",
+        "documentServices": [
+          "com.sun.star.text.TextDocument",
+          "com.sun.star.text.WebDocument",
+          "com.sun.star.text.GlobalDocument"
+        ]
+      }
+    },
+    {
+      "id": "f0017",
+      "name": "0017_NEW_02_LEVEL_2.xhtml",
+      "preflight": {
+        "state": "detected",
+        "basis": "native_preflight_document_kind",
+        "documentServices": [
+          "com.sun.star.text.TextDocument",
+          "com.sun.star.text.WebDocument",
+          "com.sun.star.text.GlobalDocument"
+        ]
+      }
+    },
+    {
+      "id": "f0018",
+      "name": "0018_NEW_01_LEVEL_1.xhtml",
+      "preflight": {
+        "state": "detected",
+        "basis": "native_preflight_document_kind",
+        "documentServices": [
+          "com.sun.star.text.TextDocument",
+          "com.sun.star.text.WebDocument",
+          "com.sun.star.text.GlobalDocument"
+        ]
+      }
+    },
+    {
+      "id": "f0019",
+      "name": "0019_NEW_02_LEVEL_2.xhtml",
+      "preflight": {
+        "state": "detected",
+        "basis": "native_preflight_document_kind",
+        "documentServices": [
+          "com.sun.star.text.TextDocument",
+          "com.sun.star.text.WebDocument",
+          "com.sun.star.text.GlobalDocument"
+        ]
+      }
+    },
+    {
+      "id": "f0020",
+      "name": "0020_NEW_01_LEVEL_1.xhtml",
+      "preflight": {
+        "state": "detected",
+        "basis": "native_preflight_document_kind",
+        "documentServices": [
+          "com.sun.star.text.TextDocument",
+          "com.sun.star.text.WebDocument",
+          "com.sun.star.text.GlobalDocument"
+        ]
+      }
+    },
+    {
+      "id": "f0021",
+      "name": "0021_NEW_02_LEVEL_2.xhtml",
+      "preflight": {
+        "state": "detected",
+        "basis": "native_preflight_document_kind",
+        "documentServices": [
+          "com.sun.star.text.TextDocument",
+          "com.sun.star.text.WebDocument",
+          "com.sun.star.text.GlobalDocument"
+        ]
+      }
+    },
+    {
+      "id": "f0022",
+      "name": "0022_NEW_01_LEVEL_1.xhtml",
+      "preflight": {
+        "state": "detected",
+        "basis": "native_preflight_document_kind",
+        "documentServices": [
+          "com.sun.star.text.TextDocument",
+          "com.sun.star.text.WebDocument",
+          "com.sun.star.text.GlobalDocument"
+        ]
+      }
+    },
+    {
+      "id": "f0023",
+      "name": "0023_NEW_02_LEVEL_2.xhtml",
+      "preflight": {
+        "state": "detected",
+        "basis": "native_preflight_document_kind",
+        "documentServices": [
+          "com.sun.star.text.TextDocument",
+          "com.sun.star.text.WebDocument",
+          "com.sun.star.text.GlobalDocument"
+        ]
+      }
+    },
+    {
+      "id": "f0024",
+      "name": "0024_NEW_01_LEVEL_1.xhtml",
+      "preflight": {
+        "state": "detected",
+        "basis": "native_preflight_document_kind",
+        "documentServices": [
+          "com.sun.star.text.TextDocument",
+          "com.sun.star.text.WebDocument",
+          "com.sun.star.text.GlobalDocument"
+        ]
+      }
+    },
+    {
+      "id": "f0025",
+      "name": "0025_NEW_02_LEVEL_2.xhtml",
+      "preflight": {
+        "state": "detected",
+        "basis": "native_preflight_document_kind",
+        "documentServices": [
+          "com.sun.star.text.TextDocument",
+          "com.sun.star.text.WebDocument",
+          "com.sun.star.text.GlobalDocument"
+        ]
+      }
+    },
+    {
+      "id": "f0026",
+      "name": "0026_NEW_01_LEVEL_1.xhtml",
+      "preflight": {
+        "state": "detected",
+        "basis": "native_preflight_document_kind",
+        "documentServices": [
+          "com.sun.star.text.TextDocument",
+          "com.sun.star.text.WebDocument",
+          "com.sun.star.text.GlobalDocument"
+        ]
+      }
+    },
+    {
+      "id": "f0027",
+      "name": "0027_NEW_02_LEVEL_2.xhtml",
+      "preflight": {
+        "state": "detected",
+        "basis": "native_preflight_document_kind",
+        "documentServices": [
+          "com.sun.star.text.TextDocument",
+          "com.sun.star.text.WebDocument",
+          "com.sun.star.text.GlobalDocument"
+        ]
+      }
+    },
+    {
+      "id": "f0028",
+      "name": "0028_NEW_01_LEVEL_1.xhtml",
+      "preflight": {
+        "state": "detected",
+        "basis": "native_preflight_document_kind",
+        "documentServices": [
+          "com.sun.star.text.TextDocument",
+          "com.sun.star.text.WebDocument",
+          "com.sun.star.text.GlobalDocument"
+        ]
+      }
+    },
+    {
+      "id": "f0029",
+      "name": "0029_NEW_02_LEVEL_2.xhtml",
+      "preflight": {
+        "state": "detected",
+        "basis": "native_preflight_document_kind",
+        "documentServices": [
+          "com.sun.star.text.TextDocument",
+          "com.sun.star.text.WebDocument",
+          "com.sun.star.text.GlobalDocument"
+        ]
+      }
+    },
+    {
+      "id": "f0030",
+      "name": "0030_NEW_01_LEVEL_1.xhtml",
+      "preflight": {
+        "state": "detected",
+        "basis": "native_preflight_document_kind",
+        "documentServices": [
+          "com.sun.star.text.TextDocument",
+          "com.sun.star.text.WebDocument",
+          "com.sun.star.text.GlobalDocument"
+        ]
+      }
+    },
+    {
+      "id": "f0031",
+      "name": "0031_NEW_02_LEVEL_2.xhtml",
+      "preflight": {
+        "state": "detected",
+        "basis": "native_preflight_document_kind",
+        "documentServices": [
+          "com.sun.star.text.TextDocument",
+          "com.sun.star.text.WebDocument",
+          "com.sun.star.text.GlobalDocument"
+        ]
+      }
+    }
+  ],
+  "job": {
+    "state": "ready",
+    "total": 2,
+    "succeeded": 2,
+    "failed": 0,
+    "filtered": 0
+  },
+  "nativeModelSurvey": [
+    {
+      "source": "NEW_01_LEVEL_1.odm",
+      "sourceSha256": "cda945f4b9b070ec184bb4f2c34707c1dafed38ff67087c7029d3095cea0facb",
+      "sourceUnchanged": true,
+      "preflight": {
+        "state": "undetermined",
+        "code": "PREFLIGHT_IMPORT_UNDETERMINED"
+      },
+      "routes": {
+        "odm": "undetermined",
+        "otm": "undetermined",
+        "orp": "undetermined",
+        "pdf": "undetermined"
+      },
+      "actualMasterServiceProved": false
+    },
+    {
+      "source": "NEW_01_LEVEL_1.otm",
+      "sourceSha256": "d721153bc1099523e7c65a666f3398c429a1902684af75cd0b11097c4d55ed96",
+      "sourceUnchanged": true,
+      "preflight": {
+        "state": "undetermined",
+        "code": "PREFLIGHT_IMPORT_UNDETERMINED"
+      },
+      "routes": {
+        "odm": "undetermined",
+        "otm": "undetermined",
+        "orp": "undetermined",
+        "pdf": "undetermined"
+      },
+      "actualMasterServiceProved": false
+    },
+    {
+      "source": "NEW_02_LEVEL_2.odm",
+      "sourceSha256": "c151f0394144aae48ce2a514ed9c0f93dd4e1294f92f1fb49c420529ed31c56f",
+      "sourceUnchanged": true,
+      "preflight": {
+        "state": "undetermined",
+        "code": "PREFLIGHT_IMPORT_UNDETERMINED"
+      },
+      "routes": {
+        "odm": "undetermined",
+        "otm": "undetermined",
+        "orp": "undetermined",
+        "pdf": "undetermined"
+      },
+      "actualMasterServiceProved": false
+    },
+    {
+      "source": "NEW_02_LEVEL_2.otm",
+      "sourceSha256": "969d5922c495d3f8baa088af88e44b198ded2ef39c9453cba72a6fd7fa2c10be",
+      "sourceUnchanged": true,
+      "preflight": {
+        "state": "undetermined",
+        "code": "PREFLIGHT_IMPORT_UNDETERMINED"
+      },
+      "routes": {
+        "odm": "undetermined",
+        "otm": "undetermined",
+        "orp": "undetermined",
+        "pdf": "undetermined"
+      },
+      "actualMasterServiceProved": false
+    }
+  ],
+  "totalSeconds": 9.226
+}

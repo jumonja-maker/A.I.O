@@ -1,0 +1,17 @@
+{
+  "sourceArchive": "aio_windows_exact22_new_samples.zip",
+  "sourceArchiveSha256": "fc3fedff2160b65c0b463826e317e284e700d1c45994e809a370bbd7d134988f",
+  "provenance": "Exact generated XHTML sources preserved in the prior Windows FT4 diagnostics; copied byte for byte, not regenerated or repaired. Historical 178-file corpus is not included.",
+  "sources": [
+    {
+      "name": "NEW_01_LEVEL_1.xhtml",
+      "sha256": "10c8bf6275981568a73ccb6625639f717c8d22041202ecc2e456416df8c6980c",
+      "bytes": 722
+    },
+    {
+      "name": "NEW_02_LEVEL_2.xhtml",
+      "sha256": "6039244b5c67c5d30b7f965c9773cd2d0bb720c63778d40a905b66310aa94676",
+      "bytes": 3125
+    }
+  ]
+}

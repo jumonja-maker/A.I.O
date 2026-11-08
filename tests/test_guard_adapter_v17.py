@@ -70,13 +70,22 @@ class LegacyStagingQuota(unittest.TestCase):
                '<t:table-cell o:value-type="float" o:value="42.5"><x:p>42.5</x:p>'
                '</t:table-cell></t:table-row></t:table></o:spreadsheet></o:body></o:document>')
         calls = []
+        dbf_header = bytearray(32)
+        dbf_header[:4] = bytes((3, 126, 11, 8))
+        dbf_header[4:8] = (1).to_bytes(4, 'little')
+        dbf_header[8:10] = (65).to_bytes(2, 'little')
+        dbf_header[10:12] = (5).to_bytes(2, 'little')
+        dbf_field = bytearray(32)
+        dbf_field[:6] = b'FIELD1'
+        dbf_field[11], dbf_field[16], dbf_field[17] = ord('N'), 4, 1
+        dbf_result = bytes(dbf_header+dbf_field)+b'\r 42.5\x1a'
         def export(path, target, workspace, *, cancel, **kwargs):
             calls.append((target, cancel))
             self.assertFalse(cancel.is_set())
             output = workspace / 'output'
             output.mkdir(parents=True)
             result = output / (path.stem + '.' + target)
-            result.write_bytes(xml.encode() if target == 'fods' else b'dbf-result')
+            result.write_bytes(xml.encode() if target == 'fods' else dbf_result)
             adapter._local.metrics = {'source': 'cli_process', 'processMs': 1}
             return [result]
         return adapter, source, export, calls
@@ -112,7 +121,11 @@ class LegacyStagingQuota(unittest.TestCase):
             self.assertEqual([target for target, _ in calls], ['fods', 'dbf'])
             self.assertTrue(all(cancel.deadline == control.deadline for _, cancel in calls))
             self.assertEqual([path.name for path in paths], ['original.dbf'])
-            self.assertEqual(paths[0].read_bytes(), b'dbf-result')
+            data = paths[0].read_bytes()
+            self.assertEqual(data[:29], bytes((3, 126, 11, 8))+(1).to_bytes(4, 'little')+
+                             (65).to_bytes(2, 'little')+(5).to_bytes(2, 'little')+bytes(17))
+            self.assertEqual(data[29], 0xC9)
+            self.assertEqual(data[65:], b' 42.5\x1a')
             self.assertEqual(adapter.export_info()['resultChecks'][0]['sheetCount'], 1)
             self.assertEqual(source.read_bytes(), b'original-untouched')
 
