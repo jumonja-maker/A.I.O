@@ -1,5 +1,6 @@
 """Require actual original->native-failure->private-CT retry on ten inputs."""
 import argparse
+import base64
 import hashlib
 import json
 from pathlib import Path
@@ -16,12 +17,69 @@ def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def pdf_diagnostics(path):
+    """Read-only, bounded text/font evidence; no normalization of mismatches."""
+    import pypdf
+    from pypdf._page import Font
+    from PySide6.QtPdf import QPdfDocument
+    reader=pypdf.PdfReader(path)
+    report={'pypdfVersion':pypdf.__version__,'ordinaryText':[], 'fonts':[],
+            'scope':'raw font/CMap and independent PDFium text; no text correction or visual certificate'}
+    for index,page in enumerate(reader.pages[:8]):
+        report['ordinaryText'].append((page.extract_text() or '')[:65536])
+        resources=page.get('/Resources',{})
+        if hasattr(resources,'get_object'):resources=resources.get_object()
+        fonts=resources.get('/Font',{})
+        if hasattr(fonts,'get_object'):fonts=fonts.get_object()
+        for name,value in list(fonts.items())[:32]:
+            font=value.get_object()
+            item={'page':index,'resource':str(name),'baseFont':str(font.get('/BaseFont')),
+                  'subtype':str(font.get('/Subtype')),'rawEncoding':str(font.get('/Encoding'))[:65536]}
+            cmap=font.get('/ToUnicode')
+            if cmap is not None:
+                raw=cmap.get_object().get_data()
+                item.update(toUnicodeSha256=hashlib.sha256(raw).hexdigest(),
+                            toUnicodeText=raw[:65536].decode('ascii','backslashreplace'),
+                            toUnicodeBytes=len(raw))
+            try:
+                parsed=Font.from_font_resource(font)
+                item['parsedEncoding']=(dict(list(parsed.encoding.items())[:1024])
+                    if isinstance(parsed.encoding,dict) else parsed.encoding)
+                item['parsedCharacterMap']={str(k):v for k,v in list(parsed.character_map.items())[:1024]}
+                item['parsedWidths']={str(k):v for k,v in list(parsed.character_widths.items())[:1024]}
+            except Exception as error:item['fontParseError']=repr(error)
+            report['fonts'].append(item)
+    pdfium=QPdfDocument()
+    try:
+        error=pdfium.load(str(path))
+        report['pdfiumLoadError']=str(error)
+        report['pdfiumPageCount']=pdfium.pageCount()
+        report['pdfiumText']=[pdfium.getAllText(i).text()[:65536] for i in range(min(pdfium.pageCount(),8))]
+    finally:pdfium.close()
+    return report
+
+
+def capture_pdf(path, source_name):
+    """Preserve exact failed outputs in logs, maximum 2 MiB per known source."""
+    size=path.stat().st_size
+    if not 0<size<=2*1024*1024:raise ValueError('Failed PDF diagnostic size budget exceeded')
+    raw=path.read_bytes();encoded=base64.b64encode(raw).decode('ascii')
+    chunks=[encoded[i:i+12000] for i in range(0,len(encoded),12000)]
+    name='aio-finish-ooxml-namespace/'+source_name+'.pdf'
+    for index,part in enumerate(chunks):
+        print('AIO_BINARY_CHUNK='+json.dumps({'file':name,'part':index,'total':len(chunks),
+            'sha256':hashlib.sha256(raw).hexdigest(),'data':part},ensure_ascii=True),flush=True)
+    return {'file':name,'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest(),'parts':len(chunks)}
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--input',type=Path,required=True)
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--executable',type=Path,required=True)
     parser.add_argument('--require-uno',action='store_true')
+    parser.add_argument('--capture-failing-pdfs',action='store_true',
+                        help='QA diagnostics: log at most four exact failed Word PDFs plus text/font evidence')
     args=parser.parse_args();args.output.mkdir(parents=True,exist_ok=False)
     from PySide6.QtGui import QGuiApplication
     from app_backend.converter_guard import LibreOfficeAdapter
@@ -58,9 +116,14 @@ def main():
                     pdf=next(p for p in outputs if p.suffix=='.pdf')
                     paragraphs,_scope=expected_text(source)
                     readback=inspect_pdf_literals(pdf,paragraphs)
-                    assert readback['status']=='PASS',readback
                     row['readback']={k:v for k,v in readback.items() if k!='positionedPages'}
                     row['readback']['pages']=len(readback['positionedPages'])
+                    if (args.capture_failing_pdfs and readback['status']!='PASS'
+                            and source.suffix.lower() in ('.docm','.dotm')):
+                        row['diagnosticPdf']=capture_pdf(pdf,source.name)
+                        row['diagnosticTextAndFonts']=pdf_diagnostics(pdf)
+                        row['diagnosticExpectedLiterals']=paragraphs
+                    assert readback['status']=='PASS',readback
                     row['executionMode']=adapter.execution_mode()
                     row['outputSha256']=sha(pdf)
                     row['exportInfo']=adapter.export_info()
