@@ -132,6 +132,7 @@ class Registry:
         standard = {'docx': 'MS Word 2007 XML', 'docm': 'MS Word 2007 XML VBA',
                     'dotx': 'MS Word 2007 XML Template',
                     'xlsx': 'Calc MS Excel 2007 XML',
+                    'xlsm': 'Calc MS Excel 2007 VBA XML',
                     'pptx': 'Impress MS PowerPoint 2007 XML'}.get(target)
         if standard in candidates:
             return standard
@@ -174,6 +175,8 @@ class Registry:
     def route_reason(self, target, proof):
         if not proof:
             return None
+        if self.specialized_service_unconfirmed(target, proof):
+            return 'NATIVE_DOCUMENT_SERVICE_UNCONFIRMED'
         html_reason = self.html_route_reason(target, proof)
         if html_reason:
             return html_reason
@@ -198,6 +201,45 @@ class Registry:
             if candidates and candidates <= {'writer_svg_Export', 'calc_svg_Export'}:
                 return 'NATIVE_SVG_SELECTION_ONLY'
         return None
+
+    def specialized_service_unconfirmed(self, target, proof):
+        """A Writer kind/type union cannot prove a master or Base report model.
+
+        LOK's TEXT enum does not identify specialized Writer services. The
+        broad service union keeps common exporters available, but must not
+        enable an exporter whose only matching service is GlobalDocument.
+        TypeDetection alone likewise does not establish a loaded report model.
+        A live UNO model or an already observed native export provides the
+        required service evidence; source extensions/contracts never do.
+        """
+        if (not self.valid or not proof or proof.get('state') != 'detected'
+                or target in self.uncertain_extensions
+                or proof.get('registryFingerprint') != self.fingerprint):
+            return False
+        shared = self.exports.get(target, set()).intersection(self.export_services(proof))
+        specialized = {'com.sun.star.text.GlobalDocument',
+                       'com.sun.star.report.ReportDefinition'}
+        if not shared or not shared.issubset(specialized):
+            return False
+        if shared == {'com.sun.star.text.GlobalDocument'} and self.master_content_proof(proof):
+            return False
+        return not (proof.get('basis') == 'native_preflight_uno_document'
+                    and proof.get('modelLoaded') is True
+                    or proof.get('basis') == 'native_selected_export_filter')
+
+    def master_content_proof(self, proof):
+        """Native OTHER load plus a matching validated ODF master declaration."""
+        master = 'com.sun.star.text.GlobalDocument'
+        contract = (proof or {}).get('sourceContract') or {}
+        return bool(proof and proof.get('basis') == 'native_preflight_master_content'
+            and proof.get('state') == 'detected' and type(proof.get('nativeKind')) is int
+            and proof['nativeKind'] == 4 and proof.get('masterPackage') is True
+            and proof.get('registryFingerprint') == self.fingerprint
+            and proof.get('documentServices') == [master] and master in self.import_services
+            and contract.get('state') == 'recognized'
+            and contract.get('expectedServices') == [master]
+            and contract.get('mimetype') in ('application/vnd.oasis.opendocument.text-master',
+                                           'application/vnd.oasis.opendocument.text-master-template'))
 
     def html_route_reason(self, target, proof):
         if (target not in ('html', 'htm') or not self.valid or not proof
@@ -277,10 +319,14 @@ class Registry:
                 'registryFingerprint': self.fingerprint, 'basis': 'native_selected_export_filter'}
 
     def observed_decision(self, target, proof):
+        if self.specialized_service_unconfirmed(target, proof):
+            return 'undetermined'
         if self.html_route_reason(target, proof):
             return 'unavailable'
         if self.runtime_export_filter(target, proof):
             return 'registered'
+        if self.master_content_proof(proof):
+            return self.decide(target, {'com.sun.star.text.GlobalDocument'})
         if (proof and proof.get('basis')=='native_preflight_chart_content'
                 and proof.get('state')=='detected' and type(proof.get('nativeKind')) is int
                 and proof['nativeKind']==4 and proof.get('chartPackage') is True

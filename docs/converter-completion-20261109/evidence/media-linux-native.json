@@ -1,0 +1,744 @@
+{
+  "schema": 1,
+  "status": "BLOCKED",
+  "cases": [
+    {
+      "case": "pcx-100dpi.pcx->png",
+      "status": "PASS",
+      "executionMode": "qt_media_frames",
+      "exportInfo": {
+        "executionReason": "qt_media_frames",
+        "warnings": [],
+        "mediaCodec": "existing_application_Qt",
+        "resultChecks": [
+          {
+            "check": "media_properties",
+            "status": "checked_subset",
+            "qualityCompared": false,
+            "source": {
+              "format": "pcx",
+              "width": 37,
+              "height": 19,
+              "frames": 1,
+              "pages": 1,
+              "alpha": false,
+              "durationsMs": [],
+              "orientation": 1,
+              "bitDepth": 8,
+              "dpi": [
+                100,
+                100
+              ]
+            },
+            "result": {
+              "format": "png",
+              "width": 37,
+              "height": 19,
+              "frames": 1,
+              "pages": 1,
+              "alpha": true,
+              "durationsMs": [],
+              "orientation": 1,
+              "animationContainer": false,
+              "loopCount": 1,
+              "bitDepth": 8,
+              "dpi": [
+                99.9998,
+                99.9998
+              ]
+            },
+            "expectedLosses": [],
+            "validatedOutputContainers": 1
+          }
+        ]
+      },
+      "dpi": [
+        99.9998,
+        99.9998
+      ],
+      "size": [
+        37,
+        19
+      ],
+      "decodedRgbSha256": "76f0058982ae78eabfe5f6c62d7cebf9f560d0a34ad7d722277f79b5ac4f8b62",
+      "pixelsCompared": true,
+      "frames": 1,
+      "source": "pcx-100dpi.pcx",
+      "outputSha256": "b5adce7be319979610b414a207d996aa25baa9f3026a9ee42ad4b9e0b0792616",
+      "elapsedSeconds": 0.228
+    },
+    {
+      "case": "pcx-100dpi.pcx->apng",
+      "status": "PASS",
+      "executionMode": "qt_media_frames",
+      "exportInfo": {
+        "executionReason": "qt_media_frames",
+        "warnings": [],
+        "mediaCodec": "existing_application_Qt",
+        "resultChecks": [
+          {
+            "check": "media_properties",
+            "status": "checked_subset",
+            "qualityCompared": false,
+            "source": {
+              "format": "pcx",
+              "width": 37,
+              "height": 19,
+              "frames": 1,
+              "pages": 1,
+              "alpha": false,
+              "durationsMs": [],
+              "orientation": 1,
+              "bitDepth": 8,
+              "dpi": [
+                100,
+                100
+              ]
+            },
+            "result": {
+              "format": "png",
+              "width": 37,
+              "height": 19,
+              "frames": 1,
+              "pages": 1,
+              "alpha": true,
+              "durationsMs": [
+                0.0
+              ],
+              "orientation": 1,
+              "animationContainer": true,
+              "loopCount": 1,
+              "bitDepth": 8,
+              "dpi": [
+                99.9998,
+                99.9998
+              ]
+            },
+            "expectedLosses": [],
+            "validatedOutputContainers": 1
+          }
+        ]
+      },
+      "dpi": [
+        99.9998,
+        99.9998
+      ],
+      "size": [
+        37,
+        19
+      ],
+      "decodedRgbSha256": "76f0058982ae78eabfe5f6c62d7cebf9f560d0a34ad7d722277f79b5ac4f8b62",
+      "pixelsCompared": true,
+      "frames": 1,
+      "source": "pcx-100dpi.pcx",
+      "outputSha256": "0ec714a1078ef0132bef677d28b5e1f9d25bbaf76a821d07f8ef2c927cbd0a10",
+      "elapsedSeconds": 0.002
+    },
+    {
+      "case": "pcx-100dpi.pcx->tiff",
+      "status": "PASS",
+      "executionMode": "qt_media_frames",
+      "exportInfo": {
+        "executionReason": "qt_media_frames",
+        "warnings": [],
+        "mediaCodec": "existing_application_Qt",
+        "resultChecks": [
+          {
+            "check": "media_properties",
+            "status": "checked_subset",
+            "qualityCompared": false,
+            "source": {
+              "format": "pcx",
+              "width": 37,
+              "height": 19,
+              "frames": 1,
+              "pages": 1,
+              "alpha": false,
+              "durationsMs": [],
+              "orientation": 1,
+              "bitDepth": 8,
+              "dpi": [
+                100,
+                100
+              ]
+            },
+            "result": {
+              "format": "tiff",
+              "width": 37,
+              "height": 19,
+              "frames": 1,
+              "pages": 1,
+              "alpha": true,
+              "durationsMs": [],
+              "orientation": 1,
+              "pageDimensions": [
+                [
+                  37,
+                  19
+                ]
+              ],
+              "bitDepth": 8,
+              "pageImageIndexes": [
+                0
+              ],
+              "pageOrientations": [
+                1
+              ],
+              "pageDpi": [
+                [
+                  99.9998,
+                  99.9998
+                ]
+              ]
+            },
+            "expectedLosses": [],
+            "validatedOutputContainers": 1
+          }
+        ]
+      },
+      "dpi": [
+        99.9998,
+        99.9998
+      ],
+      "size": [
+        37,
+        19
+      ],
+      "decodedRgbSha256": "76f0058982ae78eabfe5f6c62d7cebf9f560d0a34ad7d722277f79b5ac4f8b62",
+      "pixelsCompared": true,
+      "frames": 1,
+      "source": "pcx-100dpi.pcx",
+      "outputSha256": "5e7d206e246bc9c5db12d614414a6a9fecabe83533e679782f688cdda6cdbedc",
+      "elapsedSeconds": 0.002
+    },
+    {
+      "case": "pattern-37x19.tga->png",
+      "status": "PASS",
+      "executionMode": "qt_media_frames",
+      "exportInfo": {
+        "executionReason": "qt_media_frames",
+        "warnings": [],
+        "mediaCodec": "existing_application_Qt",
+        "resultChecks": [
+          {
+            "check": "media_properties",
+            "status": "checked_subset",
+            "qualityCompared": false,
+            "source": {
+              "format": "tga",
+              "width": 37,
+              "height": 19,
+              "frames": 1,
+              "pages": 1,
+              "alpha": false,
+              "durationsMs": [],
+              "orientation": 1,
+              "bitDepth": 8
+            },
+            "result": {
+              "format": "png",
+              "width": 37,
+              "height": 19,
+              "frames": 1,
+              "pages": 1,
+              "alpha": true,
+              "durationsMs": [],
+              "orientation": 1,
+              "animationContainer": false,
+              "loopCount": 1,
+              "bitDepth": 8,
+              "dpi": [
+                96.012,
+                96.012
+              ]
+            },
+            "expectedLosses": [],
+            "validatedOutputContainers": 1
+          }
+        ]
+      },
+      "size": [
+        37,
+        19
+      ],
+      "decodedRgbSha256": "76f0058982ae78eabfe5f6c62d7cebf9f560d0a34ad7d722277f79b5ac4f8b62",
+      "pixelsCompared": true,
+      "frames": 1,
+      "source": "pattern-37x19.tga",
+      "outputSha256": "eff0fc400f0efe2bf26f03d535e0f7551617573fc1ea7431d189aad3fe7cc3f7",
+      "elapsedSeconds": 0.213
+    },
+    {
+      "case": "pattern-37x19.tga->apng",
+      "status": "PASS",
+      "executionMode": "qt_media_frames",
+      "exportInfo": {
+        "executionReason": "qt_media_frames",
+        "warnings": [],
+        "mediaCodec": "existing_application_Qt",
+        "resultChecks": [
+          {
+            "check": "media_properties",
+            "status": "checked_subset",
+            "qualityCompared": false,
+            "source": {
+              "format": "tga",
+              "width": 37,
+              "height": 19,
+              "frames": 1,
+              "pages": 1,
+              "alpha": false,
+              "durationsMs": [],
+              "orientation": 1,
+              "bitDepth": 8
+            },
+            "result": {
+              "format": "png",
+              "width": 37,
+              "height": 19,
+              "frames": 1,
+              "pages": 1,
+              "alpha": true,
+              "durationsMs": [
+                0.0
+              ],
+              "orientation": 1,
+              "animationContainer": true,
+              "loopCount": 1,
+              "bitDepth": 8,
+              "dpi": [
+                96.012,
+                96.012
+              ]
+            },
+            "expectedLosses": [],
+            "validatedOutputContainers": 1
+          }
+        ]
+      },
+      "size": [
+        37,
+        19
+      ],
+      "decodedRgbSha256": "76f0058982ae78eabfe5f6c62d7cebf9f560d0a34ad7d722277f79b5ac4f8b62",
+      "pixelsCompared": true,
+      "frames": 1,
+      "source": "pattern-37x19.tga",
+      "outputSha256": "0c2bbab5dbc5be017e74b14168f0e8a258d3ff7696ebcfc01388f9b0085006d2",
+      "elapsedSeconds": 0.002
+    },
+    {
+      "case": "pattern-37x19.tga->tiff",
+      "status": "PASS",
+      "executionMode": "qt_media_frames",
+      "exportInfo": {
+        "executionReason": "qt_media_frames",
+        "warnings": [],
+        "mediaCodec": "existing_application_Qt",
+        "resultChecks": [
+          {
+            "check": "media_properties",
+            "status": "checked_subset",
+            "qualityCompared": false,
+            "source": {
+              "format": "tga",
+              "width": 37,
+              "height": 19,
+              "frames": 1,
+              "pages": 1,
+              "alpha": false,
+              "durationsMs": [],
+              "orientation": 1,
+              "bitDepth": 8
+            },
+            "result": {
+              "format": "tiff",
+              "width": 37,
+              "height": 19,
+              "frames": 1,
+              "pages": 1,
+              "alpha": true,
+              "durationsMs": [],
+              "orientation": 1,
+              "pageDimensions": [
+                [
+                  37,
+                  19
+                ]
+              ],
+              "bitDepth": 8,
+              "pageImageIndexes": [
+                0
+              ],
+              "pageOrientations": [
+                1
+              ],
+              "pageDpi": [
+                [
+                  96.012,
+                  96.012
+                ]
+              ]
+            },
+            "expectedLosses": [],
+            "validatedOutputContainers": 1
+          }
+        ]
+      },
+      "size": [
+        37,
+        19
+      ],
+      "decodedRgbSha256": "76f0058982ae78eabfe5f6c62d7cebf9f560d0a34ad7d722277f79b5ac4f8b62",
+      "pixelsCompared": true,
+      "frames": 1,
+      "source": "pattern-37x19.tga",
+      "outputSha256": "61b7f540e7cb63272628d523059af747c564f34418da9fe0496add66d6846764",
+      "elapsedSeconds": 0.002
+    },
+    {
+      "case": "base-photo-cd.pcd->png",
+      "status": "PASS",
+      "executionMode": "qt_media_frames",
+      "exportInfo": {
+        "executionReason": "qt_media_frames",
+        "warnings": [],
+        "mediaCodec": "existing_application_Qt",
+        "resultChecks": [
+          {
+            "check": "media_properties",
+            "status": "checked_subset",
+            "qualityCompared": false,
+            "source": {
+              "format": "pcd",
+              "width": 768,
+              "height": 512,
+              "frames": 1,
+              "pages": 1,
+              "alpha": false,
+              "durationsMs": [],
+              "orientation": 1,
+              "bitDepth": 8,
+              "decodedResolution": "PhotoCD_Base"
+            },
+            "result": {
+              "format": "png",
+              "width": 768,
+              "height": 512,
+              "frames": 1,
+              "pages": 1,
+              "alpha": true,
+              "durationsMs": [],
+              "orientation": 1,
+              "animationContainer": false,
+              "loopCount": 1,
+              "bitDepth": 8,
+              "dpi": [
+                96.012,
+                96.012
+              ]
+            },
+            "expectedLosses": [],
+            "validatedOutputContainers": 1
+          }
+        ]
+      },
+      "size": [
+        768,
+        512
+      ],
+      "decodedRgbSha256": "c89ade576b03a8e8f5ef2df9ba4a3cd62e9316f22b9bffa58f6deebb2c610ab4",
+      "pixelsCompared": true,
+      "frames": 1,
+      "source": "base-photo-cd.pcd",
+      "outputSha256": "27db58dbf44fa66df2f9d8e13dae3ffd8fcfe2af0c3ed89eae20f1a7853a18ed",
+      "elapsedSeconds": 0.258
+    },
+    {
+      "case": "base-photo-cd.pcd->apng",
+      "status": "PASS",
+      "executionMode": "qt_media_frames",
+      "exportInfo": {
+        "executionReason": "qt_media_frames",
+        "warnings": [],
+        "mediaCodec": "existing_application_Qt",
+        "resultChecks": [
+          {
+            "check": "media_properties",
+            "status": "checked_subset",
+            "qualityCompared": false,
+            "source": {
+              "format": "pcd",
+              "width": 768,
+              "height": 512,
+              "frames": 1,
+              "pages": 1,
+              "alpha": false,
+              "durationsMs": [],
+              "orientation": 1,
+              "bitDepth": 8,
+              "decodedResolution": "PhotoCD_Base"
+            },
+            "result": {
+              "format": "png",
+              "width": 768,
+              "height": 512,
+              "frames": 1,
+              "pages": 1,
+              "alpha": true,
+              "durationsMs": [
+                0.0
+              ],
+              "orientation": 1,
+              "animationContainer": true,
+              "loopCount": 1,
+              "bitDepth": 8,
+              "dpi": [
+                96.012,
+                96.012
+              ]
+            },
+            "expectedLosses": [],
+            "validatedOutputContainers": 1
+          }
+        ]
+      },
+      "size": [
+        768,
+        512
+      ],
+      "decodedRgbSha256": "c89ade576b03a8e8f5ef2df9ba4a3cd62e9316f22b9bffa58f6deebb2c610ab4",
+      "pixelsCompared": true,
+      "frames": 1,
+      "source": "base-photo-cd.pcd",
+      "outputSha256": "8aef3c9554360f3087dd241af1aa725f01e495c530494174ec1d34d6ea9c01f5",
+      "elapsedSeconds": 0.024
+    },
+    {
+      "case": "base-photo-cd.pcd->tiff",
+      "status": "PASS",
+      "executionMode": "qt_media_frames",
+      "exportInfo": {
+        "executionReason": "qt_media_frames",
+        "warnings": [],
+        "mediaCodec": "existing_application_Qt",
+        "resultChecks": [
+          {
+            "check": "media_properties",
+            "status": "checked_subset",
+            "qualityCompared": false,
+            "source": {
+              "format": "pcd",
+              "width": 768,
+              "height": 512,
+              "frames": 1,
+              "pages": 1,
+              "alpha": false,
+              "durationsMs": [],
+              "orientation": 1,
+              "bitDepth": 8,
+              "decodedResolution": "PhotoCD_Base"
+            },
+            "result": {
+              "format": "tiff",
+              "width": 768,
+              "height": 512,
+              "frames": 1,
+              "pages": 1,
+              "alpha": true,
+              "durationsMs": [],
+              "orientation": 1,
+              "pageDimensions": [
+                [
+                  768,
+                  512
+                ]
+              ],
+              "bitDepth": 8,
+              "pageImageIndexes": [
+                0
+              ],
+              "pageOrientations": [
+                1
+              ],
+              "pageDpi": [
+                [
+                  96.012,
+                  96.012
+                ]
+              ]
+            },
+            "expectedLosses": [],
+            "validatedOutputContainers": 1
+          }
+        ]
+      },
+      "size": [
+        768,
+        512
+      ],
+      "decodedRgbSha256": "c89ade576b03a8e8f5ef2df9ba4a3cd62e9316f22b9bffa58f6deebb2c610ab4",
+      "pixelsCompared": true,
+      "frames": 1,
+      "source": "base-photo-cd.pcd",
+      "outputSha256": "7fb0bbf91e6dc56942111affdd8d4e5f846a6b5ac225239f189c86bfbdd6f7f5",
+      "elapsedSeconds": 0.017
+    },
+    {
+      "case": "quickdraw-37x19.pct->png",
+      "status": "BLOCKED",
+      "reason": "ENGINE_OUTPUT_VALIDATION_INCOMPLETE:native_all_draw_pages_v1:native_cli_has_no_model_receipt",
+      "elapsedSeconds": 0.204
+    },
+    {
+      "case": "quickdraw-37x19.pct->tiff",
+      "status": "BLOCKED",
+      "reason": "ENGINE_OUTPUT_VALIDATION_INCOMPLETE:native_all_draw_pages_v1:native_cli_has_no_model_receipt",
+      "elapsedSeconds": 0.0
+    },
+    {
+      "case": "qt-rich.png->gif",
+      "status": "PASS_SAFE_REFUSAL",
+      "source": "qt-rich.png",
+      "strictPolicy": "exact_palette_binary_alpha",
+      "code": "MEDIA_GIF_PALETTE_UNREPRESENTABLE",
+      "published": false,
+      "executionMode": null,
+      "elapsedSeconds": 0.207
+    },
+    {
+      "case": "qt-limited.png->gif",
+      "status": "PASS",
+      "source": "qt-limited.png",
+      "strictPolicy": "exact_palette_binary_alpha",
+      "executionMode": "qt_media_frames",
+      "exportInfo": {
+        "executionReason": "qt_media_frames",
+        "warnings": [
+          "MEDIA_GIF_PALETTE_LIMITS"
+        ],
+        "mediaCodec": "existing_application_Qt",
+        "resultChecks": [
+          {
+            "check": "media_properties",
+            "status": "checked_subset",
+            "qualityCompared": false,
+            "source": {
+              "format": "png",
+              "width": 37,
+              "height": 19,
+              "frames": 1,
+              "pages": 1,
+              "alpha": false,
+              "durationsMs": [],
+              "orientation": 1,
+              "animationContainer": false,
+              "loopCount": 1,
+              "bitDepth": 8
+            },
+            "result": {
+              "format": "gif",
+              "width": 37,
+              "height": 19,
+              "frames": 1,
+              "pages": 1,
+              "alpha": false,
+              "durationsMs": [
+                0
+              ],
+              "orientation": 1,
+              "loopCount": 1
+            },
+            "expectedLosses": [
+              "gif_palette_and_binary_alpha"
+            ],
+            "validatedOutputContainers": 1
+          }
+        ]
+      },
+      "size": [
+        37,
+        19
+      ],
+      "pixelsCompared": true,
+      "outputSha256": "4aac30b9825fd23e7cafff1c35061aa1bb9146426fcdcd5edcebddbf3c2d63fe",
+      "elapsedSeconds": 0.205
+    },
+    {
+      "case": "native-rich.fodg->gif",
+      "status": "BLOCKED",
+      "reason": "ENGINE_OUTPUT_VALIDATION_INCOMPLETE:native_all_draw_pages_v1:native_cli_has_no_model_receipt",
+      "elapsedSeconds": 0.239
+    },
+    {
+      "case": "native-limited.fodg->gif",
+      "status": "BLOCKED",
+      "reason": "ENGINE_OUTPUT_VALIDATION_INCOMPLETE:native_all_draw_pages_v1:native_cli_has_no_model_receipt",
+      "elapsedSeconds": 0.254
+    }
+  ],
+  "scope": "FT4 PCX DPI, selected raster/PICT canvas and consistent strict GIF encoding",
+  "historicalFULLTEST": "NOT_RUN",
+  "desktopGUI": "NOT_RUN",
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "python": "3.12.14",
+  "executable": "/opt/codex/runtimes/codex-primary-runtime/dependencies/native/libreoffice-headless/libreoffice/program/soffice",
+  "generatedFixtureFormat": 1,
+  "sourceIntegrity": [
+    {
+      "file": "/workspace/scratch/aio-completion-20261109/media/final-native-cached/sources/pcx-100dpi.pcx",
+      "sha256Before": "4f96561d89542e1c72dd402d0e448319e691caa65fc5726ff57cd36c655f4b8c",
+      "sha256After": "4f96561d89542e1c72dd402d0e448319e691caa65fc5726ff57cd36c655f4b8c",
+      "unchanged": true
+    },
+    {
+      "file": "/workspace/scratch/aio-completion-20261109/media/final-native-cached/sources/pattern-37x19.tga",
+      "sha256Before": "feb05d0dfc2cdf736c920d6f5b3a922d5d1134461f0098fe314ee47edc34b2c9",
+      "sha256After": "feb05d0dfc2cdf736c920d6f5b3a922d5d1134461f0098fe314ee47edc34b2c9",
+      "unchanged": true
+    },
+    {
+      "file": "/workspace/scratch/aio-completion-20261109/media/final-native-cached/sources/base-photo-cd.pcd",
+      "sha256Before": "8c6e1a6257bda502b3c4dc910799adec380092da3fbdded5ba74b766a8b9dd23",
+      "sha256After": "8c6e1a6257bda502b3c4dc910799adec380092da3fbdded5ba74b766a8b9dd23",
+      "unchanged": true
+    },
+    {
+      "file": "/workspace/scratch/aio-completion-20261109/media/final-native-cached/sources/quickdraw-37x19.pct",
+      "sha256Before": "bf803ddc28fb7c4adae527b4ee9080c7fa625c22c2f800d8e60c09b03a7892a8",
+      "sha256After": "bf803ddc28fb7c4adae527b4ee9080c7fa625c22c2f800d8e60c09b03a7892a8",
+      "unchanged": true
+    },
+    {
+      "file": "/workspace/scratch/aio-completion-20261109/media/final-native-cached/sources/native-rich.fodg",
+      "sha256Before": "9be3d0245cc06e81dc54625b4c696ece5e5c2199545625a7f66c2abd07f48214",
+      "sha256After": "9be3d0245cc06e81dc54625b4c696ece5e5c2199545625a7f66c2abd07f48214",
+      "unchanged": true
+    },
+    {
+      "file": "/workspace/scratch/aio-completion-20261109/media/final-native-cached/sources/native-limited.fodg",
+      "sha256Before": "f270bd3d0084c6161d8f2865744748a2fdb8f3f819bfd39bd38ae8b53cded9a7",
+      "sha256After": "f270bd3d0084c6161d8f2865744748a2fdb8f3f819bfd39bd38ae8b53cded9a7",
+      "unchanged": true
+    },
+    {
+      "file": "/workspace/scratch/aio-completion-20261109/media/final-native-cached/sources/qt-rich.png",
+      "sha256Before": "01c55972ac54b6eb6f1af3d1f66004f8ff871253df594d467209a0c29ff5b695",
+      "sha256After": "01c55972ac54b6eb6f1af3d1f66004f8ff871253df594d467209a0c29ff5b695",
+      "unchanged": true
+    },
+    {
+      "file": "/workspace/scratch/aio-completion-20261109/media/final-native-cached/sources/qt-limited.png",
+      "sha256Before": "b336012f09d0dd646ddfc3b2a5c9bed2d3552e213ed152ef129fe6a330380ab5",
+      "sha256After": "b336012f09d0dd646ddfc3b2a5c9bed2d3552e213ed152ef129fe6a330380ab5",
+      "unchanged": true
+    }
+  ],
+  "counts": {
+    "PASS": 10,
+    "PASS_SAFE_REFUSAL": 1,
+    "BLOCKED": 4,
+    "FAIL": 0
+  },
+  "elapsedSeconds": 2.059
+}

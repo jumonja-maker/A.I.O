@@ -94,7 +94,8 @@ def execute(executable,output,*,seconds=120,source_worker=False):
     evidence['retiredWorkerRejected']=True
     if not source_worker:
         bundle=executable.parent/'_internal'
-        for relative in ('index.html','src/guard-queue.js','src/conversion-history.js'):
+        for relative in ('index.html','src/guard-queue.js','src/conversion-history.js',
+                         'assets/licenses/olefile-LICENSE.txt'):
             require((bundle/relative).read_bytes()==(ROOT/relative).read_bytes(),'Packaged asset mismatch: '+relative)
         require(not list((bundle/'src').glob('guard-comparison*')),'Retired UI was packaged')
         from PyInstaller.archive.readers import CArchiveReader,ZlibArchiveReader
@@ -107,7 +108,7 @@ def execute(executable,output,*,seconds=120,source_worker=False):
         require(not any(any(name.startswith(prefix) for prefix in retired) for name in names),
                 'Retired Python feature was packaged')
         required={'app_backend.converter_guard.core','app_backend.converter_guard.quality_worker',
-                  'app_backend.converter_guard.conversion_history','sqlite3','pypdf'}
+                  'app_backend.converter_guard.conversion_history','sqlite3','pypdf','olefile','olefile.olefile'}
         require(required<=names,'Required Guard/history dependency missing: '+str(required-names))
         evidence['packagedModules']={'retiredAbsent':True,'retainedPresent':sorted(required)}
         evidence['assets']='PASS'

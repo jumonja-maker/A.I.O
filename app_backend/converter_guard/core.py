@@ -1383,12 +1383,10 @@ class ConverterGuard:
                             or f.state not in {'queued','prepared'} for f in job.files)):
                     job = None
                     raise GuardError('JOB_STATE', 'Дождитесь загрузки исходников.', status=409)
-                # A 510-file matrix must not spend the normal two-minute
-                # preflight budget on every malformed/native-wedged sample.
-                # Unverified files remain unavailable, with a coded reason;
-                # the explicit "recheck longer" action retains full budgets.
-                if timeout_seconds is None and len(job.files) >= 32:
-                    native_timeout = min(native_timeout, 15.0)
+                # Batch size must not silently shorten the configured import
+                # budget. A valid XHTML can take longer than fifteen seconds
+                # to open, especially after native startup/recycling. Keep
+                # the same cancellable per-source deadline as a single file.
                 job.state, job.running = 'checking', True
                 job.preflight_phase = 'files'
                 job.preflight_matrix_completed = job.preflight_matrix_total = 0

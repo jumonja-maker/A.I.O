@@ -26,10 +26,33 @@ const variants=[
   {quality:{status:'checked_subset',qualityCompared:true}},
   {quality:{status:'not_checked',qualityCompared:false}},
   {quality:{status:'checked_subset',qualityCompared:true},error:'Ошибка экспорта'},
+  {quality:{status:'checked_subset',qualityCompared:true,unknown:['rendered_pixels']},
+    checkedFeatures:['pixel_dimensions'],unknownReasons:['quality_comparison_incomplete'],saveStatus:'unsaved',
+    resultChecks:[{check:'media_properties',result:{width:48,height:32,dpi:[99.9998,99.9998],frames:1,pages:1}}]},
+  {quality:null,checkedFeatures:['<literal-property>'],unknownReasons:['quality_comparison_not_requested'],
+    saveStatus:'partial',readbackVerified:false,formatLimitations:['formulas_as_values']},
+  {quality:null,saveStatus:'saved',readbackVerified:true},
+  {quality:null,warningCode:'MEDIA_PHOTOCD_BASE_ONLY',
+    warningMessage:'Для результата использован слой PhotoCD Base (768 × 512 пикселей до поворота). Наличие и сохранность слоёв 4Base, 16Base и более высокого разрешения не проверены; сравнение с ними не выполнялось.'},
+  {quality:null,warningCode:'MEDIA_PSD_MERGED_COMPOSITE',
+    warningMessage:'PSD преобразован в одно сведённое RGB-изображение. Слои, маски, редактируемые текстовые и векторные объекты PSD не переносятся в результат.'},
+  {quality:null,warningCode:'VBA_MACROS_EXPECTED_LOSS',
+    warningMessage:'Исходный файл содержит VBA-макросы. Выбранный формат результата не сохраняет их. Макросы не запускались; сохраните исходный файл, если они нужны.'},
+  {quality:null,warningCode:'VBA_PRESERVATION_NOT_CHECKED',
+    warningMessage:'Сохранность VBA-макросов не подтверждена. Макросы не запускались; сохраните исходник и проверьте совместимость отдельно.'},
+  {quality:null,warningCode:'VBA_STREAMS_PRESERVED',
+    warningMessage:'Все проверенные потоки проекта VBA сохранены побайтно. Макросы не запускались; их работа и совместимость не проверены.'},
+  {quality:null,warningCode:'VBA_VERIFIED_BYTE_IDENTITY',
+    warningMessage:'XLSM сохранён как проверенная байтовая копия без изменений. Повторный экспорт LibreOffice не выполнялся. Макросы не запускались; их работа отдельно не проверялась.'},
+  {quality:null,warningCode:'NATIVE_CALC_PDF_PRINT_LAYOUT',
+    warningMessage:'PDF повторяет разметку печати таблицы. Длинный текст в узких ячейках может обрезаться, а данные вне области печати — не попасть в PDF.'},
+  {quality:null,warningCode:'OOXML_PRIVATE_CONTENT_TYPES_NAMESPACE',
+    warningMessage:'Для повторного импорта во временной копии изменена только запись пространства имён [Content_Types].xml. Исходный файл не изменён.'},
 ];
 for(let index=0;index<variants.length;index++){
   const value=variants[index];
-  const task={format:'jpeg',state:value.error?'error':'ready',warnings:[{code:'MEDIA_ALPHA_REMOVED',message:warning}],...value};
+  const visibleWarning=value.warningMessage||warning;
+  const task={format:'jpeg',state:value.error?'error':'ready',warnings:[{code:value.warningCode||'MEDIA_ALPHA_REMOVED',message:visibleWarning}],...value};
   window.dispatchEvent(new window.CustomEvent('aio-guard-state',{detail:{
     jobId:'a'.repeat(32),revision:index+1,state:'ready',finished:true,total:1,completed:1,
     succeeded:value.error?0:1,failed:value.error?1:0,files:[{fileId:'one',name:'image.png',targets:[task]}]
@@ -39,10 +62,35 @@ for(let index=0;index<variants.length;index++){
   const detail=document.querySelector('.aio-guard-task small');assert.ok(detail);
   if(value.error)assert.equal(detail.textContent,value.error);
   else{
-    assert.ok(detail.textContent.includes(warning),'quality summary must not hide a known loss: '+index);
+    assert.ok(detail.textContent.includes(visibleWarning),'quality summary must not hide a warning: '+index);
+    if(value.warningCode==='MEDIA_PHOTOCD_BASE_ONLY'){
+      assert.ok(detail.textContent.includes('4Base, 16Base'));
+      assert.ok(detail.textContent.includes('не проверены'));
+      assert.equal(task.resultChecks,undefined,'PhotoCD scope stays visible without technical metadata');
+    }
+    if(value.warningCode==='MEDIA_PSD_MERGED_COMPOSITE'){
+      assert.ok(detail.textContent.includes('Слои, маски'));
+      assert.ok(detail.textContent.includes('не переносятся'));
+      assert.equal(task.resultChecks,undefined,'PSD editing loss stays visible without technical metadata');
+    }
+    if(value.warningCode?.startsWith('VBA_')){
+      assert.ok(detail.textContent.includes('Макросы не запускались'));
+      assert.equal(task.resultChecks,undefined,'VBA limits remain visible without technical metadata');
+    }
     if(value.quality)assert.ok(detail.textContent.includes(value.quality.status==='risks_found'?
       'Возможны потери структуры':value.quality.qualityCompared?'Часть структуры проверена':'Структуру сопоставить не удалось'));
     assert.equal(detail.children.length,0,'warning remains text, never markup');
+    assert.ok(detail.textContent.includes('Внешний вид, шрифты и расположение объектов не сравнивались.'));
+    if(value.checkedFeatures)assert.ok(detail.textContent.includes('Проверки результата:'));
+    if(value.unknownReasons)assert.ok(detail.textContent.includes('Границы проверки:'));
+    if(value.resultChecks)assert.ok(detail.textContent.includes('48 × 32 пикс. · 100 × 100 DPI'));
+    if(value.saveStatus==='unsaved')assert.ok(detail.textContent.includes('Копия на диске: не сохранена'));
+    if(value.saveStatus==='partial'){
+      assert.ok(detail.textContent.includes('Копия на диске: сохранена частично'));
+      assert.ok(detail.textContent.includes('формулы записываются значениями'));
+      assert.ok(detail.textContent.includes('<literal-property>'));
+    }
+    if(value.readbackVerified)assert.ok(detail.textContent.includes('байты прочитаны и сверены.'));
   }
 }
 window.dispatchEvent(new window.Event('pagehide'));

@@ -45,7 +45,7 @@ class BulkPreflightTests(unittest.TestCase):
             self.guard.upload(job, item['id'], io.BytesIO(b'x'), 1)
         return job
 
-    def test_large_batch_bounds_each_default_inspection_and_exposes_count(self):
+    def test_large_batch_preserves_configured_inspection_budget_and_exposes_count(self):
         job = self.create(32)
         budgets = []
         def observed(source, workspace, *, cancel, timeout):
@@ -58,8 +58,8 @@ class BulkPreflightTests(unittest.TestCase):
             state = self.guard.status(job)
             self.assertEqual(state['preflightCompleted'], 32)
             self.assertEqual(state['preflightTotal'], 32)
-            self.assertEqual(state['preflightTimeoutSeconds'], 15)
-            self.assertEqual(budgets, [15] * 32)
+            self.assertEqual(state['preflightTimeoutSeconds'], 120)
+            self.assertEqual(budgets, [120] * 32)
             budgets.clear()
             self.guard.preflight(job, recheck=True, timeout_seconds=300)
             self.assertEqual(budgets, [300] * 32)

@@ -7,3 +7,6 @@ pypdf>=6.10,<7
 
 # Used only to decode content-confirmed PCX/RAS without a Draw page canvas.
 Pillow>=13.0,<14
+
+# Static CFB/VBA stream inspection only; macros are never executed.
+olefile>=0.47,<0.48

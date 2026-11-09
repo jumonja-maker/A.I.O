@@ -102,6 +102,9 @@ class ExportRecipesQA(unittest.TestCase):
         self.assertEqual(json.loads(properties), {
             'UseLosslessCompression': {'type': 'boolean', 'value': True},
             'ReduceImageResolution': {'type': 'boolean', 'value': False}})
+        self.assertIn('NATIVE_CALC_PDF_PRINT_LAYOUT', self.adapter.export_info()['warnings'])
+        self.cli('pdf', {**self.proof, 'documentServices': [W]})
+        self.assertNotIn('NATIVE_CALC_PDF_PRINT_LAYOUT', self.adapter.export_info()['warnings'])
 
     def test_missing_or_stale_proof_leaves_native_cli_detection_available(self):
         self.assertNotIn('convert_spec', self.cli('tsv', {}))

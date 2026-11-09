@@ -268,7 +268,7 @@ def main():
                 assert len(values)==4,(target,len(values))
                 assert all(sum(('SHEET_'+str(i)).encode() in v for v in values)==1 for i in range(1,5)),values
                 results.append({'case':'four_sheets_'+target,'status':'PASS','sheets':4})
-            # M25: every DBF containing Russian UTF-8 must carry a matching
+            # M25: every native DBF must carry matching encoding metadata
             # codepage label through the normal save/manifest output list.
             files=convert(source,'dbf',bk)
             require_contract('sheets', 4)
@@ -276,9 +276,11 @@ def main():
             cpgs=[f for f in files if f.suffix=='.cpg']
             assert len(dbfs)==4 and len(cpgs)==4,(len(dbfs),len(cpgs))
             for dbf in dbfs:
-                assert 'Товар Б'.encode('utf-8') in dbf.read_bytes(),dbf
-                assert dbf.with_suffix('.cpg').read_text(encoding='ascii').strip()=='UTF-8',dbf
-            results.append({'case':'four_sheets_dbf_utf8_cpg','status':'PASS','sheets':4})
+                raw=dbf.read_bytes()
+                codec='cp1251' if raw[29]==0xC9 else 'utf-8'
+                assert 'Товар Б'.encode(codec) in raw,dbf
+                assert dbf.with_suffix('.cpg').read_text(encoding='ascii').strip()==('1251' if codec=='cp1251' else 'UTF-8'),dbf
+            results.append({'case':'four_sheets_dbf_declared_codepage_cpg','status':'PASS','sheets':4})
             files=convert(source,'xhtml',bk)
             out=next(f for f in files if f.suffix=='.xhtml')
             assert ET.parse(out).getroot().tag=='{http://www.w3.org/1999/xhtml}html'

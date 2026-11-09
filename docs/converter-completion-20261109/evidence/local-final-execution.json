@@ -1,0 +1,11 @@
+{
+  "command": [
+    "/workspace/scratch/aio-inspection-20261108/venv/bin/python",
+    "tools/qa/hosted_unit_tests.py",
+    "--report",
+    "/workspace/scratch/aio-inspection-20261108/completion-font-final-suite.json"
+  ],
+  "cwd": "/workspace/AIO-completion",
+  "returncode": 0,
+  "durationSeconds": 77.5
+}

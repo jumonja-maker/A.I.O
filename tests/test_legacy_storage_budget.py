@@ -224,6 +224,139 @@ class LegacyByteBudget(unittest.TestCase):
             with self.assertRaises(OSError):
                 measured_bytes([self.parent])
 
+    def test_directory_and_file_entries_count_once_at_the_exact_scan_limit(self):
+        nested = self.parent / 'one' / 'two'
+        nested.mkdir(parents=True)
+        (nested / 'bytes').write_bytes(b'12345')
+        # Root, two child directories and one file are four entries.
+        with patch('app_backend.legacy_storage_budget.MAX_SCAN_ENTRIES', 4), \
+                patch('app_backend.legacy_storage_budget.MAX_SCAN_DEPTH', 3):
+            self.assertEqual(measured_bytes([self.parent]), 5)
+        with patch('app_backend.legacy_storage_budget.MAX_SCAN_ENTRIES', 3):
+            with self.assertRaises(OSError):
+                measured_bytes([self.parent])
+        with patch('app_backend.legacy_storage_budget.MAX_SCAN_DEPTH', 2):
+            with self.assertRaises(OSError):
+                measured_bytes([self.parent])
+
+    def test_each_scan_observes_grown_files_and_new_foreign_children(self):
+        self.parent.mkdir()
+        output = self.parent / 'bytes'
+        output.write_bytes(b'x')
+        self.assertEqual(measured_bytes([self.parent]), 1)
+        output.write_bytes(b'x' * 11)
+        foreign = self.parent / 'foreign' / 'nested'
+        foreign.mkdir(parents=True)
+        (foreign / 'bytes').write_bytes(b'x' * 17)
+        self.assertEqual(measured_bytes([self.parent]), 28)
+
+    def test_cancellation_interrupts_a_flat_directory_scan(self):
+        self.parent.mkdir()
+        for number in range(100):
+            (self.parent / str(number)).write_bytes(b'x')
+        class CancelDuringScan:
+            checks = 0
+            def is_set(self):
+                self.checks += 1
+                return self.checks >= 8
+        cancel = CancelDuringScan()
+        with self.assertRaises(LibreOfficeError) as error:
+            measured_bytes([self.parent], cancel=cancel)
+        self.assertEqual(error.exception.code, 'CANCELLED')
+        self.assertLess(cancel.checks, 100)
+
+    def test_directory_replaced_by_a_link_before_descent_is_rejected(self):
+        child = self.parent / 'child'
+        child.mkdir(parents=True)
+        outside = Path(self.temp.name) / 'outside'
+        outside.mkdir()
+        (outside / 'unowned').write_bytes(b'not legacy storage')
+        original_scan = os.scandir
+
+        class ReplaceAfterListing:
+            def __enter__(self):
+                self.listing = original_scan(self.parent)
+                return self.listing.__enter__()
+            def __exit__(self, *args):
+                self.listing.__exit__(*args)
+                child.rmdir()
+                child.symlink_to(outside, target_is_directory=True)
+
+        # The change happens after the parent listing, before traversal of its
+        # child. A directory type observed in the listing is no lasting proof.
+        listing = ReplaceAfterListing()
+        listing.parent = self.parent
+        try:
+            probe = self.parent / 'link-permission-probe'
+            probe.symlink_to(outside, target_is_directory=True)
+            probe.unlink()
+        except OSError:
+            self.skipTest('Creating directory symlinks requires OS permission')
+        with patch('app_backend.legacy_storage_budget.os.scandir',
+                   side_effect=lambda path: listing if Path(path) == self.parent else original_scan(path)):
+            with self.assertRaises(OSError):
+                measured_bytes([self.parent])
+
+    def test_windows_directory_attributes_are_fresh_at_every_descent(self):
+        child = self.parent / 'child'
+        child.mkdir(parents=True)
+        (child / 'payload').write_bytes(b'fresh bytes')
+        original_lstat = os.lstat
+        # The optimization reads current attributes once per child directory,
+        # while regular-file sizes still come from a fresh scan's DirEntry.
+        with patch('app_backend.legacy_storage_budget._get_file_attributes', return_value=0x10) as attrs, \
+                patch('app_backend.legacy_storage_budget.os.lstat', wraps=original_lstat) as lstat:
+            self.assertEqual(measured_bytes([self.parent]), 11)
+            (child / 'payload').write_bytes(b'grown bytes here')
+            self.assertEqual(measured_bytes([self.parent]), 16)
+        self.assertEqual(attrs.call_args_list, [unittest.mock.call(str(child))] * 2)
+        self.assertEqual(lstat.call_args_list, [unittest.mock.call(str(self.parent))] * 2)
+
+    def test_windows_directory_revalidation_rejects_reparse_or_changed_type(self):
+        (self.parent / 'child').mkdir(parents=True)
+        original_scan = os.scandir
+        for attributes in (0x410, 0x400, 0x80):
+            with self.subTest(attributes=attributes), \
+                    patch('app_backend.legacy_storage_budget._get_file_attributes', return_value=attributes), \
+                    patch('app_backend.legacy_storage_budget.os.scandir', wraps=original_scan) as scan:
+                with self.assertRaises(OSError):
+                    measured_bytes([self.parent])
+                scan.assert_called_once_with(str(self.parent))
+
+    def test_windows_directory_attributes_fail_closed_on_io_error(self):
+        from app_backend import legacy_storage_budget as budget
+        (self.parent / 'child').mkdir(parents=True)
+        denied = SimpleNamespace(get_last_error=lambda: 5,
+                                 WinError=lambda code: PermissionError(code, 'denied'))
+        with patch.object(budget, '_get_file_attributes', return_value=0xffffffff), \
+                patch.object(budget, 'ctypes', denied, create=True):
+            with self.assertRaises(PermissionError):
+                measured_bytes([self.parent])
+
+        for code in (2, 3):
+            missing = SimpleNamespace(get_last_error=lambda: code,
+                                      WinError=lambda value: FileNotFoundError(value, 'gone'))
+            with self.subTest(code=code), \
+                    patch.object(budget, '_get_file_attributes', return_value=0xffffffff), \
+                    patch.object(budget, 'ctypes', missing, create=True):
+                self.assertEqual(measured_bytes([self.parent]), 0)
+
+    @unittest.skipUnless(os.name == 'nt', 'Windows directory junction')
+    def test_windows_directory_junction_is_rejected_by_fresh_attributes(self):
+        from app_backend import legacy_storage_budget as budget
+        child = self.parent / 'junction'
+        self.parent.mkdir()
+        outside = Path(self.temp.name) / 'outside'
+        outside.mkdir()
+        (outside / 'unowned').write_bytes(b'not legacy storage')
+        created = subprocess.run(['cmd', '/c', 'mklink', '/J', str(child), str(outside)],
+                                 capture_output=True, text=True)
+        self.assertEqual(created.returncode, 0, created.stdout + created.stderr)
+        with self.assertRaises(OSError):
+            budget._check_directory(str(child))
+        with self.assertRaises(OSError):
+            measured_bytes([self.parent])
+
     def test_monitor_throttles_scans_and_prioritizes_user_cancellation(self):
         cancel = threading.Event()
         with patch('app_backend.legacy_storage_budget.time.monotonic', return_value=10):

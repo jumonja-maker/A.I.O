@@ -1,0 +1,197 @@
+{
+  "status": "FAIL",
+  "scope": "production source Qt WebEngine + HTTP + native LibreOffice; controlled save destination",
+  "installedWindowsGUI": "NOT_RUN",
+  "cases": [
+    {
+      "label": "empty-1440x1000-zoom1",
+      "metrics": {
+        "violations": [
+          "counter slot ch uses a different font from the number"
+        ],
+        "viewport": [
+          1440,
+          1000
+        ],
+        "devicePixelRatio": 1,
+        "workspace": {
+          "client": 732,
+          "scroll": 732,
+          "excess": 0
+        },
+        "document": {
+          "client": 1000,
+          "scroll": 1000,
+          "bodyScroll": 1000,
+          "bodyScrollTop": 0,
+          "bodyOverflow": "clip",
+          "bodyChildren": [
+            {
+              "tag": "DIV",
+              "cls": "app-shell",
+              "rect": {
+                "left": 40,
+                "top": 26,
+                "right": 1400,
+                "bottom": 846,
+                "width": 1360,
+                "height": 820
+              },
+              "position": "static",
+              "client": 818,
+              "scroll": 818
+            }
+          ]
+        },
+        "shell": {
+          "left": 40,
+          "top": 26,
+          "right": 1400,
+          "bottom": 846,
+          "width": 1360,
+          "height": 820
+        },
+        "appHeader": {
+          "left": 41,
+          "top": 27,
+          "right": 1399,
+          "bottom": 113,
+          "width": 1358,
+          "height": 86
+        },
+        "appLayout": {
+          "left": 41,
+          "top": 113,
+          "right": 1399,
+          "bottom": 845,
+          "width": 1358,
+          "height": 732
+        },
+        "sidebar": {
+          "left": 41,
+          "top": 113,
+          "right": 299,
+          "bottom": 845,
+          "width": 258,
+          "height": 732
+        },
+        "left": {
+          "left": 323,
+          "top": 216.140625,
+          "right": 794.953125,
+          "bottom": 827,
+          "width": 471.953125,
+          "height": 610.859375
+        },
+        "right": {
+          "left": 808.953125,
+          "top": 216.140625,
+          "right": 1363,
+          "bottom": 827,
+          "width": 554.046875,
+          "height": 610.859375
+        },
+        "header": {
+          "left": 340,
+          "top": 233.140625,
+          "right": 777.953125,
+          "bottom": 277.140625,
+          "width": 437.953125,
+          "height": 44
+        },
+        "counter": {
+          "left": 340,
+          "top": 244.09375,
+          "right": 367.796875,
+          "bottom": 266.1875,
+          "width": 27.796875,
+          "height": 22.09375
+        },
+        "counterBox": {
+          "left": 340,
+          "top": 236.140625,
+          "right": 448.0625,
+          "bottom": 274.140625,
+          "width": 108.0625,
+          "height": 38
+        },
+        "counterFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "headFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "15px",
+          "weight": "400",
+          "numeric": "normal"
+        },
+        "controls": [
+          {
+            "left": 469.953125,
+            "top": 236.140625,
+            "right": 573.953125,
+            "bottom": 274.140625,
+            "width": 104,
+            "height": 38
+          },
+          {
+            "left": 579.953125,
+            "top": 236.140625,
+            "right": 735.953125,
+            "bottom": 274.140625,
+            "width": 156,
+            "height": 38
+          },
+          {
+            "left": 741.953125,
+            "top": 236.140625,
+            "right": 777.953125,
+            "bottom": 274.140625,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "labelMetrics": [
+          {
+            "text": "Фильтр",
+            "visible": true,
+            "client": 50,
+            "scroll": 50
+          },
+          {
+            "text": "Добавить файлы",
+            "visible": true,
+            "client": 110,
+            "scroll": 110
+          }
+        ],
+        "run": {
+          "left": 825.953125,
+          "top": 712,
+          "right": 1346,
+          "bottom": 760,
+          "width": 520.046875,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 340,
+          "top": 341.140625,
+          "right": 777.953125,
+          "bottom": 810,
+          "width": 437.953125,
+          "height": 468.859375
+        },
+        "fileCount": "0/0"
+      }
+    }
+  ],
+  "bulkXhtml": "NOT_REQUESTED",
+  "error": {
+    "type": "AssertionError",
+    "message": "{'violations': ['counter slot ch uses a different font from the number'], 'viewport': [1440, 1000], 'devicePixelRatio': 1, 'workspace': {'client': 732, 'scroll': 732, 'excess': 0}, 'document': {'client': 1000, 'scroll': 1000, 'bodyScroll': 1000, 'bodyScrollTop': 0, 'bodyOverflow': 'clip', 'bodyChildren': [{'tag': 'DIV', 'cls': 'app-shell', 'rect': {'left': 40, 'top': 26, 'right': 1400, 'bottom': 846, 'width': 1360, 'height': 820}, 'position': 'static', 'client': 818, 'scroll': 818}]}, 'shell': {'left': 40, 'top': 26, 'right': 1400, 'bottom': 846, 'width': 1360, 'height': 820}, 'appHeader': {'left': 41, 'top': 27, 'right': 1399, 'bottom': 113, 'width': 1358, 'height': 86}, 'appLayout': {'left': 41, 'top': 113, 'right': 1399, 'bottom': 845, 'width': 1358, 'height': 732}, 'sidebar': {'left': 41, 'top': 113, 'right': 299, 'bottom': 845, 'width': 258, 'height': 732}, 'left': {'left': 323, 'top': 216.140625, 'right': 794.953125, 'bottom': 827, 'width': 471.953125, 'height': 610.859375}, 'right': {'left': 808.953125, 'top': 216.140625, 'right': 1363, 'bottom': 827, 'width': 554.046875, 'height': 610.859375}, 'header': {'left': 340, 'top': 233.140625, 'right': 777.953125, 'bottom': 277.140625, 'width': 437.953125, 'height': 44}, 'counter': {'left': 340, 'top': 244.09375, 'right': 367.796875, 'bottom': 266.1875, 'width': 27.796875, 'height': 22.09375}, 'counterBox': {'left': 340, 'top': 236.140625, 'right': 448.0625, 'bottom': 274.140625, 'width': 108.0625, 'height': 38}, 'counterFont': {'family': '\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif', 'size': '17px', 'weight': '700', 'numeric': 'tabular-nums'}, 'headFont': {'family': '\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif', 'size': '15px', 'weight': '400', 'numeric': 'normal'}, 'controls': [{'left': 469.953125, 'top': 236.140625, 'right': 573.953125, 'bottom': 274.140625, 'width': 104, 'height': 38}, {'left': 579.953125, 'top': 236.140625, 'right': 735.953125, 'bottom': 274.140625, 'width': 156, 'height': 38}, {'left': 741.953125, 'top': 236.140625, 'right': 777.953125, 'bottom': 274.140625, 'width': 36, 'height': 38}], 'labelMetrics': [{'text': 'Фильтр', 'visible': True, 'client': 50, 'scroll': 50}, {'text': 'Добавить файлы', 'visible': True, 'client': 110, 'scroll': 110}], 'run': {'left': 825.953125, 'top': 712, 'right': 1346, 'bottom': 760, 'width': 520.046875, 'height': 48}, 'runVisibility': 'visible', 'fileArea': {'left': 340, 'top': 341.140625, 'right': 777.953125, 'bottom': 810, 'width': 437.953125, 'height': 468.859375}, 'fileCount': '0/0'}"
+  },
+  "page": "A.I.O\nПоиск инструмента\nX\nОбъединение Excel\nКонвертер файлов\nОбновить\nКонвертер файлов X LibreOffice\n\nДобавьте файлы, выберите формат результата и параметры преобразования.\n\n0/0\nФильтр\nДобавить файлы\n⌕\nПоиск по имени файла\n⇩\nВыберите файлы\n\nИли перетащите их сюда\n\nВыбрать файлы\nФормат результата\nСостояние\nВыбрать всё\nДокументы\nИзображения\nТаблицы\nДругие\nPDF\nPDF\nPDF - Portable Document Format\nНедоступно\n?\nDOC\nDOCX\nWord 2007\nНедоступно\n?\nDOC\nDOC\nWord 97–2003\nНедоступно\n?\nODT\nODT\nODF Text Document\nНедоступно\n?\nRTF\nRTF\nRich Text\nНедоступно\n?\nTXT\nTXT\nText CSV\nНедоступно\n?\nHTM\nHTML\nHTML Document (Calc)\nНедоступно\n?\nPPT\nPPTX\nPowerPoint 2007–365\nНедоступно\n?\nPPT\nPPT\nPowerPoint 97–2003\nНедоступно\n?\nODP\nODP\nFlat XML ODF Presentation\nНедоступно\n?\nHTM\nHTM\nHTML Document (Calc)\nНедоступно\n?\nMAR\nMARKDOWN\nMarkdown Document\nНедоступно\n?\nMD\nMD\nMarkdown Document\nНедоступно\n?\nTAB\nTAB\nText CSV\nНедоступно\n?\nTSV\nTSV\nText CSV\nНедоступно\n?\nXHT\nXHTML\nHTML Document (Calc)\nНедоступно\n?\nДобавьте один или несколько файлов.\nКонвертировать"
+}

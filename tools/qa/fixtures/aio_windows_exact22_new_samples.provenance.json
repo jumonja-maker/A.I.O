@@ -1,0 +1,9 @@
+{
+  "sourceRepository": "jumonja-maker/A.I.O",
+  "sourceBranch": "qa/diag-exact22-windows-20261108",
+  "sourceRevision": "91b143645431aaef15fef3fc242d20d13bb3cb4c",
+  "sourcePath": "tools/qa/fixtures/aio_windows_exact22_new_samples.zip",
+  "sha256": "fc3fedff2160b65c0b463826e317e284e700d1c45994e809a370bbd7d134988f",
+  "bytes": 557325,
+  "scope": "Exact22 original diagnostic fixtures; no namespace repair or source modifications; not complete historical FULLTEST corpus."
+}

@@ -1,0 +1,461 @@
+{
+  "status": "PASS",
+  "cases": [
+    {
+      "case": "native_utf8_cpg_default_import_baseline",
+      "status": "PASS",
+      "nativeLdid": 0,
+      "explicitUtf8Correct": true,
+      "automaticUtf8Correct": false,
+      "defaultLibreOfficeNames": [
+        "ðíðÁð╝Ðæð¢ ðüð╗ð║ð©ð¢",
+        "ðÉð╗Ðæð¢ð░ ðñÐæð┤ð¥ÐÇð¥ð▓ð░"
+      ],
+      "ogr": {
+        "status": "PASS",
+        "driver": "ESRI Shapefile",
+        "encoding": {
+          "CPG_VALUE": "UTF-8",
+          "ENCODING_FROM_CPG": "UTF-8",
+          "SOURCE_ENCODING": "UTF-8"
+        },
+        "rows": [
+          {
+            "ID": "000123",
+            "NAME": "Семён Ёлкин"
+          },
+          {
+            "ID": "000007",
+            "NAME": "Алёна Фёдорова"
+          }
+        ]
+      }
+    },
+    {
+      "case": "native_cp1251_metadata_and_automatic_external_consumers",
+      "status": "PASS",
+      "onlyMetadataByte29Changed": true,
+      "ldid": 201,
+      "explicitLibreOfficeReadbackWithAndWithoutCpg": true,
+      "defaultLibreOfficeCorrectWithCpg": false,
+      "defaultLibreOfficeCorrectWithoutCpg": false,
+      "ogrWithCpg": {
+        "status": "PASS",
+        "driver": "ESRI Shapefile",
+        "encoding": {
+          "LDID_VALUE": "201",
+          "ENCODING_FROM_LDID": "CP1251",
+          "CPG_VALUE": "1251",
+          "ENCODING_FROM_CPG": "CP1251",
+          "SOURCE_ENCODING": "CP1251"
+        },
+        "rows": [
+          {
+            "ID": "000123",
+            "NAME": "Семён Ёлкин"
+          },
+          {
+            "ID": "000007",
+            "NAME": "Алёна Фёдорова"
+          }
+        ]
+      },
+      "ogrWithoutCpg": {
+        "status": "PASS",
+        "driver": "ESRI Shapefile",
+        "encoding": {
+          "LDID_VALUE": "201",
+          "ENCODING_FROM_LDID": "CP1251",
+          "SOURCE_ENCODING": "CP1251"
+        },
+        "rows": [
+          {
+            "ID": "000123",
+            "NAME": "Семён Ёлкин"
+          },
+          {
+            "ID": "000007",
+            "NAME": "Алёна Фёдорова"
+          }
+        ]
+      }
+    },
+    {
+      "case": "xlsx_per_sheet_cyrillic_unicode_values_and_schema",
+      "status": "PASS",
+      "executionMode": "native_cli",
+      "outputs": [
+        {
+          "encoding": "cp1251",
+          "fields": [
+            {
+              "name": "ID",
+              "type": "C",
+              "width": 6,
+              "decimal": 0
+            },
+            {
+              "name": "NAME",
+              "type": "C",
+              "width": 14,
+              "decimal": 0
+            },
+            {
+              "name": "AMOUNT",
+              "type": "N",
+              "width": 7,
+              "decimal": 3
+            },
+            {
+              "name": "DATE",
+              "type": "D",
+              "width": 8,
+              "decimal": 0
+            },
+            {
+              "name": "ACTIVE",
+              "type": "L",
+              "width": 1,
+              "decimal": 0
+            }
+          ],
+          "ldid": 201,
+          "ogr": {
+            "status": "PASS",
+            "driver": "ESRI Shapefile",
+            "encoding": {
+              "LDID_VALUE": "201",
+              "ENCODING_FROM_LDID": "CP1251",
+              "CPG_VALUE": "1251",
+              "ENCODING_FROM_CPG": "CP1251",
+              "SOURCE_ENCODING": "CP1251"
+            },
+            "rows": [
+              {
+                "ID": "000123",
+                "NAME": "Семён Ёлкин",
+                "AMOUNT": -12.75,
+                "DATE": "2002/08/22",
+                "ACTIVE": false
+              },
+              {
+                "ID": "000007",
+                "NAME": "Алёна Фёдорова",
+                "AMOUNT": 0.125,
+                "DATE": "2003/08/22",
+                "ACTIVE": true
+              }
+            ]
+          }
+        },
+        {
+          "encoding": "utf-8",
+          "fields": [
+            {
+              "name": "ID",
+              "type": "C",
+              "width": 6,
+              "decimal": 0
+            },
+            {
+              "name": "NAME",
+              "type": "C",
+              "width": 11,
+              "decimal": 0
+            },
+            {
+              "name": "AMOUNT",
+              "type": "N",
+              "width": 7,
+              "decimal": 3
+            },
+            {
+              "name": "DATE",
+              "type": "D",
+              "width": 8,
+              "decimal": 0
+            },
+            {
+              "name": "ACTIVE",
+              "type": "L",
+              "width": 1,
+              "decimal": 0
+            }
+          ],
+          "ldid": 0,
+          "ogr": {
+            "status": "PASS",
+            "driver": "ESRI Shapefile",
+            "encoding": {
+              "CPG_VALUE": "UTF-8",
+              "ENCODING_FROM_CPG": "UTF-8",
+              "SOURCE_ENCODING": "UTF-8"
+            },
+            "rows": [
+              {
+                "ID": "000123",
+                "NAME": "漢字 😀",
+                "AMOUNT": -12.75,
+                "DATE": "2002/08/22",
+                "ACTIVE": false
+              },
+              {
+                "ID": "000007",
+                "NAME": "é € Ω",
+                "AMOUNT": 0.125,
+                "DATE": "2003/08/22",
+                "ACTIVE": true
+              }
+            ]
+          }
+        }
+      ],
+      "warnings": [
+        "NATIVE_TABLE_FORMAT_LIMITS",
+        "NATIVE_DBF_CP1251_CPG",
+        "NATIVE_DBF_CP1251_REQUIRES_ENCODING_SELECTION",
+        "NATIVE_DBF_UTF8_CPG",
+        "NATIVE_DBF_UTF8_REQUIRES_ENCODING_SELECTION"
+      ]
+    },
+    {
+      "case": "ods_per_sheet_cyrillic_unicode_values_and_schema",
+      "status": "PASS",
+      "executionMode": "native_cli",
+      "outputs": [
+        {
+          "encoding": "cp1251",
+          "fields": [
+            {
+              "name": "ID",
+              "type": "C",
+              "width": 6,
+              "decimal": 0
+            },
+            {
+              "name": "NAME",
+              "type": "C",
+              "width": 14,
+              "decimal": 0
+            },
+            {
+              "name": "AMOUNT",
+              "type": "N",
+              "width": 7,
+              "decimal": 3
+            },
+            {
+              "name": "DATE",
+              "type": "D",
+              "width": 8,
+              "decimal": 0
+            },
+            {
+              "name": "ACTIVE",
+              "type": "L",
+              "width": 1,
+              "decimal": 0
+            }
+          ],
+          "ldid": 201,
+          "ogr": {
+            "status": "PASS",
+            "driver": "ESRI Shapefile",
+            "encoding": {
+              "LDID_VALUE": "201",
+              "ENCODING_FROM_LDID": "CP1251",
+              "CPG_VALUE": "1251",
+              "ENCODING_FROM_CPG": "CP1251",
+              "SOURCE_ENCODING": "CP1251"
+            },
+            "rows": [
+              {
+                "ID": "000123",
+                "NAME": "Семён Ёлкин",
+                "AMOUNT": -12.75,
+                "DATE": "2002/08/22",
+                "ACTIVE": false
+              },
+              {
+                "ID": "000007",
+                "NAME": "Алёна Фёдорова",
+                "AMOUNT": 0.125,
+                "DATE": "2003/08/22",
+                "ACTIVE": true
+              }
+            ]
+          }
+        },
+        {
+          "encoding": "utf-8",
+          "fields": [
+            {
+              "name": "ID",
+              "type": "C",
+              "width": 6,
+              "decimal": 0
+            },
+            {
+              "name": "NAME",
+              "type": "C",
+              "width": 11,
+              "decimal": 0
+            },
+            {
+              "name": "AMOUNT",
+              "type": "N",
+              "width": 7,
+              "decimal": 3
+            },
+            {
+              "name": "DATE",
+              "type": "D",
+              "width": 8,
+              "decimal": 0
+            },
+            {
+              "name": "ACTIVE",
+              "type": "L",
+              "width": 1,
+              "decimal": 0
+            }
+          ],
+          "ldid": 0,
+          "ogr": {
+            "status": "PASS",
+            "driver": "ESRI Shapefile",
+            "encoding": {
+              "CPG_VALUE": "UTF-8",
+              "ENCODING_FROM_CPG": "UTF-8",
+              "SOURCE_ENCODING": "UTF-8"
+            },
+            "rows": [
+              {
+                "ID": "000123",
+                "NAME": "漢字 😀",
+                "AMOUNT": -12.75,
+                "DATE": "2002/08/22",
+                "ACTIVE": false
+              },
+              {
+                "ID": "000007",
+                "NAME": "é € Ω",
+                "AMOUNT": 0.125,
+                "DATE": "2003/08/22",
+                "ACTIVE": true
+              }
+            ]
+          }
+        }
+      ],
+      "warnings": [
+        "NATIVE_TABLE_FORMAT_LIMITS",
+        "NATIVE_DBF_CP1251_CPG",
+        "NATIVE_DBF_CP1251_REQUIRES_ENCODING_SELECTION",
+        "NATIVE_DBF_UTF8_CPG",
+        "NATIVE_DBF_UTF8_REQUIRES_ENCODING_SELECTION"
+      ]
+    },
+    {
+      "case": "csv_native_import_and_explicit_cyrillic_readback",
+      "status": "PASS",
+      "executionMode": "native_cli",
+      "ldid": 201,
+      "leadingZerosAndCyrillic": true
+    },
+    {
+      "case": "aio_own_cp1251_dbf_roundtrip",
+      "status": "PASS",
+      "executionMode": "native_cli",
+      "ownAioReadback": true,
+      "valuesPreserved": true
+    },
+    {
+      "case": "dbt_long_cyrillic_memo_binary_and_native_readback",
+      "status": "PASS",
+      "executionMode": "native_cli",
+      "memoCharacters": 460,
+      "binaryDbtAndExplicitLibreOfficeReadback": true,
+      "ownAioReadback": true,
+      "encoding": "utf-8",
+      "cp1251MemoImport": "unsupported_kept_utf8"
+    },
+    {
+      "case": "literal_duplicate_long_cyrillic_field_mapping_and_mixed_memo",
+      "status": "NOT_RUN",
+      "reason": "native_UNO_python_exe_unavailable"
+    },
+    {
+      "case": "guard_folder_zip_manifests_companions_and_reports",
+      "status": "PASS",
+      "manifestReadback": true,
+      "folderAndZipHashes": true,
+      "companionsAndReports": true
+    },
+    {
+      "case": "negative_decimal_native_width_preserved_or_explicitly_refused",
+      "status": "PASS",
+      "nativeOutcome": "SAFE_REFUSAL",
+      "sourceUnchanged": true,
+      "jobState": "failed",
+      "targets": [
+        {
+          "taskId": "6eff825b543e0018cde3e8f4be47689f:0",
+          "format": "dbf",
+          "state": "error",
+          "code": "ENGINE_FAILED",
+          "error": "LibreOffice завершился с кодом 1.",
+          "stage": "engine",
+          "libreOfficeStarted": true,
+          "conversionStatus": "error",
+          "saveStatus": "not_applicable",
+          "readbackVerified": false,
+          "qualityCheckRequested": false,
+          "qualityCompared": false,
+          "checkedFeatures": [],
+          "unknownReasons": [
+            "quality_comparison_not_requested"
+          ],
+          "formatLimitations": [],
+          "confirmedLoss": false,
+          "executionMode": "native_cli",
+          "executionReason": "no_native_session",
+          "resultChecks": [],
+          "automaticRecipe": null,
+          "automaticParameters": null,
+          "nativeTimings": {
+            "source": "cli_process",
+            "adapterMs": 6978,
+            "processMs": 6977,
+            "launchMs": 3
+          },
+          "exportFilter": "dBase",
+          "warnings": [
+            {
+              "code": "NATIVE_TABLE_FORMAT_LIMITS",
+              "message": "DBF/DIF имеют ограничения структуры, типов и оформления. Наличие нативного маршрута не подтверждает сохранность всех данных. В пакетном UNO-режиме каждый лист сохраняется отдельным файлом; формулы становятся вычисленными значениями, оформление ограничено форматом."
+            }
+          ],
+          "quality": null,
+          "startedMs": 1794179464041,
+          "finishedMs": 1794179477734,
+          "route": null,
+          "percent": null,
+          "outputs": []
+        }
+      ],
+      "knownLimitation": "native_dbase_negative_decimal_width_inference"
+    }
+  ],
+  "sourceUnchanged": true,
+  "notRun": [
+    {
+      "case": "literal_duplicate_long_cyrillic_field_mapping_and_mixed_memo",
+      "status": "NOT_RUN",
+      "reason": "native_UNO_python_exe_unavailable"
+    }
+  ],
+  "historicalFULLTEST": "NOT_RUN",
+  "macroPreservation": "NOT_RUN_actual_macro_fixture_required",
+  "externalConsumerScope": "LibreOffice default + optional GDAL OGR, not all DBF consumers"
+}

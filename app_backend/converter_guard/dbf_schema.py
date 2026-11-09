@@ -5,6 +5,64 @@ from xml.etree import ElementTree as ET
 from .errors import GuardError
 
 
+def cli_dbf_encoding(snapshot, *, cancel=None):
+    """Choose a lossless native encoding for a private, single-sheet FODS.
+
+    Check the complete native snapshot in bounded memory. This is no encoding
+    guess: every text/heading must strictly encode as CP1251, otherwise native
+    UTF-8 remains mandatory. Repeated cells need no expansion for this check.
+    """
+    office = '{urn:oasis:names:tc:opendocument:xmlns:office:1.0}'
+    representable = True
+    cell_bytes = None
+    cell_tag = '{urn:oasis:names:tc:opendocument:xmlns:table:1.0}table-cell'
+    text_namespace = '{urn:oasis:names:tc:opendocument:xmlns:text:1.0}'
+    try:
+        with open(snapshot, 'rb') as stream:
+            stack = []
+            for event, node in ET.iterparse(stream, events=('start', 'end')):
+                if cancel is not None and cancel.is_set():
+                    raise GuardError('CANCELLED', 'Проверка кодировки DBF отменена.', stage='export')
+                if event == 'start':
+                    stack.append(node)
+                    if node.tag == cell_tag:
+                        cell_bytes = 0
+                    if cell_bytes is not None and node.tag in {
+                            text_namespace+kind for kind in ('s', 'tab', 'line-break')}:
+                        # Native whitespace controls can expand into arbitrarily
+                        # long strings. Keep their memo scope on UTF-8.
+                        representable = False
+                    continue
+                if representable and cell_bytes is not None:
+                    try:
+                        for value in (node.text, node.tail, node.get(office+'string-value')):
+                            if value:
+                                value.encode('cp1251', 'strict')
+                                if cell_bytes is not None:
+                                    cell_bytes += len(value.encode('utf-8'))
+                                # Conservative: native Memo text stays on the
+                                # supported UTF-8 DBT source-import contract.
+                                if (len(value.encode('utf-8')) > 254
+                                        or re.fullmatch(r'[A-Za-z_][A-Za-z_0-9]{0,9},M(?:,[0-9]+)?', value, re.I)):
+                                    representable = False
+                        if cell_bytes is not None and cell_bytes > 254:
+                            representable = False
+                        if cell_bytes is not None and node.tag == text_namespace+'p':
+                            cell_bytes += 1  # Paragraph separators are actual cell text.
+                    except UnicodeEncodeError:
+                        representable = False
+                if node.tag == cell_tag:
+                    cell_bytes = None
+                stack.pop()
+                if stack:
+                    stack[-1].remove(node)
+                node.clear()
+    except (ET.ParseError, OSError) as error:
+        raise GuardError('ENGINE_OUTPUT_VALIDATION_INCOMPLETE',
+            'Кодировка нативного снимка DBF не подтверждена.', stage='export') from error
+    return '34' if representable else '76'
+
+
 def csv_cli_headers_confirmed(source, options, *, cancel=None):
     """Gate the one-shot CSV recovery without rescanning the source table."""
     import codecs

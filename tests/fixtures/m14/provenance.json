@@ -1,0 +1,17 @@
+{
+  "source": "LibreOffice/core reportdesign/qa/unit/data/roundTrip.odb",
+  "sourceUrl": "https://raw.githubusercontent.com/LibreOffice/core/0d51fdc57aef6707466320821b8c2931c00297c0/reportdesign/qa/unit/data/roundTrip.odb",
+  "sourceCommit": "0d51fdc57aef6707466320821b8c2931c00297c0",
+  "sourceGitBlobSha": "8ab8306646bc2ce5b43bc1825d5ec26d7b3507e9",
+  "sourceSha256": "f2d241d6c00223ace22f37de0dcae5cdfdcc4b8c32ffab5534a7db06daed7a95",
+  "sourceReportStorage": "reports/Obj22",
+  "license": "MPL-2.0; LibreOffice core QA fixture",
+  "nativeGeneration": "Loaded official report into real com.sun.star.comp.report.OReportDefinition via XStorageBasedDocument, then native storeToStorage to standalone ORP; no report XML was invented or repaired.",
+  "fixture": "official-roundtrip-report.orp",
+  "fixtureSha256": "5009d92fbc4a876685d4975fa7638920fd75f782c64b9ee9d108063bbce9925d",
+  "nativeControlFacts": {
+    "command": "Table1",
+    "detailControls": 8
+  },
+  "preservationScope": "report definition; no executed database rows or layout equivalence"
+}

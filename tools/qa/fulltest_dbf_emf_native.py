@@ -23,9 +23,11 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 
-def read_dbf(path, *, encoding='utf-8'):
+def read_dbf(path, *, encoding=None):
     """Strict, small-fixture dBASE III/IV reader, including native DBT memos."""
     data = path.read_bytes()
+    if encoding is None:
+        encoding = 'cp1251' if data[29:30] == b'\xc9' else 'utf-8'
     assert len(data) >= 33 and data[0] in (3, 0x83, 0x8b), data[:32].hex()
     count, header, stride = struct.unpack_from('<IHH', data, 4)
     assert header >= 33 and (header - 33) % 32 == 0 and data[header-1] == 13
@@ -212,7 +214,8 @@ def main():
                 raw = read_dbf(dbf)
                 print('DBF_PHYSICAL='+json.dumps(raw, ensure_ascii=True), flush=True)
                 assert dbf.with_suffix('.cpg') in exported
-                assert dbf.with_suffix('.cpg').read_text().strip() == 'UTF-8'
+                label = dbf.with_suffix('.cpg').read_text().strip()
+                assert label == ('1251' if raw['ldid'] == 0xC9 else 'UTF-8')
                 assert [r[0] for r in raw['rows']] == ['000123', '000007', '000099']
                 assert [Decimal(r[2]) for r in raw['rows']] == [Decimal('-12.75'), Decimal('0.125'), Decimal('123.5')]
                 assert [r[1] for r in raw['rows']] == ['Семён Ёлкин', 'Алёна Фёдорова', 'Ёжик ёлка ' + 'длинная строка ' * 20]
@@ -227,7 +230,7 @@ def main():
                     assert [r[6] for r in raw['rows'][:2]] == ['T', 'F'], raw
                 counter += 1
                 imported = convert_path(dbf, 'xlsx', args.output/('readback-%d' % counter),
-                    executable=args.executable, import_filter='dBase:76')
+                    executable=args.executable, import_filter='dBase:' + ('34' if raw['ldid'] == 0xC9 else '76'))
                 workbook = load_workbook(next(p for p in imported if p.suffix == '.xlsx'), data_only=True)
                 rows = list(workbook.active.values)[1:]
                 workbook.close()
@@ -236,8 +239,8 @@ def main():
                 assert [Decimal(str(r[2])) for r in rows] == [Decimal(r[2]) for r in raw['rows']], rows
                 assert [str(r[4]) for r in rows] == [r[4] for r in raw['rows']], rows
                 facts.append({k: v for k, v in raw.items() if k != 'rows'})
-            return {'outputs': facts, 'readers': ['independent_physical_reader', 'native_LO_dBase_76_to_XLSX']}
-        run('xlsx_utf8_values_and_native_readback', lambda: dbf_case(source))
+            return {'outputs': facts, 'readers': ['independent_physical_reader', 'native_LO_explicit_codepage_to_XLSX']}
+        run('xlsx_declared_codepage_values_and_native_readback', lambda: dbf_case(source))
         # ODS and CSV are created by the same pinned native engine, then
         # exported back through A.I.O's real source admission/UNO route.
         for kind in ('ods', 'csv'):
@@ -245,7 +248,7 @@ def main():
                 native = convert(source, kind)
                 generated = next(p for p in native if p.suffix == '.'+kind)
                 return dbf_case(generated)
-            run(kind+'_utf8_values_and_native_readback', generated_case)
+            run(kind+'_declared_codepage_values_and_native_readback', generated_case)
         def literal_case():
             exported = convert(literals, 'dbf')
             dbf = next(p for p in exported if p.suffix == '.dbf')

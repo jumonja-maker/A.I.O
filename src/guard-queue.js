@@ -30,6 +30,44 @@
   let actionFeedback=null,feedbackRevision=null;
   const labels={queued:'В очереди',converting:'Конвертируется',ready:'Готово',saved:'Сохранено',
     error:'Ошибка',cancelled:'Отменено',skipped:'Исключено Guard'};
+  const featureLabels={pixel_dimensions:'размеры в пикселях',media_properties:'свойства изображения',
+    sheet_count:'число листов',sheet_output_mapping:'соответствие листов и файлов',output_sha256:'контрольные суммы результатов',
+    native_sheet_values:'значения ячеек листов',native_sheet_display_values:'отображаемые значения ячеек',
+    native_sheet_raw_values:'исходные значения ячеек',page_count:'число страниц',
+    ordered_page_filenames:'порядок файлов страниц',nonempty_page_files:'непустые файлы страниц',
+    output_count:'число результатов',unique_output_names:'уникальность имён',
+    jpeg_signature:'сигнатура JPEG',qt_jpeg_decode:'чтение JPEG',loaded_rgb_unchanged:'цвета RGB загруженной модели',
+    loaded_fill_style_unchanged:'заливки загруженной модели'};
+  const unknownLabels={quality_comparison_not_requested:'сравнение структуры не включено',
+    quality_comparison_incomplete:'сравнение структуры не завершено',
+    document_visual_fidelity_not_compared:'внешний вид документа не сравнивался',
+    visual_layout:'расположение объектов',fonts:'шрифты',rendered_pixels:'отрисованные пиксели',formula_results:'вычисление формул',
+    inspection_failed:'не удалось прочитать структуру',unsupported_format:'формат не поддерживает сравнение структуры'};
+  const limitationLabels={formulas_as_values:'формулы записываются значениями',
+    styles_and_charts_not_represented:'оформление и диаграммы не представлены',one_table_per_file:'одна таблица в файле'};
+  function evidenceText(task){
+    if(!['ready','saved'].includes(task.state))return '';
+    const details=[];
+    if(task.checkedFeatures?.length)details.push('Проверки результата: '+task.checkedFeatures.map(f=>featureLabels[f]||f).join(', ')+'.');
+    for(const check of task.resultChecks||[]){
+      if(check.check!=='media_properties'||!check.result)continue;
+      const result=check.result,measured=[];
+      if(Number.isFinite(result.width)&&Number.isFinite(result.height))measured.push(result.width+' × '+result.height+' пикс.');
+      if(Array.isArray(result.dpi)&&result.dpi.every(Number.isFinite))measured.push(result.dpi.map(n=>Math.round(n*100)/100).join(' × ')+' DPI');
+      if(Number.isFinite(result.frames))measured.push('кадров: '+result.frames);
+      if(Number.isFinite(result.pages))measured.push('страниц: '+result.pages);
+      if(measured.length)details.push('Свойства результата: '+measured.join(' · ')+'.');
+    }
+    if(task.saveStatus)details.push('Копия на диске: '+({saved:'сохранена',partial:'сохранена частично',
+      unsaved:'не сохранена',not_applicable:'нет готовых файлов'}[task.saveStatus]||task.saveStatus)+
+      (task.readbackVerified?' · байты прочитаны и сверены.':'. Сверка сохранённой копии не подтверждена.'));
+    const unknown=[...new Set([...(task.unknownReasons||[]),...(task.quality?.unknown||[])])];
+    if(unknown.length)details.push('Границы проверки: '+unknown.map(r=>unknownLabels[r]||r).join(', ')+'.');
+    const limits=[...new Set([...(task.formatLimitations||[]),...(task.quality?.formatLimitations||[])])];
+    if(limits.length)details.push('Ограничения формата: '+limits.map(r=>limitationLabels[r]||r).join(', ')+'.');
+    details.push('Внешний вид, шрифты и расположение объектов не сравнивались.');
+    return details.join(' ');
+  }
   const recoveryReasons={
     RECOVERY_UNFINISHED_PREPARATION:'Осталась незавершённая подготовка. Готовые результаты не подтверждены.',
     RECOVERY_MANIFEST_MISSING:'Не найдено описание задания job.json.',
@@ -441,7 +479,7 @@
         const qualityText=quality?quality.status==='risks_found'?'Возможны потери структуры · подробности в отчёте':
           quality.qualityCompared?'Часть структуры проверена · внешний вид не проверен':'Структуру сопоставить не удалось':'';
         const warningText=(task.warnings||[]).map(w=>w.message).join(' ');
-        detail.textContent=task.error||[qualityText,warningText].filter(Boolean).join(' ')||task.stage||'';
+        detail.textContent=task.error||[qualityText,warningText,evidenceText(task)].filter(Boolean).join(' ')||task.stage||'';
         row.append(name,status,detail);list.append(row);
       }
       paintedRows=visible;

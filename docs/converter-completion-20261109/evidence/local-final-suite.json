@@ -1,0 +1,43 @@
+{
+  "status": "PASS",
+  "discovered": 1702,
+  "passed": 1697,
+  "failed": 0,
+  "errors": 0,
+  "skipped": [
+    {
+      "test": "test_m02_m30_recovery_save.RecoverySaveRegression.test_real_windows_exclusive_destination_lock_blocks_acknowledgement",
+      "reason": "Windows exclusive file sharing contract",
+      "status": "not_applicable",
+      "requiredPlatform": "Windows"
+    },
+    {
+      "test": "test_native_profile_safety_b27.RealWindowsOwnedTree.test_descendant_exit_and_unrelated_owned_process_survival",
+      "reason": "Real Windows Job Object control",
+      "status": "not_applicable",
+      "requiredPlatform": "Windows"
+    },
+    {
+      "test": "test_windows_suspended_start.SuspendedStartup.test_failed_assignment_never_resumes_uncontained_launcher",
+      "reason": "Real Windows suspended startup barrier",
+      "status": "not_applicable",
+      "requiredPlatform": "Windows"
+    },
+    {
+      "test": "test_windows_suspended_start.SuspendedStartup.test_failed_resume_reaps_launcher_without_running_its_code",
+      "reason": "Real Windows suspended startup barrier",
+      "status": "not_applicable",
+      "requiredPlatform": "Windows"
+    },
+    {
+      "test": "test_windows_suspended_start.SuspendedStartup.test_venv_launcher_is_suspended_before_assignment_and_child_is_in_owned_job",
+      "reason": "Real Windows suspended startup barrier",
+      "status": "not_applicable",
+      "requiredPlatform": "Windows"
+    }
+  ],
+  "failureDetails": [],
+  "expectedFailures": [],
+  "unexpectedSuccesses": [],
+  "scope": "complete source suite on Linux; platform-specific tests require both matrix jobs"
+}
