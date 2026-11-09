@@ -11,15 +11,18 @@ from tools.qa.corpus_pdf_text_oracle import inspect_pdf_literals
 
 
 class PositionedLiteralReadback(unittest.TestCase):
-    def make_pdf(self, folder, *, rotated=False):
+    def make_pdf(self, folder, *, rotated=False, interleaved_widths=False):
         writer = PdfWriter()
         page = writer.add_blank_page(width=200, height=100)
-        def font(mapping):
+        def font(mapping, *, variable=False):
+            widths = [NumberObject(500) for _ in range(256)]
+            if variable:
+                widths[65], widths[66], widths[67] = map(NumberObject, (1000, 200, 1000))
             value = DictionaryObject({NameObject('/Type'):NameObject('/Font'),
                 NameObject('/Subtype'):NameObject('/TrueType'),
                 NameObject('/BaseFont'):NameObject('/SyntheticQAFont'),
                 NameObject('/FirstChar'):NumberObject(0), NameObject('/LastChar'):NumberObject(255),
-                NameObject('/Widths'):ArrayObject([NumberObject(500) for _ in range(256)]),
+                NameObject('/Widths'):ArrayObject(widths),
                 NameObject('/Encoding'):NameObject('/WinAnsiEncoding')})
             cmap = DecodedStreamObject()
             entries = '\n'.join('<%02X> <%04X>' % (code, ord(text)) for code, text in mapping.items())
@@ -28,12 +31,13 @@ class PositionedLiteralReadback(unittest.TestCase):
             value[NameObject('/ToUnicode')] = writer._add_object(cmap)
             return writer._add_object(value)
         fonts = DictionaryObject({NameObject('/Latin'):font({i:chr(i) for i in range(32,127)}),
-                                  NameObject('/Russian'):font({65:'М',66:'и',67:'р'})})
+                                  NameObject('/Russian'):font({65:'М',66:'и',67:'р'}, variable=interleaved_widths)})
         page[NameObject('/Resources')] = DictionaryObject({NameObject('/Font'):fonts})
         stream = DecodedStreamObject()
         stream.set_data(b'BT /Latin 10 Tf 1 0 0 1 20 80 Tm [(ALPHA) -4000 (OMEGA)] TJ ET\n'
                         +(b'BT /Russian 10 Tf 0 1 -1 0 50 20 Tm (ABC) Tj ET' if rotated else
-                          b'BT /Russian 10 Tf 1 0 0 1 50 80 Tm (ABC) Tj ET'))
+                          b'BT /Russian 10 Tf 1 0 0 1 50 80 Tm (ABC) Tj ET')
+                        +(b'BT /Latin 10 Tf 1 0 0 1 61 80 Tm (X) Tj ET' if interleaved_widths else b''))
         page[NameObject('/Contents')] = writer._add_object(stream)
         path = folder/'positioned.pdf'
         with path.open('wb') as file:
@@ -54,6 +58,15 @@ class PositionedLiteralReadback(unittest.TestCase):
             result = inspect_pdf_literals(path, ['ALPHA Мир OMEGA', 'ACTUALLY_LOST'])
             self.assertEqual(result['status'], 'MISSING', result)
             self.assertEqual(result['missingLiterals'], ['ACTUALLY_LOST'])
+
+    def test_nonuniform_raw_font_widths_control_cross_font_order(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = self.make_pdf(Path(temp), interleaved_widths=True)
+            # Actual positions: М=50, и=60, X=61, р=62 points. Substituting
+            # average widths for decoded Cyrillic would put X after all three.
+            result = inspect_pdf_literals(path, ['ALPHA МиXр OMEGA'])
+            self.assertEqual(result['status'], 'PASS', result)
+            self.assertEqual(result['ordinaryOrderFallbackLiteralCount'], 0)
 
     def test_unsupported_rotation_is_uncertain_when_literal_not_reconstructed(self):
         with tempfile.TemporaryDirectory() as temp:

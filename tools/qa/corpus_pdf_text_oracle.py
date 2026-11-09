@@ -74,11 +74,17 @@ def positioned_page(page):
                     issues.add('font_encoding_unreadable')
                     return
                 characters = [font.character_map.get(code, code) for code in codes]
+                # Pinned pypdf 6.21 keeps widths under raw character codes;
+                # local 6.10 maps widths to the decoded Unicode characters.
+                # Preserve both rather than guessing widths from display text.
+                raw_codes = (list(codes) if isinstance(font.encoding, str) else
+                             [chr(byte) for byte in value])
             else:
                 # Forced bytes parsing should supply raw PDF character codes.
                 issues.add('text_operand_not_raw_bytes')
                 characters = list(str(value))
-            for text in characters:
+                raw_codes = characters[:]
+            for raw_code, text in zip(raw_codes, characters):
                 if any(0xD800 <= ord(char) <= 0xDFFF for char in text):
                     issues.add('unmapped_surrogate_glyph')
                     text = ''.join('\ufffd' if 0xD800 <= ord(char) <= 0xDFFF else char for char in text)
@@ -98,7 +104,8 @@ def positioned_page(page):
                     stats['offPageBaselineGlyphs'] += 1
                 else:
                     glyphs.append((y, x, text, abs(local['size']*matrix[3])))
-                width = font.character_widths.get(text, font.character_widths.get('default', 500))
+                width_key = raw_code if hasattr(font, 'get_text_width') else text
+                width = font.character_widths.get(width_key, font.character_widths.get('default', 500))
                 step = ((float(width)/1000*local['size'])+local['charspace']
                         +(local['wordspace'] if text == ' ' else 0))*local['scale']
                 local['tm'] = translated(local['tm'], step)
