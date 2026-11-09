@@ -78,6 +78,40 @@ class GuardAPI:
         except OSError:
             return None  # The caller may have closed during cancellation.
 
+
+    @staticmethod
+    def _drain_retired_post_body(handler):
+        """Bounded best-effort drain before closing a retired POST connection.
+
+        On Windows, closing a TCP socket with an unread request body can reset
+        the connection before the caller receives our 410 response. Both AIO
+        and the socket test handler use an unbuffered reader (rbufsize=0).
+        Never parse this retired payload or wait for a stalled/large upload.
+        """
+        lengths = handler.headers.get_all('Content-Length', [])
+        if (len(lengths) != 1 or len(lengths[0]) > 10
+                or not lengths[0].isascii() or not lengths[0].isdecimal()
+                or handler.headers.get('Transfer-Encoding')):
+            return
+        remaining = int(lengths[0])
+        if remaining > 64 * 1024:
+            return
+        deadline = time.monotonic() + 0.05
+        while remaining:
+            timeout = deadline - time.monotonic()
+            if timeout <= 0:
+                return
+            try:
+                ready, _, _ = select.select([handler.connection], [], [], timeout)
+                if not ready:
+                    return
+                data = handler.connection.recv(min(CHUNK, remaining))
+            except (OSError, ValueError):
+                return
+            if not data:
+                return
+            remaining -= len(data)
+
     @staticmethod
     def _identity(value):
         if not isinstance(value, str) or not re.fullmatch(r'[0-9a-f]{32}', value):
@@ -241,6 +275,7 @@ class GuardAPI:
             self._authorize(handler)
             if path == PREFIX + '/compare' or path.startswith(PREFIX + '/compare/'):
                 handler.close_connection = True
+                self._drain_retired_post_body(handler)
                 raise GuardError('MODULE_RETIRED', 'Модуль «До/После» исключён из приложения.', status=410)
             handler.connection.settimeout(self.guard.limits.upload_idle_timeout)
             if path in (PREFIX + '/input', PREFIX + '/resource'):
