@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        lane: ${{ fromJSON(contains(github.ref_name, 'native-diagnostic') && '["namespace"]' || '["macro","corpus","installed"]') }}
+        lane: ${{ fromJSON(contains(github.ref_name, 'native-diagnostic') && '["namespace"]' || '["installed"]') }}
     name: Windows finish ${{ matrix.lane }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683

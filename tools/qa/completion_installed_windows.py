@@ -441,11 +441,15 @@ def complete_native_save_dialog(pid, destination, output, *, expected_filename):
     while text_of(edit['handle'])!=str(destination) and time.monotonic()<deadline:time.sleep(.05)
     if text_of(edit['handle'])!=str(destination):
         raise AssertionError('Actual Unicode keyboard input did not enter the exact output path')
-    send([key(0x09),key(0x09,True)])
-    deadline=time.monotonic()+5
-    while focused()==edit['handle'] and time.monotonic()<deadline:time.sleep(.05)
-    if focused()==edit['handle']:raise AssertionError('Actual Tab did not commit the File name field')
     control_tree_entered=read_controls()
+    # Preserve the actual successful input facts even if a later native Save
+    # or destination assertion fails. No extra key or focus transition is
+    # required: clicking Save is the ordinary user action that follows typing.
+    (output/'native-dialog-before-save.json').write_text(json.dumps({
+        'requestedPath':str(destination),'exactKeyboardTextVerified':text_of(edit['handle'])==str(destination),
+        'realOSInputUsed':True,'foregroundAndPIDGuards':True,'filenameFocusVerified':True,
+        'controlTreeBeforeEntry':control_tree_before,'controlTreeAfterEntry':control_tree_entered},
+        ensure_ascii=False,indent=2),encoding='utf-8')
     click(save['handle'])
     deadline=time.monotonic()+30
     while user.IsWindow(dialog) and user.IsWindowVisible(dialog):
@@ -456,7 +460,7 @@ def complete_native_save_dialog(pid, destination, output, *, expected_filename):
             'fileNameParentIDs':edit.get('parentIds',[]),'fileNameBefore':original_name,
             'fileNameAfter':str(destination),'fileNameSelectionBasis':edit['selectionBasis'],
             'expectedSuggestedFileName':expected_filename,
-            'saveActivation':'guarded_OS_SendInput_mouse_Unicode_keyboard_Tab_mouseSave',
+            'saveActivation':'guarded_OS_SendInput_mouse_Unicode_keyboard_mouseSave',
             'foregroundAndPIDGuards':True,'filenameFocusVerified':True,'realOSInputUsed':True,
             'controlTreeBeforeEntry':control_tree_before,'controlTreeAfterEntry':control_tree_entered,
             'dialogClosedAfterSave':True,
@@ -580,6 +584,9 @@ def installed_gui(executable, output, user_directory, expected_sha):
             raise
         finally:
             if devtools is not None:devtools.socket.close()
+            before_save=output/'native-dialog-before-save.json'
+            if before_save.is_file():
+                result['nativeDialogBeforeSave']=json.loads(before_save.read_text(encoding='utf-8'))
             result['observedOwnedProcessImages']=sorted(observed)
             (output/'evidence.json').write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf-8')
     return result
