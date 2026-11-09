@@ -352,7 +352,10 @@ def main():
         source_checks = [{'source':p.name,'sha256Before':sha,'sha256After':digest(p),
                           'unchanged':digest(p)==sha} for p,sha in originals.items()]
         failed = not completed or any(row['status']=='FAIL' for row in cases) or any(not row['unchanged'] for row in source_checks)
-        report = {'schema':1,'status':'FAIL' if failed else 'PASS','cases':cases,'sourceIntegrity':source_checks,
+        safe = sum(row['status']=='SAFE_REFUSAL' for row in cases)
+        report = {'schema':1,'status':'FAIL' if failed else 'PASS_WITH_DECLARED_SAFE_REFUSALS' if safe else 'PASS',
+            'successfulConversions':sum(row['status']=='PASS' for row in cases), 'safeRefusals':safe,
+            'cases':cases,'sourceIntegrity':source_checks,
             'expectedCases':expected_cases, 'completed':completed,
             'selectedExtensions':sorted(selected),
             'scope':'Targeted actual20261108 corpus; exact raster properties/HTML text/PPT visible text atoms',

@@ -48,6 +48,9 @@ def expected_text(path):
     ext = path.suffix.lower()
     if ext == '.txt':
         return path.read_text(encoding='utf-8-sig').splitlines(), 'UTF-8 literal lines'
+    if ext in ('.html', '.htm', '.xhtml'):
+        from tools.qa.completion_current_fidelity_native import html_content
+        return html_content(path).parts, 'HTML visible literal text (scripts, styles and head excluded)'
     if is_zipfile(path):
         with ZipFile(path) as z:
             if 'word/document.xml' in z.namelist():
@@ -82,6 +85,7 @@ def inspect_pdf(path, paragraphs):
     positioned_status = positioned.get('status')
     return {'pages': len(pages), 'pageSizesPoints': [list(map(float, (p.mediabox.width, p.mediabox.height))) for p in pages],
             'textCharacters': len(raw), 'independentDistinctLiterals': len(expected),
+            'localFileUrlsInPrintedText': re.findall(r'file:/+\S+', raw),
             'missingLiteralCount': len(missing), 'missingLiterals': missing[:50],
             'duplicateOccurrenceCountsCertified': False,
             'visualEquivalenceChecked': False,
@@ -169,6 +173,15 @@ def main():
                         row['status'] = ('PRINT_LAYOUT_TEXT_OMITTED'
                             if literal_status == 'MISSING' and 'com.sun.star.sheet.SpreadsheetDocument' in proof.get('documentServices', [])
                             else 'TEXT_READBACK_UNCERTAIN' if literal_status in ('MISSING','UNCERTAIN') else 'CONVERTED')
+                        if source.suffix.lower() in ('.html','.htm','.xhtml'):
+                            from tools.qa.completion_current_fidelity_native import html_content
+                            row['htmlPdfPrintScope'] = 'native PDF text and local-file URL footer only; not a physical printer'
+                            row['sourceHrefCount'] = len(html_content(source).hrefs)
+                            unexpected = [url for url in row['readback']['localFileUrlsInPrintedText']
+                                          if not any(url in paragraph for paragraph in paragraphs)]
+                            row['unexpectedPrintedLocalFileUrls'] = unexpected
+                            if unexpected:
+                                row['status'] = 'FAIL_PRINTED_LOCAL_FILE_URL'
                 except Exception as error:
                     row.update(status='FAIL', error=repr(error), code=getattr(error, 'code', None),
                                diagnostic=getattr(error, 'diagnostic', None))

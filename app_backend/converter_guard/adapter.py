@@ -518,6 +518,23 @@ class LibreOfficeAdapter:
                      max(.001, control.deadline - time.monotonic()))
         result = self._preflight_native(prepared, workspace / 'native', cancel=control,
                                         timeout=remaining)
+        # Retry only an actual native import failure, never a registry/model
+        # mismatch or timeout. The finite OPC metadata recipe does not admit
+        # routes: the private copy still needs the real native model proof.
+        from .ooxml_content_types import NATIVE_FAILURES, prepare_content_types_source
+        if (Path(prepared) == Path(source) and result.get('state') != 'detected'
+                and result.get('code') in NATIVE_FAILURES
+                and result.get('sourceContract', {}).get('contentClass') == 'ooxml_package'):
+            compatible, compatibility = prepare_content_types_source(source,
+                workspace / 'ooxml-ct-compat', cancel=control, native_failure_code=result['code'])
+            if compatibility:
+                remaining = (None if control.deadline is None else max(.001, control.deadline-time.monotonic()))
+                observed = self._preflight_native(compatible, workspace / 'native-ct-compat',
+                                                  cancel=control, timeout=remaining)
+                if (observed.get('state') == 'detected'
+                        and source_model_matches(result['sourceContract'], observed.get('documentServices'))):
+                    prepared, preparation = compatible, compatibility
+                    result = {**observed, 'sourceContract':result['sourceContract']}
         if preparation:
             result = {**result, 'sourcePreparation': preparation}
             if prepared != source:
@@ -784,7 +801,13 @@ class LibreOfficeAdapter:
                                getattr(self._local, 'import_options', None))
                     dif_preparation = (dif_key, self._prepare_dif_snapshot)
             epub = proof.get('sourcePreparation', {}).get('kind') == 'epub_spine_html'
-            if source_preparation is not None:
+            content_types_preparation = proof.get('sourcePreparation') or {}
+            if content_types_preparation.get('kind') == 'ooxml_content_types_namespace':
+                from .ooxml_content_types import prepare_content_types_source
+                native_source, preparation = prepare_content_types_source(source,
+                    workspace / 'ooxml-ct-compat', cancel=identity_control, expected=content_types_preparation,
+                    copy_budget=output_limit)
+            elif source_preparation is not None:
                 native_source, preparation = source_preparation.prepare(
                     source, epub=epub, cancel=identity_control, native_dif=dif_preparation)
             elif dif_preparation is not None:
@@ -798,6 +821,14 @@ class LibreOfficeAdapter:
                 native_source, preparation = prepare_odf_table_source(
                     source, workspace, cancel=identity_control)
             plain = native_metafile_target(self._registry(), target, proof)
+            native_output_limit = output_limit
+            if preparation and preparation.get('kind') == 'ooxml_content_types_namespace' and output_limit is not None:
+                # This additional private input counts against the same
+                # configured spool allowance as subsequent native outputs.
+                staged_bytes = native_source.stat().st_size
+                native_output_limit = lambda: max(0, output_limit()-staged_bytes)
+                identity_control.output_limit = native_output_limit
+                identity_control.next_scan = 0
             remaining = (None if timeout is None else
                          max(.001, identity_control.deadline - time.monotonic()))
             batch = getattr(self._local, 'batch', None)
@@ -819,7 +850,7 @@ class LibreOfficeAdapter:
                     native_target = 'png' if target == 'gif' else plain or target
                     paths = self._convert_native(native_source, native_target, workspace,
                         cancel=identity_control, timeout=remaining,
-                        on_started=on_started, output_limit=output_limit,
+                        on_started=on_started, output_limit=native_output_limit,
                         on_document_service=on_document_service, on_stage=on_stage)
             finally:
                 self._local.import_filter, self._local.import_options = previous_import

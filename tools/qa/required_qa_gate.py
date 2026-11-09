@@ -12,7 +12,7 @@ def validate_steps(platform, steps):
     required = ['deps', 'units']
     required += (['windows_engine', 'current_samples', 'fidelity', 'vector_pages', 'deep_controls',
                   'completion_controls', 'finish_dbf', 'finish_routes', 'finish_macros',
-                  'current_corpus', 'current_fidelity', 'package', 'installed']
+                  'current_corpus', 'current_fidelity', 'finish_namespace', 'package', 'installed']
                  if platform == 'Windows' else ['linux_engine', 'finish_posix'])
     rejected = []
     for name in required:

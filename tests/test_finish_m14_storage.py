@@ -78,6 +78,27 @@ class ReportStorageImportContract(unittest.TestCase):
         self.model.dispose.assert_called_once_with()
         self.storage.dispose.assert_called_once_with()
 
+    def test_report_export_requests_native_writable_storage_and_reads_it_back(self):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        target = Path(directory.name)/'new-report.orp'
+        design = {'detail':['unchanged control']}
+        summary = {'controls':1,'groups':0,'functions':0,'designSha256':'same-design'}
+        self.api['aio_report_profile'] = Mock(return_value=(design,summary))
+        checked = Mock()
+        self.api['aio_load_report_storage'] = Mock(return_value=checked)
+        receipt = self.api['aio_export_report_storage'](
+            self.model,self.remote,self.prop,Path(directory.name)/'source.orp',target,())
+        flags = self.factory.createInstanceWithArguments.call_args.args[0][1]
+        self.assertTrue(flags & 4, 'ElementModes.WRITE is required by native storeToStorage')
+        self.assertEqual(flags,7)
+        self.model.storeToStorage.assert_called_once()
+        self.storage.commit.assert_called_once_with()
+        self.storage.dispose.assert_called_once_with()
+        self.api['aio_load_report_storage'].assert_called_once()
+        checked.dispose.assert_called_once_with()
+        self.assertEqual(receipt['designSha256'],receipt['readbackDesignSha256'])
+
 
 class PythonReportAttributes(unittest.TestCase):
     def test_profile_reads_idl_attributes_including_sections_groups_and_functions(self):

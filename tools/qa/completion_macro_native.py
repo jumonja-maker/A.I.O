@@ -13,6 +13,7 @@ import shutil
 import subprocess
 import sys
 import threading
+import traceback
 from xml.etree import ElementTree as ET
 from zipfile import ZipFile
 
@@ -226,8 +227,22 @@ def main():
     assert inspect_vba(renamed_word)['state']=='present'
     originals[renamed_word]=sha(renamed_word.read_bytes())
     adapter = LibreOfficeAdapter(args.executable)
-    cases, failures, proofs = [], [], {}
+    cases, failures, proofs, profile_observations, last_native = [], [], {}, {}, {}
+    def audit_active_profile(office):
+        profile=getattr(office,'profile',None)
+        candidates=([Path(profile)/'user/registrymodifications.xcu'] if profile else [])
+        candidates+=list(args.output.rglob('registrymodifications.xcu'))
+        for path in dict.fromkeys(candidates):
+            if not path.is_file():continue
+            raw=path.read_bytes();root=ET.fromstring(raw)
+            namespace='{http://openoffice.org/2001/registry}'
+            disabled=any(node.get(namespace+'name')=='DisableMacrosExecution' and
+                         node.findtext('value')=='true' for node in root.iter('prop'))
+            assert disabled, ('native_profile_macros_not_disabled',str(path))
+            profile_observations[(str(path),sha(raw))]={'path':str(path),'sha256':sha(raw),
+                'DisableMacrosExecution':True,'observedBeforeOwnedProfileCleanup':True}
     def run(source, target, number):
+        last_native.clear()
         before = independent(source)
         try:
             cancel = threading.Event()
@@ -240,22 +255,26 @@ def main():
                 proof = adapter.preflight(source, args.output/('probe-%02d' % number), cancel=cancel, timeout=120)
                 proofs[key] = proof
             assert proof.get('state') == 'detected', proof
+            audit_active_profile(office)
             adapter.prepare_source(proof)
             outputs = adapter.convert(source, target, args.output/('task-%02d' % number),
                                       cancel=cancel, timeout=180, on_started=lambda: None)
             info, mode = adapter.export_info(), adapter.execution_mode()
+            last_native.update(executionMode=mode,exportInfo=info)
             if args.require_uno:
                 assert mode == 'native_uno', mode
             primary = next(path for path in outputs if path.suffix == '.'+target)
             after = independent(primary)
+            last_native.update(output=after,sourceSignature=before['staticVba']['sourceSignature'])
             check = next(item for item in info['resultChecks'] if item['check'] == 'vba_storage')
             if target in ('xlsx', 'docx'):
                 assert not after['staticVba']['detected']
                 assert check['status'] == 'expected_loss'
                 assert 'VBA_MACROS_EXPECTED_LOSS' in info['warnings']
             else:
-                assert after['staticVba']['detected']
-                assert before['staticVba']['sourceSignature'] == after['staticVba']['sourceSignature']
+                assert after['staticVba']['detected'], ('native_vba_source_not_detected',after)
+                assert before['staticVba']['sourceSignature'] == after['staticVba']['sourceSignature'], (
+                    'native_vba_source_changed',before['staticVba']['sourceSignature'],after['staticVba']['sourceSignature'])
                 assert check['status'] in ('streams_preserved','not_checked'), check
                 if check['status'] == 'streams_preserved':
                     assert 'VBA_STREAMS_PRESERVED' in info['warnings']
@@ -275,7 +294,7 @@ def main():
                 return {'status': 'SAFE_REFUSAL', 'code': error.code,
                         'reason': 'native_build_dropped_vba', 'preservationPassed': False}
             raise
-    with adapter.batch(args.output/'office'):
+    with adapter.batch(args.output/'office') as office:
         plan = [(inputs/'SimpleMacro.docm','docm'), (derived_word,'docm'), (derived_word,'docx'),
                 (inputs/'SimpleMacro.xlsm','xlsm'), (derived_calc,'xlsm'), (derived_calc,'xlsx'),
                 (inputs/'SimpleMacro.doc','docm'), (inputs/'SimpleMacro.xls','xlsm'),
@@ -286,18 +305,20 @@ def main():
             except Exception as error:
                 failures.append((source.name,target))
                 result = {'source': source.name, 'target': target, 'status': 'FAIL', 'error': repr(error),
-                          'code': getattr(error,'code',None), 'diagnostic': getattr(error,'diagnostic',None)}
+                          'code': getattr(error,'code',None), 'diagnostic': getattr(error,'diagnostic',None),
+                          'nativeState':dict(last_native),'traceback':traceback.format_exc()[-6000:]}
             cases.append(result)
             print('MACRO_COMPLETION_CASE='+json.dumps(result, ensure_ascii=True), flush=True)
+            audit_active_profile(office)
     assert all(sha(path.read_bytes()) == expected for path,expected in originals.items())
-    profiles = list(args.output.rglob('registrymodifications.xcu'))
-    assert profiles and all('DisableMacrosExecution' in path.read_text(encoding='utf-8') for path in profiles)
+    assert profile_observations, 'No native private-profile security observation captured before cleanup'
     evidence = {'schema': 1, 'status': 'PASS' if not failures else 'FAIL',
         'head': subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
         'engineVersion': subprocess.check_output([str(args.executable),'--version'],text=True).strip(),
         'platform': platform.platform(), 'macrosExecuted': False, 'sourceBytesUnchanged': True,
         'staticInspection': 'olefile0.47+independent bounded MS-OVBA source decompression, never Office execution',
-        'profilesWithMacrosDisabled': len(profiles), 'provenance': provenance, 'cases': cases,
+        'profilesWithMacrosDisabled': len(profile_observations),
+        'profileSecurityObservations':list(profile_observations.values()), 'provenance': provenance, 'cases': cases,
         'counts': {status:sum(row['status']==status for row in cases) for status in ('PASS','SAFE_REFUSAL','FAIL')},
         'limitations': ['Static code/storage equality does not prove macro runtime behavior.',
                         'Cyrillic controls are explicitly derived test documents; downloaded originals stay unchanged.']}

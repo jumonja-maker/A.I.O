@@ -160,7 +160,10 @@ def aio_export_report_storage(model, remote, prop, source, target, options):
     try:
         with target.open('xb'):
             pass
-        output = factory.createInstanceWithArguments((target.as_uri(), 11))
+        # ElementModes.READWRITE is 7 (READ=1, SEEKABLE=2, WRITE=4).
+        # 11 is READ|SEEKABLE|TRUNCATE and lacks WRITE. The new owned file
+        # above is already empty, so no truncation flag is needed.
+        output = factory.createInstanceWithArguments((target.as_uri(), 7))
         model.storeToStorage(output, tuple(options) + (prop('DocumentBaseURL', source.as_uri()),))
         output.commit()
         output.dispose()

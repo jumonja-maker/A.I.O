@@ -121,5 +121,23 @@ class InstalledAcceptanceReadbackTests(unittest.TestCase):
         self.assertIsNotNone(acceptance.choose_native_save_controls([edit,save]))
         self.assertIsNone(acceptance.choose_native_save_controls([edit,dict(edit,handle=3),save]))
 
+    def test_save_dialog_does_not_confuse_early_search_edit_with_filename_host(self):
+        search={'handle':1,'class':'Edit','id':1001,'text':'','parentIds':[1234]}
+        save={'handle':2,'class':'Button','id':1,'text':'Save'}
+        self.assertIsNone(acceptance.choose_native_save_controls([search,save]))
+        # Even a search query ending in PDF cannot establish filename identity.
+        search['text']='query.pdf'
+        self.assertIsNone(acceptance.choose_native_save_controls([search,save]))
+        actual={'handle':3,'class':'Edit','id':1001,'text':'installed-control.pdf','parentIds':[1148]}
+        self.assertEqual(acceptance.choose_native_save_controls([search,actual,save])[0]['handle'],3)
+
+    def test_save_dialog_waits_for_actual_suggested_filename_before_typing(self):
+        filename={'handle':1,'class':'Edit','id':1001,'text':'','parentIds':[1148]}
+        save={'handle':2,'class':'Button','id':1,'text':'Save'}
+        self.assertIsNone(acceptance.choose_native_save_controls([filename,save],expected_filename='installed-control.pdf'))
+        filename['text']='installed-control.pdf'
+        selected=acceptance.choose_native_save_controls([filename,save],expected_filename='installed-control.pdf')
+        self.assertEqual(selected[0]['handle'],1)
+
 
 if __name__=='__main__':unittest.main()

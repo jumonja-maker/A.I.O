@@ -44,6 +44,8 @@ const variants=[
     warningMessage:'Все проверенные потоки проекта VBA сохранены побайтно. Макросы не запускались; их работа и совместимость не проверены.'},
   {quality:null,warningCode:'NATIVE_CALC_PDF_PRINT_LAYOUT',
     warningMessage:'PDF повторяет разметку печати таблицы. Длинный текст в узких ячейках может обрезаться, а данные вне области печати — не попасть в PDF.'},
+  {quality:null,warningCode:'OOXML_PRIVATE_CONTENT_TYPES_NAMESPACE',
+    warningMessage:'Для повторного импорта во временной копии изменена только запись пространства имён [Content_Types].xml. Исходный файл не изменён.'},
 ];
 for(let index=0;index<variants.length;index++){
   const value=variants[index];

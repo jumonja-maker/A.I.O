@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        lane: ${{ fromJSON(contains(github.ref_name, 'native-diagnostic') && '["rare"]' || '["macro","installed"]') }}
+        lane: ${{ fromJSON(contains(github.ref_name, 'native-diagnostic') && '["rare","macro","pct","compiler"]' || '["dbf","rare","macro","corpus","installed"]') }}
     name: Windows finish ${{ matrix.lane }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -101,6 +101,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          python tools/qa/probe_vba_profile_native.py --executable "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-finish-vba-profile"
           python tools/qa/completion_macro_native.py --executable "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-finish-macros" --require-uno
       - name: Current 178 primary routes and independent targeted fidelity
         if: matrix.lane == 'corpus'
@@ -109,6 +110,7 @@ jobs:
           set -euo pipefail
           python tools/qa/completion_current_corpus_native.py --input "$RUNNER_TEMP/aio-current178/originals" --provenance "$RUNNER_TEMP/aio-current178/provenance.json" --output "$RUNNER_TEMP/aio-finish-current178" --executable "$AIO_QA_ENGINE"
           python tools/qa/completion_current_fidelity_native.py --input "$RUNNER_TEMP/aio-current178/originals" --output "$RUNNER_TEMP/aio-finish-fidelity178" --executable "$AIO_QA_ENGINE"
+          python tools/qa/finish_ooxml_namespace_native.py --input "$RUNNER_TEMP/aio-current178/originals" --output "$RUNNER_TEMP/aio-finish-ooxml-namespace" --executable "$AIO_QA_ENGINE" --require-uno
       - name: Source-bound frozen build and real installed Windows desktop
         if: matrix.lane == 'installed'
         shell: bash
@@ -129,7 +131,7 @@ jobs:
           import hashlib,json,os,pathlib
           import base64
           root=pathlib.Path(os.environ['RUNNER_TEMP'])
-          for name in ('aio-completion-dbf/evidence.json','aio-finish-dbf/evidence.json','aio-finish-m14/evidence.json','aio-finish-macros/evidence.json','aio-finish-current178/evidence.json','aio-finish-fidelity178/evidence.json','aio-installed-build/installer-build.json','aio-installed-acceptance/evidence.json','aio-installed-acceptance/gui/evidence.json','aio-compiler-identity.json'):
+          for name in ('aio-completion-dbf/evidence.json','aio-finish-dbf/evidence.json','aio-finish-m14/evidence.json','aio-finish-macros/evidence.json','aio-finish-vba-profile/evidence.json','aio-finish-current178/evidence.json','aio-finish-fidelity178/evidence.json','aio-finish-ooxml-namespace/evidence.json','aio-installed-build/installer-build.json','aio-installed-acceptance/evidence.json','aio-installed-acceptance/gui/evidence.json','aio-compiler-identity.json'):
               p=root/name
               if not p.is_file(): continue
               record=json.dumps({'file':name,**json.loads(p.read_text(encoding='utf-8'))},ensure_ascii=True)

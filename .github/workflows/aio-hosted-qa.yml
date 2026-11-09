@@ -162,6 +162,11 @@ jobs:
         id: current_fidelity
         shell: bash
         run: python tools/qa/completion_current_fidelity_native.py --input "$RUNNER_TEMP/aio-current178/originals" --output "$RUNNER_TEMP/aio-finish-fidelity178" --executable "$AIO_QA_ENGINE"
+      - name: Original OOXML native failure and private namespace compatibility
+        if: ${{ !cancelled() && runner.os == 'Windows' && steps.windows_engine.outcome == 'success' && steps.deps.outcome == 'success' && steps.current_samples.outcome == 'success' }}
+        id: finish_namespace
+        shell: bash
+        run: python tools/qa/finish_ooxml_namespace_native.py --input "$RUNNER_TEMP/aio-current178/originals" --output "$RUNNER_TEMP/aio-finish-ooxml-namespace" --executable "$AIO_QA_ENGINE" --require-uno
       - name: Complete source regression suite
         if: ${{ !cancelled() && steps.deps.outcome == 'success' && (steps.windows_engine.outcome == 'success' || steps.linux_engine.outcome == 'success') }}
         id: units
@@ -171,7 +176,7 @@ jobs:
           python -m compileall -q app_backend tools tests
           python tools/qa/hosted_unit_tests.py --report "$RUNNER_TEMP/aio-units.json"
       - name: Windows EXE packaging and real frozen smoke (no publication)
-        if: runner.os == 'Windows' && steps.units.outcome == 'success' && steps.fidelity.outcome == 'success' && steps.vector_pages.outcome == 'success' && steps.deep_controls.outcome == 'success' && steps.completion_controls.outcome == 'success' && steps.finish_dbf.outcome == 'success' && steps.finish_routes.outcome == 'success' && steps.finish_macros.outcome == 'success' && steps.current_corpus.outcome == 'success' && steps.current_fidelity.outcome == 'success'
+        if: runner.os == 'Windows' && steps.units.outcome == 'success' && steps.fidelity.outcome == 'success' && steps.vector_pages.outcome == 'success' && steps.deep_controls.outcome == 'success' && steps.completion_controls.outcome == 'success' && steps.finish_dbf.outcome == 'success' && steps.finish_routes.outcome == 'success' && steps.finish_macros.outcome == 'success' && steps.current_corpus.outcome == 'success' && steps.current_fidelity.outcome == 'success' && steps.finish_namespace.outcome == 'success'
         id: package
         shell: bash
         run: |
@@ -202,7 +207,7 @@ jobs:
         run: |
           python - <<'PY'
           import base64,hashlib,json,os,pathlib
-          for name in ('aio-units.json','aio-batch1-native/evidence.json','aio-vector-pages-native/evidence.json','aio-pptx-colours-native/evidence.json','aio-compressed-pages-native/evidence.json','aio-dbf-emf-native/evidence.json','aio-m14-native/evidence.json','aio-m21-svg-native/evidence.json','aio-deep-native/evidence.json','aio-deep-510/evidence.json','aio-hosted-frozen/evidence.json','aio-completion-media/completion-media-report.json','aio-completion-dbf/evidence.json','aio-completion-routes/evidence.json','aio-completion-ui/evidence.json','aio-completion-ui-scale150/evidence.json','aio-completion-performance/evidence.json','aio-completion-frozen-desktop/evidence.json','aio-finish-posix/evidence.json','aio-finish-dbf/evidence.json','aio-finish-m14/evidence.json','aio-finish-macros/evidence.json','aio-finish-current178/evidence.json','aio-finish-fidelity178/evidence.json','aio-installed-build/installer-build.json','aio-installed-acceptance/evidence.json','aio-installed-acceptance/gui/evidence.json'):
+          for name in ('aio-units.json','aio-batch1-native/evidence.json','aio-vector-pages-native/evidence.json','aio-pptx-colours-native/evidence.json','aio-compressed-pages-native/evidence.json','aio-dbf-emf-native/evidence.json','aio-m14-native/evidence.json','aio-m21-svg-native/evidence.json','aio-deep-native/evidence.json','aio-deep-510/evidence.json','aio-hosted-frozen/evidence.json','aio-completion-media/completion-media-report.json','aio-completion-dbf/evidence.json','aio-completion-routes/evidence.json','aio-completion-ui/evidence.json','aio-completion-ui-scale150/evidence.json','aio-completion-performance/evidence.json','aio-completion-frozen-desktop/evidence.json','aio-finish-posix/evidence.json','aio-finish-dbf/evidence.json','aio-finish-m14/evidence.json','aio-finish-macros/evidence.json','aio-finish-current178/evidence.json','aio-finish-fidelity178/evidence.json','aio-finish-ooxml-namespace/evidence.json','aio-installed-build/installer-build.json','aio-installed-acceptance/evidence.json','aio-installed-acceptance/gui/evidence.json'):
               p=pathlib.Path(os.environ['RUNNER_TEMP'])/name
               if p.is_file():
                   data=json.loads(p.read_text(encoding='utf-8'))

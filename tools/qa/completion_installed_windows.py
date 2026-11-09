@@ -191,13 +191,20 @@ class ObservedDevTools(DevTools):
         raise AssertionError(label + ' timed out')
 
 
-def choose_native_save_controls(controls):
+def choose_native_save_controls(controls, expected_filename=None):
     """Return only an unambiguous enabled File name Edit and Save button pair."""
     candidates=[]
     for control in controls:
         if control['class']!='Edit':continue
+        if expected_filename is not None and PureWindowsPath(
+                str(control.get('text','')).strip().strip('"')).name.casefold() != expected_filename.casefold():
+            continue
         score=(30 if control['id']==1152 else 20 if 1148 in control.get('parentIds',[]) else
-               10 if control['id'] in (1001,1148) else 0)
+               20 if control['id']==1148 else 0)
+        # Modern common dialogs also give the Search Edit ID1001. It may
+        # appear while the actual File name host is still initializing. A
+        # bare ID1001 is not filename evidence, even if Save already exists.
+        if not score:continue
         if control.get('text','').casefold().endswith('.pdf'):score+=100
         if score:candidates.append((score,control))
     candidates.sort(key=lambda value:value[0],reverse=True)
@@ -207,7 +214,7 @@ def choose_native_save_controls(controls):
     return candidates[0][1],saves[0]
 
 
-def complete_native_save_dialog(pid, destination, output):
+def complete_native_save_dialog(pid, destination, output, *, expected_filename):
     """Interact only with this test app's native Windows Save dialog."""
     from ctypes import wintypes as w
     user = ctypes.WinDLL('user32', use_last_error=True)
@@ -224,6 +231,7 @@ def complete_native_save_dialog(pid, destination, output):
     user.GetWindowRect.argtypes = [w.HWND, ctypes.POINTER(w.RECT)]
     user.IsWindowVisible.argtypes = [w.HWND]
     user.IsWindowEnabled.argtypes = [w.HWND]
+    user.IsWindow.argtypes = [w.HWND]
     user.SendMessageTimeoutW.argtypes = [w.HWND, w.UINT, w.WPARAM, w.LPARAM, w.UINT, w.UINT, ctypes.POINTER(ctypes.c_size_t)]
     user.SendMessageTimeoutW.restype = w.LPARAM
 
@@ -268,12 +276,11 @@ def complete_native_save_dialog(pid, destination, output):
         time.sleep(.05)
     if dialog is None:
         raise AssertionError('Actual owned Windows Save dialog did not appear')
-    controls=[]
-    selected=None
-    deadline=time.monotonic()+15
-    while time.monotonic()<deadline:
+    def read_controls():
         controls=[]
         def child(handle, _):
+            if len(controls)>=512:
+                return False
             if user.IsWindowVisible(handle) and user.IsWindowEnabled(handle):
                 cls=class_of(handle)
                 parents=[]
@@ -281,17 +288,29 @@ def complete_native_save_dialog(pid, destination, output):
                     parent=user.GetParent(handle)
                     while parent and parent!=dialog:
                         parents.append(user.GetDlgCtrlID(parent));parent=user.GetParent(parent)
+                rect=w.RECT()
+                user.GetWindowRect(handle,ctypes.byref(rect))
                 controls.append({'handle':handle,'class':cls,'id':user.GetDlgCtrlID(handle),
-                    'text':text_of(handle) if cls in ('Edit','Button') else '', 'parentIds':parents})
+                    'text':text_of(handle) if cls in ('Edit','Button','Static','ComboBox') else '',
+                    'parentIds':parents,'rect':[rect.left,rect.top,rect.right,rect.bottom]})
             return True
         user.EnumChildWindows(dialog,callback_type(child),0)
-        selected=choose_native_save_controls(controls)
+        return controls
+
+    controls=[]
+    selected=None
+    deadline=time.monotonic()+15
+    while time.monotonic()<deadline:
+        controls=read_controls()
+        selected=choose_native_save_controls(controls,expected_filename=expected_filename)
         if selected:break
         time.sleep(.05)
     if selected is None:
         raise AssertionError('Native File name/Save controls did not become unambiguous and enabled: '+
                              repr([{k:v for k,v in c.items() if k!='handle'} for c in controls]))
     edit,save=selected
+    original_name = edit.get('text','')
+    control_tree_before=controls
     shot = {'status':'NOT_CAPTURED'}
     try:
         from PIL import ImageGrab
@@ -308,9 +327,19 @@ def complete_native_save_dialog(pid, destination, output):
         raise ctypes.WinError(ctypes.get_last_error())
     if text_of(edit['handle']) != str(destination):
         raise AssertionError('Native File name field did not accept the exact output path')
+    control_tree_entered=read_controls()
     if not user.SendMessageTimeoutW(save['handle'], 0x00F5, 0, 0, 2, 5000, ctypes.byref(answer)):
         raise ctypes.WinError(ctypes.get_last_error())
+    deadline=time.monotonic()+30
+    while user.IsWindow(dialog) and user.IsWindowVisible(dialog):
+        if time.monotonic()>=deadline:
+            raise AssertionError('Native Save dialog did not close after confirmed filename entry: '+repr(read_controls()))
+        time.sleep(.05)
     return {'status':'PASS','dialogClass':'#32770','ownedByAppPID':True,'fileNameControlID':edit['id'],
+            'fileNameParentIDs':edit.get('parentIds',[]),'fileNameBefore':original_name,
+            'fileNameAfter':str(destination),'fileNameSelectionBasis':'filename_edt1_or_combo1148_host',
+            'controlTreeBeforeEntry':control_tree_before,'controlTreeAfterEntry':control_tree_entered,
+            'dialogClosedAfterSave':True,
             'saveButtonID':1,'QFileDialogOverrideUsed':False,'productHookUsed':False,'screenshot':shot}
 
 
@@ -363,7 +392,7 @@ def installed_gui(executable, output, user_directory, expected_sha):
             devtools.wait('!!document.querySelector(".nav-item")')
             if not devtools.evaluate('window.AllInOneNativeShell===true'):
                 raise AssertionError('Installed page is not the native desktop')
-            devtools.evaluate('''(()=>{window.__installedState=null;window.addEventListener('aio-guard-state',e=>window.__installedState=e.detail);[...document.querySelectorAll('.nav-item')].find(e=>e.textContent.includes('Конвертер')).click();return true;})()''')
+            devtools.evaluate('''(()=>{window.__installedState=null;window.__installedSaveEvents=[];window.addEventListener('aio-guard-state',e=>window.__installedState=e.detail);window.addEventListener('aio-native-save-result',e=>{if(window.__installedSaveEvents.length<32)window.__installedSaveEvents.push(e.detail)});[...document.querySelectorAll('.nav-item')].find(e=>e.textContent.includes('Конвертер')).click();return true;})()''')
             devtools.wait('!!document.querySelector("[data-cv-picker]")&&!document.querySelector("[data-cv-add]").disabled')
             payload=json.dumps(base64.b64encode(control).decode('ascii'))
             devtools.evaluate('''(()=>{const d=new DataTransfer();d.items.add(new File([Uint8Array.from(atob(PAYLOAD),x=>x.charCodeAt(0))],'installed-control.rtf'));const p=document.querySelector('[data-cv-picker]');p.files=d.files;p.dispatchEvent(new Event('change',{bubbles:true}));return true;})()'''.replace('PAYLOAD',payload))
@@ -385,15 +414,21 @@ def installed_gui(executable, output, user_directory, expected_sha):
             result['nativeReport']=report
             # Clicking the ordinary main Save opens the actual Windows dialog.
             devtools.evaluate('document.querySelector("[data-cv-save]").click()')
-            result['nativeFileDialog']=complete_native_save_dialog(tree.process.pid,destination,output)
+            result['nativeFileDialog']=complete_native_save_dialog(tree.process.pid,destination,output,
+                expected_filename=Path(target['outputs'][0]['path']).name)
             devtools.wait('document.querySelector("[data-cv-status]").classList.contains("aio-cv__saved")',90)
-            if not destination.is_file():raise AssertionError('Native Save did not create the user output')
+            result['nativeSaveEvents']=devtools.evaluate('window.__installedSaveEvents')
+            saved_report=devtools.evaluate('''(async()=>{const r=await fetch('/api/converter-guard/report?job='+encodeURIComponent(window.__installedState.jobId)+'&lookup=current',{headers:{'X-AIO-Token':document.body.dataset.aioToken},cache:'no-store'});if(!r.ok)throw Error('Saved report HTTP'+r.status);return r.json();})()''')
+            result['savedReport']=saved_report
+            if not destination.is_file():
+                result['observedPdfPaths']=[{'path':str(p),'bytes':p.stat().st_size}
+                    for folder in (output,user_directory) for p in list(folder.rglob('*.pdf'))[:200] if p.is_file()]
+                raise AssertionError('Native Save did not create the exact requested user output; see nativeSaveEvents and observedPdfPaths')
             result['savedOutput']={'path':str(destination),'bytes':destination.stat().st_size,'sha256':digest(destination)}
             with destination.open('rb') as stream:
                 pdf=PdfReader(stream);pages=len(pdf.pages);text='\n'.join(p.extract_text() or '' for p in pdf.pages)
             result['savedOutput']['pages']=pages
             if marker not in text:raise AssertionError('Saved installed-native PDF lost the independent source marker')
-            saved_report=devtools.evaluate('''(async()=>{const r=await fetch('/api/converter-guard/report?job='+encodeURIComponent(window.__installedState.jobId)+'&lookup=current',{headers:{'X-AIO-Token':document.body.dataset.aioToken},cache:'no-store'});if(!r.ok)throw Error('Saved report HTTP'+r.status);return r.json();})()''')
             saved_target=saved_report['files'][0]['targets'][0]
             if saved_target.get('saveStatus')!='saved' or saved_target.get('readbackVerified') is not True:
                 raise AssertionError('Installed desktop did not verify saved destination bytes')

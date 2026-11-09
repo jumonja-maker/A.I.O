@@ -12,7 +12,7 @@ class RequiredQaGate(unittest.TestCase):
         return {name: {'outcome':'success', 'conclusion':'success'} for name in
                 ('deps', 'units', 'windows_engine', 'linux_engine', 'finish_posix', 'current_samples',
                  'fidelity', 'vector_pages', 'deep_controls', 'completion_controls', 'finish_dbf',
-                 'finish_routes', 'finish_macros', 'current_corpus', 'current_fidelity', 'package', 'installed')}
+                 'finish_routes', 'finish_macros', 'current_corpus', 'current_fidelity', 'finish_namespace', 'package', 'installed')}
 
     def test_both_platform_policies_accept_their_complete_successes(self):
         for platform in ('Windows', 'Linux'):
@@ -20,7 +20,7 @@ class RequiredQaGate(unittest.TestCase):
         linux = self.steps()
         for name in ('windows_engine', 'current_samples', 'fidelity', 'vector_pages', 'deep_controls',
                      'completion_controls', 'finish_dbf', 'finish_routes', 'finish_macros',
-                     'current_corpus', 'current_fidelity', 'package', 'installed'):
+                     'current_corpus', 'current_fidelity', 'finish_namespace', 'package', 'installed'):
             linux[name] = {'outcome':'skipped', 'conclusion':'skipped'}
         GATE['validate_steps']('Linux', linux)
 

@@ -768,6 +768,9 @@ def check_media_preservation(paths, target, source, *, cancel, source_evidence=N
     def source_profile():
         def inspect_source():
             result = inspect_media(source, cancel=cancel)
+            if result is None:
+                from .pict_bitmap import inspect_pict_bitmap
+                result = inspect_pict_bitmap(source, cancel=cancel)
             if result is None and source.suffix.lower() in ('.pct', '.pict'):
                 from .native_fidelity import aio_pict_frame
                 dimensions = aio_pict_frame(source)
@@ -835,6 +838,9 @@ def check_media_preservation(paths, target, source, *, cancel, source_evidence=N
     before = source_profile()
     expected_losses = []
     if before:
+        if before.get('exactBitmapSubset') and target in ('png','apng','tif','tiff','bmp','gif'):
+            from .pict_bitmap import verify_pict_bitmap_pixels
+            verify_pict_bitmap_pixels(primary, before, cancel=cancel)
         if before.get('mergedCompositeOnly'):
             expected_losses.append('psd_editability')
         if before.get('bitDepth', 8) > after.get('bitDepth', 8):
@@ -920,4 +926,6 @@ def check_media_preservation(paths, target, source, *, cancel, source_evidence=N
             raise GuardError('MEDIA_PAGE_LOSS', 'Экспорт PDF в TIFF изменил число страниц.', stage='result')
     return {'check': 'media_properties', 'status': 'checked_subset', 'qualityCompared': False,
             'source': before, 'result': after, 'expectedLosses': expected_losses,
+            **({'exactSourceRgbPixelsVerified':True} if before and before.get('exactBitmapSubset')
+               and target in ('png','apng','tif','tiff','bmp','gif') else {}),
             'validatedOutputContainers': len(candidates)}

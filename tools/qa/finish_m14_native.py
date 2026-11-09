@@ -128,7 +128,9 @@ def main():
         return 0
     except BaseException as error:
         report['status'] = 'FAIL'
-        report['error'] = {'type':type(error).__name__,'code':getattr(error,'code',None),'message':str(error)[-2500:]}
+        report['error'] = {'type':type(error).__name__,'code':getattr(error,'code',None),
+            'stage':getattr(error,'stage',None),'diagnostic':getattr(error,'diagnostic',None),
+            'message':str(error)[-2500:]}
         return 1
     finally:
         (args.output/'evidence.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')

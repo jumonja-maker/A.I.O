@@ -19,6 +19,7 @@ from itertools import chain
 import zlib
 
 from .errors import GuardError
+from .pict_bitmap import inspect_pict_bitmap
 from .media_fidelity import ALIASES, RASTER, _cancel, display_dimensions, inspect_media
 
 # Qt's own decoder allocation limit remains active as a second boundary. This
@@ -382,6 +383,7 @@ def media_frame_route(source, target, *, cancel=None):
         return None
     info = (inspect_media(source, cancel=cancel) or qt_pnm_profile(source, cancel=cancel)
             or qt_xbm_xpm_profile(source, cancel=cancel)
+            or inspect_pict_bitmap(source, cancel=cancel)
             or qt_tga_profile(source, cancel=cancel)
             or pillow_legacy_profile(source, cancel=cancel))
     if info is None:
@@ -417,7 +419,7 @@ def supported_media_targets(info):
         targets.add(source_kind)
         if source_kind == 'tiff': targets.add('tif')
         if info.get('animationContainer'): targets.add('apng')
-    if source_kind in _LEGACY_PIL_FORMATS:
+    if source_kind in _LEGACY_PIL_FORMATS or source_kind == 'pict_bitmap':
         formats.add(source_kind)  # Pillow provides source decode; Qt writes output.
     if source_kind not in formats:
         return tuple(sorted(targets))
@@ -439,6 +441,7 @@ def media_preflight(source, *, cancel=None):
     _cancel(cancel)
     info = (inspect_media(source, cancel=cancel) or qt_pnm_profile(source, cancel=cancel)
             or qt_xbm_xpm_profile(source, cancel=cancel)
+            or inspect_pict_bitmap(source, cancel=cancel)
             or qt_tga_profile(source, cancel=cancel)
             or pillow_legacy_profile(source, cancel=cancel))
     if info is None:
@@ -464,9 +467,10 @@ def media_preflight(source, *, cancel=None):
             document.close()
     _bounds(info['width'], info['height'])
     targets = supported_media_targets(info)
-    decoder = ('pillow_legacy' if info['format'] in _LEGACY_PIL_FORMATS else
+    decoder = ('quickdraw_rgb_packbits' if info['format'] == 'pict_bitmap' else
+               'pillow_legacy' if info['format'] in _LEGACY_PIL_FORMATS else
                'manual_apng_qt_png' if info.get('animationContainer') else 'qt_image_reader')
-    if info['format'] in _LEGACY_PIL_FORMATS:
+    if info['format'] in _LEGACY_PIL_FORMATS or info['format'] == 'pict_bitmap':
         can_read = True
     elif info['format'] != 'pdf':
         reader = _qt()[5](str(source))
@@ -681,6 +685,22 @@ def _managed_rgb_frame(image, profile_present):
     return converted
 
 def _frames(source, scratch, info, cancel):
+    if info.get('format') == 'pict_bitmap':
+        decoded = inspect_pict_bitmap(source, cancel=cancel, decode=True)
+        if decoded is None or decoded[0] != info:
+            raise GuardError('MEDIA_SOURCE_CHANGED', 'Исходный RGB PICT изменился после проверки.', stage='engine')
+        profile, pixels = decoded
+        QImage = _qt()[4]
+        frame = QImage(pixels, profile['width'], profile['height'], profile['width']*3,
+                       QImage.Format.Format_RGB888).copy()
+        if frame.isNull():
+            raise GuardError('MEDIA_DECODE_FAILED', 'Не удалось передать RGB PICT в Qt.', stage='engine')
+        frame.setDotsPerMeterX(round(profile['dpi'][0]/.0254))
+        frame.setDotsPerMeterY(round(profile['dpi'][1]/.0254))
+        del pixels, decoded
+        _cancel(cancel)
+        yield frame
+        return
     if info.get('format') in _LEGACY_PIL_FORMATS:
         from PIL import Image
         QImage = _qt()[4]
@@ -1121,7 +1141,7 @@ def convert_media_frames(source, output_dir, target, *, cancel=None, on_started=
                 actual = inspect_media(partial, cancel=cancel)
                 if actual is None or actual['format'] != normal:
                     raise GuardError('MEDIA_ENCODE_FAILED', 'Контейнер результата не прошёл проверку.', stage='result')
-                if (info['format'] in _LEGACY_PIL_FORMATS
+                if (info['format'] in (*_LEGACY_PIL_FORMATS, 'pict_bitmap')
                         and (actual['width'], actual['height']) != (info['width'], info['height'])):
                     raise GuardError('MEDIA_CANVAS_CHANGED',
                                      'Результат изменил размер исходного холста.', stage='result')
