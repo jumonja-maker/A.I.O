@@ -40,6 +40,40 @@ def sha(raw):
     return hashlib.sha256(raw).hexdigest()
 
 
+def read_macro_profile_snapshot(path, *, timeout=2.0, interval=.025, max_attempts=80):
+    """Read a stable owned profile despite a native writer's sharing lock.
+
+    Unreadable/partial/atomically replaced files have a bounded retry. A stable
+    disabled=false snapshot fails immediately; missing evidence is never PASS.
+    """
+    path = Path(path)
+    deadline = time.monotonic() + max(0, timeout)
+    last_error = None
+    identity = lambda info: (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns)
+    for attempt in range(max_attempts):
+        try:
+            before = path.stat()
+            raw = path.read_bytes()
+            after = path.stat()
+            if identity(before) != identity(after) or len(raw) != after.st_size:
+                last_error = ValueError('native_profile_changed_during_snapshot')
+            else:
+                root = ET.fromstring(raw)
+                namespace = '{http://openoffice.org/2001/registry}'
+                disabled = any(node.get(namespace + 'name') == 'DisableMacrosExecution' and
+                               node.findtext('value') == 'true' for node in root.iter('prop'))
+                assert disabled, ('native_profile_macros_not_disabled', str(path))
+                return raw
+        except (PermissionError, FileNotFoundError, ET.ParseError) as error:
+            last_error = error
+        remaining = deadline - time.monotonic()
+        if remaining <= 0 or attempt + 1 == max_attempts:
+            break
+        time.sleep(min(max(0, interval), remaining))
+    raise AssertionError(('native_profile_snapshot_unavailable', str(path),
+                          type(last_error).__name__)) from last_error
+
+
 def decompress_vba(raw):
     """MS-OVBA 2.4.1, bounded QA fixture reader; never an execution engine."""
     if not raw or raw[0] != 1:
@@ -232,15 +266,12 @@ def main():
     cases, failures, proofs, profile_observations, last_native = [], [], {}, {}, {}
     def audit_active_profile(office):
         profile=getattr(office,'profile',None)
-        candidates=([Path(profile)/'user/registrymodifications.xcu'] if profile else [])
+        active=Path(profile)/'user/registrymodifications.xcu' if profile else None
+        candidates=([active] if active else [])
         candidates+=list(args.output.rglob('registrymodifications.xcu'))
         for path in dict.fromkeys(candidates):
-            if not path.is_file():continue
-            raw=path.read_bytes();root=ET.fromstring(raw)
-            namespace='{http://openoffice.org/2001/registry}'
-            disabled=any(node.get(namespace+'name')=='DisableMacrosExecution' and
-                         node.findtext('value')=='true' for node in root.iter('prop'))
-            assert disabled, ('native_profile_macros_not_disabled',str(path))
+            if path != active and not path.is_file():continue
+            raw=read_macro_profile_snapshot(path)
             profile_observations[(str(path),sha(raw))]={'path':str(path),'sha256':sha(raw),
                 'DisableMacrosExecution':True,'observedBeforeOwnedProfileCleanup':True}
     def run(source, target, number):
@@ -377,7 +408,8 @@ def main():
         'engineVersion': subprocess.check_output([str(args.executable),'--version'],text=True).strip(),
         'platform': platform.platform(), 'macrosExecuted': False, 'sourceBytesUnchanged': True,
         'staticInspection': 'olefile0.47+independent bounded MS-OVBA source decompression, never Office execution',
-        'profilesWithMacrosDisabled': len(profile_observations),
+        'profilesWithMacrosDisabled': len({row['path'] for row in profile_observations.values()}),
+        'profileSecuritySnapshotCount':len(profile_observations),
         'profileSecurityObservations':list(profile_observations.values()), 'provenance': provenance, 'cases': cases,
         'guardPublicationCheck':guard_check,
         'counts': {status:sum(row['status']==status for row in cases) for status in ('PASS','SAFE_REFUSAL','FAIL')},

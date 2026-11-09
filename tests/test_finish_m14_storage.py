@@ -16,6 +16,9 @@ MASTER = 'com.sun.star.text.GlobalDocument'
 
 class ReportStorageImportContract(unittest.TestCase):
     def setUp(self):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        self.report_source = Path(directory.name)/'report.orp'
         self.api = {}
         exec(compile(REPORT_STORAGE_SOURCE, '<report-storage-worker>', 'exec'), self.api)
         self.prop = lambda name, value: SimpleNamespace(Name=name, Value=value)
@@ -44,7 +47,7 @@ class ReportStorageImportContract(unittest.TestCase):
         self.addCleanup(self.uno.stop)
 
     def load(self):
-        return self.api['aio_load_report_storage'](self.remote, self.prop, Path('/report.orp'), ())
+        return self.api['aio_load_report_storage'](self.remote, self.prop, self.report_source, ())
 
     def test_native_filter_false_never_admits_partially_loaded_report(self):
         self.importer.filter.return_value = False
@@ -61,6 +64,8 @@ class ReportStorageImportContract(unittest.TestCase):
         arguments = {p.Name:p.Value for p in self.importer.filter.call_args.args[0]}
         self.assertEqual(arguments['FilterName'], 'StarOffice XML (Base) Report')
         self.assertIs(arguments['Storage'], self.storage)
+        self.assertEqual(self.factory.createInstanceWithArguments.call_args.args[0][0],
+                         self.report_source.as_uri())
         self.assertEqual(self.factory.createInstanceWithArguments.call_args.args[0][1], 1)
 
     def test_absent_native_import_flag_refuses_before_opening_storage(self):
