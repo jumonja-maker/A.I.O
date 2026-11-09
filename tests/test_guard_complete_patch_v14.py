@@ -10,6 +10,7 @@ import unittest
 from unittest.mock import patch
 import zipfile
 
+from save_test_support import verify_download_for_test
 from app_backend.converter_guard import ConverterGuard, GuardError, GuardLimits
 from app_backend.converter_guard.core import _html_resource_warning
 from app_backend.converter_guard.csv_import import inspect_csv_stream
@@ -52,6 +53,7 @@ class SlotLifecycle(unittest.TestCase):
                     guard.create([{'id':'new','name':'new.odt','size':1}],['pdf'])
                 self.assertEqual(raised.exception.code,'JOB_LIMIT')
                 self.assertIn('Состояние',raised.exception.message)
+                verify_download_for_test(self, guard, a['result']['ticket'])
                 guard.confirm_saved(one,a['result']['ticket'])
                 self.assertEqual(guard.status(one)['files'][0]['targets'][0]['state'],'saved')
                 root=guard._jobs[one].root
@@ -67,6 +69,7 @@ class SlotLifecycle(unittest.TestCase):
             try:
                 identity,state=made(guard);ticket=state['result']['ticket']
                 with guard.open_result(ticket):
+                    verify_download_for_test(self, guard, ticket)
                     guard.confirm_saved(identity,ticket)
                     with self.assertRaises(GuardError):guard.create([{'id':'x','name':'x.odt','size':0}],['pdf'])
                 guard.create([{'id':'x','name':'x.odt','size':0}],['pdf'])
@@ -233,6 +236,16 @@ class StructuralEvidence(unittest.TestCase):
 
 
 class DirectCleanupConcurrency(unittest.TestCase):
+    def owned_result(self, owner):
+        # The cleanup behavior is controlled, but the retained file identity
+        # is real: production must never accept a made-up path as saveable.
+        backing = tempfile.TemporaryDirectory()
+        self.addCleanup(backing.cleanup)
+        owner.name = str(Path(backing.name).resolve())
+        path = Path(owner.name) / 'file.pdf'
+        path.write_bytes(b'owned result')
+        return Result(owner, path, path.name, 'application/pdf', size=path.stat().st_size)
+
     def test_failed_cleanup_schedules_only_bounded_retries_and_close_cancels_timer(self):
         callbacks=[]
         class Timer:
@@ -242,7 +255,7 @@ class DirectCleanupConcurrency(unittest.TestCase):
         class Busy:
             def cleanup(self):raise PermissionError('sharing violation')
         transport=ConverterTransport()
-        transport.results['ticket']=Result(Busy(),Path('unused'),'file.pdf','application/pdf')
+        transport.results['ticket']=self.owned_result(Busy())
         with patch('app_backend.converter_transport.threading.Timer',Timer):
             self.assertFalse(transport.release('ticket'))
             for _ in range(5):
@@ -258,12 +271,12 @@ class DirectCleanupConcurrency(unittest.TestCase):
             calls=0
             def cleanup(self):self.calls+=1;entered.set();leave.wait(2)
         transport=ConverterTransport();temporary=Slow()
-        transport.results['ticket']=Result(temporary,Path('unused'),'file.pdf','application/pdf')
+        transport.results['ticket']=self.owned_result(temporary)
         with transport.lease('ticket'):
             self.assertFalse(transport.release('ticket'));self.assertEqual(temporary.calls,0)
         # Lease release does cleanup outside the lock; use a new result to hold
         # an actual deletion barrier while unrelated status can still respond.
-        temporary=Slow();entered.clear();transport.results['two']=Result(temporary,Path('unused'),'f.pdf','application/pdf')
+        temporary=Slow();entered.clear();transport.results['two']=self.owned_result(temporary)
         thread=threading.Thread(target=lambda:transport.release('two'));thread.start()
         try:
             self.assertTrue(entered.wait(1));tick=time.monotonic()
@@ -286,6 +299,7 @@ class RecoveryCapacityAndChartProof(unittest.TestCase):
                 first=current.recoverable();self.assertEqual(len(first['jobs']),2)
                 self.assertEqual(first['pendingRecoveryFolders'],1)
                 identity=first['jobs'][0]['jobId'];ticket=current.status(identity)['result']['ticket']
+                verify_download_for_test(self, current, ticket)
                 current.confirm_saved(identity,ticket)
                 second=current.recoverable();self.assertEqual(len(second['jobs']),2)
                 self.assertEqual(second['pendingRecoveryFolders'],0)

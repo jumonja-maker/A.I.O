@@ -1,0 +1,14 @@
+{
+  "entries": 2000,
+  "injectedPerStatDelaySeconds": 0.001,
+  "statsAfterCancel": 1980,
+  "cancelToScanReturnMs": 2127.636,
+  "firstPollResult": [
+    {
+      "returned": false
+    }
+  ],
+  "cancelEventStillSet": true,
+  "secondPoll": true,
+  "scope": "controlled I/O latency fixture, not observed physical disk benchmark"
+}

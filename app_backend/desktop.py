@@ -78,14 +78,11 @@ class MainWindow(QMainWindow):
         self._shutdown_done = False
         self._fullscreen_restore = None
         self._server = server
-        self._gui_observation = None
-        if server.telemetry is not None:
-            from .qt_observation import observe_gui
-            self._gui_observation = observe_gui(self, server.telemetry)
         self.setWindowTitle('A.I.O — All in One помощник')
         self.setWindowIcon(application_icon())
-        self.resize(1280, 800)
-        self.setMinimumSize(900, 650)
+        available = self.screen().availableGeometry()
+        self.setMinimumSize(min(480, available.width()), min(320, available.height()))
+        self.resize(min(1280, available.width()), min(800, available.height()))
 
         self.profile = QWebEngineProfile(self)
         self.profile.setHttpCacheType(QWebEngineProfile.HttpCacheType.MemoryHttpCache)
@@ -350,8 +347,6 @@ class MainWindow(QMainWindow):
         if self._shutdown_started:
             return
         self._shutdown_started = True
-        if self._gui_observation is not None:
-            self._gui_observation.stop()
         for operation in self._folder_saves.values():
             if operation:
                 operation[0].set()

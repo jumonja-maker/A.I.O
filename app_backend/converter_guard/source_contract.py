@@ -24,6 +24,7 @@ DRAW = 'com.sun.star.drawing.DrawingDocument'
 FORMULA = 'com.sun.star.formula.FormulaProperties'
 CHART = 'com.sun.star.chart2.ChartDocument'
 BASE = 'com.sun.star.sdb.OfficeDatabaseDocument'
+REPORT = 'com.sun.star.report.ReportDefinition'
 ODF = {
     'text': ('text', WRITER), 'text-template': ('text', WRITER),
     'text-master': ('text', 'com.sun.star.text.GlobalDocument'),
@@ -202,6 +203,19 @@ def _odf_contract(mime, root, body, *, flat=False):
                     'nativeImportRequired': True,
                     'importProfile': 'flat_' + flat_alias_family + '_mimetype_alias'}
                    if flat_alias_family else {})}
+    # LibreOffice Base stores report definitions as a legacy-named MIME
+    # inside a *modern ODF* package. Historical .orp sources use the ODF
+    # office:document-content / office:report body, NOT the old StarOffice
+    # 2000 namespace. This checks the declaration only; no filename-based
+    # admission, implicit Base connection or export route is inferred.
+    if mime == 'application/vnd.sun.xml.report':
+        if tag != '{' + OFFICE + '}document-content':
+            return _invalid('base_report_root_mismatch', 'base_report_package')
+        if body != '{' + OFFICE + '}report':
+            return _invalid('base_report_body_mismatch', 'base_report_package')
+        return {'state': 'recognized', 'contentClass': 'base_report_package',
+                'mimetype': mime, 'expectedServices': [REPORT],
+                'bodyObserved': True}
     if mime.startswith('application/vnd.sun.xml.'):
         expected = LEGACY.get(mime[len('application/vnd.sun.xml.'):])
         if expected is None:
@@ -463,6 +477,10 @@ def inspect_source_contract(source, *, cancel=None, budget=4 * 1024 * 1024):
             prefix = stream.read(min(4096, budget))
             if len(prefix) == budget and budget < 4:
                 raise _Budget()
+            from .graphic_source import probe_tga_stream
+            graphic = probe_tga_stream(stream, prefix, cancel=cancel)
+            if graphic is not None:
+                return graphic
             packed = prefix.startswith(b'PK\x03\x04')
             if not packed:
                 # UTF-8/BOM, UTF-16 and XML with a long prolog are examined by
@@ -547,6 +565,9 @@ def source_import_hint(contract, native):
     This does not establish compatibility: the subsequently loaded model and
     its actual FilterName must still agree with this content declaration.
     """
+    if contract.get('state') == 'recognized' and contract.get('contentClass') == 'tga_image':
+        from .graphic_source import tga_import_hint
+        return tga_import_hint(contract, native)
     if contract.get('state') != 'recognized' or contract.get('contentClass') != 'flat_odf':
         return None
     services = contract.get('expectedServices')

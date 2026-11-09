@@ -1,0 +1,665 @@
+{
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "engineVersion": "LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5",
+  "scope": "one ordered sample per option, cold private LO profile; absolute times include startup; not a statistical benchmark, visual certification or AIO overhead measurement",
+  "publicFixtureManifest": "/workspace/scratch/aio-deep-20261108/research/fixtures_external/download_manifest.json",
+  "runs": [
+    {
+      "bug": 163607,
+      "setting": "jpeg90_300dpi",
+      "sourceBytes": 516075,
+      "sourceSha256": "a12f6ee3711c87e6fadc10c70be8e559b47011f12c642dcc01cac639ad510b32",
+      "sourceMedia": [
+        {
+          "path": "Pictures/10000001000001CE0000030ED7DB0B4D.png",
+          "bytes": 50138,
+          "sha256": "db0168797615eab247aa8bec2e8ab08445d31e9563000914a3ee9da8f73d66fd"
+        },
+        {
+          "path": "Pictures/1000000100000015000000151C804C6D.png",
+          "bytes": 176,
+          "sha256": "1eef673702ab2c9941f68daee50b152aa23afca1bf006ebfa9fb4b8c2322bcd1"
+        },
+        {
+          "path": "Pictures/TablePreview19.svm",
+          "bytes": 21083,
+          "sha256": "5969c3008f2c935f4f68592bfa79ae7f195328a71badc62ec874b5fd1cc8d6df"
+        },
+        {
+          "path": "Pictures/TablePreview18.svm",
+          "bytes": 6418,
+          "sha256": "04efdd9ec1880cbfe7006234cdd1dd34f99af99f392ad86207fc5318fbb6126d"
+        },
+        {
+          "path": "Pictures/TablePreview17.svm",
+          "bytes": 4615,
+          "sha256": "85938e93e4f6e5102f6f1604f8251e8ce3107b1e2f56eea2a054c441e5982f4b"
+        },
+        {
+          "path": "Pictures/TablePreview16.svm",
+          "bytes": 6873,
+          "sha256": "2eee664778145005b80e6395f4619e78f25332743640366a69e9949e17d3ae40"
+        },
+        {
+          "path": "Pictures/TablePreview15.svm",
+          "bytes": 19338,
+          "sha256": "d8bd397b96956c2f6e1f6eff53cfc76c996cfdf887c9a3f5c40eac638bdb72b9"
+        },
+        {
+          "path": "Pictures/TablePreview14.svm",
+          "bytes": 7291,
+          "sha256": "3fe47f7ad7bff9bc8108bb2dc2ae7e7b2fb858c2db2c43a9311fa2a27121b67f"
+        },
+        {
+          "path": "Pictures/TablePreview13.svm",
+          "bytes": 7096,
+          "sha256": "40e703d36325b96c0b5a3dbb3a9c5aa32072c279c97aacbddaa2e5122043057d"
+        },
+        {
+          "path": "Pictures/TablePreview12.svm",
+          "bytes": 7291,
+          "sha256": "5c685a4cf5f97bbb2fd4eb69ce09e5450230b66bf5e361a31469786d862e87ba"
+        },
+        {
+          "path": "Pictures/TablePreview11.svm",
+          "bytes": 6803,
+          "sha256": "da80c6e1c7264d2025f12a9a49456e931e862f1dfe1dbbe164970676383bc5b1"
+        },
+        {
+          "path": "Pictures/TablePreview10.svm",
+          "bytes": 5068,
+          "sha256": "7e42247ab90ddfbbf18063ed606f18c9400484080073b2d9c5a1cde8bb2ffc71"
+        },
+        {
+          "path": "Pictures/10000001000001CE000001A6C61DD18D.png",
+          "bytes": 33999,
+          "sha256": "ab9d15a6fd03828a6f9864f5b73f055cc44a2a50d0c7468a6a00b2af35ee4220"
+        },
+        {
+          "path": "Pictures/10000001000004E2000004E28B6A1046.png",
+          "bytes": 22394,
+          "sha256": "36dc8269c7d5052807654f7d4760d594277762f0990785b7ae20ecf1b475f0d3"
+        },
+        {
+          "path": "Pictures/200000130000021100000211AD0CC737.svm",
+          "bytes": 1162,
+          "sha256": "dec2bf4d74358c2f5b9a5b62cab4a6f46010b285405a114f27ed96c64a08a68d"
+        },
+        {
+          "path": "Pictures/TablePreview7.svm",
+          "bytes": 3559,
+          "sha256": "fb321e14bbc5a5dabdd7502ca2152f50444dec828b153f983fe7dc75f8fbb6c4"
+        },
+        {
+          "path": "Pictures/100000010000014B00000188C54AE0B0.png",
+          "bytes": 180812,
+          "sha256": "ddde30abf02bb466a13f759e2e1db25e68236a11ede0307404af36f02c1c9d3c"
+        },
+        {
+          "path": "Pictures/TablePreview2.svm",
+          "bytes": 18669,
+          "sha256": "ff3cf774d2ba2b85be5b8ceac9e20960a96d6ac3aa3fd57e151edb4f8c4ca9aa"
+        },
+        {
+          "path": "Pictures/10000001000001CE0000017E88BB9F0A.png",
+          "bytes": 21427,
+          "sha256": "3fb4fee2792120e74dc0315ac06bcecd49f2a87e7c36bbd327eab90940db9b8b"
+        },
+        {
+          "path": "Pictures/10000001000002B800000174A6C6943C.png",
+          "bytes": 65456,
+          "sha256": "6ed233ba4f4b020b776fff727b3991effd74fcd93cb873e5656987b0ee0d4adf"
+        },
+        {
+          "path": "Pictures/10000001000001CE000002BEF917E712.png",
+          "bytes": 49300,
+          "sha256": "24457f66c9a3abe41a4c6453aa4be0f44100089a5f3da5986952310ee7b1841a"
+        },
+        {
+          "path": "Pictures/TablePreview1.svm",
+          "bytes": 18669,
+          "sha256": "a60da0c4eaded0d4cd018c8ff14e49e86b42cf61871ed1aee52be2d7198da753"
+        },
+        {
+          "path": "Pictures/TablePreview3.svm",
+          "bytes": 23182,
+          "sha256": "12cd99acc4efbcf759284ece011fcaaee3ea884cc0485f6e29e7bc5f8abdf842"
+        },
+        {
+          "path": "Pictures/TablePreview4.svm",
+          "bytes": 14594,
+          "sha256": "df5ea40f50baa516227a8cef404cb67f80ebdc4bd9b1d5864f8f453f36b029cf"
+        },
+        {
+          "path": "Pictures/TablePreview5.svm",
+          "bytes": 11168,
+          "sha256": "83b5da8ebaa1d2f78394ef1afbd575b6acc5ead6b973d27f142c4bf5f96b3468"
+        },
+        {
+          "path": "Pictures/TablePreview6.svm",
+          "bytes": 6393,
+          "sha256": "32ad2b3e82a3a3c4ebacdfafc85d4c350ef98443bdaa7d0b71fa675bfdcf78d5"
+        },
+        {
+          "path": "Pictures/10000001000004E2000004E2CD592A92.png",
+          "bytes": 23693,
+          "sha256": "74b9d7f078a414a85efbf771caff670adb6ba18000c32cccbf2705524ee45271"
+        },
+        {
+          "path": "Pictures/TablePreview8.svm",
+          "bytes": 5068,
+          "sha256": "89ced22bd631778b58c37f41be2d177b16200d57698b59fa81146d3fa9466bce"
+        },
+        {
+          "path": "Pictures/TablePreview9.svm",
+          "bytes": 3489,
+          "sha256": "8a8d4ac0043c556b5f6ce0f7f4223f9f8befc2126f58c70e1f32016df6be6aee"
+        }
+      ],
+      "filter": "impress_pdf_Export",
+      "filterOptions": {
+        "UseLosslessCompression": {
+          "type": "boolean",
+          "value": "false"
+        },
+        "Quality": {
+          "type": "long",
+          "value": "90"
+        },
+        "ReduceImageResolution": {
+          "type": "boolean",
+          "value": "true"
+        },
+        "MaxImageResolution": {
+          "type": "long",
+          "value": "300"
+        }
+      },
+      "scope": "direct LibreOffice CLI + private macro-disabled profile; no Guard checks",
+      "status": "EXPORTED",
+      "elapsedMs": 4571.228,
+      "pdfBytes": 593308,
+      "pdfPages": 32,
+      "pdfSha256": "2f014d95b8b87b306bafb5f9ba86cff8109fb935857b36b439a32cead6032cd3",
+      "textCharacters": 10086,
+      "normalizedTextSha256": "7db8e0fafd261d42fc181e658dc5e27b0abc28f637a58b9ef4a85b1406c02382",
+      "embeddedImages": [
+        {
+          "xref": 10,
+          "width": 884,
+          "height": 884,
+          "bits": 8,
+          "colorspace": "DeviceRGB",
+          "encoding": "jpeg",
+          "compressedBytes": 43420,
+          "sha256": "306e9377df8932d0b1713ed6549e65d013b3dde149f7dd65fc76cd50a2668afc"
+        },
+        {
+          "xref": 11,
+          "width": 331,
+          "height": 392,
+          "bits": 8,
+          "colorspace": "DeviceRGB",
+          "encoding": "jpeg",
+          "compressedBytes": 31248,
+          "sha256": "0e8c7d20e1dd5da8db5e066e7860de30885b1b1c1499eb3ffdaa09b4794c939e"
+        },
+        {
+          "xref": 37,
+          "width": 696,
+          "height": 372,
+          "bits": 8,
+          "colorspace": "DeviceRGB",
+          "encoding": "png",
+          "compressedBytes": 39342,
+          "sha256": "8533d3e84e08f717af365d1558bf1a3f81710525dccdbdfe7b749b14dfa5770b"
+        },
+        {
+          "xref": 4,
+          "width": 991,
+          "height": 991,
+          "bits": 8,
+          "colorspace": "DeviceRGB",
+          "encoding": "jpeg",
+          "compressedBytes": 50999,
+          "sha256": "c4d6a8bb8c2235cf4824ecfe73f696ed8211ca612ea044c079ba724df2b940e6"
+        },
+        {
+          "xref": 68,
+          "width": 462,
+          "height": 422,
+          "bits": 8,
+          "colorspace": "DeviceRGB",
+          "encoding": "png",
+          "compressedBytes": 23782,
+          "sha256": "965eedb3b06498f34d99b9de2b1860cba8a488adb34b5c4278920a486807a33d"
+        },
+        {
+          "xref": 75,
+          "width": 462,
+          "height": 702,
+          "bits": 8,
+          "colorspace": "DeviceRGB",
+          "encoding": "png",
+          "compressedBytes": 33467,
+          "sha256": "feba727e7269cc9f4e2cc0f405c3c1586a64ec7edaa2321d4ecac817a26a7604"
+        },
+        {
+          "xref": 82,
+          "width": 462,
+          "height": 382,
+          "bits": 8,
+          "colorspace": "DeviceRGB",
+          "encoding": "png",
+          "compressedBytes": 14423,
+          "sha256": "210d4eaaf73b0034b4807cdc15092c865c380198f6131f42c0973cb1f8edd54e"
+        },
+        {
+          "xref": 89,
+          "width": 462,
+          "height": 782,
+          "bits": 8,
+          "colorspace": "DeviceRGB",
+          "encoding": "png",
+          "compressedBytes": 35305,
+          "sha256": "5cb703ab40d5bc71ff18522e98ba5e2d889386c8c172deeb6454e24c669236f1"
+        }
+      ],
+      "firstPageRgbSha256": "c0b75c5744e188218cff13cd2801b74050438509e27fa01e015c0f22c00a4731",
+      "firstPageDimensions": [
+        794,
+        447
+      ],
+      "nativeMetrics": [
+        {
+          "source": "cli_process",
+          "launchMs": 1,
+          "processMs": 4570
+        }
+      ],
+      "originalUnchanged": true,
+      "privateInputUnchanged": true
+    },
+    {
+      "bug": 163607,
+      "setting": "lossless_no_resample",
+      "sourceBytes": 516075,
+      "sourceSha256": "a12f6ee3711c87e6fadc10c70be8e559b47011f12c642dcc01cac639ad510b32",
+      "sourceMedia": [
+        {
+          "path": "Pictures/10000001000001CE0000030ED7DB0B4D.png",
+          "bytes": 50138,
+          "sha256": "db0168797615eab247aa8bec2e8ab08445d31e9563000914a3ee9da8f73d66fd"
+        },
+        {
+          "path": "Pictures/1000000100000015000000151C804C6D.png",
+          "bytes": 176,
+          "sha256": "1eef673702ab2c9941f68daee50b152aa23afca1bf006ebfa9fb4b8c2322bcd1"
+        },
+        {
+          "path": "Pictures/TablePreview19.svm",
+          "bytes": 21083,
+          "sha256": "5969c3008f2c935f4f68592bfa79ae7f195328a71badc62ec874b5fd1cc8d6df"
+        },
+        {
+          "path": "Pictures/TablePreview18.svm",
+          "bytes": 6418,
+          "sha256": "04efdd9ec1880cbfe7006234cdd1dd34f99af99f392ad86207fc5318fbb6126d"
+        },
+        {
+          "path": "Pictures/TablePreview17.svm",
+          "bytes": 4615,
+          "sha256": "85938e93e4f6e5102f6f1604f8251e8ce3107b1e2f56eea2a054c441e5982f4b"
+        },
+        {
+          "path": "Pictures/TablePreview16.svm",
+          "bytes": 6873,
+          "sha256": "2eee664778145005b80e6395f4619e78f25332743640366a69e9949e17d3ae40"
+        },
+        {
+          "path": "Pictures/TablePreview15.svm",
+          "bytes": 19338,
+          "sha256": "d8bd397b96956c2f6e1f6eff53cfc76c996cfdf887c9a3f5c40eac638bdb72b9"
+        },
+        {
+          "path": "Pictures/TablePreview14.svm",
+          "bytes": 7291,
+          "sha256": "3fe47f7ad7bff9bc8108bb2dc2ae7e7b2fb858c2db2c43a9311fa2a27121b67f"
+        },
+        {
+          "path": "Pictures/TablePreview13.svm",
+          "bytes": 7096,
+          "sha256": "40e703d36325b96c0b5a3dbb3a9c5aa32072c279c97aacbddaa2e5122043057d"
+        },
+        {
+          "path": "Pictures/TablePreview12.svm",
+          "bytes": 7291,
+          "sha256": "5c685a4cf5f97bbb2fd4eb69ce09e5450230b66bf5e361a31469786d862e87ba"
+        },
+        {
+          "path": "Pictures/TablePreview11.svm",
+          "bytes": 6803,
+          "sha256": "da80c6e1c7264d2025f12a9a49456e931e862f1dfe1dbbe164970676383bc5b1"
+        },
+        {
+          "path": "Pictures/TablePreview10.svm",
+          "bytes": 5068,
+          "sha256": "7e42247ab90ddfbbf18063ed606f18c9400484080073b2d9c5a1cde8bb2ffc71"
+        },
+        {
+          "path": "Pictures/10000001000001CE000001A6C61DD18D.png",
+          "bytes": 33999,
+          "sha256": "ab9d15a6fd03828a6f9864f5b73f055cc44a2a50d0c7468a6a00b2af35ee4220"
+        },
+        {
+          "path": "Pictures/10000001000004E2000004E28B6A1046.png",
+          "bytes": 22394,
+          "sha256": "36dc8269c7d5052807654f7d4760d594277762f0990785b7ae20ecf1b475f0d3"
+        },
+        {
+          "path": "Pictures/200000130000021100000211AD0CC737.svm",
+          "bytes": 1162,
+          "sha256": "dec2bf4d74358c2f5b9a5b62cab4a6f46010b285405a114f27ed96c64a08a68d"
+        },
+        {
+          "path": "Pictures/TablePreview7.svm",
+          "bytes": 3559,
+          "sha256": "fb321e14bbc5a5dabdd7502ca2152f50444dec828b153f983fe7dc75f8fbb6c4"
+        },
+        {
+          "path": "Pictures/100000010000014B00000188C54AE0B0.png",
+          "bytes": 180812,
+          "sha256": "ddde30abf02bb466a13f759e2e1db25e68236a11ede0307404af36f02c1c9d3c"
+        },
+        {
+          "path": "Pictures/TablePreview2.svm",
+          "bytes": 18669,
+          "sha256": "ff3cf774d2ba2b85be5b8ceac9e20960a96d6ac3aa3fd57e151edb4f8c4ca9aa"
+        },
+        {
+          "path": "Pictures/10000001000001CE0000017E88BB9F0A.png",
+          "bytes": 21427,
+          "sha256": "3fb4fee2792120e74dc0315ac06bcecd49f2a87e7c36bbd327eab90940db9b8b"
+        },
+        {
+          "path": "Pictures/10000001000002B800000174A6C6943C.png",
+          "bytes": 65456,
+          "sha256": "6ed233ba4f4b020b776fff727b3991effd74fcd93cb873e5656987b0ee0d4adf"
+        },
+        {
+          "path": "Pictures/10000001000001CE000002BEF917E712.png",
+          "bytes": 49300,
+          "sha256": "24457f66c9a3abe41a4c6453aa4be0f44100089a5f3da5986952310ee7b1841a"
+        },
+        {
+          "path": "Pictures/TablePreview1.svm",
+          "bytes": 18669,
+          "sha256": "a60da0c4eaded0d4cd018c8ff14e49e86b42cf61871ed1aee52be2d7198da753"
+        },
+        {
+          "path": "Pictures/TablePreview3.svm",
+          "bytes": 23182,
+          "sha256": "12cd99acc4efbcf759284ece011fcaaee3ea884cc0485f6e29e7bc5f8abdf842"
+        },
+        {
+          "path": "Pictures/TablePreview4.svm",
+          "bytes": 14594,
+          "sha256": "df5ea40f50baa516227a8cef404cb67f80ebdc4bd9b1d5864f8f453f36b029cf"
+        },
+        {
+          "path": "Pictures/TablePreview5.svm",
+          "bytes": 11168,
+          "sha256": "83b5da8ebaa1d2f78394ef1afbd575b6acc5ead6b973d27f142c4bf5f96b3468"
+        },
+        {
+          "path": "Pictures/TablePreview6.svm",
+          "bytes": 6393,
+          "sha256": "32ad2b3e82a3a3c4ebacdfafc85d4c350ef98443bdaa7d0b71fa675bfdcf78d5"
+        },
+        {
+          "path": "Pictures/10000001000004E2000004E2CD592A92.png",
+          "bytes": 23693,
+          "sha256": "74b9d7f078a414a85efbf771caff670adb6ba18000c32cccbf2705524ee45271"
+        },
+        {
+          "path": "Pictures/TablePreview8.svm",
+          "bytes": 5068,
+          "sha256": "89ced22bd631778b58c37f41be2d177b16200d57698b59fa81146d3fa9466bce"
+        },
+        {
+          "path": "Pictures/TablePreview9.svm",
+          "bytes": 3489,
+          "sha256": "8a8d4ac0043c556b5f6ce0f7f4223f9f8befc2126f58c70e1f32016df6be6aee"
+        }
+      ],
+      "filter": "impress_pdf_Export",
+      "filterOptions": {
+        "UseLosslessCompression": {
+          "type": "boolean",
+          "value": "true"
+        },
+        "ReduceImageResolution": {
+          "type": "boolean",
+          "value": "false"
+        }
+      },
+      "scope": "direct LibreOffice CLI + private macro-disabled profile; no Guard checks",
+      "status": "EXPORTED",
+      "elapsedMs": 1406.336,
+      "pdfBytes": 668296,
+      "pdfPages": 32,
+      "pdfSha256": "53b646027382d3db6646f01fb233b9989aee7b0c68280247d9f44da5feba157f",
+      "textCharacters": 10086,
+      "normalizedTextSha256": "7db8e0fafd261d42fc181e658dc5e27b0abc28f637a58b9ef4a85b1406c02382",
+      "embeddedImages": [
+        {
+          "xref": 11,
+          "width": 1250,
+          "height": 1250,
+          "bits": 8,
+          "colorspace": "DeviceRGB",
+          "encoding": "png",
+          "compressedBytes": 20162,
+          "sha256": "0ac33dbd47ba89aeddfeb3686e1f9063b3a17c805d54404e065438ec691857e3"
+        },
+        {
+          "xref": 12,
+          "width": 331,
+          "height": 392,
+          "bits": 8,
+          "colorspace": "DeviceRGB",
+          "encoding": "png",
+          "compressedBytes": 199764,
+          "sha256": "d979e21776ef55457f8c0a68d4054e8e86e899ad9d7ba457da5c9d7ddd3ccfe0"
+        },
+        {
+          "xref": 4,
+          "width": 1250,
+          "height": 1250,
+          "bits": 8,
+          "colorspace": "DeviceRGB",
+          "encoding": "png",
+          "compressedBytes": 22569,
+          "sha256": "704a56d7d7e4c6e289e14e8359ad2db74e50fab332c05a39d708d88947e8913d"
+        },
+        {
+          "xref": 40,
+          "width": 696,
+          "height": 372,
+          "bits": 8,
+          "colorspace": "DeviceRGB",
+          "encoding": "png",
+          "compressedBytes": 39342,
+          "sha256": "8533d3e84e08f717af365d1558bf1a3f81710525dccdbdfe7b749b14dfa5770b"
+        },
+        {
+          "xref": 71,
+          "width": 462,
+          "height": 422,
+          "bits": 8,
+          "colorspace": "DeviceRGB",
+          "encoding": "png",
+          "compressedBytes": 23782,
+          "sha256": "965eedb3b06498f34d99b9de2b1860cba8a488adb34b5c4278920a486807a33d"
+        },
+        {
+          "xref": 78,
+          "width": 462,
+          "height": 702,
+          "bits": 8,
+          "colorspace": "DeviceRGB",
+          "encoding": "png",
+          "compressedBytes": 33467,
+          "sha256": "feba727e7269cc9f4e2cc0f405c3c1586a64ec7edaa2321d4ecac817a26a7604"
+        },
+        {
+          "xref": 85,
+          "width": 462,
+          "height": 382,
+          "bits": 8,
+          "colorspace": "DeviceRGB",
+          "encoding": "png",
+          "compressedBytes": 14423,
+          "sha256": "210d4eaaf73b0034b4807cdc15092c865c380198f6131f42c0973cb1f8edd54e"
+        },
+        {
+          "xref": 92,
+          "width": 462,
+          "height": 782,
+          "bits": 8,
+          "colorspace": "DeviceRGB",
+          "encoding": "png",
+          "compressedBytes": 35305,
+          "sha256": "5cb703ab40d5bc71ff18522e98ba5e2d889386c8c172deeb6454e24c669236f1"
+        }
+      ],
+      "firstPageRgbSha256": "e1e25ca4b597b91c58fb492b9274aa519a72f6c88dcb7fb458bab6af693ef961",
+      "firstPageDimensions": [
+        794,
+        447
+      ],
+      "nativeMetrics": [
+        {
+          "source": "cli_process",
+          "launchMs": 0,
+          "processMs": 1406
+        }
+      ],
+      "originalUnchanged": true,
+      "privateInputUnchanged": true
+    },
+    {
+      "bug": 140963,
+      "setting": "jpeg90_300dpi",
+      "sourceBytes": 215723,
+      "sourceSha256": "ea18007a72c80821876282488eb6a5896393bbee2e88ec84156ae4ae01180c8d",
+      "sourceMedia": [
+        {
+          "path": "Pictures/100002010000030200000289708DAD6780F6E5F4.png",
+          "bytes": 117937,
+          "sha256": "cf7f0470c94b3f2b8dbb8541996ef108ea5d1bf4c2070b422b8d81ff6f2ac150"
+        },
+        {
+          "path": "Pictures/1005E3AD000053970000466DB48AFF7CD0030723.svg",
+          "bytes": 385965,
+          "sha256": "51bf201fb1b499a5f3d6a7b8562394b36506c5d18315473986c8e4fa54f96e1c"
+        }
+      ],
+      "filter": "writer_pdf_Export",
+      "filterOptions": {
+        "UseLosslessCompression": {
+          "type": "boolean",
+          "value": "false"
+        },
+        "Quality": {
+          "type": "long",
+          "value": "90"
+        },
+        "ReduceImageResolution": {
+          "type": "boolean",
+          "value": "true"
+        },
+        "MaxImageResolution": {
+          "type": "long",
+          "value": "300"
+        }
+      },
+      "scope": "direct LibreOffice CLI + private macro-disabled profile; no Guard checks",
+      "status": "EXPORTED",
+      "elapsedMs": 3621.031,
+      "pdfBytes": 13707962,
+      "pdfPages": 1,
+      "pdfSha256": "c8bf8585adfbf619687b262c92e8780526afa99d591e742e7bc84a0ff31d7f16",
+      "textCharacters": 0,
+      "normalizedTextSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "embeddedImages": [],
+      "firstPageRgbSha256": "f25f174eb93675e003d6b8c0669d3dee21dc0de69373db3daba819ba1fd63631",
+      "firstPageDimensions": [
+        596,
+        842
+      ],
+      "nativeMetrics": [
+        {
+          "source": "cli_process",
+          "launchMs": 0,
+          "processMs": 3620
+        }
+      ],
+      "originalUnchanged": true,
+      "privateInputUnchanged": true
+    },
+    {
+      "bug": 140963,
+      "setting": "lossless_no_resample",
+      "sourceBytes": 215723,
+      "sourceSha256": "ea18007a72c80821876282488eb6a5896393bbee2e88ec84156ae4ae01180c8d",
+      "sourceMedia": [
+        {
+          "path": "Pictures/100002010000030200000289708DAD6780F6E5F4.png",
+          "bytes": 117937,
+          "sha256": "cf7f0470c94b3f2b8dbb8541996ef108ea5d1bf4c2070b422b8d81ff6f2ac150"
+        },
+        {
+          "path": "Pictures/1005E3AD000053970000466DB48AFF7CD0030723.svg",
+          "bytes": 385965,
+          "sha256": "51bf201fb1b499a5f3d6a7b8562394b36506c5d18315473986c8e4fa54f96e1c"
+        }
+      ],
+      "filter": "writer_pdf_Export",
+      "filterOptions": {
+        "UseLosslessCompression": {
+          "type": "boolean",
+          "value": "true"
+        },
+        "ReduceImageResolution": {
+          "type": "boolean",
+          "value": "false"
+        }
+      },
+      "scope": "direct LibreOffice CLI + private macro-disabled profile; no Guard checks",
+      "status": "EXPORTED",
+      "elapsedMs": 3906.054,
+      "pdfBytes": 13707962,
+      "pdfPages": 1,
+      "pdfSha256": "fa3a78c721e6b155ae948b24050e5de09e0ccb9af642a35daa209637e0215997",
+      "textCharacters": 0,
+      "normalizedTextSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "embeddedImages": [],
+      "firstPageRgbSha256": "f25f174eb93675e003d6b8c0669d3dee21dc0de69373db3daba819ba1fd63631",
+      "firstPageDimensions": [
+        596,
+        842
+      ],
+      "nativeMetrics": [
+        {
+          "source": "cli_process",
+          "launchMs": 0,
+          "processMs": 3905
+        }
+      ],
+      "originalUnchanged": true,
+      "privateInputUnchanged": true
+    }
+  ]
+}

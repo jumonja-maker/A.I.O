@@ -1,7 +1,8 @@
-"""Thin LibreOffice CLI adapter. Conversion policy belongs to Converter Guard.
+"""Thin LibreOffice CLI adapter with shared image-preserving PDF defaults.
 
 No file-size, batch-size, page-count, elapsed-time or source-format policy here.
 Sources stay on disk; LibreOffice decides whether it can import/export them.
+Guard owns route admission and the wider document-preservation contracts.
 """
 from __future__ import annotations
 
@@ -170,7 +171,11 @@ def convert_path(source: Path, target: str, workspace: Path, *,
     output, profile = workspace / 'output', workspace / 'profile'
     output.mkdir(parents=True)
     # A fresh profile prevents a running personal office from taking the job.
-    # Native defaults are retained; Guard can supply explicit export settings.
+    # Keep source pixels from acquiring LO's default JPEG recompression.
+    # A prepared Guard/custom profile and explicit filter data take precedence.
+    if target == 'pdf':
+        from .pdf_export_policy import prepare_fresh_pdf_profile
+        prepare_fresh_pdf_profile(profile)
     command = [str(binary), '-env:UserInstallation=' + profile.resolve().as_uri(),
                '--headless', '--nologo', '--nodefault', '--norestore',
                '--convert-to', convert_spec or target,

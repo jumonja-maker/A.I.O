@@ -45,6 +45,10 @@
     return payload;
   }
   async function api(path, body, method = 'POST', signal) {
+    // All job IDs used by this UI came from the live API. A late response for
+    // a released ID must not start disk recovery as a side effect.
+    if(method==='GET'&&(path.startsWith('/jobs?')||path.startsWith('/report?')))
+      path+='&lookup=current';
     const response = await fetch(prefix + path, {
       method, headers: {...headers, ...(method === 'POST' ? {'Content-Type':'application/json'} : {})},
       ...(method === 'POST' ? {body: JSON.stringify(body)} : {}), cache: 'no-store', signal
@@ -52,7 +56,7 @@
     return payloadOf(response);
   }
   async function poll(operation, full = false) {
-    const response = await fetch(prefix + '/jobs?job=' + encodeURIComponent(operation.jobId) + (full ? '' : '&delta=1&resultDelta=1'), {
+    const response = await fetch(prefix + '/jobs?job=' + encodeURIComponent(operation.jobId) + '&lookup=current' + (full ? '' : '&delta=1&resultDelta=1'), {
       headers:{...headers, ...(!full && operation.etag ? {'If-None-Match':operation.etag} : {})},
       cache:'no-store'
     });
@@ -234,7 +238,7 @@
           uploads = inputs.filter(f=>previous.get(String(f.id))!==f.file);
         } catch (error) {if(error.code!=='JOB_NOT_FOUND')throw error;}
       }
-      if (!created) created = await api('/prepare', {files:metadata(inputs),retainSources:true});
+      if (!created) created = await api('/prepare', {files:metadata(inputs),retainResults:true});
       request.jobId = created.jobId;
       onCreated?.(created.jobId);
       current();
@@ -520,7 +524,7 @@
     if (!jobId || ownership?.ticket !== result.ticket)
       throw errorOf('Результат больше недоступен.', 'RESULT_NOT_FOUND');
     if (savingJobs.has(jobId)) throw errorOf('Результаты этого задания уже сохраняются.', 'SAVE_BUSY');
-    if (mode === 'zip' && result.folderOnly)
+    if (mode === 'zip' && (result.folderOnly || !/\.zip$/i.test(result.name||'')))
       return bridge.converter.saveRetained(jobId, 'zip');
     savingJobs.add(jobId);
     const wasActive = active?.jobId === jobId;
@@ -535,13 +539,13 @@
         throw errorOf('Приложение не подтвердило проверку сохранённых байтов. Результаты оставлены в Guard.', 'SAVE_VERIFY_MISSING');
       if (folder && (outcome.incompleteRecovery || outcome.savedAll !== true && !outcome.snapshotComplete))
         throw errorOf('Восстановленный журнал неполон. Доступные файлы скопированы, но в AIO могут оставаться другие результаты. Не удаляйте служебную папку.', 'SAVE_INCOMPLETE_ACK');
-      const acknowledgement = folder ? outcome : await api('/saved', {jobId,ticket:result.ticket,compact:true});
+      const acknowledgement = folder ? outcome : await api('/saved', {jobId,ticket:result.ticket,saveId:outcome.saveId,compact:true});
       ownership.saved.add(result.ticket);
       saved = true;
       // A partial snapshot is not a request to stop conversion. An operation
       // that was still being observed also keeps its tickets until its caller
       // has consumed the terminal state, avoiding a /jobs -> 404 save race.
-      const release = false; // Saved sessions stay available for explicit До/После and Close.
+      const release = false; // Keep the visible result session until Close, without retaining originals.
       savingJobs.delete(jobId);
       const released=release ? await releaseJob(jobId) : false;
       // Notify both the preserved main controller and the queue about this
@@ -702,16 +706,20 @@
         throw error;
       }
     },
-    async recoverable() {return api('/recoverable',undefined,'GET');},
+    async recoverable({scan=true}={}) {
+      if(typeof scan!=='boolean')throw errorOf('Неверный режим списка результатов.','RECOVERY_REQUEST');
+      return api('/recoverable'+(scan?'':'?mode=snapshot'),undefined,'GET');
+    },
+    async scanRecovery() {return api('/recovery-scan',{});},
     async saveRetained(jobId,mode='folder') {
       let state=await api('/jobs?job='+encodeURIComponent(jobId),undefined,'GET');
       if(mode==='zip'&&!state.finished)
         throw errorOf('Пока очередь работает, готовые результаты можно сохранить в папку. ZIP доступен после завершения.', 'ZIP_REQUIRES_FINISHED');
-      if(mode==='zip' && (state.bundleDeferred || state.packagingError)) {
+      if(mode==='zip' && (state.bundleDeferred || state.packagingError || !/\.zip$/i.test(state.result?.name||''))) {
         await api('/bundle',{jobId});
         const op={jobId,generation};
         do {state=await poll(op)||state;if(!state.finished)await new Promise(r=>setTimeout(r,200));}while(!state.finished);
-        if(state.bundleDeferred || state.packagingError)
+        if(state.bundleDeferred || state.packagingError || !/\.zip$/i.test(state.result?.name||''))
           throw errorOf('ZIP не собран. Сохраните все результаты в папку.','BUNDLE_UNAVAILABLE');
       }
       const result=state.result || (mode==='folder' ? state.partialResult : null);

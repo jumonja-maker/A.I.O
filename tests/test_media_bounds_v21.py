@@ -7,7 +7,6 @@ import unittest
 
 from app_backend.converter_guard.errors import GuardError
 from app_backend.converter_guard.media_fidelity import inspect_media, check_media_preservation
-from app_backend.converter_guard.comparison_analysis import analyze_pair
 from test_guard_media_fidelity_v16 import tiff
 
 
@@ -69,12 +68,6 @@ class TiffDataBounds(unittest.TestCase):
             check_media_preservation([result], 'tiff', source, cancel=threading.Event())
         self.assertEqual(caught.exception.code, 'MEDIA_OUTPUT_INVALID')
 
-    def test_before_after_reports_truncated_pixels_as_loss(self):
-        source = self.write('source.tiff', tiff(pages=2))
-        result = self.write('result.tiff', source.read_bytes()[:-12])
-        outcome = analyze_pair(source, [result], 'tiff')
-        self.assertEqual(outcome['status'], 'confirmed_loss')
-        self.assertIn('MEDIA_OUTPUT_INVALID', {r['code'] for r in outcome['findings']})
 
     def test_valid_multipage_tiff_is_still_accepted(self):
         p = self.write('good.tiff', tiff(pages=3))

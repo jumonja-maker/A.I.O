@@ -5,6 +5,7 @@ import struct
 import tempfile
 import threading
 import unittest
+from unittest.mock import patch
 
 from app_backend.converter_guard.errors import GuardError
 from app_backend.converter_guard.native_metafile import (
@@ -144,18 +145,19 @@ class NativeMetafile(unittest.TestCase):
 
     def test_same_size_change_during_compression_is_rejected(self):
         source = self.file(emf(b'payload' * 100000))
-        class MutatingControl:
-            checks = 0
-            def is_set(self):
-                self.checks += 1
-                # Three native record polls precede the compression loop.
-                if self.checks == 4:
-                    with source.open('r+b') as changed:
-                        changed.seek(128)
-                        changed.write(b'CHANGED')
-                return False
-        with self.assertRaises(GuardError) as caught:
-            wrap_native_metafiles([source], 'emz', cancel=MutatingControl())
+        original_inspector = inspect_metafile
+        def mutate_after_validation(*args, **kwargs):
+            facts = original_inspector(*args, **kwargs)
+            # The mutation happens between structural validation and
+            # compression, regardless of how many cancellation polls occur.
+            with source.open('r+b') as changed:
+                changed.seek(128)
+                changed.write(b'CHANGED')
+            return facts
+        with patch('app_backend.converter_guard.native_metafile.inspect_metafile',
+                   side_effect=mutate_after_validation):
+            with self.assertRaises(GuardError) as caught:
+                wrap_native_metafiles([source], 'emz')
         self.assertEqual(caught.exception.diagnostic, 'native_metafile:source_changed')
         self.assertFalse(source.with_suffix('.emz').exists())
         self.assertFalse(list(self.root.glob('*.partial')))

@@ -11,6 +11,7 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 import zipfile
 
+from save_test_support import verify_download_for_test
 from app_backend.converter_guard import ConverterGuard, GuardError
 from test_converter_guard_v02 import FakeAdapter, wait_finished, ticket
 from test_converter_guard_http_v02 import start_test_server
@@ -48,7 +49,7 @@ class PlanAndRevisionTests(unittest.TestCase):
             ('image.bmp','png'),('sheet.xlsx','xlsx'),('sheet.xlsx','csv')])
         with self.guard.open_result(ticket(state['result'])) as (stream,_,_):
             with zipfile.ZipFile(stream) as archive:
-                self.assertEqual(archive.namelist()[:-2],[
+                self.assertEqual(archive.namelist()[:-3],[
                     '0001-pdf/word.pdf','0002-odt/word.odt','0003-png/image.png',
                     '0004-xlsx/sheet.xlsx','0005-csv/sheet.csv'])
 
@@ -126,6 +127,7 @@ class PlanAndRevisionTests(unittest.TestCase):
         self.guard.start(identity)
         done=wait_finished(self.guard,identity)
         self.assertGreater(done['revision'],second['revision'])
+        verify_download_for_test(self, self.guard, ticket(done['result']))
         saved=self.guard.confirm_saved(identity,ticket(done['result']))
         self.assertGreater(saved['revision'],done['revision'])
 

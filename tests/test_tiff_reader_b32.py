@@ -23,7 +23,10 @@ class TiffAbsolutePages(unittest.TestCase):
                 return SimpleNamespace(isNull=lambda:False,width=lambda:4,height=lambda:3,index=self.index)
         profile={'format':'tiff','frames':1,'pages':6,'pageImageIndexes':[0,2,3,5,6,7]}
         with patch('app_backend.converter_guard.qt_media._qt',return_value=(None,)*5+(Reader,)), \
-             patch('app_backend.converter_guard.qt_media._orient_image',side_effect=lambda image,_:image):
+             patch('app_backend.converter_guard.qt_media._orient_image',side_effect=lambda image,_:image), \
+             patch('app_backend.converter_guard.qt_media._managed_rgb_frame',side_effect=lambda image,_:image):
+            # Isolate reader lifecycle/mapping. Real QImage colour handling is
+            # independently covered by deep media/ICC regressions.
             images=list(_frames(Path('input.tiff'),Path('.'),profile,threading.Event()))
         self.assertEqual([image.index for image in images],[0,2,3,5,6,7])
         self.assertTrue(all(reader.reads<=1 for reader in created))
@@ -37,7 +40,8 @@ class TiffAbsolutePages(unittest.TestCase):
             def read(self):return SimpleNamespace(isNull=lambda:False,width=lambda:4,height=lambda:3)
         profile={'format':'tiff','frames':1,'pages':2}
         with patch('app_backend.converter_guard.qt_media._qt',return_value=(None,)*5+(Reader,)), \
-             patch('app_backend.converter_guard.qt_media._orient_image',side_effect=lambda image,_:image):
+             patch('app_backend.converter_guard.qt_media._orient_image',side_effect=lambda image,_:image), \
+             patch('app_backend.converter_guard.qt_media._managed_rgb_frame',side_effect=lambda image,_:image):
             with self.assertRaises(GuardError) as error:list(_frames(Path('input.tif'),Path('.'),profile,threading.Event()))
             self.assertEqual(error.exception.code,'MEDIA_DECODE_FAILED')
             cancel=threading.Event();cancel.set()

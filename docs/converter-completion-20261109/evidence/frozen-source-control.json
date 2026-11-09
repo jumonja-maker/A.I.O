@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "frozenVerified": false,
+  "scope": "ordinary portable desktop + real native conversion + independent PDF marker",
+  "installer": "NOT_RUN",
+  "fileDialog": "NOT_RUN",
+  "physicalMonitorDPI": "NOT_RUN",
+  "externalDisks": "NOT_RUN",
+  "gracefulClose": "NOT_RUN; source offscreen process ended by owned tree",
+  "uploadedSource": {
+    "sha256": "f30c87f17b2873546a64fb31697879a3552e88181178321aabe4753f2ef11660",
+    "verifiedBeforeConversion": true,
+    "afterConversion": "NOT_CHECKED; ordinary mode removes staged sources after conversion"
+  },
+  "nativeConversion": "PASS",
+  "desktopGUI": "PASS",
+  "nativeShell": true,
+  "markerVerified": true,
+  "generatedPDFs": [
+    {
+      "bytes": 14067,
+      "pages": 1,
+      "sha256": "755bd5807672ad1ed1089bd74ea13ea9e775880697e30ae654e7c3e5e42c2c90"
+    }
+  ],
+  "controlFixtureUnchanged": true
+}

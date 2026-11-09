@@ -156,21 +156,9 @@ def validate_options(name, options, native):
     defaults = {f'{n},34,76,1' for n in (44, 59, 9, 124)}
     if options in defaults:
         return True
-    # Calc CSV token 5: 1-based column / native format 2 (Text). Never
-    # accept user-selected macros, code or unbounded native FilterOptions.
-    # This grammar cannot switch the document importer or admit a route.
-    if name != 'Text - txt - csv (StarCalc)':
-        return False
-    tokens = options.split(',')
-    if len(tokens) != 5 or ','.join(tokens[:4]) not in defaults:
-        return False
-    pairs = tokens[4].split('/')
-    if len(pairs) < 2 or len(pairs) > 128 or len(pairs) % 2:
-        return False
-    last = 0
-    for position, code in zip(pairs[::2], pairs[1::2]):
-        if (not position.isdecimal() or code != '2' or
-                not last < int(position) <= 256):
-            return False
-        last = int(position)
-    return True
+    # Use one strict grammar for import and mandatory ID verification:
+    # Text (2) and US-English decimal (10) columns only, bounded and ordered.
+    # Other filter types, locale tokens and arbitrary options remain rejected.
+    # This cannot switch the importer or admit a new source/target route.
+    from .csv_id_contract import _import_dialect
+    return _import_dialect(name, options) is not None

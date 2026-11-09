@@ -26,7 +26,7 @@ from .excel import merge_xlsx, MergeError, MAX_TOTAL_BYTES, MAX_FILE_BYTES
 from .libreoffice_engine import LibreOfficeError, inspect_metadata
 from .libreoffice_catalog import EXTENSION
 from .converter_transport import ConverterTransport
-from .blackbox_telemetry import from_environment
+from .legacy_storage_budget import DEFAULT_STORAGE_BYTES
 from .converter_upload_stream import MultipartUpload, content_length, MAX_METADATA_BYTES
 from .converter_guard import ConverterGuard, GuardLimits
 from .converter_guard.http_api import GuardAPI
@@ -63,6 +63,8 @@ MAX_UPLOAD = MAX_TOTAL_BYTES + 2 * 1024 * 1024
 JOB_PATTERN = re.compile(r'[0-9a-f]{32}\Z')
 MAX_PROGRESS_JOBS = 16
 MAX_PROGRESS_AGE = 900
+# Maximum idle time between Excel upload reads, not a merge runtime limit.
+EXCEL_UPLOAD_IDLE_SECONDS = 15.0
 
 
 def asset_root() -> Path:
@@ -75,12 +77,20 @@ class LocalServer(ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = False
 
-    def __init__(self, address, handler):
+    def __init__(self, address, handler, *, legacy_recovery_parent=None):
+        storage_bytes = os.environ.get('AIO_LEGACY_STORAGE_BYTES', str(DEFAULT_STORAGE_BYTES))
+        if not re.fullmatch(r'[0-9]{1,18}', storage_bytes) or int(storage_bytes) <= 0:
+            raise ValueError('AIO_LEGACY_STORAGE_BYTES must be a positive integer byte count')
         super().__init__(address, handler)
         self.merge_gate = threading.BoundedSemaphore(1)
         self.converter_gate = threading.BoundedSemaphore(1)
-        self.telemetry = from_environment()
-        self.converter = ConverterTransport(telemetry=self.telemetry)
+        try:
+            self.converter = ConverterTransport(recovery_parent=legacy_recovery_parent,
+                                                max_owned_bytes=int(storage_bytes),
+                                                lazy_recovery=True)
+        except BaseException:
+            super().server_close()
+            raise
         self.guard = None
         self.guard_api = None
         self.progress = {}
@@ -96,14 +106,11 @@ class LocalServer(ThreadingHTTPServer):
             try:
                 self.converter.close()
             finally:
-                try:
-                    if self.telemetry is not None:
-                        self.telemetry.close()
-                finally:
-                    super().server_close()
+                super().server_close()
 
 
-def start_server(port: int = 0, *, guard_recovery_parent=None):
+def start_server(port: int = 0, *, guard_recovery_parent=None, guard_history_parent=None,
+                 legacy_recovery_parent=None):
     token = secrets.token_urlsafe(32)
     root = asset_root().resolve()
 
@@ -250,8 +257,7 @@ def start_server(port: int = 0, *, guard_recovery_parent=None):
                             not re.fullmatch(r'[A-Za-z0-9_-]{32,128}', tickets[0])):
                         return self._json(400, {'code': 'INVALID_TICKET', 'error': 'Некорректный адрес результата.'})
                     try:
-                        with self.server.converter.lease(tickets[0]) as result:
-                            size = result.path.stat().st_size
+                        def headers(result, size):
                             self.send_response(200)
                             self.send_header('Content-Type', result.mime)
                             self.send_header('Content-Length', str(size))
@@ -261,14 +267,37 @@ def start_server(port: int = 0, *, guard_recovery_parent=None):
                                 "attachment; filename=result" + result.path.suffix +
                                 "; filename*=UTF-8''" + quote(result.name))
                             self.end_headers()
-                            with result.path.open('rb') as stream:
-                                while chunk := stream.read(64 * 1024):
-                                    self.wfile.write(chunk)
+                        self.server.converter.stream_result(tickets[0], headers, self.wfile.write)
                         return
                     except LibreOfficeError as exc:
                         return self._json(404, {'code': exc.code, 'error': str(exc)})
                     except (BrokenPipeError, ConnectionResetError):
                         return
+                if path == '/api/converter/recover':
+                    if not self._authorized():
+                        return self._json(403, {'error': 'Нет доступа.'})
+                    if 'request' not in query:
+                        if set(query) - {'offset', 'limit'} or any(
+                                len(values) != 1 or not re.fullmatch(r'[0-9]{1,8}', values[0])
+                                for values in query.values()):
+                            return self._json(400, {'code': 'INVALID_REQUEST',
+                                'error': 'Некорректная страница восстановления.'})
+                        try:
+                            inventory = self.server.converter.inventory(
+                                offset=int(query.get('offset', ['0'])[0]),
+                                limit=int(query.get('limit', ['20'])[0]))
+                        except ValueError:
+                            return self._json(400, {'code': 'INVALID_REQUEST',
+                                'error': 'Некорректная страница восстановления.'})
+                        return self._json(200, inventory)
+                    identities = query.get('request', [])
+                    if (len(identities) != 1 or set(query) != {'request'} or
+                            not JOB_PATTERN.fullmatch(identities[0])):
+                        return self._json(400, {'code': 'INVALID_REQUEST',
+                            'error': 'Укажите идентификатор задания для восстановления.'})
+                    recovered = self.server.converter.recover(identities[0])
+                    return self._json(404 if recovered['state'] == 'not_found'
+                        else 200, recovered)
                 if path == '/api/converter/progress':
                     if not self._authorized():
                         return self._json(403, {'error': 'Нет доступа.'})
@@ -343,6 +372,29 @@ def start_server(port: int = 0, *, guard_recovery_parent=None):
                 if path.endswith('/inspect'):
                     metadata = self._read_converter_json()
                     return self._json(200, inspect_metadata(metadata.get('files')))
+                if path.endswith('/rescan'):
+                    value = self._read_converter_json()
+                    if value:
+                        raise LibreOfficeError('Неверный запрос повторного поиска.', 'INVALID_REQUEST')
+                    return self._json(200, self.server.converter.scan_recovery())
+                if path.endswith('/salvage'):
+                    value = self._read_converter_json()
+                    if set(value) != {'workspaceId'}:
+                        raise LibreOfficeError('Укажите каталог для спасения файлов.', 'INVALID_REQUEST')
+                    return self._json(200, self.server.converter.salvage_workspace(value['workspaceId']))
+                if path.endswith('/decline'):
+                    value = self._read_converter_json()
+                    if (value.get('confirm') is not True or
+                            set(value) not in ({'confirm', 'requestId'},
+                                               {'confirm', 'workspaceId'},
+                                               {'confirm', 'scope'})):
+                        raise LibreOfficeError('Нужно явное подтверждение отказа.', 'LEGACY_DECLINE_INVALID')
+                    if 'scope' in value:
+                        if value['scope'] != 'all_previous':
+                            raise LibreOfficeError('Недопустимый режим отказа.', 'LEGACY_DECLINE_INVALID')
+                        return self._json(200, self.server.converter.decline_all_recovery())
+                    return self._json(200, self.server.converter.decline_recovery(
+                        request_id=value.get('requestId'), workspace_id=value.get('workspaceId')))
                 if path.endswith('/release'):
                     value = self._read_converter_json()
                     released = self.server.converter.release(value.get('ticket'))
@@ -358,12 +410,14 @@ def start_server(port: int = 0, *, guard_recovery_parent=None):
                 identity = parse_qs(urlsplit(self.path).query).get('request', [secrets.token_hex(16)])[0]
                 if not JOB_PATTERN.fullmatch(identity):
                     raise LibreOfficeError('Некорректный идентификатор задания.', 'INVALID_REQUEST')
-                request = self.server.converter.begin(identity, self.connection)
+                request = self.server.converter.begin(identity, self.connection,
+                                                       expected_upload_bytes=length)
+                upload_control = self.server.converter.run_control(request)
                 files, fields = MultipartUpload(
-                    CancellableSocketUpload(self.connection, request.cancel),
+                    CancellableSocketUpload(self.connection, upload_control),
                     length,
                     self.headers.get('Content-Type', ''),
-                    request.cancel).read(request.root / 'inputs')
+                    upload_control).read(request.root / 'inputs')
                 try:
                     ids = json.loads(fields['ids'])
                     formats = json.loads(fields['formats']) if 'formats' in fields else [fields.get('format')]
@@ -380,14 +434,21 @@ def start_server(port: int = 0, *, guard_recovery_parent=None):
                 retained = True
                 return self._json(200, outcome)
             except LibreOfficeError as exc:
-                if exc.code == 'INVALID_REQUEST':
-                    # Invalid framing/oversized metadata can leave an unread
-                    # body; it must never be parsed as another HTTP request.
+                # A rejected begin() has no Request to finish. Release the slot
+                # before writing the response so an immediate retry cannot
+                # transiently observe ENGINE_BUSY after an HTTP 429.
+                if acquired and request is None:
+                    self.server.converter_gate.release()
+                    acquired = False
+                if exc.code in ('INVALID_REQUEST', 'REQUEST_BUSY') or exc.code.startswith('LEGACY_STORAGE_'):
+                    # These errors can precede body consumption. Never parse
+                    # an unread upload as a subsequent keep-alive request.
                     self.close_connection = True
                 data = {'code': exc.code, 'error': str(exc)}
                 if getattr(exc, 'batch_report', None):
                     data['batchReport'] = exc.batch_report
-                return self._json(422, data)
+                return self._json(429 if exc.code == 'LEGACY_STORAGE_LIMIT' else
+                                  507 if exc.code.startswith('LEGACY_STORAGE_') else 422, data)
             except (UnicodeError, ValueError, TypeError):
                 return self._json(400, {'code': 'INVALID_REQUEST', 'error': 'Некорректный запрос конвертации.'})
             except (BrokenPipeError, ConnectionResetError):
@@ -413,7 +474,8 @@ def start_server(port: int = 0, *, guard_recovery_parent=None):
             if path == '/api/icon-theme':
                 return self._json(200, {'ok':True})
             if path in ('/api/converter/inspect', '/api/converter/convert',
-                        '/api/converter/release', '/api/converter/cancel'):
+                        '/api/converter/release', '/api/converter/cancel',
+                        '/api/converter/rescan', '/api/converter/salvage', '/api/converter/decline'):
                 return self._convert_request(path)
             if path.startswith('/api/converter'):
                 return self._json(404, {'code':'UNKNOWN_CONVERTER_ENDPOINT',
@@ -425,33 +487,62 @@ def start_server(port: int = 0, *, guard_recovery_parent=None):
                 return self._json(400, {'error':'Неверный идентификатор задания.'})
             if not self.server.merge_gate.acquire(blocking=False):
                 return self._json(409, {'error':'Уже выполняется объединение Excel.'})
+            # Prepare the entire HTTP response before releasing the merge
+            # gate, but never send the first response byte while still owning
+            # it. Otherwise the client can immediately start another merge
+            # after receiving HTTP 200/408 and spuriously get HTTP 409.
+            reply = None
             try:
                 self._progress(job, 'upload')
-                files = self._read_multipart()
-                output = merge_xlsx(files, progress=lambda phase, current, total:
-                                    self._progress(job, phase, current, total))
-                return self._send(200, output,
-                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+                # Only idle uploads are timed out. A normal long Excel merge
+                # is not subject to this per-read socket deadline.
+                old_timeout = self.connection.gettimeout()
+                try:
+                    self.connection.settimeout(EXCEL_UPLOAD_IDLE_SECONDS)
+                    files = self._read_multipart()
+                except TimeoutError:
+                    self.close_connection = True
+                    self._progress(job, 'error')
+                    reply = (408, {'code': 'EXCEL_UPLOAD_TIMEOUT',
+                        'error': 'Загрузка Excel прервана: слишком долго не поступали данные.'}, False)
+                finally:
+                    self.connection.settimeout(old_timeout)
+                if reply is None:
+                    output = merge_xlsx(files, progress=lambda phase, current, total:
+                                        self._progress(job, phase, current, total))
+                    reply = (200, output, True)
             except (MergeError, ValueError, UnicodeError) as exc:
                 self._progress(job, 'error')
-                return self._json(400, {'error':str(exc)})
+                reply = (400, {'error':str(exc)}, False)
             except Exception:
                 self._progress(job, 'error')
-                return self._json(500, {'error':'Не удалось объединить Excel-файлы.'})
+                reply = (500, {'error':'Не удалось объединить Excel-файлы.'}, False)
             finally:
                 self.server.merge_gate.release()
+            # A failed/disconnected network write must never retain the gate.
+            if reply[2]:
+                return self._send(reply[0], reply[1],
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            return self._json(reply[0], reply[1])
 
         def log_message(self, *_):
             pass  # Never log filenames or contents of personal spreadsheets.
 
-    server = LocalServer(('127.0.0.1', port), Handler)
+    # A06: persist legacy outputs across restart, but never scan old documents
+    # until the user opens recovery. M04 history remains report-only and the
+    # Guard current-unsaved counter remains independent of legacy workspaces.
+    legacy_parent = (Path(legacy_recovery_parent) if legacy_recovery_parent is not None else
+                     Path(guard_recovery_parent).parent / 'legacy-jobs' if guard_recovery_parent is not None else
+                     data_directory() / 'legacy-jobs')
+    server = LocalServer(('127.0.0.1', port), Handler, legacy_recovery_parent=legacy_parent)
     try:
         diagnostic_limit = os.environ.get('AIO_GUARD_REJECTED_OUTPUT_BYTES', '0')
         if not re.fullmatch(r'[0-9]{1,8}', diagnostic_limit):
             raise ValueError('AIO_GUARD_REJECTED_OUTPUT_BYTES must be 0..8388608')
         server.guard = ConverterGuard(limits=GuardLimits(rejected_output_bytes=int(diagnostic_limit)), recovery_parent=(data_directory() / 'jobs'
             if guard_recovery_parent is None else guard_recovery_parent),
-            telemetry=server.telemetry)
+            history_parent=(guard_history_parent if guard_history_parent is not None else
+                data_directory() / 'history' if guard_recovery_parent is None else None))
         server.guard_api = GuardAPI(server.guard,
             origin=f'http://127.0.0.1:{server.server_port}', token=token)
     except BaseException:

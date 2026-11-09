@@ -126,6 +126,14 @@ def display_page_dimensions(info):
     return [[height, width] if orientation >= 5 else [width, height]
             for (width, height), orientation in zip(dimensions, orientations)]
 
+
+def _display_resolutions(info):
+    count = max(info['pages'], info['frames'])
+    resolutions = info.get('pageDpi', [info.get('dpi')] * count)
+    orientations = info.get('pageOrientations', [info.get('orientation', 1)] * count)
+    return [resolution[::-1] if resolution and orientation >= 5 else resolution
+            for resolution, orientation in zip(resolutions, orientations)]
+
 def _png(r):
     if r.read(8) != b'\x89PNG\r\n\x1a\n':
         raise _Invalid('png_signature')
@@ -138,6 +146,8 @@ def _png(r):
     saw_data = False
     sequence = 0
     first = True
+    icc_present = False
+    dpi = None
     while True:
         r.record()
         length, kind = struct.unpack('>I4s', r.read(8))
@@ -165,6 +175,14 @@ def _png(r):
             alpha = colour in (4, 6)
         elif kind == b'eXIf':
             orientation = _exif_orientation(head)
+        elif kind == b'iCCP':
+            icc_present = True
+        elif kind == b'pHYs':
+            if length != 9:
+                raise _Invalid('png_physical_resolution')
+            x, y, unit = struct.unpack('>IIB', head)
+            if unit == 1 and x and y:
+                dpi = [x * 0.0254, y * 0.0254]
         elif kind == b'tRNS':
             alpha = True
         elif kind == b'acTL':
@@ -199,6 +217,10 @@ def _png(r):
             result['loopCount'] = loops
             result['bitDepth'] = depth
             result['orientation'] = orientation
+            if icc_present:
+                result['iccProfilePresent'] = True
+            if dpi is not None:
+                result['dpi'] = dpi
             return result
 
 
@@ -284,6 +306,7 @@ def _webp(r):
     loops = 1
     durations = []
     image = False
+    icc_present = False
     while r.file.tell() < r.size:
         r.record()
         kind, length = struct.unpack('<4sI', r.read(8))
@@ -312,6 +335,8 @@ def _webp(r):
             image = True
         elif kind == b'EXIF':
             orientation = _exif_orientation(head)
+        elif kind == b'ICCP':
+            icc_present = True
         elif kind == b'ANIM':
             if length != 6 or not animation:
                 raise _Invalid('webp_anim')
@@ -329,6 +354,8 @@ def _webp(r):
     result = _base('webp', width, height, frames=len(durations) or 1, alpha=alpha, durations=durations)
     result['loopCount'] = loops
     result['orientation'] = orientation
+    if icc_present:
+        result['iccProfilePresent'] = True
     return result
 
 
@@ -405,6 +432,7 @@ def _tiff(r, *, complete=False):
     page_indexes = []
     page_orientations = []
     page_dpi = []
+    page_profiles = []
     alpha = False
     sizes = {1: 1, 3: 2, 4: 4, 5: 8, 16: 8}
     codes = {1: 'B', 3: 'H', 4: 'I', 16: 'Q'}
@@ -419,10 +447,13 @@ def _tiff(r, *, complete=False):
             raise _Invalid('tiff_ifd_bounds')
         values = {}
         data_tables = {}
+        icc_present = False
         for _ in range(count):
             r.record()
             entry = r.read(entry_size)
             tag, typ = struct.unpack(endian+'HH', entry[:4])
+            if tag == 34675:
+                icc_present = True
             if complete and tag in (273, 279, 324, 325, 513, 514):
                 if tag in data_tables:
                     raise _Invalid('tiff_duplicate_data_table')
@@ -463,6 +494,7 @@ def _tiff(r, *, complete=False):
         factor = 1 if unit == 2 else 2.54 if unit == 3 else 0
         dx, dy = values.get(282, (0,))[0] * factor, values.get(283, (0,))[0] * factor
         page_dpi.append([dx, dy] if dx > 0 and dy > 0 else None)
+        page_profiles.append(icc_present)
         alpha |= any(v in (1, 2) for v in values.get(338, ()))
     if not dimensions:
         raise _Invalid('tiff_pages')
@@ -473,6 +505,9 @@ def _tiff(r, *, complete=False):
     result['pageOrientations'] = page_orientations
     result['orientation'] = page_orientations[0]
     result['pageDpi'] = page_dpi
+    if any(page_profiles):
+        result['iccProfilePresent'] = True
+        result['pageIccProfiles'] = page_profiles
     return result
 
 
@@ -516,8 +551,25 @@ def _jpeg(r, *, complete=False):
     result = None
     pending_marker = None
     saw_scan = False
+    icc_present = False
+    dpi = None
+
+    def incomplete_source_metadata():
+        # A native decoder may recover an incomplete source. Retain the old
+        # dimensions-only probe without certifying the unfinished metadata or
+        # relaxing the independent complete-output validator.
+        result['orientation'] = orientation
+        result['metadataComplete'] = False
+        if icc_present:
+            result['iccProfilePresent'] = True
+        if dpi is not None:
+            result['dpi'] = dpi
+        return result
+
     while True:
         r.record()
+        if not complete and result is not None and r.size-r.file.tell() < 4:
+            return incomplete_source_metadata()
         if pending_marker is None:
             if r.read(1) != b'\xff':
                 raise _Invalid('jpeg_marker')
@@ -529,6 +581,8 @@ def _jpeg(r, *, complete=False):
         if marker == 0xd9:
             if result is None or not saw_scan:
                 raise _Invalid('jpeg_scan_missing')
+            if dpi is not None:
+                result['dpi'] = dpi
             return result
         if marker in (0, 0xd8):
             raise _Invalid('jpeg_marker')
@@ -537,6 +591,8 @@ def _jpeg(r, *, complete=False):
         length = struct.unpack('>H', r.read(2))[0]
         if length < 2:
             raise _Invalid('jpeg_segment')
+        if not complete and result is not None and length-2 > r.size-r.file.tell():
+            return incomplete_source_metadata()
         if marker in (0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf):
             if length < 8:
                 raise _Invalid('jpeg_sof')
@@ -544,8 +600,8 @@ def _jpeg(r, *, complete=False):
             if result is None:
                 result = _base('jpeg', width, height)
                 result['orientation'] = orientation
-            if not complete:
-                return result
+            if not complete and length-7 > r.size-r.file.tell():
+                return incomplete_source_metadata()
             components = r.read(length - 7)
             if not components or not components[0] or len(components) != 1 + 3 * components[0]:
                 raise _Invalid('jpeg_frame_components')
@@ -556,11 +612,30 @@ def _jpeg(r, *, complete=False):
             if not payload or not payload[0] or len(payload) != 4 + 2 * payload[0]:
                 raise _Invalid('jpeg_scan_header')
             saw_scan = True
+            result['orientation'] = orientation
+            if icc_present:
+                result['iccProfilePresent'] = True
+            if dpi is not None:
+                result['dpi'] = dpi
+            if not complete:
+                return result
             pending_marker = _jpeg_entropy_marker(r)
+        elif marker == 0xe0:
+            payload = r.read(length - 2)
+            if payload.startswith(b'JFIF\0') and len(payload) >= 12:
+                unit = payload[7]
+                x, y = struct.unpack_from('>HH', payload, 8)
+                if unit in (1, 2) and x and y:
+                    dpi = [x * (2.54 if unit == 2 else 1),
+                           y * (2.54 if unit == 2 else 1)]
         elif marker == 0xe1:
             payload = r.read(length - 2)
             if payload.startswith(b'Exif\0\0'):
                 orientation = _exif_orientation(payload)
+        elif marker == 0xe2:
+            payload = r.read(length - 2)
+            if payload.startswith(b'ICC_PROFILE\0'):
+                icc_present = True
         else:
             r.skip(length-2)
 
@@ -577,6 +652,12 @@ def _bmp(r, *, complete=False):
     else:
         raise _Invalid('bmp_dib')
     result = _base('bmp', abs(width), abs(height))
+    if dib >= 40 and r.size >= 54:
+        r.seek(38)
+        x, y = struct.unpack('<ii', r.read(8))
+        r.seek(26)
+        if x > 0 and y > 0:
+            result['dpi'] = [x * .0254, y * .0254]
     if complete:
         pixel_offset = int.from_bytes(head[10:14], 'little')
         declared = int.from_bytes(head[2:6], 'little')
@@ -641,15 +722,25 @@ def copy_media_identity(source, output_dir, target, *, cancel=None):
     source, output_dir = Path(source), Path(output_dir)
     if target not in RASTER:
         return None
-    # JPEG/BMP metadata alone does not validate all compressed image bytes.
-    # Identity is restricted to containers whose structure is fully traversed.
-    if ALIASES.get(target, target) not in ('png', 'gif', 'webp', 'tiff'):
+    canonical = ALIASES.get(target, target)
+    if canonical not in ('png', 'gif', 'webp', 'tiff', 'jpeg'):
         return None
-    info = inspect_media(source, cancel=cancel)
+    # JPEG: complete marker traversal through EOI and decode before identity.
+    info = inspect_media(source, cancel=cancel, validate_container=canonical == 'jpeg')
     if info is None or info['format'] != ALIASES.get(target, target):
         return None
     if target == 'apng' and not info.get('animationContainer'):
         return None
+    if canonical == 'jpeg':
+        from .qt_media import _qt, _bounds
+        _bounds(info['width'], info['height'])
+        reader = _qt()[5](str(source))
+        _cancel(cancel)
+        image = reader.read()
+        if image.isNull():
+            raise GuardError('MEDIA_OUTPUT_INVALID', 'JPEG не декодируется; копия не выдана как готовый результат.', stage='result')
+        _cancel(cancel)
+        del image, reader
     output_dir.mkdir(parents=True, exist_ok=True)
     output = output_dir / (source.stem + '.' + target)
     if output.resolve() == source.resolve():
@@ -675,9 +766,34 @@ def check_media_preservation(paths, target, source, *, cancel, source_evidence=N
         return None
     source = Path(source)
     def source_profile():
-        return (inspect_media(source, cancel=cancel) if source_evidence is None else
-                source_evidence.get('media_profile', source,
-                                    lambda: inspect_media(source, cancel=cancel)))
+        def inspect_source():
+            result = inspect_media(source, cancel=cancel)
+            if result is None:
+                from .pict_bitmap import inspect_pict_bitmap
+                result = inspect_pict_bitmap(source, cancel=cancel)
+            if result is None and source.suffix.lower() in ('.pct', '.pict'):
+                from .native_fidelity import aio_pict_frame
+                dimensions = aio_pict_frame(source)
+                if dimensions is not None:
+                    result = _base('pict', *dimensions)
+            if result is None and source.suffix.lower() in (
+                    '.pbm', '.pgm', '.ppm', '.xbm', '.xpm', '.pcx', '.ras', '.pcd', '.tga', '.psd'):
+                # Do not turn every native export into a second Guard scan.
+                # For these formats Qt has already confirmed image structure
+                # during preflight; one cheap header probe proves dimensions.
+                from .qt_media import (qt_pnm_profile, qt_xbm_xpm_profile,
+                                       pillow_legacy_profile, qt_tga_profile)
+                try:
+                    result = (qt_pnm_profile(source, cancel=cancel)
+                              or qt_xbm_xpm_profile(source, cancel=cancel)
+                              or qt_tga_profile(source, cancel=cancel)
+                              or pillow_legacy_profile(source, cancel=cancel))
+                except GuardError as error:
+                    if error.code not in ('MEDIA_QT_UNAVAILABLE', 'MEDIA_CANVAS_BUDGET'):
+                        raise
+            return result
+        return (inspect_source() if source_evidence is None else
+                source_evidence.get('media_profile', source, inspect_source))
     if target == 'pdf':
         before = source_profile()
         if before is None or before['format'] != 'tiff':
@@ -704,16 +820,29 @@ def check_media_preservation(paths, target, source, *, cancel, source_evidence=N
     if primary is None:
         raise GuardError('MEDIA_INSPECTION_INCOMPLETE',
                          'Не удалось однозначно определить основной результат изображения.', stage='result')
-    after = inspect_media(primary, cancel=cancel, validate_container=True)
-    if after is None or after['format'] != ALIASES.get(target, target):
-        raise GuardError('MEDIA_OUTPUT_INVALID',
-                         'Контейнер изображения не соответствует выбранному формату результата.', stage='result')
-    if target == 'apng' and not after.get('animationContainer'):
-        raise GuardError('MEDIA_OUTPUT_INVALID',
-                         'Вместо APNG получен PNG без структуры анимации.', stage='result')
+    # Native page exporters establish that every file exists, while their
+    # preservation contract counts names. Neither proves that later pages
+    # have complete containers. Validate each output independently; different
+    # document pages may legitimately have different canvas dimensions.
+    after = None
+    for candidate in candidates:
+        observed = inspect_media(candidate, cancel=cancel, validate_container=True)
+        if observed is None or observed['format'] != ALIASES.get(target, target):
+            raise GuardError('MEDIA_OUTPUT_INVALID',
+                             'Контейнер изображения не соответствует выбранному формату результата.', stage='result')
+        if target == 'apng' and not observed.get('animationContainer'):
+            raise GuardError('MEDIA_OUTPUT_INVALID',
+                             'Вместо APNG получен PNG без структуры анимации.', stage='result')
+        if candidate == primary:
+            after = observed
     before = source_profile()
     expected_losses = []
     if before:
+        if before.get('exactBitmapSubset') and target in ('png','apng','tif','tiff','bmp','gif'):
+            from .pict_bitmap import verify_pict_bitmap_pixels
+            verify_pict_bitmap_pixels(primary, before, cancel=cancel)
+        if before.get('mergedCompositeOnly'):
+            expected_losses.append('psd_editability')
         if before.get('bitDepth', 8) > after.get('bitDepth', 8):
             if target in ('png', 'apng', 'tif', 'tiff'):
                 raise GuardError('MEDIA_BIT_DEPTH_LOSS', 'Экспорт уменьшил глубину цвета изображения.', stage='result')
@@ -750,7 +879,9 @@ def check_media_preservation(paths, target, source, *, cancel, source_evidence=N
             expected_losses.append('alpha')
         if display_dimensions(before) != display_dimensions(after):
             raise GuardError('MEDIA_CANVAS_CHANGED',
-                             'Экспорт изменил размер холста изображения.', stage='result')
+                             'Экспорт изменил размер холста изображения.', stage='result',
+                             diagnostic='source_canvas:%dx%d:result_canvas:%dx%d' % (
+                                 *display_dimensions(before), *display_dimensions(after)))
         if before['pages'] > 1 and target not in ('tif', 'tiff'):
             if target in ANIMATED_TARGETS and after['frames'] == before['pages']:
                 expected_losses.append('page_semantics_as_frames')
@@ -759,6 +890,25 @@ def check_media_preservation(paths, target, source, *, cancel, source_evidence=N
         if before.get('pageDimensions') and target in ('tif', 'tiff'):
             if display_page_dimensions(before) != display_page_dimensions(after):
                 raise GuardError('MEDIA_CANVAS_CHANGED', 'Экспорт изменил размеры страниц TIFF.', stage='result')
+        if target in ('png', 'apng', 'tif', 'tiff', 'bmp', 'jpg', 'jpeg', 'jpe', 'jif', 'jfif'):
+            original_resolution = _display_resolutions(before)
+            output_resolution = _display_resolutions(after)
+            if ALIASES.get(target, target) in ('jpeg', 'bmp'):
+                # Static formats intentionally contain the first frame/page;
+                # the omitted units already have explicit loss receipts.
+                original_resolution = original_resolution[:1]
+            for index, expected in enumerate(original_resolution):
+                if expected is None:
+                    continue  # An untagged source has no proven physical scale.
+                actual = output_resolution[index] if index < len(output_resolution) else None
+                tolerance = .51 if ALIASES.get(target, target) == 'jpeg' else .05
+                if actual is None or any(abs(a-b) > max(tolerance, a * .0001)
+                                         for a, b in zip(expected, actual)):
+                    raise GuardError('MEDIA_DPI_LOSS',
+                                     'Экспорт изменил физический масштаб изображения или страниц.',
+                                     stage='result')
+        elif before.get('dpi') or any(before.get('pageDpi', ())):
+            expected_losses.append('physical_resolution')
     elif source.suffix.lower() == '.pdf' and target in ('tif', 'tiff'):
         try:
             from pypdf import PdfReader
@@ -775,4 +925,7 @@ def check_media_preservation(paths, target, source, *, cancel, source_evidence=N
         if count != after['pages']:
             raise GuardError('MEDIA_PAGE_LOSS', 'Экспорт PDF в TIFF изменил число страниц.', stage='result')
     return {'check': 'media_properties', 'status': 'checked_subset', 'qualityCompared': False,
-            'source': before, 'result': after, 'expectedLosses': expected_losses}
+            'source': before, 'result': after, 'expectedLosses': expected_losses,
+            **({'exactSourceRgbPixelsVerified':True} if before and before.get('exactBitmapSubset')
+               and target in ('png','apng','tif','tiff','bmp','gif') else {}),
+            'validatedOutputContainers': len(candidates)}

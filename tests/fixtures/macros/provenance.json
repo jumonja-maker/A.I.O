@@ -1,0 +1,92 @@
+{
+  "origin": "Apache POI pinned official QA samples",
+  "license": "Apache-2.0",
+  "sourceRevision": "519e0a3c3945364e8ea75c172fe1a15fb6d4a202",
+  "macrosExecuted": false,
+  "files": [
+    {
+      "name": "SimpleMacro.xlsm",
+      "url": "https://raw.githubusercontent.com/apache/poi/519e0a3c3945364e8ea75c172fe1a15fb6d4a202/test-data/spreadsheet/SimpleMacro.xlsm",
+      "sha256": "f76c986f4ebc25c2cc57c088b2511a1269f4bd61d6223a2ab58db351da348ba6",
+      "sourceSignature": [
+        [
+          "Module1",
+          "c7df213093f2a59f89f5632f897616dc168d7c31e70b46b50b0914751f32d6f4"
+        ],
+        [
+          "Sheet1",
+          "8e442a8e542ca01c7d87af7e9ad015863e0a19232a647712a6e31b3911beb372"
+        ],
+        [
+          "Sheet2",
+          "8105e1362a2256083c87650bf3f402ea18553abb1bdab2f08f7649859dd02312"
+        ],
+        [
+          "Sheet3",
+          "ee5611644b7c99994a401685fb60391337dcd245a8cd9ceab2da0b3afd82bde0"
+        ],
+        [
+          "ThisWorkbook",
+          "14de0425a62586687c3d59b7d3d7dc60268f989ab7e07a61403525064d98502a"
+        ]
+      ]
+    },
+    {
+      "name": "SimpleMacro.xls",
+      "url": "https://raw.githubusercontent.com/apache/poi/519e0a3c3945364e8ea75c172fe1a15fb6d4a202/test-data/spreadsheet/SimpleMacro.xls",
+      "sha256": "0e92c9bb018abd8a5f9121d65827c9e3bd280777219cb77a2efd70635143c00a",
+      "sourceSignature": [
+        [
+          "Module1",
+          "c7df213093f2a59f89f5632f897616dc168d7c31e70b46b50b0914751f32d6f4"
+        ],
+        [
+          "Sheet1",
+          "8e442a8e542ca01c7d87af7e9ad015863e0a19232a647712a6e31b3911beb372"
+        ],
+        [
+          "Sheet2",
+          "8105e1362a2256083c87650bf3f402ea18553abb1bdab2f08f7649859dd02312"
+        ],
+        [
+          "Sheet3",
+          "ee5611644b7c99994a401685fb60391337dcd245a8cd9ceab2da0b3afd82bde0"
+        ],
+        [
+          "ThisWorkbook",
+          "14de0425a62586687c3d59b7d3d7dc60268f989ab7e07a61403525064d98502a"
+        ]
+      ]
+    },
+    {
+      "name": "SimpleMacro.docm",
+      "url": "https://raw.githubusercontent.com/apache/poi/519e0a3c3945364e8ea75c172fe1a15fb6d4a202/test-data/document/SimpleMacro.docm",
+      "sha256": "fd591958fcf5322f72c0a740e9606309c949254bda4c3d9bd966481ddf220563",
+      "sourceSignature": [
+        [
+          "Module1",
+          "65e94d80cc823622429259fd90bd70fe47a458d9846f35ed8ef41e47827f2fd5"
+        ],
+        [
+          "ThisDocument",
+          "76f615001478cc8d4cce6fe76f75b2ca62880736645e205dfce15fc20f92e650"
+        ]
+      ]
+    },
+    {
+      "name": "SimpleMacro.doc",
+      "url": "https://raw.githubusercontent.com/apache/poi/519e0a3c3945364e8ea75c172fe1a15fb6d4a202/test-data/document/SimpleMacro.doc",
+      "sha256": "39e9608c711d38f298ed20a5bfae12fcdaed6f4be2be4d26db670475216ca393",
+      "sourceSignature": [
+        [
+          "Module1",
+          "65e94d80cc823622429259fd90bd70fe47a458d9846f35ed8ef41e47827f2fd5"
+        ],
+        [
+          "ThisDocument",
+          "76f615001478cc8d4cce6fe76f75b2ca62880736645e205dfce15fc20f92e650"
+        ]
+      ]
+    }
+  ]
+}

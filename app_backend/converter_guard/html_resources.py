@@ -1,5 +1,6 @@
 """Private companion files for one HTML source; no shared tool state."""
 from pathlib import Path
+from collections import OrderedDict
 import codecs
 import re
 import time
@@ -45,13 +46,16 @@ def resource_manifest(entries, source_name):
 
 
 def inspect_dependencies(source, parser_type, *, cancel=None, missing=None, seconds=2,
-                         transform_factory=None):
+                         transform_factory=None, resource_visitor=None):
     if source.suffix.lower() not in {'.html', '.htm', '.xhtml'}:
         return None
     root = source.parent.resolve()
     pending, seen, absent = [source], set(), []
     scheduled = {source}
     budget_exhausted = False
+    # Bound the deduplication cache independently of a document's image count.
+    # Evicted references are inspected again, not silently left unchecked.
+    visited_resources = OrderedDict()
     until = None if seconds is None else time.monotonic() + seconds
     while pending:
         if (until is not None and time.monotonic() >= until) or len(seen) >= 128:
@@ -76,6 +80,15 @@ def inspect_dependencies(source, parser_type, *, cancel=None, missing=None, seco
                             break
                         if path_is_link(part):
                             valid = False
+                    if valid and resource_visitor is not None:
+                        resolved = target.resolve()
+                        if resolved not in visited_resources:
+                            resource_visitor(resolved)
+                            visited_resources[resolved] = None
+                            if len(visited_resources) > 128:
+                                visited_resources.popitem(last=False)
+                        else:
+                            visited_resources.move_to_end(resolved)
                     if valid and target.suffix.lower() in ('.css', '.svg', '.html', '.htm', '.xhtml'):
                         resolved = target.resolve()
                         if resolved not in scheduled:
@@ -115,7 +128,8 @@ def inspect_dependencies(source, parser_type, *, cancel=None, missing=None, seco
                         css_tail = (css_tail + text)[-4096:]
                     else:
                         parser.feed(transform.feed(text) if transform else text)
-                    if budget_exhausted or parser.undetermined or len(parser.rawdata) > 512 * 1024:
+                    if (budget_exhausted or parser.undetermined or len(parser.rawdata) > 512 * 1024
+                            or transform and getattr(transform, 'resource_truncated', False)):
                         return 'HTML_PREFLIGHT_UNDETERMINED'
                 final = decoder.decode(b'', final=True)
                 if current.suffix.lower() == '.css':
@@ -123,7 +137,8 @@ def inspect_dependencies(source, parser_type, *, cancel=None, missing=None, seco
                 else:
                     parser.feed(transform.feed(final) if transform else final)
                     if transform and (transform.quote is not None or transform.in_tag or
-                                      transform.rawtext is not None):
+                                      transform.rawtext is not None or
+                                      getattr(transform, 'resource_truncated', False)):
                         return 'HTML_PREFLIGHT_UNDETERMINED'
                     parser.close()
         except (UnicodeError, LookupError, ValueError):

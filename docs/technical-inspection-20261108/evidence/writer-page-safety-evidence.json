@@ -1,0 +1,14 @@
+{
+  "status": "PASS_SAFE_REFUSAL",
+  "actualPlatform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "scope": "safe refusal, not multipage export acceptance",
+  "source": "/workspace/scratch/aio-inspection-20261108/native-page-safety-final/three-pages.docx",
+  "sourceSha256": "e9665e774b83f932fb54410f6f3fcd3f22a8d65be938c50ccac7b34604d8c98b",
+  "nativePdfOraclePages": 3,
+  "baselinePngOutputs": 1,
+  "target": "png",
+  "code": "ENGINE_OUTPUT_VALIDATION_INCOMPLETE",
+  "diagnostic": "native_all_writer_pages_v1:native_cli_has_no_model_receipt",
+  "sourceUnchanged": true,
+  "publishedPngOutputs": 0
+}

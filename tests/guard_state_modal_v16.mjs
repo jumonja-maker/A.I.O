@@ -11,6 +11,9 @@ assert.ok(start>0&&end>start,'production modal event block must be found');
 const helperStart=source.indexOf('  function dropRows(id){');
 const helperEnd=source.indexOf('  function cancelPreview(){',helperStart);
 assert.ok(helperStart>0&&helperEnd>helperStart,'production row cleanup helper must be found');
+const pollStart=source.indexOf('  function stopRecoveryPoll(){');
+const pollEnd=source.indexOf('\n',pollStart);
+assert.ok(pollStart>0&&pollEnd>pollStart,'production polling cleanup helper must be found');
 class Element {
   handlers=new Map();open=true;
   addEventListener(type,listener){
@@ -36,10 +39,13 @@ const bar={querySelector(selector){
   if(selector==='.aio-guard-list')return list;
   throw Error('Unexpected DOM lookup '+selector);
 }};
-const context=vm.createContext({bar,stateButton,Number,rowCache:{jobId:'fixture'},paintedRows:[{}]});
-vm.runInContext(source.slice(helperStart,helperEnd)+'\n'+source.slice(start,end),context);
+const cancelledTimers=[];let renders=0;
+const context=vm.createContext({bar,stateButton,Number,rowCache:{jobId:'fixture'},paintedRows:[{}],
+  viewRevision:0,refreshRevision:0,actionFeedback:null,cancelPreview(){},
+  recoveryTimer:1,clearTimeout(id){cancelledTimers.push(id);},render(){renders++;}});
+vm.runInContext(source.slice(pollStart,pollEnd)+'\n'+source.slice(helperStart,helperEnd)+'\n'+source.slice(start,end),context);
 const point=(type,x,y,properties={})=>dialog.dispatch(type,{clientX:x,clientY:y,...properties});
-function open(){dialog.open=true;stateButton.expanded='true';context.rowCache={jobId:'fixture'};context.paintedRows=[{}];}
+function open(){dialog.open=true;stateButton.expanded='true';context.rowCache={jobId:'fixture'};context.paintedRows=[{}];context.recoveryTimer=cancelledTimers.length+1;}
 
 point('pointerdown',120,120);point('pointerup',120,120);
 assert.equal(dialog.open,true,'dialog padding is inside the modal');
@@ -61,10 +67,16 @@ open();const escape=dialog.dispatch('cancel');
 assert.equal(dialog.open,false,'Escape closes modal');assert.equal(escape.defaultPrevented,true);
 assert.equal(stateButton.focusCount,3,'focus returns to State button after each close');
 assert.equal(rowCleanups,3,'all three real close paths release hidden task DOM');
+assert.deepEqual(cancelledTimers,[1,2,3],'all real close paths cancel the production polling timer');
+assert.equal(context.recoveryTimer,null);
+assert.equal(renders,3,'closed visibility is refreshed');
 open();dialog.dispatch('close');
 assert.equal(dialog.open,true,'an old queued close cannot clear a reopened dialog');
 assert.notEqual(context.rowCache,null,'reopened dialog keeps its current task snapshot');
 assert.equal(stateButton.focusCount,3,'stale close cannot steal focus from a reopened dialog');
 assert.equal(rowCleanups,3,'stale close must not dispose the reopened task page');
+assert.deepEqual(cancelledTimers,[1,2,3],'stale close must not cancel reopened polling');
+assert.equal(context.recoveryTimer,4);
+assert.equal(renders,3,'stale close must not redraw a reopened view');
 console.log(JSON.stringify({status:'PASS',scope:'actual modal wiring; controlled geometry/events',
   padding:true,drag:true,secondaryButton:true,pointerCancel:true,backdrop:true,closeButton:true,escape:true,focus:true,taskCleanup:true,staleCloseIgnored:true}));

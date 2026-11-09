@@ -1,4 +1,4 @@
-"""Bounded mandatory leading-zero ID checks, not full spreadsheet fidelity.
+"""Bounded mandatory CSV literal checks, not full spreadsheet fidelity.
 
 Only a content-confirmed installed Calc Text importer receives column hints.
 LibreOffice produces the output. This module never rewrites original files.
@@ -21,6 +21,8 @@ CALC_TEXT = 'Text - txt - csv (StarCalc)'
 SPREADSHEET_TARGETS = frozenset(('xlsx', 'xlsm', 'xltx', 'xltm'))
 DELIMITERS = {44: ',', 59: ';', 9: '\t', 124: '|'}
 LEADING_ZERO_ID = re.compile(r'[+-]?0[0-9]+\Z')
+_DECIMAL_TOKEN = re.compile(
+    r'[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?\Z')
 MAX_COLUMNS = 256
 MAX_TEXT_COLUMNS = 64
 MAX_INPUT_BYTES = 32 * 1024 * 1024
@@ -62,8 +64,10 @@ def text_columns_in_sample(rows, width):
     """Return ordered one-based column/Text pairs from a bounded sample.
 
     A hint is not route admission or proof of a complete source scan. An
-    inferred Text column remains textual, including its mixed numeric rows;
-    columns without an observed leading-zero field retain native behavior.
+    inferred Text column remains textual, including its mixed numeric rows.
+    Preserve exact long numeric tokens and formula-like CSV literals rather
+    than allowing native double rounding or formula evaluation. Dates and
+    ordinary short numbers retain the existing native inference policy.
     """
     if type(width) is not int or not 1 <= width <= MAX_COLUMNS:
         return ''
@@ -72,11 +76,32 @@ def text_columns_in_sample(rows, width):
         if len(row) != width:
             return ''
         for index, value in enumerate(row, 1):
-            if LEADING_ZERO_ID.fullmatch(value):
+            if _text_sensitive_kind(value) is not None:
                 columns.add(index)
                 if len(columns) > MAX_TEXT_COLUMNS:
                     return ''
     return '/'.join(str(column) + '/2' for column in sorted(columns))
+
+
+def _text_sensitive_kind(value):
+    """Classify an exact CSV token that must not become a number/formula.
+
+    CSV carries no cell types. Calc/Excel's numeric storage cannot guarantee
+    more than 15 significant decimal digits, while '=...' can be evaluated
+    as a formula by the default importer. Preserve these tokens as text;
+    do not guess that every scientific/date-looking field is an identifier.
+    """
+    if not isinstance(value, str):
+        return None
+    if LEADING_ZERO_ID.fullmatch(value):
+        return 'leading_zero'
+    if value.lstrip(' \t\r\n').startswith('='):
+        return 'formula_literal'
+    if len(value) > 15 and _DECIMAL_TOKEN.fullmatch(value):
+        mantissa = re.split('[eE]', value, maxsplit=1)[0].lstrip('+-')
+        if len(mantissa.replace('.', '').lstrip('0')) > 15:
+            return 'high_precision'
+    return None
 
 
 def _import_dialect(import_filter, options):
@@ -93,8 +118,10 @@ def _import_dialect(import_filter, options):
             return None
         last = 0
         for position, code in zip(pairs[::2], pairs[1::2]):
+            # Decimal hints must not accidentally bypass the source-ID check.
+            # Skip/date/unknown format codes still do not establish a mapping.
             if (re.fullmatch(r'[1-9][0-9]{0,2}', position) is None or
-                    not last < int(position) <= MAX_COLUMNS or code != '2'):
+                    not last < int(position) <= MAX_COLUMNS or code not in ('2', '10')):
                 return None
             last = int(position)
     return DELIMITERS[int(parts[0])]
@@ -135,7 +162,7 @@ def _source_ids(path, delimiter, budget):
             elif len(record) != width:
                 raise _Limited('csv_id_source_row_mapping')
             for column, value in enumerate(record, 1):
-                if LEADING_ZERO_ID.fullmatch(value):
+                if _text_sensitive_kind(value) is not None:
                     if len(ids) >= MAX_TRACKED_IDS:
                         raise _Limited('csv_id_candidate_budget')
                     ids[(rows, column)] = value
@@ -177,7 +204,7 @@ def _verify_ooxml_budget(path, budget):
 
 def check_csv_text_ids(paths, target, source, *, import_filter=None,
                        import_options=None, cancel=None, seconds=8.0):
-    """Compare original leading-zero strings and actual Excel cell types.
+    """Compare original sensitive CSV strings and actual Excel cell types.
 
     No cell text goes into error diagnostics. Number format 000 is not proof
     that an identifier survived as a string. No visual/fidelity claim is made.
@@ -187,7 +214,7 @@ def check_csv_text_ids(paths, target, source, *, import_filter=None,
     if target not in SPREADSHEET_TARGETS or delimiter is None:
         return None
     budget = _Budget(cancel, seconds)
-    result = {'check': 'csv_text_ids', 'scope': 'source_leading_zero_id_cells_and_types',
+    result = {'check': 'csv_text_ids', 'scope': 'source_text_sensitive_cells_and_types',
               'qualityCompared': False, 'fullDocumentFidelity': False}
     try:
         budget.check()
@@ -202,6 +229,10 @@ def check_csv_text_ids(paths, target, source, *, import_filter=None,
         result.update(sourceRows=rows, sourceColumns=width, candidateIds=len(ids))
         if not ids:
             return None
+        kinds = {'leading_zero': 0, 'high_precision': 0, 'formula_literal': 0}
+        for value in ids.values():
+            kinds[_text_sensitive_kind(value)] += 1
+        result['candidateKinds'] = kinds
         if output.stat().st_size > MAX_OUTPUT_BYTES:
             raise _Limited('csv_id_output_byte_budget')
         _verify_ooxml_budget(output, budget)
@@ -244,9 +275,14 @@ def check_csv_text_ids(paths, target, source, *, import_filter=None,
                        'differentIds': len(differences),
                        'firstCoordinates': [[row, col] for row, col in differences[:12]]}
             raise GuardError('ENGINE_OUTPUT_CONTENT_LOSS',
-                'Текстовые идентификаторы CSV потеряли исходную запись или тип после экспорта.',
+                'Текстовые значения CSV потеряли исходную запись или тип после экспорта.',
                 stage='result', diagnostic=json.dumps(details, separators=(',', ':')))
-        return {**result, 'status': 'checked_subset'}
+        warnings = []
+        if kinds['high_precision']:
+            warnings.append('CSV_HIGH_PRECISION_AS_TEXT')
+        if kinds['formula_literal']:
+            warnings.append('CSV_FORMULA_LITERALS_AS_TEXT')
+        return {**result, 'status': 'checked_subset', **({'warnings': warnings} if warnings else {})}
     except _Limited as error:
         _cancel(cancel)
         return {**result, 'status': 'not_checked', 'reason': str(error)[:100],

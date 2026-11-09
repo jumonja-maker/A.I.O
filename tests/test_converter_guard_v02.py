@@ -13,6 +13,7 @@ import unittest
 from unittest.mock import patch
 import zipfile
 
+from save_test_support import verify_download_for_test
 from app_backend.converter_guard import ConverterGuard, GuardError, GuardLimits, GuardTrace, LibreOfficeAdapter
 from app_backend.converter_guard.adapter import _RunControl
 from app_backend.converter_guard.core import CHUNK
@@ -175,6 +176,7 @@ class GuardTests(unittest.TestCase):
         self.assertEqual(self.guard.status(identity)['files'][0]['state'], 'ready')
         other = self.prepare([('other.docx', b'x')])
         with self.assertRaises(GuardError): self.guard.confirm_saved(other, key)
+        verify_download_for_test(self, self.guard, key)
         saved = self.guard.confirm_saved(identity, key)
         self.assertEqual(saved['files'][0]['state'], 'saved')
         self.assertTrue(saved['result']['outputs'][0]['saved'])
@@ -182,12 +184,14 @@ class GuardTests(unittest.TestCase):
 
     def test_bundle_ack_marks_all_ready_targets_saved(self):
         state = self.run_job([('one.bmp', b'x')], ['pdf','png'])
+        verify_download_for_test(self, self.guard, ticket(state['result']))
         saved = self.guard.confirm_saved(state['jobId'], ticket(state['result']))
         self.assertEqual(saved['files'][0]['state'], 'saved')
         self.assertTrue(all(t['state'] == 'saved' for t in saved['files'][0]['targets']))
 
     def test_partial_sidecar_ack_does_not_claim_whole_html_saved(self):
         state = self.run_job([('web.docx', b'x')], ['html'])
+        verify_download_for_test(self, self.guard, ticket(state['result']['outputs'][0]))
         saved = self.guard.confirm_saved(state['jobId'], ticket(state['result']['outputs'][0]))
         self.assertEqual(saved['files'][0]['state'], 'ready')
         self.assertFalse(saved['result']['outputs'][1]['saved'])

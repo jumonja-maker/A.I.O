@@ -304,6 +304,75 @@ class NativeTransportHTTPTests(unittest.TestCase):
         self.assertFalse(path.exists())
         self.assertFalse(self.server.converter.results)
 
+    def test_lost_reply_ticket_recoverable_by_original_request_identity(self):
+        identity = '9' * 32
+        # The client can forget the HTTP response yet keep its request id.
+        self.convert([('recovery.bmp', b'BM')], request=identity)
+        request = Request(self.base + '/api/converter/recover?request=' + identity,
+                          headers={'X-AIO-Token': self.token})
+        with urlopen(request, timeout=5) as response:
+            recovered = json.load(response)
+        self.assertEqual(recovered['state'], 'ready')
+        self.assertEqual(recovered['requestId'], identity)
+        self.assertEqual(recovered['result']['targetReport']['succeeded'], 1)
+        ticket = recovered['result']['ticket']
+        with urlopen(self.base + recovered['result']['downloadUrl'], timeout=5) as response:
+            self.assertTrue(response.read().startswith(b'%PDF'))
+        # A repeated request identity cannot invalidate an unsaved ticket.
+        with self.assertRaises(HTTPError) as error:
+            self.convert([('second.bmp', b'BM')], request=identity)
+        self.assertEqual(error.exception.code, 422)
+        self.assertEqual(json.load(error.exception)['code'], 'REQUEST_BUSY')
+        self.json('release', {'ticket': ticket})
+        with self.assertRaises(HTTPError) as missing:
+            urlopen(request, timeout=5)
+        self.assertEqual(missing.exception.code, 404)
+
+    def test_legacy_recovery_lookup_requires_token_and_exact_request_id(self):
+        identity = '8' * 32
+        url = self.base + '/api/converter/recover?request=' + identity
+        with self.assertRaises(HTTPError) as denied:
+            urlopen(url, timeout=5)
+        self.assertEqual(denied.exception.code, 403)
+        with self.assertRaises(HTTPError) as malformed:
+            urlopen(Request(url + '&request=' + identity,
+                            headers={'X-AIO-Token': self.token}), timeout=5)
+        self.assertEqual(malformed.exception.code, 400)
+        with self.assertRaises(HTTPError) as absent:
+            urlopen(Request(url, headers={'X-AIO-Token': self.token}), timeout=5)
+        self.assertEqual(absent.exception.code, 404)
+
+    def test_legacy_cancel_at_last_native_boundary_is_visible_and_output_saveable(self):
+        identity = 'd' * 32
+        def finish_then_cancel(source, target, workspace, *, cancel, on_started):
+            outputs = self.fake_native(source, target, workspace,
+                                       cancel=cancel, on_started=on_started)
+            self.assertTrue(self.server.converter.cancel(identity))
+            return outputs
+        with patch('app_backend.converter_transport.convert_path',
+                   side_effect=finish_then_cancel):
+            outcome = self.convert([('late.bmp', b'BM')], request=identity)
+        self.assertTrue(outcome['cancelledRequested'])
+        self.assertTrue(outcome['result']['targetReport']['cancelledRequested'])
+        self.assertEqual(outcome['result']['targetReport']['succeeded'], 1)
+        with urlopen(self.base + outcome['result']['downloadUrl']) as reply:
+            self.assertTrue(reply.read().startswith(b'%PDF'))
+        self.json('release', {'ticket': outcome['result']['ticket']})
+
+    def test_legacy_cancel_after_ticket_is_published_is_rejected(self):
+        identity = 'e' * 32
+        transport = self.server.converter
+        request = transport.begin(identity, None)
+        source = request.root / 'one.bmp'
+        source.write_bytes(b'BM')
+        outcome = transport.execute(request, [{'path': source, 'warnings': []}],
+                                    ['one'], ['pdf'])
+        self.assertFalse(outcome['cancelledRequested'])
+        self.assertFalse(transport.cancel(identity))
+        self.assertEqual(transport.recover(identity)['state'], 'ready')
+        transport.finish(request, retained=True)
+        self.json('release', {'ticket': outcome['result']['ticket']})
+
     def test_cancel_preserves_finished_outputs_and_next_request_can_run(self):
         identity = 'a' * 32
         reply, errors = [], []

@@ -105,6 +105,52 @@ def _odf_chart(source):
     return False
 
 
+def _odf_master(source):
+    """Distinguish a successfully loaded OTHER model by its master package."""
+    from xml.parsers import expat
+    office = 'urn:oasis:names:tc:opendocument:xmlns:office:1.0}'
+    class Found(Exception):
+        pass
+    try:
+        with zipfile.ZipFile(source) as archive:
+            names = archive.namelist()
+            if names.count('mimetype') != 1 or names.count('content.xml') != 1:
+                return False
+            if archive.getinfo('mimetype').file_size > 128:
+                return False
+            if archive.read('mimetype') not in (
+                    b'application/vnd.oasis.opendocument.text-master',
+                    b'application/vnd.oasis.opendocument.text-master-template'):
+                return False
+            parser = expat.ParserCreate(namespace_separator='}')
+            stack, seen = [], 0
+            def untrusted(*_args):
+                raise ValueError('master_xml_declaration_unconfirmed')
+            def start(tag, _attributes):
+                stack.append(tag)
+                if len(stack) > 256:
+                    raise ValueError('master_xml_depth')
+                if stack == [office+'document-content', office+'body', office+'text']:
+                    raise Found()
+            parser.StartElementHandler = start
+            parser.EndElementHandler = lambda _tag: stack.pop()
+            parser.StartDoctypeDeclHandler = untrusted
+            parser.EntityDeclHandler = untrusted
+            parser.ExternalEntityRefHandler = untrusted
+            parser.SetParamEntityParsing(expat.XML_PARAM_ENTITY_PARSING_NEVER)
+            with archive.open('content.xml') as stream:
+                while block := stream.read(65536):
+                    seen += len(block)
+                    if seen > 4 * 1024 * 1024:
+                        return False
+                    parser.Parse(block, False)
+    except Found:
+        return True
+    except (OSError, ValueError, KeyError, expat.ExpatError, zipfile.BadZipFile, RuntimeError):
+        return False
+    return False
+
+
 def detect(program, profile, source, work):
     _stage(work, 'dll_scope')
     dll_scope = os.add_dll_directory(str(program)) if os.name == 'nt' else None
@@ -146,35 +192,50 @@ def detect(program, profile, source, work):
         # Batch uses LO's silent interaction mode and native import defaults.
         # Only our private copy is opened; this worker never saves it.
         doc = load(kit, source.as_uri().encode('utf-8'), b'Batch=true')
-    _stage(work, 'document_loaded')
     if not doc:
+        _stage(work, 'document_loaded')
         return {'state': 'undetermined', 'code': 'PREFLIGHT_IMPORT_UNDETERMINED'}
-    table = _table(doc, _Document, 'document_type')
-    _stage(work, 'document_type')
-    kind = C.CFUNCTYPE(C.c_int, C.c_void_p)(table.document_type)(doc)
-    _stage(work, 'document_typed')
-    if kind in (0, 1, 2, 3):
-        result = {'state':'detected', 'kind':kind}
-        if kind == 3:
-            # Optional ABI member, checked against the native class size.
-            # LibreOffice/core include/LibreOfficeKit/LibreOfficeKit.h getParts.
-            # Counts pages of the loaded Draw model, never filename suffixes.
-            try:
-                parts = _table(doc, _Document, 'parts')
-                count = C.CFUNCTYPE(C.c_int, C.c_void_p)(parts.parts)(doc)
-                if count > 0:
-                    result['drawPages'] = count
-            except ValueError:
-                pass
-        return result
-    # LOK OTHER is shared by multiple modules. Never infer FormulaProperties
-    # from OTHER alone or the .mml suffix: require a successfully loaded
-    # native model AND a MathML XML root read from actual source bytes.
-    if kind == 4 and _odf_chart(source):
-        return {'state':'detected','kind':4,'contentClass':'odf_chart'}
-    if kind == 4 and _mathml_root(source):
-        return {'state':'detected','kind':4,'contentClass':'mathml'}
-    return {'state':'undetermined','code':'PREFLIGHT_KIND_UNDETERMINED'}
+    try:
+        _stage(work, 'document_loaded')
+        table = _table(doc, _Document, 'document_type')
+        _stage(work, 'document_type')
+        kind = C.CFUNCTYPE(C.c_int, C.c_void_p)(table.document_type)(doc)
+        _stage(work, 'document_typed')
+        if kind in (0, 1, 2, 3):
+            result = {'state':'detected', 'kind':kind}
+            if kind == 3:
+                # Optional ABI member, checked against the native class size.
+                # LibreOffice/core include/LibreOfficeKit/LibreOfficeKit.h getParts.
+                # Counts pages of the loaded Draw model, never filename suffixes.
+                try:
+                    parts = _table(doc, _Document, 'parts')
+                    count = C.CFUNCTYPE(C.c_int, C.c_void_p)(parts.parts)(doc)
+                    if count > 0:
+                        result['drawPages'] = count
+                except ValueError:
+                    pass
+            return result
+        # LOK OTHER is shared by multiple modules. Never infer FormulaProperties
+        # from OTHER alone or the .mml suffix: require a successfully loaded
+        # native model AND a MathML XML root read from actual source bytes.
+        if kind == 4 and _odf_chart(source):
+            return {'state':'detected','kind':4,'contentClass':'odf_chart'}
+        if kind == 4 and _odf_master(source):
+            return {'state':'detected','kind':4,'contentClass':'odf_master'}
+        if kind == 4 and _mathml_root(source):
+            return {'state':'detected','kind':4,'contentClass':'mathml'}
+        return {'state':'undetermined','code':'PREFLIGHT_KIND_UNDETERMINED'}
+    finally:
+        # os._exit() deliberately avoids global office shutdown below, but a
+        # loaded document must release its own source lock first. Leaving that
+        # lock behind makes a second Batch/Silent import reject unchanged bytes.
+        # Never delete a lock by filename: this native handle owns its cleanup.
+        # The existing parent deadline/cancellation also bounds this C call.
+        try:
+            _stage(work, 'document_close')
+        finally:
+            C.CFUNCTYPE(None, C.c_void_p)(_table(doc, _Document, 'destroy').destroy)(doc)
+        _stage(work, 'document_closed')
 
 
 def main(manifest_path):

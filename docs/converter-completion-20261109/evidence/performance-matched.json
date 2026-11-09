@@ -1,0 +1,551 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "baselineCommit": "b7216d1210489a5fd1eadb21daf2e3b3849e30f4",
+  "exchangedComponent": "app_backend/legacy_storage_budget.py",
+  "baselineComponentSha256": "2fa33ff97bba65e88bff4a8c85def257d193463415752c935007dbcd337e4c34",
+  "patchedComponentSha256": "3914f392290d551b03a7391f0331805236094b3359e19498205445b4fddfe22a",
+  "head": "b7216d1210489a5fd1eadb21daf2e3b3849e30f4",
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "scope": "Isolated scanner differential; identical remaining checkout and full quota scan boundaries. Warm filesystem metadata; fresh private office profile for every native conversion.",
+  "limitations": [
+    "Generated controls, not historical FULLTEST or installed Windows GUI.",
+    "No persistent-UNO change or FT4-07 CLI scheduling speedup measured.",
+    "No cold-disk, SMB, native peak RSS or multi-process contention measurement."
+  ],
+  "existingFiles": 4000,
+  "scanner": {
+    "measurements": [
+      {
+        "repeat": 0,
+        "mode": "baseline",
+        "wallMsPerScan": 7.051470700025675,
+        "parentCpuMsPerScan": 7.049361300000001
+      },
+      {
+        "repeat": 0,
+        "mode": "patched",
+        "wallMsPerScan": 5.3419583000504645,
+        "parentCpuMsPerScan": 5.342253200000003
+      },
+      {
+        "repeat": 1,
+        "mode": "patched",
+        "wallMsPerScan": 5.1324369000212755,
+        "parentCpuMsPerScan": 5.132533400000005
+      },
+      {
+        "repeat": 1,
+        "mode": "baseline",
+        "wallMsPerScan": 5.612057599864784,
+        "parentCpuMsPerScan": 5.612230799999995
+      },
+      {
+        "repeat": 2,
+        "mode": "baseline",
+        "wallMsPerScan": 5.749614399974234,
+        "parentCpuMsPerScan": 5.749898200000003
+      },
+      {
+        "repeat": 2,
+        "mode": "patched",
+        "wallMsPerScan": 5.078486099955626,
+        "parentCpuMsPerScan": 5.078558900000007
+      },
+      {
+        "repeat": 3,
+        "mode": "patched",
+        "wallMsPerScan": 5.1018690999626415,
+        "parentCpuMsPerScan": 5.101926699999992
+      },
+      {
+        "repeat": 3,
+        "mode": "baseline",
+        "wallMsPerScan": 5.545188500036602,
+        "parentCpuMsPerScan": 5.545318000000011
+      },
+      {
+        "repeat": 4,
+        "mode": "baseline",
+        "wallMsPerScan": 6.001355199987302,
+        "parentCpuMsPerScan": 6.001531500000001
+      },
+      {
+        "repeat": 4,
+        "mode": "patched",
+        "wallMsPerScan": 5.1637026997923385,
+        "parentCpuMsPerScan": 5.163801000000001
+      }
+    ],
+    "wallMsPerScan": {
+      "baseline": {
+        "median": 5.749614399974234,
+        "min": 5.545188500036602,
+        "max": 7.051470700025675,
+        "samples": 5
+      },
+      "patched": {
+        "median": 5.1324369000212755,
+        "min": 5.078486099955626,
+        "max": 5.3419583000504645,
+        "samples": 5
+      },
+      "baselineOverPatchedMedian": 1.1202503824158851
+    },
+    "peakPythonTracedBytesOneScan": {
+      "baseline": 1259198,
+      "patched": 2341
+    }
+  },
+  "syntheticTransport": {
+    "measurements": [
+      {
+        "repeat": 0,
+        "mode": "baseline",
+        "wallMs": 3354.6619699991425,
+        "parentCpuMs": 3351.435867,
+        "conversions": 200,
+        "jobsPerSecond": 59.61852543970358,
+        "fullScans": 406,
+        "fullScanMs": 3199.8059929646843,
+        "nativeBoundaryMs": 114.72629101990606,
+        "cliProcessMs": 0,
+        "cliLaunchMs": 0,
+        "cliProcesses": 0,
+        "archiveBytes": 31822,
+        "memberContentSha256": "364914f594cc37b94327861e6530e5655b4ffe5a53bb240050fe9b5159f25180",
+        "nativeSemanticSha256": null,
+        "sourceUnchanged": true,
+        "succeeded": 200
+      },
+      {
+        "repeat": 0,
+        "mode": "patched",
+        "wallMs": 3087.789352000982,
+        "parentCpuMs": 3082.4898590000007,
+        "conversions": 200,
+        "jobsPerSecond": 64.77125775124325,
+        "fullScans": 406,
+        "fullScanMs": 2941.4608960032638,
+        "nativeBoundaryMs": 109.84044703218387,
+        "cliProcessMs": 0,
+        "cliLaunchMs": 0,
+        "cliProcesses": 0,
+        "archiveBytes": 31822,
+        "memberContentSha256": "364914f594cc37b94327861e6530e5655b4ffe5a53bb240050fe9b5159f25180",
+        "nativeSemanticSha256": null,
+        "sourceUnchanged": true,
+        "succeeded": 200
+      },
+      {
+        "repeat": 1,
+        "mode": "patched",
+        "wallMs": 2959.405883000727,
+        "parentCpuMs": 2958.164805000001,
+        "conversions": 200,
+        "jobsPerSecond": 67.58113212818496,
+        "fullScans": 406,
+        "fullScanMs": 2828.037221061095,
+        "nativeBoundaryMs": 98.73283003253164,
+        "cliProcessMs": 0,
+        "cliLaunchMs": 0,
+        "cliProcesses": 0,
+        "archiveBytes": 31822,
+        "memberContentSha256": "364914f594cc37b94327861e6530e5655b4ffe5a53bb240050fe9b5159f25180",
+        "nativeSemanticSha256": null,
+        "sourceUnchanged": true,
+        "succeeded": 200
+      },
+      {
+        "repeat": 1,
+        "mode": "baseline",
+        "wallMs": 3125.1718109997455,
+        "parentCpuMs": 3123.89662,
+        "conversions": 200,
+        "jobsPerSecond": 63.996481504170426,
+        "fullScans": 406,
+        "fullScanMs": 2985.9276189854427,
+        "nativeBoundaryMs": 105.50887896533823,
+        "cliProcessMs": 0,
+        "cliLaunchMs": 0,
+        "cliProcesses": 0,
+        "archiveBytes": 31822,
+        "memberContentSha256": "364914f594cc37b94327861e6530e5655b4ffe5a53bb240050fe9b5159f25180",
+        "nativeSemanticSha256": null,
+        "sourceUnchanged": true,
+        "succeeded": 200
+      },
+      {
+        "repeat": 2,
+        "mode": "baseline",
+        "wallMs": 3090.6965079993824,
+        "parentCpuMs": 3085.555040999999,
+        "conversions": 200,
+        "jobsPerSecond": 64.71033292410216,
+        "fullScans": 406,
+        "fullScanMs": 2954.31632897089,
+        "nativeBoundaryMs": 102.41627298455569,
+        "cliProcessMs": 0,
+        "cliLaunchMs": 0,
+        "cliProcesses": 0,
+        "archiveBytes": 31822,
+        "memberContentSha256": "364914f594cc37b94327861e6530e5655b4ffe5a53bb240050fe9b5159f25180",
+        "nativeSemanticSha256": null,
+        "sourceUnchanged": true,
+        "succeeded": 200
+      },
+      {
+        "repeat": 2,
+        "mode": "patched",
+        "wallMs": 3174.0351490007015,
+        "parentCpuMs": 3170.6179610000013,
+        "conversions": 200,
+        "jobsPerSecond": 63.011274485402936,
+        "fullScans": 406,
+        "fullScanMs": 3025.9404570279003,
+        "nativeBoundaryMs": 112.18151198409032,
+        "cliProcessMs": 0,
+        "cliLaunchMs": 0,
+        "cliProcesses": 0,
+        "archiveBytes": 31822,
+        "memberContentSha256": "364914f594cc37b94327861e6530e5655b4ffe5a53bb240050fe9b5159f25180",
+        "nativeSemanticSha256": null,
+        "sourceUnchanged": true,
+        "succeeded": 200
+      },
+      {
+        "repeat": 3,
+        "mode": "patched",
+        "wallMs": 3051.557345999754,
+        "parentCpuMs": 3049.9251769999987,
+        "conversions": 200,
+        "jobsPerSecond": 65.54030526812066,
+        "fullScans": 406,
+        "fullScanMs": 2908.9942579885246,
+        "nativeBoundaryMs": 107.4553930084221,
+        "cliProcessMs": 0,
+        "cliLaunchMs": 0,
+        "cliProcesses": 0,
+        "archiveBytes": 31822,
+        "memberContentSha256": "364914f594cc37b94327861e6530e5655b4ffe5a53bb240050fe9b5159f25180",
+        "nativeSemanticSha256": null,
+        "sourceUnchanged": true,
+        "succeeded": 200
+      },
+      {
+        "repeat": 3,
+        "mode": "baseline",
+        "wallMs": 3221.538000001601,
+        "parentCpuMs": 3218.145017000001,
+        "conversions": 200,
+        "jobsPerSecond": 62.08214834029603,
+        "fullScans": 406,
+        "fullScanMs": 3072.2615709819365,
+        "nativeBoundaryMs": 112.60095000397996,
+        "cliProcessMs": 0,
+        "cliLaunchMs": 0,
+        "cliProcesses": 0,
+        "archiveBytes": 31822,
+        "memberContentSha256": "364914f594cc37b94327861e6530e5655b4ffe5a53bb240050fe9b5159f25180",
+        "nativeSemanticSha256": null,
+        "sourceUnchanged": true,
+        "succeeded": 200
+      },
+      {
+        "repeat": 4,
+        "mode": "baseline",
+        "wallMs": 3545.784881000145,
+        "parentCpuMs": 3544.0357329999974,
+        "conversions": 200,
+        "jobsPerSecond": 56.40500106808138,
+        "fullScans": 406,
+        "fullScanMs": 3384.736261014041,
+        "nativeBoundaryMs": 121.282579992112,
+        "cliProcessMs": 0,
+        "cliLaunchMs": 0,
+        "cliProcesses": 0,
+        "archiveBytes": 31822,
+        "memberContentSha256": "364914f594cc37b94327861e6530e5655b4ffe5a53bb240050fe9b5159f25180",
+        "nativeSemanticSha256": null,
+        "sourceUnchanged": true,
+        "succeeded": 200
+      },
+      {
+        "repeat": 4,
+        "mode": "patched",
+        "wallMs": 3567.422230000375,
+        "parentCpuMs": 3565.644608999996,
+        "conversions": 200,
+        "jobsPerSecond": 56.062889982041455,
+        "fullScans": 406,
+        "fullScanMs": 3389.9293490430864,
+        "nativeBoundaryMs": 132.99263102089753,
+        "cliProcessMs": 0,
+        "cliLaunchMs": 0,
+        "cliProcesses": 0,
+        "archiveBytes": 31822,
+        "memberContentSha256": "364914f594cc37b94327861e6530e5655b4ffe5a53bb240050fe9b5159f25180",
+        "nativeSemanticSha256": null,
+        "sourceUnchanged": true,
+        "succeeded": 200
+      }
+    ],
+    "wallMs": {
+      "baseline": {
+        "median": 3221.538000001601,
+        "min": 3090.6965079993824,
+        "max": 3545.784881000145,
+        "samples": 5
+      },
+      "patched": {
+        "median": 3087.789352000982,
+        "min": 2959.405883000727,
+        "max": 3567.422230000375,
+        "samples": 5
+      },
+      "baselineOverPatchedMedian": 1.043315340767642
+    },
+    "fullScanMs": {
+      "baseline": {
+        "median": 3072.2615709819365,
+        "min": 2954.31632897089,
+        "max": 3384.736261014041,
+        "samples": 5
+      },
+      "patched": {
+        "median": 2941.4608960032638,
+        "min": 2828.037221061095,
+        "max": 3389.9293490430864,
+        "samples": 5
+      },
+      "baselineOverPatchedMedian": 1.044467929237611
+    }
+  },
+  "engineVersion": "LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5",
+  "engineLauncherSha256": "35c5a2736f68e6370a7b9fe5082e66bc438c1a8de11261d6c4bc847073ced45b",
+  "realCliTransport": {
+    "measurements": [
+      {
+        "repeat": 0,
+        "mode": "baseline",
+        "wallMs": 3108.2891990008648,
+        "parentCpuMs": 463.21781500000014,
+        "conversions": 10,
+        "jobsPerSecond": 3.217203857097474,
+        "fullScans": 32,
+        "fullScanMs": 432.9483369983791,
+        "nativeBoundaryMs": 2756.7857730027754,
+        "cliProcessMs": 2731,
+        "cliLaunchMs": 2,
+        "cliProcesses": 10,
+        "archiveBytes": 85958,
+        "memberContentSha256": "35261fc596a5b97e6947a1cc6034ffb70a6916a190aeed27c2b8d9fbaef7add5",
+        "nativeSemanticSha256": "9c4f898feb41a99a719051b50bf731d98636a8159eaf4d4a98d41d9d59dff9ca",
+        "sourceUnchanged": true,
+        "succeeded": 10
+      },
+      {
+        "repeat": 0,
+        "mode": "patched",
+        "wallMs": 2923.93398099739,
+        "parentCpuMs": 401.3551200000052,
+        "conversions": 10,
+        "jobsPerSecond": 3.4200498591930852,
+        "fullScans": 32,
+        "fullScanMs": 369.59033000312047,
+        "nativeBoundaryMs": 2619.5373329974245,
+        "cliProcessMs": 2597,
+        "cliLaunchMs": 0,
+        "cliProcesses": 10,
+        "archiveBytes": 85958,
+        "memberContentSha256": "08bbbcc0e28493e52ef446e856d12418b80b243e3cd1735053ad8d91aafd2b5b",
+        "nativeSemanticSha256": "9c4f898feb41a99a719051b50bf731d98636a8159eaf4d4a98d41d9d59dff9ca",
+        "sourceUnchanged": true,
+        "succeeded": 10
+      },
+      {
+        "repeat": 1,
+        "mode": "patched",
+        "wallMs": 2998.1298870006867,
+        "parentCpuMs": 417.502829,
+        "conversions": 10,
+        "jobsPerSecond": 3.3354125327785407,
+        "fullScans": 32,
+        "fullScanMs": 381.2372300053539,
+        "nativeBoundaryMs": 2694.366453004477,
+        "cliProcessMs": 2673,
+        "cliLaunchMs": 1,
+        "cliProcesses": 10,
+        "archiveBytes": 85958,
+        "memberContentSha256": "30d4b3072181facfc9e59ac1a6f20804d1f501feab69eb58f55dd7705b3c3e51",
+        "nativeSemanticSha256": "9c4f898feb41a99a719051b50bf731d98636a8159eaf4d4a98d41d9d59dff9ca",
+        "sourceUnchanged": true,
+        "succeeded": 10
+      },
+      {
+        "repeat": 1,
+        "mode": "baseline",
+        "wallMs": 2945.48175899763,
+        "parentCpuMs": 402.11935699999657,
+        "conversions": 10,
+        "jobsPerSecond": 3.3950303611464485,
+        "fullScans": 32,
+        "fullScanMs": 375.20271200992283,
+        "nativeBoundaryMs": 2637.56852601,
+        "cliProcessMs": 2614,
+        "cliLaunchMs": 0,
+        "cliProcesses": 10,
+        "archiveBytes": 85958,
+        "memberContentSha256": "d4ec59f55b38b54e6245e24fb2701df714c129a5a486ac9d27901528eae90023",
+        "nativeSemanticSha256": "9c4f898feb41a99a719051b50bf731d98636a8159eaf4d4a98d41d9d59dff9ca",
+        "sourceUnchanged": true,
+        "succeeded": 10
+      },
+      {
+        "repeat": 2,
+        "mode": "baseline",
+        "wallMs": 2919.2930350000097,
+        "parentCpuMs": 407.1642749999995,
+        "conversions": 10,
+        "jobsPerSecond": 3.425486883333713,
+        "fullScans": 32,
+        "fullScanMs": 376.3815389829688,
+        "nativeBoundaryMs": 2610.627753994777,
+        "cliProcessMs": 2586,
+        "cliLaunchMs": 0,
+        "cliProcesses": 10,
+        "archiveBytes": 85958,
+        "memberContentSha256": "cdb19fa31ea6bdfc2cd62dfbe9cdb800c4cdcce489629e9c411ddd7e97c177ca",
+        "nativeSemanticSha256": "9c4f898feb41a99a719051b50bf731d98636a8159eaf4d4a98d41d9d59dff9ca",
+        "sourceUnchanged": true,
+        "succeeded": 10
+      },
+      {
+        "repeat": 2,
+        "mode": "patched",
+        "wallMs": 2933.379998001328,
+        "parentCpuMs": 386.08368700000284,
+        "conversions": 10,
+        "jobsPerSecond": 3.409036676739306,
+        "fullScans": 32,
+        "fullScanMs": 355.85480299050687,
+        "nativeBoundaryMs": 2643.7256460048957,
+        "cliProcessMs": 2623,
+        "cliLaunchMs": 0,
+        "cliProcesses": 10,
+        "archiveBytes": 85958,
+        "memberContentSha256": "bb2dc9142902706cbc9f874967b22b4259ee1d9e549fbe4845288a021aaf5c2f",
+        "nativeSemanticSha256": "9c4f898feb41a99a719051b50bf731d98636a8159eaf4d4a98d41d9d59dff9ca",
+        "sourceUnchanged": true,
+        "succeeded": 10
+      },
+      {
+        "repeat": 3,
+        "mode": "patched",
+        "wallMs": 2837.9465869984415,
+        "parentCpuMs": 386.30018399999955,
+        "conversions": 10,
+        "jobsPerSecond": 3.5236744926114043,
+        "fullScans": 32,
+        "fullScanMs": 366.1106990002736,
+        "nativeBoundaryMs": 2541.4686079966486,
+        "cliProcessMs": 2522,
+        "cliLaunchMs": 0,
+        "cliProcesses": 10,
+        "archiveBytes": 85958,
+        "memberContentSha256": "76d758555ec2641bed4f2f9d82cd8f156a0c445351f5dac831c64e0037f6627e",
+        "nativeSemanticSha256": "9c4f898feb41a99a719051b50bf731d98636a8159eaf4d4a98d41d9d59dff9ca",
+        "sourceUnchanged": true,
+        "succeeded": 10
+      },
+      {
+        "repeat": 3,
+        "mode": "baseline",
+        "wallMs": 2945.799758999783,
+        "parentCpuMs": 411.0599850000014,
+        "conversions": 10,
+        "jobsPerSecond": 3.3946638665607742,
+        "fullScans": 32,
+        "fullScanMs": 386.30818398451083,
+        "nativeBoundaryMs": 2635.313334005332,
+        "cliProcessMs": 2614,
+        "cliLaunchMs": 0,
+        "cliProcesses": 10,
+        "archiveBytes": 85958,
+        "memberContentSha256": "54e371f5fbc7db5a157d060170a9033bb1a3e54e070f294d47129e93ef9d0c51",
+        "nativeSemanticSha256": "9c4f898feb41a99a719051b50bf731d98636a8159eaf4d4a98d41d9d59dff9ca",
+        "sourceUnchanged": true,
+        "succeeded": 10
+      },
+      {
+        "repeat": 4,
+        "mode": "baseline",
+        "wallMs": 2812.9822360024264,
+        "parentCpuMs": 418.8168929999989,
+        "conversions": 10,
+        "jobsPerSecond": 3.554946018504247,
+        "fullScans": 32,
+        "fullScanMs": 389.27182799670845,
+        "nativeBoundaryMs": 2502.030897001532,
+        "cliProcessMs": 2481,
+        "cliLaunchMs": 0,
+        "cliProcesses": 10,
+        "archiveBytes": 85958,
+        "memberContentSha256": "7b04b135a58d68cab398b988eebd8e6db91b0861c0a5db20cc0deccf1a571a8a",
+        "nativeSemanticSha256": "9c4f898feb41a99a719051b50bf731d98636a8159eaf4d4a98d41d9d59dff9ca",
+        "sourceUnchanged": true,
+        "succeeded": 10
+      },
+      {
+        "repeat": 4,
+        "mode": "patched",
+        "wallMs": 3015.09468599761,
+        "parentCpuMs": 432.24531100000263,
+        "conversions": 10,
+        "jobsPerSecond": 3.316645426241823,
+        "fullScans": 32,
+        "fullScanMs": 403.3506650084746,
+        "nativeBoundaryMs": 2685.0152440056263,
+        "cliProcessMs": 2663,
+        "cliLaunchMs": 0,
+        "cliProcesses": 10,
+        "archiveBytes": 85958,
+        "memberContentSha256": "d89707469d56d91dc834cc11fba420b390ad118f63d975baaf16a0c5e6a379f9",
+        "nativeSemanticSha256": "9c4f898feb41a99a719051b50bf731d98636a8159eaf4d4a98d41d9d59dff9ca",
+        "sourceUnchanged": true,
+        "succeeded": 10
+      }
+    ],
+    "wallMs": {
+      "baseline": {
+        "median": 2945.48175899763,
+        "min": 2812.9822360024264,
+        "max": 3108.2891990008648,
+        "samples": 5
+      },
+      "patched": {
+        "median": 2933.379998001328,
+        "min": 2837.9465869984415,
+        "max": 3015.09468599761,
+        "samples": 5
+      },
+      "baselineOverPatchedMedian": 1.0041255347089526
+    },
+    "fullScanMs": {
+      "baseline": {
+        "median": 386.30818398451083,
+        "min": 375.20271200992283,
+        "max": 432.9483369983791,
+        "samples": 5
+      },
+      "patched": {
+        "median": 369.59033000312047,
+        "min": 355.85480299050687,
+        "max": 403.3506650084746,
+        "samples": 5
+      },
+      "baselineOverPatchedMedian": 1.0452334723726382
+    }
+  }
+}

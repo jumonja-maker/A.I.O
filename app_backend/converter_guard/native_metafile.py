@@ -7,6 +7,9 @@ export, validate its record boundaries, then compress those exact bytes.
 """
 import gzip
 import hashlib
+import json
+import stat
+import tempfile
 import os
 from pathlib import Path
 import struct
@@ -41,7 +44,7 @@ def native_metafile_target(native, target, proof):
     return None
 
 
-def inspect_metafile(path, kind, *, cancel=None):
+def inspect_metafile(path, kind, *, cancel=None, allow_native_count_gap=True):
     """Validate bounded-memory record structure, declared size, count and EOF."""
     path = Path(path)
     if path.is_symlink():
@@ -50,6 +53,7 @@ def inspect_metafile(path, kind, *, cancel=None):
         initial = os.fstat(stream.fileno())
         size = initial.st_size
         header = stream.read(108)
+        contents = hashlib.sha256()
         count, position = 0, 0
         declared_count = None
         if kind == 'emf':
@@ -72,16 +76,38 @@ def inspect_metafile(path, kind, *, cancel=None):
                     _invalid('emf_record_size')
                 if count == 0 and (record_type != 1 or length != header_size):
                     _invalid('emf_first_record')
+                if count and record_type == 1:
+                    _invalid('emf_duplicate_header')
+                # The structure walk already visits each record. Hash its
+                # body here to detect same-size in-place mutations even on
+                # filesystems whose mtime has coarse resolution.
+                contents.update(record)
+                unread = length - 8
+                while unread:
+                    _cancel(cancel)
+                    part = stream.read(min(unread, 64 * 1024))
+                    if not part:
+                        _invalid('emf_record_truncated')
+                    contents.update(part)
+                    unread -= len(part)
                 count += 1
                 position += length
                 if record_type == 14:
                     if length < 20 or position != size:
                         _invalid('emf_eof')
+                    stream.seek(position - length + 8)
+                    palette_count, palette_offset = struct.unpack('<II', stream.read(8))
+                    stream.seek(position - 4)
+                    last_size = struct.unpack('<I', stream.read(4))[0]
+                    if (last_size != length or palette_count != struct.unpack_from('<I', header, 68)[0]
+                            or (palette_count and (palette_offset < 16 or palette_offset % 4
+                                or palette_offset + palette_count * 4 > length - 4))):
+                        _invalid('emf_eof_palette_or_size_last')
                     terminal = True
-            # Native LO counts records following EMR_HEADER in nRecords.
-            # Record boundaries, complete declared byte count and terminal EOF
-            # independently prove completeness; retain its bytes unchanged.
-            if not terminal or declared_count not in (count, count - 1):
+            # The compatibility walk can inspect raw LO evidence. Production
+            # outputs are normalized separately, then require the exact count.
+            accepted_counts = (count, count - 1) if allow_native_count_gap else (count,)
+            if not terminal or declared_count not in accepted_counts:
                 _invalid('emf_count_or_eof')
         elif kind == 'wmf':
             placeable = header[:4] == b'\xd7\xcd\xc6\x9a'
@@ -102,6 +128,7 @@ def inspect_metafile(path, kind, *, cancel=None):
                     file_words * 2 != size - offset):
                 _invalid('wmf_size_or_header')
             position = offset + 18
+            contents.update(header[:position])
             terminal = False
             largest = 0
             while position < size:
@@ -113,6 +140,15 @@ def inspect_metafile(path, kind, *, cancel=None):
                 words, function = struct.unpack('<IH', record)
                 if words < 3 or position + words * 2 > size:
                     _invalid('wmf_record_size')
+                contents.update(record)
+                unread = words * 2 - 6
+                while unread:
+                    _cancel(cancel)
+                    part = stream.read(min(unread, 64 * 1024))
+                    if not part:
+                        _invalid('wmf_record_truncated')
+                    contents.update(part)
+                    unread -= len(part)
                 position += words * 2
                 largest = max(largest, words)
                 count += 1
@@ -128,60 +164,217 @@ def inspect_metafile(path, kind, *, cancel=None):
         if _stat_token(initial) != _stat_token(end) or _stat_token(end) != _stat_token(path.stat()):
             _invalid('source_changed')
     return {'format': kind, 'bytes': size, 'records': count,
+            'sha256': contents.hexdigest(),
             **({'declaredRecords': declared_count,
                 'nativeHeaderCountExcludesHeader': declared_count == count - 1}
                if declared_count is not None else {})}
 
 
-def wrap_native_metafiles(paths, target, *, cancel=None):
-    """Return compressed output paths and independent exact-byte evidence.
+def repair_native_emf_counts(paths, *, cancel=None):
+    """Normalize only the proven LO 108-byte-header, count-minus-one variant.
 
-    Call only for the private output of the native plain export. Source files
-    and corrupt compressed results are never inputs to this operation.
+    This is called on unpublished native outputs, never source files. Every
+    record and EOF is verified first; only DWORD nRecords at offset 52 changes.
+    A sibling candidate is checked strictly before atomic publication. Correct
+    EMFs keep their exact bytes and timestamps; no speculative bulk increment.
     """
-    plain = COMPRESSED_METAFILES.get(target)
-    if not plain:
-        raise ValueError('Unsupported compressed metafile target')
-    inputs = [Path(p) for p in paths]
-    primaries = [p for p in inputs if p.suffix.lower() == '.' + plain]
-    if not primaries:
-        _invalid('primary_missing')
-    outputs, evidence = list(inputs), []
-    staged = []
-    try:
-        for source in primaries:
-            snapshot = source.lstat()
-            facts = inspect_metafile(source, plain, cancel=cancel)
-            if _stat_token(snapshot) != _stat_token(source.lstat()):
-                _invalid('source_changed')
-            output = source.with_suffix('.' + target)
-            temporary = output.with_name(output.name + '.partial')
-            if output.exists() or temporary.exists():
-                _invalid('output_collision')
-            staged.append(temporary)
+    checks = []
+    for path in map(Path, paths):
+        if path.suffix.lower() != '.emf':
+            continue
+        _cancel(cancel)
+        before = path.lstat()
+        facts = inspect_metafile(path, 'emf', cancel=cancel)
+        if not facts['nativeHeaderCountExcludesHeader']:
+            continue
+        with path.open('rb') as stream:
+            header = stream.read(108)
+        if (struct.unpack_from('<II', header, 4)[0] != 108
+                or struct.unpack_from('<I', header, 44)[0] != 0x10000
+                or header[58:72] != b'\0' * 14 or header[88:100] != b'\0' * 12):
+            _invalid('emf_count_variant_unconfirmed')
+        candidate = None
+        try:
             original_hash = hashlib.sha256()
-            original_size = 0
-            with source.open('rb') as incoming, temporary.open('xb') as raw:
-                initial = os.fstat(incoming.fileno())
-                if _stat_token(initial) != _stat_token(snapshot):
+            with path.open('rb') as incoming:
+                if _stat_token(os.fstat(incoming.fileno())) != _stat_token(before):
                     _invalid('source_changed')
-                with gzip.GzipFile(filename='', fileobj=raw, mode='wb', mtime=0) as compressed:
+                with tempfile.NamedTemporaryFile(prefix='.' + path.name + '.', suffix='.partial',
+                        dir=path.parent, delete=False) as outgoing:
+                    candidate = Path(outgoing.name)
+                    offset = 0
                     while True:
                         _cancel(cancel)
                         block = incoming.read(64 * 1024)
                         if not block:
                             break
                         original_hash.update(block)
-                        original_size += len(block)
-                        compressed.write(block)
+                        if offset == 0:
+                            block = block[:52] + struct.pack('<I', facts['records']) + block[56:]
+                        outgoing.write(block)
+                        offset += len(block)
+            if (offset != facts['bytes'] or original_hash.hexdigest() != facts['sha256']
+                    or _stat_token(path.lstat()) != _stat_token(before)):
+                _invalid('source_changed')
+            verified = inspect_metafile(candidate, 'emf', cancel=cancel, allow_native_count_gap=False)
+            _cancel(cancel)
+            if _stat_token(path.lstat()) != _stat_token(before):
+                _invalid('source_changed')
+            os.replace(candidate, path)
+            checks.append({'check': 'emf_record_count', 'status': 'corrected',
+                'file': path.name, 'oldRecords': facts['declaredRecords'],
+                'records': verified['records'], 'bytes': verified['bytes'],
+                'sourceSha256': facts['sha256'], 'sha256': verified['sha256'],
+                'changedByteRange': [52, 56], 'qualityCompared': False})
+        finally:
+            if candidate is not None:
+                candidate.unlink(missing_ok=True)
+    return checks
+
+
+# Matches the native page producer's existing bounds, not a new Guard scan.
+_PAGE_MANIFEST_LIMIT = 1024 * 1024
+_METAFILE_PAGE_LIMIT = 4096
+
+
+def _unique_manifest_object(pairs):
+    value = {}
+    for key, item in pairs:
+        if key in value:
+            raise ValueError('duplicate manifest key')
+        value[key] = item
+    return value
+
+
+def _retarget_page_manifest(inputs, primaries, replacements):
+    """Bind the existing schema-1 page list to supplied outputs, never its paths."""
+    manifests = [p for p in inputs if p.name == 'AIO-pages.json']
+    if not manifests:
+        if len(primaries) > 1:
+            _invalid('page_manifest_missing')
+        return None
+    if len(manifests) != 1:
+        _invalid('page_manifest_duplicate')
+    path = manifests[0]
+    before = path.lstat()
+    if not stat.S_ISREG(before.st_mode) or before.st_size > _PAGE_MANIFEST_LIMIT:
+        _invalid('page_manifest_type_or_budget')
+    with path.open('rb') as stream:
+        if _stat_token(os.fstat(stream.fileno())) != _stat_token(before):
+            _invalid('page_manifest_changed')
+        raw = stream.read(_PAGE_MANIFEST_LIMIT + 1)
+    if len(raw) > _PAGE_MANIFEST_LIMIT or _stat_token(path.lstat()) != _stat_token(before):
+        _invalid('page_manifest_changed_or_budget')
+    try:
+        data = json.loads(raw.decode('utf-8'), object_pairs_hook=_unique_manifest_object)
+    except (ValueError, UnicodeError, RecursionError):
+        _invalid('page_manifest_json')
+    if (not isinstance(data, dict) or set(data) != {'schema', 'pageCount', 'pages'}
+            or type(data['schema']) is not int or data['schema'] != 1
+            or type(data['pageCount']) is not int or data['pageCount'] != len(primaries)
+            or not isinstance(data['pages'], list) or len(data['pages']) != len(primaries)):
+        _invalid('page_manifest_schema_or_count')
+    parent = os.path.abspath(path.parent)
+    names = {p.name: replacements[p].name for p in primaries}
+    if (len(names) != len(primaries)
+            or any(os.path.abspath(p.parent) != parent for p in primaries)):
+        _invalid('page_manifest_output_scope')
+    seen, rows = set(), []
+    for number, row in enumerate(data['pages'], 1):
+        if (not isinstance(row, dict) or set(row) != {'page', 'file'}
+                or type(row['page']) is not int or row['page'] != number
+                or not isinstance(row['file'], str) or row['file'] not in names
+                or row['file'] in seen or any(c in row['file'] for c in '/\\:')):
+            _invalid('page_manifest_mapping')
+        seen.add(row['file'])
+        rows.append({'page': number, 'file': names[row['file']]})
+    return path, before, json.dumps(
+        {'schema': 1, 'pageCount': len(rows), 'pages': rows}, ensure_ascii=False).encode('utf-8')
+
+
+def _remove_created(entries):
+    """Best-effort rollback of files exclusively created by this invocation."""
+    for path, identity in reversed(entries):
+        try:
+            current = path.lstat()
+            if stat.S_ISREG(current.st_mode) and (current.st_dev, current.st_ino) == identity:
+                path.unlink()
+        except OSError:
+            pass  # Any locked leftovers stay charged to the owning workspace.
+
+
+def wrap_native_metafiles(paths, target, *, cancel=None):
+    """Compress complete native vectors and retarget their page list together.
+
+    Files live in a private, unpublished task workspace. Keep every native
+    intermediate and the old manifest until ALL gzip readbacks pass. On an
+    earlier failure, remove only our exclusively created containers. Final
+    manifest replacement/intermediate deletion is not a filesystem transaction:
+    a cleanup error is still an error, and valid containers remain in the owned
+    workspace rather than being destroyed after their plain originals are gone.
+    """
+    plain = COMPRESSED_METAFILES.get(target)
+    if not plain:
+        raise ValueError('Unsupported compressed metafile target')
+    _cancel(cancel)
+    inputs = [Path(p) for p in paths]
+    keys = [os.path.abspath(p).casefold() for p in inputs]
+    if len(keys) != len(set(keys)):
+        _invalid('duplicate_input')
+    primaries = [p for p in inputs if p.suffix.lower() == '.' + plain]
+    if not primaries:
+        _invalid('primary_missing')
+    if len(primaries) > _METAFILE_PAGE_LIMIT:
+        _invalid('page_budget')
+    replacements = {p: p.with_suffix('.' + target) for p in primaries}
+    manifest = _retarget_page_manifest(inputs, primaries, replacements)
+    outputs = [replacements.get(p, p) for p in inputs]
+    evidence, owned, snapshots = [], [], []
+    manifest_temp = []
+    committing = False
+    try:
+        for source, output in replacements.items():
+            _cancel(cancel)
+            snapshot = source.lstat()
+            facts = inspect_metafile(source, plain, cancel=cancel)
+            if _stat_token(snapshot) != _stat_token(source.lstat()):
+                _invalid('source_changed')
+            snapshots.append((source, snapshot))
+            # Exclusive final names eliminate the old exists()+replace() race.
+            # These private bytes are not returned to Guard before readback.
+            if os.path.lexists(output.with_name(output.name + '.partial')):
+                _invalid('output_collision')
+            original_hash = hashlib.sha256()
+            original_size = 0
+            with source.open('rb') as incoming:
+                initial = os.fstat(incoming.fileno())
+                if _stat_token(initial) != _stat_token(snapshot):
+                    _invalid('source_changed')
+                try:
+                    raw = output.open('xb')
+                except FileExistsError:
+                    _invalid('output_collision')
+                with raw:
+                    created = os.fstat(raw.fileno())
+                    owned.append((output, (created.st_dev, created.st_ino)))
+                    with gzip.GzipFile(filename='', fileobj=raw, mode='wb', mtime=0) as compressed:
+                        while True:
+                            _cancel(cancel)
+                            block = incoming.read(64 * 1024)
+                            if not block:
+                                break
+                            original_hash.update(block)
+                            original_size += len(block)
+                            compressed.write(block)
                 end = os.fstat(incoming.fileno())
-                if (_stat_token(initial) != _stat_token(end) or
-                        _stat_token(end) != _stat_token(source.lstat()) or
-                        original_size != facts['bytes']):
+                if (_stat_token(initial) != _stat_token(end)
+                        or _stat_token(end) != _stat_token(source.lstat())
+                        or original_size != facts['bytes']
+                        or original_hash.hexdigest() != facts['sha256']):
                     _invalid('source_changed')
             expanded_hash = hashlib.sha256()
             expanded_size = 0
-            with gzip.open(temporary, 'rb') as verified:
+            with gzip.open(output, 'rb') as verified:
                 while True:
                     _cancel(cancel)
                     block = verified.read(64 * 1024)
@@ -189,20 +382,40 @@ def wrap_native_metafiles(paths, target, *, cancel=None):
                         break
                     expanded_hash.update(block)
                     expanded_size += len(block)
+                    if expanded_size > original_size:
+                        _invalid('gzip_readback_mismatch')
             if expanded_size != original_size or expanded_hash.digest() != original_hash.digest():
                 _invalid('gzip_readback_mismatch')
+            evidence.append({**facts, 'file': output.name, 'sha256': original_hash.hexdigest()})
+        if manifest:
+            path, before, payload = manifest
+            fd, name = tempfile.mkstemp(prefix='.aio-pages-', suffix='.partial', dir=path.parent)
+            temporary = Path(name)
+            with os.fdopen(fd, 'wb') as stream:
+                created = os.fstat(stream.fileno())
+                manifest_temp.append((temporary, (created.st_dev, created.st_ino)))
+                stream.write(payload)
+            if temporary.read_bytes() != payload:
+                _invalid('page_manifest_readback')
+        # Cheap identity checks only; no additional native import or full scan.
+        for source, snapshot in snapshots:
             _cancel(cancel)
-            os.replace(temporary, output)
-            staged.remove(temporary)
-            outputs[outputs.index(source)] = output
-            evidence.append({**facts, 'sha256': original_hash.hexdigest()})
-        # Remove only private intermediate plain exports after all containers
-        # have passed readback; return no unrequested duplicate plain files.
+            if _stat_token(source.lstat()) != _stat_token(snapshot):
+                _invalid('source_changed')
+        if manifest:
+            if _stat_token(path.lstat()) != _stat_token(before):
+                _invalid('page_manifest_changed')
+            _cancel(cancel)
+            os.replace(temporary, path)  # Replace only the validated native sidecar.
+        committing = True
         for source in primaries:
+            _cancel(cancel)
             source.unlink()
         return outputs, {'check': 'native_metafile_gzip', 'status': 'byte_preserved',
             'plainFormat': plain, 'containerFormat': target, 'files': len(evidence),
-            'metafiles': evidence, 'qualityCompared': False}
+            'metafiles': evidence, 'qualityCompared': False,
+            **({'pageManifest': {'file': path.name, 'pageCount': len(primaries)}} if manifest else {})}
     finally:
-        for temporary in staged:
-            temporary.unlink(missing_ok=True)
+        _remove_created(manifest_temp)
+        if not committing:
+            _remove_created(owned)

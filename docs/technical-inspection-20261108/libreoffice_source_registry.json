@@ -1,0 +1,568 @@
+{
+  "schema": 1,
+  "retrieved_at_utc": "2026-11-08T04:44:55.770303+00:00",
+  "scope": "External official documentation, Bugzilla metadata/comments and user reports; not universal LO fidelity acceptance",
+  "target_context": "AIO patch103 initial head660b470; localLO26.8alpha and pinnedWindows26.8.2 must be checked independently",
+  "primary_sources_count": 16,
+  "sources": [
+    {
+      "id": "LO-S01",
+      "name": "ms_limitations",
+      "url": "https://help.libreoffice.org/latest/en-US/text/shared/guide/ms_import_export_limitations.html",
+      "kind": "official_help",
+      "title": "About Converting Microsoft Office Documents",
+      "finding_ru": "Сложная верстка Office и некоторые свойства обрабатываются иначе либо не поддерживаются. Официально перечислены Word AutoShapes/ревизии/OLE/поля/индексы/таблицы/frames/колонки/ссылки/WordArt, PowerPoint master background/grouping/multimedia и Excel pivot/new charts/conditional formatting/functions. Есть конкретный пример разных результатов SUM для логических ячеек Calc и Excel.",
+      "claim_boundary_ru": "Это общая официальная граница совместимости, а не доказательство потери в каждом DOCX/XLSX/PPTX. Документирование функции не означает её полного отсутствия или обязательной порчи.",
+      "aio_responsibility_ru": "Нельзя удостоверять полную сохранность только по открытию файла или успешному native export. Сохранять исходник, фиксировать класс непроверенных свойств, сравнивать маркеры, числа и визуальные эталоны отдельно.",
+      "short_quote": "some layout features and formatting attributes ... are handled differently ... or are unsupported",
+      "evidence_files": [
+        {
+          "file": "official_ms_limitations.raw",
+          "bytes": 18086,
+          "sha256": "bc7a4e0dfa2ba93745e7f470323d7f267785e4d4fddc8d758ebd6f1dac45b7f5"
+        }
+      ],
+      "page_version": "LibreOffice 26.8 Help"
+    },
+    {
+      "id": "LO-S02",
+      "name": "pdf_general",
+      "url": "https://help.libreoffice.org/latest/en-US/text/shared/01/ref_pdf_export_general.html",
+      "kind": "official_help",
+      "title": "PDF Export General",
+      "finding_ru": "JPEG compression и понижение DPI меняют пиксели. EPS с embedded preview попадает в PDF только как preview, а EPS без preview — как пустой placeholder. Настройки print ranges, comments, hidden slides, notes и blank pages меняют экспортируемый состав и иногда масштаб страницы.",
+      "claim_boundary_ru": "Ограничение EPS прямо документировано. Потеря интерактивной семантики при PDF сама по себе не является багом; выбранная print/export policy должна быть определена заранее.",
+      "aio_responsibility_ru": "Явно задавать применимые параметры; не выдавать nonempty PDF/одинаковое число страниц за наличие исходного EPS. Описывать ожидаемые потери и не включать hidden/private content автоматически ради формального числа страниц.",
+      "short_quote": "EPS images without embedded previews are exported as empty placeholders.",
+      "evidence_files": [
+        {
+          "file": "official_pdf_export.raw",
+          "bytes": 23771,
+          "sha256": "b6b9934e174af640842241cbb1b3d69c4fff2b92272b622fa64161c5a1885e28"
+        }
+      ],
+      "page_version": "LibreOffice 26.8 Help"
+    },
+    {
+      "id": "LO-S03",
+      "name": "pdf_parameters",
+      "url": "https://help.libreoffice.org/latest/en-US/text/shared/guide/pdf_params.html",
+      "kind": "official_help",
+      "title": "PDF Export Command Line Parameters",
+      "finding_ru": "По документации UseLosslessCompression по умолчанию false, JPEG Quality=90, ReduceImageResolution=false; MaxImageResolution=300 применяется при включённом resampling. ExportNotes/ExportNotesPages/ExportHiddenSlides по умолчанию false. SinglePageSheets игнорирует print ranges и hidden status; EmbedStandardFonts касается именно 14 стандартных PDF fonts, а не всех шрифтов документа.",
+      "claim_boundary_ru": "Это значения документированных defaults, не измерение текущего пользовательского профиля. Параметры может переопределить AIO или конфигурация LO. Lossless не восстанавливает то, что потеряно уже при импорте.",
+      "aio_responsibility_ru": "В начальном коде 660b470 lossless/no-resample были реализованы в optional automatic_recipe (pdf_preserve_images), но не в ordinary native_export_recipe. Первичный Guard и legacy должны проверяться отдельно. Нельзя менять состав notes/slides произвольно. После исправления отмечать baseline отдельно от final.",
+      "short_quote": "Specifies if images are exported to PDF using a lossless compression format like PNG or compressed using the JPEG format.",
+      "evidence_files": [
+        {
+          "file": "official_pdf_params.raw",
+          "bytes": 76300,
+          "sha256": "c90cb85ff5e46cf968e3304abbaa1065454502472eca41c0af04e84b9aeb1162"
+        }
+      ],
+      "page_version": "LibreOffice 26.8 Help",
+      "aio_initial_code": "660b47002672a3ad86e4ce8b1cd7c514df178295",
+      "aio_code_locations": [
+        "app_backend/converter_guard/export_recipe.py:199",
+        "app_backend/converter_guard/export_recipe.py:225",
+        "app_backend/converter_guard/uno_session.py:45"
+      ],
+      "companion_local_probe": "/workspace/scratch/aio-deep-20261108/engine/native_boundary/evidence.json",
+      "companion_probe_note": "Engine agent reports real PNG→PDF default JPEG pixel changes versus exact lossless pixels; parent integrates actual evidence and final patch status."
+    },
+    {
+      "id": "LO-S04",
+      "name": "fonts",
+      "url": "https://help.libreoffice.org/latest/en-US/text/shared/optionen/01010700.html",
+      "kind": "official_help",
+      "title": "Fonts",
+      "finding_ru": "Отсутствующий шрифт может заменяться ОС/LO; замена влияет на экран и печать, но не меняет сохранённое имя шрифта в документе. Поэтому метрика font family в XML не доказывает одинаковый рендеринг.",
+      "claim_boundary_ru": "Это ограничение окружения/настройки, не автоматически ошибка парсера LO. Даже открытие на другой машине с тем же XML может дать другой перенос строк и пагинацию.",
+      "aio_responsibility_ru": "Фиксировать набор реально установленных шрифтов и фактическую замену; для эталона использовать ту же версию шрифта и движка. Не обещать исправление просто сохранением исходного font name.",
+      "short_quote": "The replacement does not change the font settings that are saved in the document.",
+      "evidence_files": [
+        {
+          "file": "official_font_substitution.raw",
+          "bytes": 14729,
+          "sha256": "69580c2a607cd80e582b5642a111ef43228ce89170cc35ea6a4e201265db1dc5"
+        }
+      ],
+      "page_version": "LibreOffice 26.8 Help"
+    },
+    {
+      "id": "LO-S05",
+      "name": "csv_scope",
+      "url": "https://help.libreoffice.org/latest/en-US/text/scalc/guide/csv_files.html",
+      "kind": "official_help",
+      "title": "Opening and Saving Text CSV Files",
+      "finding_ru": "Обычный CSV сохраняет только данные одного листа; оформление и редактируемые формулы не сохраняются. Отдельная официальная страница csv_formula показывает явный выбор формул-текста либо рассчитанных значений.",
+      "claim_boundary_ru": "CSV — однотабличный текстовый формат; это ожидаемая потеря свойств формата. При этом CLI/UNO имеет специальные способы экспортировать несколько листов в несколько файлов, поэтому нельзя говорить «LO никогда не умеет все листы».",
+      "aio_responsibility_ru": "Проверять все листы/выходные имена и manifests; явно обозначать values-versus-formulas policy и потерю оформления. Native first-sheet success без такой политики не равен полному преобразованию книги.",
+      "short_quote": "only the data on the current sheet is saved. All other information, including formulas and formatting, is lost.",
+      "evidence_files": [
+        {
+          "file": "official_csv.raw",
+          "bytes": 15320,
+          "sha256": "16cad005b01a209a75b231ec48e37377b2221110a3a04a7fb7a6d9b187675087"
+        },
+        {
+          "file": "official_csv_formula.raw",
+          "bytes": 13815,
+          "sha256": "6567ddf8a1baec4e51a0d1865507658363a02ff09a2fb7be0a7d60349ff72425"
+        }
+      ],
+      "page_version": "LibreOffice 26.8 Help",
+      "related_urls": [
+        "https://help.libreoffice.org/latest/en-US/text/scalc/guide/csv_formula.html"
+      ]
+    },
+    {
+      "id": "LO-S06",
+      "name": "csv_parameters",
+      "url": "https://help.libreoffice.org/latest/en-US/text/shared/guide/csv_params.html",
+      "kind": "official_help",
+      "title": "CSV Filter Parameters",
+      "finding_ru": "CSV-параметры управляют charset, delimiters, quoted-as-text, special-number detection, display-versus-raw values, formula evaluation и export sheets. Save cell contents as shown по умолчанию true может фиксировать уже округлённый вид; number/date/formula inference может изменить исходный текст.",
+      "claim_boundary_ru": "Само наличие токенов не доказывает, что AIO передало их правильному import/export filter. Выбор безопасного представления зависит от типа исходника и целевого формата.",
+      "aio_responsibility_ru": "Явно задавать import/export policies раздельно, защищать leading zeros/long IDs/formula-like literals, проверять типы и точные значения независимым парсером. Не объявлять формулой текст только из-за знака =.",
+      "short_quote": "Save cell contents as shown ... Default value: true.",
+      "evidence_files": [
+        {
+          "file": "official_csv_params.raw",
+          "bytes": 56797,
+          "sha256": "b83c6806d10b476948e0fc7c270152d068f790ddec9607aa1499821b2536aab1"
+        }
+      ],
+      "page_version": "LibreOffice 26.8 Help"
+    },
+    {
+      "id": "LO-S07",
+      "name": "filter_inventory",
+      "url": "https://help.libreoffice.org/latest/en-US/text/shared/guide/convertfilters.html",
+      "kind": "official_help",
+      "title": "File Conversion Filter Names",
+      "finding_ru": "Фильтры и расширения привязаны к моделям документов Writer/Calc/Draw/Impress и параметрам. Наличие совпадающего расширения не означает подходящий exporter для произвольной модели.",
+      "claim_boundary_ru": "Таблица возможностей не является обещанием полной сохранности каждой импортированной особенности. Не все расширения имеют экспортный фильтр, и некоторые имена охватывают разные диалекты.",
+      "aio_responsibility_ru": "Продолжать использовать runtime registry/native proof, отличать импорт от экспорта и actual model от suffix. Unsupported route сообщать явно, а не переименовывать другой результат в нужный suffix.",
+      "short_quote": "",
+      "evidence_files": [
+        {
+          "file": "official_filters.raw",
+          "bytes": 123286,
+          "sha256": "40d684c22802d6349cf578e2ef75c0ae2726805fe44988497c10f13a7ad759ba"
+        }
+      ],
+      "page_version": "LibreOffice 26.8 Help"
+    },
+    {
+      "id": "LO-S08",
+      "name": "bug_134670",
+      "url": "https://bugs.documentfoundation.org/show_bug.cgi?id=134670",
+      "kind": "official_bugtracker_report",
+      "title": "FILEOPEN DOCX : The use of vertical and horizontal typesetting results in the loss of text content and typesetting style",
+      "finding_ru": "DOCX со смешанным вертикальным/горизонтальным CJK-набором терял текст и оформление при импорте; есть минимальный публичный DOCX reproducer.",
+      "claim_boundary_ru": "Статус NEW подтверждает открытое сообщение, но не воспроизведение в точном Windows LO 26.8.2 или Linux LO 26.8alpha этой среды. Последнее обновление 2026-08-27 — автоматический QA MassPing, а не retest 26.8.",
+      "aio_responsibility_ru": "Подобные тексты требуют отдельного sentinel/visual oracle; подсчёт paragraph/file existence недостаточен. Сначала повторить fixture на точном engine; не переносить старый LO bug в список исправленных AIO bugs.",
+      "short_quote": "",
+      "evidence_files": [
+        {
+          "file": "bug_134670.json",
+          "bytes": 397,
+          "sha256": "1b84919ddc69e983cc08af9bdc4328d0e7252bec21fd9c97bb07513a4f63c655"
+        },
+        {
+          "file": "bug_134670_comments.json",
+          "bytes": 7059,
+          "sha256": "c1555f29819294a0a14c9de69d1bdf8563070f77a092299294e99be9598811da"
+        }
+      ],
+      "tracker_status": "NEW",
+      "tracker_resolution": "",
+      "tracker_version_field": "4.1 all versions",
+      "created_at": "2020-07-09T03:10:46Z",
+      "last_change_at": "2026-08-27T03:15:22Z",
+      "last_meaningful_retest": {
+        "date": "2023-06-08",
+        "version": "7.6+",
+        "note": "comment: repro 7.6+"
+      },
+      "local_reproduction": "NOT_RUN by this research task",
+      "tracker_version_field_note": "Earliest/report version field, not a complete current affected-version range"
+    },
+    {
+      "id": "LO-S09",
+      "name": "bug_169772",
+      "url": "https://bugs.documentfoundation.org/show_bug.cgi?id=169772",
+      "kind": "official_bugtracker_report",
+      "title": "Calc ignores cell line breaks when opening .xlsx files containing multiple sheets — occasional loss of newline in cells (≈1 in 30 opens)",
+      "finding_ru": "В многостраничных XLSX иногда пропадали/игнорировались внутренние переводы строк ячейки; reporter оценивал частоту около 1/30 открытий. Подтверждено на Windows 26.2.2.2, регрессия связана с импортом multiline text начиная с 7.6beta.",
+      "claim_boundary_ru": "Статус NEW подтверждает открытое сообщение, но не воспроизведение в точном Windows LO 26.8.2 или Linux LO 26.8alpha этой среды. ",
+      "aio_responsibility_ru": "Не нормализовать все пробелы до проверки значимых linebreaks/строк; для вероятностного дефекта один успешный импорт не является достаточным отрицательным тестом. Повторять на копиях и фиксировать wrap-text/rendering отдельно от фактических символов ячейки.",
+      "short_quote": "",
+      "evidence_files": [
+        {
+          "file": "bug_169772.json",
+          "bytes": 420,
+          "sha256": "74ba42851676cc423feca89dc57f0f42f8b6dfea83805d4220c220de1bc3804c"
+        },
+        {
+          "file": "bug_169772_comments.json",
+          "bytes": 5100,
+          "sha256": "9167466f94725c8ef7f1be30aa81764d1c92e1f1401ccbeb6407ec9dacad7f1e"
+        }
+      ],
+      "tracker_status": "NEW",
+      "tracker_resolution": "",
+      "tracker_version_field": "7.6.0.0 beta1+",
+      "created_at": "2025-12-01T03:07:47Z",
+      "last_change_at": "2026-10-14T11:04:35Z",
+      "last_meaningful_retest": {
+        "date": "2026-04-18",
+        "version": "26.2.2.2 Windows; 7.6.7.2 Windows",
+        "note": "comment reports reproduced; 7.5.9.2 did not reproduce after 40 opens"
+      },
+      "local_reproduction": "NOT_RUN by this research task",
+      "tracker_version_field_note": "Earliest/report version field, not a complete current affected-version range"
+    },
+    {
+      "id": "LO-S10",
+      "name": "bug_122155",
+      "url": "https://bugs.documentfoundation.org/show_bug.cgi?id=122155",
+      "kind": "official_bugtracker_report",
+      "title": "FILESAVE Export to formats that don't include margins (PNG and GIF with transparency; EMF; WMF; EPS) is distorted / stretched",
+      "finding_ru": "Draw-экспорт в некоторые прозрачные raster/metafile форматы растягивал рисунок при различии полей страницы и области содержимого. В комментарии отдельно подтверждены PNG/GIF при transparency, EMF/WMF/EPS.",
+      "claim_boundary_ru": "Статус NEW подтверждает открытое сообщение, но не воспроизведение в точном Windows LO 26.8.2 или Linux LO 26.8alpha этой среды. ",
+      "aio_responsibility_ru": "Сравнивать aspect ratio/геометрию объектов, а не только размер canvas и число страниц. Не отключать transparency молча ради прохождения теста; это меняет исходную визуальную семантику.",
+      "short_quote": "",
+      "evidence_files": [
+        {
+          "file": "bug_122155.json",
+          "bytes": 789,
+          "sha256": "759ef93718507c8e238e258fc28b3d0c7cfff347a75e0188eceecd9b5d063343"
+        },
+        {
+          "file": "bug_122155_comments.json",
+          "bytes": 7758,
+          "sha256": "5d7246149d05ef0bcbdefb671fd950de6eee94915efdf7b3191561408d2f37bb"
+        }
+      ],
+      "tracker_status": "NEW",
+      "tracker_resolution": "",
+      "tracker_version_field": "3.4.0 release",
+      "created_at": "2018-12-17T13:42:09Z",
+      "last_change_at": "2026-03-15T01:08:54Z",
+      "last_meaningful_retest": {
+        "date": "2024-06-18",
+        "version": "24.8.0.0.alpha1+ Linux",
+        "note": "PNG/GIF issue not reproduced when transparency off; EMF has no such option"
+      },
+      "local_reproduction": "NOT_RUN by this research task",
+      "tracker_version_field_note": "Earliest/report version field, not a complete current affected-version range"
+    },
+    {
+      "id": "LO-S11",
+      "name": "bug_162775",
+      "url": "https://bugs.documentfoundation.org/show_bug.cgi?id=162775",
+      "kind": "official_bugtracker_report",
+      "title": "Exporting .ods graph to .svg image loses x-axis graph values",
+      "finding_ru": "При экспорте ODS-графика в SVG пропадали подписи значений x-axis; PNG/JPEG в этом сообщении работали ожидаемо. Непустой SVG не доказывает сохранность графика.",
+      "claim_boundary_ru": "Статус NEW подтверждает открытое сообщение, но не воспроизведение в точном Windows LO 26.8.2 или Linux LO 26.8alpha этой среды. Обновление 2026-09-23 — QA MassPing, не свежая успешная/неуспешная проверка.",
+      "aio_responsibility_ru": "Проверять labels/legend и видимость текста в SVG; наличие текста в source model или пустых defs не является доказательством видимой подписи. Если нужен workaround raster, явно указать rasterization.",
+      "short_quote": "",
+      "evidence_files": [
+        {
+          "file": "bug_162775.json",
+          "bytes": 329,
+          "sha256": "02d595b8b50c389282b4bd17cb410f96267cdcca4adb3c3bcef7c80a5879cbd6"
+        },
+        {
+          "file": "bug_162775_comments.json",
+          "bytes": 3765,
+          "sha256": "3843cd3ad7dc78be740fd58ccabd80e3b882be39c209cb9bff75686a2a3d65a1"
+        }
+      ],
+      "tracker_status": "NEW",
+      "tracker_resolution": "",
+      "tracker_version_field": "24.8.0.3 release",
+      "created_at": "2024-09-03T17:29:36Z",
+      "last_change_at": "2026-09-23T04:18:05Z",
+      "last_meaningful_retest": {
+        "date": "2024-09-03",
+        "version": "25.2.0.0.alpha0+ Windows"
+      },
+      "local_reproduction": "NOT_RUN by this research task",
+      "tracker_version_field_note": "Earliest/report version field, not a complete current affected-version range"
+    },
+    {
+      "id": "LO-S12",
+      "name": "bug_163607",
+      "url": "https://bugs.documentfoundation.org/show_bug.cgi?id=163607",
+      "kind": "official_bugtracker_report",
+      "title": "PDF: slow export with \"reduce image resolution\" or \"JPEG compression\"",
+      "finding_ru": "PDF export с JPEG compression и resampling был существенно медленнее lossless/no-resample. В сообщении 26.2alpha приведены около 6s с JPEG90/300DPI против около 2s без одного из этих преобразований. В 2026-07 подтверждено воспроизведение на developer 27.2alpha.",
+      "claim_boundary_ru": "Статус NEW подтверждает открытое сообщение, но не воспроизведение в точном Windows LO 26.8.2 или Linux LO 26.8alpha этой среды. ",
+      "aio_responsibility_ru": "Измерять import/export/validation/save раздельно и прогонять несколько повторов. Lossless может одновременно улучшить качество и сократить перекодирование, но увеличивает байты; универсального обещания ускорения нет. Не выключать PDF/A/tagging без явной политики.",
+      "short_quote": "",
+      "evidence_files": [
+        {
+          "file": "bug_163607.json",
+          "bytes": 346,
+          "sha256": "3729130af9e40d9d2e0f603e67bfdb8d6b94a8cf7a2c4ab8d3ca43c8b2fa09cd"
+        },
+        {
+          "file": "bug_163607_comments.json",
+          "bytes": 8902,
+          "sha256": "d7f7d47a0137ab1b12aadc96847cb1cfc2d8f6de8548c52ee8660b8333273914"
+        }
+      ],
+      "tracker_status": "NEW",
+      "tracker_resolution": "",
+      "tracker_version_field": "24.2.6.2 release",
+      "created_at": "2024-10-24T16:06:42Z",
+      "last_change_at": "2026-07-07T18:56:30Z",
+      "last_meaningful_retest": {
+        "date": "2026-07-07",
+        "version": "27.2.0.0.alpha0+ Linux",
+        "note": "Still repro; earlier 26.2alpha A/B and public ODP attachment203331"
+      },
+      "local_reproduction": "NOT_RUN by this research task",
+      "tracker_version_field_note": "Earliest/report version field, not a complete current affected-version range",
+      "companion_current_measurement": {
+        "evidence_file": "/workspace/scratch/aio-deep-20261108/performance/official-lo-native-benchmark.json",
+        "engineVersion": "LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5",
+        "scope": "one ordered sample per option, cold private LO profile; absolute times include startup; not a statistical benchmark, visual certification or AIO overhead measurement",
+        "runs": [
+          {
+            "bug": 163607,
+            "setting": "jpeg90_300dpi",
+            "elapsedMs": 4571.228,
+            "sourceBytes": 516075,
+            "sourceSha256": "a12f6ee3711c87e6fadc10c70be8e559b47011f12c642dcc01cac639ad510b32",
+            "pdfBytes": 593308,
+            "pdfPages": 32,
+            "firstPageRgbSha256": "c0b75c5744e188218cff13cd2801b74050438509e27fa01e015c0f22c00a4731",
+            "originalUnchanged": true
+          },
+          {
+            "bug": 163607,
+            "setting": "lossless_no_resample",
+            "elapsedMs": 1406.336,
+            "sourceBytes": 516075,
+            "sourceSha256": "a12f6ee3711c87e6fadc10c70be8e559b47011f12c642dcc01cac639ad510b32",
+            "pdfBytes": 668296,
+            "pdfPages": 32,
+            "firstPageRgbSha256": "e1e25ca4b597b91c58fb492b9274aa519a72f6c88dcb7fb458bab6af693ef961",
+            "originalUnchanged": true
+          }
+        ],
+        "interpretation_ru": "На публичном ODP lossless/no-resample дал1.406s вместо4.571s для JPEG90/300DPI; размерPDF вырос668296 вместо593308B. Это один ordered cold-profile sample, не статистическое ускорение и не полная visual equivalence."
+      }
+    },
+    {
+      "id": "LO-S13",
+      "name": "bug_140963",
+      "url": "https://bugs.documentfoundation.org/show_bug.cgi?id=140963",
+      "kind": "official_bugtracker_report",
+      "title": "SVG in Writer leads to huge and slow-rendering PDF export",
+      "finding_ru": "Вставленный SVG около 400KiB приводил к PDF около 13MB с медленным рендерингом в нескольких viewers. Есть публичные ODT/SVG/PDF и повторные подтверждения на 24.8,25.2 и 26.2alpha.",
+      "claim_boundary_ru": "Статус NEW подтверждает открытое сообщение, но не воспроизведение в точном Windows LO 26.8.2 или Linux LO 26.8alpha этой среды. ",
+      "aio_responsibility_ru": "Проверять не только время конвертации, но output growth и последующий first render/scroll. Нельзя молча rasterize vector ради уменьшения файла; это отдельная quality tradeoff.",
+      "short_quote": "",
+      "evidence_files": [
+        {
+          "file": "bug_140963.json",
+          "bytes": 348,
+          "sha256": "6a687ec3b531f5ae5d79bfb2462e56987a53898ed8997b998f453f982fa409e6"
+        },
+        {
+          "file": "bug_140963_comments.json",
+          "bytes": 8948,
+          "sha256": "d8b15b0be382df38e47794dcfb27bac3e5cca0e505bc398837c2103bed9cf213"
+        }
+      ],
+      "tracker_status": "NEW",
+      "tracker_resolution": "",
+      "tracker_version_field": "7.1.0.3 release",
+      "created_at": "2021-03-11T21:33:59Z",
+      "last_change_at": "2025-09-10T17:03:49Z",
+      "last_meaningful_retest": {
+        "date": "2025-09-10",
+        "version": "26.2.0.0.alpha0+ Linux"
+      },
+      "local_reproduction": "NOT_RUN by this research task",
+      "tracker_version_field_note": "Earliest/report version field, not a complete current affected-version range",
+      "companion_current_measurement": {
+        "evidence_file": "/workspace/scratch/aio-deep-20261108/performance/official-lo-native-benchmark.json",
+        "engineVersion": "LibreOfficeDev 26.8.0.0.alpha0 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5",
+        "scope": "one ordered sample per option, cold private LO profile; absolute times include startup; not a statistical benchmark, visual certification or AIO overhead measurement",
+        "runs": [
+          {
+            "bug": 140963,
+            "setting": "jpeg90_300dpi",
+            "elapsedMs": 3621.031,
+            "sourceBytes": 215723,
+            "sourceSha256": "ea18007a72c80821876282488eb6a5896393bbee2e88ec84156ae4ae01180c8d",
+            "pdfBytes": 13707962,
+            "pdfPages": 1,
+            "firstPageRgbSha256": "f25f174eb93675e003d6b8c0669d3dee21dc0de69373db3daba819ba1fd63631",
+            "originalUnchanged": true
+          },
+          {
+            "bug": 140963,
+            "setting": "lossless_no_resample",
+            "elapsedMs": 3906.054,
+            "sourceBytes": 215723,
+            "sourceSha256": "ea18007a72c80821876282488eb6a5896393bbee2e88ec84156ae4ae01180c8d",
+            "pdfBytes": 13707962,
+            "pdfPages": 1,
+            "firstPageRgbSha256": "f25f174eb93675e003d6b8c0669d3dee21dc0de69373db3daba819ba1fd63631",
+            "originalUnchanged": true
+          }
+        ],
+        "interpretation_ru": "Публичный ODT215723B далPDF13707962B при обоих наборах image options; экспорт3.621/3.906s, first-page RGB hashes совпали между двумя options. Это подтверждает growth на текущем Linux engine, но не измеряет latency разных PDF viewers и не объявляет проблему исправленной."
+      }
+    },
+    {
+      "id": "LO-S14",
+      "name": "ask_pdf_images",
+      "url": "https://ask.libreoffice.org/t/image-quality-problem-during-word-to-pdf-document-conversion/88258",
+      "kind": "user_report",
+      "title": "Image Quality problem during Word to Pdf Document Conversion",
+      "finding_ru": "Пользователь LO 7.4 сообщил о низком качестве изображений после обычного headless DOC/DOCX→PDF и привёл CLI-команду без FilterData.",
+      "claim_boundary_ru": "Сообщение 2023-02-20 не содержит независимой причины, эталона или принятого решения. Это отзыв/симптом, не доказательство актуального бага 26.8.2. Возможная роль defaults объясняется официальными S02–S03 и должна подтверждаться A/B на своём файле.",
+      "aio_responsibility_ru": "Не обобщать жалобу до «весь LO портит картинки». Сравнить primary/default export с explicit lossless/no-resample и исходными pixels; фиксировать параметры конкретного запуска.",
+      "short_quote": "the image Quality after conversion is very low",
+      "evidence_files": [
+        {
+          "file": "ask_image_quality.raw",
+          "bytes": 11281,
+          "sha256": "16318bb60bc404826f6a73668ead13d83d0b334280b4d948086f803d6d2e025e"
+        }
+      ],
+      "reported_version": "7.4",
+      "created_at": "2023-02-20T10:59:30Z",
+      "local_reproduction": "NOT_RUN for this reporter document"
+    },
+    {
+      "id": "LO-S15",
+      "name": "ask_sheet_pdf",
+      "url": "https://ask.libreoffice.org/t/how-to-convert-a-huge-xls-to-pdf-using-lo-cli/36024",
+      "kind": "user_report_with_followup",
+      "title": "How to convert a huge xls to pdf using LO CLI",
+      "finding_ru": "Исторический пользовательский пример разделения широких колонок по страницам XLS→PDF. Ответ указывал на print scaling; автор затем сообщил, что новая версия LO решила первоначальный случай, но задавал отдельный вопрос о качестве изображений.",
+      "claim_boundary_ru": "Первый пример относится к 5.4.2.2 в 2018 году. Внутри самого обсуждения есть сообщение об улучшении после обновления, поэтому нельзя включать его как текущий незакрытый bug. Его «CLI не умеет» нельзя переносить на современные SinglePageSheets/UNO настройки без проверки.",
+      "aio_responsibility_ru": "Определить print ranges/scaling и нужную пагинацию; не путать ожидаемое разбиение печатного листа с потерей ячеек. Не включать SinglePageSheets молча: этот режим включает даже hidden sheets.",
+      "short_quote": "",
+      "evidence_files": [
+        {
+          "file": "ask_huge_xls.raw",
+          "bytes": 20971,
+          "sha256": "db3c65706d127691559d30203b084236406c4d44f49b62871ea059971e8cf54a"
+        }
+      ],
+      "reported_version": "5.4.2.2",
+      "created_at": "2018-10-02",
+      "local_reproduction": "NOT_RUN for this reporter document"
+    },
+    {
+      "id": "LO-S16",
+      "name": "native_double_roundtrip",
+      "url": "https://bugs.documentfoundation.org/show_bug.cgi?id=174261",
+      "kind": "official_bugtracker_unconfirmed_report",
+      "title": "FILESAVE XLSX: numbers saved with only 15 significant digits, so values change on round-trip",
+      "finding_ru": "Свежий reporter claim для 26.8.2: XLSX сохраняет 0.333333333333333 вместо 0.3333333333333333 и 0.3 вместо 0.30000000000000004; заявлены изменённые doubles при массовом round-trip. Это отличается от первоначального импорта неизвестной схемы CSV.",
+      "claim_boundary_ru": "Статус именно UNCONFIRMED, а не NEW/FIXED; численные 500000/447375 — утверждение автора сообщения, не измерение AIO-аудита. Поле version26.8.2.2 не заменяет локальный repro на pinned engine.",
+      "aio_responsibility_ru": "Отдельно сравнивать raw XML numeric tokens и фактические doubles до и после native XLSX/FODS round-trip. Не смешивать с уже исправленным integer-case160985 или schema policy CSV. Окончательный статус локальных измерений устанавливает engine-аудит.",
+      "short_quote": "",
+      "evidence_files": [
+        {
+          "file": "bug_174261.json",
+          "bytes": 315,
+          "sha256": "5de82ffba7dca42fe3954338b59c6d83da0df393d02777613a0356137d2d8a11"
+        },
+        {
+          "file": "bug_174261_comments.json",
+          "bytes": 1377,
+          "sha256": "bfbbefc871e1c42cccd60fed4c92afe08efc9595bf628246e4303ea968150dcd"
+        }
+      ],
+      "tracker_status": "UNCONFIRMED",
+      "tracker_resolution": "",
+      "tracker_version_field": "26.8.2.2 release",
+      "created_at": "2026-10-31T04:20:35Z",
+      "last_change_at": "2026-10-31T04:26:05Z",
+      "local_reproduction": "NOT_RUN by research task"
+    }
+  ],
+  "auxiliary_checks": [
+    {
+      "id": "LO-H01",
+      "url": "https://bugs.documentfoundation.org/show_bug.cgi?id=149840",
+      "title": "FILEOPEN DOCX SmartArt background shape has wrong size",
+      "status": "RESOLVED",
+      "resolution": "FIXED",
+      "reason_ru": "Проверка против ошибочного включения старого бага: SmartArt background size FIXED; комментарий с commit e4515c1 прямо говорит о включении в LO 7.5.0. Не считать текущей неисправностью 26.8.2 и не называть его случайной порчей значений Calc.",
+      "evidence_files": [
+        "bug_149840.json",
+        "bug_149840_comments.json"
+      ]
+    },
+    {
+      "id": "LO-A01",
+      "url": "https://help.libreoffice.org/latest/en-US/text/shared/guide/ms_user.html",
+      "reason_ru": "Официальная дополнительная страница объясняет несовместимость Microsoft VBA и LO Basic/API; часть Excel VBA может исполняться при специальной настройке, но сохранение исходного VBA и его исполнение — разные контракты. Для AIO не надо включать исполнение макросов ради внешнего вида; проверять сохранение кода и cached values отдельно.",
+      "evidence_files": [
+        "official_ms_compatibility.raw"
+      ]
+    },
+    {
+      "id": "LO-H02",
+      "url": "https://bugs.documentfoundation.org/show_bug.cgi?id=160985",
+      "title": "16-digits integer values rounded to 15 digits when saving to OOXML .xlsx",
+      "status": "RESOLVED",
+      "resolution": "FIXED",
+      "version_field": "4.0.0.3 release",
+      "reason_ru": "Старый integer export-case исправлен; комментарии с commit1ea85e8/49a6950 обещают исправление в24.8.0 и24.2.4. Не выдавать его за открытый баг26.8.2 и не считать все16digitinteger принципиально непредставимыми.",
+      "evidence_files": [
+        "bug_160985.json",
+        "bug_160985_comments.json"
+      ]
+    },
+    {
+      "id": "LO-N01",
+      "url": "https://bugs.documentfoundation.org/show_bug.cgi?id=150635",
+      "status": "RESOLVED",
+      "resolution": "NOTABUG",
+      "reason_ru": "Официальное обсуждение импорта long numeric-looking CSV fields рекомендует форматировать как Text до импорта и подчёркивает отсутствие schema у CSV. Не все десятичные числа точно представимы binary; это не утверждение об универсальной невозможности каждого16digitinteger.",
+      "evidence_files": [
+        "bug_150635.json",
+        "bug_150635_comments.json"
+      ]
+    },
+    {
+      "id": "LO-A02",
+      "url": "https://help.libreoffice.org/latest/en-US/text/shared/optionen/01060500.html",
+      "reason_ru": "Официальная опция Precision as shown управляет расчётами по округлённым отображаемым значениям. Она не документирует универсальную15digit границу для каждого вводимого числа; такого обобщения из неё не делать.",
+      "evidence_files": [
+        "official_calc_calculate.raw"
+      ]
+    }
+  ],
+  "rejected_source_attempts": [
+    {
+      "url": "https://help.libreoffice.org/latest/en-US/text/scalc/guide/rounding.html",
+      "reason": "HTTP200 fallback Writer homepage, not a precision source; do not cite"
+    },
+    {
+      "url": "https://wiki.documentfoundation.org/api.php",
+      "reason": "Bounded precision searches returned zero results; not evidence of absent documentation"
+    }
+  ],
+  "method_notes_ru": [
+    "HTTP snapshots fetched with inherited proxy and TLS verification; no external instructions executed.",
+    "Сначала получены только metadata вложений. Позднее по согласованному запросу performance-аудита скачаны два малых публичных ODP/ODT в fixtures_external для engine-only benchmark; их source URL/date/SHA и статическая ZIP-проверка сохранены в download_manifest.json. Они остаются scratch-only; executable payloads и private originals не загружались.",
+    "NEW + last_change_time не доказывает воспроизведение в целевой версии; QA MassPing отделён от human retest.",
+    "Регистрация фильтра/extension не доказывает visual/content fidelity; macro execution не включался.",
+    "Условия лицензии и footer сторонних страниц сохранены в raw; итоговый текст использует краткие цитаты и пересказ."
+  ]
+}

@@ -65,7 +65,7 @@ class GuardV08Tests(unittest.TestCase):
             with zipfile.ZipFile(stream) as archive:
                 self.assertEqual(set(archive.namelist()),
                     {a['archiveName'] for a in done['result']['outputs']}|
-                    {'AIO-conversion-report.json','AIO-results-manifest.json'})
+                    {'AIO-conversion-report.json','AIO-results-manifest.json','AIO-save-status.json'})
                 report=json.loads(archive.read('AIO-conversion-report.json'))
                 self.assertEqual((report['succeeded'],report['cancelled']),(2,2))
 
@@ -195,7 +195,7 @@ class GuardV08Tests(unittest.TestCase):
                           'pythonHeapPeakMiB':round(peak/1024/1024,2),
                           'elapsedSecondsWithTracemalloc':round(time.monotonic()-started,3)}))
         with guard.open_result(done['result']['ticket']) as (stream,_,_):
-            with zipfile.ZipFile(stream) as archive:self.assertEqual(len(archive.namelist()),1002)
+            with zipfile.ZipFile(stream) as archive:self.assertEqual(len(archive.namelist()),1003)
 
     def test_report_contains_mapping_but_no_download_tokens(self):
         guard=self.guard();job=prepare(guard,['a.csv'])

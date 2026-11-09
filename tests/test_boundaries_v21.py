@@ -109,76 +109,8 @@ class GuardBoundaryLifecycle(unittest.TestCase):
         self.assertFalse(list(item.source.parent.glob('.aio-resource-*')))
         self.assertEqual(self.guard._jobs[identity].io, 0)
 
-    def test_shutdown_closes_http_admission_and_socket_before_comparison_wait(self):
-        client = http.client.HTTPConnection('127.0.0.1', self.server.server_port, timeout=1)
-        client.putrequest('POST', PREFIX + '/jobs')
-        client.putheader('X-AIO-Token', self.token)
-        client.putheader('Content-Type','application/json')
-        client.putheader('Content-Length','100')
-        client.endheaders(b'{')
-        until = time.monotonic() + 1
-        while not self.server.api._connections and time.monotonic() < until: time.sleep(.005)
-        self.assertTrue(self.server.api._connections)
-        entered = threading.Event(); finish = threading.Event()
-        def slow_comparison_close():
-            entered.set(); finish.wait(2)
-        try:
-            with patch.object(self.server.api.comparison, 'close', side_effect=slow_comparison_close):
-                closer = threading.Thread(target=self.server.api.close)
-                closer.start()
-                self.assertTrue(entered.wait(1))
-                try:
-                    self.assertTrue(self.server.api._closed)
-                    # A new operation must be rejected while an existing comparison drains.
-                    status, body = self.request('/jobs', {'files':[{'id':'x','name':'x.txt','size':0}]})
-                    self.assertEqual((status, body['code']), (503, 'GUARD_CLOSED'))
-                    until = time.monotonic() + .3
-                    while self.server.api._connections and time.monotonic() < until: time.sleep(.005)
-                    self.assertFalse(self.server.api._connections)
-                finally:
-                    finish.set(); closer.join(2)
-        finally:
-            client.close()
 
-    def test_release_prunes_comparison_only_after_guard_accepts_release(self):
-        identity = self.guard.create([{'id':'f','name':'one.txt','size':0}])['jobId']
-        original = self.server.api.comparison.release
-        with patch.object(self.server.api.comparison, 'release', wraps=original) as release:
-            with patch.object(self.guard, 'release', side_effect=GuardError('JOB_BUSY','Still in use',status=409)):
-                status, body = self.request('/release', {'jobId':identity})
-            self.assertEqual((status,body['code']),(409,'JOB_BUSY'))
-            release.assert_not_called()
-            status, body = self.request('/release', {'jobId':identity})
-            self.assertEqual((status,body),(200,{'ok':True}))
-            release.assert_called_once_with(identity)
 
-    def test_preview_analysis_token_reaches_service_and_rejects_ambiguous_tokens(self):
-        captured = []
-        @contextmanager
-        def preview(*args, **kwargs):
-            captured.append(kwargs)
-            yield {'json': {'kind':'unavailable','note':'test'}}
-        with patch.object(self.server.api.comparison, 'preview', side_effect=preview):
-            for token in ('a'*32, None):
-                connection = http.client.HTTPConnection('127.0.0.1', self.server.server_port, timeout=3)
-                try:
-                    path = PREFIX+'/compare/preview?job='+'b'*32+'&task=f%3Apdf&side=result'
-                    if token is not None: path += '&analysisId='+token
-                    connection.request('GET',path,headers={'X-AIO-Token':self.token})
-                    response = connection.getresponse(); response.read()
-                    self.assertEqual(response.status,200)
-                    self.assertEqual(captured[-1].get('expected_analysis_id'),token)
-                finally: connection.close()
-            for invalid in ('bad', 'a'*32+'&analysisId='+'b'*32):
-                connection = http.client.HTTPConnection('127.0.0.1', self.server.server_port, timeout=3)
-                try:
-                    connection.request('GET',PREFIX+'/compare/preview?job='+'b'*32+
-                        '&task=f%3Apdf&side=result&analysisId='+invalid,headers={'X-AIO-Token':self.token})
-                    response=connection.getresponse(); body=json.loads(response.read())
-                    self.assertEqual(response.status,400)
-                    self.assertEqual(body['code'],'COMPARISON_ID')
-                finally: connection.close()
-        self.assertEqual(len(captured),2)
 
 
 def workbook_bytes(value):

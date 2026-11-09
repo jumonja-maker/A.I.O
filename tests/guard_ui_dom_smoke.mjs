@@ -81,7 +81,7 @@ assert.equal(reports.at(-1).result.ticket,reports.at(-1).result.downloadUrl.spli
 const resultBeforeNo=reports.at(-1).result.ticket;
 const closeResult=document.querySelector('[data-cv-close-result]');
 assert.deepEqual([...document.querySelector('[data-cv-result-actions]').children].map(b=>b.textContent),
-  ['Закрыть','Сохранить результаты','До/После']);
+  ['Закрыть','Сохранить результаты']);
 closeResult.click();closeResult.click();
 await until(()=>document.querySelector('[data-close-no]'),'unsaved confirmation');
 assert.equal(document.querySelectorAll('.aio-conversion-close-dialog').length,1,'duplicate close has one decision');
@@ -114,8 +114,26 @@ const offered=preflights.at(-1);
 const selected=offered.formats.filter(f=>f.verifiedFileIds.length).map(f=>f.id);
 assert.equal(selected.length,6,'only registered exports enter Select All');
 assert.ok(selected.includes('dbf'));assert.ok(!selected.includes('bmp'));
-const startsBefore=plans.length;
-document.querySelector('[data-cv-select-all-formats]').click();
+const startsBefore=plans.length,checksBeforeSelection=preflights.length;
+const formatsArea=document.querySelector('[data-cv-formats]');
+const pdfChoice=target('PDF'),pdfWrapper=pdfChoice.parentElement;
+formatsArea.scrollTop=283;pdfChoice.click();
+assert.equal(pdfChoice.isConnected,true,'single click preserves the focused card node');
+assert.equal(pdfChoice.parentElement,pdfWrapper);assert.equal(formatsArea.scrollTop,283);
+assert.equal(pdfChoice.getAttribute('aria-pressed'),'true');pdfChoice.click();
+assert.equal(pdfChoice.getAttribute('aria-pressed'),'false');
+const bulk=document.querySelector('[data-cv-select-all-formats]');
+const cardsBeforeSelection=[...formatsArea.children];
+bulk.click();assert.equal(bulk.textContent,'Снять выбор');
+assert.equal(bulk.getAttribute('aria-pressed'),'true');
+assert.deepEqual([...formatsArea.children],cardsBeforeSelection);
+bulk.click();assert.equal(bulk.textContent,'Выбрать всё');
+assert.equal(bulk.getAttribute('aria-pressed'),'false');
+assert.equal(document.querySelectorAll('.aio-cv__format-main[aria-pressed="true"]').length,0);
+assert.equal(run.disabled,true,'deselection cannot leave a stale executable plan');
+assert.equal(formatsArea.scrollTop,283);assert.deepEqual([...formatsArea.children],cardsBeforeSelection);
+bulk.click();assert.equal(bulk.textContent,'Снять выбор');
+assert.equal(preflights.length,checksBeforeSelection,'selection must reuse existing preflight');
 assert.equal(plans.length,startsBefore,'Select All itself must not start conversion');
 run.click();await until(()=>!save.disabled,'preflight filtered three-file conversion');
 const plan=plans.at(-1),report=reports.at(-1);
@@ -185,5 +203,5 @@ assert.equal(document.querySelector('[data-cv-count]').textContent,'0/0');
 console.log(JSON.stringify({status:'PASS',scope:'preserved DOM + real Guard HTTP; synthetic native/save',
   unknownSelectable:true,threeFileSelectAll:true,requestedPairs:8,nativeAttempts:8,unplannedPairs:10,errors:0,
   honestIssues:true,unknownBlockedBeforeStart:true,noAutomaticSelection:true,removalAfterSaveNoPreflight:true,savedChecksClear:true,
-  cancelledJobRetainsCompletedOutput:true,releasedSpool:true,constantThreeActions:true,
+  cancelledJobRetainsCompletedOutput:true,releasedSpool:true,constantTwoActions:true,
   duplicateCloseOneDialog:true,closeNoPreservesResult:true,savedCloseNoQuestion:true,trashClearsInputModel:true}));

@@ -14,6 +14,7 @@ from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 import zipfile
 
+from save_test_support import verify_download_for_test
 from app_backend.converter_guard import ConverterGuard
 from app_backend.converter_guard.http_api import GuardAPI, PREFIX
 from test_converter_guard_v02 import FakeAdapter
@@ -119,7 +120,7 @@ class GuardHTTPTests(unittest.TestCase):
         with self.request(state['result']['downloadUrl'].removeprefix(PREFIX+'/'),auth=False) as response:
             self.assertEqual(response.headers['Content-Type'],'application/zip')
             with zipfile.ZipFile(io.BytesIO(response.read())) as archive:
-                self.assertEqual(len(archive.namelist()),6)  # four outputs + report + hash manifest
+                self.assertEqual(len(archive.namelist()),7)  # four outputs + report + manifest + packaging status
 
     def test_actual_download_does_not_confirm_saved_and_can_be_retried(self):
         state=self.job([('Договор.docx',b'x')],['txt'])
@@ -131,12 +132,17 @@ class GuardHTTPTests(unittest.TestCase):
         self.assertEqual(self.json_request('jobs?job='+state['jobId'])['files'][0]['state'],'ready')
         with self.request(path,auth=False) as response: self.assertEqual(response.read(),b'')
         ticket=path.split('ticket=')[1]
+        with self.assertRaises(HTTPError) as missing:
+            self.json_request('saved',{'jobId':state['jobId'],'ticket':ticket})
+        self.assertEqual(missing.exception.code,409)
+        verify_download_for_test(self, self.guard, ticket)
         saved=self.json_request('saved',{'jobId':state['jobId'],'ticket':ticket})
         self.assertEqual(saved['files'][0]['state'],'saved')
 
     def test_compact_save_acknowledgement_is_explicit_and_bounded(self):
         state=self.job([('first.docx',b'x'),('second.docx',b'x')],['pdf','png'])
         body={'jobId':state['jobId'],'ticket':state['result']['ticket'],'compact':True}
+        verify_download_for_test(self, self.guard, body['ticket'])
         saved=self.json_request('saved',body)
         self.assertTrue(saved['savedAll'])
         self.assertEqual(saved['outputs'],4)

@@ -20,6 +20,8 @@ import tempfile
 from openpyxl import Workbook, load_workbook
 from openpyxl.cell import WriteOnlyCell
 from openpyxl.utils.exceptions import InvalidFileException
+from openpyxl.utils import get_column_letter, column_index_from_string
+from openpyxl.worksheet.page import PageMargins
 
 MAX_INPUT_FILES = 100
 MAX_FILE_BYTES = 20 * 1024 * 1024
@@ -85,8 +87,45 @@ def _read_simple_table(data: bytes, name: str, row_sink=None):
             raise MergeError(f'«{name}»: фильтры, защита или правила оформления пока не поддерживаются.')
         if any(d.hidden for d in ws.row_dimensions.values()) or any(d.hidden for d in ws.column_dimensions.values()):
             raise MergeError(f'«{name}»: скрытые строки или столбцы не поддерживаются.')
+        # Dimension styles are inherited by cells in Excel, but openpyxl does
+        # not materialize that inheritance in cell._style. Copying only the
+        # cells would silently drop default fonts, colors and number formats.
+        # Reject them until the merger can resolve overlapping row/column
+        # defaults without changing the source workbook's display semantics.
+        if any(d.has_style for d in
+               (*ws.row_dimensions.values(), *ws.column_dimensions.values())):
+            raise MergeError(f'«{name}»: оформление целых строк или столбцов пока не поддерживается.')
         if wb._external_links or wb.defined_names:
             raise MergeError(f'«{name}»: внешние ссылки или именованные диапазоны не поддерживаются.')
+        # Sheet-scoped names are NOT included in wb.defined_names. A merge
+        # must not silently discard local names or print metadata.
+        if ws.defined_names:
+            raise MergeError(f'«{name}»: локальные именованные диапазоны листа не поддерживаются.')
+        if ws.print_title_rows or ws.print_title_cols:
+            raise MergeError(f'«{name}»: повторяемые строки или столбцы печати не поддерживаются.')
+        for attr in ('oddHeader', 'oddFooter', 'evenHeader', 'evenFooter',
+                     'firstHeader', 'firstFooter'):
+            field = getattr(ws, attr)
+            if any(getattr(field, section).text for section in ('left', 'center', 'right')):
+                raise MergeError(f'«{name}»: колонтитулы Excel не поддерживаются ({attr}).')
+        if ws.HeaderFooter.differentOddEven or ws.HeaderFooter.differentFirst:
+            raise MergeError(f'«{name}»: особые колонтитулы страниц не поддерживаются.')
+        if any(getattr(ws.page_setup, key) is not None for key in (
+                'orientation', 'paperSize', 'scale', 'fitToWidth', 'fitToHeight',
+                'firstPageNumber', 'useFirstPageNumber', 'blackAndWhite',
+                'draft', 'cellComments', 'errors', 'horizontalDpi', 'verticalDpi')):
+            raise MergeError(f'«{name}»: настройки страницы печати не поддерживаются.')
+        if any(getattr(ws.print_options, key) not in (None, False) for key in (
+                'horizontalCentered', 'verticalCentered', 'headings',
+                'gridLines', 'gridLinesSet')):
+            raise MergeError(f'«{name}»: параметры печати не поддерживаются.')
+        if any(d.outlineLevel or d.collapsed for d in
+               (*ws.row_dimensions.values(), *ws.column_dimensions.values())):
+            raise MergeError(f'«{name}»: группировка строк или столбцов пока не поддерживается.')
+        if ws.page_margins != PageMargins():
+            raise MergeError(f'«{name}»: нестандартные поля печати пока не поддерживаются.')
+        if ws.sheet_view.rightToLeft is True or ws.sheet_view.showGridLines is False:
+            raise MergeError(f'«{name}»: направление справа налево или скрытая сетка пока не поддерживаются.')
         if ws.max_row > MAX_TOTAL_ROWS:
             raise MergeError(f'«{name}»: слишком много строк для первой версии.')
         if ws.max_row * ws.max_column > MAX_GRID_CELLS:
@@ -139,8 +178,19 @@ def _read_simple_table(data: bytes, name: str, row_sink=None):
             raise MergeError(f'«{name}»: названия столбцов повторяются.')
         # Column widths are layout guidance, not data; use the widest source
         # width when equally named columns have different settings.
-        widths = {key: dim.width for key, dim in ws.column_dimensions.items()
-                  if dim.width is not None}
+        widths = {}
+        for key, dim in ws.column_dimensions.items():
+            if dim.width is None:
+                continue
+            first = dim.min or column_index_from_string(key)
+            last = dim.max or first
+            if not 1 <= first <= last <= 16384:
+                raise MergeError(f'«{name}»: недопустимый диапазон ширины столбцов.')
+            for index in range(first, last + 1):
+                column = get_column_letter(index)
+                if column in widths and widths[column] != dim.width:
+                    raise MergeError(f'«{name}»: пересекающиеся настройки ширины столбцов.')
+                widths[column] = dim.width
         heights = {index: dim.height for index, dim in ws.row_dimensions.items()
                    if dim.height is not None}
         return (headers, rows, style_cache, header_cells, widths, heights,
@@ -262,6 +312,9 @@ def _merge_xlsx(inputs, progress, directory):
     # released. Only one staged row and the distinct style tables stay live.
     rows = styles = first_row = None
     with _streamed_output_workbook() as out:
+        # ISO date/time cells preserve a source's date-only value instead of
+        # changing it to a midnight datetime through Excel serial conversion.
+        out.iso_dates = True
         if first_theme:
             out.loaded_theme = first_theme
         ws = out.create_sheet('Объединённая таблица')
@@ -290,12 +343,18 @@ def _merge_xlsx(inputs, progress, directory):
                 cell = WriteOnlyCell(ws, value='' if value is None else value)
                 if isinstance(value, str):
                     cell.data_type = 's'  # Literal '=...' stays text.
+                if type(value) is int:
+                    # openpyxl's normal numeric writer uses %.16g, which can
+                    # round exact integers before they reach the XLSX XML.
+                    # Keep booleans on their own boolean serialization path.
+                    cell.value, cell.data_type = str(value), 'n'
                 if isinstance(value, float):
                     if not isfinite(value):
                         raise MergeError('В таблице обнаружено недопустимое число.')
                     cell.value, cell.data_type = repr(value), 'n'
-                if number_format and number_format != 'General':
-                    cell.number_format = number_format
+                # Override WriteOnlyCell's automatic date format even when the
+                # source explicitly uses General; that is still source layout.
+                cell.number_format = number_format or 'General'
                 if key is not None:
                     apply_style(cell, styles[key])
                 cells.append(cell)
@@ -313,21 +372,36 @@ def _merge_xlsx(inputs, progress, directory):
                     written += 1
                     if written % 1024 == 0 or written == count:
                         report('write', written, count)
-            stage.unlink()
         report('save')
         stream = BytesIO()
         out.save(stream)
         blob = stream.getvalue()
-    # Independently reopen the result and check the required logical structure.
+    # Independently reopen the result and compare its cells with the private
+    # staged source rows. A matching header/count alone cannot detect a numeric
+    # serialization error. Replay one row at a time to retain the memory bound.
     report('verify')
     check = load_workbook(BytesIO(blob), read_only=True, data_only=False)
     try:
         sheet = check.active
         # write_only deliberately omits worksheet dimensions; validate by
         # streaming all rows instead of trusting max_row from a header.
-        actual_rows = sheet.values
-        header = list(next(actual_rows))
-        if sum(1 for _ in actual_rows) != count or header != expected:
+        actual_rows = sheet.iter_rows()
+        header = next(actual_rows, ())
+        if ([cell.value for cell in header] != expected or
+                any(cell.data_type != 's' for cell in header)):
+            raise RuntimeError('Внутренняя ошибка проверки созданного файла.')
+        for stage, source_count, _styles, _heights in stages:
+            with stage.open('rb') as staged:
+                for _ in range(source_count):
+                    expected_row = pickle.load(staged)
+                    actual_row = next(actual_rows, ())
+                    if len(actual_row) != len(expected_row) or any(
+                            type(cell.value) is not type(value) or cell.value != value or
+                            cell.number_format != number_format or cell.data_type in ('f', 'e')
+                            for cell, (value, number_format, _key) in zip(actual_row, expected_row)):
+                        raise RuntimeError('Внутренняя ошибка проверки созданного файла.')
+            stage.unlink()
+        if next(actual_rows, None) is not None:
             raise RuntimeError('Внутренняя ошибка проверки созданного файла.')
     finally:
         check.close()

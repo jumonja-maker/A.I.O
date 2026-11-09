@@ -145,9 +145,15 @@ class DirectTransportAuditTests(unittest.TestCase):
                 if self.calls == 1:
                     raise OSError('simulated Windows sharing violation')
         transport = ConverterTransport()
+        backing = tempfile.TemporaryDirectory()
+        self.addCleanup(backing.cleanup)
+        self.addCleanup(transport.close)
         temp = FailingCleanup()
-        transport.results['ticket'] = Result(temp, Path('unused'), 'output.pdf',
-                                             'application/pdf')
+        temp.name = str(Path(backing.name).resolve())
+        output = Path(temp.name) / 'output.pdf'
+        output.write_bytes(b'owned result')
+        transport.results['ticket'] = Result(temp, output, 'output.pdf',
+                                             'application/pdf', size=output.stat().st_size)
         transport.retry_cleanup()
         self.assertEqual(temp.calls, 0, 'unsaved result must never be reaped')
         self.assertEqual(transport.storage_stats()['retainedResults'], 1)

@@ -9,6 +9,7 @@ import time
 import unittest
 from unittest.mock import patch
 
+from save_test_support import verify_download_for_test
 from app_backend.converter_guard import ConverterGuard, GuardError
 from test_converter_guard_v02 import FakeAdapter, wait_finished
 
@@ -170,6 +171,7 @@ class SaveQueueTests(unittest.TestCase):
                 self.guard.confirm_saved(identity, done['result']['ticket'], compact=True)
             except Exception as error:
                 errors.append(error)
+        verify_download_for_test(self, self.guard, done['result']['ticket'])
         with patch.object(store, 'saved', blocked):
             worker = threading.Thread(target=acknowledge)
             worker.start()
@@ -187,6 +189,7 @@ class SaveQueueTests(unittest.TestCase):
     def test_compact_ack_does_not_reserialize_every_task_and_result(self):
         identity = self.job(('first.csv', 'second.csv'))
         done = wait_finished(self.guard, identity)
+        verify_download_for_test(self, self.guard, done['result']['ticket'])
         with patch.object(self.guard, '_snapshot', side_effect=AssertionError('Full snapshot is unnecessary')):
             ack = self.guard.confirm_saved(identity, done['result']['ticket'], compact=True)
         self.assertTrue(ack['savedAll'])

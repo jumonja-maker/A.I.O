@@ -10,7 +10,8 @@ from email.parser import BytesHeaderParser
 from email import policy
 import errno
 import io
-from pathlib import Path
+import re
+from pathlib import Path, PureWindowsPath
 
 from .libreoffice_engine import LibreOfficeError, source_format
 
@@ -132,18 +133,30 @@ class MultipartUpload:
                 source_format(name)
                 folder = directory / str(len(files))
                 folder.mkdir(parents=True)
-                path = folder / name
-                warnings = []
+                # The HTTP filename is for display, never a trusted Windows path.
+                # "C:escaped.txt" is drive-relative; "name:stream" is an ADS.
+                windows = PureWindowsPath(name)
+                stem = name.split('.', 1)[0].rstrip(' ').upper()
+                reserved = stem in ('CON', 'PRN', 'AUX', 'NUL') or bool(
+                    re.fullmatch(r'(?:COM|LPT)[1-9\u00b9\u00b2\u00b3]', stem))
+                unsafe = (bool(windows.drive or windows.root) or
+                          bool(re.search(r'[<>:"|?*]', name)) or
+                          name.endswith((' ', '.')) or reserved)
+                extension = Path(name).suffix
+                suffix = extension if re.fullmatch(r'\.[A-Za-z0-9_-]{1,32}', extension) else '.bin'
+                path = folder / ('input' + suffix if unsafe else name)
+                warnings = ['SOURCE_NAME_NORMALIZED'] if unsafe else []
                 try:
                     output = path.open('xb')
                 except OSError as exc:
                     if exc.errno not in (errno.ENAMETOOLONG, errno.EINVAL) and getattr(exc, 'winerror', None) not in (123, 206):
                         raise
                     extension = Path(name).suffix
-                    safe_suffix = extension if len(extension) < 32 and extension.isascii() else ''
+                    safe_suffix = extension if re.fullmatch(r'\.[A-Za-z0-9_-]{1,32}', extension) else '.bin'
                     path = folder / ('input' + safe_suffix)
                     output = path.open('xb')
-                    warnings.append('SOURCE_NAME_NORMALIZED')
+                    if not warnings:
+                        warnings.append('SOURCE_NAME_NORMALIZED')
                 with output:
                     finished = self._write_part(output)
                 files.append({'path': path, 'name': name, 'size': path.stat().st_size,

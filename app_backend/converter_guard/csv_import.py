@@ -12,6 +12,7 @@ import io
 from pathlib import Path
 
 from .csv_id_contract import text_columns_in_sample
+from .csv_numeric_columns import decimal_column_hints
 
 
 CALC = 'com.sun.star.sheet.SpreadsheetDocument'
@@ -83,10 +84,11 @@ def csv_import_hint(source: Path, native):
     # UTF-8 charset 76, and first data row 1. Never depend on UI dialogs.
     separator = ord(choices[0])
     # Only a confirmed Calc Text importer supports documented per-column
-    # text types. Never force a whole sheet to text: money/dates need their
-    # normal native parsing. The bounded preview is an import hint, not a
-    # claim that every row was inspected; final output has an independent
-    # source-ID contract.
+    # text types. Only sensitive columns (zero-padded IDs, high-precision
+    # numbers, formula-like literals) become Text; normal money/date columns
+    # retain native parsing. The bounded preview is an import hint, not a
+    # whole-source guarantee; supported Excel targets have an independent
+    # exact token/type contract, including rows outside this sample.
     columns = ''
     if selected == 'Text - txt - csv (StarCalc)':
         try:
@@ -100,6 +102,9 @@ def csv_import_hint(source: Path, native):
                     break
             if sample_rows:
                 columns = text_columns_in_sample(sample_rows, len(sample_rows[0]))
+                # Reuse these same rows; no full-file scan or extra LO load.
+                # Text IDs win; only unambiguous decimal-dot columns get type 10.
+                columns = decimal_column_hints(sample_rows, len(sample_rows[0]), columns)
         except (csv.Error, ValueError):
             pass
     options = f'{separator},34,76,1' + (',' + columns if columns else '')
