@@ -162,6 +162,17 @@ def validate_payload(payload, source_sha, *, root=ROOT):
     return value
 
 
+def compiler_banner_major(text):
+    """Read the compiler's native banner; ISCC may have no FileVersion."""
+    require(isinstance(text, str) and len(text) <= 64 * 1024,
+            'Missing or oversized native ISCC help response')
+    matches = re.findall(r'^Inno Setup ([0-9]+)(?: \(32-bit\))? Command-Line Compiler\s*$',
+                         text, flags=re.MULTILINE)
+    require(len(matches) == 1 and int(matches[0]) in (6, 7),
+            'Expected a native Inno Setup 6 or 7 command-line compiler banner')
+    return int(matches[0])
+
+
 def compiler_identity(iscc):
     iscc = checked_path(iscc)
     require(iscc.is_file(), 'ISCC compiler is missing')
@@ -179,7 +190,22 @@ $s=Get-AuthenticodeSignature -LiteralPath $p.FullName
             base64.b64encode(script.encode('utf-16le')).decode('ascii')], env=environment,
             check=True, capture_output=True, text=True, encoding='utf-8-sig', timeout=60)
         result.update(json.loads(observed.stdout))
-        require(re.match(r'^6[.,]', result.get('version') or ''), 'Disposable acceptance requires supplied Inno Setup 6')
+        help_result = subprocess.run([str(iscc), '/?'], check=False, capture_output=True,
+            text=True, encoding='utf-8-sig', errors='replace', timeout=30)
+        banner = help_result.stdout
+        result.update(nativeHelpExitCode=help_result.returncode, nativeHelpBanner=banner,
+                      nativeHelpStderr=help_result.stderr)
+        # A missing/empty Windows VERSIONINFO resource is not evidence that a
+        # real supplied compiler is unsupported. The native executable reports
+        # its own compiler major in /?; retain resource/signature facts as-is.
+        try:
+            require(help_result.returncode == 0, 'Native ISCC help returned a nonzero exit status')
+            result['compilerMajor'] = compiler_banner_major(banner)
+        except ValueError as error:
+            raise ValueError(str(error) + '; observed compiler identity=' +
+                             json.dumps(result, ensure_ascii=True)) from error
+        require(digest(iscc) == result['sha256'], 'Compiler changed while observing native identity')
+        result['versionBasis'] = 'native_ISCC_help_banner_major; Windows_file_version_recorded_separately'
     return result
 
 

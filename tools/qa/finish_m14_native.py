@@ -63,6 +63,19 @@ def main():
         assert before['labels'] == ['Dog Age', 'Dog Name', 'ID', 'Name']
         with adapter.batch(args.output/'office'):
             proof = adapter.preflight(original, args.output/'report-preflight', cancel=cancel, timeout=60)
+            if proof.get('state') != 'detected':
+                # This is a fixed public QA fixture, not a user's document.
+                # Retain the owned worker's bounded exception diagnostic for
+                # native platform repair; production preflight intentionally
+                # exposes only a fixed failure code to application callers.
+                batch = getattr(adapter._local, 'batch', None)
+                if batch and hasattr(batch[1], 'request') and not batch[1].disabled:
+                    report['nativeReportDiagnostic'] = batch[1].request({
+                        'operation':'inspect', 'source':str(original.resolve()),
+                        'sourceClass':'base_report_package',
+                        'services':sorted(adapter._registry().import_services),
+                        'expectedSourceServices':['com.sun.star.report.ReportDefinition']},
+                        cancel=cancel,timeout=60)
             assert proof.get('state') == 'detected', proof
             assert proof.get('modelLoaded') is True and proof.get('documentServices') == ['com.sun.star.report.ReportDefinition'], proof
             assert proof.get('nativeReportStorage', {}).get('controls') == 8, proof

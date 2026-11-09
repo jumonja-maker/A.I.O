@@ -83,6 +83,24 @@ jobs:
         id: windows_engine
         shell: pwsh
         run: ./tools/build/prepare-libreoffice.ps1 -Destination (Join-Path $env:RUNNER_TEMP 'aio-engine-26.8.2')
+      - name: Pinned current owner-provided synthetic 178-source corpus
+        if: runner.os == 'Windows'
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 6a1a2571f67c1a8041ad28de290f4457b805d032
+          path: _qa-current178
+          sparse-checkout: qa-fixtures/current178
+          persist-credentials: false
+      - name: Verify exact current archive and every source hash
+        if: runner.os == 'Windows'
+        id: current_samples
+        shell: bash
+        run: python tools/qa/prepare_current_corpus.py --data-root _qa-current178 --output "$RUNNER_TEMP/aio-current178"
+      - name: Real POSIX repeated native inspection and relative HTML assets
+        if: ${{ !cancelled() && runner.os == 'Linux' && steps.linux_engine.outcome == 'success' && steps.deps.outcome == 'success' }}
+        id: finish_posix
+        shell: bash
+        run: python tools/qa/finish_lok_reinspection_native.py --executable "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-finish-posix"
       - name: Native critical FULLTEST controls on pinned Windows engine
         if: ${{ !cancelled() && runner.os == 'Windows' && steps.windows_engine.outcome == 'success' && steps.deps.outcome == 'success' }}
         id: fidelity
@@ -119,6 +137,31 @@ jobs:
           python tools/qa/completion_ui_native.py --output "$RUNNER_TEMP/aio-completion-ui" --xhtml-zip tools/qa/fixtures/aio_windows_exact22_new_samples.zip --bulk-count 32
           QT_SCALE_FACTOR=1.5 python tools/qa/completion_ui_native.py --output "$RUNNER_TEMP/aio-completion-ui-scale150"
           python tools/qa/completion_performance_native.py --executable "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-completion-performance" --baseline b7216d1210489a5fd1eadb21daf2e3b3849e30f4
+      - name: Signed decimal DBF and exact current CSV readback
+        if: ${{ !cancelled() && runner.os == 'Windows' && steps.windows_engine.outcome == 'success' && steps.deps.outcome == 'success' && steps.current_samples.outcome == 'success' }}
+        id: finish_dbf
+        shell: bash
+        run: python tools/qa/finish_dbf_numeric_native.py --executable "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-finish-dbf" --require-uno --corpus "$RUNNER_TEMP/aio-current178/originals"
+      - name: Genuine Base report storage and operational rare formats
+        if: ${{ !cancelled() && runner.os == 'Windows' && steps.windows_engine.outcome == 'success' && steps.deps.outcome == 'success' }}
+        id: finish_routes
+        shell: bash
+        run: python tools/qa/finish_m14_native.py --executable "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-finish-m14"
+      - name: Genuine VBA native storage and explicit expected losses
+        if: ${{ !cancelled() && runner.os == 'Windows' && steps.windows_engine.outcome == 'success' && steps.deps.outcome == 'success' }}
+        id: finish_macros
+        shell: bash
+        run: python tools/qa/completion_macro_native.py --executable "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-finish-macros" --require-uno
+      - name: All current 178 sources and independent PDF literal readback
+        if: ${{ !cancelled() && runner.os == 'Windows' && steps.windows_engine.outcome == 'success' && steps.deps.outcome == 'success' && steps.current_samples.outcome == 'success' }}
+        id: current_corpus
+        shell: bash
+        run: python tools/qa/completion_current_corpus_native.py --input "$RUNNER_TEMP/aio-current178/originals" --provenance "$RUNNER_TEMP/aio-current178/provenance.json" --output "$RUNNER_TEMP/aio-finish-current178" --executable "$AIO_QA_ENGINE"
+      - name: Exact current pixels frames HTML and presentation text
+        if: ${{ !cancelled() && runner.os == 'Windows' && steps.windows_engine.outcome == 'success' && steps.deps.outcome == 'success' && steps.current_samples.outcome == 'success' }}
+        id: current_fidelity
+        shell: bash
+        run: python tools/qa/completion_current_fidelity_native.py --input "$RUNNER_TEMP/aio-current178/originals" --output "$RUNNER_TEMP/aio-finish-fidelity178" --executable "$AIO_QA_ENGINE"
       - name: Complete source regression suite
         if: ${{ !cancelled() && steps.deps.outcome == 'success' && (steps.windows_engine.outcome == 'success' || steps.linux_engine.outcome == 'success') }}
         id: units
@@ -128,7 +171,7 @@ jobs:
           python -m compileall -q app_backend tools tests
           python tools/qa/hosted_unit_tests.py --report "$RUNNER_TEMP/aio-units.json"
       - name: Windows EXE packaging and real frozen smoke (no publication)
-        if: runner.os == 'Windows' && steps.units.outcome == 'success' && steps.fidelity.outcome == 'success' && steps.vector_pages.outcome == 'success' && steps.deep_controls.outcome == 'success' && steps.completion_controls.outcome == 'success'
+        if: runner.os == 'Windows' && steps.units.outcome == 'success' && steps.fidelity.outcome == 'success' && steps.vector_pages.outcome == 'success' && steps.deep_controls.outcome == 'success' && steps.completion_controls.outcome == 'success' && steps.finish_dbf.outcome == 'success' && steps.finish_routes.outcome == 'success' && steps.finish_macros.outcome == 'success' && steps.current_corpus.outcome == 'success' && steps.current_fidelity.outcome == 'success'
         id: package
         shell: bash
         run: |
@@ -145,13 +188,21 @@ jobs:
           python -c "import hashlib,json; from pathlib import Path; b=Path('dist/A.I.O/_internal/build-info'); d=json.loads((b/'aio-qa-dependencies.json').read_text(encoding='utf-8')); assert d['scaStatus']=='pass_python_distribution_scope' and hashlib.sha256((b/d['scaReportFile']).read_bytes()).hexdigest()==d['scaReportSha256']; print('AIO_BUNDLED_PYTHON_SCA=PASS')"
           python tools/qa/runtime_frozen_acceptance.py --executable dist/A.I.O/A.I.O.exe --output "$RUNNER_TEMP/aio-hosted-frozen" --seconds 120
           python tools/qa/completion_frozen_desktop.py --executable dist/A.I.O/A.I.O.exe --output "$RUNNER_TEMP/aio-completion-frozen-desktop"
+      - name: Disposable source-bound installed Windows application and native Save
+        if: runner.os == 'Windows' && steps.package.outcome == 'success'
+        id: installed
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/build/build_completion_installer.py --iscc 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' --payload dist/A.I.O --output "$RUNNER_TEMP/aio-installed-build" --source-sha "$AIO_QA_SOURCE_SHA"
+          python tools/qa/completion_installed_windows.py --installer-receipt "$RUNNER_TEMP/aio-installed-build/installer-build.json" --output "$RUNNER_TEMP/aio-installed-acceptance" --source-sha "$AIO_QA_SOURCE_SHA"
       - name: Preserve truthful summary in job log (no upload-artifact)
         if: always()
         shell: bash
         run: |
           python - <<'PY'
           import base64,hashlib,json,os,pathlib
-          for name in ('aio-units.json','aio-batch1-native/evidence.json','aio-vector-pages-native/evidence.json','aio-pptx-colours-native/evidence.json','aio-compressed-pages-native/evidence.json','aio-dbf-emf-native/evidence.json','aio-m14-native/evidence.json','aio-m21-svg-native/evidence.json','aio-deep-native/evidence.json','aio-deep-510/evidence.json','aio-hosted-frozen/evidence.json','aio-completion-media/completion-media-report.json','aio-completion-dbf/evidence.json','aio-completion-routes/evidence.json','aio-completion-ui/evidence.json','aio-completion-ui-scale150/evidence.json','aio-completion-performance/evidence.json','aio-completion-frozen-desktop/evidence.json'):
+          for name in ('aio-units.json','aio-batch1-native/evidence.json','aio-vector-pages-native/evidence.json','aio-pptx-colours-native/evidence.json','aio-compressed-pages-native/evidence.json','aio-dbf-emf-native/evidence.json','aio-m14-native/evidence.json','aio-m21-svg-native/evidence.json','aio-deep-native/evidence.json','aio-deep-510/evidence.json','aio-hosted-frozen/evidence.json','aio-completion-media/completion-media-report.json','aio-completion-dbf/evidence.json','aio-completion-routes/evidence.json','aio-completion-ui/evidence.json','aio-completion-ui-scale150/evidence.json','aio-completion-performance/evidence.json','aio-completion-frozen-desktop/evidence.json','aio-finish-posix/evidence.json','aio-finish-dbf/evidence.json','aio-finish-m14/evidence.json','aio-finish-macros/evidence.json','aio-finish-current178/evidence.json','aio-finish-fidelity178/evidence.json','aio-installed-build/installer-build.json','aio-installed-acceptance/evidence.json','aio-installed-acceptance/gui/evidence.json'):
               p=pathlib.Path(os.environ['RUNNER_TEMP'])/name
               if p.is_file():
                   data=json.loads(p.read_text(encoding='utf-8'))
@@ -162,7 +213,7 @@ jobs:
                       digest=hashlib.sha256(record.encode('ascii')).hexdigest()
                       for index,part in enumerate(chunks):
                           print('AIO_EVIDENCE_CHUNK='+json.dumps({'file':name,'part':index,'total':len(chunks),'sha256':digest,'data':part},ensure_ascii=True))
-          for name in ('aio-completion-frozen-desktop/desktop-ready.png','aio-completion-ui/bulk-xhtml-saved.png','aio-completion-ui/empty-1440x1000-zoom1.png','aio-completion-ui-scale150/native-saved.png'):
+          for name in ('aio-completion-frozen-desktop/desktop-ready.png','aio-completion-ui/bulk-xhtml-saved.png','aio-completion-ui/empty-1440x1000-zoom1.png','aio-completion-ui-scale150/native-saved.png','aio-installed-acceptance/gui/installed-saved.png','aio-installed-acceptance/gui/native-save-dialog.png'):
               p=pathlib.Path(os.environ['RUNNER_TEMP'])/name
               if not p.is_file():
                   print('AIO_SCREENSHOT_NOT_RUN='+name)
@@ -175,7 +226,7 @@ jobs:
               digest=hashlib.sha256(payload).hexdigest()
               for index,data in enumerate(chunks):
                   print('AIO_SCREENSHOT_CHUNK='+json.dumps({'file':name,'part':index,'total':len(chunks),'sha256':digest,'data':data},ensure_ascii=True))
-          print('HISTORICAL_FULLTEST=NOT_RUN;USER_INSTALLER=NOT_BUILT;RELEASE=NOT_RUN')
+          print('HISTORICAL_FULLTEST200_5723=NOT_RUN;CURRENT178=SEE_EXACT_EVIDENCE;RELEASE=NOT_RUN;USER_INSTALLER_PUBLICATION=NOT_RUN')
           PY
       - name: Require all platform-specific QA stages
         if: ${{ always() }}

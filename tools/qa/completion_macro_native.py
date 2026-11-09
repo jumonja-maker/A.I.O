@@ -88,8 +88,10 @@ def static_vba(path):
         containers.append(raw)
     elif raw.startswith(b'PK'):
         with ZipFile(path) as archive:
-            containers.extend(archive.read(n) for n in archive.namelist()
-                              if n.lower().endswith('/vbaproject.bin'))
+            for name in archive.namelist():
+                if name.lower().endswith('.bin'):
+                    value=archive.read(name)
+                    if value.startswith(bytes.fromhex('d0cf11e0a1b11ae1')):containers.append(value)
     modules = []
     for value in containers:
         with olefile.OleFileIO(io.BytesIO(value)) as storage:
@@ -128,8 +130,9 @@ def independent(path):
         with ZipFile(path) as archive:
             assert archive.testzip() is None
             for name in archive.namelist():
-                if name.lower().endswith('/vbaproject.bin'):
+                if name.lower().endswith('.bin'):
                     raw = archive.read(name)
+                    if not raw.startswith(bytes.fromhex('d0cf11e0a1b11ae1')):continue
                     with olefile.OleFileIO(io.BytesIO(raw)) as storage:
                         streams = [('/'.join(item), sha(storage.openstream(item).read())) for item in storage.listdir()]
                     result['projectParts'].append({'name': name, 'sha256': sha(raw), 'streams': streams})
@@ -168,6 +171,18 @@ def contains_marker(path):
         raise AssertionError('unimplemented_marker_consumer')
 
 
+def rename_word_vba_part(source,destination):
+    """A valid alternate OPC Part URI; original program/storage bytes stay exact."""
+    with ZipFile(source) as original,ZipFile(destination,'w') as output:
+        for entry in original.infolist():
+            raw=original.read(entry)
+            name=entry.filename
+            if name=='word/vbaProject.bin':name='word/alternate-code.bin'
+            if name=='[Content_Types].xml' or name.endswith('.rels'):
+                raw=raw.replace(b'vbaProject.bin',b'alternate-code.bin')
+            output.writestr(name,raw)
+
+
 def main():
     from openpyxl import load_workbook
     from app_backend.converter_guard import LibreOfficeAdapter
@@ -204,6 +219,11 @@ def main():
     for derived, original in ((derived_calc, inputs/'SimpleMacro.xlsm'), (derived_word, inputs/'SimpleMacro.docm')):
         assert independent(derived)['staticVba']['sourceSignature'] == independent(original)['staticVba']['sourceSignature']
         originals[derived] = sha(derived.read_bytes())
+    renamed_word=inputs/'cyrillic-renamed.docm'
+    rename_word_vba_part(derived_word,renamed_word)
+    assert independent(renamed_word)['staticVba']['sourceSignature']==independent(derived_word)['staticVba']['sourceSignature']
+    assert inspect_vba(renamed_word)['state']=='present'
+    originals[renamed_word]=sha(renamed_word.read_bytes())
     adapter = LibreOfficeAdapter(args.executable)
     cases, failures, proofs = [], [], {}
     def run(source, target, number):
@@ -257,7 +277,8 @@ def main():
     with adapter.batch(args.output/'office'):
         plan = [(inputs/'SimpleMacro.docm','docm'), (derived_word,'docm'), (derived_word,'docx'),
                 (inputs/'SimpleMacro.xlsm','xlsm'), (derived_calc,'xlsm'), (derived_calc,'xlsx'),
-                (inputs/'SimpleMacro.doc','docm'), (inputs/'SimpleMacro.xls','xlsm')]
+                (inputs/'SimpleMacro.doc','docm'), (inputs/'SimpleMacro.xls','xlsm'),
+                (renamed_word,'docm'), (renamed_word,'docx')]
         for number, (source, target) in enumerate(plan):
             try:
                 result = {'source': source.name, 'target': target, **run(source, target, number)}

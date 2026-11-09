@@ -10,8 +10,10 @@ def validate_steps(platform, steps):
     if platform not in ('Windows', 'Linux') or not isinstance(steps, dict):
         raise ValueError('Unknown QA platform or malformed step evidence')
     required = ['deps', 'units']
-    required += (['windows_engine', 'fidelity', 'vector_pages', 'deep_controls', 'completion_controls', 'package']
-                 if platform == 'Windows' else ['linux_engine'])
+    required += (['windows_engine', 'current_samples', 'fidelity', 'vector_pages', 'deep_controls',
+                  'completion_controls', 'finish_dbf', 'finish_routes', 'finish_macros',
+                  'current_corpus', 'current_fidelity', 'package', 'installed']
+                 if platform == 'Windows' else ['linux_engine', 'finish_posix'])
     rejected = []
     for name in required:
         step = steps.get(name)

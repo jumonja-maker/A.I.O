@@ -214,6 +214,49 @@ class InstallerPayloadControls(unittest.TestCase):
                 program.write_bytes(original_program)
 
 
+class CompilerIdentityControls(unittest.TestCase):
+    def test_native_help_identifies_supported_compiler_majors(self):
+        for major, suffix in ((6, ''), (7, ''), (7, ' (32-bit)')):
+            with self.subTest(major=major, suffix=suffix):
+                self.assertEqual(builder.compiler_banner_major(
+                    f'Inno Setup {major}{suffix} Command-Line Compiler\r\nCopyright\r\n'), major)
+
+    def test_missing_foreign_ambiguous_and_future_banners_are_refused(self):
+        for text in ('', 'Other tool 6.7', 'Inno Setup 8 Command-Line Compiler\n',
+                     'Inno Setup 6 Command-Line Compiler\nInno Setup 7 Command-Line Compiler\n',
+                     'X' * (64 * 1024 + 1)):
+            with self.subTest(text=text[:80]), self.assertRaises(ValueError):
+                builder.compiler_banner_major(text)
+
+    def test_empty_windows_file_version_does_not_reject_native_inno_six(self):
+        with tempfile.TemporaryDirectory() as directory:
+            compiler = Path(directory) / 'ISCC.exe'
+            compiler.write_bytes(b'inert fixture; never executed')
+            resource = {'version':'', 'productVersion':'', 'signatureStatus':'NotSigned'}
+            replies = [SimpleNamespace(stdout=json.dumps(resource)),
+                       SimpleNamespace(stdout='Inno Setup 6 Command-Line Compiler\n',
+                                       stderr='Usage: iscc [options] scriptfile.iss\n', returncode=0)]
+            with patch.object(builder.sys, 'platform', 'win32'), \
+                 patch.object(builder.subprocess, 'run', side_effect=replies) as execute:
+                result = builder.compiler_identity(compiler)
+            self.assertEqual(result['compilerMajor'], 6)
+            self.assertEqual(result['version'], '')
+            self.assertEqual(result['signatureStatus'], 'NotSigned')
+            self.assertEqual(result['sha256'], builder.digest(compiler))
+            self.assertEqual(execute.call_args_list[1].args[0], [str(compiler), '/?'])
+
+    def test_bad_native_identity_preserves_observed_diagnostics_in_error(self):
+        with tempfile.TemporaryDirectory() as directory:
+            compiler = Path(directory) / 'ISCC.exe'
+            compiler.write_bytes(b'inert fixture; never executed')
+            replies = [SimpleNamespace(stdout=json.dumps({'version':'unknown'})),
+                       SimpleNamespace(stdout='unexpected native response', stderr='help', returncode=0)]
+            with patch.object(builder.sys, 'platform', 'win32'), \
+                 patch.object(builder.subprocess, 'run', side_effect=replies):
+                with self.assertRaisesRegex(ValueError, 'observed compiler identity=.*nativeHelpBanner'):
+                    builder.compiler_identity(compiler)
+
+
 class InstallerSourceAndRemovalControls(unittest.TestCase):
     def test_real_git_head_and_dirty_tracked_tree_checked(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -7,6 +7,7 @@ import threading
 import unittest
 from unittest.mock import patch
 from zipfile import ZipFile
+import xml.etree.ElementTree as ET
 
 from app_backend.converter_guard.errors import GuardError
 from app_backend.converter_guard.export_recipe import WARNING_TEXT
@@ -61,6 +62,13 @@ class VbaStorageContract(unittest.TestCase):
         self.assertEqual(inspect_vba(out)['state'],'absent')
         self.assertIsNone(check_vba_preservation([], 'xlsx', out))
 
+    def test_non_opc_zip_names_are_not_subject_to_opc_uri_restrictions(self):
+        source=self.root/'ordinary.odt'
+        with ZipFile(source,'w') as z:
+            z.writestr('mimetype','application/vnd.oasis.opendocument.text')
+            z.writestr('Pictures/100% RGB.png',b'not relevant to VBA')
+        self.assertEqual(inspect_vba(source)['state'],'absent')
+
     def test_ambiguous_case_colliding_parts_are_not_certified(self):
         with ZipFile(self.source) as z:raw=z.read('xl/vbaProject.bin')
         out=self.root/'ambiguous.xlsm'
@@ -114,6 +122,87 @@ class VbaStorageContract(unittest.TestCase):
         for code in ('VBA_MACROS_EXPECTED_LOSS','VBA_PRESERVATION_NOT_CHECKED','VBA_STREAMS_PRESERVED'):
             self.assertIn('Макросы не запускались',WARNING_TEXT[code])
         self.assertIn('не проверены',WARNING_TEXT['VBA_STREAMS_PRESERVED'])
+
+    def opc(self, *, target='custom-program.bin', declared=True, mode=None, parts=None, extra=None):
+        with ZipFile(self.source) as z:raw=z.read('xl/vbaProject.bin')
+        path=self.root/'controlled.xlsm'
+        ct='{http://schemas.openxmlformats.org/package/2006/content-types}'
+        rel='{http://schemas.openxmlformats.org/package/2006/relationships}'
+        types=ET.Element(ct+'Types')
+        if declared:
+            ET.SubElement(types,ct+'Override',PartName='/xl/'+target,
+                          ContentType='application/vnd.ms-office.vbaProject')
+        links=ET.Element(rel+'Relationships')
+        node=ET.SubElement(links,rel+'Relationship',Id='vba',Target=target,
+                           Type='http://schemas.microsoft.com/office/2006/relationships/vbaProject')
+        if mode is not None:node.set('TargetMode',mode)
+        with ZipFile(path,'w') as z:
+            z.writestr('[Content_Types].xml',ET.tostring(types))
+            z.writestr('xl/_rels/workbook.xml.rels',ET.tostring(links))
+            for name in parts if parts is not None else ['xl/'+target]:z.writestr(name,raw)
+            for name,data in (extra or {}).items():z.writestr(name,data)
+        return path
+
+    def test_vba_relationship_finds_nonstandard_program_part(self):
+        source=self.opc(declared=False)
+        self.assertEqual(inspect_vba(source)['state'],'present')
+
+    def test_vba_content_type_finds_nonstandard_program_part(self):
+        source=self.opc()
+        self.assertEqual(inspect_vba(source)['state'],'present')
+        check=check_vba_preservation([], 'pdf', source)
+        self.assertEqual(check['status'],'expected_loss')
+
+    def test_renamed_project_is_not_silent_absence_in_real_ooxml_package(self):
+        source=self.root/'renamed.xlsm'
+        with ZipFile(self.source) as original,ZipFile(source,'w') as output:
+            for entry in original.infolist():
+                raw=original.read(entry)
+                name=entry.filename
+                if name=='xl/vbaProject.bin':name='xl/custom-program.bin'
+                if name in ('[Content_Types].xml','xl/_rels/workbook.xml.rels'):
+                    raw=raw.replace(b'vbaProject.bin',b'custom-program.bin')
+                output.writestr(name,raw)
+        from app_backend.converter_guard.source_contract import inspect_source_contract
+        self.assertEqual(inspect_source_contract(source)['state'],'recognized')
+        self.assertEqual(inspect_vba(source)['projects'],inspect_vba(self.source)['projects'])
+
+    def test_vba_target_safe_parent_relative_and_percent_encoded_uri(self):
+        for target in ('../program.bin','%70rogram.bin'):
+            with self.subTest(target=target):
+                parts=['program.bin'] if target.startswith('..') else ['xl/program.bin']
+                self.assertEqual(inspect_vba(self.opc(target=target,declared=False,parts=parts))['state'],'present')
+
+    def test_external_vba_relationship_is_unverified_without_network_fetch(self):
+        with patch('socket.socket',side_effect=AssertionError('No external fetch allowed')):
+            source=self.opc(target='https://example.org/code.bin',declared=False,mode='External',parts=[])
+            self.assertEqual(inspect_vba(source)['state'],'not_checked')
+
+    def test_relationship_must_not_escape_package(self):
+        source=self.opc(target='../../outside.bin',declared=False,parts=[])
+        self.assertEqual(inspect_vba(source)['state'],'not_checked')
+
+    def test_missing_declared_vba_is_unverified_not_absent(self):
+        self.assertEqual(inspect_vba(self.opc(parts=[]))['state'],'not_checked')
+
+    def test_percent_encoded_alias_collision_is_unverified(self):
+        source=self.opc(declared=False,parts=['xl/custom-program.bin','xl/%63ustom-program.bin'])
+        self.assertEqual(inspect_vba(source)['state'],'not_checked')
+
+    def test_xml_doctype_is_never_expanded(self):
+        source=self.opc(extra={'unused.rels':b'<!DOCTYPE r [<!ENTITY data "value">]><r>&data;</r>'})
+        self.assertEqual(inspect_vba(source)['state'],'not_checked')
+
+    def test_utf16_xml_doctype_is_never_expanded(self):
+        source=self.opc(extra={'unused.rels':'<!DOCTYPE r [<!ENTITY data "value">]><r>&data;</r>'.encode('utf-16')})
+        self.assertEqual(inspect_vba(source)['state'],'not_checked')
+
+    def test_opc_metadata_budget_is_explicit(self):
+        source=self.opc()
+        with patch('app_backend.converter_guard.macro_vba.MAX_OPC_METADATA',16):
+            check=inspect_vba(source)
+        self.assertEqual(check['state'],'not_checked')
+        self.assertEqual(check['reason'],'vba_inspection_budget')
 
     def test_independent_qa_reader_rejects_copy_before_chunk(self):
         with self.assertRaises(ValueError):decompress_vba(b'\x01\x03\xb0\x01\xff\xff')

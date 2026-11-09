@@ -10,13 +10,17 @@ GATE = runpy.run_path(str(ROOT / 'tools/qa/required_qa_gate.py'))
 class RequiredQaGate(unittest.TestCase):
     def steps(self):
         return {name: {'outcome':'success', 'conclusion':'success'} for name in
-                ('deps', 'units', 'windows_engine', 'linux_engine', 'fidelity', 'vector_pages', 'deep_controls', 'completion_controls', 'package')}
+                ('deps', 'units', 'windows_engine', 'linux_engine', 'finish_posix', 'current_samples',
+                 'fidelity', 'vector_pages', 'deep_controls', 'completion_controls', 'finish_dbf',
+                 'finish_routes', 'finish_macros', 'current_corpus', 'current_fidelity', 'package', 'installed')}
 
     def test_both_platform_policies_accept_their_complete_successes(self):
         for platform in ('Windows', 'Linux'):
             self.assertIn('units', GATE['validate_steps'](platform, self.steps()))
         linux = self.steps()
-        for name in ('windows_engine', 'fidelity', 'vector_pages', 'deep_controls', 'completion_controls', 'package'):
+        for name in ('windows_engine', 'current_samples', 'fidelity', 'vector_pages', 'deep_controls',
+                     'completion_controls', 'finish_dbf', 'finish_routes', 'finish_macros',
+                     'current_corpus', 'current_fidelity', 'package', 'installed'):
             linux[name] = {'outcome':'skipped', 'conclusion':'skipped'}
         GATE['validate_steps']('Linux', linux)
 

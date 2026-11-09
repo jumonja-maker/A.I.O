@@ -1,7 +1,7 @@
 name: AIO targeted converter finish checks
 on:
   push:
-    branches: [qa/converter-finish-targeted-20261109]
+    branches: [qa/converter-finish-targeted-20261109, qa/converter-finish-native-diagnostic-20261109]
 permissions:
   contents: read
 concurrency:
@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        lane: [dbf, rare, corpus, installed]
+        lane: ${{ fromJSON(contains(github.ref_name, 'native-diagnostic') && '["rare","macro","pct","compiler"]' || '["dbf","rare","macro","corpus","installed"]') }}
     name: Windows finish ${{ matrix.lane }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -32,6 +32,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Pinned current owner-provided synthetic corpus
+        if: matrix.lane != 'compiler'
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           ref: 6a1a2571f67c1a8041ad28de290f4457b805d032
@@ -50,6 +51,7 @@ jobs:
               f.write('AIO_QA_SOURCE_SHA='+os.environ['GITHUB_SHA']+'\n')
           PY
       - name: Verified runtime dependencies
+        if: matrix.lane != 'compiler'
         shell: bash
         run: |
           set -euo pipefail
@@ -58,11 +60,29 @@ jobs:
           python tools/build/qa_sca.py --phase runtime --output build/aio-qa-sca-runtime.json
           python tools/build/verify_qa_dependency_lock.py --phase runtime --wheel-receipt build/aio-qa-wheels-runtime.json --sca-report build/aio-qa-sca-runtime.json
       - name: Verified native Windows engine
+        if: matrix.lane != 'compiler'
         shell: pwsh
         run: ./tools/build/prepare-libreoffice.ps1 -Destination (Join-Path $env:RUNNER_TEMP 'aio-engine-26.8.2')
       - name: Verify and extract exact 178 originals
+        if: matrix.lane != 'compiler'
         shell: bash
         run: python tools/qa/prepare_current_corpus.py --data-root _qa-current178 --output "$RUNNER_TEMP/aio-current178"
+      - name: Native compiler identity before any expensive packaging
+        if: matrix.lane == 'compiler'
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          from tools.build.build_completion_installer import compiler_identity
+          data=compiler_identity(Path(r'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'))
+          print('AIO_ISCC_IDENTITY='+json.dumps(data,ensure_ascii=True))
+          (Path(os.environ['RUNNER_TEMP'])/'aio-compiler-identity.json').write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding='utf-8')
+          PY
+      - name: Four exact PCT bitmap diagnostics
+        if: matrix.lane == 'pct'
+        shell: bash
+        run: python tools/qa/completion_current_fidelity_native.py --input "$RUNNER_TEMP/aio-current178/originals" --output "$RUNNER_TEMP/aio-finish-fidelity178" --executable "$AIO_QA_ENGINE" --extensions pct
       - name: Exact decimal DBF and legacy preservation regressions
         if: matrix.lane == 'dbf'
         shell: bash
@@ -76,6 +96,11 @@ jobs:
         run: |
           set -euo pipefail
           python tools/qa/finish_m14_native.py --executable "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-finish-m14"
+      - name: Genuine native VBA storage and expected loss checks
+        if: matrix.lane == 'macro'
+        shell: bash
+        run: |
+          set -euo pipefail
           python tools/qa/completion_macro_native.py --executable "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-finish-macros" --require-uno
       - name: Current 178 primary routes and independent targeted fidelity
         if: matrix.lane == 'corpus'
@@ -104,7 +129,7 @@ jobs:
           import hashlib,json,os,pathlib
           import base64
           root=pathlib.Path(os.environ['RUNNER_TEMP'])
-          for name in ('aio-completion-dbf/evidence.json','aio-finish-dbf/evidence.json','aio-finish-m14/evidence.json','aio-finish-macros/evidence.json','aio-finish-current178/evidence.json','aio-finish-fidelity178/evidence.json','aio-installed-build/installer-build.json','aio-installed-acceptance/evidence.json','aio-installed-acceptance/gui/evidence.json'):
+          for name in ('aio-completion-dbf/evidence.json','aio-finish-dbf/evidence.json','aio-finish-m14/evidence.json','aio-finish-macros/evidence.json','aio-finish-current178/evidence.json','aio-finish-fidelity178/evidence.json','aio-installed-build/installer-build.json','aio-installed-acceptance/evidence.json','aio-installed-acceptance/gui/evidence.json','aio-compiler-identity.json'):
               p=root/name
               if not p.is_file(): continue
               record=json.dumps({'file':name,**json.loads(p.read_text(encoding='utf-8'))},ensure_ascii=True)

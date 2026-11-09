@@ -7,7 +7,10 @@ seeks and cancellation polls, including work inside the third-party parser.
 import hashlib
 import io
 from pathlib import Path
+import re
+from urllib.parse import unquote, urlsplit
 import zipfile
+import xml.etree.ElementTree as ET
 
 from .errors import GuardError
 
@@ -16,6 +19,13 @@ MAX_READ_BYTES = 64 * 1024 * 1024
 MAX_STREAM_BYTES = 32 * 1024 * 1024
 MAX_OPERATIONS = 200_000
 MAX_ENTRIES = 100_000
+MAX_OPC_METADATA = 4 * 1024 * 1024
+VBA_TYPE = 'application/vnd.ms-office.vbaProject'
+VBA_RELATIONSHIPS = frozenset((
+    'http://schemas.microsoft.com/office/2006/relationships/vbaProject',
+    'http://schemas.openxmlformats.org/officeDocument/2006/relationships/vbaProject',
+    'http://purl.oclc.org/ooxml/officeDocument/relationships/vbaProject',
+))
 MACRO_TARGETS = frozenset(('docm', 'dotm', 'xlsm', 'xltm', 'xlsb', 'pptm', 'potm', 'ppsm',
                            'doc', 'dot', 'xls', 'xlt', 'ppt', 'pot', 'pps'))
 
@@ -81,11 +91,14 @@ def _cfb_projects(stream, cancel):
             raise _Budget()
         roots = [path[:-2] for path in entries
                  if len(path) >= 2 and [s.lower() for s in path[-2:]] == ['vba', 'dir']]
-        projects = []
+        projects, work = [], MAX_OPERATIONS
         for root in roots:
             hashes = {}
             for path in entries:
                 _cancel(cancel)
+                work -= 1
+                if work < 0:
+                    raise _Budget()
                 relative = path[len(root):]
                 if path[:len(root)] != root or not relative:
                     continue
@@ -108,6 +121,108 @@ def _cfb_projects(stream, cancel):
         return projects
 
 
+def _opc_name(value, base=()):
+    """Resolve a package URI, never a filesystem path or network resource."""
+    if (not isinstance(value,str) or not value or '\\' in value or
+            any(ord(c)<32 for c in value) or re.search(r'%(?![0-9a-fA-F]{2})',value)):
+        raise ValueError('vba_part_uri_invalid')
+    uri=urlsplit(value)
+    if uri.scheme or uri.netloc or uri.query or uri.fragment:
+        raise ValueError('vba_part_uri_external_or_fragment')
+    path=unquote(uri.path,errors='strict')
+    if '\\' in path or any(ord(c)<32 for c in path):
+        raise ValueError('vba_part_uri_invalid')
+    parts=[] if path.startswith('/') else list(base)
+    for part in path.split('/'):
+        if part in ('','.'):continue
+        if part=='..':
+            if not parts:raise ValueError('vba_part_uri_outside_package')
+            parts.pop()
+        else:parts.append(part)
+    if not parts:raise ValueError('vba_part_uri_empty')
+    return '/'.join(parts).lower()
+
+
+def _opc_vba_entries(archive, entries, cancel):
+    """Use declared OPC types/relationships, not a guessed VBA filename.
+
+    OPC Part URIs are resolved inside the existing ZIP only. Relationship
+    targets are never fetched, opened on disk, or followed outside the package.
+    """
+    # ODF/EPUB and other ZIP containers do not use OPC Part URI rules. Do not
+    # reinterpret every unrelated filename (for example a literal '%') there.
+    has_types=any(entry.filename.lower()=='[content_types].xml' for entry in entries)
+    if not has_types:
+        by_name={}
+        for entry in entries:
+            _cancel(cancel)
+            if entry.is_dir() or entry.filename.rsplit('/',1)[-1].lower()!='vbaproject.bin':continue
+            key=_opc_name(entry.filename)
+            if key in by_name:raise ValueError('ambiguous_vba_part')
+            by_name[key]=entry
+        return list(by_name.values())
+    by_name={}
+    for entry in entries:
+        _cancel(cancel)
+        if entry.is_dir():continue
+        key=_opc_name(entry.filename)
+        if key in by_name:raise ValueError('ambiguous_opc_part')
+        by_name[key]=entry
+    found={name for name in by_name if name.rsplit('/',1)[-1]=='vbaproject.bin'}
+    remaining=MAX_OPC_METADATA
+    def xml(entry):
+        nonlocal remaining
+        if entry.file_size>remaining or entry.file_size>1024*1024:raise _Budget()
+        remaining-=entry.file_size
+        data=archive.read(entry)
+        _cancel(cancel)
+        if data.startswith((b'\xff\xfe',b'\xfe\xff')):
+            declaration_text=data.decode('utf-16')
+        elif b'\x00' in data:
+            raise ValueError('vba_opc_xml_encoding_unverified')
+        else:
+            declaration_text=data.decode('utf-8-sig')
+        if '<!DOCTYPE' in declaration_text.upper() or '<!ENTITY' in declaration_text.upper():
+            raise ValueError('vba_opc_xml_declaration')
+        return ET.fromstring(data)
+    types=by_name.get('[content_types].xml')
+    if types is not None:
+        namespace='{http://schemas.openxmlformats.org/package/2006/content-types}'
+        root=xml(types)
+        if root.tag!=namespace+'Types':raise ValueError('vba_content_types_root')
+        overrides,defaults={},{}
+        for node in root:
+            _cancel(cancel)
+            if node.tag==namespace+'Override':
+                name=_opc_name(node.get('PartName'))
+                if name in overrides:raise ValueError('vba_content_type_ambiguous')
+                overrides[name]=node.get('ContentType')
+            elif node.tag==namespace+'Default':
+                extension=(node.get('Extension') or '').lower()
+                if not extension or extension in defaults:raise ValueError('vba_content_type_ambiguous')
+                defaults[extension]=node.get('ContentType')
+        found.update(name for name,kind in overrides.items() if (kind or '').lower()==VBA_TYPE.lower())
+        found.update(name for name in by_name if name not in overrides and
+                     (defaults.get(name.rsplit('.',1)[-1]) or '').lower()==VBA_TYPE.lower())
+        rel_namespace='{http://schemas.openxmlformats.org/package/2006/relationships}'
+        for name,entry in by_name.items():
+            if not name.endswith('.rels'):continue
+            root=xml(entry)
+            if root.tag!=rel_namespace+'Relationships':raise ValueError('vba_relationships_root')
+            for node in root:
+                if node.tag!=rel_namespace+'Relationship' or node.get('Type') not in VBA_RELATIONSHIPS:continue
+                _cancel(cancel)
+                if (node.get('TargetMode') or 'Internal')!='Internal':
+                    raise ValueError('vba_relationship_external')
+                parts=name.split('/')
+                if name=='_rels/.rels':base=()
+                elif len(parts)>=2 and parts[-2]=='_rels':base=parts[:-2]
+                else:raise ValueError('vba_relationship_part_invalid')
+                found.add(_opc_name(node.get('Target'),base))
+    if any(name not in by_name for name in found):raise ValueError('vba_declared_part_missing')
+    return [by_name[name] for name in sorted(found)]
+
+
 def inspect_vba(source, *, cancel=None):
     """Return bounded structural storage evidence, never inferred from suffix."""
     _cancel(cancel)
@@ -125,15 +240,9 @@ def inspect_vba(source, *, cancel=None):
                 entries = archive.infolist()
                 if len(entries) > MAX_ENTRIES:
                     raise _Budget()
-                projects, project_bytes, seen = [], [], set()
-                for entry in entries:
+                projects, project_bytes = [], []
+                for entry in _opc_vba_entries(archive,entries,cancel):
                     _cancel(cancel)
-                    if entry.filename.rsplit('/', 1)[-1].lower() != 'vbaproject.bin':
-                        continue
-                    name = entry.filename.lower()
-                    if name in seen:
-                        raise ValueError('ambiguous_vba_part')
-                    seen.add(name)
                     if entry.file_size > MAX_STREAM_BYTES:
                         raise _Budget()
                     value = archive.read(entry)
@@ -148,7 +257,7 @@ def inspect_vba(source, *, cancel=None):
                         'projects': projects, 'projectBytes': project_bytes}
     except _Budget:
         return {'state': 'not_checked', 'reason': 'vba_inspection_budget'}
-    except (ImportError, OSError, ValueError, EOFError, RecursionError, zipfile.BadZipFile) as error:
+    except (ImportError, OSError, ValueError, EOFError, RecursionError, zipfile.BadZipFile, ET.ParseError) as error:
         return {'state': 'not_checked', 'reason': 'vba_inspection_' + type(error).__name__}
 
 

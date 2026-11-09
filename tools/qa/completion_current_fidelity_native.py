@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 from collections import Counter
 import hashlib
+from itertools import islice
 from html.parser import HTMLParser
 import json
 from pathlib import Path
@@ -188,6 +189,7 @@ def main():
     parser.add_argument('--input', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--executable', type=Path, required=True)
+    parser.add_argument('--extensions', default='', help='Optional comma-separated diagnostic subset')
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=False)
     from PIL import Image
@@ -199,7 +201,12 @@ def main():
     if not adapter.available:
         raise RuntimeError('Required native LibreOffice engine is unavailable')
     cases, originals, proofs, serial = [], {}, {}, 0
-    expected_cases = 32
+    selected = {value.strip().lower().lstrip('.') for value in args.extensions.split(',') if value.strip()}
+    supported = {'pcx','pcd','pct','tga','psd','html','htm','xhtml','gif','ppt'}
+    if selected - supported:
+        parser.error('Unsupported diagnostic extension')
+    enabled = selected or supported
+    expected_cases = 2 * sum(2 if ext in ('pcx','pcd','pct','tga','psd','gif') else 1 for ext in enabled)
     completed = False
 
     def source(ext, level):
@@ -232,6 +239,8 @@ def main():
             row.update(status='FAIL', code=getattr(error, 'code', None), reason=str(error),
                        diagnostic=getattr(error, 'diagnostic', None),
                        mode=adapter.execution_mode(), exportInfo=adapter.export_info())
+            if getattr(error, 'fidelity_detail', None):
+                row['fidelityDetail'] = error.fidelity_detail
         row['elapsedSeconds'] = round(time.monotonic() - start, 3)
         cases.append(row)
         print('CURRENT_FIDELITY_CASE=' + json.dumps({k:row[k] for k in (
@@ -245,8 +254,19 @@ def main():
                 size, pixels = expected.size, expected.convert('RGB').tobytes()
         output, extra = convert(path, target)
         with Image.open(output) as actual:
-            if actual.size != size or actual.convert('RGB').tobytes() != pixels:
-                raise AssertionError('Pixel canvas or decoded RGB differs from the independent source oracle')
+            observed = actual.convert('RGB').tobytes()
+            if actual.size != size or observed != pixels:
+                error = AssertionError('Pixel canvas or decoded RGB differs from the independent source oracle')
+                first = list(islice((index for index, (a,b) in enumerate(zip(pixels,observed)) if a != b), 12))
+                error.fidelity_detail = {'expectedSize':list(size), 'actualSize':list(actual.size),
+                    'expectedRgbSha256':hashlib.sha256(pixels).hexdigest(),
+                    'actualRgbSha256':hashlib.sha256(observed).hexdigest(),
+                    'differentChannels':sum(a != b for a,b in zip(pixels,observed)),
+                    'firstDifferentChannels':[{'pixel':[index//3%size[0],index//3//size[0]],
+                        'channel':index%3,'expected':pixels[index],'actual':observed[index]} for index in first],
+                    'expectedTopLeftRgb':list(pixels[:3]),'actualTopLeftRgb':list(observed[:3]),
+                    'outputSha256':digest(output)}
+                raise error
             if path.suffix == '.pcx' and any(abs(float(x) - 100) > .05 for x in actual.info.get('dpi', (0, 0))):
                 raise AssertionError('Source 100 DPI not retained')
         if path.suffix == '.pcd' and 'MEDIA_PHOTOCD_BASE_ONLY' not in extra['exportInfo'].get('warnings', ()):
@@ -310,17 +330,23 @@ def main():
         with adapter.batch(args.output/'office'):
             for level in (1, 2):
                 for ext in ('pcx','pcd','pct','tga','psd'):
+                    if ext not in enabled:
+                        continue
                     path = source(ext, level)
                     for target in ('png','tiff'):
                         case(path, target, lambda p=path,t=target:raster(p,t))
                 for ext in ('html','htm','xhtml'):
+                    if ext not in enabled:
+                        continue
                     path = source(ext, level)
                     case(path, ext, lambda p=path:html(p))
-                path = source('gif', level)
-                for target in ('gif', 'tiff'):
-                    case(path, target, lambda p=path,t=target:gif(p,t))
-                path = source('ppt', level)
-                case(path, 'xhtml', lambda p=path:ppt(p))
+                if 'gif' in enabled:
+                    path = source('gif', level)
+                    for target in ('gif', 'tiff'):
+                        case(path, target, lambda p=path,t=target:gif(p,t))
+                if 'ppt' in enabled:
+                    path = source('ppt', level)
+                    case(path, 'xhtml', lambda p=path:ppt(p))
         completed = len(cases) == expected_cases
     finally:
         source_checks = [{'source':p.name,'sha256Before':sha,'sha256After':digest(p),
@@ -328,6 +354,7 @@ def main():
         failed = not completed or any(row['status']=='FAIL' for row in cases) or any(not row['unchanged'] for row in source_checks)
         report = {'schema':1,'status':'FAIL' if failed else 'PASS','cases':cases,'sourceIntegrity':source_checks,
             'expectedCases':expected_cases, 'completed':completed,
+            'selectedExtensions':sorted(selected),
             'scope':'Targeted actual20261108 corpus; exact raster properties/HTML text/PPT visible text atoms',
             'historical5723Tasks':'NOT_RUN','complete178Matrix':False,'visiblePrintClipping':'NOT_CHECKED'}
         (args.output/'evidence.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
