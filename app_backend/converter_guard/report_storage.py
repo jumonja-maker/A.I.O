@@ -116,14 +116,16 @@ def aio_report_profile(model):
                     'ImageURL', 'HyperLinkURL', 'ScaleMode', 'Orientation', 'ParaAdjust',
                     'CharHeight', 'CharColor', 'CharWeight'))})
         return result
+    # These IDL members are readonly attributes in Python UNO. Java's generated
+    # getDetail/getGroups/getFunctions accessors are not Python UNO methods.
     profile = {'properties':fields(model, ('Caption', 'Command', 'CommandType',
                    'DataSourceName', 'EscapeProcessing', 'Filter', 'MimeType',
                    'PageHeaderOn', 'PageFooterOn', 'ReportHeaderOn', 'ReportFooterOn')),
-               'sections':{'Detail':section(model.getDetail())}, 'groups':[], 'functions':[]}
+               'sections':{'Detail':section(model.Detail)}, 'groups':[], 'functions':[]}
     for name in ('PageHeader', 'PageFooter', 'ReportHeader', 'ReportFooter'):
         if profile['properties'].get(name+'On') is True:
-            profile['sections'][name] = section(getattr(model, 'get'+name)())
-    groups = model.getGroups()
+            profile['sections'][name] = section(getattr(model, name))
+    groups = model.Groups
     if not 0 <= groups.getCount() <= 256:
         raise AioReportStorageUnverified('report_group_budget')
     for index in range(groups.getCount()):
@@ -133,9 +135,9 @@ def aio_report_profile(model):
                     'HeaderOn', 'FooterOn'))}
         for name in ('Header', 'Footer'):
             if item['properties'].get(name+'On') is True:
-                item[name] = section(getattr(group, 'get'+name)())
+                item[name] = section(getattr(group, name))
         profile['groups'].append(item)
-    functions = model.getFunctions()
+    functions = model.Functions
     if not 0 <= functions.getCount() <= 4096:
         raise AioReportStorageUnverified('report_function_budget')
     for index in range(functions.getCount()):

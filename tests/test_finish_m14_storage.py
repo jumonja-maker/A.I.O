@@ -79,6 +79,51 @@ class ReportStorageImportContract(unittest.TestCase):
         self.storage.dispose.assert_called_once_with()
 
 
+class PythonReportAttributes(unittest.TestCase):
+    def test_profile_reads_idl_attributes_including_sections_groups_and_functions(self):
+        # Python UNO exposes readonly IDL attributes directly, unlike Java's
+        # generated getDetail()/getGroups()/getFunctions() accessors. These
+        # doubles intentionally do not offer those non-existent methods.
+        class Properties:
+            def __init__(self, values, **attrs):
+                self.values = values
+                self.__dict__.update(attrs)
+
+            def getPropertySetInfo(self):
+                return SimpleNamespace(hasPropertyByName=lambda name:name in self.values)
+
+            def getPropertyValue(self, name):
+                return self.values[name]
+
+        def indexed(items, **attributes):
+            return SimpleNamespace(getCount=lambda:len(items),getByIndex=lambda n:items[n],**attributes)
+
+        component = Properties({'Name':'Label','Label':'Unchanged'},
+            getPosition=lambda:SimpleNamespace(X=10,Y=20),
+            getSize=lambda:SimpleNamespace(Width=30,Height=40),
+            getSupportedServiceNames=lambda:('com.sun.star.report.FixedText',))
+
+        def section():
+            value = Properties({'Height':100},getCount=lambda:1,getByIndex=lambda n:component)
+            return value
+
+        group = Properties({'HeaderOn':True,'FooterOn':True,'Expression':'[ID]'},
+                           Header=section(),Footer=section())
+        function = Properties({'Name':'Sum','Formula':'rpt:[AMOUNT]'})
+        model = Properties({'Command':'Table1','PageHeaderOn':True},Detail=section(),
+            PageHeader=section(),Groups=indexed([group]),Functions=indexed([function]),
+            supportsService=lambda name:name=='com.sun.star.report.ReportDefinition')
+        api = {}
+        exec(compile(REPORT_STORAGE_SOURCE,'<report-storage-worker>','exec'),api)
+        profile, summary = api['aio_report_profile'](model)
+        self.assertEqual(summary['controls'],4)
+        self.assertEqual(summary['groups'],1)
+        self.assertEqual(summary['functions'],1)
+        self.assertEqual(profile['sections']['Detail']['components'][0]['properties']['Label'],'Unchanged')
+        self.assertEqual(profile['functions'][0]['Formula'],'rpt:[AMOUNT]')
+        self.assertEqual(profile['groups'][0]['Footer']['components'][0]['position'],[10,20])
+
+
 class MasterPackageParser(unittest.TestCase):
     def setUp(self):
         directory = tempfile.TemporaryDirectory()
