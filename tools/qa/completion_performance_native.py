@@ -17,6 +17,7 @@ import statistics
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import tracemalloc
 from unittest.mock import patch
@@ -48,28 +49,39 @@ def summary(rows, key):
     return result
 
 
-def scanner_cases(functions, output, files, repeats, iterations):
+def scanner_cases(functions, output, files, repeats, iterations, *, directory_inputs=0, cancellable=False):
     rows, memory = [], {}
     with tempfile.TemporaryDirectory(prefix='scan-', dir=output) as folder:
         parent = Path(folder)
         history(parent, files)
+        # Mirror the directories produced by two targets per synthetic input.
+        # A flat foreign-history scan alone misses directory-descent overhead.
+        for number in range(directory_inputs):
+            for target in ('0', '1'):
+                destination = parent / 'active' / 'native' / str(number) / target / 'output'
+                destination.mkdir(parents=True)
+                (destination / 'result').write_bytes(b'x')
+        expected = files + directory_inputs * 2
+        kwargs = {'cancel': threading.Event()} if cancellable else {}
         for function in functions.values():
-            assert function([parent]) == files  # Both start from warm directory metadata.
+            assert function([parent], **kwargs) == expected  # Both start from warm directory metadata.
         for repeat in range(repeats):
             order = ('baseline', 'patched') if repeat % 2 == 0 else ('patched', 'baseline')
             for mode in order:
                 wall, cpu = time.perf_counter(), time.process_time()
                 for _ in range(iterations):
-                    assert functions[mode]([parent]) == files
+                    assert functions[mode]([parent], **kwargs) == expected
                 rows.append({'repeat': repeat, 'mode': mode,
                              'wallMsPerScan': (time.perf_counter()-wall)*1000/iterations,
                              'parentCpuMsPerScan': (time.process_time()-cpu)*1000/iterations})
         for mode, function in functions.items():
             tracemalloc.start()
-            assert function([parent]) == files
+            assert function([parent], **kwargs) == expected
             _, memory[mode] = tracemalloc.get_traced_memory()
             tracemalloc.stop()
-    return {'measurements': rows, 'wallMsPerScan': summary(rows, 'wallMsPerScan'),
+    return {'measurements': rows, 'cancellable': cancellable,
+            'directoryInputs': directory_inputs, 'expectedBytes': expected,
+            'wallMsPerScan': summary(rows, 'wallMsPerScan'),
             'peakPythonTracedBytesOneScan': memory}
 
 
@@ -94,7 +106,8 @@ def transport_case(scanner, output, existing, inputs, executable):
             try:
                 return scanner(roots, **kwargs)
             finally:
-                scans.append((time.perf_counter()-tick)*1000)
+                scans.append({'ms': (time.perf_counter()-tick)*1000,
+                              'cancellable': kwargs.get('cancel') is not None})
 
         def convert(source, target, workspace, **kwargs):
             tick = time.perf_counter()
@@ -153,7 +166,12 @@ def transport_case(scanner, output, existing, inputs, executable):
             transport.finish(request, retained=True)
             return {'wallMs': elapsed, 'parentCpuMs': cpu_ms, 'conversions': inputs*2,
                     'jobsPerSecond': inputs*2/(elapsed/1000), 'fullScans': len(scans),
-                    'fullScanMs': sum(scans), 'nativeBoundaryMs': sum(native),
+                    'fullScanMs': sum(row['ms'] for row in scans),
+                    'scanBoundaries': {label: {
+                        'count': sum(row['cancellable'] == cancellable for row in scans),
+                        'ms': sum(row['ms'] for row in scans if row['cancellable'] == cancellable)}
+                        for label, cancellable in (('explicit', False), ('cancellable', True))},
+                    'nativeBoundaryMs': sum(native),
                     'cliProcessMs': sum(row['processMs'] for row in process_metrics),
                     'cliLaunchMs': sum(row['launchMs'] for row in process_metrics),
                     'cliProcesses': len(process_metrics), 'archiveBytes': saved.path.stat().st_size,
@@ -219,6 +237,12 @@ def main():
               'existingFiles': args.existing_files}
     try:
         report['scanner'] = scanner_cases(functions, args.output, args.existing_files, args.repeats, 10)
+        report['scannerWithCancellation'] = scanner_cases(functions, args.output, args.existing_files,
+                                                          args.repeats, 10, cancellable=True)
+        report['directoryHeavyScanner'] = {
+            label: scanner_cases(functions, args.output, args.existing_files, args.repeats, 10,
+                                 directory_inputs=args.fixture_inputs, cancellable=cancellable)
+            for label, cancellable in (('explicit', False), ('cancellable', True))}
         report['syntheticTransport'] = matched_transport(functions, args.output, args.existing_files,
                                                          args.fixture_inputs, args.repeats)
         if args.executable:

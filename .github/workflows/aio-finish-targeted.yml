@@ -1,0 +1,70 @@
+name: AIO targeted converter finish checks
+on:
+  push:
+    branches: [qa/converter-finish-targeted-20261109]
+permissions:
+  contents: read
+concurrency:
+  group: aio-finish-targeted-${{ github.ref_name }}
+  cancel-in-progress: true
+env:
+  PYTHONUTF8: '1'
+  PYTHONIOENCODING: utf-8
+  PYTHONDONTWRITEBYTECODE: '1'
+  QT_QPA_PLATFORM: offscreen
+  QT_OPENGL: software
+  AIO_LO_QA_MUST_HAVE_ENGINE: '1'
+jobs:
+  performance:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 30
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.11'
+      - name: Canonical private temporary directory
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os,pathlib
+          p=pathlib.Path(os.environ['RUNNER_TEMP']).resolve()/'aio-finish-temp'
+          p.mkdir(exist_ok=False)
+          with open(os.environ['GITHUB_ENV'],'a',encoding='utf-8') as f:
+              for key in ('TEMP','TMP','TMPDIR'): f.write(key+'='+str(p)+'\n')
+              f.write('AIO_QA_SOURCE_SHA='+os.environ['GITHUB_SHA']+'\n')
+          PY
+      - name: Verified runtime dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/build/verify_qa_dependency_lock.py --phase runtime --check-locks
+          python tools/build/qa_wheels.py --phase runtime --wheelhouse "$RUNNER_TEMP/aio-qa-wheels"
+          python tools/build/qa_sca.py --phase runtime --output build/aio-qa-sca-runtime.json
+          python tools/build/verify_qa_dependency_lock.py --phase runtime --wheel-receipt build/aio-qa-wheels-runtime.json --sca-report build/aio-qa-sca-runtime.json
+      - name: Verified native Windows engine
+        shell: pwsh
+        run: ./tools/build/prepare-libreoffice.ps1 -Destination (Join-Path $env:RUNNER_TEMP 'aio-engine-26.8.2')
+      - name: Directory attributes quota and real junction regressions
+        shell: bash
+        run: python -m unittest discover -s tests -p test_legacy_storage_budget.py -v
+      - name: Matched flat nested cancellable and full transport comparisons
+        shell: bash
+        run: python tools/qa/completion_performance_native.py --executable "$AIO_QA_ENGINE" --output "$RUNNER_TEMP/aio-finish-performance" --baseline b7216d1210489a5fd1eadb21daf2e3b3849e30f4 --fixture-inputs 100 --repeats 5
+      - name: Preserve exact evidence in logs
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib,json,os,pathlib
+          p=pathlib.Path(os.environ['RUNNER_TEMP'])/'aio-finish-performance/evidence.json'
+          if not p.is_file(): raise SystemExit('Targeted evidence missing')
+          raw=p.read_bytes();data=json.loads(raw)
+          print('AIO_FINISH_EVIDENCE='+json.dumps(data,ensure_ascii=True))
+          encoded=raw.decode('utf-8');parts=[encoded[i:i+10000] for i in range(0,len(encoded),10000)]
+          for index,part in enumerate(parts):
+              print('AIO_FINISH_CHUNK='+json.dumps({'part':index,'total':len(parts),'sha256':hashlib.sha256(raw).hexdigest(),'data':part},ensure_ascii=True))
+          PY

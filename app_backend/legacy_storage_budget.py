@@ -5,7 +5,6 @@ unverified/foreign-owned roots. This is cooperative admission/live monitoring,
 not an OS filesystem quota: native writers can overshoot between polls.
 """
 import os
-from pathlib import Path
 import stat
 import time
 
@@ -14,6 +13,28 @@ from .libreoffice_engine import LibreOfficeError
 DEFAULT_STORAGE_BYTES = 8 * 1024 ** 3
 MAX_SCAN_ENTRIES = 100_000
 MAX_SCAN_DEPTH = 32
+
+
+# Windows lstat obtains handle metadata that descent does not need. A fresh
+# attributes lookup still detects a directory replaced by a link/reparse point,
+# without paying for the full stat on every directory of every quota scan.
+# Cache only the API binding, never filesystem attributes or byte counts.
+_get_file_attributes = None
+if os.name == 'nt':
+    import ctypes
+    _get_file_attributes = ctypes.WinDLL('kernel32', use_last_error=True).GetFileAttributesW
+    _get_file_attributes.argtypes = [ctypes.c_wchar_p]
+    _get_file_attributes.restype = ctypes.c_uint32
+
+
+def _check_directory(path):
+    attributes = _get_file_attributes(os.fsdecode(path))
+    if attributes == 0xffffffff:
+        raise ctypes.WinError(ctypes.get_last_error())
+    if attributes & 0x400:
+        raise OSError('Linked legacy storage cannot be measured safely')
+    if not attributes & 0x10:
+        raise OSError('Legacy storage directory changed type during inspection')
 
 
 def _check_cancel(cancel):
@@ -28,7 +49,7 @@ def measured_bytes(roots, *, cancel=None):
     """
     _check_cancel(cancel)
     total = 0
-    pending = [(os.fspath(root), 0) for root in roots]
+    pending = [(os.fspath(root), 0, False) for root in roots]
     visited = len(pending)
     if visited > MAX_SCAN_ENTRIES:
         raise OSError('Legacy storage inspection budget exceeded')
@@ -37,18 +58,23 @@ def measured_bytes(roots, *, cancel=None):
     cancelled = cancel.is_set if cancel is not None else None
     while pending:
         _check_cancel(cancel)
-        path, depth = pending.pop()
+        path, depth, directory = pending.pop()
         try:
-            info = os.lstat(path)
+            if directory and _get_file_attributes is not None:
+                _check_directory(path)
+                info = None
+            else:
+                info = os.lstat(path)
         except FileNotFoundError:
             continue
-        if stat.S_ISLNK(info.st_mode) or getattr(info, 'st_file_attributes', 0) & 0x400:
-            raise OSError('Linked legacy storage cannot be measured safely')
-        if stat.S_ISREG(info.st_mode):
-            total += info.st_size
-            continue
-        if not stat.S_ISDIR(info.st_mode):
-            raise OSError('Unsupported legacy storage entry')
+        if info is not None:
+            if stat.S_ISLNK(info.st_mode) or getattr(info, 'st_file_attributes', 0) & 0x400:
+                raise OSError('Linked legacy storage cannot be measured safely')
+            if stat.S_ISREG(info.st_mode):
+                total += info.st_size
+                continue
+            if not stat.S_ISDIR(info.st_mode):
+                raise OSError('Unsupported legacy storage entry')
         try:
             child_depth = depth + 1
             with os.scandir(path) as entries:
@@ -71,7 +97,7 @@ def measured_bytes(roots, *, cancel=None):
                         # Only directories need deferred traversal. Regular
                         # files are charged immediately using the same fresh
                         # non-following stat required by the quota contract.
-                        pending.append((item.path, child_depth))
+                        pending.append((item.path, child_depth, True))
                     else:
                         raise OSError('Unsupported legacy storage entry')
         except FileNotFoundError:
