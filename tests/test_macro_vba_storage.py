@@ -83,13 +83,12 @@ class VbaStorageContract(unittest.TestCase):
 
     def test_invalid_output_remains_unverified_not_preserved(self):
         out=self.root/'bad.xlsm';out.write_bytes(b'PK\x00\x00')
-        check=check_vba_preservation([out],'xlsm',self.source)
-        self.assertEqual(check['status'],'not_checked')
-        self.assertIn('VBA_PRESERVATION_NOT_CHECKED',check['warnings'])
+        with self.assertRaises(GuardError) as caught:check_vba_preservation([out],'xlsm',self.source)
+        self.assertEqual(caught.exception.code,'VBA_PRESERVATION_UNVERIFIED')
 
     def test_missing_unique_primary_does_not_claim_vba_preserved(self):
-        check=check_vba_preservation([], 'xlsm', self.source)
-        self.assertEqual(check['reason'],'vba_primary_not_unique')
+        with self.assertRaises(GuardError) as caught:check_vba_preservation([], 'xlsm', self.source)
+        self.assertEqual(caught.exception.code,'VBA_PRESERVATION_UNVERIFIED')
 
     def test_cancel_is_propagated(self):
         cancel=threading.Event();cancel.set()
@@ -114,9 +113,10 @@ class VbaStorageContract(unittest.TestCase):
         with olefile.OleFileIO(str(out),write_mode=True) as z:
             raw=bytearray(z.openstream('Macros/VBA/__SRP_0').read());raw[-1]^=1
             z.write_stream('Macros/VBA/__SRP_0',bytes(raw))
-        check=check_vba_preservation([out],'doc',FIXTURES/'SimpleMacro.doc')
-        self.assertEqual(check['status'],'not_checked')
-        self.assertEqual(check['reason'],'vba_stream_bytes_changed')
+        with self.assertRaises(GuardError) as caught:
+            check_vba_preservation([out],'doc',FIXTURES/'SimpleMacro.doc')
+        self.assertEqual(caught.exception.code,'VBA_PRESERVATION_UNVERIFIED')
+        self.assertEqual(caught.exception.diagnostic,'vba_stream_bytes_changed')
 
     def test_every_vba_warning_has_readable_scope(self):
         for code in ('VBA_MACROS_EXPECTED_LOSS','VBA_PRESERVATION_NOT_CHECKED','VBA_STREAMS_PRESERVED'):

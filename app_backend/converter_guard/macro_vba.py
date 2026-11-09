@@ -276,16 +276,20 @@ def check_vba_preservation(paths, target, source, *, cancel=None):
                 'warnings': ['VBA_MACROS_EXPECTED_LOSS']}
     primaries = [Path(path) for path in paths if Path(path).suffix.lower() == '.' + target]
     if len(primaries) != 1:
-        return {**result, 'status': 'not_checked', 'reason': 'vba_primary_not_unique',
-                'warnings': ['VBA_PRESERVATION_NOT_CHECKED']}
+        raise GuardError('VBA_PRESERVATION_UNVERIFIED',
+            'Не подтверждена сохранность VBA-макросов: основной результат не определён. '
+            'Результат не отмечен готовым; исходный файл сохранён.',stage='result',
+            diagnostic='vba_primary_not_unique')
     after = inspect_vba(primaries[0], cancel=cancel)
     if after['state'] == 'absent':
         raise GuardError('ENGINE_OUTPUT_MACROS_LOST',
             'LibreOffice не сохранил VBA-макросы в формате, поддерживающем макросы. '
             'Результат не отмечен готовым; исходный файл сохранён.', stage='result')
     if after['state'] == 'not_checked':
-        return {**result, 'status': 'not_checked', 'reason': after['reason'],
-                'warnings': ['VBA_PRESERVATION_NOT_CHECKED']}
+        raise GuardError('VBA_PRESERVATION_UNVERIFIED',
+            'Не подтверждена сохранность VBA-макросов после преобразования. '
+            'Результат не отмечен готовым; исходный файл сохранён.',stage='result',
+            diagnostic=after['reason'])
     # Container sector allocation can change while every VBA stream remains
     # byte-identical. Compare complete project stream maps independently.
     canonical = lambda projects: sorted(tuple(sorted(project.items())) for project in projects)
@@ -294,5 +298,7 @@ def check_vba_preservation(paths, target, source, *, cancel=None):
                 'projectContainersByteEqual': sorted(before['projectBytes']) == sorted(after['projectBytes'])
                                              if before['projectBytes'] and after['projectBytes'] else None,
                 'warnings': ['VBA_STREAMS_PRESERVED']}
-    return {**result, 'status': 'not_checked', 'reason': 'vba_stream_bytes_changed',
-            'outputProjects': len(after['projects']), 'warnings': ['VBA_PRESERVATION_NOT_CHECKED']}
+    raise GuardError('VBA_PRESERVATION_UNVERIFIED',
+        'LibreOffice изменил потоки проекта VBA; сохранность кода и атрибутов макросов '
+        'не подтверждена. Результат не отмечен готовым; исходный файл сохранён.',
+        stage='result',diagnostic='vba_stream_bytes_changed')

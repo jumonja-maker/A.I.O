@@ -1,5 +1,6 @@
 """Installed acceptance readback controls; no installer or GUI is run here."""
 import hashlib
+import ctypes
 import json
 import os
 from pathlib import Path
@@ -138,6 +139,32 @@ class InstalledAcceptanceReadbackTests(unittest.TestCase):
         filename['text']='installed-control.pdf'
         selected=acceptance.choose_native_save_controls([filename,save],expected_filename='installed-control.pdf')
         self.assertEqual(selected[0]['handle'],1)
+
+    def test_captured_windows2025_filename_has_zero_id_combo_and_hidden_pdf_suffix(self):
+        controls=[{'handle':1,'class':'ComboBox','id':0,'text':'installed-control',
+                   'parentIds':[],'rect':[141,357,620,380]},
+                  {'handle':2,'class':'Edit','id':1001,'text':'installed-control',
+                   'parentIds':[0,0,0,0],'rect':[144,360,600,377]},
+                  {'handle':3,'class':'ComboBox','id':0,'text':'PDF (*.pdf)',
+                   'parentIds':[],'rect':[141,382,620,405]},
+                  {'handle':4,'class':'Button','id':1,'text':'&Save','rect':[420,460,508,486]}]
+        selected=acceptance.choose_native_save_controls(controls,expected_filename='installed-control.pdf')
+        self.assertEqual(selected[0]['handle'],2)
+        self.assertEqual(selected[0]['selectionBasis'],'expected_suggested_name_in_enclosing_native_ComboBox')
+        # A generic Edit1001 or an unrelated search box is still insufficient.
+        self.assertIsNone(acceptance.choose_native_save_controls(controls[1:],expected_filename='installed-control.pdf'))
+        self.assertIsNone(acceptance.choose_native_save_controls(
+            [c for c in controls if c['handle']!=3],expected_filename='installed-control.pdf'))
+
+    def test_os_input_structures_match_the_windows_sendinput_abi(self):
+        # Windows DWORD/LONG remain 32-bit even on a 64-bit host. Using the
+        # host's c_ulong here would produce an invalid packet on Linux QA.
+        wide=ctypes.sizeof(ctypes.c_void_p)==8
+        self.assertEqual(ctypes.sizeof(acceptance._Input),40 if wide else 28)
+        self.assertEqual(acceptance._Input.value.offset,8 if wide else 4)
+        self.assertEqual(acceptance._KeyboardInput.wScan.offset,2)
+        self.assertEqual(acceptance._KeyboardInput.dwFlags.offset,4)
+        self.assertEqual(acceptance._MouseInput.dwFlags.offset,12)
 
 
 if __name__=='__main__':unittest.main()

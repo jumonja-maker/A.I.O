@@ -506,6 +506,8 @@ class LibreOfficeAdapter:
         if not self.available:
             return {'state': 'undetermined', 'code': 'ENGINE_NOT_FOUND'}
         control = _RunControl(cancel, workspace, timeout, None)
+        from .macro_identity import source_stamp, bind_xlsm_identity
+        identity_before=source_stamp(source)
         validate_legacy_dbf_source(source,self._registry(),cancel=control)
         try:
             media = media_preflight(source, cancel=control)
@@ -547,7 +549,7 @@ class LibreOfficeAdapter:
                           'exported': False}
             result = {**result, 'mediaProfile': media['source'],
                       'qtMediaTargets': media['targets'], 'mediaDecoder': media['decoder']}
-        return result
+        return bind_xlsm_identity(source,result,self._registry(),identity_before,cancel=control)
 
     def _preflight_native(self, source, workspace, *, cancel, timeout):
         from .preflight import inspect_source
@@ -754,8 +756,16 @@ class LibreOfficeAdapter:
 
         if (retry_recipe is None and proof.get('state') == 'detected'
                 and self.route_decision(target, proof) == 'registered'):
-            paths = copy_media_identity(source, workspace / 'output', target, cancel=identity_control)
-            identity = 'media_identity' if paths else None
+            from .macro_identity import copy_verified_xlsm
+            copied=copy_verified_xlsm(source,workspace/'output',target,proof,self._registry(),
+                cancel=identity_control,output_limit=output_limit,retry_recipe=retry_recipe)
+            identity_check=None
+            if copied:
+                paths,identity_check=copied
+                identity='verified_macro_identity'
+            else:
+                paths = copy_media_identity(source, workspace / 'output', target, cancel=identity_control)
+                identity = 'media_identity' if paths else None
             if paths is None:
                 paths = copy_chart_identity(source, workspace / 'output', target, proof, cancel=identity_control)
                 identity = 'native_identity' if paths else None
@@ -763,7 +773,8 @@ class LibreOfficeAdapter:
                 self._local.execution_mode = identity
                 self._local.metrics = None
                 self._local.export_info = {'executionReason': 'validated_' + identity,
-                    'resultChecks': [{'check': identity, 'status': 'byte_preserved', 'qualityCompared': False}]}
+                    'warnings':('VBA_VERIFIED_BYTE_IDENTITY',) if identity_check else (),
+                    'resultChecks': [identity_check or {'check': identity, 'status': 'byte_preserved', 'qualityCompared': False}]}
             if paths is None and target in proof.get('qtMediaTargets', ()):
                 tick = time.monotonic()
                 paths = convert_document_pages(source, workspace / 'output', target,

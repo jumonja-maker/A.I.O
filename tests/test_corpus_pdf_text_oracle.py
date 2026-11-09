@@ -3,7 +3,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from pypdf import PdfWriter
+from pypdf import PdfReader, PdfWriter
 from pypdf.generic import (ArrayObject, DecodedStreamObject, DictionaryObject,
                           NameObject, NumberObject)
 
@@ -80,6 +80,104 @@ class PositionedLiteralReadback(unittest.TestCase):
             path = self.make_pdf(Path(temp))
             result = inspect_pdf_literals(path, [])
             self.assertEqual(result['status'], 'NOT_CHECKED', result)
+
+    def marked_pdf(self, folder, content, *, named=False):
+        seed=self.make_pdf(folder)
+        writer=PdfWriter();page=writer.add_page(PdfReader(seed).pages[0])
+        if named:
+            from pypdf.generic import TextStringObject
+            props=DictionaryObject({NameObject('/P1'):writer._add_object(DictionaryObject({
+                NameObject('/ActualText'):TextStringObject('NAMED')}))})
+            page['/Resources'][NameObject('/Properties')]=writer._add_object(props)
+        stream=DecodedStreamObject()
+        stream.set_data(b'BT /Latin 10 Tf 1 0 0 1 20 80 Tm '+content+b' ET')
+        page[NameObject('/Contents')]=writer._add_object(stream)
+        target=folder/'marked.pdf'
+        with target.open('wb') as file:writer.write(file)
+        return target
+
+    def test_utf16_actualtext_replaces_all_glyphs_once(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path=self.marked_pdf(Path(temp),
+                b'(LEFT) Tj /Span << /ActualText <FEFF0438> >> BDC (wrong) Tj EMC (RIGHT) Tj')
+            result=inspect_pdf_literals(path,['LEFTиRIGHT'])
+            self.assertEqual(result['status'],'PASS',result)
+            self.assertEqual(result['positionedPages'][0]['actualTextSpans'],1)
+            self.assertTrue(result['ordinaryFallbackSuppressedForActualText'])
+            lost=inspect_pdf_literals(path,['LEFTwrongRIGHT'])
+            self.assertEqual(lost['status'],'MISSING',lost)
+
+    def test_empty_actualtext_suppresses_hyphen_without_ordinary_fallback(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path=self.marked_pdf(Path(temp),b'(foo) Tj /Span << /ActualText () >> BDC (-) Tj EMC (bar) Tj')
+            result=inspect_pdf_literals(path,['foobar'])
+            self.assertEqual(result['status'],'PASS',result)
+            lost=inspect_pdf_literals(path,['foo-bar'])
+            self.assertEqual(lost['status'],'MISSING',lost)
+
+    def test_pdfdocencoding_actualtext_is_not_a_utf16_only_shortcut(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path=self.marked_pdf(Path(temp),b'/Span << /ActualText (RIGHT) >> BDC (wrong) Tj EMC')
+            self.assertEqual(inspect_pdf_literals(path,['RIGHT'])['status'],'PASS')
+        with tempfile.TemporaryDirectory() as temp:
+            path=self.marked_pdf(Path(temp),b'/Span << /ActualText <80> >> BDC (wrong) Tj EMC')
+            self.assertEqual(inspect_pdf_literals(path,['\u2022'])['status'],'PASS')
+
+    def test_actualtext_aware_logical_order_keeps_overlapping_draw_literals(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path=self.marked_pdf(Path(temp),b'[(ALPHA) -4000 (OMEGA)] TJ '
+                b'/Russian 10 Tf 1 0 0 1 50 80 Tm (ABC) Tj '
+                b'/Span << /ActualText (REPLACED) >> BDC '
+                b'/Latin 10 Tf 1 0 0 1 20 60 Tm (wrong) Tj EMC')
+            result=inspect_pdf_literals(path,['ALPHAOMEGA','Мир','REPLACED'])
+            self.assertEqual(result['status'],'PASS',result)
+            self.assertTrue(result['ordinaryFallbackSuppressedForActualText'])
+            self.assertEqual(result['actualTextAwareLogicalOrderLiteralCount'],1)
+
+    def test_named_property_resources_resolve_actualtext(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path=self.marked_pdf(Path(temp),b'/Span /P1 BDC (wrong) Tj EMC',named=True)
+            self.assertEqual(inspect_pdf_literals(path,['NAMED'])['status'],'PASS')
+
+    def test_nested_marked_content_uses_outer_replacement_without_double_count(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path=self.marked_pdf(Path(temp),b'/Span << /ActualText (OUTER) >> BDC '
+                b'/Span << /ActualText (INNER) >> BDC (wrong) Tj EMC /Span BMC (tail) Tj EMC EMC')
+            result=inspect_pdf_literals(path,['OUTER'])
+            self.assertEqual(result['status'],'PASS',result)
+            self.assertEqual(result['positionedPages'][0]['actualTextSpans'],2)
+            self.assertEqual(inspect_pdf_literals(path,['OUTERINNER'])['status'],'MISSING')
+
+    def test_malformed_actualtext_never_claims_success_from_matching_raw_text(self):
+        variants=(b'/Span << /ActualText <FEFF04> >> BDC (RIGHT) Tj EMC',
+                  b'/Span << /ActualText 42 >> BDC (RIGHT) Tj EMC',
+                  b'/Span /Unknown BDC (RIGHT) Tj EMC')
+        for index,content in enumerate(variants):
+            with self.subTest(index=index),tempfile.TemporaryDirectory() as temp:
+                result=inspect_pdf_literals(self.marked_pdf(Path(temp),content),['RIGHT'])
+                self.assertEqual(result['status'],'UNCERTAIN',result)
+
+    def test_unbalanced_marked_content_is_explicit_uncertainty(self):
+        for content in (b'(RIGHT) Tj EMC',b'/Span << /ActualText (RIGHT) >> BDC (RIGHT) Tj'):
+            with self.subTest(content=content),tempfile.TemporaryDirectory() as temp:
+                result=inspect_pdf_literals(self.marked_pdf(Path(temp),content),['RIGHT'])
+                self.assertEqual(result['status'],'UNCERTAIN',result)
+                self.assertIn('marked_content_unbalanced',result['issues'])
+
+    def test_actualtext_cannot_certify_an_invisible_run(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path=self.marked_pdf(Path(temp),b'/Span << /ActualText (VISIBLE) >> BDC 3 Tr (wrong) Tj EMC')
+            result=inspect_pdf_literals(path,['VISIBLE'])
+            self.assertEqual(result['status'],'UNCERTAIN',result)
+            self.assertIn('actualtext_visibility_unconfirmed',result['issues'])
+
+    def test_actualtext_budget_and_nested_depth_are_bounded(self):
+        variants=(b'/Span << /ActualText ('+b'A'*65537+b') >> BDC (RIGHT) Tj EMC',
+                  b'/Span BMC '*33+b'(RIGHT) Tj'+b' EMC'*33)
+        for content in variants:
+            with self.subTest(size=len(content)),tempfile.TemporaryDirectory() as temp:
+                result=inspect_pdf_literals(self.marked_pdf(Path(temp),content),['RIGHT'])
+                self.assertEqual(result['status'],'UNCERTAIN',result)
 
 
 if __name__ == '__main__':

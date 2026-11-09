@@ -6,6 +6,7 @@ the application checks opaque CFB stream bytes. No macro is run.
 """
 import argparse
 import hashlib
+import io
 import json
 from pathlib import Path
 import platform
@@ -13,6 +14,7 @@ import shutil
 import subprocess
 import sys
 import threading
+import time
 import traceback
 from xml.etree import ElementTree as ET
 from zipfile import ZipFile
@@ -186,7 +188,7 @@ def rename_word_vba_part(source,destination):
 
 def main():
     from openpyxl import load_workbook
-    from app_backend.converter_guard import LibreOfficeAdapter
+    from app_backend.converter_guard import LibreOfficeAdapter, ConverterGuard
     from app_backend.converter_guard.errors import GuardError
     from app_backend.converter_guard.macro_vba import inspect_vba
 
@@ -255,6 +257,8 @@ def main():
                 proof = adapter.preflight(source, args.output/('probe-%02d' % number), cancel=cancel, timeout=120)
                 proofs[key] = proof
             assert proof.get('state') == 'detected', proof
+            if args.require_uno:
+                assert proof.get('basis')=='native_preflight_uno_document' and proof.get('modelLoaded') is True,proof
             audit_active_profile(office)
             adapter.prepare_source(proof)
             outputs = adapter.convert(source, target, args.output/('task-%02d' % number),
@@ -262,11 +266,19 @@ def main():
             info, mode = adapter.export_info(), adapter.execution_mode()
             last_native.update(executionMode=mode,exportInfo=info)
             if args.require_uno:
-                assert mode == 'native_uno', mode
+                expected_mode=('verified_macro_identity' if source.suffix.lower()=='.xlsm' and target=='xlsm'
+                               else 'native_uno')
+                assert mode == expected_mode,(mode,expected_mode)
             primary = next(path for path in outputs if path.suffix == '.'+target)
             after = independent(primary)
             last_native.update(output=after,sourceSignature=before['staticVba']['sourceSignature'])
             check = next(item for item in info['resultChecks'] if item['check'] == 'vba_storage')
+            if mode=='verified_macro_identity':
+                identity=next(item for item in info['resultChecks'] if item['check']=='verified_macro_identity')
+                assert before['sha256']==after['sha256']==identity['sourceSha256']==identity['outputSha256']
+                assert identity['readbackVerified'] and identity['sourceCrcVerified']
+                assert identity['nativeModelLoaded'] and identity['nativeExportPerformed'] is False
+                assert 'VBA_VERIFIED_BYTE_IDENTITY' in info['warnings']
             if target in ('xlsx', 'docx'):
                 assert not after['staticVba']['detected']
                 assert check['status'] == 'expected_loss'
@@ -283,16 +295,27 @@ def main():
                     assert 'VBA_PRESERVATION_NOT_CHECKED' in info['warnings']
             if source.name.startswith('cyrillic'):
                 contains_marker(primary)
-            return {'status': 'PASS', 'nativeOutcome': 'PRESERVED' if target not in ('xlsx','docx') else 'EXPECTED_LOSS',
+            return {'status': 'PASS', 'nativeOutcome': ('VERIFIED_BYTE_IDENTITY' if mode=='verified_macro_identity' else
+                        'PRESERVED' if target not in ('xlsx','docx') else 'EXPECTED_LOSS'),
                     'executionMode': mode, 'output': after, 'exportInfo': info,
+                    'nativePreflightBasis':proof['basis'],'nativeModelLoaded':proof.get('modelLoaded'),
                     'sourceUnchanged': sha(source.read_bytes()) == originals[source]}
         except GuardError as error:
             # A build that drops a project must never return success. Keep the
             # refusal visible; Windows acceptance additionally requires actual
             # native positives, and never counts refusals as preservation.
-            if error.code == 'ENGINE_OUTPUT_MACROS_LOST' and not args.require_uno:
-                return {'status': 'SAFE_REFUSAL', 'code': error.code,
-                        'reason': 'native_build_dropped_vba', 'preservationPassed': False}
+            if error.code in ('ENGINE_OUTPUT_MACROS_LOST','VBA_PRESERVATION_UNVERIFIED'):
+                expected_legacy=(source.name=='SimpleMacro.xls' and target=='xlsm')
+                if args.require_uno:
+                    if not expected_legacy:raise
+                    assert proof.get('basis')=='native_preflight_uno_document' and proof.get('modelLoaded') is True,proof
+                    assert adapter.execution_mode()=='native_uno',adapter.execution_mode()
+                if expected_legacy or not args.require_uno:
+                    return {'status':'SAFE_REFUSAL','code':error.code,'diagnostic':error.diagnostic,
+                            'reason':'native_project_changed_or_lost','preservationPassed':False,
+                            'executionMode':adapter.execution_mode(),
+                            'nativePreflightBasis':proof['basis'],'nativeModelLoaded':proof.get('modelLoaded'),
+                            'sourceUnchanged':sha(source.read_bytes())==originals[source]}
             raise
     with adapter.batch(args.output/'office') as office:
         plan = [(inputs/'SimpleMacro.docm','docm'), (derived_word,'docm'), (derived_word,'docx'),
@@ -310,6 +333,43 @@ def main():
             cases.append(result)
             print('MACRO_COMPLETION_CASE='+json.dumps(result, ensure_ascii=True), flush=True)
             audit_active_profile(office)
+    guard_check={'status':'NOT_RUN','reason':'requires_actual_Windows_UNO_identity'}
+    if args.require_uno:
+        guard=ConverterGuard(adapter=LibreOfficeAdapter(args.executable),recovery_parent=args.output/'guard-owned')
+        try:
+            raw_identity=(inputs/'SimpleMacro.xlsm').read_bytes();raw_legacy=(inputs/'SimpleMacro.xls').read_bytes()
+            job=guard.create([{'id':'identity','name':'original.xlsm','size':len(raw_identity)},
+                              {'id':'legacy','name':'original.xls','size':len(raw_legacy)}],prepare_only=True)['jobId']
+            guard.upload(job,'identity',io.BytesIO(raw_identity),len(raw_identity))
+            guard.upload(job,'legacy',io.BytesIO(raw_legacy),len(raw_legacy))
+            prepared=guard.preflight(job)
+            assert all(row['preflight'].get('modelLoaded') is True for row in prepared['files']),prepared
+            guard.start(job,file_ids=['identity','legacy'],formats=['xlsm'],only_verified=True)
+            deadline=time.monotonic()+240
+            while not (state:=guard.status(job))['finished']:
+                if time.monotonic()>=deadline:
+                    guard.cancel(job);raise TimeoutError('Macro publication guard deadline')
+                time.sleep(.05)
+            assert state['succeeded']==1 and state['failed']==1,state
+            targets={row['fileId']:row['targets'][0] for row in state['files']}
+            assert targets['identity']['state']=='ready' and targets['identity']['executionMode']=='verified_macro_identity',targets
+            assert targets['legacy']['code'] in ('VBA_PRESERVATION_UNVERIFIED','ENGINE_OUTPUT_MACROS_LOST'),targets
+            outputs=state['result']['outputs']
+            assert outputs and all(row['fileId']=='identity' for row in outputs),outputs
+            with guard.open_result(state['result']['ticket']) as (stream,_name,_size):
+                with ZipFile(stream) as archive:
+                    names=[n for n in archive.namelist() if n.endswith('.xlsm')]
+                    assert len(names)==1,names
+                    assert archive.read(names[0])==raw_identity
+            guard_check={'status':'PASS','identityReadyWithExactZipReadback':True,
+                'changedLegacyProjectRejectedWithoutPublishedOutput':True,
+                'legacyCode':targets['legacy']['code'],'succeeded':1,'failed':1,
+                'identitySourceSha256':sha(raw_identity)}
+        except Exception as error:
+            failures.append(('guard','publication'))
+            guard_check={'status':'FAIL','error':repr(error),'traceback':traceback.format_exc()[-6000:]}
+        finally:
+            guard.close()
     assert all(sha(path.read_bytes()) == expected for path,expected in originals.items())
     assert profile_observations, 'No native private-profile security observation captured before cleanup'
     evidence = {'schema': 1, 'status': 'PASS' if not failures else 'FAIL',
@@ -319,7 +379,10 @@ def main():
         'staticInspection': 'olefile0.47+independent bounded MS-OVBA source decompression, never Office execution',
         'profilesWithMacrosDisabled': len(profile_observations),
         'profileSecurityObservations':list(profile_observations.values()), 'provenance': provenance, 'cases': cases,
+        'guardPublicationCheck':guard_check,
         'counts': {status:sum(row['status']==status for row in cases) for status in ('PASS','SAFE_REFUSAL','FAIL')},
+        'successfulNativeExports':sum(row['status']=='PASS' and row.get('executionMode')=='native_uno' for row in cases),
+        'verifiedIdentityCopies':sum(row['status']=='PASS' and row.get('executionMode')=='verified_macro_identity' for row in cases),
         'limitations': ['Static code/storage equality does not prove macro runtime behavior.',
                         'Cyrillic controls are explicitly derived test documents; downloaded originals stay unchanged.']}
     (args.output/'evidence.json').write_text(json.dumps(evidence,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')

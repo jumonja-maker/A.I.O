@@ -28,6 +28,28 @@ APP_ID = '{C1B5474A-4A1D-42EC-B2CD-A57A2011F34E}'
 SOURCE_MANIFEST = 'AIO-install-source.json'
 
 
+class _MouseInput(ctypes.Structure):
+    _fields_ = [('dx',ctypes.c_int32),('dy',ctypes.c_int32),('mouseData',ctypes.c_uint32),
+                ('dwFlags',ctypes.c_uint32),('time',ctypes.c_uint32),('dwExtraInfo',ctypes.c_size_t)]
+
+
+class _KeyboardInput(ctypes.Structure):
+    _fields_ = [('wVk',ctypes.c_uint16),('wScan',ctypes.c_uint16),('dwFlags',ctypes.c_uint32),
+                ('time',ctypes.c_uint32),('dwExtraInfo',ctypes.c_size_t)]
+
+
+class _HardwareInput(ctypes.Structure):
+    _fields_ = [('uMsg',ctypes.c_uint32),('wParamL',ctypes.c_uint16),('wParamH',ctypes.c_uint16)]
+
+
+class _InputUnion(ctypes.Union):
+    _fields_ = [('mi',_MouseInput),('ki',_KeyboardInput),('hi',_HardwareInput)]
+
+
+class _Input(ctypes.Structure):
+    _fields_ = [('type',ctypes.c_uint32),('value',_InputUnion)]
+
+
 def digest(path):
     with Path(path).open('rb') as stream:
         return hashlib.file_digest(stream, 'sha256').hexdigest()
@@ -194,19 +216,38 @@ class ObservedDevTools(DevTools):
 def choose_native_save_controls(controls, expected_filename=None):
     """Return only an unambiguous enabled File name Edit and Save button pair."""
     candidates=[]
+    expected = PureWindowsPath(expected_filename).name.casefold() if expected_filename else None
+    pdf_filter = any(c['class']=='ComboBox' and '*.pdf' in c.get('text','').casefold()
+                     for c in controls)
+    def encloses(outer,inner):
+        return (isinstance(outer,list) and isinstance(inner,list) and len(outer)==len(inner)==4
+                and outer[0]<=inner[0]<inner[2]<=outer[2]
+                and outer[1]<=inner[1]<inner[3]<=outer[3])
     for control in controls:
         if control['class']!='Edit':continue
-        if expected_filename is not None and PureWindowsPath(
-                str(control.get('text','')).strip().strip('"')).name.casefold() != expected_filename.casefold():
+        displayed=PureWindowsPath(str(control.get('text','')).strip().strip('"')).name.casefold()
+        # The captured Windows 2025 dialog hides the known PDF extension:
+        # installed-control.pdf is displayed as installed-control. Confirm the
+        # PDF filter before accepting that exact suggested-name stem.
+        name_matches = expected is not None and (displayed==expected or
+            pdf_filter and PureWindowsPath(expected).suffix=='.pdf'
+            and displayed==PureWindowsPath(expected).stem)
+        if expected is not None and not name_matches:
             continue
-        score=(30 if control['id']==1152 else 20 if 1148 in control.get('parentIds',[]) else
+        native_combo = name_matches and any(c['class']=='ComboBox'
+            and c.get('text','')==control.get('text','')
+            and encloses(c.get('rect'),control.get('rect')) for c in controls)
+        score=(50 if native_combo else
+               30 if control['id']==1152 else 20 if 1148 in control.get('parentIds',[]) else
                20 if control['id']==1148 else 0)
         # Modern common dialogs also give the Search Edit ID1001. It may
         # appear while the actual File name host is still initializing. A
         # bare ID1001 is not filename evidence, even if Save already exists.
         if not score:continue
         if control.get('text','').casefold().endswith('.pdf'):score+=100
-        if score:candidates.append((score,control))
+        if score:candidates.append((score,{**control,'selectionBasis':
+            'expected_suggested_name_in_enclosing_native_ComboBox' if native_combo else
+            'legacy_filename_edt1_or_combo1148_host'}))
     candidates.sort(key=lambda value:value[0],reverse=True)
     saves=[c for c in controls if c['class']=='Button' and c['id']==1]
     if not candidates or len(saves)!=1 or len(candidates)>1 and candidates[0][0]==candidates[1][0]:
@@ -232,8 +273,25 @@ def complete_native_save_dialog(pid, destination, output, *, expected_filename):
     user.IsWindowVisible.argtypes = [w.HWND]
     user.IsWindowEnabled.argtypes = [w.HWND]
     user.IsWindow.argtypes = [w.HWND]
+    user.SetForegroundWindow.argtypes = [w.HWND]
+    user.SetForegroundWindow.restype = w.BOOL
+    user.GetForegroundWindow.restype = w.HWND
+    user.GetAncestor.argtypes = [w.HWND,w.UINT]
+    user.GetAncestor.restype = w.HWND
+    user.WindowFromPoint.argtypes = [w.POINT]
+    user.WindowFromPoint.restype = w.HWND
+    user.GetSystemMetrics.argtypes = [ctypes.c_int]
+    user.SendInput.argtypes = [w.UINT,ctypes.POINTER(_Input),ctypes.c_int]
+    user.SendInput.restype = w.UINT
     user.SendMessageTimeoutW.argtypes = [w.HWND, w.UINT, w.WPARAM, w.LPARAM, w.UINT, w.UINT, ctypes.POINTER(ctypes.c_size_t)]
     user.SendMessageTimeoutW.restype = w.LPARAM
+
+    class GuiThreadInfo(ctypes.Structure):
+        _fields_=[('cbSize',w.DWORD),('flags',w.DWORD),('hwndActive',w.HWND),('hwndFocus',w.HWND),
+                  ('hwndCapture',w.HWND),('hwndMenuOwner',w.HWND),('hwndMoveSize',w.HWND),
+                  ('hwndCaret',w.HWND),('rcCaret',w.RECT)]
+    user.GetGUIThreadInfo.argtypes=[w.DWORD,ctypes.POINTER(GuiThreadInfo)]
+    user.GetGUIThreadInfo.restype=w.BOOL
 
     def text_of(handle):
         # GetWindowText cannot read another process's Edit control. These
@@ -321,15 +379,74 @@ def complete_native_save_dialog(pid, destination, output, *, expected_filename):
         shot = {'status':'CAPTURED','size':list(image.size)}
     except Exception as error:
         shot = {'status':'NOT_AVAILABLE','reason':type(error).__name__}
-    value = ctypes.create_unicode_buffer(str(destination))
-    answer = ctypes.c_size_t()
-    if not user.SendMessageTimeoutW(edit['handle'], 0x000C, 0, ctypes.cast(value, ctypes.c_void_p).value, 2, 5000, ctypes.byref(answer)):
-        raise ctypes.WinError(ctypes.get_last_error())
-    if text_of(edit['handle']) != str(destination):
-        raise AssertionError('Native File name field did not accept the exact output path')
+    actual=w.DWORD()
+    dialog_thread=user.GetWindowThreadProcessId(dialog,ctypes.byref(actual))
+    if actual.value!=pid:raise AssertionError('Native dialog ownership changed before input')
+
+    def foreground_guard():
+        foreground=user.GetForegroundWindow()
+        actual=w.DWORD()
+        user.GetWindowThreadProcessId(foreground,ctypes.byref(actual))
+        if actual.value!=pid or user.GetAncestor(foreground,2)!=dialog:
+            raise AssertionError('Refusing OS input outside the actual owned foreground Save dialog')
+
+    def send(events):
+        foreground_guard()
+        sequence=(_Input*len(events))(*events)
+        if user.SendInput(len(sequence),sequence,ctypes.sizeof(_Input))!=len(sequence):
+            raise ctypes.WinError(ctypes.get_last_error())
+
+    def key(code,up=False):
+        return _Input(type=1,value=_InputUnion(ki=_KeyboardInput(wVk=code,dwFlags=2 if up else 0)))
+
+    def click(handle):
+        foreground_guard()
+        rect=w.RECT()
+        if not user.GetWindowRect(handle,ctypes.byref(rect)):raise ctypes.WinError(ctypes.get_last_error())
+        point=w.POINT((rect.left+rect.right)//2,(rect.top+rect.bottom)//2)
+        target=user.WindowFromPoint(point)
+        if user.GetAncestor(target,2)!=dialog:
+            raise AssertionError('Refusing mouse input: owned control is obscured by another window')
+        ox,oy,width,height=(user.GetSystemMetrics(n) for n in (76,77,78,79))
+        if width<=1 or height<=1:raise AssertionError('Invalid virtual desktop dimensions')
+        x=round((point.x-ox)*65535/(width-1));y=round((point.y-oy)*65535/(height-1))
+        if not 0<=x<=65535 or not 0<=y<=65535:raise AssertionError('Owned control is outside the desktop')
+        send([_Input(type=0,value=_InputUnion(mi=_MouseInput(dx=x,dy=y,dwFlags=0xC001))),
+              _Input(type=0,value=_InputUnion(mi=_MouseInput(dwFlags=0x0002))),
+              _Input(type=0,value=_InputUnion(mi=_MouseInput(dwFlags=0x0004)))])
+
+    def focused():
+        info=GuiThreadInfo(cbSize=ctypes.sizeof(GuiThreadInfo))
+        if not user.GetGUIThreadInfo(dialog_thread,ctypes.byref(info)):raise ctypes.WinError(ctypes.get_last_error())
+        return info.hwndFocus
+
+    user.SetForegroundWindow(dialog)
+    deadline=time.monotonic()+5
+    while user.GetForegroundWindow()!=dialog and time.monotonic()<deadline:time.sleep(.05)
+    foreground_guard()
+    click(edit['handle'])
+    deadline=time.monotonic()+5
+    while focused()!=edit['handle'] and time.monotonic()<deadline:time.sleep(.05)
+    if focused()!=edit['handle']:raise AssertionError('Actual mouse click did not focus the owned File name Edit')
+    send([key(0x11),key(0x41),key(0x41,True),key(0x11,True)])
+    raw=str(destination).encode('utf-16le')
+    if len(raw)>8192:raise AssertionError('Native QA filename input exceeds its bounded size')
+    events=[]
+    for index in range(0,len(raw),2):
+        unit=int.from_bytes(raw[index:index+2],'little')
+        events.extend(_Input(type=1,value=_InputUnion(ki=_KeyboardInput(wScan=unit,dwFlags=flags)))
+                      for flags in (0x0004,0x0006))
+    send(events)
+    deadline=time.monotonic()+5
+    while text_of(edit['handle'])!=str(destination) and time.monotonic()<deadline:time.sleep(.05)
+    if text_of(edit['handle'])!=str(destination):
+        raise AssertionError('Actual Unicode keyboard input did not enter the exact output path')
+    send([key(0x09),key(0x09,True)])
+    deadline=time.monotonic()+5
+    while focused()==edit['handle'] and time.monotonic()<deadline:time.sleep(.05)
+    if focused()==edit['handle']:raise AssertionError('Actual Tab did not commit the File name field')
     control_tree_entered=read_controls()
-    if not user.SendMessageTimeoutW(save['handle'], 0x00F5, 0, 0, 2, 5000, ctypes.byref(answer)):
-        raise ctypes.WinError(ctypes.get_last_error())
+    click(save['handle'])
     deadline=time.monotonic()+30
     while user.IsWindow(dialog) and user.IsWindowVisible(dialog):
         if time.monotonic()>=deadline:
@@ -337,7 +454,10 @@ def complete_native_save_dialog(pid, destination, output, *, expected_filename):
         time.sleep(.05)
     return {'status':'PASS','dialogClass':'#32770','ownedByAppPID':True,'fileNameControlID':edit['id'],
             'fileNameParentIDs':edit.get('parentIds',[]),'fileNameBefore':original_name,
-            'fileNameAfter':str(destination),'fileNameSelectionBasis':'filename_edt1_or_combo1148_host',
+            'fileNameAfter':str(destination),'fileNameSelectionBasis':edit['selectionBasis'],
+            'expectedSuggestedFileName':expected_filename,
+            'saveActivation':'guarded_OS_SendInput_mouse_Unicode_keyboard_Tab_mouseSave',
+            'foregroundAndPIDGuards':True,'filenameFocusVerified':True,'realOSInputUsed':True,
             'controlTreeBeforeEntry':control_tree_before,'controlTreeAfterEntry':control_tree_entered,
             'dialogClosedAfterSave':True,
             'saveButtonID':1,'QFileDialogOverrideUsed':False,'productHookUsed':False,'screenshot':shot}

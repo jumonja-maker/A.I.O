@@ -42,6 +42,8 @@ const variants=[
     warningMessage:'Сохранность VBA-макросов не подтверждена. Макросы не запускались; сохраните исходник и проверьте совместимость отдельно.'},
   {quality:null,warningCode:'VBA_STREAMS_PRESERVED',
     warningMessage:'Все проверенные потоки проекта VBA сохранены побайтно. Макросы не запускались; их работа и совместимость не проверены.'},
+  {quality:null,warningCode:'VBA_VERIFIED_BYTE_IDENTITY',
+    warningMessage:'XLSM сохранён как проверенная байтовая копия без изменений. Повторный экспорт LibreOffice не выполнялся. Макросы не запускались; их работа отдельно не проверялась.'},
   {quality:null,warningCode:'NATIVE_CALC_PDF_PRINT_LAYOUT',
     warningMessage:'PDF повторяет разметку печати таблицы. Длинный текст в узких ячейках может обрезаться, а данные вне области печати — не попасть в PDF.'},
   {quality:null,warningCode:'OOXML_PRIVATE_CONTENT_TYPES_NAMESPACE',

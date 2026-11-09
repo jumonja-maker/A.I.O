@@ -63,7 +63,12 @@ def main():
                              and p.findtext('value')=='true' for p in root.iter('prop'))
                 assert disabled,'QA variant must never enable macros'
                 result['profileSecurity']={'DisableMacrosExecution':True,'sha256':hashlib.sha256(raw).hexdigest()}
-                adapter.prepare_source(proof)
+                # Diagnose the native exporter deliberately; the production
+                # same-XLSM byte-identity capability is not under test here.
+                # Keep the actual model/registry proof, remove only its optional
+                # identity-copy binding so this QA probe performs a real export.
+                adapter.prepare_source({k:v for k,v in proof.items() if k!='macroIdentitySource'})
+                result['identityCopySuppressedForNativeDiagnostic']=True
                 try:
                     outputs=adapter.convert(source,'xlsm',workspace/'task',cancel=cancel,timeout=180,on_started=lambda:None)
                     result['guardOutcome']='converted'
@@ -88,7 +93,7 @@ def main():
         (args.output/'evidence.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
         print('VBA_PROFILE_DIAGNOSTIC='+json.dumps(result,ensure_ascii=True),flush=True)
     report.update(status='DIAGNOSTIC_COMPLETE',sourceBytesUnchanged=True,
-        productionDefaultPreserved=report['cases'][0].get('exactModuleSourcePreserved',False),
+        forcedNativeDefaultExactSourcePreserved=report['cases'][0].get('exactModuleSourcePreserved',False),
         preservedVariantNames=[r['variant'] for r in report['cases'] if r.get('exactModuleSourcePreserved')],
         limitations=['QA-only profile variants are not production changes or runtime macro tests.'])
     (args.output/'evidence.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
