@@ -55,6 +55,18 @@ class RetiredHTTP(unittest.TestCase):
                 code,value=self.request('/compare/'+route,{'jobId':'a'*32})
                 self.assertEqual((code,value['code']),(410,'MODULE_RETIRED'))
         self.assertEqual(self.guard.storage_stats()['jobs'],0)
+    def test_retired_post_complete_bodies_do_not_reset_loopback(self):
+        # A complete, authenticated retired POST must deliver 410, not a TCP
+        # reset if Windows closes a connection containing unread body bytes.
+        # Keep the separate stalled-body test: rejection must remain bounded.
+        for size in (0, 8192):
+            for route in ('start', 'control', 'retry', 'export-selected'):
+                for attempt in range(6):
+                    with self.subTest(route=route, size=size, attempt=attempt):
+                        code, value = self.request('/compare/' + route,
+                            {'jobId': 'a' * 32, 'unused': 'x' * size})
+                        self.assertEqual((code, value['code']), (410, 'MODULE_RETIRED'))
+        self.assertEqual(self.guard.storage_stats()['jobs'], 0)
     def test_removed_routes_still_require_authentication(self):
         for body in (None,{'jobId':'a'*32}):
             code,value=self.request('/compare/start',body,authorized=False)
