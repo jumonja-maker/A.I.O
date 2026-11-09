@@ -75,6 +75,11 @@ LAYOUT_CSS = r'''
   flex-wrap: nowrap;
   align-items: center;
   gap: 6px;
+  /* ch must use the counter's font, not the smaller shell/body font. */
+  font-family: var(--font);
+  font-size: 17px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 .app-shell .workspace .aio-cv__pane--left .aio-cv__pane-head .aio-cv__pane-title {
   grid-column: 1;
@@ -85,7 +90,8 @@ LAYOUT_CSS = r'''
   height: 38px;
   min-width: 0;
   flex: 0 0 auto;
-  font-variant-numeric: tabular-nums;
+  font: inherit;
+  font-variant-numeric: inherit;
 }
 .app-shell .workspace .aio-cv__pane--left .aio-cv-filter__actions {
   grid-column: 2;
@@ -106,6 +112,7 @@ LAYOUT_CSS = r'''
   min-width: 104px;
   max-width: 104px;
   font-size: 13px;
+  font-weight: 600;
   line-height: 1.2;
   padding-inline: 8px;
   height: 38px;
@@ -124,6 +131,7 @@ LAYOUT_CSS = r'''
   gap: 5px;
   flex: 0 1 156px;
   font-size: 13px;
+  font-weight: 600;
   line-height: 1.2;
   min-width: 0;
   min-height: 38px;

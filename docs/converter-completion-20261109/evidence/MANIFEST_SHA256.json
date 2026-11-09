@@ -4,12 +4,16 @@
     "sha256": "910a4feffdcca058b834d586d3d352ce257dcac850ad71927e90524a59195793"
   },
   "local-final-execution.json": {
-    "bytes": 304,
-    "sha256": "c6e60902d5dfbbe5dea247d14c8ca2a282a23c3f914fad72008167c477503798"
+    "bytes": 307,
+    "sha256": "92fc9711d1b45e495ff60fad5d4ce9bebab9893b5a12ac237048f0f90c055b29"
   },
   "dbf-linux-final.json": {
     "bytes": 12992,
     "sha256": "6a1ea003b8fe55051ba8d1789c993ad37a920b533b2e29309c7081a2bfdb6540"
+  },
+  "ui-font-final.json": {
+    "bytes": 157078,
+    "sha256": "69aaa1b182166e00f98a0395e1ceebb6cf331e072464dc6e95cc6d3a86b96d12"
   },
   "performance-report.md": {
     "bytes": 5511,
@@ -23,6 +27,10 @@
     "bytes": 22145,
     "sha256": "6b9944c9a819bbd8af33ab834fec7c71ba0ce4bbd505af85882b866765f660ec"
   },
+  "ui-font-baseline.json": {
+    "bytes": 9032,
+    "sha256": "9f2d305cba428bb1dfb9c28661aa74093d6e022449a00e3ceef9be0d8a79db43"
+  },
   "routes-review.md": {
     "bytes": 3911,
     "sha256": "7bff71bc5f166086d1a5be77e2ffbfbbcbd0d40d9985c53b629f91f4eb0407ad"
@@ -30,6 +38,10 @@
   "frozen-source-control.json": {
     "bytes": 886,
     "sha256": "67d0bf10ea2a7bee98730fd6a777cbd80fa81bf4e20e63a6fb50a3ec94818e7c"
+  },
+  "ui-font-scale150.json": {
+    "bytes": 170468,
+    "sha256": "f723db7a65d1ca522570b5282955c6fb2755070ea8dc3d8c459c6928acbb88b1"
   },
   "performance-matched.json": {
     "bytes": 18364,

@@ -33,10 +33,13 @@ GEOMETRY = r'''(()=>{
  const visible=e=>e&&!e.hidden&&getComputedStyle(e).display!=='none'&&getComputedStyle(e).visibility!=='hidden';
  const ws=q('.workspace'),left=q('.aio-cv__pane--left'),right=q('.aio-cv__pane--right'),lr=r(left),rr=r(right),head=r(left.querySelector('.aio-cv__pane-head')),search=r(q('.aio-cv__search')),area=r(q('[data-cv-file-area]'));
  const counter=r(q('[data-cv-count]')),counterBox=r(left.querySelector('.aio-cv__pane-title'));
+ const font=e=>{const s=getComputedStyle(e);return {family:s.fontFamily,size:s.fontSize,weight:s.fontWeight,numeric:s.fontVariantNumeric};};
+ const counterFont=font(q('[data-cv-count]')),headFont=font(left.querySelector('.aio-cv__pane-head'));
  const violations=[],controlElements=['[data-cv-type-filter]','[data-cv-add]','[data-cv-clear-inputs]'].map(q).filter(visible),controls=controlElements.map(r);
  for(const a of controls)if(!fits(a,head)||!fits(a,lr))violations.push('header control outside header/pane');
  for(const a of controls)if(Math.abs((a.top+a.bottom-counter.top-counter.bottom)/2)>1)violations.push('header control below/above file counter');
  if(!fits(counter,counterBox))violations.push('file count outside reserved slot');
+ if(JSON.stringify(counterFont)!==JSON.stringify(headFont))violations.push('counter slot ch uses a different font from the number');
  for(const e of controlElements)if(!e.getAttribute('aria-label'))violations.push('header control missing accessible label');
  const labelMetrics=[...left.querySelectorAll('[data-filter-label],.aio-cv__add-label')].map(e=>({text:e.textContent,visible:visible(e),client:e.clientWidth,scroll:e.scrollWidth}));
  for(const e of labelMetrics)if(innerWidth>=1280&&e.visible&&e.scroll>e.client+1)violations.push('desktop header label clipped: '+e.text);
@@ -51,7 +54,7 @@ GEOMETRY = r'''(()=>{
  for(const e of document.querySelectorAll('.aio-cv__category'))if(e.scrollHeight>e.clientHeight+2)violations.push('category label clipped vertically: '+e.textContent);
  const footer=r(q('.aio-cv__footer'));
  for(const s of ['[data-cv-run]','[data-cv-result-actions]','[data-cv-summary]','[data-cv-status]'])if(!fits(r(q(s)),footer)||!fits(r(q(s)),rr))violations.push(s+' outside footer/pane');
- return {violations,viewport:[innerWidth,innerHeight],devicePixelRatio,workspace:{client:ws.clientHeight,scroll:ws.scrollHeight,excess:ws.scrollHeight-ws.clientHeight},document:{client:document.documentElement.clientHeight,scroll:document.documentElement.scrollHeight,bodyScroll:document.body.scrollHeight,bodyScrollTop:document.body.scrollTop,bodyOverflow:getComputedStyle(document.body).overflowY,bodyChildren:[...document.body.children].filter(visible).map(e=>({tag:e.tagName,cls:e.className,rect:r(e),position:getComputedStyle(e).position,client:e.clientHeight,scroll:e.scrollHeight}))},shell:r(q('.app-shell')),appHeader:r(q('.app-header')),appLayout:r(q('.app-layout')),sidebar:r(q('.sidebar')),left:lr,right:rr,header:head,counter,counterBox,controls,labelMetrics,run:r(q('[data-cv-run]')),runVisibility:getComputedStyle(q('[data-cv-run]')).visibility,fileArea:area,fileCount:q('[data-cv-count]').textContent};
+ return {violations,viewport:[innerWidth,innerHeight],devicePixelRatio,workspace:{client:ws.clientHeight,scroll:ws.scrollHeight,excess:ws.scrollHeight-ws.clientHeight},document:{client:document.documentElement.clientHeight,scroll:document.documentElement.scrollHeight,bodyScroll:document.body.scrollHeight,bodyScrollTop:document.body.scrollTop,bodyOverflow:getComputedStyle(document.body).overflowY,bodyChildren:[...document.body.children].filter(visible).map(e=>({tag:e.tagName,cls:e.className,rect:r(e),position:getComputedStyle(e).position,client:e.clientHeight,scroll:e.scrollHeight}))},shell:r(q('.app-shell')),appHeader:r(q('.app-header')),appLayout:r(q('.app-layout')),sidebar:r(q('.sidebar')),left:lr,right:rr,header:head,counter,counterBox,counterFont,headFont,controls,labelMetrics,run:r(q('[data-cv-run]')),runVisibility:getComputedStyle(q('[data-cv-run]')).visibility,fileArea:area,fileCount:q('[data-cv-count]').textContent};
 })()'''
 
 

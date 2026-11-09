@@ -1,0 +1,6092 @@
+{
+  "status": "PASS",
+  "scope": "production source Qt WebEngine + HTTP + native LibreOffice; controlled save destination",
+  "installedWindowsGUI": "NOT_RUN",
+  "cases": [
+    {
+      "label": "empty-1440x1000-zoom1",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          1441,
+          1001
+        ],
+        "devicePixelRatio": 1.5,
+        "workspace": {
+          "client": 733,
+          "scroll": 733,
+          "excess": 0
+        },
+        "document": {
+          "client": 1001,
+          "scroll": 1001,
+          "bodyScroll": 1001,
+          "bodyScrollTop": 0,
+          "bodyOverflow": "clip",
+          "bodyChildren": [
+            {
+              "tag": "DIV",
+              "cls": "app-shell",
+              "rect": {
+                "left": 40.66666793823242,
+                "top": 26,
+                "right": 1400.6666679382324,
+                "bottom": 846,
+                "width": 1360,
+                "height": 820
+              },
+              "position": "static",
+              "client": 819,
+              "scroll": 819
+            }
+          ]
+        },
+        "shell": {
+          "left": 40.66666793823242,
+          "top": 26,
+          "right": 1400.6666679382324,
+          "bottom": 846,
+          "width": 1360,
+          "height": 820
+        },
+        "appHeader": {
+          "left": 41.333335876464844,
+          "top": 26.666667938232422,
+          "right": 1400.0000839233398,
+          "bottom": 112.66666793823242,
+          "width": 1358.666748046875,
+          "height": 86
+        },
+        "appLayout": {
+          "left": 41.333335876464844,
+          "top": 112.66667175292969,
+          "right": 1400.0000839233398,
+          "bottom": 845.3333587646484,
+          "width": 1358.666748046875,
+          "height": 732.6666870117188
+        },
+        "sidebar": {
+          "left": 41.333335876464844,
+          "top": 112.66667175292969,
+          "right": 299.33333587646484,
+          "bottom": 845.3333587646484,
+          "width": 258,
+          "height": 732.6666870117188
+        },
+        "left": {
+          "left": 323.3333435058594,
+          "top": 215.8125,
+          "right": 795.5937805175781,
+          "bottom": 827.3333740234375,
+          "width": 472.26043701171875,
+          "height": 611.5208740234375
+        },
+        "right": {
+          "left": 809.59375,
+          "top": 215.8125,
+          "right": 1364,
+          "bottom": 827.3333740234375,
+          "width": 554.40625,
+          "height": 611.5208740234375
+        },
+        "header": {
+          "left": 340,
+          "top": 232.4791717529297,
+          "right": 778.9270935058594,
+          "bottom": 276.4791717529297,
+          "width": 438.9270935058594,
+          "height": 44
+        },
+        "counter": {
+          "left": 340,
+          "top": 244.4791717529297,
+          "right": 367.8020839691162,
+          "bottom": 264.4791717529297,
+          "width": 27.80208396911621,
+          "height": 20
+        },
+        "counterBox": {
+          "left": 340,
+          "top": 235.4791717529297,
+          "right": 464.5416717529297,
+          "bottom": 273.4791717529297,
+          "width": 124.54167175292969,
+          "height": 38
+        },
+        "counterFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "headFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "controls": [
+          {
+            "left": 470.9270935058594,
+            "top": 235.4791717529297,
+            "right": 574.9270935058594,
+            "bottom": 273.4791717529297,
+            "width": 104,
+            "height": 38
+          },
+          {
+            "left": 580.9271240234375,
+            "top": 235.4791717529297,
+            "right": 736.9271240234375,
+            "bottom": 273.4791717529297,
+            "width": 156,
+            "height": 38
+          },
+          {
+            "left": 742.9271240234375,
+            "top": 235.4791717529297,
+            "right": 778.9271240234375,
+            "bottom": 273.4791717529297,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "labelMetrics": [
+          {
+            "text": "Фильтр",
+            "visible": true,
+            "client": 52,
+            "scroll": 52
+          },
+          {
+            "text": "Добавить файлы",
+            "visible": true,
+            "client": 116,
+            "scroll": 116
+          }
+        ],
+        "run": {
+          "left": 826.2604370117188,
+          "top": 712.6666870117188,
+          "right": 1347.3333740234375,
+          "bottom": 760.6666870117188,
+          "width": 521.0729370117188,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 340,
+          "top": 340.47918701171875,
+          "right": 778.9270935058594,
+          "bottom": 810.6666870117188,
+          "width": 438.9270935058594,
+          "height": 470.1875
+        },
+        "fileCount": "0/0",
+        "reachability": {
+          "[data-cv-type-filter]": {
+            "reachable": true,
+            "hit": "SPAN",
+            "rect": {
+              "top": 235.4791717529297,
+              "bottom": 273.4791717529297
+            }
+          },
+          "[data-cv-add]": {
+            "reachable": true,
+            "hit": "SPAN",
+            "rect": {
+              "top": 235.4791717529297,
+              "bottom": 273.4791717529297
+            }
+          },
+          "[data-cv-clear-inputs]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 235.4791717529297,
+              "bottom": 273.4791717529297
+            }
+          },
+          "[data-cv-run]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 712.6666870117188,
+              "bottom": 760.6666870117188
+            }
+          }
+        },
+        "filterPopover": {
+          "withinViewport": true,
+          "choiceReachable": true,
+          "bodyPortal": true
+        }
+      }
+    },
+    {
+      "label": "max-counter-4096-1440x1000-zoom1",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          1441,
+          1001
+        ],
+        "devicePixelRatio": 1.5,
+        "workspace": {
+          "client": 733,
+          "scroll": 733,
+          "excess": 0
+        },
+        "document": {
+          "client": 1001,
+          "scroll": 1001,
+          "bodyScroll": 1001,
+          "bodyScrollTop": 0,
+          "bodyOverflow": "clip",
+          "bodyChildren": [
+            {
+              "tag": "DIV",
+              "cls": "app-shell",
+              "rect": {
+                "left": 40.66666793823242,
+                "top": 26,
+                "right": 1400.6666679382324,
+                "bottom": 846,
+                "width": 1360,
+                "height": 820
+              },
+              "position": "static",
+              "client": 819,
+              "scroll": 819
+            }
+          ]
+        },
+        "shell": {
+          "left": 40.66666793823242,
+          "top": 26,
+          "right": 1400.6666679382324,
+          "bottom": 846,
+          "width": 1360,
+          "height": 820
+        },
+        "appHeader": {
+          "left": 41.333335876464844,
+          "top": 26.666667938232422,
+          "right": 1400.0000839233398,
+          "bottom": 112.66666793823242,
+          "width": 1358.666748046875,
+          "height": 86
+        },
+        "appLayout": {
+          "left": 41.333335876464844,
+          "top": 112.66667175292969,
+          "right": 1400.0000839233398,
+          "bottom": 845.3333587646484,
+          "width": 1358.666748046875,
+          "height": 732.6666870117188
+        },
+        "sidebar": {
+          "left": 41.333335876464844,
+          "top": 112.66667175292969,
+          "right": 299.33333587646484,
+          "bottom": 845.3333587646484,
+          "width": 258,
+          "height": 732.6666870117188
+        },
+        "left": {
+          "left": 323.3333435058594,
+          "top": 215.8125,
+          "right": 795.5937805175781,
+          "bottom": 827.3333740234375,
+          "width": 472.26043701171875,
+          "height": 611.5208740234375
+        },
+        "right": {
+          "left": 809.59375,
+          "top": 215.8125,
+          "right": 1364,
+          "bottom": 827.3333740234375,
+          "width": 554.40625,
+          "height": 611.5208740234375
+        },
+        "header": {
+          "left": 340,
+          "top": 232.4791717529297,
+          "right": 778.9270935058594,
+          "bottom": 276.4791717529297,
+          "width": 438.9270935058594,
+          "height": 44
+        },
+        "counter": {
+          "left": 340,
+          "top": 244.4791717529297,
+          "right": 429,
+          "bottom": 264.4791717529297,
+          "width": 89,
+          "height": 20
+        },
+        "counterBox": {
+          "left": 340,
+          "top": 235.4791717529297,
+          "right": 464.5416717529297,
+          "bottom": 273.4791717529297,
+          "width": 124.54167175292969,
+          "height": 38
+        },
+        "counterFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "headFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "controls": [
+          {
+            "left": 470.9270935058594,
+            "top": 235.4791717529297,
+            "right": 574.9270935058594,
+            "bottom": 273.4791717529297,
+            "width": 104,
+            "height": 38
+          },
+          {
+            "left": 580.9271240234375,
+            "top": 235.4791717529297,
+            "right": 736.9271240234375,
+            "bottom": 273.4791717529297,
+            "width": 156,
+            "height": 38
+          },
+          {
+            "left": 742.9271240234375,
+            "top": 235.4791717529297,
+            "right": 778.9271240234375,
+            "bottom": 273.4791717529297,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "labelMetrics": [
+          {
+            "text": "Фильтр",
+            "visible": true,
+            "client": 52,
+            "scroll": 52
+          },
+          {
+            "text": "Добавить файлы",
+            "visible": true,
+            "client": 116,
+            "scroll": 116
+          }
+        ],
+        "run": {
+          "left": 826.2604370117188,
+          "top": 712.6666870117188,
+          "right": 1347.3333740234375,
+          "bottom": 760.6666870117188,
+          "width": 521.0729370117188,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 340,
+          "top": 340.47918701171875,
+          "right": 778.9270935058594,
+          "bottom": 810.6666870117188,
+          "width": 438.9270935058594,
+          "height": 470.1875
+        },
+        "fileCount": "4096/4096",
+        "headerStableTo": "empty-1440x1000-zoom1",
+        "reachability": {
+          "[data-cv-type-filter]": {
+            "reachable": true,
+            "hit": "SPAN",
+            "rect": {
+              "top": 235.4791717529297,
+              "bottom": 273.4791717529297
+            }
+          },
+          "[data-cv-add]": {
+            "reachable": true,
+            "hit": "SPAN",
+            "rect": {
+              "top": 235.4791717529297,
+              "bottom": 273.4791717529297
+            }
+          },
+          "[data-cv-clear-inputs]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 235.4791717529297,
+              "bottom": 273.4791717529297
+            }
+          },
+          "[data-cv-run]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 712.6666870117188,
+              "bottom": 760.6666870117188
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "max-counter-10000-1440x1000-zoom1",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          1441,
+          1001
+        ],
+        "devicePixelRatio": 1.5,
+        "workspace": {
+          "client": 733,
+          "scroll": 733,
+          "excess": 0
+        },
+        "document": {
+          "client": 1001,
+          "scroll": 1001,
+          "bodyScroll": 1001,
+          "bodyScrollTop": 0,
+          "bodyOverflow": "clip",
+          "bodyChildren": [
+            {
+              "tag": "DIV",
+              "cls": "app-shell",
+              "rect": {
+                "left": 40.66666793823242,
+                "top": 26,
+                "right": 1400.6666679382324,
+                "bottom": 846,
+                "width": 1360,
+                "height": 820
+              },
+              "position": "static",
+              "client": 819,
+              "scroll": 819
+            }
+          ]
+        },
+        "shell": {
+          "left": 40.66666793823242,
+          "top": 26,
+          "right": 1400.6666679382324,
+          "bottom": 846,
+          "width": 1360,
+          "height": 820
+        },
+        "appHeader": {
+          "left": 41.333335876464844,
+          "top": 26.666667938232422,
+          "right": 1400.0000839233398,
+          "bottom": 112.66666793823242,
+          "width": 1358.666748046875,
+          "height": 86
+        },
+        "appLayout": {
+          "left": 41.333335876464844,
+          "top": 112.66667175292969,
+          "right": 1400.0000839233398,
+          "bottom": 845.3333587646484,
+          "width": 1358.666748046875,
+          "height": 732.6666870117188
+        },
+        "sidebar": {
+          "left": 41.333335876464844,
+          "top": 112.66667175292969,
+          "right": 299.33333587646484,
+          "bottom": 845.3333587646484,
+          "width": 258,
+          "height": 732.6666870117188
+        },
+        "left": {
+          "left": 323.3333435058594,
+          "top": 215.8125,
+          "right": 795.5937805175781,
+          "bottom": 827.3333740234375,
+          "width": 472.26043701171875,
+          "height": 611.5208740234375
+        },
+        "right": {
+          "left": 809.59375,
+          "top": 215.8125,
+          "right": 1364,
+          "bottom": 827.3333740234375,
+          "width": 554.40625,
+          "height": 611.5208740234375
+        },
+        "header": {
+          "left": 340,
+          "top": 232.4791717529297,
+          "right": 778.9270935058594,
+          "bottom": 276.4791717529297,
+          "width": 438.9270935058594,
+          "height": 44
+        },
+        "counter": {
+          "left": 340,
+          "top": 244.4791717529297,
+          "right": 449.39583587646484,
+          "bottom": 264.4791717529297,
+          "width": 109.39583587646484,
+          "height": 20
+        },
+        "counterBox": {
+          "left": 340,
+          "top": 235.4791717529297,
+          "right": 464.5416717529297,
+          "bottom": 273.4791717529297,
+          "width": 124.54167175292969,
+          "height": 38
+        },
+        "counterFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "headFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "controls": [
+          {
+            "left": 470.9270935058594,
+            "top": 235.4791717529297,
+            "right": 574.9270935058594,
+            "bottom": 273.4791717529297,
+            "width": 104,
+            "height": 38
+          },
+          {
+            "left": 580.9271240234375,
+            "top": 235.4791717529297,
+            "right": 736.9271240234375,
+            "bottom": 273.4791717529297,
+            "width": 156,
+            "height": 38
+          },
+          {
+            "left": 742.9271240234375,
+            "top": 235.4791717529297,
+            "right": 778.9271240234375,
+            "bottom": 273.4791717529297,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "labelMetrics": [
+          {
+            "text": "Фильтр",
+            "visible": true,
+            "client": 52,
+            "scroll": 52
+          },
+          {
+            "text": "Добавить файлы",
+            "visible": true,
+            "client": 116,
+            "scroll": 116
+          }
+        ],
+        "run": {
+          "left": 826.2604370117188,
+          "top": 712.6666870117188,
+          "right": 1347.3333740234375,
+          "bottom": 760.6666870117188,
+          "width": 521.0729370117188,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 340,
+          "top": 340.47918701171875,
+          "right": 778.9270935058594,
+          "bottom": 810.6666870117188,
+          "width": 438.9270935058594,
+          "height": 470.1875
+        },
+        "fileCount": "10000/10000",
+        "headerStableTo": "empty-1440x1000-zoom1",
+        "reachability": {
+          "[data-cv-type-filter]": {
+            "reachable": true,
+            "hit": "SPAN",
+            "rect": {
+              "top": 235.4791717529297,
+              "bottom": 273.4791717529297
+            }
+          },
+          "[data-cv-add]": {
+            "reachable": true,
+            "hit": "SPAN",
+            "rect": {
+              "top": 235.4791717529297,
+              "bottom": 273.4791717529297
+            }
+          },
+          "[data-cv-clear-inputs]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 235.4791717529297,
+              "bottom": 273.4791717529297
+            }
+          },
+          "[data-cv-run]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 712.6666870117188,
+              "bottom": 760.6666870117188
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "empty-1280x800-zoom1",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          1281,
+          801
+        ],
+        "devicePixelRatio": 1.5,
+        "workspace": {
+          "client": 662,
+          "scroll": 662,
+          "excess": 0
+        },
+        "document": {
+          "client": 801,
+          "scroll": 801,
+          "bodyScroll": 801,
+          "bodyScrollTop": 0,
+          "bodyOverflow": "clip",
+          "bodyChildren": [
+            {
+              "tag": "DIV",
+              "cls": "app-shell",
+              "rect": {
+                "left": 20,
+                "top": 25.625,
+                "right": 1261.3333740234375,
+                "bottom": 774.9583740234375,
+                "width": 1241.3333740234375,
+                "height": 749.3333740234375
+              },
+              "position": "static",
+              "client": 748,
+              "scroll": 748
+            }
+          ]
+        },
+        "shell": {
+          "left": 20,
+          "top": 25.625,
+          "right": 1261.3333740234375,
+          "bottom": 774.9583740234375,
+          "width": 1241.3333740234375,
+          "height": 749.3333740234375
+        },
+        "appHeader": {
+          "left": 20.666667938232422,
+          "top": 26.291667938232422,
+          "right": 1260.6666679382324,
+          "bottom": 112.29166793823242,
+          "width": 1240,
+          "height": 86
+        },
+        "appLayout": {
+          "left": 20.666667938232422,
+          "top": 112.29167175292969,
+          "right": 1260.6666679382324,
+          "bottom": 774.2916717529297,
+          "width": 1240,
+          "height": 662
+        },
+        "sidebar": {
+          "left": 20.666667938232422,
+          "top": 112.29167175292969,
+          "right": 278.6666679382324,
+          "bottom": 774.2916717529297,
+          "width": 258,
+          "height": 662
+        },
+        "left": {
+          "left": 302.66668701171875,
+          "top": 213.9375,
+          "right": 720.3437805175781,
+          "bottom": 756.2916870117188,
+          "width": 417.6770935058594,
+          "height": 542.3541870117188
+        },
+        "right": {
+          "left": 734.34375,
+          "top": 213.9375,
+          "right": 1224.6666870117188,
+          "bottom": 756.2916870117188,
+          "width": 490.32293701171875,
+          "height": 542.3541870117188
+        },
+        "header": {
+          "left": 319.3333435058594,
+          "top": 230.6041717529297,
+          "right": 703.6770935058594,
+          "bottom": 274.6041717529297,
+          "width": 384.34375,
+          "height": 44
+        },
+        "counter": {
+          "left": 319.3333435058594,
+          "top": 242.6041717529297,
+          "right": 347.1354274749756,
+          "bottom": 262.6041717529297,
+          "width": 27.80208396911621,
+          "height": 20
+        },
+        "counterBox": {
+          "left": 319.3333435058594,
+          "top": 233.6041717529297,
+          "right": 443.87501525878906,
+          "bottom": 271.6041717529297,
+          "width": 124.54167175292969,
+          "height": 38
+        },
+        "counterFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "headFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "controls": [
+          {
+            "left": 463.6770935058594,
+            "top": 233.6041717529297,
+            "right": 499.6770935058594,
+            "bottom": 271.6041717529297,
+            "width": 36,
+            "height": 38
+          },
+          {
+            "left": 505.6770935058594,
+            "top": 233.6041717529297,
+            "right": 661.6770935058594,
+            "bottom": 271.6041717529297,
+            "width": 156,
+            "height": 38
+          },
+          {
+            "left": 667.6771240234375,
+            "top": 233.6041717529297,
+            "right": 703.6771240234375,
+            "bottom": 271.6041717529297,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "labelMetrics": [
+          {
+            "text": "Фильтр",
+            "visible": false,
+            "client": 0,
+            "scroll": 0
+          },
+          {
+            "text": "Добавить файлы",
+            "visible": true,
+            "client": 116,
+            "scroll": 116
+          }
+        ],
+        "run": {
+          "left": 751.0104370117188,
+          "top": 641.625,
+          "right": 1208.0000305175781,
+          "bottom": 689.625,
+          "width": 456.9895935058594,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 319.3333435058594,
+          "top": 338.60418701171875,
+          "right": 703.6770935058594,
+          "bottom": 739.6250305175781,
+          "width": 384.34375,
+          "height": 401.0208435058594
+        },
+        "fileCount": "0/0",
+        "reachability": {
+          "[data-cv-type-filter]": {
+            "reachable": true,
+            "hit": "svg",
+            "rect": {
+              "top": 233.6041717529297,
+              "bottom": 271.6041717529297
+            }
+          },
+          "[data-cv-add]": {
+            "reachable": true,
+            "hit": "SPAN",
+            "rect": {
+              "top": 233.6041717529297,
+              "bottom": 271.6041717529297
+            }
+          },
+          "[data-cv-clear-inputs]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 233.6041717529297,
+              "bottom": 271.6041717529297
+            }
+          },
+          "[data-cv-run]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 641.625,
+              "bottom": 689.625
+            }
+          }
+        },
+        "filterPopover": {
+          "withinViewport": true,
+          "choiceReachable": true,
+          "bodyPortal": true
+        }
+      }
+    },
+    {
+      "label": "max-counter-4096-1280x800-zoom1",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          1281,
+          801
+        ],
+        "devicePixelRatio": 1.5,
+        "workspace": {
+          "client": 662,
+          "scroll": 662,
+          "excess": 0
+        },
+        "document": {
+          "client": 801,
+          "scroll": 801,
+          "bodyScroll": 801,
+          "bodyScrollTop": 0,
+          "bodyOverflow": "clip",
+          "bodyChildren": [
+            {
+              "tag": "DIV",
+              "cls": "app-shell",
+              "rect": {
+                "left": 20,
+                "top": 25.625,
+                "right": 1261.3333740234375,
+                "bottom": 774.9583740234375,
+                "width": 1241.3333740234375,
+                "height": 749.3333740234375
+              },
+              "position": "static",
+              "client": 748,
+              "scroll": 748
+            }
+          ]
+        },
+        "shell": {
+          "left": 20,
+          "top": 25.625,
+          "right": 1261.3333740234375,
+          "bottom": 774.9583740234375,
+          "width": 1241.3333740234375,
+          "height": 749.3333740234375
+        },
+        "appHeader": {
+          "left": 20.666667938232422,
+          "top": 26.291667938232422,
+          "right": 1260.6666679382324,
+          "bottom": 112.29166793823242,
+          "width": 1240,
+          "height": 86
+        },
+        "appLayout": {
+          "left": 20.666667938232422,
+          "top": 112.29167175292969,
+          "right": 1260.6666679382324,
+          "bottom": 774.2916717529297,
+          "width": 1240,
+          "height": 662
+        },
+        "sidebar": {
+          "left": 20.666667938232422,
+          "top": 112.29167175292969,
+          "right": 278.6666679382324,
+          "bottom": 774.2916717529297,
+          "width": 258,
+          "height": 662
+        },
+        "left": {
+          "left": 302.66668701171875,
+          "top": 213.9375,
+          "right": 720.3437805175781,
+          "bottom": 756.2916870117188,
+          "width": 417.6770935058594,
+          "height": 542.3541870117188
+        },
+        "right": {
+          "left": 734.34375,
+          "top": 213.9375,
+          "right": 1224.6666870117188,
+          "bottom": 756.2916870117188,
+          "width": 490.32293701171875,
+          "height": 542.3541870117188
+        },
+        "header": {
+          "left": 319.3333435058594,
+          "top": 230.6041717529297,
+          "right": 703.6770935058594,
+          "bottom": 274.6041717529297,
+          "width": 384.34375,
+          "height": 44
+        },
+        "counter": {
+          "left": 319.3333435058594,
+          "top": 242.6041717529297,
+          "right": 408.3333435058594,
+          "bottom": 262.6041717529297,
+          "width": 89,
+          "height": 20
+        },
+        "counterBox": {
+          "left": 319.3333435058594,
+          "top": 233.6041717529297,
+          "right": 443.87501525878906,
+          "bottom": 271.6041717529297,
+          "width": 124.54167175292969,
+          "height": 38
+        },
+        "counterFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "headFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "controls": [
+          {
+            "left": 463.6770935058594,
+            "top": 233.6041717529297,
+            "right": 499.6770935058594,
+            "bottom": 271.6041717529297,
+            "width": 36,
+            "height": 38
+          },
+          {
+            "left": 505.6770935058594,
+            "top": 233.6041717529297,
+            "right": 661.6770935058594,
+            "bottom": 271.6041717529297,
+            "width": 156,
+            "height": 38
+          },
+          {
+            "left": 667.6771240234375,
+            "top": 233.6041717529297,
+            "right": 703.6771240234375,
+            "bottom": 271.6041717529297,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "labelMetrics": [
+          {
+            "text": "Фильтр",
+            "visible": false,
+            "client": 0,
+            "scroll": 0
+          },
+          {
+            "text": "Добавить файлы",
+            "visible": true,
+            "client": 116,
+            "scroll": 116
+          }
+        ],
+        "run": {
+          "left": 751.0104370117188,
+          "top": 641.625,
+          "right": 1208.0000305175781,
+          "bottom": 689.625,
+          "width": 456.9895935058594,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 319.3333435058594,
+          "top": 338.60418701171875,
+          "right": 703.6770935058594,
+          "bottom": 739.6250305175781,
+          "width": 384.34375,
+          "height": 401.0208435058594
+        },
+        "fileCount": "4096/4096",
+        "headerStableTo": "empty-1280x800-zoom1",
+        "reachability": {
+          "[data-cv-type-filter]": {
+            "reachable": true,
+            "hit": "svg",
+            "rect": {
+              "top": 233.6041717529297,
+              "bottom": 271.6041717529297
+            }
+          },
+          "[data-cv-add]": {
+            "reachable": true,
+            "hit": "SPAN",
+            "rect": {
+              "top": 233.6041717529297,
+              "bottom": 271.6041717529297
+            }
+          },
+          "[data-cv-clear-inputs]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 233.6041717529297,
+              "bottom": 271.6041717529297
+            }
+          },
+          "[data-cv-run]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 641.625,
+              "bottom": 689.625
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "max-counter-10000-1280x800-zoom1",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          1281,
+          801
+        ],
+        "devicePixelRatio": 1.5,
+        "workspace": {
+          "client": 662,
+          "scroll": 662,
+          "excess": 0
+        },
+        "document": {
+          "client": 801,
+          "scroll": 801,
+          "bodyScroll": 801,
+          "bodyScrollTop": 0,
+          "bodyOverflow": "clip",
+          "bodyChildren": [
+            {
+              "tag": "DIV",
+              "cls": "app-shell",
+              "rect": {
+                "left": 20,
+                "top": 25.625,
+                "right": 1261.3333740234375,
+                "bottom": 774.9583740234375,
+                "width": 1241.3333740234375,
+                "height": 749.3333740234375
+              },
+              "position": "static",
+              "client": 748,
+              "scroll": 748
+            }
+          ]
+        },
+        "shell": {
+          "left": 20,
+          "top": 25.625,
+          "right": 1261.3333740234375,
+          "bottom": 774.9583740234375,
+          "width": 1241.3333740234375,
+          "height": 749.3333740234375
+        },
+        "appHeader": {
+          "left": 20.666667938232422,
+          "top": 26.291667938232422,
+          "right": 1260.6666679382324,
+          "bottom": 112.29166793823242,
+          "width": 1240,
+          "height": 86
+        },
+        "appLayout": {
+          "left": 20.666667938232422,
+          "top": 112.29167175292969,
+          "right": 1260.6666679382324,
+          "bottom": 774.2916717529297,
+          "width": 1240,
+          "height": 662
+        },
+        "sidebar": {
+          "left": 20.666667938232422,
+          "top": 112.29167175292969,
+          "right": 278.6666679382324,
+          "bottom": 774.2916717529297,
+          "width": 258,
+          "height": 662
+        },
+        "left": {
+          "left": 302.66668701171875,
+          "top": 213.9375,
+          "right": 720.3437805175781,
+          "bottom": 756.2916870117188,
+          "width": 417.6770935058594,
+          "height": 542.3541870117188
+        },
+        "right": {
+          "left": 734.34375,
+          "top": 213.9375,
+          "right": 1224.6666870117188,
+          "bottom": 756.2916870117188,
+          "width": 490.32293701171875,
+          "height": 542.3541870117188
+        },
+        "header": {
+          "left": 319.3333435058594,
+          "top": 230.6041717529297,
+          "right": 703.6770935058594,
+          "bottom": 274.6041717529297,
+          "width": 384.34375,
+          "height": 44
+        },
+        "counter": {
+          "left": 319.3333435058594,
+          "top": 242.6041717529297,
+          "right": 428.7291793823242,
+          "bottom": 262.6041717529297,
+          "width": 109.39583587646484,
+          "height": 20
+        },
+        "counterBox": {
+          "left": 319.3333435058594,
+          "top": 233.6041717529297,
+          "right": 443.87501525878906,
+          "bottom": 271.6041717529297,
+          "width": 124.54167175292969,
+          "height": 38
+        },
+        "counterFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "headFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "controls": [
+          {
+            "left": 463.6770935058594,
+            "top": 233.6041717529297,
+            "right": 499.6770935058594,
+            "bottom": 271.6041717529297,
+            "width": 36,
+            "height": 38
+          },
+          {
+            "left": 505.6770935058594,
+            "top": 233.6041717529297,
+            "right": 661.6770935058594,
+            "bottom": 271.6041717529297,
+            "width": 156,
+            "height": 38
+          },
+          {
+            "left": 667.6771240234375,
+            "top": 233.6041717529297,
+            "right": 703.6771240234375,
+            "bottom": 271.6041717529297,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "labelMetrics": [
+          {
+            "text": "Фильтр",
+            "visible": false,
+            "client": 0,
+            "scroll": 0
+          },
+          {
+            "text": "Добавить файлы",
+            "visible": true,
+            "client": 116,
+            "scroll": 116
+          }
+        ],
+        "run": {
+          "left": 751.0104370117188,
+          "top": 641.625,
+          "right": 1208.0000305175781,
+          "bottom": 689.625,
+          "width": 456.9895935058594,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 319.3333435058594,
+          "top": 338.60418701171875,
+          "right": 703.6770935058594,
+          "bottom": 739.6250305175781,
+          "width": 384.34375,
+          "height": 401.0208435058594
+        },
+        "fileCount": "10000/10000",
+        "headerStableTo": "empty-1280x800-zoom1",
+        "reachability": {
+          "[data-cv-type-filter]": {
+            "reachable": true,
+            "hit": "svg",
+            "rect": {
+              "top": 233.6041717529297,
+              "bottom": 271.6041717529297
+            }
+          },
+          "[data-cv-add]": {
+            "reachable": true,
+            "hit": "SPAN",
+            "rect": {
+              "top": 233.6041717529297,
+              "bottom": 271.6041717529297
+            }
+          },
+          "[data-cv-clear-inputs]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 233.6041717529297,
+              "bottom": 271.6041717529297
+            }
+          },
+          "[data-cv-run]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 641.625,
+              "bottom": 689.625
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "empty-1024x640-zoom1",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          1025,
+          641
+        ],
+        "devicePixelRatio": 1.5,
+        "workspace": {
+          "client": 502,
+          "scroll": 1008,
+          "excess": 506
+        },
+        "document": {
+          "client": 641,
+          "scroll": 641,
+          "bodyScroll": 641,
+          "bodyScrollTop": 0,
+          "bodyOverflow": "clip",
+          "bodyChildren": [
+            {
+              "tag": "DIV",
+              "cls": "app-shell",
+              "rect": {
+                "left": 20,
+                "top": 20.5,
+                "right": 1005.3333740234375,
+                "bottom": 609.8333740234375,
+                "width": 985.3333740234375,
+                "height": 589.3333740234375
+              },
+              "position": "static",
+              "client": 588,
+              "scroll": 588
+            }
+          ]
+        },
+        "shell": {
+          "left": 20,
+          "top": 20.5,
+          "right": 1005.3333740234375,
+          "bottom": 609.8333740234375,
+          "width": 985.3333740234375,
+          "height": 589.3333740234375
+        },
+        "appHeader": {
+          "left": 20.666667938232422,
+          "top": 21.166667938232422,
+          "right": 1004.6666679382324,
+          "bottom": 107.16666793823242,
+          "width": 984,
+          "height": 86
+        },
+        "appLayout": {
+          "left": 20.666667938232422,
+          "top": 107.16667175292969,
+          "right": 1004.6666679382324,
+          "bottom": 609.1666717529297,
+          "width": 984,
+          "height": 502
+        },
+        "sidebar": {
+          "left": 20.666667938232422,
+          "top": 107.16667175292969,
+          "right": 278.6666679382324,
+          "bottom": 609.1666717529297,
+          "width": 258,
+          "height": 502
+        },
+        "left": {
+          "left": 302.66668701171875,
+          "top": 201.4375,
+          "right": 968.6666870117188,
+          "bottom": 501.4375,
+          "width": 666,
+          "height": 300
+        },
+        "right": {
+          "left": 302.66668701171875,
+          "top": 515.4375,
+          "right": 968.6666870117188,
+          "bottom": 1115.4375,
+          "width": 666,
+          "height": 600
+        },
+        "header": {
+          "left": 319.3333435058594,
+          "top": 218.1041717529297,
+          "right": 952.0000305175781,
+          "bottom": 262.1041717529297,
+          "width": 632.6666870117188,
+          "height": 44
+        },
+        "counter": {
+          "left": 319.3333435058594,
+          "top": 230.1041717529297,
+          "right": 347.1354274749756,
+          "bottom": 250.1041717529297,
+          "width": 27.80208396911621,
+          "height": 20
+        },
+        "counterBox": {
+          "left": 319.3333435058594,
+          "top": 221.1041717529297,
+          "right": 443.87501525878906,
+          "bottom": 259.1041717529297,
+          "width": 124.54167175292969,
+          "height": 38
+        },
+        "counterFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "headFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "controls": [
+          {
+            "left": 644,
+            "top": 221.1041717529297,
+            "right": 748,
+            "bottom": 259.1041717529297,
+            "width": 104,
+            "height": 38
+          },
+          {
+            "left": 754,
+            "top": 221.1041717529297,
+            "right": 910,
+            "bottom": 259.1041717529297,
+            "width": 156,
+            "height": 38
+          },
+          {
+            "left": 916,
+            "top": 221.1041717529297,
+            "right": 952,
+            "bottom": 259.1041717529297,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "labelMetrics": [
+          {
+            "text": "Фильтр",
+            "visible": true,
+            "client": 52,
+            "scroll": 52
+          },
+          {
+            "text": "Добавить файлы",
+            "visible": true,
+            "client": 116,
+            "scroll": 116
+          }
+        ],
+        "run": {
+          "left": 319.3333435058594,
+          "top": 1000.7708740234375,
+          "right": 952.0000305175781,
+          "bottom": 1048.7708740234375,
+          "width": 632.6666870117188,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 319.3333435058594,
+          "top": 326.10418701171875,
+          "right": 952.0000305175781,
+          "bottom": 484.77085876464844,
+          "width": 632.6666870117188,
+          "height": 158.6666717529297
+        },
+        "fileCount": "0/0",
+        "reachability": {
+          "[data-cv-type-filter]": {
+            "reachable": true,
+            "hit": "SPAN",
+            "rect": {
+              "top": 221.1041717529297,
+              "bottom": 259.1041717529297
+            }
+          },
+          "[data-cv-add]": {
+            "reachable": true,
+            "hit": "SPAN",
+            "rect": {
+              "top": 221.1041717529297,
+              "bottom": 259.1041717529297
+            }
+          },
+          "[data-cv-clear-inputs]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 221.1041717529297,
+              "bottom": 259.1041717529297
+            }
+          },
+          "[data-cv-run]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 494.7708435058594,
+              "bottom": 542.7708435058594
+            }
+          }
+        },
+        "filterPopover": {
+          "withinViewport": true,
+          "choiceReachable": true,
+          "bodyPortal": true
+        }
+      }
+    },
+    {
+      "label": "max-counter-4096-1024x640-zoom1",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          1025,
+          641
+        ],
+        "devicePixelRatio": 1.5,
+        "workspace": {
+          "client": 502,
+          "scroll": 1008,
+          "excess": 506
+        },
+        "document": {
+          "client": 641,
+          "scroll": 641,
+          "bodyScroll": 641,
+          "bodyScrollTop": 0,
+          "bodyOverflow": "clip",
+          "bodyChildren": [
+            {
+              "tag": "DIV",
+              "cls": "app-shell",
+              "rect": {
+                "left": 20,
+                "top": 20.5,
+                "right": 1005.3333740234375,
+                "bottom": 609.8333740234375,
+                "width": 985.3333740234375,
+                "height": 589.3333740234375
+              },
+              "position": "static",
+              "client": 588,
+              "scroll": 588
+            }
+          ]
+        },
+        "shell": {
+          "left": 20,
+          "top": 20.5,
+          "right": 1005.3333740234375,
+          "bottom": 609.8333740234375,
+          "width": 985.3333740234375,
+          "height": 589.3333740234375
+        },
+        "appHeader": {
+          "left": 20.666667938232422,
+          "top": 21.166667938232422,
+          "right": 1004.6666679382324,
+          "bottom": 107.16666793823242,
+          "width": 984,
+          "height": 86
+        },
+        "appLayout": {
+          "left": 20.666667938232422,
+          "top": 107.16667175292969,
+          "right": 1004.6666679382324,
+          "bottom": 609.1666717529297,
+          "width": 984,
+          "height": 502
+        },
+        "sidebar": {
+          "left": 20.666667938232422,
+          "top": 107.16667175292969,
+          "right": 278.6666679382324,
+          "bottom": 609.1666717529297,
+          "width": 258,
+          "height": 502
+        },
+        "left": {
+          "left": 302.66668701171875,
+          "top": 201.4375,
+          "right": 968.6666870117188,
+          "bottom": 501.4375,
+          "width": 666,
+          "height": 300
+        },
+        "right": {
+          "left": 302.66668701171875,
+          "top": 515.4375,
+          "right": 968.6666870117188,
+          "bottom": 1115.4375,
+          "width": 666,
+          "height": 600
+        },
+        "header": {
+          "left": 319.3333435058594,
+          "top": 218.1041717529297,
+          "right": 952.0000305175781,
+          "bottom": 262.1041717529297,
+          "width": 632.6666870117188,
+          "height": 44
+        },
+        "counter": {
+          "left": 319.3333435058594,
+          "top": 230.1041717529297,
+          "right": 408.3333435058594,
+          "bottom": 250.1041717529297,
+          "width": 89,
+          "height": 20
+        },
+        "counterBox": {
+          "left": 319.3333435058594,
+          "top": 221.1041717529297,
+          "right": 443.87501525878906,
+          "bottom": 259.1041717529297,
+          "width": 124.54167175292969,
+          "height": 38
+        },
+        "counterFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "headFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "controls": [
+          {
+            "left": 644,
+            "top": 221.1041717529297,
+            "right": 748,
+            "bottom": 259.1041717529297,
+            "width": 104,
+            "height": 38
+          },
+          {
+            "left": 754,
+            "top": 221.1041717529297,
+            "right": 910,
+            "bottom": 259.1041717529297,
+            "width": 156,
+            "height": 38
+          },
+          {
+            "left": 916,
+            "top": 221.1041717529297,
+            "right": 952,
+            "bottom": 259.1041717529297,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "labelMetrics": [
+          {
+            "text": "Фильтр",
+            "visible": true,
+            "client": 52,
+            "scroll": 52
+          },
+          {
+            "text": "Добавить файлы",
+            "visible": true,
+            "client": 116,
+            "scroll": 116
+          }
+        ],
+        "run": {
+          "left": 319.3333435058594,
+          "top": 1000.7708740234375,
+          "right": 952.0000305175781,
+          "bottom": 1048.7708740234375,
+          "width": 632.6666870117188,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 319.3333435058594,
+          "top": 326.10418701171875,
+          "right": 952.0000305175781,
+          "bottom": 484.77085876464844,
+          "width": 632.6666870117188,
+          "height": 158.6666717529297
+        },
+        "fileCount": "4096/4096",
+        "headerStableTo": "empty-1024x640-zoom1",
+        "reachability": {
+          "[data-cv-type-filter]": {
+            "reachable": true,
+            "hit": "SPAN",
+            "rect": {
+              "top": 221.1041717529297,
+              "bottom": 259.1041717529297
+            }
+          },
+          "[data-cv-add]": {
+            "reachable": true,
+            "hit": "SPAN",
+            "rect": {
+              "top": 221.1041717529297,
+              "bottom": 259.1041717529297
+            }
+          },
+          "[data-cv-clear-inputs]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 221.1041717529297,
+              "bottom": 259.1041717529297
+            }
+          },
+          "[data-cv-run]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 494.7708435058594,
+              "bottom": 542.7708435058594
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "max-counter-10000-1024x640-zoom1",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          1025,
+          641
+        ],
+        "devicePixelRatio": 1.5,
+        "workspace": {
+          "client": 502,
+          "scroll": 1008,
+          "excess": 506
+        },
+        "document": {
+          "client": 641,
+          "scroll": 641,
+          "bodyScroll": 641,
+          "bodyScrollTop": 0,
+          "bodyOverflow": "clip",
+          "bodyChildren": [
+            {
+              "tag": "DIV",
+              "cls": "app-shell",
+              "rect": {
+                "left": 20,
+                "top": 20.5,
+                "right": 1005.3333740234375,
+                "bottom": 609.8333740234375,
+                "width": 985.3333740234375,
+                "height": 589.3333740234375
+              },
+              "position": "static",
+              "client": 588,
+              "scroll": 588
+            }
+          ]
+        },
+        "shell": {
+          "left": 20,
+          "top": 20.5,
+          "right": 1005.3333740234375,
+          "bottom": 609.8333740234375,
+          "width": 985.3333740234375,
+          "height": 589.3333740234375
+        },
+        "appHeader": {
+          "left": 20.666667938232422,
+          "top": 21.166667938232422,
+          "right": 1004.6666679382324,
+          "bottom": 107.16666793823242,
+          "width": 984,
+          "height": 86
+        },
+        "appLayout": {
+          "left": 20.666667938232422,
+          "top": 107.16667175292969,
+          "right": 1004.6666679382324,
+          "bottom": 609.1666717529297,
+          "width": 984,
+          "height": 502
+        },
+        "sidebar": {
+          "left": 20.666667938232422,
+          "top": 107.16667175292969,
+          "right": 278.6666679382324,
+          "bottom": 609.1666717529297,
+          "width": 258,
+          "height": 502
+        },
+        "left": {
+          "left": 302.66668701171875,
+          "top": 201.4375,
+          "right": 968.6666870117188,
+          "bottom": 501.4375,
+          "width": 666,
+          "height": 300
+        },
+        "right": {
+          "left": 302.66668701171875,
+          "top": 515.4375,
+          "right": 968.6666870117188,
+          "bottom": 1115.4375,
+          "width": 666,
+          "height": 600
+        },
+        "header": {
+          "left": 319.3333435058594,
+          "top": 218.1041717529297,
+          "right": 952.0000305175781,
+          "bottom": 262.1041717529297,
+          "width": 632.6666870117188,
+          "height": 44
+        },
+        "counter": {
+          "left": 319.3333435058594,
+          "top": 230.1041717529297,
+          "right": 428.7291793823242,
+          "bottom": 250.1041717529297,
+          "width": 109.39583587646484,
+          "height": 20
+        },
+        "counterBox": {
+          "left": 319.3333435058594,
+          "top": 221.1041717529297,
+          "right": 443.87501525878906,
+          "bottom": 259.1041717529297,
+          "width": 124.54167175292969,
+          "height": 38
+        },
+        "counterFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "headFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "controls": [
+          {
+            "left": 644,
+            "top": 221.1041717529297,
+            "right": 748,
+            "bottom": 259.1041717529297,
+            "width": 104,
+            "height": 38
+          },
+          {
+            "left": 754,
+            "top": 221.1041717529297,
+            "right": 910,
+            "bottom": 259.1041717529297,
+            "width": 156,
+            "height": 38
+          },
+          {
+            "left": 916,
+            "top": 221.1041717529297,
+            "right": 952,
+            "bottom": 259.1041717529297,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "labelMetrics": [
+          {
+            "text": "Фильтр",
+            "visible": true,
+            "client": 52,
+            "scroll": 52
+          },
+          {
+            "text": "Добавить файлы",
+            "visible": true,
+            "client": 116,
+            "scroll": 116
+          }
+        ],
+        "run": {
+          "left": 319.3333435058594,
+          "top": 1000.7708740234375,
+          "right": 952.0000305175781,
+          "bottom": 1048.7708740234375,
+          "width": 632.6666870117188,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 319.3333435058594,
+          "top": 326.10418701171875,
+          "right": 952.0000305175781,
+          "bottom": 484.77085876464844,
+          "width": 632.6666870117188,
+          "height": 158.6666717529297
+        },
+        "fileCount": "10000/10000",
+        "headerStableTo": "empty-1024x640-zoom1",
+        "reachability": {
+          "[data-cv-type-filter]": {
+            "reachable": true,
+            "hit": "SPAN",
+            "rect": {
+              "top": 221.1041717529297,
+              "bottom": 259.1041717529297
+            }
+          },
+          "[data-cv-add]": {
+            "reachable": true,
+            "hit": "SPAN",
+            "rect": {
+              "top": 221.1041717529297,
+              "bottom": 259.1041717529297
+            }
+          },
+          "[data-cv-clear-inputs]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 221.1041717529297,
+              "bottom": 259.1041717529297
+            }
+          },
+          "[data-cv-run]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 494.7708435058594,
+              "bottom": 542.7708435058594
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "empty-800x600-zoom1.5",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          534,
+          401
+        ],
+        "devicePixelRatio": 2.25,
+        "workspace": {
+          "client": 234,
+          "scroll": 1029,
+          "excess": 795
+        },
+        "document": {
+          "client": 401,
+          "scroll": 401,
+          "bodyScroll": 401,
+          "bodyScrollTop": 0,
+          "bodyOverflow": "clip",
+          "bodyChildren": [
+            {
+              "tag": "DIV",
+              "cls": "app-shell",
+              "rect": {
+                "left": 0,
+                "top": 0,
+                "right": 534.2222290039062,
+                "bottom": 400.8888854980469,
+                "width": 534.2222290039062,
+                "height": 400.8888854980469
+              },
+              "position": "static",
+              "client": 401,
+              "scroll": 401
+            }
+          ]
+        },
+        "shell": {
+          "left": 0,
+          "top": 0,
+          "right": 534.2222290039062,
+          "bottom": 400.8888854980469,
+          "width": 534.2222290039062,
+          "height": 400.8888854980469
+        },
+        "appHeader": {
+          "left": 0,
+          "top": 0,
+          "right": 534.2222290039062,
+          "bottom": 72,
+          "width": 534.2222290039062,
+          "height": 72
+        },
+        "appLayout": {
+          "left": 0,
+          "top": 72,
+          "right": 534.2222290039062,
+          "bottom": 400.8888854980469,
+          "width": 534.2222290039062,
+          "height": 328.8888854980469
+        },
+        "sidebar": {
+          "left": 0,
+          "top": 72,
+          "right": 534.2222290039062,
+          "bottom": 166.8888931274414,
+          "width": 534.2222290039062,
+          "height": 94.8888931274414
+        },
+        "left": {
+          "left": 24,
+          "top": 282.1875,
+          "right": 498.22222900390625,
+          "bottom": 582.1875,
+          "width": 474.22222900390625,
+          "height": 300
+        },
+        "right": {
+          "left": 24,
+          "top": 596.1875,
+          "right": 498.22222900390625,
+          "bottom": 1196.1875,
+          "width": 474.22222900390625,
+          "height": 600
+        },
+        "header": {
+          "left": 40.88888931274414,
+          "top": 299.0763854980469,
+          "right": 481.33334732055664,
+          "bottom": 343.0763854980469,
+          "width": 440.4444580078125,
+          "height": 44
+        },
+        "counter": {
+          "left": 40.88888931274414,
+          "top": 311.0763854980469,
+          "right": 68.6875,
+          "bottom": 331.0763854980469,
+          "width": 27.79861068725586,
+          "height": 20
+        },
+        "counterBox": {
+          "left": 40.88888931274414,
+          "top": 302.0763854980469,
+          "right": 165.4305534362793,
+          "bottom": 340.0763854980469,
+          "width": 124.54166412353516,
+          "height": 38
+        },
+        "counterFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "headFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "controls": [
+          {
+            "left": 173.3333282470703,
+            "top": 302.0763854980469,
+            "right": 277.3333282470703,
+            "bottom": 340.0763854980469,
+            "width": 104,
+            "height": 38
+          },
+          {
+            "left": 283.3333435058594,
+            "top": 302.0763854980469,
+            "right": 439.3333435058594,
+            "bottom": 340.0763854980469,
+            "width": 156,
+            "height": 38
+          },
+          {
+            "left": 445.3333435058594,
+            "top": 302.0763854980469,
+            "right": 481.3333435058594,
+            "bottom": 340.0763854980469,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "labelMetrics": [
+          {
+            "text": "Фильтр",
+            "visible": true,
+            "client": 52,
+            "scroll": 52
+          },
+          {
+            "text": "Добавить файлы",
+            "visible": true,
+            "client": 116,
+            "scroll": 116
+          }
+        ],
+        "run": {
+          "left": 40.88888931274414,
+          "top": 1081.298583984375,
+          "right": 481.33334732055664,
+          "bottom": 1129.298583984375,
+          "width": 440.4444580078125,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 40.88888931274414,
+          "top": 407.0763854980469,
+          "right": 481.33334732055664,
+          "bottom": 565.2986145019531,
+          "width": 440.4444580078125,
+          "height": 158.22222900390625
+        },
+        "fileCount": "0/0",
+        "reachability": {
+          "[data-cv-type-filter]": {
+            "reachable": true,
+            "hit": "SPAN",
+            "rect": {
+              "top": 264.7430725097656,
+              "bottom": 302.7430725097656
+            }
+          },
+          "[data-cv-add]": {
+            "reachable": true,
+            "hit": "SPAN",
+            "rect": {
+              "top": 264.7430725097656,
+              "bottom": 302.7430725097656
+            }
+          },
+          "[data-cv-clear-inputs]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 264.7430725097656,
+              "bottom": 302.7430725097656
+            }
+          },
+          "[data-cv-run]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 286.1875,
+              "bottom": 334.1875
+            }
+          }
+        },
+        "filterPopover": {
+          "withinViewport": true,
+          "choiceReachable": true,
+          "bodyPortal": true
+        }
+      }
+    },
+    {
+      "label": "max-counter-4096-800x600-zoom1.5",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          534,
+          401
+        ],
+        "devicePixelRatio": 2.25,
+        "workspace": {
+          "client": 234,
+          "scroll": 1029,
+          "excess": 795
+        },
+        "document": {
+          "client": 401,
+          "scroll": 401,
+          "bodyScroll": 401,
+          "bodyScrollTop": 0,
+          "bodyOverflow": "clip",
+          "bodyChildren": [
+            {
+              "tag": "DIV",
+              "cls": "app-shell",
+              "rect": {
+                "left": 0,
+                "top": 0,
+                "right": 534.2222290039062,
+                "bottom": 400.8888854980469,
+                "width": 534.2222290039062,
+                "height": 400.8888854980469
+              },
+              "position": "static",
+              "client": 401,
+              "scroll": 401
+            }
+          ]
+        },
+        "shell": {
+          "left": 0,
+          "top": 0,
+          "right": 534.2222290039062,
+          "bottom": 400.8888854980469,
+          "width": 534.2222290039062,
+          "height": 400.8888854980469
+        },
+        "appHeader": {
+          "left": 0,
+          "top": 0,
+          "right": 534.2222290039062,
+          "bottom": 72,
+          "width": 534.2222290039062,
+          "height": 72
+        },
+        "appLayout": {
+          "left": 0,
+          "top": 72,
+          "right": 534.2222290039062,
+          "bottom": 400.8888854980469,
+          "width": 534.2222290039062,
+          "height": 328.8888854980469
+        },
+        "sidebar": {
+          "left": 0,
+          "top": 72,
+          "right": 534.2222290039062,
+          "bottom": 166.8888931274414,
+          "width": 534.2222290039062,
+          "height": 94.8888931274414
+        },
+        "left": {
+          "left": 24,
+          "top": 282.1875,
+          "right": 498.22222900390625,
+          "bottom": 582.1875,
+          "width": 474.22222900390625,
+          "height": 300
+        },
+        "right": {
+          "left": 24,
+          "top": 596.1875,
+          "right": 498.22222900390625,
+          "bottom": 1196.1875,
+          "width": 474.22222900390625,
+          "height": 600
+        },
+        "header": {
+          "left": 40.88888931274414,
+          "top": 299.0763854980469,
+          "right": 481.33334732055664,
+          "bottom": 343.0763854980469,
+          "width": 440.4444580078125,
+          "height": 44
+        },
+        "counter": {
+          "left": 40.88888931274414,
+          "top": 311.0763854980469,
+          "right": 129.88888931274414,
+          "bottom": 331.0763854980469,
+          "width": 89,
+          "height": 20
+        },
+        "counterBox": {
+          "left": 40.88888931274414,
+          "top": 302.0763854980469,
+          "right": 165.4305534362793,
+          "bottom": 340.0763854980469,
+          "width": 124.54166412353516,
+          "height": 38
+        },
+        "counterFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "headFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "controls": [
+          {
+            "left": 173.3333282470703,
+            "top": 302.0763854980469,
+            "right": 277.3333282470703,
+            "bottom": 340.0763854980469,
+            "width": 104,
+            "height": 38
+          },
+          {
+            "left": 283.3333435058594,
+            "top": 302.0763854980469,
+            "right": 439.3333435058594,
+            "bottom": 340.0763854980469,
+            "width": 156,
+            "height": 38
+          },
+          {
+            "left": 445.3333435058594,
+            "top": 302.0763854980469,
+            "right": 481.3333435058594,
+            "bottom": 340.0763854980469,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "labelMetrics": [
+          {
+            "text": "Фильтр",
+            "visible": true,
+            "client": 52,
+            "scroll": 52
+          },
+          {
+            "text": "Добавить файлы",
+            "visible": true,
+            "client": 116,
+            "scroll": 116
+          }
+        ],
+        "run": {
+          "left": 40.88888931274414,
+          "top": 1081.298583984375,
+          "right": 481.33334732055664,
+          "bottom": 1129.298583984375,
+          "width": 440.4444580078125,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 40.88888931274414,
+          "top": 407.0763854980469,
+          "right": 481.33334732055664,
+          "bottom": 565.2986145019531,
+          "width": 440.4444580078125,
+          "height": 158.22222900390625
+        },
+        "fileCount": "4096/4096",
+        "headerStableTo": "empty-800x600-zoom1.5",
+        "reachability": {
+          "[data-cv-type-filter]": {
+            "reachable": true,
+            "hit": "SPAN",
+            "rect": {
+              "top": 264.7430725097656,
+              "bottom": 302.7430725097656
+            }
+          },
+          "[data-cv-add]": {
+            "reachable": true,
+            "hit": "SPAN",
+            "rect": {
+              "top": 264.7430725097656,
+              "bottom": 302.7430725097656
+            }
+          },
+          "[data-cv-clear-inputs]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 264.7430725097656,
+              "bottom": 302.7430725097656
+            }
+          },
+          "[data-cv-run]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 286.1875,
+              "bottom": 334.1875
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "max-counter-10000-800x600-zoom1.5",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          534,
+          401
+        ],
+        "devicePixelRatio": 2.25,
+        "workspace": {
+          "client": 234,
+          "scroll": 1029,
+          "excess": 795
+        },
+        "document": {
+          "client": 401,
+          "scroll": 401,
+          "bodyScroll": 401,
+          "bodyScrollTop": 0,
+          "bodyOverflow": "clip",
+          "bodyChildren": [
+            {
+              "tag": "DIV",
+              "cls": "app-shell",
+              "rect": {
+                "left": 0,
+                "top": 0,
+                "right": 534.2222290039062,
+                "bottom": 400.8888854980469,
+                "width": 534.2222290039062,
+                "height": 400.8888854980469
+              },
+              "position": "static",
+              "client": 401,
+              "scroll": 401
+            }
+          ]
+        },
+        "shell": {
+          "left": 0,
+          "top": 0,
+          "right": 534.2222290039062,
+          "bottom": 400.8888854980469,
+          "width": 534.2222290039062,
+          "height": 400.8888854980469
+        },
+        "appHeader": {
+          "left": 0,
+          "top": 0,
+          "right": 534.2222290039062,
+          "bottom": 72,
+          "width": 534.2222290039062,
+          "height": 72
+        },
+        "appLayout": {
+          "left": 0,
+          "top": 72,
+          "right": 534.2222290039062,
+          "bottom": 400.8888854980469,
+          "width": 534.2222290039062,
+          "height": 328.8888854980469
+        },
+        "sidebar": {
+          "left": 0,
+          "top": 72,
+          "right": 534.2222290039062,
+          "bottom": 166.8888931274414,
+          "width": 534.2222290039062,
+          "height": 94.8888931274414
+        },
+        "left": {
+          "left": 24,
+          "top": 282.1875,
+          "right": 498.22222900390625,
+          "bottom": 582.1875,
+          "width": 474.22222900390625,
+          "height": 300
+        },
+        "right": {
+          "left": 24,
+          "top": 596.1875,
+          "right": 498.22222900390625,
+          "bottom": 1196.1875,
+          "width": 474.22222900390625,
+          "height": 600
+        },
+        "header": {
+          "left": 40.88888931274414,
+          "top": 299.0763854980469,
+          "right": 481.33334732055664,
+          "bottom": 343.0763854980469,
+          "width": 440.4444580078125,
+          "height": 44
+        },
+        "counter": {
+          "left": 40.88888931274414,
+          "top": 311.0763854980469,
+          "right": 150.28472518920898,
+          "bottom": 331.0763854980469,
+          "width": 109.39583587646484,
+          "height": 20
+        },
+        "counterBox": {
+          "left": 40.88888931274414,
+          "top": 302.0763854980469,
+          "right": 165.4305534362793,
+          "bottom": 340.0763854980469,
+          "width": 124.54166412353516,
+          "height": 38
+        },
+        "counterFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "headFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "controls": [
+          {
+            "left": 173.3333282470703,
+            "top": 302.0763854980469,
+            "right": 277.3333282470703,
+            "bottom": 340.0763854980469,
+            "width": 104,
+            "height": 38
+          },
+          {
+            "left": 283.3333435058594,
+            "top": 302.0763854980469,
+            "right": 439.3333435058594,
+            "bottom": 340.0763854980469,
+            "width": 156,
+            "height": 38
+          },
+          {
+            "left": 445.3333435058594,
+            "top": 302.0763854980469,
+            "right": 481.3333435058594,
+            "bottom": 340.0763854980469,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "labelMetrics": [
+          {
+            "text": "Фильтр",
+            "visible": true,
+            "client": 52,
+            "scroll": 52
+          },
+          {
+            "text": "Добавить файлы",
+            "visible": true,
+            "client": 116,
+            "scroll": 116
+          }
+        ],
+        "run": {
+          "left": 40.88888931274414,
+          "top": 1081.298583984375,
+          "right": 481.33334732055664,
+          "bottom": 1129.298583984375,
+          "width": 440.4444580078125,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 40.88888931274414,
+          "top": 407.0763854980469,
+          "right": 481.33334732055664,
+          "bottom": 565.2986145019531,
+          "width": 440.4444580078125,
+          "height": 158.22222900390625
+        },
+        "fileCount": "10000/10000",
+        "headerStableTo": "empty-800x600-zoom1.5",
+        "reachability": {
+          "[data-cv-type-filter]": {
+            "reachable": true,
+            "hit": "SPAN",
+            "rect": {
+              "top": 264.7430725097656,
+              "bottom": 302.7430725097656
+            }
+          },
+          "[data-cv-add]": {
+            "reachable": true,
+            "hit": "SPAN",
+            "rect": {
+              "top": 264.7430725097656,
+              "bottom": 302.7430725097656
+            }
+          },
+          "[data-cv-clear-inputs]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 264.7430725097656,
+              "bottom": 302.7430725097656
+            }
+          },
+          "[data-cv-run]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 286.1875,
+              "bottom": 334.1875
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "empty-640x480-zoom1.5",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          427,
+          321
+        ],
+        "devicePixelRatio": 2.25,
+        "workspace": {
+          "client": 154,
+          "scroll": 1052,
+          "excess": 898
+        },
+        "document": {
+          "client": 321,
+          "scroll": 321,
+          "bodyScroll": 394,
+          "bodyScrollTop": 0,
+          "bodyOverflow": "clip",
+          "bodyChildren": [
+            {
+              "tag": "DIV",
+              "cls": "app-shell",
+              "rect": {
+                "left": 0,
+                "top": 0,
+                "right": 427.5555725097656,
+                "bottom": 320.8888854980469,
+                "width": 427.5555725097656,
+                "height": 320.8888854980469
+              },
+              "position": "static",
+              "client": 321,
+              "scroll": 321
+            }
+          ]
+        },
+        "shell": {
+          "left": 0,
+          "top": 0,
+          "right": 427.5555725097656,
+          "bottom": 320.8888854980469,
+          "width": 427.5555725097656,
+          "height": 320.8888854980469
+        },
+        "appHeader": {
+          "left": 0,
+          "top": 0,
+          "right": 427.5555725097656,
+          "bottom": 72,
+          "width": 427.5555725097656,
+          "height": 72
+        },
+        "appLayout": {
+          "left": 0,
+          "top": 72,
+          "right": 427.5555725097656,
+          "bottom": 320.8888854980469,
+          "width": 427.5555725097656,
+          "height": 248.88888549804688
+        },
+        "sidebar": {
+          "left": 0,
+          "top": 72,
+          "right": 427.5555725097656,
+          "bottom": 166.8888931274414,
+          "width": 427.5555725097656,
+          "height": 94.8888931274414
+        },
+        "left": {
+          "left": 24,
+          "top": 305.1805725097656,
+          "right": 391.5555725097656,
+          "bottom": 605.1805725097656,
+          "width": 367.5555725097656,
+          "height": 300
+        },
+        "right": {
+          "left": 24,
+          "top": 619.1805419921875,
+          "right": 391.5555725097656,
+          "bottom": 1219.1805419921875,
+          "width": 367.5555725097656,
+          "height": 600
+        },
+        "header": {
+          "left": 35.88888931274414,
+          "top": 317.0694580078125,
+          "right": 379.6666603088379,
+          "bottom": 361.0694580078125,
+          "width": 343.77777099609375,
+          "height": 44
+        },
+        "counter": {
+          "left": 35.88888931274414,
+          "top": 329.0694580078125,
+          "right": 63.6875,
+          "bottom": 349.0694580078125,
+          "width": 27.79861068725586,
+          "height": 20
+        },
+        "counterBox": {
+          "left": 35.88888931274414,
+          "top": 320.0694580078125,
+          "right": 160.4305534362793,
+          "bottom": 358.0694580078125,
+          "width": 124.54166412353516,
+          "height": 38
+        },
+        "counterFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "headFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "controls": [
+          {
+            "left": 259.6666564941406,
+            "top": 320.0694580078125,
+            "right": 295.6666564941406,
+            "bottom": 358.0694580078125,
+            "width": 36,
+            "height": 38
+          },
+          {
+            "left": 301.6666564941406,
+            "top": 320.0694580078125,
+            "right": 337.6666564941406,
+            "bottom": 358.0694580078125,
+            "width": 36,
+            "height": 38
+          },
+          {
+            "left": 343.6666564941406,
+            "top": 320.0694580078125,
+            "right": 379.6666564941406,
+            "bottom": 358.0694580078125,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "labelMetrics": [
+          {
+            "text": "Фильтр",
+            "visible": false,
+            "client": 0,
+            "scroll": 0
+          },
+          {
+            "text": "Добавить файлы",
+            "visible": false,
+            "client": 0,
+            "scroll": 0
+          }
+        ],
+        "run": {
+          "left": 35.88888931274414,
+          "top": 1109.2916259765625,
+          "right": 379.6666603088379,
+          "bottom": 1157.2916259765625,
+          "width": 343.77777099609375,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 35.88888931274414,
+          "top": 425.0694580078125,
+          "right": 379.6666603088379,
+          "bottom": 593.2916870117188,
+          "width": 343.77777099609375,
+          "height": 168.22222900390625
+        },
+        "fileCount": "0/0",
+        "reachability": {
+          "[data-cv-type-filter]": {
+            "reachable": true,
+            "hit": "svg",
+            "rect": {
+              "top": 224.9583282470703,
+              "bottom": 262.9583282470703
+            }
+          },
+          "[data-cv-add]": {
+            "reachable": true,
+            "hit": "path",
+            "rect": {
+              "top": 224.9583282470703,
+              "bottom": 262.9583282470703
+            }
+          },
+          "[data-cv-clear-inputs]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 224.9583282470703,
+              "bottom": 262.9583282470703
+            }
+          },
+          "[data-cv-run]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 219.9583282470703,
+              "bottom": 267.9583282470703
+            }
+          }
+        },
+        "filterPopover": {
+          "withinViewport": true,
+          "choiceReachable": true,
+          "bodyPortal": true
+        }
+      }
+    },
+    {
+      "label": "max-counter-4096-640x480-zoom1.5",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          427,
+          321
+        ],
+        "devicePixelRatio": 2.25,
+        "workspace": {
+          "client": 154,
+          "scroll": 1052,
+          "excess": 898
+        },
+        "document": {
+          "client": 321,
+          "scroll": 321,
+          "bodyScroll": 394,
+          "bodyScrollTop": 0,
+          "bodyOverflow": "clip",
+          "bodyChildren": [
+            {
+              "tag": "DIV",
+              "cls": "app-shell",
+              "rect": {
+                "left": 0,
+                "top": 0,
+                "right": 427.5555725097656,
+                "bottom": 320.8888854980469,
+                "width": 427.5555725097656,
+                "height": 320.8888854980469
+              },
+              "position": "static",
+              "client": 321,
+              "scroll": 321
+            }
+          ]
+        },
+        "shell": {
+          "left": 0,
+          "top": 0,
+          "right": 427.5555725097656,
+          "bottom": 320.8888854980469,
+          "width": 427.5555725097656,
+          "height": 320.8888854980469
+        },
+        "appHeader": {
+          "left": 0,
+          "top": 0,
+          "right": 427.5555725097656,
+          "bottom": 72,
+          "width": 427.5555725097656,
+          "height": 72
+        },
+        "appLayout": {
+          "left": 0,
+          "top": 72,
+          "right": 427.5555725097656,
+          "bottom": 320.8888854980469,
+          "width": 427.5555725097656,
+          "height": 248.88888549804688
+        },
+        "sidebar": {
+          "left": 0,
+          "top": 72,
+          "right": 427.5555725097656,
+          "bottom": 166.8888931274414,
+          "width": 427.5555725097656,
+          "height": 94.8888931274414
+        },
+        "left": {
+          "left": 24,
+          "top": 305.1805725097656,
+          "right": 391.5555725097656,
+          "bottom": 605.1805725097656,
+          "width": 367.5555725097656,
+          "height": 300
+        },
+        "right": {
+          "left": 24,
+          "top": 619.1805419921875,
+          "right": 391.5555725097656,
+          "bottom": 1219.1805419921875,
+          "width": 367.5555725097656,
+          "height": 600
+        },
+        "header": {
+          "left": 35.88888931274414,
+          "top": 317.0694580078125,
+          "right": 379.6666603088379,
+          "bottom": 361.0694580078125,
+          "width": 343.77777099609375,
+          "height": 44
+        },
+        "counter": {
+          "left": 35.88888931274414,
+          "top": 329.0694580078125,
+          "right": 124.88888931274414,
+          "bottom": 349.0694580078125,
+          "width": 89,
+          "height": 20
+        },
+        "counterBox": {
+          "left": 35.88888931274414,
+          "top": 320.0694580078125,
+          "right": 160.4305534362793,
+          "bottom": 358.0694580078125,
+          "width": 124.54166412353516,
+          "height": 38
+        },
+        "counterFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "headFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "controls": [
+          {
+            "left": 259.6666564941406,
+            "top": 320.0694580078125,
+            "right": 295.6666564941406,
+            "bottom": 358.0694580078125,
+            "width": 36,
+            "height": 38
+          },
+          {
+            "left": 301.6666564941406,
+            "top": 320.0694580078125,
+            "right": 337.6666564941406,
+            "bottom": 358.0694580078125,
+            "width": 36,
+            "height": 38
+          },
+          {
+            "left": 343.6666564941406,
+            "top": 320.0694580078125,
+            "right": 379.6666564941406,
+            "bottom": 358.0694580078125,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "labelMetrics": [
+          {
+            "text": "Фильтр",
+            "visible": false,
+            "client": 0,
+            "scroll": 0
+          },
+          {
+            "text": "Добавить файлы",
+            "visible": false,
+            "client": 0,
+            "scroll": 0
+          }
+        ],
+        "run": {
+          "left": 35.88888931274414,
+          "top": 1109.2916259765625,
+          "right": 379.6666603088379,
+          "bottom": 1157.2916259765625,
+          "width": 343.77777099609375,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 35.88888931274414,
+          "top": 425.0694580078125,
+          "right": 379.6666603088379,
+          "bottom": 593.2916870117188,
+          "width": 343.77777099609375,
+          "height": 168.22222900390625
+        },
+        "fileCount": "4096/4096",
+        "headerStableTo": "empty-640x480-zoom1.5",
+        "reachability": {
+          "[data-cv-type-filter]": {
+            "reachable": true,
+            "hit": "svg",
+            "rect": {
+              "top": 224.9583282470703,
+              "bottom": 262.9583282470703
+            }
+          },
+          "[data-cv-add]": {
+            "reachable": true,
+            "hit": "path",
+            "rect": {
+              "top": 224.9583282470703,
+              "bottom": 262.9583282470703
+            }
+          },
+          "[data-cv-clear-inputs]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 224.9583282470703,
+              "bottom": 262.9583282470703
+            }
+          },
+          "[data-cv-run]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 219.9583282470703,
+              "bottom": 267.9583282470703
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "max-counter-10000-640x480-zoom1.5",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          427,
+          321
+        ],
+        "devicePixelRatio": 2.25,
+        "workspace": {
+          "client": 154,
+          "scroll": 1052,
+          "excess": 898
+        },
+        "document": {
+          "client": 321,
+          "scroll": 321,
+          "bodyScroll": 394,
+          "bodyScrollTop": 0,
+          "bodyOverflow": "clip",
+          "bodyChildren": [
+            {
+              "tag": "DIV",
+              "cls": "app-shell",
+              "rect": {
+                "left": 0,
+                "top": 0,
+                "right": 427.5555725097656,
+                "bottom": 320.8888854980469,
+                "width": 427.5555725097656,
+                "height": 320.8888854980469
+              },
+              "position": "static",
+              "client": 321,
+              "scroll": 321
+            }
+          ]
+        },
+        "shell": {
+          "left": 0,
+          "top": 0,
+          "right": 427.5555725097656,
+          "bottom": 320.8888854980469,
+          "width": 427.5555725097656,
+          "height": 320.8888854980469
+        },
+        "appHeader": {
+          "left": 0,
+          "top": 0,
+          "right": 427.5555725097656,
+          "bottom": 72,
+          "width": 427.5555725097656,
+          "height": 72
+        },
+        "appLayout": {
+          "left": 0,
+          "top": 72,
+          "right": 427.5555725097656,
+          "bottom": 320.8888854980469,
+          "width": 427.5555725097656,
+          "height": 248.88888549804688
+        },
+        "sidebar": {
+          "left": 0,
+          "top": 72,
+          "right": 427.5555725097656,
+          "bottom": 166.8888931274414,
+          "width": 427.5555725097656,
+          "height": 94.8888931274414
+        },
+        "left": {
+          "left": 24,
+          "top": 305.1805725097656,
+          "right": 391.5555725097656,
+          "bottom": 605.1805725097656,
+          "width": 367.5555725097656,
+          "height": 300
+        },
+        "right": {
+          "left": 24,
+          "top": 619.1805419921875,
+          "right": 391.5555725097656,
+          "bottom": 1219.1805419921875,
+          "width": 367.5555725097656,
+          "height": 600
+        },
+        "header": {
+          "left": 35.88888931274414,
+          "top": 317.0694580078125,
+          "right": 379.6666603088379,
+          "bottom": 361.0694580078125,
+          "width": 343.77777099609375,
+          "height": 44
+        },
+        "counter": {
+          "left": 35.88888931274414,
+          "top": 329.0694580078125,
+          "right": 145.28472518920898,
+          "bottom": 349.0694580078125,
+          "width": 109.39583587646484,
+          "height": 20
+        },
+        "counterBox": {
+          "left": 35.88888931274414,
+          "top": 320.0694580078125,
+          "right": 160.4305534362793,
+          "bottom": 358.0694580078125,
+          "width": 124.54166412353516,
+          "height": 38
+        },
+        "counterFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "headFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "controls": [
+          {
+            "left": 259.6666564941406,
+            "top": 320.0694580078125,
+            "right": 295.6666564941406,
+            "bottom": 358.0694580078125,
+            "width": 36,
+            "height": 38
+          },
+          {
+            "left": 301.6666564941406,
+            "top": 320.0694580078125,
+            "right": 337.6666564941406,
+            "bottom": 358.0694580078125,
+            "width": 36,
+            "height": 38
+          },
+          {
+            "left": 343.6666564941406,
+            "top": 320.0694580078125,
+            "right": 379.6666564941406,
+            "bottom": 358.0694580078125,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "labelMetrics": [
+          {
+            "text": "Фильтр",
+            "visible": false,
+            "client": 0,
+            "scroll": 0
+          },
+          {
+            "text": "Добавить файлы",
+            "visible": false,
+            "client": 0,
+            "scroll": 0
+          }
+        ],
+        "run": {
+          "left": 35.88888931274414,
+          "top": 1109.2916259765625,
+          "right": 379.6666603088379,
+          "bottom": 1157.2916259765625,
+          "width": 343.77777099609375,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 35.88888931274414,
+          "top": 425.0694580078125,
+          "right": 379.6666603088379,
+          "bottom": 593.2916870117188,
+          "width": 343.77777099609375,
+          "height": 168.22222900390625
+        },
+        "fileCount": "10000/10000",
+        "headerStableTo": "empty-640x480-zoom1.5",
+        "reachability": {
+          "[data-cv-type-filter]": {
+            "reachable": true,
+            "hit": "svg",
+            "rect": {
+              "top": 224.9583282470703,
+              "bottom": 262.9583282470703
+            }
+          },
+          "[data-cv-add]": {
+            "reachable": true,
+            "hit": "path",
+            "rect": {
+              "top": 224.9583282470703,
+              "bottom": 262.9583282470703
+            }
+          },
+          "[data-cv-clear-inputs]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 224.9583282470703,
+              "bottom": 262.9583282470703
+            }
+          },
+          "[data-cv-run]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 219.9583282470703,
+              "bottom": 267.9583282470703
+            }
+          }
+        }
+      }
+    },
+    {
+      "label": "one-file-1440x1000-zoom1",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          1441,
+          1001
+        ],
+        "devicePixelRatio": 1.5,
+        "workspace": {
+          "client": 733,
+          "scroll": 733,
+          "excess": 0
+        },
+        "document": {
+          "client": 1001,
+          "scroll": 1001,
+          "bodyScroll": 1001,
+          "bodyScrollTop": 0,
+          "bodyOverflow": "clip",
+          "bodyChildren": [
+            {
+              "tag": "DIV",
+              "cls": "app-shell",
+              "rect": {
+                "left": 40.66666793823242,
+                "top": 26,
+                "right": 1400.6666679382324,
+                "bottom": 846,
+                "width": 1360,
+                "height": 820
+              },
+              "position": "static",
+              "client": 819,
+              "scroll": 819
+            }
+          ]
+        },
+        "shell": {
+          "left": 40.66666793823242,
+          "top": 26,
+          "right": 1400.6666679382324,
+          "bottom": 846,
+          "width": 1360,
+          "height": 820
+        },
+        "appHeader": {
+          "left": 41.333335876464844,
+          "top": 26.666667938232422,
+          "right": 1400.0000839233398,
+          "bottom": 112.66666793823242,
+          "width": 1358.666748046875,
+          "height": 86
+        },
+        "appLayout": {
+          "left": 41.333335876464844,
+          "top": 112.66667175292969,
+          "right": 1400.0000839233398,
+          "bottom": 845.3333587646484,
+          "width": 1358.666748046875,
+          "height": 732.6666870117188
+        },
+        "sidebar": {
+          "left": 41.333335876464844,
+          "top": 112.66667175292969,
+          "right": 299.33333587646484,
+          "bottom": 845.3333587646484,
+          "width": 258,
+          "height": 732.6666870117188
+        },
+        "left": {
+          "left": 323.3333435058594,
+          "top": 215.8125,
+          "right": 795.5937805175781,
+          "bottom": 827.3333740234375,
+          "width": 472.26043701171875,
+          "height": 611.5208740234375
+        },
+        "right": {
+          "left": 809.59375,
+          "top": 215.8125,
+          "right": 1364,
+          "bottom": 827.3333740234375,
+          "width": 554.40625,
+          "height": 611.5208740234375
+        },
+        "header": {
+          "left": 340,
+          "top": 232.4791717529297,
+          "right": 778.9270935058594,
+          "bottom": 276.4791717529297,
+          "width": 438.9270935058594,
+          "height": 44
+        },
+        "counter": {
+          "left": 340,
+          "top": 244.4791717529297,
+          "right": 367.8020839691162,
+          "bottom": 264.4791717529297,
+          "width": 27.80208396911621,
+          "height": 20
+        },
+        "counterBox": {
+          "left": 340,
+          "top": 235.4791717529297,
+          "right": 464.5416717529297,
+          "bottom": 273.4791717529297,
+          "width": 124.54167175292969,
+          "height": 38
+        },
+        "counterFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "headFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "controls": [
+          {
+            "left": 470.9270935058594,
+            "top": 235.4791717529297,
+            "right": 574.9270935058594,
+            "bottom": 273.4791717529297,
+            "width": 104,
+            "height": 38
+          },
+          {
+            "left": 580.9271240234375,
+            "top": 235.4791717529297,
+            "right": 736.9271240234375,
+            "bottom": 273.4791717529297,
+            "width": 156,
+            "height": 38
+          },
+          {
+            "left": 742.9271240234375,
+            "top": 235.4791717529297,
+            "right": 778.9271240234375,
+            "bottom": 273.4791717529297,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "labelMetrics": [
+          {
+            "text": "Фильтр",
+            "visible": true,
+            "client": 52,
+            "scroll": 52
+          },
+          {
+            "text": "Добавить файлы",
+            "visible": true,
+            "client": 116,
+            "scroll": 116
+          }
+        ],
+        "run": {
+          "left": 826.2604370117188,
+          "top": 712.6666870117188,
+          "right": 1347.3333740234375,
+          "bottom": 760.6666870117188,
+          "width": 521.0729370117188,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 340,
+          "top": 340.47918701171875,
+          "right": 778.9270935058594,
+          "bottom": 810.6666870117188,
+          "width": 438.9270935058594,
+          "height": 470.1875
+        },
+        "fileCount": "1/1",
+        "headerStableTo": "empty-1440x1000-zoom1",
+        "reachability": {
+          "[data-cv-type-filter]": {
+            "reachable": true,
+            "hit": "SPAN",
+            "rect": {
+              "top": 235.4791717529297,
+              "bottom": 273.4791717529297
+            }
+          },
+          "[data-cv-add]": {
+            "reachable": true,
+            "hit": "SPAN",
+            "rect": {
+              "top": 235.4791717529297,
+              "bottom": 273.4791717529297
+            }
+          },
+          "[data-cv-clear-inputs]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 235.4791717529297,
+              "bottom": 273.4791717529297
+            }
+          },
+          "[data-cv-run]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 712.6666870117188,
+              "bottom": 760.6666870117188
+            }
+          }
+        },
+        "filterPopover": {
+          "withinViewport": true,
+          "choiceReachable": true,
+          "bodyPortal": true
+        },
+        "keyboardTabToAdd": true
+      }
+    },
+    {
+      "label": "one-file-1280x800-zoom1",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          1281,
+          801
+        ],
+        "devicePixelRatio": 1.5,
+        "workspace": {
+          "client": 662,
+          "scroll": 662,
+          "excess": 0
+        },
+        "document": {
+          "client": 801,
+          "scroll": 801,
+          "bodyScroll": 801,
+          "bodyScrollTop": 0,
+          "bodyOverflow": "clip",
+          "bodyChildren": [
+            {
+              "tag": "DIV",
+              "cls": "app-shell",
+              "rect": {
+                "left": 20,
+                "top": 25.625,
+                "right": 1261.3333740234375,
+                "bottom": 774.9583740234375,
+                "width": 1241.3333740234375,
+                "height": 749.3333740234375
+              },
+              "position": "static",
+              "client": 748,
+              "scroll": 748
+            }
+          ]
+        },
+        "shell": {
+          "left": 20,
+          "top": 25.625,
+          "right": 1261.3333740234375,
+          "bottom": 774.9583740234375,
+          "width": 1241.3333740234375,
+          "height": 749.3333740234375
+        },
+        "appHeader": {
+          "left": 20.666667938232422,
+          "top": 26.291667938232422,
+          "right": 1260.6666679382324,
+          "bottom": 112.29166793823242,
+          "width": 1240,
+          "height": 86
+        },
+        "appLayout": {
+          "left": 20.666667938232422,
+          "top": 112.29167175292969,
+          "right": 1260.6666679382324,
+          "bottom": 774.2916717529297,
+          "width": 1240,
+          "height": 662
+        },
+        "sidebar": {
+          "left": 20.666667938232422,
+          "top": 112.29167175292969,
+          "right": 278.6666679382324,
+          "bottom": 774.2916717529297,
+          "width": 258,
+          "height": 662
+        },
+        "left": {
+          "left": 302.66668701171875,
+          "top": 213.9375,
+          "right": 720.3437805175781,
+          "bottom": 756.2916870117188,
+          "width": 417.6770935058594,
+          "height": 542.3541870117188
+        },
+        "right": {
+          "left": 734.34375,
+          "top": 213.9375,
+          "right": 1224.6666870117188,
+          "bottom": 756.2916870117188,
+          "width": 490.32293701171875,
+          "height": 542.3541870117188
+        },
+        "header": {
+          "left": 319.3333435058594,
+          "top": 230.6041717529297,
+          "right": 703.6770935058594,
+          "bottom": 274.6041717529297,
+          "width": 384.34375,
+          "height": 44
+        },
+        "counter": {
+          "left": 319.3333435058594,
+          "top": 242.6041717529297,
+          "right": 347.1354274749756,
+          "bottom": 262.6041717529297,
+          "width": 27.80208396911621,
+          "height": 20
+        },
+        "counterBox": {
+          "left": 319.3333435058594,
+          "top": 233.6041717529297,
+          "right": 443.87501525878906,
+          "bottom": 271.6041717529297,
+          "width": 124.54167175292969,
+          "height": 38
+        },
+        "counterFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "headFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "controls": [
+          {
+            "left": 463.6770935058594,
+            "top": 233.6041717529297,
+            "right": 499.6770935058594,
+            "bottom": 271.6041717529297,
+            "width": 36,
+            "height": 38
+          },
+          {
+            "left": 505.6770935058594,
+            "top": 233.6041717529297,
+            "right": 661.6770935058594,
+            "bottom": 271.6041717529297,
+            "width": 156,
+            "height": 38
+          },
+          {
+            "left": 667.6771240234375,
+            "top": 233.6041717529297,
+            "right": 703.6771240234375,
+            "bottom": 271.6041717529297,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "labelMetrics": [
+          {
+            "text": "Фильтр",
+            "visible": false,
+            "client": 0,
+            "scroll": 0
+          },
+          {
+            "text": "Добавить файлы",
+            "visible": true,
+            "client": 116,
+            "scroll": 116
+          }
+        ],
+        "run": {
+          "left": 751.0104370117188,
+          "top": 641.625,
+          "right": 1208.0000305175781,
+          "bottom": 689.625,
+          "width": 456.9895935058594,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 319.3333435058594,
+          "top": 338.60418701171875,
+          "right": 703.6770935058594,
+          "bottom": 739.6250305175781,
+          "width": 384.34375,
+          "height": 401.0208435058594
+        },
+        "fileCount": "1/1",
+        "headerStableTo": "empty-1280x800-zoom1",
+        "reachability": {
+          "[data-cv-type-filter]": {
+            "reachable": true,
+            "hit": "svg",
+            "rect": {
+              "top": 233.6041717529297,
+              "bottom": 271.6041717529297
+            }
+          },
+          "[data-cv-add]": {
+            "reachable": true,
+            "hit": "SPAN",
+            "rect": {
+              "top": 233.6041717529297,
+              "bottom": 271.6041717529297
+            }
+          },
+          "[data-cv-clear-inputs]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 233.6041717529297,
+              "bottom": 271.6041717529297
+            }
+          },
+          "[data-cv-run]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 641.625,
+              "bottom": 689.625
+            }
+          }
+        },
+        "filterPopover": {
+          "withinViewport": true,
+          "choiceReachable": true,
+          "bodyPortal": true
+        },
+        "keyboardTabToAdd": true
+      }
+    },
+    {
+      "label": "one-file-1024x640-zoom1",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          1025,
+          641
+        ],
+        "devicePixelRatio": 1.5,
+        "workspace": {
+          "client": 502,
+          "scroll": 1008,
+          "excess": 506
+        },
+        "document": {
+          "client": 641,
+          "scroll": 641,
+          "bodyScroll": 641,
+          "bodyScrollTop": 0,
+          "bodyOverflow": "clip",
+          "bodyChildren": [
+            {
+              "tag": "DIV",
+              "cls": "app-shell",
+              "rect": {
+                "left": 20,
+                "top": 20.5,
+                "right": 1005.3333740234375,
+                "bottom": 609.8333740234375,
+                "width": 985.3333740234375,
+                "height": 589.3333740234375
+              },
+              "position": "static",
+              "client": 588,
+              "scroll": 588
+            }
+          ]
+        },
+        "shell": {
+          "left": 20,
+          "top": 20.5,
+          "right": 1005.3333740234375,
+          "bottom": 609.8333740234375,
+          "width": 985.3333740234375,
+          "height": 589.3333740234375
+        },
+        "appHeader": {
+          "left": 20.666667938232422,
+          "top": 21.166667938232422,
+          "right": 1004.6666679382324,
+          "bottom": 107.16666793823242,
+          "width": 984,
+          "height": 86
+        },
+        "appLayout": {
+          "left": 20.666667938232422,
+          "top": 107.16667175292969,
+          "right": 1004.6666679382324,
+          "bottom": 609.1666717529297,
+          "width": 984,
+          "height": 502
+        },
+        "sidebar": {
+          "left": 20.666667938232422,
+          "top": 107.16667175292969,
+          "right": 278.6666679382324,
+          "bottom": 609.1666717529297,
+          "width": 258,
+          "height": 502
+        },
+        "left": {
+          "left": 302.66668701171875,
+          "top": 201.4375,
+          "right": 968.6666870117188,
+          "bottom": 501.4375,
+          "width": 666,
+          "height": 300
+        },
+        "right": {
+          "left": 302.66668701171875,
+          "top": 515.4375,
+          "right": 968.6666870117188,
+          "bottom": 1115.4375,
+          "width": 666,
+          "height": 600
+        },
+        "header": {
+          "left": 319.3333435058594,
+          "top": 218.1041717529297,
+          "right": 952.0000305175781,
+          "bottom": 262.1041717529297,
+          "width": 632.6666870117188,
+          "height": 44
+        },
+        "counter": {
+          "left": 319.3333435058594,
+          "top": 230.1041717529297,
+          "right": 347.1354274749756,
+          "bottom": 250.1041717529297,
+          "width": 27.80208396911621,
+          "height": 20
+        },
+        "counterBox": {
+          "left": 319.3333435058594,
+          "top": 221.1041717529297,
+          "right": 443.87501525878906,
+          "bottom": 259.1041717529297,
+          "width": 124.54167175292969,
+          "height": 38
+        },
+        "counterFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "headFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "controls": [
+          {
+            "left": 644,
+            "top": 221.1041717529297,
+            "right": 748,
+            "bottom": 259.1041717529297,
+            "width": 104,
+            "height": 38
+          },
+          {
+            "left": 754,
+            "top": 221.1041717529297,
+            "right": 910,
+            "bottom": 259.1041717529297,
+            "width": 156,
+            "height": 38
+          },
+          {
+            "left": 916,
+            "top": 221.1041717529297,
+            "right": 952,
+            "bottom": 259.1041717529297,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "labelMetrics": [
+          {
+            "text": "Фильтр",
+            "visible": true,
+            "client": 52,
+            "scroll": 52
+          },
+          {
+            "text": "Добавить файлы",
+            "visible": true,
+            "client": 116,
+            "scroll": 116
+          }
+        ],
+        "run": {
+          "left": 319.3333435058594,
+          "top": 1000.7708740234375,
+          "right": 952.0000305175781,
+          "bottom": 1048.7708740234375,
+          "width": 632.6666870117188,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 319.3333435058594,
+          "top": 326.10418701171875,
+          "right": 952.0000305175781,
+          "bottom": 484.77085876464844,
+          "width": 632.6666870117188,
+          "height": 158.6666717529297
+        },
+        "fileCount": "1/1",
+        "headerStableTo": "empty-1024x640-zoom1",
+        "reachability": {
+          "[data-cv-type-filter]": {
+            "reachable": true,
+            "hit": "SPAN",
+            "rect": {
+              "top": 221.1041717529297,
+              "bottom": 259.1041717529297
+            }
+          },
+          "[data-cv-add]": {
+            "reachable": true,
+            "hit": "SPAN",
+            "rect": {
+              "top": 221.1041717529297,
+              "bottom": 259.1041717529297
+            }
+          },
+          "[data-cv-clear-inputs]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 221.1041717529297,
+              "bottom": 259.1041717529297
+            }
+          },
+          "[data-cv-run]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 494.7708435058594,
+              "bottom": 542.7708435058594
+            }
+          }
+        },
+        "filterPopover": {
+          "withinViewport": true,
+          "choiceReachable": true,
+          "bodyPortal": true
+        },
+        "keyboardTabToAdd": true
+      }
+    },
+    {
+      "label": "one-file-800x600-zoom1.5",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          534,
+          401
+        ],
+        "devicePixelRatio": 2.25,
+        "workspace": {
+          "client": 234,
+          "scroll": 1029,
+          "excess": 795
+        },
+        "document": {
+          "client": 401,
+          "scroll": 401,
+          "bodyScroll": 401,
+          "bodyScrollTop": 0,
+          "bodyOverflow": "clip",
+          "bodyChildren": [
+            {
+              "tag": "DIV",
+              "cls": "app-shell",
+              "rect": {
+                "left": 0,
+                "top": 0,
+                "right": 534.2222290039062,
+                "bottom": 400.8888854980469,
+                "width": 534.2222290039062,
+                "height": 400.8888854980469
+              },
+              "position": "static",
+              "client": 401,
+              "scroll": 401
+            }
+          ]
+        },
+        "shell": {
+          "left": 0,
+          "top": 0,
+          "right": 534.2222290039062,
+          "bottom": 400.8888854980469,
+          "width": 534.2222290039062,
+          "height": 400.8888854980469
+        },
+        "appHeader": {
+          "left": 0,
+          "top": 0,
+          "right": 534.2222290039062,
+          "bottom": 72,
+          "width": 534.2222290039062,
+          "height": 72
+        },
+        "appLayout": {
+          "left": 0,
+          "top": 72,
+          "right": 534.2222290039062,
+          "bottom": 400.8888854980469,
+          "width": 534.2222290039062,
+          "height": 328.8888854980469
+        },
+        "sidebar": {
+          "left": 0,
+          "top": 72,
+          "right": 534.2222290039062,
+          "bottom": 166.8888931274414,
+          "width": 534.2222290039062,
+          "height": 94.8888931274414
+        },
+        "left": {
+          "left": 24,
+          "top": 282.1875,
+          "right": 498.22222900390625,
+          "bottom": 582.1875,
+          "width": 474.22222900390625,
+          "height": 300
+        },
+        "right": {
+          "left": 24,
+          "top": 596.1875,
+          "right": 498.22222900390625,
+          "bottom": 1196.1875,
+          "width": 474.22222900390625,
+          "height": 600
+        },
+        "header": {
+          "left": 40.88888931274414,
+          "top": 299.0763854980469,
+          "right": 481.33334732055664,
+          "bottom": 343.0763854980469,
+          "width": 440.4444580078125,
+          "height": 44
+        },
+        "counter": {
+          "left": 40.88888931274414,
+          "top": 311.0763854980469,
+          "right": 68.6875,
+          "bottom": 331.0763854980469,
+          "width": 27.79861068725586,
+          "height": 20
+        },
+        "counterBox": {
+          "left": 40.88888931274414,
+          "top": 302.0763854980469,
+          "right": 165.4305534362793,
+          "bottom": 340.0763854980469,
+          "width": 124.54166412353516,
+          "height": 38
+        },
+        "counterFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "headFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "controls": [
+          {
+            "left": 173.3333282470703,
+            "top": 302.0763854980469,
+            "right": 277.3333282470703,
+            "bottom": 340.0763854980469,
+            "width": 104,
+            "height": 38
+          },
+          {
+            "left": 283.3333435058594,
+            "top": 302.0763854980469,
+            "right": 439.3333435058594,
+            "bottom": 340.0763854980469,
+            "width": 156,
+            "height": 38
+          },
+          {
+            "left": 445.3333435058594,
+            "top": 302.0763854980469,
+            "right": 481.3333435058594,
+            "bottom": 340.0763854980469,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "labelMetrics": [
+          {
+            "text": "Фильтр",
+            "visible": true,
+            "client": 52,
+            "scroll": 52
+          },
+          {
+            "text": "Добавить файлы",
+            "visible": true,
+            "client": 116,
+            "scroll": 116
+          }
+        ],
+        "run": {
+          "left": 40.88888931274414,
+          "top": 1081.298583984375,
+          "right": 481.33334732055664,
+          "bottom": 1129.298583984375,
+          "width": 440.4444580078125,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 40.88888931274414,
+          "top": 407.0763854980469,
+          "right": 481.33334732055664,
+          "bottom": 565.2986145019531,
+          "width": 440.4444580078125,
+          "height": 158.22222900390625
+        },
+        "fileCount": "1/1",
+        "headerStableTo": "empty-800x600-zoom1.5",
+        "reachability": {
+          "[data-cv-type-filter]": {
+            "reachable": true,
+            "hit": "SPAN",
+            "rect": {
+              "top": 264.7430725097656,
+              "bottom": 302.7430725097656
+            }
+          },
+          "[data-cv-add]": {
+            "reachable": true,
+            "hit": "SPAN",
+            "rect": {
+              "top": 264.7430725097656,
+              "bottom": 302.7430725097656
+            }
+          },
+          "[data-cv-clear-inputs]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 264.7430725097656,
+              "bottom": 302.7430725097656
+            }
+          },
+          "[data-cv-run]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 286.1875,
+              "bottom": 334.1875
+            }
+          }
+        },
+        "filterPopover": {
+          "withinViewport": true,
+          "choiceReachable": true,
+          "bodyPortal": true
+        },
+        "keyboardTabToAdd": true
+      }
+    },
+    {
+      "label": "one-file-640x480-zoom1.5",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          427,
+          321
+        ],
+        "devicePixelRatio": 2.25,
+        "workspace": {
+          "client": 154,
+          "scroll": 1052,
+          "excess": 898
+        },
+        "document": {
+          "client": 321,
+          "scroll": 321,
+          "bodyScroll": 394,
+          "bodyScrollTop": 0,
+          "bodyOverflow": "clip",
+          "bodyChildren": [
+            {
+              "tag": "DIV",
+              "cls": "app-shell",
+              "rect": {
+                "left": 0,
+                "top": 0,
+                "right": 427.5555725097656,
+                "bottom": 320.8888854980469,
+                "width": 427.5555725097656,
+                "height": 320.8888854980469
+              },
+              "position": "static",
+              "client": 321,
+              "scroll": 321
+            }
+          ]
+        },
+        "shell": {
+          "left": 0,
+          "top": 0,
+          "right": 427.5555725097656,
+          "bottom": 320.8888854980469,
+          "width": 427.5555725097656,
+          "height": 320.8888854980469
+        },
+        "appHeader": {
+          "left": 0,
+          "top": 0,
+          "right": 427.5555725097656,
+          "bottom": 72,
+          "width": 427.5555725097656,
+          "height": 72
+        },
+        "appLayout": {
+          "left": 0,
+          "top": 72,
+          "right": 427.5555725097656,
+          "bottom": 320.8888854980469,
+          "width": 427.5555725097656,
+          "height": 248.88888549804688
+        },
+        "sidebar": {
+          "left": 0,
+          "top": 72,
+          "right": 427.5555725097656,
+          "bottom": 166.8888931274414,
+          "width": 427.5555725097656,
+          "height": 94.8888931274414
+        },
+        "left": {
+          "left": 24,
+          "top": 305.1805725097656,
+          "right": 391.5555725097656,
+          "bottom": 605.1805725097656,
+          "width": 367.5555725097656,
+          "height": 300
+        },
+        "right": {
+          "left": 24,
+          "top": 619.1805419921875,
+          "right": 391.5555725097656,
+          "bottom": 1219.1805419921875,
+          "width": 367.5555725097656,
+          "height": 600
+        },
+        "header": {
+          "left": 35.88888931274414,
+          "top": 317.0694580078125,
+          "right": 379.6666603088379,
+          "bottom": 361.0694580078125,
+          "width": 343.77777099609375,
+          "height": 44
+        },
+        "counter": {
+          "left": 35.88888931274414,
+          "top": 329.0694580078125,
+          "right": 63.6875,
+          "bottom": 349.0694580078125,
+          "width": 27.79861068725586,
+          "height": 20
+        },
+        "counterBox": {
+          "left": 35.88888931274414,
+          "top": 320.0694580078125,
+          "right": 160.4305534362793,
+          "bottom": 358.0694580078125,
+          "width": 124.54166412353516,
+          "height": 38
+        },
+        "counterFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "headFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "controls": [
+          {
+            "left": 259.6666564941406,
+            "top": 320.0694580078125,
+            "right": 295.6666564941406,
+            "bottom": 358.0694580078125,
+            "width": 36,
+            "height": 38
+          },
+          {
+            "left": 301.6666564941406,
+            "top": 320.0694580078125,
+            "right": 337.6666564941406,
+            "bottom": 358.0694580078125,
+            "width": 36,
+            "height": 38
+          },
+          {
+            "left": 343.6666564941406,
+            "top": 320.0694580078125,
+            "right": 379.6666564941406,
+            "bottom": 358.0694580078125,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "labelMetrics": [
+          {
+            "text": "Фильтр",
+            "visible": false,
+            "client": 0,
+            "scroll": 0
+          },
+          {
+            "text": "Добавить файлы",
+            "visible": false,
+            "client": 0,
+            "scroll": 0
+          }
+        ],
+        "run": {
+          "left": 35.88888931274414,
+          "top": 1109.2916259765625,
+          "right": 379.6666603088379,
+          "bottom": 1157.2916259765625,
+          "width": 343.77777099609375,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 35.88888931274414,
+          "top": 425.0694580078125,
+          "right": 379.6666603088379,
+          "bottom": 593.2916870117188,
+          "width": 343.77777099609375,
+          "height": 168.22222900390625
+        },
+        "fileCount": "1/1",
+        "headerStableTo": "empty-640x480-zoom1.5",
+        "reachability": {
+          "[data-cv-type-filter]": {
+            "reachable": true,
+            "hit": "svg",
+            "rect": {
+              "top": 224.9583282470703,
+              "bottom": 262.9583282470703
+            }
+          },
+          "[data-cv-add]": {
+            "reachable": true,
+            "hit": "path",
+            "rect": {
+              "top": 224.9583282470703,
+              "bottom": 262.9583282470703
+            }
+          },
+          "[data-cv-clear-inputs]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 224.9583282470703,
+              "bottom": 262.9583282470703
+            }
+          },
+          "[data-cv-run]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 219.9583282470703,
+              "bottom": 267.9583282470703
+            }
+          }
+        },
+        "filterPopover": {
+          "withinViewport": true,
+          "choiceReachable": true,
+          "bodyPortal": true
+        },
+        "keyboardTabToAdd": true
+      }
+    },
+    {
+      "label": "dark-one-file-1440x1000-zoom1",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          1441,
+          1001
+        ],
+        "devicePixelRatio": 1.5,
+        "workspace": {
+          "client": 733,
+          "scroll": 733,
+          "excess": 0
+        },
+        "document": {
+          "client": 1001,
+          "scroll": 1001,
+          "bodyScroll": 1001,
+          "bodyScrollTop": 0,
+          "bodyOverflow": "clip",
+          "bodyChildren": [
+            {
+              "tag": "DIV",
+              "cls": "app-shell",
+              "rect": {
+                "left": 40.66666793823242,
+                "top": 26,
+                "right": 1400.6666679382324,
+                "bottom": 846,
+                "width": 1360,
+                "height": 820
+              },
+              "position": "static",
+              "client": 819,
+              "scroll": 819
+            }
+          ]
+        },
+        "shell": {
+          "left": 40.66666793823242,
+          "top": 26,
+          "right": 1400.6666679382324,
+          "bottom": 846,
+          "width": 1360,
+          "height": 820
+        },
+        "appHeader": {
+          "left": 41.333335876464844,
+          "top": 26.666667938232422,
+          "right": 1400.0000839233398,
+          "bottom": 112.66666793823242,
+          "width": 1358.666748046875,
+          "height": 86
+        },
+        "appLayout": {
+          "left": 41.333335876464844,
+          "top": 112.66667175292969,
+          "right": 1400.0000839233398,
+          "bottom": 845.3333587646484,
+          "width": 1358.666748046875,
+          "height": 732.6666870117188
+        },
+        "sidebar": {
+          "left": 41.333335876464844,
+          "top": 112.66667175292969,
+          "right": 299.33333587646484,
+          "bottom": 845.3333587646484,
+          "width": 258,
+          "height": 732.6666870117188
+        },
+        "left": {
+          "left": 323.3333435058594,
+          "top": 215.8125,
+          "right": 795.5937805175781,
+          "bottom": 827.3333740234375,
+          "width": 472.26043701171875,
+          "height": 611.5208740234375
+        },
+        "right": {
+          "left": 809.59375,
+          "top": 215.8125,
+          "right": 1364,
+          "bottom": 827.3333740234375,
+          "width": 554.40625,
+          "height": 611.5208740234375
+        },
+        "header": {
+          "left": 340,
+          "top": 232.4791717529297,
+          "right": 778.9270935058594,
+          "bottom": 276.4791717529297,
+          "width": 438.9270935058594,
+          "height": 44
+        },
+        "counter": {
+          "left": 340,
+          "top": 244.4791717529297,
+          "right": 367.8020839691162,
+          "bottom": 264.4791717529297,
+          "width": 27.80208396911621,
+          "height": 20
+        },
+        "counterBox": {
+          "left": 340,
+          "top": 235.4791717529297,
+          "right": 464.5416717529297,
+          "bottom": 273.4791717529297,
+          "width": 124.54167175292969,
+          "height": 38
+        },
+        "counterFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "headFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "controls": [
+          {
+            "left": 470.9270935058594,
+            "top": 235.4791717529297,
+            "right": 574.9270935058594,
+            "bottom": 273.4791717529297,
+            "width": 104,
+            "height": 38
+          },
+          {
+            "left": 580.9271240234375,
+            "top": 235.4791717529297,
+            "right": 736.9271240234375,
+            "bottom": 273.4791717529297,
+            "width": 156,
+            "height": 38
+          },
+          {
+            "left": 742.9271240234375,
+            "top": 235.4791717529297,
+            "right": 778.9271240234375,
+            "bottom": 273.4791717529297,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "labelMetrics": [
+          {
+            "text": "Фильтр",
+            "visible": true,
+            "client": 52,
+            "scroll": 52
+          },
+          {
+            "text": "Добавить файлы",
+            "visible": true,
+            "client": 116,
+            "scroll": 116
+          }
+        ],
+        "run": {
+          "left": 826.2604370117188,
+          "top": 712.6666870117188,
+          "right": 1347.3333740234375,
+          "bottom": 760.6666870117188,
+          "width": 521.0729370117188,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 340,
+          "top": 340.47918701171875,
+          "right": 778.9270935058594,
+          "bottom": 810.6666870117188,
+          "width": 438.9270935058594,
+          "height": 470.1875
+        },
+        "fileCount": "1/1",
+        "headerStableTo": "empty-1440x1000-zoom1",
+        "reachability": {
+          "[data-cv-type-filter]": {
+            "reachable": true,
+            "hit": "SPAN",
+            "rect": {
+              "top": 235.4791717529297,
+              "bottom": 273.4791717529297
+            }
+          },
+          "[data-cv-add]": {
+            "reachable": true,
+            "hit": "SPAN",
+            "rect": {
+              "top": 235.4791717529297,
+              "bottom": 273.4791717529297
+            }
+          },
+          "[data-cv-clear-inputs]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 235.4791717529297,
+              "bottom": 273.4791717529297
+            }
+          },
+          "[data-cv-run]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 712.6666870117188,
+              "bottom": 760.6666870117188
+            }
+          }
+        },
+        "filterPopover": {
+          "withinViewport": true,
+          "choiceReachable": true,
+          "bodyPortal": true
+        }
+      }
+    },
+    {
+      "label": "dark-one-file-1280x800-zoom1",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          1281,
+          801
+        ],
+        "devicePixelRatio": 1.5,
+        "workspace": {
+          "client": 662,
+          "scroll": 662,
+          "excess": 0
+        },
+        "document": {
+          "client": 801,
+          "scroll": 801,
+          "bodyScroll": 801,
+          "bodyScrollTop": 0,
+          "bodyOverflow": "clip",
+          "bodyChildren": [
+            {
+              "tag": "DIV",
+              "cls": "app-shell",
+              "rect": {
+                "left": 20,
+                "top": 25.625,
+                "right": 1261.3333740234375,
+                "bottom": 774.9583740234375,
+                "width": 1241.3333740234375,
+                "height": 749.3333740234375
+              },
+              "position": "static",
+              "client": 748,
+              "scroll": 748
+            }
+          ]
+        },
+        "shell": {
+          "left": 20,
+          "top": 25.625,
+          "right": 1261.3333740234375,
+          "bottom": 774.9583740234375,
+          "width": 1241.3333740234375,
+          "height": 749.3333740234375
+        },
+        "appHeader": {
+          "left": 20.666667938232422,
+          "top": 26.291667938232422,
+          "right": 1260.6666679382324,
+          "bottom": 112.29166793823242,
+          "width": 1240,
+          "height": 86
+        },
+        "appLayout": {
+          "left": 20.666667938232422,
+          "top": 112.29167175292969,
+          "right": 1260.6666679382324,
+          "bottom": 774.2916717529297,
+          "width": 1240,
+          "height": 662
+        },
+        "sidebar": {
+          "left": 20.666667938232422,
+          "top": 112.29167175292969,
+          "right": 278.6666679382324,
+          "bottom": 774.2916717529297,
+          "width": 258,
+          "height": 662
+        },
+        "left": {
+          "left": 302.66668701171875,
+          "top": 213.9375,
+          "right": 720.3437805175781,
+          "bottom": 756.2916870117188,
+          "width": 417.6770935058594,
+          "height": 542.3541870117188
+        },
+        "right": {
+          "left": 734.34375,
+          "top": 213.9375,
+          "right": 1224.6666870117188,
+          "bottom": 756.2916870117188,
+          "width": 490.32293701171875,
+          "height": 542.3541870117188
+        },
+        "header": {
+          "left": 319.3333435058594,
+          "top": 230.6041717529297,
+          "right": 703.6770935058594,
+          "bottom": 274.6041717529297,
+          "width": 384.34375,
+          "height": 44
+        },
+        "counter": {
+          "left": 319.3333435058594,
+          "top": 242.6041717529297,
+          "right": 347.1354274749756,
+          "bottom": 262.6041717529297,
+          "width": 27.80208396911621,
+          "height": 20
+        },
+        "counterBox": {
+          "left": 319.3333435058594,
+          "top": 233.6041717529297,
+          "right": 443.87501525878906,
+          "bottom": 271.6041717529297,
+          "width": 124.54167175292969,
+          "height": 38
+        },
+        "counterFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "headFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "controls": [
+          {
+            "left": 463.6770935058594,
+            "top": 233.6041717529297,
+            "right": 499.6770935058594,
+            "bottom": 271.6041717529297,
+            "width": 36,
+            "height": 38
+          },
+          {
+            "left": 505.6770935058594,
+            "top": 233.6041717529297,
+            "right": 661.6770935058594,
+            "bottom": 271.6041717529297,
+            "width": 156,
+            "height": 38
+          },
+          {
+            "left": 667.6771240234375,
+            "top": 233.6041717529297,
+            "right": 703.6771240234375,
+            "bottom": 271.6041717529297,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "labelMetrics": [
+          {
+            "text": "Фильтр",
+            "visible": false,
+            "client": 0,
+            "scroll": 0
+          },
+          {
+            "text": "Добавить файлы",
+            "visible": true,
+            "client": 116,
+            "scroll": 116
+          }
+        ],
+        "run": {
+          "left": 751.0104370117188,
+          "top": 641.625,
+          "right": 1208.0000305175781,
+          "bottom": 689.625,
+          "width": 456.9895935058594,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 319.3333435058594,
+          "top": 338.60418701171875,
+          "right": 703.6770935058594,
+          "bottom": 739.6250305175781,
+          "width": 384.34375,
+          "height": 401.0208435058594
+        },
+        "fileCount": "1/1",
+        "headerStableTo": "empty-1280x800-zoom1",
+        "reachability": {
+          "[data-cv-type-filter]": {
+            "reachable": true,
+            "hit": "svg",
+            "rect": {
+              "top": 233.6041717529297,
+              "bottom": 271.6041717529297
+            }
+          },
+          "[data-cv-add]": {
+            "reachable": true,
+            "hit": "SPAN",
+            "rect": {
+              "top": 233.6041717529297,
+              "bottom": 271.6041717529297
+            }
+          },
+          "[data-cv-clear-inputs]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 233.6041717529297,
+              "bottom": 271.6041717529297
+            }
+          },
+          "[data-cv-run]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 641.625,
+              "bottom": 689.625
+            }
+          }
+        },
+        "filterPopover": {
+          "withinViewport": true,
+          "choiceReachable": true,
+          "bodyPortal": true
+        }
+      }
+    },
+    {
+      "label": "dark-one-file-1024x640-zoom1",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          1025,
+          641
+        ],
+        "devicePixelRatio": 1.5,
+        "workspace": {
+          "client": 502,
+          "scroll": 1008,
+          "excess": 506
+        },
+        "document": {
+          "client": 641,
+          "scroll": 641,
+          "bodyScroll": 641,
+          "bodyScrollTop": 0,
+          "bodyOverflow": "clip",
+          "bodyChildren": [
+            {
+              "tag": "DIV",
+              "cls": "app-shell",
+              "rect": {
+                "left": 20,
+                "top": 20.5,
+                "right": 1005.3333740234375,
+                "bottom": 609.8333740234375,
+                "width": 985.3333740234375,
+                "height": 589.3333740234375
+              },
+              "position": "static",
+              "client": 588,
+              "scroll": 588
+            }
+          ]
+        },
+        "shell": {
+          "left": 20,
+          "top": 20.5,
+          "right": 1005.3333740234375,
+          "bottom": 609.8333740234375,
+          "width": 985.3333740234375,
+          "height": 589.3333740234375
+        },
+        "appHeader": {
+          "left": 20.666667938232422,
+          "top": 21.166667938232422,
+          "right": 1004.6666679382324,
+          "bottom": 107.16666793823242,
+          "width": 984,
+          "height": 86
+        },
+        "appLayout": {
+          "left": 20.666667938232422,
+          "top": 107.16667175292969,
+          "right": 1004.6666679382324,
+          "bottom": 609.1666717529297,
+          "width": 984,
+          "height": 502
+        },
+        "sidebar": {
+          "left": 20.666667938232422,
+          "top": 107.16667175292969,
+          "right": 278.6666679382324,
+          "bottom": 609.1666717529297,
+          "width": 258,
+          "height": 502
+        },
+        "left": {
+          "left": 302.66668701171875,
+          "top": 201.4375,
+          "right": 968.6666870117188,
+          "bottom": 501.4375,
+          "width": 666,
+          "height": 300
+        },
+        "right": {
+          "left": 302.66668701171875,
+          "top": 515.4375,
+          "right": 968.6666870117188,
+          "bottom": 1115.4375,
+          "width": 666,
+          "height": 600
+        },
+        "header": {
+          "left": 319.3333435058594,
+          "top": 218.1041717529297,
+          "right": 952.0000305175781,
+          "bottom": 262.1041717529297,
+          "width": 632.6666870117188,
+          "height": 44
+        },
+        "counter": {
+          "left": 319.3333435058594,
+          "top": 230.1041717529297,
+          "right": 347.1354274749756,
+          "bottom": 250.1041717529297,
+          "width": 27.80208396911621,
+          "height": 20
+        },
+        "counterBox": {
+          "left": 319.3333435058594,
+          "top": 221.1041717529297,
+          "right": 443.87501525878906,
+          "bottom": 259.1041717529297,
+          "width": 124.54167175292969,
+          "height": 38
+        },
+        "counterFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "headFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "controls": [
+          {
+            "left": 644,
+            "top": 221.1041717529297,
+            "right": 748,
+            "bottom": 259.1041717529297,
+            "width": 104,
+            "height": 38
+          },
+          {
+            "left": 754,
+            "top": 221.1041717529297,
+            "right": 910,
+            "bottom": 259.1041717529297,
+            "width": 156,
+            "height": 38
+          },
+          {
+            "left": 916,
+            "top": 221.1041717529297,
+            "right": 952,
+            "bottom": 259.1041717529297,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "labelMetrics": [
+          {
+            "text": "Фильтр",
+            "visible": true,
+            "client": 52,
+            "scroll": 52
+          },
+          {
+            "text": "Добавить файлы",
+            "visible": true,
+            "client": 116,
+            "scroll": 116
+          }
+        ],
+        "run": {
+          "left": 319.3333435058594,
+          "top": 1000.7708740234375,
+          "right": 952.0000305175781,
+          "bottom": 1048.7708740234375,
+          "width": 632.6666870117188,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 319.3333435058594,
+          "top": 326.10418701171875,
+          "right": 952.0000305175781,
+          "bottom": 484.77085876464844,
+          "width": 632.6666870117188,
+          "height": 158.6666717529297
+        },
+        "fileCount": "1/1",
+        "headerStableTo": "empty-1024x640-zoom1",
+        "reachability": {
+          "[data-cv-type-filter]": {
+            "reachable": true,
+            "hit": "SPAN",
+            "rect": {
+              "top": 221.1041717529297,
+              "bottom": 259.1041717529297
+            }
+          },
+          "[data-cv-add]": {
+            "reachable": true,
+            "hit": "SPAN",
+            "rect": {
+              "top": 221.1041717529297,
+              "bottom": 259.1041717529297
+            }
+          },
+          "[data-cv-clear-inputs]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 221.1041717529297,
+              "bottom": 259.1041717529297
+            }
+          },
+          "[data-cv-run]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 494.7708435058594,
+              "bottom": 542.7708435058594
+            }
+          }
+        },
+        "filterPopover": {
+          "withinViewport": true,
+          "choiceReachable": true,
+          "bodyPortal": true
+        }
+      }
+    },
+    {
+      "label": "dark-one-file-800x600-zoom1.5",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          534,
+          401
+        ],
+        "devicePixelRatio": 2.25,
+        "workspace": {
+          "client": 234,
+          "scroll": 1029,
+          "excess": 795
+        },
+        "document": {
+          "client": 401,
+          "scroll": 401,
+          "bodyScroll": 401,
+          "bodyScrollTop": 0,
+          "bodyOverflow": "clip",
+          "bodyChildren": [
+            {
+              "tag": "DIV",
+              "cls": "app-shell",
+              "rect": {
+                "left": 0,
+                "top": 0,
+                "right": 534.2222290039062,
+                "bottom": 400.8888854980469,
+                "width": 534.2222290039062,
+                "height": 400.8888854980469
+              },
+              "position": "static",
+              "client": 401,
+              "scroll": 401
+            }
+          ]
+        },
+        "shell": {
+          "left": 0,
+          "top": 0,
+          "right": 534.2222290039062,
+          "bottom": 400.8888854980469,
+          "width": 534.2222290039062,
+          "height": 400.8888854980469
+        },
+        "appHeader": {
+          "left": 0,
+          "top": 0,
+          "right": 534.2222290039062,
+          "bottom": 72,
+          "width": 534.2222290039062,
+          "height": 72
+        },
+        "appLayout": {
+          "left": 0,
+          "top": 72,
+          "right": 534.2222290039062,
+          "bottom": 400.8888854980469,
+          "width": 534.2222290039062,
+          "height": 328.8888854980469
+        },
+        "sidebar": {
+          "left": 0,
+          "top": 72,
+          "right": 534.2222290039062,
+          "bottom": 166.8888931274414,
+          "width": 534.2222290039062,
+          "height": 94.8888931274414
+        },
+        "left": {
+          "left": 24,
+          "top": 282.1875,
+          "right": 498.22222900390625,
+          "bottom": 582.1875,
+          "width": 474.22222900390625,
+          "height": 300
+        },
+        "right": {
+          "left": 24,
+          "top": 596.1875,
+          "right": 498.22222900390625,
+          "bottom": 1196.1875,
+          "width": 474.22222900390625,
+          "height": 600
+        },
+        "header": {
+          "left": 40.88888931274414,
+          "top": 299.0763854980469,
+          "right": 481.33334732055664,
+          "bottom": 343.0763854980469,
+          "width": 440.4444580078125,
+          "height": 44
+        },
+        "counter": {
+          "left": 40.88888931274414,
+          "top": 311.0763854980469,
+          "right": 68.6875,
+          "bottom": 331.0763854980469,
+          "width": 27.79861068725586,
+          "height": 20
+        },
+        "counterBox": {
+          "left": 40.88888931274414,
+          "top": 302.0763854980469,
+          "right": 165.4305534362793,
+          "bottom": 340.0763854980469,
+          "width": 124.54166412353516,
+          "height": 38
+        },
+        "counterFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "headFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "controls": [
+          {
+            "left": 173.3333282470703,
+            "top": 302.0763854980469,
+            "right": 277.3333282470703,
+            "bottom": 340.0763854980469,
+            "width": 104,
+            "height": 38
+          },
+          {
+            "left": 283.3333435058594,
+            "top": 302.0763854980469,
+            "right": 439.3333435058594,
+            "bottom": 340.0763854980469,
+            "width": 156,
+            "height": 38
+          },
+          {
+            "left": 445.3333435058594,
+            "top": 302.0763854980469,
+            "right": 481.3333435058594,
+            "bottom": 340.0763854980469,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "labelMetrics": [
+          {
+            "text": "Фильтр",
+            "visible": true,
+            "client": 52,
+            "scroll": 52
+          },
+          {
+            "text": "Добавить файлы",
+            "visible": true,
+            "client": 116,
+            "scroll": 116
+          }
+        ],
+        "run": {
+          "left": 40.88888931274414,
+          "top": 1081.298583984375,
+          "right": 481.33334732055664,
+          "bottom": 1129.298583984375,
+          "width": 440.4444580078125,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 40.88888931274414,
+          "top": 407.0763854980469,
+          "right": 481.33334732055664,
+          "bottom": 565.2986145019531,
+          "width": 440.4444580078125,
+          "height": 158.22222900390625
+        },
+        "fileCount": "1/1",
+        "headerStableTo": "empty-800x600-zoom1.5",
+        "reachability": {
+          "[data-cv-type-filter]": {
+            "reachable": true,
+            "hit": "SPAN",
+            "rect": {
+              "top": 264.7430725097656,
+              "bottom": 302.7430725097656
+            }
+          },
+          "[data-cv-add]": {
+            "reachable": true,
+            "hit": "SPAN",
+            "rect": {
+              "top": 264.7430725097656,
+              "bottom": 302.7430725097656
+            }
+          },
+          "[data-cv-clear-inputs]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 264.7430725097656,
+              "bottom": 302.7430725097656
+            }
+          },
+          "[data-cv-run]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 286.1875,
+              "bottom": 334.1875
+            }
+          }
+        },
+        "filterPopover": {
+          "withinViewport": true,
+          "choiceReachable": true,
+          "bodyPortal": true
+        }
+      }
+    },
+    {
+      "label": "dark-one-file-640x480-zoom1.5",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          427,
+          321
+        ],
+        "devicePixelRatio": 2.25,
+        "workspace": {
+          "client": 154,
+          "scroll": 1052,
+          "excess": 898
+        },
+        "document": {
+          "client": 321,
+          "scroll": 321,
+          "bodyScroll": 394,
+          "bodyScrollTop": 0,
+          "bodyOverflow": "clip",
+          "bodyChildren": [
+            {
+              "tag": "DIV",
+              "cls": "app-shell",
+              "rect": {
+                "left": 0,
+                "top": 0,
+                "right": 427.5555725097656,
+                "bottom": 320.8888854980469,
+                "width": 427.5555725097656,
+                "height": 320.8888854980469
+              },
+              "position": "static",
+              "client": 321,
+              "scroll": 321
+            }
+          ]
+        },
+        "shell": {
+          "left": 0,
+          "top": 0,
+          "right": 427.5555725097656,
+          "bottom": 320.8888854980469,
+          "width": 427.5555725097656,
+          "height": 320.8888854980469
+        },
+        "appHeader": {
+          "left": 0,
+          "top": 0,
+          "right": 427.5555725097656,
+          "bottom": 72,
+          "width": 427.5555725097656,
+          "height": 72
+        },
+        "appLayout": {
+          "left": 0,
+          "top": 72,
+          "right": 427.5555725097656,
+          "bottom": 320.8888854980469,
+          "width": 427.5555725097656,
+          "height": 248.88888549804688
+        },
+        "sidebar": {
+          "left": 0,
+          "top": 72,
+          "right": 427.5555725097656,
+          "bottom": 166.8888931274414,
+          "width": 427.5555725097656,
+          "height": 94.8888931274414
+        },
+        "left": {
+          "left": 24,
+          "top": 305.1805725097656,
+          "right": 391.5555725097656,
+          "bottom": 605.1805725097656,
+          "width": 367.5555725097656,
+          "height": 300
+        },
+        "right": {
+          "left": 24,
+          "top": 619.1805419921875,
+          "right": 391.5555725097656,
+          "bottom": 1219.1805419921875,
+          "width": 367.5555725097656,
+          "height": 600
+        },
+        "header": {
+          "left": 35.88888931274414,
+          "top": 317.0694580078125,
+          "right": 379.6666603088379,
+          "bottom": 361.0694580078125,
+          "width": 343.77777099609375,
+          "height": 44
+        },
+        "counter": {
+          "left": 35.88888931274414,
+          "top": 329.0694580078125,
+          "right": 63.6875,
+          "bottom": 349.0694580078125,
+          "width": 27.79861068725586,
+          "height": 20
+        },
+        "counterBox": {
+          "left": 35.88888931274414,
+          "top": 320.0694580078125,
+          "right": 160.4305534362793,
+          "bottom": 358.0694580078125,
+          "width": 124.54166412353516,
+          "height": 38
+        },
+        "counterFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "headFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "controls": [
+          {
+            "left": 259.6666564941406,
+            "top": 320.0694580078125,
+            "right": 295.6666564941406,
+            "bottom": 358.0694580078125,
+            "width": 36,
+            "height": 38
+          },
+          {
+            "left": 301.6666564941406,
+            "top": 320.0694580078125,
+            "right": 337.6666564941406,
+            "bottom": 358.0694580078125,
+            "width": 36,
+            "height": 38
+          },
+          {
+            "left": 343.6666564941406,
+            "top": 320.0694580078125,
+            "right": 379.6666564941406,
+            "bottom": 358.0694580078125,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "labelMetrics": [
+          {
+            "text": "Фильтр",
+            "visible": false,
+            "client": 0,
+            "scroll": 0
+          },
+          {
+            "text": "Добавить файлы",
+            "visible": false,
+            "client": 0,
+            "scroll": 0
+          }
+        ],
+        "run": {
+          "left": 35.88888931274414,
+          "top": 1109.2916259765625,
+          "right": 379.6666603088379,
+          "bottom": 1157.2916259765625,
+          "width": 343.77777099609375,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 35.88888931274414,
+          "top": 425.0694580078125,
+          "right": 379.6666603088379,
+          "bottom": 593.2916870117188,
+          "width": 343.77777099609375,
+          "height": 168.22222900390625
+        },
+        "fileCount": "1/1",
+        "headerStableTo": "empty-640x480-zoom1.5",
+        "reachability": {
+          "[data-cv-type-filter]": {
+            "reachable": true,
+            "hit": "svg",
+            "rect": {
+              "top": 224.9583282470703,
+              "bottom": 262.9583282470703
+            }
+          },
+          "[data-cv-add]": {
+            "reachable": true,
+            "hit": "path",
+            "rect": {
+              "top": 224.9583282470703,
+              "bottom": 262.9583282470703
+            }
+          },
+          "[data-cv-clear-inputs]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 224.9583282470703,
+              "bottom": 262.9583282470703
+            }
+          },
+          "[data-cv-run]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 219.9583282470703,
+              "bottom": 267.9583282470703
+            }
+          }
+        },
+        "filterPopover": {
+          "withinViewport": true,
+          "choiceReachable": true,
+          "bodyPortal": true
+        }
+      }
+    },
+    {
+      "label": "native-ready",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          1281,
+          801
+        ],
+        "devicePixelRatio": 1.5,
+        "workspace": {
+          "client": 662,
+          "scroll": 662,
+          "excess": 0
+        },
+        "document": {
+          "client": 801,
+          "scroll": 801,
+          "bodyScroll": 801,
+          "bodyScrollTop": 0,
+          "bodyOverflow": "clip",
+          "bodyChildren": [
+            {
+              "tag": "DIV",
+              "cls": "app-shell",
+              "rect": {
+                "left": 20,
+                "top": 25.625,
+                "right": 1261.3333740234375,
+                "bottom": 774.9583740234375,
+                "width": 1241.3333740234375,
+                "height": 749.3333740234375
+              },
+              "position": "static",
+              "client": 748,
+              "scroll": 748
+            }
+          ]
+        },
+        "shell": {
+          "left": 20,
+          "top": 25.625,
+          "right": 1261.3333740234375,
+          "bottom": 774.9583740234375,
+          "width": 1241.3333740234375,
+          "height": 749.3333740234375
+        },
+        "appHeader": {
+          "left": 20.666667938232422,
+          "top": 26.291667938232422,
+          "right": 1260.6666679382324,
+          "bottom": 112.29166793823242,
+          "width": 1240,
+          "height": 86
+        },
+        "appLayout": {
+          "left": 20.666667938232422,
+          "top": 112.29167175292969,
+          "right": 1260.6666679382324,
+          "bottom": 774.2916717529297,
+          "width": 1240,
+          "height": 662
+        },
+        "sidebar": {
+          "left": 20.666667938232422,
+          "top": 112.29167175292969,
+          "right": 278.6666679382324,
+          "bottom": 774.2916717529297,
+          "width": 258,
+          "height": 662
+        },
+        "left": {
+          "left": 302.66668701171875,
+          "top": 213.9375,
+          "right": 720.3437805175781,
+          "bottom": 756.2916870117188,
+          "width": 417.6770935058594,
+          "height": 542.3541870117188
+        },
+        "right": {
+          "left": 734.34375,
+          "top": 213.9375,
+          "right": 1224.6666870117188,
+          "bottom": 756.2916870117188,
+          "width": 490.32293701171875,
+          "height": 542.3541870117188
+        },
+        "header": {
+          "left": 319.3333435058594,
+          "top": 230.6041717529297,
+          "right": 703.6770935058594,
+          "bottom": 274.6041717529297,
+          "width": 384.34375,
+          "height": 44
+        },
+        "counter": {
+          "left": 319.3333435058594,
+          "top": 242.6041717529297,
+          "right": 347.1354274749756,
+          "bottom": 262.6041717529297,
+          "width": 27.80208396911621,
+          "height": 20
+        },
+        "counterBox": {
+          "left": 319.3333435058594,
+          "top": 233.6041717529297,
+          "right": 443.87501525878906,
+          "bottom": 271.6041717529297,
+          "width": 124.54167175292969,
+          "height": 38
+        },
+        "counterFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "headFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "controls": [
+          {
+            "left": 463.6770935058594,
+            "top": 233.6041717529297,
+            "right": 499.6770935058594,
+            "bottom": 271.6041717529297,
+            "width": 36,
+            "height": 38
+          },
+          {
+            "left": 505.6770935058594,
+            "top": 233.6041717529297,
+            "right": 661.6770935058594,
+            "bottom": 271.6041717529297,
+            "width": 156,
+            "height": 38
+          },
+          {
+            "left": 667.6771240234375,
+            "top": 233.6041717529297,
+            "right": 703.6771240234375,
+            "bottom": 271.6041717529297,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "labelMetrics": [
+          {
+            "text": "Фильтр",
+            "visible": false,
+            "client": 0,
+            "scroll": 0
+          },
+          {
+            "text": "Добавить файлы",
+            "visible": true,
+            "client": 116,
+            "scroll": 116
+          }
+        ],
+        "run": {
+          "left": 751.0104370117188,
+          "top": 641.625,
+          "right": 1208.0000305175781,
+          "bottom": 689.625,
+          "width": 456.9895935058594,
+          "height": 48
+        },
+        "runVisibility": "hidden",
+        "fileArea": {
+          "left": 319.3333435058594,
+          "top": 338.60418701171875,
+          "right": 703.6770935058594,
+          "bottom": 739.6250305175781,
+          "width": 384.34375,
+          "height": 401.0208435058594
+        },
+        "fileCount": "1/1",
+        "headerStableTo": "empty-1280x800-zoom1",
+        "reachability": {
+          "[data-cv-type-filter]": {
+            "reachable": true,
+            "hit": "svg",
+            "rect": {
+              "top": 233.6041717529297,
+              "bottom": 271.6041717529297
+            }
+          },
+          "[data-cv-add]": {
+            "reachable": true,
+            "hit": "SPAN",
+            "rect": {
+              "top": 233.6041717529297,
+              "bottom": 271.6041717529297
+            }
+          },
+          "[data-cv-clear-inputs]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 233.6041717529297,
+              "bottom": 271.6041717529297
+            }
+          },
+          "[data-cv-run]": {
+            "hidden": true
+          }
+        }
+      }
+    },
+    {
+      "label": "native-saved",
+      "metrics": {
+        "violations": [],
+        "viewport": [
+          1281,
+          801
+        ],
+        "devicePixelRatio": 1.5,
+        "workspace": {
+          "client": 662,
+          "scroll": 662,
+          "excess": 0
+        },
+        "document": {
+          "client": 801,
+          "scroll": 801,
+          "bodyScroll": 801,
+          "bodyScrollTop": 0,
+          "bodyOverflow": "clip",
+          "bodyChildren": [
+            {
+              "tag": "DIV",
+              "cls": "app-shell",
+              "rect": {
+                "left": 20,
+                "top": 25.625,
+                "right": 1261.3333740234375,
+                "bottom": 774.9583740234375,
+                "width": 1241.3333740234375,
+                "height": 749.3333740234375
+              },
+              "position": "static",
+              "client": 748,
+              "scroll": 748
+            }
+          ]
+        },
+        "shell": {
+          "left": 20,
+          "top": 25.625,
+          "right": 1261.3333740234375,
+          "bottom": 774.9583740234375,
+          "width": 1241.3333740234375,
+          "height": 749.3333740234375
+        },
+        "appHeader": {
+          "left": 20.666667938232422,
+          "top": 26.291667938232422,
+          "right": 1260.6666679382324,
+          "bottom": 112.29166793823242,
+          "width": 1240,
+          "height": 86
+        },
+        "appLayout": {
+          "left": 20.666667938232422,
+          "top": 112.29167175292969,
+          "right": 1260.6666679382324,
+          "bottom": 774.2916717529297,
+          "width": 1240,
+          "height": 662
+        },
+        "sidebar": {
+          "left": 20.666667938232422,
+          "top": 112.29167175292969,
+          "right": 278.6666679382324,
+          "bottom": 774.2916717529297,
+          "width": 258,
+          "height": 662
+        },
+        "left": {
+          "left": 302.66668701171875,
+          "top": 213.9375,
+          "right": 720.3437805175781,
+          "bottom": 756.2916870117188,
+          "width": 417.6770935058594,
+          "height": 542.3541870117188
+        },
+        "right": {
+          "left": 734.34375,
+          "top": 213.9375,
+          "right": 1224.6666870117188,
+          "bottom": 756.2916870117188,
+          "width": 490.32293701171875,
+          "height": 542.3541870117188
+        },
+        "header": {
+          "left": 319.3333435058594,
+          "top": 230.6041717529297,
+          "right": 703.6770935058594,
+          "bottom": 274.6041717529297,
+          "width": 384.34375,
+          "height": 44
+        },
+        "counter": {
+          "left": 319.3333435058594,
+          "top": 242.6041717529297,
+          "right": 347.1354274749756,
+          "bottom": 262.6041717529297,
+          "width": 27.80208396911621,
+          "height": 20
+        },
+        "counterBox": {
+          "left": 319.3333435058594,
+          "top": 233.6041717529297,
+          "right": 443.87501525878906,
+          "bottom": 271.6041717529297,
+          "width": 124.54167175292969,
+          "height": 38
+        },
+        "counterFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "headFont": {
+          "family": "\"Segoe UI Variable\", \"Segoe UI\", system-ui, sans-serif",
+          "size": "17px",
+          "weight": "700",
+          "numeric": "tabular-nums"
+        },
+        "controls": [
+          {
+            "left": 463.6770935058594,
+            "top": 233.6041717529297,
+            "right": 499.6770935058594,
+            "bottom": 271.6041717529297,
+            "width": 36,
+            "height": 38
+          },
+          {
+            "left": 505.6770935058594,
+            "top": 233.6041717529297,
+            "right": 661.6770935058594,
+            "bottom": 271.6041717529297,
+            "width": 156,
+            "height": 38
+          },
+          {
+            "left": 667.6771240234375,
+            "top": 233.6041717529297,
+            "right": 703.6771240234375,
+            "bottom": 271.6041717529297,
+            "width": 36,
+            "height": 38
+          }
+        ],
+        "labelMetrics": [
+          {
+            "text": "Фильтр",
+            "visible": false,
+            "client": 0,
+            "scroll": 0
+          },
+          {
+            "text": "Добавить файлы",
+            "visible": true,
+            "client": 116,
+            "scroll": 116
+          }
+        ],
+        "run": {
+          "left": 751.0104370117188,
+          "top": 641.625,
+          "right": 1208.0000305175781,
+          "bottom": 689.625,
+          "width": 456.9895935058594,
+          "height": 48
+        },
+        "runVisibility": "visible",
+        "fileArea": {
+          "left": 319.3333435058594,
+          "top": 338.60418701171875,
+          "right": 703.6770935058594,
+          "bottom": 739.6250305175781,
+          "width": 384.34375,
+          "height": 401.0208435058594
+        },
+        "fileCount": "1/1",
+        "headerStableTo": "empty-1280x800-zoom1",
+        "reachability": {
+          "[data-cv-type-filter]": {
+            "reachable": true,
+            "hit": "svg",
+            "rect": {
+              "top": 233.6041717529297,
+              "bottom": 271.6041717529297
+            }
+          },
+          "[data-cv-add]": {
+            "reachable": true,
+            "hit": "SPAN",
+            "rect": {
+              "top": 233.6041717529297,
+              "bottom": 271.6041717529297
+            }
+          },
+          "[data-cv-clear-inputs]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 233.6041717529297,
+              "bottom": 271.6041717529297
+            }
+          },
+          "[data-cv-run]": {
+            "reachable": true,
+            "hit": "BUTTON",
+            "rect": {
+              "top": 641.625,
+              "bottom": 689.625
+            }
+          }
+        }
+      }
+    }
+  ],
+  "bulkXhtml": "NOT_REQUESTED",
+  "quality": {
+    "task": {
+      "taskId": "d329538072216d1ecdbe1812b280480a:0",
+      "format": "png",
+      "state": "ready",
+      "code": null,
+      "error": null,
+      "stage": "result",
+      "conversionStatus": "ready",
+      "saveStatus": "unsaved",
+      "readbackVerified": false,
+      "qualityCheckRequested": true,
+      "qualityCompared": true,
+      "checkedFeatures": [
+        "media_properties"
+      ],
+      "unknownReasons": [],
+      "formatLimitations": [],
+      "confirmedLoss": false,
+      "diagnostic": "",
+      "executionMode": "qt_media_frames",
+      "executionReason": "qt_media_frames",
+      "resultChecks": [
+        {
+          "check": "media_properties",
+          "status": "checked_subset",
+          "qualityCompared": false,
+          "source": {
+            "format": "bmp",
+            "width": 48,
+            "height": 32,
+            "frames": 1,
+            "pages": 1,
+            "alpha": false,
+            "durationsMs": [],
+            "orientation": 1,
+            "dpi": [
+              99.9998,
+              99.9998
+            ]
+          },
+          "result": {
+            "format": "png",
+            "width": 48,
+            "height": 32,
+            "frames": 1,
+            "pages": 1,
+            "alpha": false,
+            "durationsMs": [],
+            "orientation": 1,
+            "animationContainer": false,
+            "loopCount": 1,
+            "bitDepth": 8,
+            "dpi": [
+              99.9998,
+              99.9998
+            ]
+          },
+          "expectedLosses": [],
+          "validatedOutputContainers": 1
+        }
+      ],
+      "automaticRecipe": null,
+      "automaticParameters": null,
+      "durationMs": 60,
+      "nativeTimings": {
+        "source": "qt_media",
+        "adapterMs": 3
+      },
+      "exportFilter": null,
+      "warnings": [],
+      "quality": {
+        "schema": 1,
+        "status": "checked_subset",
+        "qualityCompared": true,
+        "scope": "structural_subset",
+        "before": {
+          "schema": 1,
+          "status": "checked_subset",
+          "complete": true,
+          "kind": "raster",
+          "counts": {
+            "images": 1,
+            "width": 48,
+            "height": 32
+          },
+          "textDigest": null,
+          "unknown": [
+            "visual_layout",
+            "fonts",
+            "rendered_pixels",
+            "formula_results"
+          ],
+          "documentClass": "image"
+        },
+        "after": {
+          "schema": 1,
+          "status": "checked_subset",
+          "complete": true,
+          "kind": "raster",
+          "counts": {
+            "images": 1,
+            "width": 48,
+            "height": 32
+          },
+          "textDigest": null,
+          "unknown": [
+            "visual_layout",
+            "fonts",
+            "rendered_pixels",
+            "formula_results"
+          ],
+          "documentClass": "image"
+        },
+        "risks": [],
+        "formatLimitations": [],
+        "structureCompared": true,
+        "textCompared": false,
+        "valuesCompared": false,
+        "comparisonCoverage": {
+          "structure": "checked_subset",
+          "text": "not_checked",
+          "values": "not_checked",
+          "visual": "not_checked"
+        },
+        "unknown": [
+          "visual_layout",
+          "fonts",
+          "rendered_pixels",
+          "formula_results"
+        ]
+      },
+      "outputs": [
+        {
+          "path": "0001-png/Контрольный_исходник_100dpi.png",
+          "size": 140,
+          "sha256": "2bba191045f4d1797523db3dba3a483d9124b791327b2f1c7950993deeec3193",
+          "saved": false,
+          "available": true,
+          "availabilityCode": null,
+          "readbackVerified": false,
+          "sourceSheet": null
+        }
+      ],
+      "route": null,
+      "libreOfficeStarted": true
+    },
+    "visibleText": "Часть структуры проверена · внешний вид не проверен Проверки результата: свойства изображения. Свойства результата: 48 × 32 пикс. · 100 × 100 DPI · кадров: 1 · страниц: 1. Копия на диске: не сохранена. Сверка сохранённой копии не подтверждена. Границы проверки: расположение объектов, шрифты, отрисованные пиксели, вычисление формул. Внешний вид, шрифты и расположение объектов не сравнивались."
+  },
+  "nativeSave": {
+    "bytes": 140,
+    "sha256": "2bba191045f4d1797523db3dba3a483d9124b791327b2f1c7950993deeec3193",
+    "realDialogInteraction": false,
+    "runSlotUnchanged": true
+  }
+}
