@@ -11,7 +11,8 @@ from app_backend.converter_guard import preflight_native as worker
 
 
 class LokDocumentCleanup(unittest.TestCase):
-    def run_worker(self, *, kind=0, type_failure=False, loaded=True, close_stage_failure=False):
+    def run_worker(self, *, kind=0, type_failure=False, loaded=True, close_stage_failure=False,
+                   loaded_stage_failure=False):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         root = Path(temporary.name)
@@ -42,13 +43,19 @@ class LokDocumentCleanup(unittest.TestCase):
         native = SimpleNamespace(libreofficekit_hook_2=Hook())
         original_stage = worker._stage
         def stage(folder, name):
+            if name == 'document_loaded' and loaded_stage_failure:
+                raise OSError('loaded stage disk full')
             if name == 'document_close' and close_stage_failure:
                 raise OSError('close stage disk full')
             original_stage(folder, name)
         with patch.object(worker, 'os', SimpleNamespace(name='posix', fsync=os.fsync)), \
                 patch.object(worker.C, 'CDLL', return_value=native), patch.object(worker, '_table', side_effect=table), \
                 patch.object(worker, '_stage', side_effect=stage):
-            if close_stage_failure:
+            if loaded_stage_failure:
+                with self.assertRaisesRegex(OSError, 'loaded stage disk full'):
+                    worker.detect(program, profile, source, work)
+                result = None
+            elif close_stage_failure:
                 with self.assertRaisesRegex(OSError, 'close stage disk full'):
                     worker.detect(program, profile, source, work)
                 result = None
@@ -92,6 +99,11 @@ class LokDocumentCleanup(unittest.TestCase):
         _result, closed, _loads, stage = self.run_worker(close_stage_failure=True)
         self.assertEqual(closed, [2])
         self.assertEqual(stage, 'document_typed')
+
+    def test_loaded_stage_disk_error_still_destroys_the_newly_owned_document(self):
+        _result, closed, _loads, stage = self.run_worker(loaded_stage_failure=True)
+        self.assertEqual(closed, [2])
+        self.assertEqual(stage, 'document_closed')
 
 
 if __name__ == '__main__':

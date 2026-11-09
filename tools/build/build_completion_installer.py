@@ -199,8 +199,21 @@ $s=Get-AuthenticodeSignature -LiteralPath $p.FullName
         # real supplied compiler is unsupported. The native executable reports
         # its own compiler major in /?; retain resource/signature facts as-is.
         try:
-            require(help_result.returncode == 0, 'Native ISCC help returned a nonzero exit status')
             result['compilerMajor'] = compiler_banner_major(banner)
+            # The real signed Inno 6 supplied by the Windows runner returns 1
+            # after printing its requested /? help. Accept that exact help
+            # response, not an arbitrary compiler failure with a valid banner.
+            legacy_help = (help_result.returncode == 1 and result['compilerMajor'] == 6
+                and re.search(r'^Usage:\s+iscc \[options\] scriptfile\.iss\s*$',
+                              help_result.stderr, flags=re.MULTILINE)
+                and re.search(r'^\s*/\?\s+Show this help screen\s*$',
+                              help_result.stderr, flags=re.MULTILINE)
+                and not re.search(r'^\s*(?:Error|Fatal error|Compiler error)[:\s]',
+                                  help_result.stderr, flags=re.MULTILINE | re.IGNORECASE))
+            require(help_result.returncode == 0 or legacy_help,
+                    'Native ISCC did not return a recognized successful help response')
+            result['nativeHelpInterpretation'] = ('inno6_requested_help_exit_1' if legacy_help
+                                                 else 'requested_help_exit_0')
         except ValueError as error:
             raise ValueError(str(error) + '; observed compiler identity=' +
                              json.dumps(result, ensure_ascii=True)) from error

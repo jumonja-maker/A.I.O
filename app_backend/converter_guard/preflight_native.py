@@ -192,10 +192,11 @@ def detect(program, profile, source, work):
         # Batch uses LO's silent interaction mode and native import defaults.
         # Only our private copy is opened; this worker never saves it.
         doc = load(kit, source.as_uri().encode('utf-8'), b'Batch=true')
-    _stage(work, 'document_loaded')
     if not doc:
+        _stage(work, 'document_loaded')
         return {'state': 'undetermined', 'code': 'PREFLIGHT_IMPORT_UNDETERMINED'}
     try:
+        _stage(work, 'document_loaded')
         table = _table(doc, _Document, 'document_type')
         _stage(work, 'document_type')
         kind = C.CFUNCTYPE(C.c_int, C.c_void_p)(table.document_type)(doc)

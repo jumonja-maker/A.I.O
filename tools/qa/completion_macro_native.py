@@ -209,7 +209,8 @@ def main():
         assert provenance[-1]['facts']['staticVba']['detected']
     license_path = inputs/'POI-LICENSE.txt'
     shutil.copyfile(args.fixtures/'POI-LICENSE.txt', license_path)
-    assert sha(license_path.read_bytes()) == '6e7c918e5a49f677c1b85a9eb2d035cd85c217fc42af6b4a336964a434001a9c'
+    license_sha=sha(license_path.read_bytes())
+    assert license_sha == '6e7c918e5a49f677c1b85a9eb2d035cd85c217fc42af6b4a336964a434001a9c', ('upstream_license_sha256',license_sha)
     derived_calc, derived_word = inputs/'cyrillic.xlsm', inputs/'cyrillic.docm'
     book = load_workbook(inputs/'SimpleMacro.xlsm', keep_vba=True)
     book.active['D1'], book.active['D2'] = MARKER, '000123'

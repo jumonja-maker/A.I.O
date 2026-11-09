@@ -256,6 +256,27 @@ class CompilerIdentityControls(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'observed compiler identity=.*nativeHelpBanner'):
                     builder.compiler_identity(compiler)
 
+    def test_real_inno_six_help_exit_one_is_distinguished_from_compiler_failure(self):
+        native_help = ('Usage:  iscc [options] scriptfile.iss\nOptions:\n'
+                       '  /?                 Show this help screen\n')
+        with tempfile.TemporaryDirectory() as directory:
+            compiler = Path(directory) / 'ISCC.exe'
+            compiler.write_bytes(b'inert fixture; never executed')
+            for stderr, accepted in ((native_help, True), ('Error: cannot load compiler\n', False),
+                                     (native_help+'Error: cannot load compiler\n', False), ('', False)):
+                with self.subTest(stderr=stderr):
+                    replies = [SimpleNamespace(stdout=json.dumps({'version':'0.0.0.0'})),
+                               SimpleNamespace(stdout='Inno Setup 6 Command-Line Compiler\n',
+                                               stderr=stderr, returncode=1)]
+                    with patch.object(builder.sys, 'platform', 'win32'), \
+                         patch.object(builder.subprocess, 'run', side_effect=replies):
+                        if accepted:
+                            result = builder.compiler_identity(compiler)
+                            self.assertEqual(result['nativeHelpInterpretation'], 'inno6_requested_help_exit_1')
+                        else:
+                            with self.assertRaisesRegex(ValueError, 'recognized successful help response'):
+                                builder.compiler_identity(compiler)
+
 
 class InstallerSourceAndRemovalControls(unittest.TestCase):
     def test_real_git_head_and_dirty_tracked_tree_checked(self):
