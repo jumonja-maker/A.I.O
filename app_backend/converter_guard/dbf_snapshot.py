@@ -89,15 +89,47 @@ def prepare_numeric_snapshot(snapshot, destination, *, trusted_schema=False, can
 
     Literal heading admission already happened on the unmodified snapshot.
     Only header cells are changed; native data, styles and date/logical fields
-    retain their original bytes. Headerless sheets keep the existing route.
+    retain their original bytes. Every CLI column must have one confirmed
+    nonempty type; mixed columns need the separate native UNO Memo mapping.
     """
     snapshot, destination = Path(snapshot), Path(destination)
     rows = native_rows(snapshot, cancel)
     first = next(rows, None)
-    if first is None or first['repeat'] != 1:
+    if first is None:
         return snapshot, None
     cells = [cell for cell in first['cells'] if cell['kind'] or cell['shown'] or cell['text']]
-    if not cells or any(cell['kind'] != 'string' or not cell['text'] or cell['repeat'] != 1 for cell in cells):
+    header = (first['repeat'] == 1 and bool(cells) and all(
+        cell['kind'] == 'string' and cell['text'] and cell['repeat'] == 1 for cell in cells))
+    kinds = {}
+
+    def inspect_types(row):
+        if cancel.is_set():
+            raise GuardError('CANCELLED', 'Проверка типов DBF отменена.', stage='export')
+        for cell in row['cells']:
+            nonempty = cell['kind'] not in (None, 'string', 'void') or cell['shown'] or bool(cell['text'])
+            if not nonempty:
+                continue
+            kind = cell['kind'] or 'unconfirmed'
+            for column in range(cell['column'], cell['column'] + cell['repeat']):
+                if column % 256 == 0 and cancel.is_set():
+                    raise GuardError('CANCELLED', 'Проверка типов DBF отменена.', stage='export')
+                previous = kinds.setdefault(column, kind)
+                if previous != kind:
+                    raise ValueError('DBF_CLI_MIXED_COLUMN_UNCONFIRMED')
+
+    def checked_rows():
+        if not header:
+            inspect_types(first)
+        for row in rows:
+            inspect_types(row)
+            yield row
+
+    data_rows = checked_rows()
+    if not header:
+        # Headerless sources used to return before inspecting later rows,
+        # allowing a numeric first record to erase later literal identifiers.
+        for _row in data_rows:
+            pass
         return snapshot, None
     headers = [cell['text'] for cell in cells]
     grammar = (r'[A-Za-z_][A-Za-z_0-9]{0,9}(?:,[CNDLM](?:,[0-9]+(?:,[0-9]+)?)?)?'
@@ -106,11 +138,13 @@ def prepare_numeric_snapshot(snapshot, destination, *, trusted_schema=False, can
             or len({name.split(',')[0].upper() for name in headers}) != len(headers)):
         raise ValueError('DBF_LITERAL_HEADER_SCHEMA_UNCONFIRMED')
     if [cell['column'] for cell in cells] != list(range(len(headers))):
+        for _row in data_rows:
+            pass
         return snapshot, None
     columns = [DbfNumericColumn() for _ in headers]
     allowed = [True] * len(headers)
     position, used = 1, 1
-    for row in rows:
+    for row in data_rows:
         populated = False
         for cell in row['cells']:
             nonempty = (cell['kind'] is not None and cell['kind'] != 'string') or cell['shown'] or bool(cell['text'])

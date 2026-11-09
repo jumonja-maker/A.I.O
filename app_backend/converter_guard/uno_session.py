@@ -290,6 +290,7 @@ def export_table_sheets(model, desktop, prop, target, export_options, *, csv_for
                     'renamedFields': profile['renamedFields'], 'fieldNames': profile['fieldNames'],
                     'headerNotationFromNativeDbf': profile['trustedSchema'],
                     'numericFields': profile.get('numericFields', []),
+                    'numericWidthIsMinimum': True,
                     'warning': ('NATIVE_DBF_MIXED_COLUMN_TEXT' if profile['mixed'] else
                         'NATIVE_DBF_FIELD_NAME_MAPPING' if profile['renamedFields'] else 'NATIVE_DBF_NUMERIC_WIDTHS'),
                     'warnings': (['NATIVE_DBF_MIXED_COLUMN_TEXT'] if profile['mixed'] else []) +

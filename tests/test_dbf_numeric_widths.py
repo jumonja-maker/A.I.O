@@ -120,6 +120,46 @@ class NumericWidths(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'VALUE_CHANGED'):
                 verify_dbf_numeric_rows(path, fields, [[Decimal('-12.750')], [Decimal('.1251')]])
 
+    def test_native_wider_storage_reads_the_complete_value(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary)/'native-wider.dbf'
+            head, field = bytearray(32), bytearray(32)
+            head[0] = 3
+            struct.pack_into('<IHH', head, 4, 2, 65, 9)
+            field[:6] = b'AMOUNT'
+            field[11], field[16], field[17] = ord('N'), 8, 3
+            path.write_bytes(head+field+b'\r  -12.750    0.125\x1a')
+            fields = [{'column': 0, 'fieldName': 'AMOUNT', 'width': 7, 'scale': 3}]
+            expected = [[Decimal('-12.750')], [Decimal('.125')]]
+            receipt = verify_dbf_numeric_rows(path, fields, expected)
+            self.assertEqual(receipt['checkedCells'], 2)
+            self.assertEqual(receipt['numericWidths'],
+                [{'column': 0, 'minimumWidth': 7, 'observedWidth': 8, 'scale': 3}])
+            # Reading only the requested seven characters would hide this
+            # changed final digit in the native eight-character field.
+            path.write_bytes(head+field+b'\r -12.7509    0.125\x1a')
+            with self.assertRaisesRegex(ValueError, 'VALUE_CHANGED'):
+                verify_dbf_numeric_rows(path, fields, expected)
+
+    def test_widening_never_approves_a_different_numeric_contract(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary)/'wrong-schema.dbf'
+            expected = [{'column': 0, 'fieldName': 'AMOUNT', 'width': 7, 'scale': 3}]
+            for name, kind, width, scale in ((b'AMOUNT', 'N', 6, 3),
+                                            (b'AMOUNT', 'N', 20, 3),
+                                            (b'AMOUNT', 'N', 8, 4),
+                                            (b'AMOUNT', 'F', 8, 3),
+                                            (b'OTHER', 'N', 8, 3)):
+                with self.subTest(name=name, kind=kind, width=width, scale=scale):
+                    head, field = bytearray(32), bytearray(32)
+                    head[0] = 3
+                    struct.pack_into('<IHH', head, 4, 1, 65, width+1)
+                    field[:len(name)] = name
+                    field[11], field[16], field[17] = ord(kind), width, scale
+                    path.write_bytes(head+field+b'\r '+b'0'.rjust(width)+b'\x1a')
+                    with self.assertRaisesRegex(ValueError, 'OUTPUT_SCHEMA'):
+                        verify_dbf_numeric_rows(path, expected, [[0]])
+
     def test_repeated_native_rows_remain_cancellable_during_verification(self):
         raw = ('<o:document xmlns:o="urn:oasis:names:tc:opendocument:xmlns:office:1.0" '
                'xmlns:t="urn:oasis:names:tc:opendocument:xmlns:table:1.0" '
@@ -141,6 +181,84 @@ class NumericWidths(unittest.TestCase):
                     verify_numeric_snapshot(source, None,
                         {'sourceRows':1000001,'fieldNames':['AMOUNT'],'numericFields':[]}, cancel=cancel)
                 self.assertEqual(error.exception.code, 'CANCELLED')
+
+
+class CliMixedColumnGate(unittest.TestCase):
+    def xml(self, rows, first_repeat=1):
+        from xml.sax.saxutils import escape
+        raw = ['<o:document xmlns:o="urn:oasis:names:tc:opendocument:xmlns:office:1.0" '
+               'xmlns:t="urn:oasis:names:tc:opendocument:xmlns:table:1.0" '
+               'xmlns:x="urn:oasis:names:tc:opendocument:xmlns:text:1.0"><t:table>']
+        for index, row in enumerate(rows):
+            repeated = ' t:number-rows-repeated="' + str(first_repeat) + '"' if index == 0 else ''
+            raw.append('<t:table-row' + repeated + '>')
+            for kind, value in row:
+                if kind is None:
+                    raw.append('<t:table-cell/>')
+                    continue
+                attribute = {'float': 'value', 'date': 'date-value', 'boolean': 'boolean-value'}.get(kind)
+                raw.append('<t:table-cell o:value-type="' + kind + '"' +
+                           (' o:' + attribute + '="' + escape(str(value)) + '"' if attribute else '') +
+                           '><x:p>' + escape(str(value)) + '</x:p></t:table-cell>')
+            raw.append('</t:table-row>')
+        return (''.join(raw) + '</t:table></o:document>').encode()
+
+    def rejected(self, raw):
+        with tempfile.TemporaryDirectory() as temporary:
+            source, target = Path(temporary)/'native.fods', Path(temporary)/'prepared.fods'
+            source.write_bytes(raw)
+            with self.assertRaisesRegex(ValueError, 'DBF_CLI_MIXED_COLUMN_UNCONFIRMED'):
+                prepare_numeric_snapshot(source, target, cancel=threading.Event())
+            self.assertEqual(source.read_bytes(), raw)
+            self.assertFalse(target.exists(), 'No prepared source/export may be published after ambiguous types')
+
+    def test_headered_numeric_then_literal_identifier_is_blocked_before_rewrite(self):
+        self.rejected(self.xml([[('string', 'Mixed')], [('float', 42)], [('string', '00123')]]))
+
+    def test_headerless_numeric_then_text_is_checked_before_early_return(self):
+        self.rejected(self.xml([[('float', 42)], [('string', '00123')]]))
+
+    def test_date_boolean_and_unknown_mixtures_need_native_mapping(self):
+        for left, right in ((('date', '2026-11-08'), ('float', 2)),
+                            (('boolean', 'true'), ('float', 1)),
+                            (('boolean', 'true'), ('string', 'TRUE')),
+                            (('date', '2026-11-08'), ('string', '2026-11-09'))):
+            with self.subTest(left=left, right=right):
+                self.rejected(self.xml([[('string', 'FIELD')], [left], [right]]))
+
+    def test_later_rows_and_columns_beyond_header_are_not_ignored(self):
+        rows = [[('string', 'FIRST')]] + [[('float', 1), ('float', 42)]] * 130 + [[('float', 1), ('string', '00123')]]
+        self.rejected(self.xml(rows))
+
+    def test_repeated_headerless_rows_are_checked_without_expansion(self):
+        self.rejected(self.xml([[('float', 42)], [('string', '00123')]], first_repeat=1000000))
+
+    def test_blank_records_do_not_make_a_numeric_column_mixed(self):
+        raw = self.xml([[('string', 'AMOUNT')], [('float', -12.75)], [(None, '')], [('float', .125)]])
+        with tempfile.TemporaryDirectory() as temporary:
+            source, target = Path(temporary)/'native.fods', Path(temporary)/'prepared.fods'
+            source.write_bytes(raw)
+            prepared, plan = prepare_numeric_snapshot(source, target, cancel=threading.Event())
+            self.assertEqual(prepared, target)
+            self.assertEqual(len(plan['numericFields']), 1)
+            self.assertEqual(source.read_bytes(), raw)
+
+    def test_headerless_type_scan_remains_cancellable(self):
+        cancel = threading.Event()
+        row = {'repeat': 1, 'cells': [
+            {'column': 0, 'repeat': 1, 'kind': 'float', 'value': '1', 'shown': True, 'text': False}]}
+
+        def rows(*args):
+            yield row
+            cancel.set()
+            yield row
+        with tempfile.TemporaryDirectory() as temporary:
+            target = Path(temporary)/'prepared.fods'
+            with patch('app_backend.converter_guard.dbf_snapshot.native_rows', rows):
+                with self.assertRaises(GuardError) as caught:
+                    prepare_numeric_snapshot(Path(temporary)/'unused.fods', target, cancel=cancel)
+            self.assertEqual(caught.exception.code, 'CANCELLED')
+            self.assertFalse(target.exists())
 
 
 if __name__ == '__main__':

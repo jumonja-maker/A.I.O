@@ -65,8 +65,11 @@ def verify_dbf_numeric_rows(path, fields, expected_rows):
             raise ValueError('DBF_NUMERIC_OUTPUT_STRIDE')
         for field in fields:
             _offset, descriptor = offsets[field['column']]
+            # LibreOffice may widen a requested numeric field (for example
+            # N,7,3 becomes N,8,3). Extra storage is harmless only while the
+            # name, numeric type, scale and every complete value still match.
             if (descriptor[:11].split(b'\0')[0].decode('ascii').upper() != field['fieldName'].upper()
-                    or descriptor[11] != ord('N') or descriptor[16] != field['width']
+                    or descriptor[11] != ord('N') or not field['width'] <= descriptor[16] <= 19
                     or descriptor[17] != field['scale']):
                 raise ValueError('DBF_NUMERIC_OUTPUT_SCHEMA')
         observed = 0
@@ -76,8 +79,8 @@ def verify_dbf_numeric_rows(path, fields, expected_rows):
                 raise ValueError('DBF_NUMERIC_OUTPUT_ROW_COUNT')
             observed += 1
             for field in fields:
-                start, _descriptor = offsets[field['column']]
-                raw = record[start:start+field['width']].strip()
+                start, descriptor = offsets[field['column']]
+                raw = record[start:start+descriptor[16]].strip()
                 value = expected[field['column']]
                 if value is None or value == '':
                     if raw:
@@ -88,7 +91,10 @@ def verify_dbf_numeric_rows(path, fields, expected_rows):
         if observed != count:
             raise ValueError('DBF_NUMERIC_OUTPUT_ROW_COUNT')
     return {'check': 'dbf_numeric_values', 'status': 'checked_subset',
-            'checkedCells': checked, 'numericColumns': len(fields), 'qualityCompared': False}
+            'checkedCells': checked, 'numericColumns': len(fields), 'qualityCompared': False,
+            'numericWidths': [{'column': field['column'], 'minimumWidth': field['width'],
+                'observedWidth': offsets[field['column']][1][16], 'scale': field['scale']}
+                for field in fields]}
 '''
 
 exec(compile(DBF_NUMERIC_SOURCE, __file__, 'exec'))

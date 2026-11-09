@@ -1176,6 +1176,7 @@ class LibreOfficeAdapter:
                         mapping = result.with_name(result.name+'.aio-columns.jsonl')
                         with mapping.open('x', encoding='utf-8') as stream:
                             json.dump({'schemaVersion': 1, 'format': 'dBase', **numeric_plan,
+                                'numericWidthIsMinimum': True,
                                 'warning': 'NATIVE_DBF_NUMERIC_WIDTHS',
                                 'warnings': ['NATIVE_DBF_NUMERIC_WIDTHS']}, stream, ensure_ascii=True)
                             stream.write('\n')
