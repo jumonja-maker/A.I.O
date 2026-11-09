@@ -1,6 +1,7 @@
 """Use the existing direct native adapter. No second conversion engine."""
 from contextlib import ExitStack, contextmanager
 import copy
+import json
 import os
 from pathlib import Path
 import secrets
@@ -542,6 +543,10 @@ class LibreOfficeAdapter:
         if contract.get('state') == 'invalid':
             return {'state': 'undetermined', 'code': contract['code'],
                     'sourceContract': contract, 'exported': False}
+        if (contract.get('contentClass') == 'base_report_package' and os.name != 'nt'
+                and not (office and hasattr(office, 'request') and not office.disabled)):
+            return {'state':'undetermined', 'code':'NATIVE_REPORT_STORAGE_LOADER_UNAVAILABLE',
+                    'sourceContract':contract, 'exported':False}
         if contract.get('contentClass') == 'epub_package' and not native.imports.get('epub'):
             # EPUB has an export filter but normally no native import filter.
             # Decode its declared reading order into one private HTML source,
@@ -570,6 +575,7 @@ class LibreOfficeAdapter:
             try:
                 result = office.request({'operation':'inspect','source':str(source.resolve()),
                     'services':sorted(native.import_services),
+                    'sourceClass':contract.get('contentClass'),
                     'expectedSourceServices':contract.get('expectedServices', []),
                     'importFilter':hint['filter'] if hint else None,
                     'importOptions':hint['options'] if hint else None},
@@ -604,6 +610,7 @@ class LibreOfficeAdapter:
                         'htmlContentProfile': result.get('htmlContentProfile'),
                         'nativeExportFilters': result.get('nativeExportFilters', {}),
                         'nativeExportInspection': result.get('nativeExportInspection', {}),
+                        'nativeReportStorage':result.get('nativeReportStorage'),
                         'registryFingerprint':native.fingerprint,'exported':False}
                 return {'state':'undetermined','code':result.get('code') or 'PREFLIGHT_IMPORT_FAILED',
                         'diagnosticStage':result.get('stage','import'),
@@ -901,6 +908,13 @@ class LibreOfficeAdapter:
                 self._local.source_evidence = source_evidence
         check = check_native_output(paths, target, source, cancel=identity_control,
                                     source_evidence=source_evidence)
+        from .macro_vba import check_vba_preservation
+        macro_check = check_vba_preservation(paths, target, source, cancel=identity_control)
+        if macro_check:
+            self._local.export_info['resultChecks'] = list(
+                self._local.export_info.get('resultChecks', ())) + [macro_check]
+            self._local.export_info['warnings'] = tuple(dict.fromkeys((
+                *self._local.export_info.get('warnings', ()), *macro_check.get('warnings', ()))))
         if check:
             checks = [{key: value for key, value in check.items() if key != 'additionalChecks'}]
             checks.extend(check.get('additionalChecks', []))
@@ -911,6 +925,7 @@ class LibreOfficeAdapter:
                     if (result_check.get('source') or {}).get('decodedResolution') == 'PhotoCD_Base':
                         warnings.append('MEDIA_PHOTOCD_BASE_ONLY')
                     loss_warnings = {
+                        'psd_editability': 'MEDIA_PSD_MERGED_COMPOSITE',
                         'alpha': 'MEDIA_ALPHA_REMOVED',
                         'animation': ('MEDIA_ANIMATION_AS_PAGES' if target in ('tif', 'tiff') else
                                       'MEDIA_ANIMATION_FIRST_FRAME'),
@@ -1077,7 +1092,7 @@ class LibreOfficeAdapter:
                  getattr(self._local, 'import_options', None))
         output = workspace / 'output'
         output.mkdir(parents=True, exist_ok=False)
-        paths, sheet_entries = [], []
+        paths, sheet_entries, dbf_numeric_checks = [], [], []
         is_csv = target in ('csv', 'tab', 'tsv')
         previous_csv = getattr(self._local, 'csv_sheet_snapshot', False)
         previous_snapshot = getattr(self._local, 'preservation_sheet_snapshot', None)
@@ -1090,12 +1105,39 @@ class LibreOfficeAdapter:
                 # model proof still describes the complete source workbook;
                 # bind the internal CLI exception to this immutable snapshot,
                 # not to every export on the thread or merely its extension.
-                self._local.preservation_sheet_snapshot = _source_identity(snapshot)
+                original_snapshot, numeric_plan = snapshot, None
                 if target == 'dbf':
                     from .dbf_schema import validate_cli_dbf_headers, cli_dbf_encoding
                     validate_cli_dbf_headers(snapshot, trusted_schema=saved[0] == 'dBase', cancel=control)
+                    from .dbf_snapshot import prepare_numeric_snapshot
+                    try:
+                        snapshot, numeric_plan = prepare_numeric_snapshot(snapshot,
+                            workspace / 'dbf-numeric-inputs' / snapshot.name,
+                            trusted_schema=saved[0] == 'dBase', cancel=control)
+                    except ValueError as error:
+                        raise GuardError('ENGINE_OUTPUT_VALIDATION_INCOMPLETE',
+                            'Точная числовая схема DBF не подтверждена.', stage='export', diagnostic=str(error)) from error
                     self._local.dbf_cli_encoding = cli_dbf_encoding(snapshot, cancel=control)
+                self._local.preservation_sheet_snapshot = _source_identity(snapshot)
                 results = export(snapshot, target, workspace / ('legacy-export-%04d' % index))
+                if numeric_plan:
+                    from .dbf_snapshot import verify_numeric_snapshot
+                    for result in tuple(results):
+                        if result.suffix.lower() != '.dbf':
+                            continue
+                        try:
+                            dbf_numeric_checks.append(verify_numeric_snapshot(original_snapshot, result,
+                                numeric_plan, cancel=control))
+                        except ValueError as error:
+                            raise GuardError('ENGINE_OUTPUT_CONTENT_LOSS',
+                                'Числовые значения DBF изменились при экспорте.', stage='result', diagnostic=str(error)) from error
+                        mapping = result.with_name(result.name+'.aio-columns.jsonl')
+                        with mapping.open('x', encoding='utf-8') as stream:
+                            json.dump({'schemaVersion': 1, 'format': 'dBase', **numeric_plan,
+                                'warning': 'NATIVE_DBF_NUMERIC_WIDTHS',
+                                'warnings': ['NATIVE_DBF_NUMERIC_WIDTHS']}, stream, ensure_ascii=True)
+                            stream.write('\n')
+                        results.append(mapping)
                 if target == 'dbf' and self._local.dbf_cli_encoding == '34':
                     from .dbf_codepage import declare_native_cp1251
                     for result in results:
@@ -1138,8 +1180,9 @@ class LibreOfficeAdapter:
         self._local.export_info = {'filter': native.export_filter(target,
             ['com.sun.star.sheet.SpreadsheetDocument']),
             'executionReason': 'native_cli_all_calc_sheets',
-            'warnings': ('NATIVE_CSV_ALL_SHEETS',) if is_csv else ('NATIVE_TABLE_FORMAT_LIMITS',),
-            'resultChecks': [check]}
+            'warnings': (('NATIVE_CSV_ALL_SHEETS',) if is_csv else ('NATIVE_TABLE_FORMAT_LIMITS',)) +
+                (('NATIVE_DBF_NUMERIC_WIDTHS',) if dbf_numeric_checks else ()),
+            'resultChecks': [check, *dbf_numeric_checks]}
         control.check_now()
         return paths
 
@@ -1274,6 +1317,7 @@ class LibreOfficeAdapter:
                         request_sent = True
                         result = office.request({'operation':'export','source':str(source.resolve()),
                             'format':target,'output':str(output.resolve()),'exportFilter':filter_name,
+                            'sourceClass':proof.get('sourceContract', {}).get('contentClass'),
                             'graphicExport': 'svm' if filter_name == 'svm_Export' else None,
                             'exportOptions':recipe.filter_options,
                             'automaticRecipe': retry_recipe,
@@ -1293,6 +1337,7 @@ class LibreOfficeAdapter:
                         declared = tuple(code for code in result.get('warnings', ())
                                          if code in ('NATIVE_DBF_MIXED_COLUMN_TEXT',
                                                      'NATIVE_DBF_FIELD_NAME_MAPPING',
+                                                     'NATIVE_DBF_NUMERIC_WIDTHS',
                                                      'NATIVE_WRITER_RASTER_PAGES',
                                                      'NATIVE_CALC_RASTER_PAGES',
                                                      'NATIVE_OUTPUT_NOT_CHECKED',
@@ -1318,6 +1363,10 @@ class LibreOfficeAdapter:
                         if result.get('ok') and isinstance(colour_receipt, dict):
                             self._local.export_info['resultChecks'] = list(
                                 self._local.export_info.get('resultChecks', ())) + [colour_receipt]
+                        report_receipt = result.get('reportStoragePreservation')
+                        if result.get('ok') and isinstance(report_receipt, dict):
+                            self._local.export_info['resultChecks'] = list(
+                                self._local.export_info.get('resultChecks', ())) + [report_receipt]
                         if result.get('nativeCloseInterrupted'):
                             self._local.export_info['warnings'] = tuple(
                                 self._local.export_info.get('warnings', ())) + ('NATIVE_CLOSE_INTERRUPTED',)

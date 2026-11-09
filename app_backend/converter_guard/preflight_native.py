@@ -105,6 +105,52 @@ def _odf_chart(source):
     return False
 
 
+def _odf_master(source):
+    """Distinguish a successfully loaded OTHER model by its master package."""
+    from xml.parsers import expat
+    office = 'urn:oasis:names:tc:opendocument:xmlns:office:1.0}'
+    class Found(Exception):
+        pass
+    try:
+        with zipfile.ZipFile(source) as archive:
+            names = archive.namelist()
+            if names.count('mimetype') != 1 or names.count('content.xml') != 1:
+                return False
+            if archive.getinfo('mimetype').file_size > 128:
+                return False
+            if archive.read('mimetype') not in (
+                    b'application/vnd.oasis.opendocument.text-master',
+                    b'application/vnd.oasis.opendocument.text-master-template'):
+                return False
+            parser = expat.ParserCreate(namespace_separator='}')
+            stack, seen = [], 0
+            def untrusted(*_args):
+                raise ValueError('master_xml_declaration_unconfirmed')
+            def start(tag, _attributes):
+                stack.append(tag)
+                if len(stack) > 256:
+                    raise ValueError('master_xml_depth')
+                if stack == [office+'document-content', office+'body', office+'text']:
+                    raise Found()
+            parser.StartElementHandler = start
+            parser.EndElementHandler = lambda _tag: stack.pop()
+            parser.StartDoctypeDeclHandler = untrusted
+            parser.EntityDeclHandler = untrusted
+            parser.ExternalEntityRefHandler = untrusted
+            parser.SetParamEntityParsing(expat.XML_PARAM_ENTITY_PARSING_NEVER)
+            with archive.open('content.xml') as stream:
+                while block := stream.read(65536):
+                    seen += len(block)
+                    if seen > 4 * 1024 * 1024:
+                        return False
+                    parser.Parse(block, False)
+    except Found:
+        return True
+    except (OSError, ValueError, KeyError, expat.ExpatError, zipfile.BadZipFile, RuntimeError):
+        return False
+    return False
+
+
 def detect(program, profile, source, work):
     _stage(work, 'dll_scope')
     dll_scope = os.add_dll_directory(str(program)) if os.name == 'nt' else None
@@ -172,6 +218,8 @@ def detect(program, profile, source, work):
     # native model AND a MathML XML root read from actual source bytes.
     if kind == 4 and _odf_chart(source):
         return {'state':'detected','kind':4,'contentClass':'odf_chart'}
+    if kind == 4 and _odf_master(source):
+        return {'state':'detected','kind':4,'contentClass':'odf_master'}
     if kind == 4 and _mathml_root(source):
         return {'state':'detected','kind':4,'contentClass':'mathml'}
     return {'state':'undetermined','code':'PREFLIGHT_KIND_UNDETERMINED'}

@@ -325,8 +325,8 @@ def main():
     run('guard_folder_zip_manifests_companions_and_reports', save_case)
 
     def negative_decimal_case():
-        # Keep this known native width-inference defect visible. A successful
-        # simple CSV encoding control must not erase its safe-refusal evidence.
+        # Native width inference used to fail on -12.750 in a six-byte field.
+        # This case now requires a working, exactly verified conversion.
         source = args.output/'negative-decimal.csv'
         raw = b'ID,AMOUNT\n000123,-12.750\n000007,0.125\n'
         source.write_bytes(raw)
@@ -345,26 +345,24 @@ def main():
                 time.sleep(.05)
             (args.output/'negative-decimal-status.json').write_text(
                 json.dumps(state, ensure_ascii=False, indent=2), encoding='utf-8')
-            if state['state'] == 'ready':
-                ticket = state['result']['ticket']
-                with guard.open_result(ticket) as (stream, _name, _size):
-                    with ZipFile(stream) as archive:
-                        name = next(name for name in archive.namelist() if name.endswith('.dbf'))
-                        path = args.output/'negative-decimal-native.dbf'
-                        path.write_bytes(archive.read(name))
-                        rows = read_dbf(path)['rows']
-                        assert [Decimal(r[1]) for r in rows] == [Decimal('-12.750'), Decimal('0.125')], rows
-                return {'nativeOutcome': 'VALUES_PRESERVED', 'sourceUnchanged': source.read_bytes() == raw}
-            assert state['state'] != 'ready' and not state.get('result'), state
-            targets = state['files'][0]['targets']
-            assert targets and all(target['state'] == 'error' for target in targets), state
-            assert source.read_bytes() == raw
-            return {'nativeOutcome': 'SAFE_REFUSAL', 'sourceUnchanged': True,
-                    'jobState': state['state'], 'targets': targets,
-                    'knownLimitation': 'native_dbase_negative_decimal_width_inference'}
+            assert state['state'] == 'ready', state
+            ticket = state['result']['ticket']
+            with guard.open_result(ticket) as (stream, _name, _size):
+                with ZipFile(stream) as archive:
+                    name = next(name for name in archive.namelist() if name.endswith('.dbf'))
+                    path = args.output/'negative-decimal-native.dbf'
+                    path.write_bytes(archive.read(name))
+                    physical = read_dbf(path)
+                    assert physical['fields'][1] == {'name': 'AMOUNT', 'type': 'N', 'width': 7, 'decimal': 3}, physical
+                    rows = physical['rows']
+                    assert [r[0] for r in rows] == ['000123', '000007'], rows
+                    assert [Decimal(r[1]) for r in rows] == [Decimal('-12.750'), Decimal('0.125')], rows
+                    assert any(name.endswith('.aio-columns.jsonl') for name in archive.namelist())
+            return {'nativeOutcome': 'VALUES_PRESERVED', 'sourceUnchanged': source.read_bytes() == raw,
+                    'numericField': physical['fields'][1], 'leadingZerosPreserved': True}
         finally:
             guard.close()
-    run('negative_decimal_native_width_preserved_or_explicitly_refused', negative_decimal_case)
+    run('negative_decimal_native_width_exact_conversion', negative_decimal_case)
 
     assert all(hashlib.sha256(path.read_bytes()).hexdigest() == sha for path, sha in originals.items())
     result = {'status': 'FAIL' if failures else 'PASS', 'cases': cases,

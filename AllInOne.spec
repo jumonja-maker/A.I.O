@@ -59,7 +59,7 @@ a = Analysis(
     binaries=[],
     datas=assets,
     hiddenimports=['PySide6.QtWebEngineWidgets', 'PySide6.QtWebEngineCore',
-                   'PySide6.QtWidgets', 'PySide6.QtGui', 'PySide6.QtCore', 'PySide6.QtPdf'],
+                   'PySide6.QtWidgets', 'PySide6.QtGui', 'PySide6.QtCore', 'PySide6.QtPdf', 'olefile'],
     hookspath=[],
     runtime_hooks=[],
     excludes=['app_backend.converter_universal',

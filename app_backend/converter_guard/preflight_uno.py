@@ -5,7 +5,9 @@ launches the Python that came with the same LibreOffice installation.
 The worker detects content, loads one hidden native model, obtains its actual
 services and closes it. It never starts an export or a requested conversion.
 """
-UNO_WORKER_SOURCE = r'''
+from .report_storage import REPORT_STORAGE_SOURCE
+
+UNO_WORKER_SOURCE = REPORT_STORAGE_SOURCE + r'''
 import json
 import os
 from pathlib import Path
@@ -121,7 +123,10 @@ def main(manifest_name):
     desktop = remote.ServiceManager.createInstanceWithContext('com.sun.star.frame.Desktop', remote)
     model = None
     try:
-        model = desktop.loadComponentFromURL(source.as_uri(), '_blank', 0, tuple(options))
+        report_source = (req.get('sourceClass') == 'base_report_package'
+                         and req.get('expectedSourceServices') == [_AIO_REPORT_SERVICE])
+        model = (aio_load_report_storage(remote, property_value, source, options) if report_source else
+                 desktop.loadComponentFromURL(source.as_uri(), '_blank', 0, tuple(options)))
         services = [s for s in req.get('documentServices', []) if model is not None and model.supportsService(s)]
         # Aborting a load interaction can still return a partial native model.
         # Keep it undetermined rather than offering routes for damaged content.
@@ -138,6 +143,8 @@ def main(manifest_name):
                 text_document = False
             result = {**model_metadata(model), 'state':'detected','modelLoaded':True,
                       'documentServices':services, 'nativeTextDocument':text_document}
+            if report_source:
+                _profile, result['nativeReportStorage'] = aio_report_profile(model)
             if 'com.sun.star.drawing.DrawingDocument' in services:
                 try:
                     result['drawPages'] = model.getDrawPages().getCount()

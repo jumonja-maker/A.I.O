@@ -13,7 +13,7 @@ class LockedQaBuild(unittest.TestCase):
         parse = helper['parse_lock']
         runtime = parse(BUILD / 'requirements-qa-locked.txt')
         build = parse(BUILD / 'requirements-qa-build-locked.txt')
-        self.assertTrue({'openpyxl', 'pyside6', 'pypdf', 'pillow'} <= set(runtime))
+        self.assertTrue({'openpyxl', 'pyside6', 'pypdf', 'pillow', 'olefile'} <= set(runtime))
         self.assertTrue({'pyinstaller', 'pyinstaller-hooks-contrib'} <= set(build))
         self.assertTrue(all(version for name, version in runtime.values()))
         self.assertTrue(all(version for name, version in build.values()))
@@ -34,3 +34,4 @@ class LockedQaBuild(unittest.TestCase):
         self.assertIn('aio-qa-dependencies.json', spec)
         self.assertIn('Missing source-bound QA dependency manifest', spec)
         self.assertIn('qa_info.get', spec)
+        self.assertIn("'olefile'", spec)

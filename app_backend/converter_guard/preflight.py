@@ -64,6 +64,7 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
     request = {'program': str(Path(executable).resolve().parent), 'source': str(source.resolve())}
     request['documentServices'] = sorted({service for services in native.imports.values() for service in services})
     request['expectedSourceServices'] = contract.get('expectedServices', [])
+    request['sourceClass'] = contract.get('contentClass')
     if hint:
         request['csvImportHint'] = hint
     if office_session is not None:
@@ -137,6 +138,7 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
                             'filterName':selected, 'selectedImportFilter':import_filter,
                             'selectedImportOptions':hint['options'] if hint else None,
                             'sourceContract':contract,
+                            'nativeReportStorage':detected.get('nativeReportStorage'),
                             'drawPages':detected.get('drawPages'),
                             'registryFingerprint':native.fingerprint,'exported':False}
             if os.name == 'nt':
@@ -155,6 +157,18 @@ def inspect_source(executable, source, work, *, cancel, timeout, prepare_profile
                         'diagnosticStage': stage,
                         'diagnosticType': str(detected.get('typeName') or '')[:96]}
             kind = detected.get('kind')
+            if (os.name != 'nt' and detected.get('state') == 'detected'
+                    and type(kind) is int and kind == 4 and detected.get('contentClass') == 'odf_master'):
+                master = 'com.sun.star.text.GlobalDocument'
+                if (master in native.import_services and contract.get('state') == 'recognized'
+                        and contract.get('expectedServices') == [master]
+                        and contract.get('mimetype') in (
+                            'application/vnd.oasis.opendocument.text-master',
+                            'application/vnd.oasis.opendocument.text-master-template')):
+                    return {'state':'detected','basis':'native_preflight_master_content',
+                            'documentServices':[master], 'nativeKind':4, 'masterPackage':True,
+                            'sourceContract':contract, 'registryFingerprint':native.fingerprint,
+                            'exported':False}
             if (os.name != 'nt' and detected.get('state') == 'detected'
                     and type(kind) is int and kind == 4 and detected.get('contentClass')=='odf_chart'):
                 chart='com.sun.star.chart2.ChartDocument'

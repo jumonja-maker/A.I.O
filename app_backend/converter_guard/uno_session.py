@@ -22,8 +22,10 @@ from .native_profile import PrivateNativeProfile, private_profile_required
 from .sheet_outputs import SHEET_OUTPUT_SOURCE
 from .native_fidelity import NATIVE_FIDELITY_SOURCE
 from .native_pptx_colours import PPTX_COLOUR_SOURCE
+from .dbf_numeric import DBF_NUMERIC_SOURCE
+from .report_storage import REPORT_STORAGE_SOURCE
 
-WORKER_SOURCE = DIF_CORE_SOURCE + SHEET_OUTPUT_SOURCE + NATIVE_FIDELITY_SOURCE + PPTX_COLOUR_SOURCE + r'''
+WORKER_SOURCE = DIF_CORE_SOURCE + SHEET_OUTPUT_SOURCE + NATIVE_FIDELITY_SOURCE + PPTX_COLOUR_SOURCE + DBF_NUMERIC_SOURCE + REPORT_STORAGE_SOURCE + r'''
 import json, os, sys, time, subprocess, stat
 from pathlib import Path
 
@@ -69,7 +71,7 @@ def automatic_csv_outputs(req, model):
         raise RuntimeError('AUTOMATIC_CSV_SHEETS_MISSING')
     return paths
 
-def dbf_mixed_columns(sheet, area, *, trusted_schema=False):
+def dbf_mixed_columns(sheet, area, *, trusted_schema=False, number_formats=None):
     """Find columns native dBase's first-record type inference would truncate."""
     first = tuple(sheet.getCellRangeByPosition(0, 0, area.EndColumn, 0).getDataArray()[0])
     header = bool(first) and all(isinstance(value, str) and value != '' for value in first)
@@ -86,6 +88,8 @@ def dbf_mixed_columns(sheet, area, *, trusted_schema=False):
             return False
     cp1251 = all(representable(value) for value in first)
     kinds = [set() for _ in first]
+    numbers = [DbfNumericColumn() for _ in first]
+    numeric_allowed = [number_formats is not None] * len(first)
     for row in range(1 if header else 0, area.EndRow + 1, 128):
         last_row = min(area.EndRow, row + 127)
         for column in range(0, area.EndColumn + 1, 128):
@@ -98,11 +102,23 @@ def dbf_mixed_columns(sheet, area, *, trusted_schema=False):
                     cp1251 = cp1251 and representable(actual)
                     if value is None:
                         kinds[column + offset].add('text')
+                        numeric_allowed[column + offset] = False
                     elif isinstance(value, str):
                         if value:
                             kinds[column + offset].add('text')
+                            numeric_allowed[column + offset] = False
                     else:
                         kinds[column + offset].add('number')
+                        if numeric_allowed[column + offset]:
+                            cell = sheet.getCellByPosition(column + offset, row + row_offset)
+                            key = cell.getPropertyValue('NumberFormat')
+                            kind = int(number_formats.getByKey(key).getPropertyValue('Type')) & ~1
+                            # Date/time/logical/currency/percentage formats are
+                            # deliberately left to their existing native type.
+                            if kind not in (16, 32):
+                                numeric_allowed[column + offset] = False
+                            else:
+                                numbers[column + offset].add(value)
     # Only a confirmed native dBase import owns Calc's Field,Type,Width
     # notation. A spreadsheet heading is literal user text, even if it looks
     # exactly like that notation. LO itself parses commas during dBase export.
@@ -112,7 +128,7 @@ def dbf_mixed_columns(sheet, area, *, trusted_schema=False):
     reserved = {str(value).upper() for value in first
                 if re.fullmatch(r'[A-Za-z_][A-Za-z_0-9]{0,9}', str(value))}
     used = set()
-    mixed = []
+    mixed, numeric_fields = [], []
     for column, observed in enumerate(kinds):
         original = str(first[column]) if header else 'FIELD' + str(column + 1)
         declared = original.split(',')[1:2] if header and trusted_schema else []
@@ -138,10 +154,24 @@ def dbf_mixed_columns(sheet, area, *, trusted_schema=False):
         field_names.append(name.upper())  # Calc's dBase exporter uppercases descriptors.
         if header and (not trusted_schema or column in mixed):
             names[column] = name + (',M' if column in mixed else '')
+        if numeric_allowed[column] and column not in mixed and numbers[column].count:
+            declaration = original.split(',') if trusted_schema and header else []
+            if declaration and len(declaration) > 1 and declaration[1].upper() != 'N':
+                continue
+            try:
+                width, scale = numbers[column].schema(
+                    minimum_width=int(declaration[2]) if len(declaration) > 2 else 0,
+                    minimum_scale=int(declaration[3]) if len(declaration) > 3 else 0)
+            except ValueError as error:
+                raise DbfSchemaUnconfirmed(str(error))
+            numeric_fields.append({'column': column, 'fieldName': name.upper(),
+                                   'width': width, 'scale': scale})
+            if header:
+                names[column] = name + ',N,' + str(width) + ',' + str(scale)
     return {'header': header, 'originalHeaders': list(first) if header else None,
             'mixed': mixed, 'exportHeaders': names, 'fieldNames': field_names,
             'renamedFields': renamed, 'trustedSchema': trusted_schema,
-            'cp1251': cp1251 and not mixed}
+            'cp1251': cp1251 and not mixed, 'numericFields': numeric_fields}
 
 def dbf_native_options(options, prop, profile):
     # Native export owns all value/width/memo encoding. Strict representability
@@ -210,9 +240,11 @@ def export_table_sheets(model, desktop, prop, target, export_options, *, csv_for
         cursor = sheet.createCursor()
         cursor.gotoEndOfUsedArea(False)
         area = cursor.getRangeAddress()
-        profiles.append((area, dbf_mixed_columns(sheet, area, trusted_schema=dbf_schema)
+        profiles.append((area, dbf_mixed_columns(sheet, area, trusted_schema=dbf_schema,
+                         number_formats=model.getNumberFormats() if hasattr(model, 'getNumberFormats') else None)
                          if is_dbf else {'mixed': [], 'renamedFields': []}))
-    if not csv_format and count <= 1 and not profiles[0][1]['mixed'] and not profiles[0][1]['renamedFields']:
+    if (not csv_format and count <= 1 and not profiles[0][1]['mixed']
+            and not profiles[0][1]['renamedFields'] and not profiles[0][1].get('numericFields')):
         options = dbf_native_options(export_options, prop, profiles[0][1]) if is_dbf else export_options
         model.storeToURL(target.as_uri(), tuple(options))
         if is_dbf and declare_dbf_encoding:
@@ -248,7 +280,7 @@ def export_table_sheets(model, desktop, prop, target, export_options, *, csv_for
             if csv_format:
                 path = target.with_name(sheet_output_name(target.stem, index, csv_format))
             mapping = None
-            if profile['mixed'] or profile['renamedFields']:
+            if profile['mixed'] or profile['renamedFields'] or profile.get('numericFields'):
                 mapping = path.with_name(path.name + '.aio-columns.jsonl').open('x', encoding='utf-8')
                 mapping.write(json.dumps({'schemaVersion': 1, 'format': 'dBase',
                     'sheetName': source_sheet.getName(), 'sourceRows': area.EndRow + 1,
@@ -257,9 +289,12 @@ def export_table_sheets(model, desktop, prop, target, export_options, *, csv_for
                     'numericColumnsRemainTyped': True,
                     'renamedFields': profile['renamedFields'], 'fieldNames': profile['fieldNames'],
                     'headerNotationFromNativeDbf': profile['trustedSchema'],
-                    'warning': ('NATIVE_DBF_MIXED_COLUMN_TEXT' if profile['mixed'] else 'NATIVE_DBF_FIELD_NAME_MAPPING'),
+                    'numericFields': profile.get('numericFields', []),
+                    'warning': ('NATIVE_DBF_MIXED_COLUMN_TEXT' if profile['mixed'] else
+                        'NATIVE_DBF_FIELD_NAME_MAPPING' if profile['renamedFields'] else 'NATIVE_DBF_NUMERIC_WIDTHS'),
                     'warnings': (['NATIVE_DBF_MIXED_COLUMN_TEXT'] if profile['mixed'] else []) +
-                        (['NATIVE_DBF_FIELD_NAME_MAPPING'] if profile['renamedFields'] else [])},
+                        (['NATIVE_DBF_FIELD_NAME_MAPPING'] if profile['renamedFields'] else []) +
+                        (['NATIVE_DBF_NUMERIC_WIDTHS'] if profile.get('numericFields') else [])},
                     ensure_ascii=True, allow_nan=False) + '\n')
             # Bounded bridge messages, including on very wide worksheets.
             for row in range(0, area.EndRow + 1, 128):
@@ -305,7 +340,7 @@ def export_table_sheets(model, desktop, prop, target, export_options, *, csv_for
                             profile['cp1251'] = False
                     copied.getCellRangeByPosition(
                         column, row, last_column, last_row).setDataArray(values)
-            if profile['mixed'] or profile['renamedFields']:
+            if profile['mixed'] or profile['renamedFields'] or profile.get('numericFields'):
                 if not profile['header']:
                     copied.getRows().insertByIndex(0, 1)
                     for column in range(area.EndColumn + 1):
@@ -316,10 +351,24 @@ def export_table_sheets(model, desktop, prop, target, export_options, *, csv_for
                 else:
                     for column in profile['mixed']:
                         copied.getCellByPosition(column, 0).setString(profile['fieldNames'][column] + ',M')
+                    for field in profile.get('numericFields', []):
+                        copied.getCellByPosition(field['column'], 0).setString(
+                            field['fieldName'] + ',N,' + str(field['width']) + ',' + str(field['scale']))
                 mapping.close()
                 mapping = None
             options = dbf_native_options(export_options, prop, profile) if is_dbf else export_options
             temporary.storeToURL(path.as_uri(), tuple(options))
+            if is_dbf and profile.get('numericFields'):
+                def numeric_rows():
+                    row_step = max(1, min(128, 16384 // (area.EndColumn+1)))
+                    for first_row in range(1 if profile['header'] else 0, area.EndRow + 1, row_step):
+                        for record in source_sheet.getCellRangeByPosition(0, first_row, area.EndColumn,
+                                min(area.EndRow, first_row+row_step-1)).getDataArray():
+                            yield record
+                try:
+                    verify_dbf_numeric_rows(path, profile['numericFields'], numeric_rows())
+                except ValueError as error:
+                    raise DbfSchemaUnconfirmed(str(error))
             if is_dbf and declare_dbf_encoding:
                 declare_native_dbf_encoding(path, profile)
             if csv_format:
@@ -528,7 +577,10 @@ def main(boot_name):
                 options.append(prop('FilterName', chosen))
                 if req.get('importOptions'):
                     options.append(prop('FilterOptions', req['importOptions']))
-            model = desktop.loadComponentFromURL(source.as_uri(), '_blank', 0, tuple(options))
+            report_source = (req.get('sourceClass') == 'base_report_package'
+                             and req.get('expectedSourceServices') == [_AIO_REPORT_SERVICE])
+            model = (aio_load_report_storage(remote, prop, source, options) if report_source else
+                     desktop.loadComponentFromURL(source.as_uri(), '_blank', 0, tuple(options)))
             timings['importMs'] = round((time.monotonic()-import_tick)*1000)
             # A native importer may return a partial model after an aborted
             # interaction. Model existence alone does not prove that import
@@ -556,6 +608,8 @@ def main(boot_name):
                     result = {'id':request_id,'ok':True,'services':services,
                               'typeName':arguments.get('TypeName'), 'filterName':actual_filter,
                               'nativeTextDocument':text_document}
+                    if report_source:
+                        _profile, result['nativeReportStorage'] = aio_report_profile(model)
                     text_exports, text_export_reason = inspect_native_text_export(
                         remote, text_document, services)
                     if text_exports:
@@ -602,6 +656,7 @@ def main(boot_name):
                         if req['format'] == 'xhtml' and
                         'com.sun.star.presentation.PresentationDocument' in services else None)
                     xhtml_textbox_recovery = None
+                    report_storage_check = None
                     try:
                         if req['format'] == 'txt' and req['exportFilter'] == 'Text (encoded)':
                             try:
@@ -621,7 +676,13 @@ def main(boot_name):
                         writer_pages = (aio_export_writer_pages(
                             model, prop, target, export_options, req['exportFilter'], preservation_plan)
                             if 'com.sun.star.text.TextDocument' in services else None)
-                        if calc_export is not None:
+                        if report_source:
+                            if (req['format'] != 'orp' or req['exportFilter'] != _AIO_REPORT_FILTER
+                                    or services != [_AIO_REPORT_SERVICE]):
+                                raise AioReportStorageUnverified('report_export_model_mismatch')
+                            report_storage_check = aio_export_report_storage(
+                                model, remote, prop, source, target, export_options)
+                        elif calc_export is not None:
                             exported_paths, preservation_plan = calc_export
                         elif graphic_pages is not None:
                             exported_paths = graphic_pages
@@ -688,6 +749,8 @@ def main(boot_name):
                         result['pptxColourPreservation'] = pptx_colour_check
                         if pptx_colour_check.get('status') == 'not_checked':
                             warnings.append('NATIVE_OUTPUT_NOT_CHECKED')
+                    if report_storage_check is not None:
+                        result['reportStoragePreservation'] = report_storage_check
                     if preservation_check is not None:
                         if calc_export is not None:
                             preservation_check['notChecked'].append('hidden_or_unprinted_cells')
@@ -716,7 +779,7 @@ def main(boot_name):
             result = {'id':request_id,'ok':False,'code':('DIF_NUMERIC_IMPORT_MISMATCH'
                       if isinstance(error, DifNumericMismatch) else
                       'ENGINE_OUTPUT_CONTENT_LOSS' if isinstance(error, (SheetOutputMismatch, AioPresentationTextLoss, AioPreservationLoss)) else
-                      'ENGINE_OUTPUT_VALIDATION_INCOMPLETE' if isinstance(error, (AioPresentationUnverified, AioWriterPagesUnverified, AioPreservationIncomplete, AioPptxColourUnverified, DbfSchemaUnconfirmed)) else
+                      'ENGINE_OUTPUT_VALIDATION_INCOMPLETE' if isinstance(error, (AioPresentationUnverified, AioWriterPagesUnverified, AioPreservationIncomplete, AioPptxColourUnverified, DbfSchemaUnconfirmed, AioReportStorageUnverified)) else
                       'PREFLIGHT_INTERACTION_REQUIRED'
                       if handler is not None and handler.blocked else
                       'SOURCE_IMPORT_FAILED' if stage == 'import' else

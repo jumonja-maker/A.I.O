@@ -2,7 +2,8 @@
 
 Qt decodes/composes GIF/WebP and encodes lossless WebP. APNG/GIF/TIFF framing
 below keeps every decoded frame/page rather than exporting a Draw page. No new
-image library is used for ordinary sources. PCX, Sun RAS and PhotoCD Base use a separate,
+image library is used for ordinary sources. PCX, Sun RAS, PhotoCD Base and the
+merged RGB composite of PSD use a separate,
 content-confirmed Pillow decoder to avoid LibreOffice's white Draw canvas.
 Cancellation and bounded pixel allocation are checked between stages.
 """
@@ -157,11 +158,85 @@ def qt_xbm_xpm_profile(source, *, cancel=None):
 
 
 
-_LEGACY_PIL_FORMATS = {'pcx': 'PCX', 'ras': 'SUN', 'pcd': 'PCD'}
+_LEGACY_PIL_FORMATS = {'pcx': 'PCX', 'ras': 'SUN', 'pcd': 'PCD', 'psd': 'PSD'}
 # Pillow RGBA plus the owned QImage copy: avoid unbounded dual pixel buffers.
 _LEGACY_PIL_PIXELS = 16 * 1024 * 1024
 # PDF always uses a page-specific Qt renderer, not a first-page LO bitmap.
 _PDF_PAGE_TARGETS = frozenset(('png', 'jpg', 'jpeg', 'jpe', 'jfif', 'jif'))
+
+
+def _psd_composite_header(source, header, total, cancel):
+    """Bound Photoshop metadata before Pillow opens its merged RGB raster.
+
+    PSD layers are editing units, not animation frames. Only the merged 8-bit
+    RGB image is admitted here; channel/model/depth variants remain native.
+    """
+    if (len(header) < 26 or header[:6] != b'8BPS\0\1'
+            or header[6:12] != b'\0' * 6):
+        return None
+    channels, height, width, depth, mode = struct.unpack_from('>HIIHH', header, 12)
+    if (channels, depth, mode) != (3, 8, 3):
+        return None
+    _bounds(width, height)
+    layer_count = 0
+    with source.open('rb') as stream:
+        stream.seek(26)
+        for section in ('colour_mode', 'resources', 'layers'):
+            _cancel(cancel)
+            size_bytes = stream.read(4)
+            if len(size_bytes) != 4:
+                raise GuardError('MEDIA_SOURCE_INVALID', 'Оборванные метаданные PSD.', stage='preflight')
+            size = struct.unpack('>I', size_bytes)[0]
+            position = stream.tell()
+            if size > MAX_PNG_AUX_BYTES:
+                raise GuardError('MEDIA_METADATA_BUDGET', 'Метаданные PSD превышают бюджет обработки.', stage='preflight')
+            if position + size > total or section == 'colour_mode' and size:
+                raise GuardError('MEDIA_SOURCE_INVALID', 'Неполная структура RGB PSD.', stage='preflight')
+            if section == 'resources':
+                end, records, icc_count = position + size, 0, 0
+                while stream.tell() < end:
+                    _cancel(cancel)
+                    records += 1
+                    resource = stream.read(7)
+                    if len(resource) != 7 or resource[:4] != b'8BIM' or records > 65536:
+                        raise GuardError('MEDIA_SOURCE_INVALID', 'Неверная структура ресурсов PSD.', stage='preflight')
+                    ident, name_length = struct.unpack_from('>HB', resource, 4)
+                    stream.seek(name_length + (1 if name_length % 2 == 0 else 0), 1)
+                    payload_bytes = stream.read(4)
+                    if len(payload_bytes) != 4:
+                        raise GuardError('MEDIA_SOURCE_INVALID', 'Оборванный ресурс PSD.', stage='preflight')
+                    payload = struct.unpack('>I', payload_bytes)[0]
+                    next_resource = stream.tell() + payload + (payload % 2)
+                    if next_resource > end:
+                        raise GuardError('MEDIA_SOURCE_INVALID', 'Ресурс PSD выходит за границы секции.', stage='preflight')
+                    if ident == 1039:
+                        icc_count += 1
+                        if icc_count > 1:
+                            raise GuardError('MEDIA_SOURCE_INVALID', 'Неоднозначный цветовой профиль PSD.', stage='preflight')
+                    stream.seek(next_resource)
+            if section == 'layers' and size:
+                prefix = stream.read(min(size, 6))
+                if len(prefix) < 4:
+                    raise GuardError('MEDIA_SOURCE_INVALID', 'Оборванное описание слоёв PSD.', stage='preflight')
+                layer_bytes = struct.unpack_from('>I', prefix)[0]
+                if layer_bytes > size - 4 or layer_bytes and len(prefix) < 6:
+                    raise GuardError('MEDIA_SOURCE_INVALID', 'Неполное описание слоёв PSD.', stage='preflight')
+                if layer_bytes:
+                    signed_count = struct.unpack_from('>h', prefix, 4)[0]
+                    if signed_count < 0:
+                        return None  # Merged transparency requires a separate alpha contract.
+                    layer_count = signed_count
+            stream.seek(position + size)
+        compression_bytes = stream.read(2)
+        if len(compression_bytes) != 2:
+            raise GuardError('MEDIA_SOURCE_INVALID', 'Нет сведённого изображения PSD.', stage='preflight')
+        compression = struct.unpack('>H', compression_bytes)[0]
+        if compression not in (0, 1):
+            return None  # Pillow's PSD reader does not decode ZIP-compressed pixels.
+        minimum = width * height * channels if compression == 0 else height * channels * 2 + 1
+        if stream.tell() + minimum > total:
+            raise GuardError('MEDIA_SOURCE_INVALID', 'Сведённое изображение PSD обрезано.', stage='preflight')
+    return width, height, layer_count
 
 
 def pillow_legacy_profile(source, *, cancel=None):
@@ -182,6 +257,7 @@ def pillow_legacy_profile(source, *, cancel=None):
             header = stream.read(1539)
         total = stream.seek(0, 2)
     dpi = None
+    psd = None
     if kind == 'pcx':
         if len(header) != 128 or header[0] != 10 or header[2] != 1:
             return None
@@ -210,6 +286,12 @@ def pillow_legacy_profile(source, *, cancel=None):
             return None  # The installed Pillow decoder does not apply 180°.
         width, height = ((512, 768) if orientation in (1, 3) else (768, 512))
         depth = 8
+    elif kind == 'psd':
+        psd = _psd_composite_header(source, header, total, cancel)
+        if psd is None:
+            return None
+        width, height, layer_count = psd
+        depth = 8
     else:
         if len(header) < 32 or header[:4] != b'\x59\xa6\x6a\x95':
             return None
@@ -234,9 +316,23 @@ def pillow_legacy_profile(source, *, cancel=None):
         with Image.open(source) as image:
             if (image.format != _LEGACY_PIL_FORMATS[kind]
                     or image.size != (width, height)
-                    or getattr(image, 'n_frames', 1) != 1):
+                    or kind != 'psd' and getattr(image, 'n_frames', 1) != 1
+                    or kind == 'psd' and image.mode != 'RGB'):
                 raise ValueError('legacy_image_model_mismatch')
             alpha = 'A' in image.getbands()
+            icc_present = bool(image.info.get('icc_profile'))
+            if kind == 'psd':
+                resolutions = []
+                for resource, _, value in image.resources:
+                    if resource == 1005 and len(value) == 16:
+                        x, xu, _, y, yu, _ = struct.unpack('>IHHIHH', value)
+                        if x and y and xu in (1, 2) and yu in (1, 2):
+                            resolutions.append([x / 65536 * (2.54 if xu == 2 else 1),
+                                                y / 65536 * (2.54 if yu == 2 else 1)])
+                if resolutions:
+                    if any(value != resolutions[0] for value in resolutions):
+                        raise ValueError('psd_conflicting_resolution')
+                    dpi = resolutions[0]
     except (OSError, ValueError, SyntaxError) as error:
         raise GuardError('MEDIA_SOURCE_INVALID',
                          'Изображение не подтвердилось декодером.',
@@ -249,6 +345,10 @@ def pillow_legacy_profile(source, *, cancel=None):
         result['dpi'] = dpi
     if kind == 'pcd':
         result['decodedResolution'] = 'PhotoCD_Base'
+    if kind == 'psd':
+        result.update(mergedCompositeOnly=True, sourceLayerCount=layer_count)
+        if icc_present:
+            result['iccProfilePresent'] = True
     return result
 
 
@@ -608,6 +708,13 @@ def _frames(source, scratch, info, cancel):
             if info.get('dpi'):
                 frame.setDotsPerMeterX(round(info['dpi'][0] / 0.0254))
                 frame.setDotsPerMeterY(round(info['dpi'][1] / 0.0254))
+            if info['format'] == 'psd' and decoded.info.get('icc_profile'):
+                from PySide6.QtGui import QColorSpace
+                space = QColorSpace.fromIccProfile(decoded.info['icc_profile'])
+                if not space.isValid() or space.colorModel() != QColorSpace.ColorModel.Rgb:
+                    raise GuardError('MEDIA_COLOR_PROFILE_UNSUPPORTED',
+                        'Цветовой профиль RGB PSD не подтверждён; цвета не преобразованы.', stage='engine')
+                frame.setColorSpace(space)
             _cancel(cancel)
             yield frame
         return

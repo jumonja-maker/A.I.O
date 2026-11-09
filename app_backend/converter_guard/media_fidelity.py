@@ -774,7 +774,7 @@ def check_media_preservation(paths, target, source, *, cancel, source_evidence=N
                 if dimensions is not None:
                     result = _base('pict', *dimensions)
             if result is None and source.suffix.lower() in (
-                    '.pbm', '.pgm', '.ppm', '.xbm', '.xpm', '.pcx', '.ras', '.pcd', '.tga'):
+                    '.pbm', '.pgm', '.ppm', '.xbm', '.xpm', '.pcx', '.ras', '.pcd', '.tga', '.psd'):
                 # Do not turn every native export into a second Guard scan.
                 # For these formats Qt has already confirmed image structure
                 # during preflight; one cheap header probe proves dimensions.
@@ -835,6 +835,8 @@ def check_media_preservation(paths, target, source, *, cancel, source_evidence=N
     before = source_profile()
     expected_losses = []
     if before:
+        if before.get('mergedCompositeOnly'):
+            expected_losses.append('psd_editability')
         if before.get('bitDepth', 8) > after.get('bitDepth', 8):
             if target in ('png', 'apng', 'tif', 'tiff'):
                 raise GuardError('MEDIA_BIT_DEPTH_LOSS', 'Экспорт уменьшил глубину цвета изображения.', stage='result')
