@@ -195,34 +195,46 @@ def detect(program, profile, source, work):
     _stage(work, 'document_loaded')
     if not doc:
         return {'state': 'undetermined', 'code': 'PREFLIGHT_IMPORT_UNDETERMINED'}
-    table = _table(doc, _Document, 'document_type')
-    _stage(work, 'document_type')
-    kind = C.CFUNCTYPE(C.c_int, C.c_void_p)(table.document_type)(doc)
-    _stage(work, 'document_typed')
-    if kind in (0, 1, 2, 3):
-        result = {'state':'detected', 'kind':kind}
-        if kind == 3:
-            # Optional ABI member, checked against the native class size.
-            # LibreOffice/core include/LibreOfficeKit/LibreOfficeKit.h getParts.
-            # Counts pages of the loaded Draw model, never filename suffixes.
-            try:
-                parts = _table(doc, _Document, 'parts')
-                count = C.CFUNCTYPE(C.c_int, C.c_void_p)(parts.parts)(doc)
-                if count > 0:
-                    result['drawPages'] = count
-            except ValueError:
-                pass
-        return result
-    # LOK OTHER is shared by multiple modules. Never infer FormulaProperties
-    # from OTHER alone or the .mml suffix: require a successfully loaded
-    # native model AND a MathML XML root read from actual source bytes.
-    if kind == 4 and _odf_chart(source):
-        return {'state':'detected','kind':4,'contentClass':'odf_chart'}
-    if kind == 4 and _odf_master(source):
-        return {'state':'detected','kind':4,'contentClass':'odf_master'}
-    if kind == 4 and _mathml_root(source):
-        return {'state':'detected','kind':4,'contentClass':'mathml'}
-    return {'state':'undetermined','code':'PREFLIGHT_KIND_UNDETERMINED'}
+    try:
+        table = _table(doc, _Document, 'document_type')
+        _stage(work, 'document_type')
+        kind = C.CFUNCTYPE(C.c_int, C.c_void_p)(table.document_type)(doc)
+        _stage(work, 'document_typed')
+        if kind in (0, 1, 2, 3):
+            result = {'state':'detected', 'kind':kind}
+            if kind == 3:
+                # Optional ABI member, checked against the native class size.
+                # LibreOffice/core include/LibreOfficeKit/LibreOfficeKit.h getParts.
+                # Counts pages of the loaded Draw model, never filename suffixes.
+                try:
+                    parts = _table(doc, _Document, 'parts')
+                    count = C.CFUNCTYPE(C.c_int, C.c_void_p)(parts.parts)(doc)
+                    if count > 0:
+                        result['drawPages'] = count
+                except ValueError:
+                    pass
+            return result
+        # LOK OTHER is shared by multiple modules. Never infer FormulaProperties
+        # from OTHER alone or the .mml suffix: require a successfully loaded
+        # native model AND a MathML XML root read from actual source bytes.
+        if kind == 4 and _odf_chart(source):
+            return {'state':'detected','kind':4,'contentClass':'odf_chart'}
+        if kind == 4 and _odf_master(source):
+            return {'state':'detected','kind':4,'contentClass':'odf_master'}
+        if kind == 4 and _mathml_root(source):
+            return {'state':'detected','kind':4,'contentClass':'mathml'}
+        return {'state':'undetermined','code':'PREFLIGHT_KIND_UNDETERMINED'}
+    finally:
+        # os._exit() deliberately avoids global office shutdown below, but a
+        # loaded document must release its own source lock first. Leaving that
+        # lock behind makes a second Batch/Silent import reject unchanged bytes.
+        # Never delete a lock by filename: this native handle owns its cleanup.
+        # The existing parent deadline/cancellation also bounds this C call.
+        try:
+            _stage(work, 'document_close')
+        finally:
+            C.CFUNCTYPE(None, C.c_void_p)(_table(doc, _Document, 'destroy').destroy)(doc)
+        _stage(work, 'document_closed')
 
 
 def main(manifest_path):

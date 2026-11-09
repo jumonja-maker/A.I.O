@@ -132,6 +132,7 @@ class Registry:
         standard = {'docx': 'MS Word 2007 XML', 'docm': 'MS Word 2007 XML VBA',
                     'dotx': 'MS Word 2007 XML Template',
                     'xlsx': 'Calc MS Excel 2007 XML',
+                    'xlsm': 'Calc MS Excel 2007 VBA XML',
                     'pptx': 'Impress MS PowerPoint 2007 XML'}.get(target)
         if standard in candidates:
             return standard

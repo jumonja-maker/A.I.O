@@ -119,4 +119,37 @@ class VbaStorageContract(unittest.TestCase):
         with self.assertRaises(ValueError):decompress_vba(b'\x01\x03\xb0\x01\xff\xff')
 
 
+class RegisteredMacroExporter(unittest.TestCase):
+    CALC='com.sun.star.sheet.SpreadsheetDocument'
+    WRITER='com.sun.star.text.TextDocument'
+    STANDARD='Calc MS Excel 2007 VBA XML'
+
+    def native(self,names):
+        from app_backend.converter_guard.routes import Registry
+        native=Registry.__new__(Registry)
+        native.valid=True;native.uncertain_extensions=set();native.fingerprint='current-native'
+        native.filters={name:(self.CALC,frozenset(['xlsm']),frozenset(['IMPORT','EXPORT'])) for name in names}
+        native.primary_extensions={name:'xlsm' for name in names}
+        native.export_candidates={('xlsm',self.CALC):set(names)}
+        native.preferred_filters={};native.exports={'xlsm':{self.CALC}};native.import_services={self.CALC}
+        return native
+
+    def test_two_installed_native_vba_variants_choose_standard_uno_recipe(self):
+        from app_backend.converter_guard.export_recipe import native_export_recipe
+        native=self.native([self.STANDARD,'Calc Office Open XML VBA'])
+        proof={'state':'detected','basis':'native_preflight_uno_document','modelLoaded':True,
+               'documentServices':[self.CALC],'registryFingerprint':native.fingerprint}
+        recipe=native_export_recipe(native,'xlsm',proof)
+        self.assertEqual(recipe.filter_name,self.STANDARD)
+        self.assertEqual(recipe.cli_spec('xlsm'),'xlsm:'+self.STANDARD)
+        self.assertIsNone(native.export_filter('xlsm',[self.WRITER]))
+        self.assertIsNone(native_export_recipe(native,'xlsm',{**proof,'registryFingerprint':'stale'}))
+        native.uncertain_extensions.add('xlsm')
+        self.assertIsNone(native.export_filter('xlsm',[self.CALC]))
+
+    def test_uninstalled_standard_never_fabricates_a_macro_filter(self):
+        native=self.native(['custom1','custom2'])
+        self.assertIsNone(native.export_filter('xlsm',[self.CALC]))
+
+
 if __name__=='__main__':unittest.main()
