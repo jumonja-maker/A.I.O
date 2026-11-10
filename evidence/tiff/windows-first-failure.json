@@ -1,0 +1,235 @@
+{
+  "run": 40553238487,
+  "status": "FAIL",
+  "testedSHA": "8b87b8bba15e37cafc00f922860616f6e7c1eff1",
+  "testedTree": "4bb754c8b3d5e926e17aabe338701ecf10117529",
+  "evidence": {
+    "status": "FAIL",
+    "scope": "24 generated TIFF controls; not historical corpus or FULLTEST",
+    "cases": [
+      {
+        "source": "pages-6.tif",
+        "target": "pdf",
+        "status": "PASS",
+        "pages": 6,
+        "firstLastAndAllPixelsVerified": true,
+        "sourceSha256": "d25391871877f4b9d69787f32e097a04e49a14789d85fb4c1606b5fd3a0138c4",
+        "outputSha256": "d5f86b6a4f9c9a0eeaab3c156c7b6f63b649c39ad7baeed730e7bbfef91e3a0a",
+        "mode": "qt_media_frames",
+        "checks": [
+          {
+            "check": "media_properties",
+            "status": "checked_subset",
+            "qualityCompared": false,
+            "source": {
+              "format": "tiff",
+              "width": 32,
+              "height": 24,
+              "frames": 1,
+              "pages": 6,
+              "alpha": true,
+              "durationsMs": [],
+              "orientation": 1,
+              "pageDimensions": [
+                [
+                  32,
+                  24
+                ],
+                [
+                  32,
+                  24
+                ],
+                [
+                  32,
+                  24
+                ],
+                [
+                  32,
+                  24
+                ],
+                [
+                  32,
+                  24
+                ],
+                [
+                  32,
+                  24
+                ]
+              ],
+              "bitDepth": 8,
+              "pageImageIndexes": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+              ],
+              "pageOrientations": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ],
+              "pageDpi": [
+                [
+                  99.9998,
+                  99.9998
+                ],
+                [
+                  99.9998,
+                  99.9998
+                ],
+                [
+                  99.9998,
+                  99.9998
+                ],
+                [
+                  99.9998,
+                  99.9998
+                ],
+                [
+                  99.9998,
+                  99.9998
+                ],
+                [
+                  99.9998,
+                  99.9998
+                ]
+              ]
+            },
+            "result": {
+              "format": "pdf",
+              "pages": 6
+            },
+            "expectedLosses": []
+          }
+        ]
+      },
+      {
+        "source": "pages-6.tif",
+        "target": "png",
+        "status": "PASS",
+        "pages": 6,
+        "firstLastAndAllPixelsVerified": true,
+        "sourceSha256": "d25391871877f4b9d69787f32e097a04e49a14789d85fb4c1606b5fd3a0138c4",
+        "outputSha256": "9e2528a93e6f64f0be2571638fda210956c16071e328ef6401f5630c11376fa9",
+        "mode": "qt_media_frames",
+        "checks": [
+          {
+            "check": "media_properties",
+            "status": "checked_subset",
+            "qualityCompared": false,
+            "source": {
+              "format": "tiff",
+              "width": 32,
+              "height": 24,
+              "frames": 1,
+              "pages": 6,
+              "alpha": true,
+              "durationsMs": [],
+              "orientation": 1,
+              "pageDimensions": [
+                [
+                  32,
+                  24
+                ],
+                [
+                  32,
+                  24
+                ],
+                [
+                  32,
+                  24
+                ],
+                [
+                  32,
+                  24
+                ],
+                [
+                  32,
+                  24
+                ],
+                [
+                  32,
+                  24
+                ]
+              ],
+              "bitDepth": 8,
+              "pageImageIndexes": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+              ],
+              "pageOrientations": [
+                1,
+                1,
+                1,
+                1,
+                1,
+                1
+              ],
+              "pageDpi": [
+                [
+                  99.9998,
+                  99.9998
+                ],
+                [
+                  99.9998,
+                  99.9998
+                ],
+                [
+                  99.9998,
+                  99.9998
+                ],
+                [
+                  99.9998,
+                  99.9998
+                ],
+                [
+                  99.9998,
+                  99.9998
+                ],
+                [
+                  99.9998,
+                  99.9998
+                ]
+              ]
+            },
+            "result": {
+              "format": "png",
+              "width": 32,
+              "height": 24,
+              "frames": 6,
+              "pages": 1,
+              "alpha": true,
+              "durationsMs": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              "orientation": 1,
+              "animationContainer": true,
+              "loopCount": 1,
+              "bitDepth": 8
+            },
+            "expectedLosses": [
+              "page_semantics_as_frames"
+            ]
+          }
+        ]
+      }
+    ],
+    "negative": [],
+    "reason": "'PySide6.QtGui.QImage.fromData' called with wrong argument values:\n  PySide6.QtGui.QImage.fromData(b'RIFF*\\x00\\x00\\x00WEBPVP8L\\x1e\\x00\\x00\\x00/\\x1f\\xc0\\x05\\x00\\xb9\\x8c\\xe8\\x7f\\xec\"\\xa2\\xff\\x01!\\x01\\xa1\\xfb?Z\\x95\\xe6`\\x02b\\x02\\x80k\\xdd\\x1b', b'webp')\nFound signature:\n  PySide6.QtGui.QImage.fromData(data: PySide6.QtCore.QByteArray | bytes | bytearray | memoryview, /, format: bytes | bytearray | memoryview | None = None)",
+    "code": null
+  }
+}
